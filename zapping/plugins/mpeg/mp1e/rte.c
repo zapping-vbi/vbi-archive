@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.56 2001-07-12 01:22:05 mschimek Exp $ */
+/* $Id: rte.c,v 1.57 2001-07-15 15:22:07 mschimek Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -122,8 +122,16 @@ blank_callback(rte_context * context, void *data, double *time,
 	*time = tv.tv_sec + tv.tv_usec/1e6;
 
 	/* set to 0's (avoid ugly noise on stop) */
+	/* XXX for video this is all green, set UV = 0x80 for black */
 	memset(data, 0, (stream == RTE_VIDEO) ?
 	       context->video_bytes : context->audio_bytes);
+}
+
+typedef long long int tsc_t;
+static tsc_t rdtsc(void) {
+    tsc_t tsc;
+    asm ("\trdtsc\n" : "=A" (tsc));
+    return tsc;
 }
 
 /*
@@ -182,7 +190,6 @@ wait_data(rte_context * context, int video)
 			}
 			continue;
 		}
-
 		/* wait for the push interface */
 		pthread_mutex_lock(&consumer->mutex);
 		pthread_cond_wait(&consumer->cond, &consumer->mutex);

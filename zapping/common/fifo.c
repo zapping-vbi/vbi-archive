@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.17 2001-07-07 08:46:54 mschimek Exp $ */
+/* $Id: fifo.c,v 1.18 2001-07-15 15:22:07 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -334,6 +334,14 @@ kill_zombies(fifo *f)
 	pthread_rwlock_unlock(&f->consumers_rwlock);
 }
 
+typedef long long int tsc_t;
+static tsc_t rdtsc(void) {
+    tsc_t tsc;
+    asm ("\trdtsc\n" : "=A" (tsc));
+    return tsc;
+}
+
+
 buffer *
 wait_full_buffer(fifo *f)
 {
@@ -560,6 +568,10 @@ mutex_co_lock(pthread_mutex_t *m1, pthread_mutex_t *m2)
 	}
 }
 
+/*
+    addr2line -Cfe src/zapping 0xreturn_address
+    XXX exec?
+ */
 static void
 dead_fifo(fifo2 *f)
 {

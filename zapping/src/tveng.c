@@ -46,8 +46,11 @@
 
 #define TVLOCK		pthread_mutex_lock(&(info->private->mutex))
 #define UNTVLOCK	pthread_mutex_unlock(&(info->private->mutex))
-#define RETURN_UNTVLOCK(X) do { int unlocked_result = X; UNTVLOCK; \
-				return unlocked_result; } while (0)
+#define RETURN_UNTVLOCK(X) \
+do { __typeof__(X) _unlocked_result = X; \
+     UNTVLOCK; \
+     return _unlocked_result; \
+} while (0)
 
 #define TVUNSUPPORTED do { \
   /* function not supported by the module */ \

@@ -28,10 +28,15 @@ Outstanding issues for the next release (0.6.0)
 	+ Save control values and restore on startup (per channel).
 	+ Save screenshots at arbitrary sizes.
 	+ Standalone Zapzilla
+	+ Create screenshots/mpeg/ttx dirs if not existant at write time.
+	? In ttx search it may be more newbie friendly to make
+	  regexp optional.
 
 > Somewhen...
 	+ Do realtime effects to the image, plainly wonderful, see
 	http://matsu-www.is.titech.ac.jp/~fukuchi/rooms/EffecTV/index.html
+	? Add a link to http://www.firstlinux.com/articles/zapping.shtml
+	  on the Z homepage. There was another french review, URL?
 
 please tell me about anything you think it's worth adding. 
 garetxe@users.sourceforge.net

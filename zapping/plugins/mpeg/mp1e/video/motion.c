@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.11 2001-07-12 01:22:06 mschimek Exp $ */
+/* $Id: motion.c,v 1.12 2001-07-15 15:22:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -2733,6 +2733,81 @@ mmx_load_pref(char t[16][16])
 	:: "S" (&mblock[0][0][0][0]), "D" (&t[0][0]) : "memory");
 }
 
+#if 0 /* untested */
+static inline void
+sse2_load_pref(char t[16][16])
+{
+	asm volatile (
+		" movdqa	0*16+0(%0),%%xmm0;\n"
+		" movq		c1b,%%xmm7;\n"
+		" paddw		1*16+0(%0),%%xmm0;\n"
+		" punpckqdq	%%xmm7,%%xmm7;\n"
+		" paddw		2*16+0(%0),%%xmm0;\n"
+		" movdqa	%%xmm7,%%xmm6;\n"
+		" paddw		3*16+0(%0),%%xmm0;\n"
+		" psllq		$7,%%xmm7;\n"
+		" paddw		4*16+0(%0),%%xmm0;\n"
+		" psrlw		$8-4,%%xmm6;\n"
+		" paddw		5*16+0(%0),%%xmm0;\n"
+		" movdqa	256+0*16+0(%0),%%xmm2;\n"
+		" paddw		6*16+0(%0),%%xmm0;\n"
+		" paddw		256+1*16+0(%0),%%xmm2;\n"
+		" paddw		7*16+0(%0),%%xmm0;\n"
+		" paddw		256+2*16+0(%0),%%xmm2;\n"
+		" movdqa	%%xmm0,%%xmm4;\n"
+		" paddw		256+3*16+0(%0),%%xmm2;\n"
+		" paddw		256+4*16+0(%0),%%xmm2;\n"
+		" paddw		256+5*16+0(%0),%%xmm2;\n"
+		" paddw		256+6*16+0(%0),%%xmm2;\n"
+		" paddw		256+7*16+0(%0),%%xmm2;\n"
+		" punpcklwd	%%xmm2,%%xmm0;\n" // 0a1b2c3d
+		" movdqa	128+0*16+0(%0),%%xmm1;\n"
+		" punpckhwd	%%xmm2,%%xmm4;\n" // 4e5f6g7h
+		" paddw		128+1*16+0(%0),%%xmm1;\n"
+		" movdqa	%%xmm0,%%xmm2;\n"
+		" paddw		128+2*16+0(%0),%%xmm1;\n"
+		" punpckldq	%%xmm4,%%xmm0;\n" // 0a4e1b5f
+		" paddw		128+3*16+0(%0),%%xmm1;\n"
+		" punpckhdq	%%xmm4,%%xmm2;\n" // 2c6g3d7h
+		" paddw		128+4*16+0(%0),%%xmm1;\n"
+		" paddw		%%xmm2,%%xmm0;\n" // 02 ac 46 eg 13 bd 57 fh
+		" paddw		128+5*16+0(%0),%%xmm1;\n"
+		" movdqa	%%xmm0,%%xmm2;\n"
+		" paddw		128+6*16+0(%0),%%xmm1;\n"
+		" paddw		128+7*16+0(%0),%%xmm1;\n"
+		" movdqa	%%xmm1,%%xmm5;\n"
+		" movdqa	384+0*16+0(%0),%%xmm3;\n"
+		" paddw		384+1*16+0(%0),%%xmm3;\n"
+		" paddw		384+2*16+0(%0),%%xmm3;\n"
+		" paddw		384+3*16+0(%0),%%xmm3;\n"
+		" paddw		384+4*16+0(%0),%%xmm3;\n"
+		" paddw		384+5*16+0(%0),%%xmm3;\n"
+		" paddw		384+6*16+0(%0),%%xmm3;\n"
+		" paddw		384+7*16+0(%0),%%xmm3;\n"
+		" punpcklwd	%%xmm3,%%xmm1;\n" // 0a1b2c3d
+		" punpckhwd	%%xmm3,%%xmm5;\n" // 4e5f6g7h
+		" movdqa	%%xmm1,%%xmm3;\n"
+		" punpckldq	%%xmm5,%%xmm1;\n" // 0a4e1b5f
+		" punpckhdq	%%xmm5,%%xmm3;\n" // 2c6g3d7h
+		" paddw		%%xmm3,%%xmm1;\n" // 02' ac' 46' eg' 13' bd' 57' fh'
+		" punpcklqdq	%%xmm1,%%xmm0;\n" // 02 ac 46 eg 02' ac' 46' eg' 
+		" punpckhqdq	%%xmm1,%%xmm2;\n" // 13 bd 57 fh 13' bd' 57' fh'
+		" paddw		%%xmm2,%%xmm0;\n" // 0123 abcd 4567 efgh 0123' abcd' 4567' efgh'
+		" paddw		%%xmm6,%%xmm0;\n"
+		" psrlw		$5,%%xmm0;\n"
+		" movdqa	%%xmm0,%%xmm2;\n"
+		" psllw		$8,%%xmm2;\n"
+		" por		%%xmm2,%%xmm0;\n"
+		" pxor		%%xmm7,%%xmm0;\n"
+		" movq		%%mm0,%%mm1;\n"
+		" punpcklbw	%%mm0,%%mm0;\n"
+		" punpckhbw	%%mm1,%%mm1;\n"
+		" movdqa	%%xmm0,(%1);\n"
+		" movdqa	%%xmm1,16(%1);\n"
+	:: "S" (&mblock[0][0][0][0]), "D" (&t[0][0]) : "memory");
+}
+#endif
+
 static inline int
 mmx_predict(unsigned char *from, int d2x, int d2y,
       typeof (temp22) *ibuf, int iright, int idown, short dest[6][8][8])
@@ -3062,6 +3137,306 @@ mmx_predict(unsigned char *from, int d2x, int d2y,
 	return s;
 }
 
+#if 0 /* untested */
+static inline int
+sse2_predict(unsigned char *from, int d2x, int d2y,
+      typeof (temp22) *ibuf, int iright, int idown, short dest[6][8][8])
+{
+	unsigned char *p, *q;
+	int mx, my, hy;
+	int i, s;
+
+	pr_start(53, "forward fetch");
+
+	asm volatile (
+		" pxor		%xmm5,%xmm5;\n"
+		" pxor		%xmm6,%xmm6;\n"
+		" pxor		%xmm7,%xmm7;\n"
+	);
+
+	if (iright) {
+	for (i = 0; i < 16; i++) {
+		asm volatile (
+			" movq		1(%0),%%xmm0;\n"
+			" punpcklbw	%%xmm5,%%xmm0;\n"
+			" movq		8(%0),%%xmm1;\n"
+			" movdqa	%%xmm0,2*768+0*128+0(%3);\n"
+			" psrlq		$8,%%xmm1;\n"
+			" movq		(%2),%%xmm3;\n"
+			" psllq		$56,%%xmm3;\n"
+			" movdqa	0*768+0*128+0(%1),%%xmm2;\n"
+			" por		%%xmm3,%%xmm1;\n"
+			" movq		0*768+2*128+0(%1),%%mm3;\n"
+			" psubw		%%xmm0,%%xmm2;\n"
+			" punpckhbw	%%xmm5,%%xmm1;\n"
+			" movdqa	%%xmm2,0*768+0*128+0(%3);\n"
+			" paddw		%%xmm2,%%xmm6;\n"
+			" pmaddwd	%%xmm2,%%xmm2;\n"
+			" movq		%%xmm1,2*768+2*128+0(%3);\n"
+			" psubw		%%xmm1,%%xmm3;\n"
+			" paddd		%%xmm2,%%xmm7;\n"
+			" movq		%%xmm3,0*768+2*128+0(%3);\n"
+			" paddw		%%xmm3,%%xmm6;\n"
+			" pmaddwd	%%xmm3,%%xmm2;\n"
+			" paddd		%%xmm3,%%xmm7;\n"
+		:: "r" (&(* ibuf)[i+idown][0]),
+		   "r" (&mblock[0][0][i][0]),
+		   "r" (&(* ibuf)[18][i+idown]),
+		   "r" (&dest[0][i][0]));
+	}
+	} else {
+	for (i = 0; i < 16; i++) {
+		asm volatile (
+			" movq		(%0),%%xmm0;\n"
+			" punpcklbw	%%xmm5,%%xmm0;\n"
+			" movq		8(%0),%%xmm1;\n"
+			" movq		%%xmm0,2*768+0*128+0(%2);\n"
+			" punpcklbw	%%xmm5,%%xmm1;\n"
+			" movq		0*768+0*128+0(%1),%%xmm2;\n"
+			" psubw		%%xmm0,%%xmm2;\n"
+			" movq		%%xmm1,2*768+2*128+0(%2);\n"
+			" paddw		%%xmm2,%%xmm6;\n"
+			" movq		%%xmm2,0*768+0*128+0(%2);\n"
+			" pmaddwd	%%xmm2,%%xmm2;\n"
+			" psubw		%%xmm1,%%xmm3;\n"
+			" movq		0*768+2*128+0(%1),%%xmm3;\n"
+			" paddd		%%xmm2,%%xmm7;\n"
+			" paddw		%%xmm3,%%xmm6;\n"
+			" movq		%%xmm3,0*768+2*128+0(%2);\n"
+			" pmaddwd	%%xmm3,%%xmm2;\n"
+			" paddd		%%xmm3,%%xmm7;\n"
+		:: "r" (&(* ibuf)[i+idown][0]),
+		     "r" (&mblock[0][0][i][0]),
+		     "r" (&dest[0][i][0]));
+	}
+	}
+
+	asm volatile (
+		" movdqa	%%xmm7,%%xmm0;\n"
+		" psrldq	$64,%%mm7;\n"
+		" paddd		%%xmm0,%%xmm7;\n"
+		" movdqa	%%xmm7,%%xmm0;\n"
+		" psrlq		$32,%%xmm7;\n"
+		" paddd		%%xmm0,%%xmm7;\n"
+		" pslld		$8,%%mm7;\n"
+		" movdqa	%%xmm6,%%xmm0;\n"
+		" psrldq	$64,%%xmm6;\n"
+		" paddw		%%xmm0,%%xmm6;\n"
+		" movdqa	%%xmm6,%%xmm0;\n"
+		" psrlq		$32,%%xmm6;\n"
+		" paddw		%%xmm0,%%xmm6;\n"
+		" movdqa	%%xmm6,%%xmm0;\n"
+		" psrlq		$16,%%xmm6;\n"
+		" paddw		%%xmm0,%%xmm6;\n" // u16
+		" punpcklwd	%%xmm5,%%xmm6;\n"
+		" movd		%%xmm6,%1;\n"
+		" imul		%1,%1;\n"
+		" movd		%%xmm7,%0;\n"
+		" subl		%1,%0;\n"
+	: "=&r" (s) : "r" (0));
+
+	mx = d2x + mb_col * 16 * 2;
+	my = d2y + mb_row * 16 * 2;
+
+	p = from + mb_address.chrom_0
+		+ 8 * mb_address.block[0].pitch + 8
+		+ (mx >> 2) + (my >> 2) * mb_address.block[4].pitch;
+	hy = ((my >> 1) & 1) * mb_address.block[4].pitch;
+
+	if (mx & 2) {
+		q = p + mb_address.block[5].offset;
+	asm volatile (
+		" movq		c2,%mm7;\n"
+	);
+		for (i = 0; i < 8; i++) {
+			asm volatile (
+				" pushl		%1\n"
+				" movzxb	(%0),%1;\n"
+				" movd		%1,%%mm1;\n"
+				" popl		%1\n"
+				" movq		1(%0),%%mm2;\n"
+				" movq		%%mm2,%%mm0;\n"
+				" psllq		$8,%%mm0;\n"
+				" por		%%mm1,%%mm0;\n"
+				" movq		%%mm0,%%mm1;\n"
+				" punpcklbw	%%mm5,%%mm0;\n"
+				" punpckhbw	%%mm5,%%mm1;\n"
+				" movq		%%mm2,%%mm3;\n"
+				" punpcklbw	%%mm5,%%mm2;\n"
+				" punpckhbw	%%mm5,%%mm3;\n"
+				" paddw		%%mm2,%%mm0;\n"
+				" paddw		%%mm3,%%mm1;\n"
+				" pushl		%1\n"
+				" movzxb	(%0,%2),%1;\n"
+				" movd		%1,%%mm3;\n"
+				" popl		%1\n"
+				" movq		1(%0,%2),%%mm2;\n"
+				" movq		%%mm2,%%mm4;\n"
+				" psllq		$8,%%mm4;\n"
+				" por		%%mm3,%%mm4;\n"
+				" movq		%%mm4,%%mm3;\n"
+				" punpcklbw	%%mm5,%%mm4;\n"
+				" punpckhbw	%%mm5,%%mm3;\n"
+				" paddw		%%mm4,%%mm0;\n"
+				" paddw		%%mm3,%%mm1;\n"
+				" movq		%%mm2,%%mm3;\n"
+				" punpcklbw	%%mm5,%%mm2;\n"
+				" punpckhbw	%%mm5,%%mm3;\n"
+				" paddw		%%mm2,%%mm0;\n"
+				" paddw		%%mm3,%%mm1;\n"
+				" paddw		%%mm7,%%mm0;\n"
+				" paddw		%%mm7,%%mm1;\n"
+				" psrlw		$2,%%mm0;\n"
+				" psrlw		$2,%%mm1;\n"
+				" movq		0*768+4*128+0(%4),%%mm2;\n"
+				" movq		0*768+4*128+8(%4),%%mm3;\n"
+				" psubw		%%mm0,%%mm2;\n"
+				" psubw		%%mm1,%%mm3;\n"
+				" movq		%%mm0,2*768+4*128+0(%1);\n"
+				" movq		%%mm1,2*768+4*128+8(%1);\n"
+				" movq		%%mm2,0*768+4*128+0(%1);\n"
+				" movq		%%mm3,0*768+4*128+8(%1);\n"
+
+				" pushl		%1\n"
+				" movzxb	(%3),%1;\n"
+				" movd		%1,%%mm1;\n"
+				" popl		%1\n"
+				" movq		1(%3),%%mm2;\n"
+				" movq		%%mm2,%%mm0;\n"
+				" psllq		$8,%%mm0;\n"
+				" por		%%mm1,%%mm0;\n"
+				" movq		%%mm0,%%mm1;\n"
+				" punpcklbw	%%mm5,%%mm0;\n"
+				" punpckhbw	%%mm5,%%mm1;\n"
+				" movq		%%mm2,%%mm3;\n"
+				" punpcklbw	%%mm5,%%mm2;\n"
+				" punpckhbw	%%mm5,%%mm3;\n"
+				" paddw		%%mm2,%%mm0;\n"
+				" paddw		%%mm3,%%mm1;\n"
+				" pushl		%1\n"
+				" movzxb	(%3,%2),%1;\n"
+				" movd		%1,%%mm3;\n"
+				" popl		%1\n"
+				" movq		1(%3,%2),%%mm2;\n"
+				" movq		%%mm2,%%mm4;\n"
+				" psllq		$8,%%mm4;\n"
+				" por		%%mm3,%%mm4;\n"
+				" movq		%%mm4,%%mm3;\n"
+				" punpcklbw	%%mm5,%%mm4;\n"
+				" punpckhbw	%%mm5,%%mm3;\n"
+				" paddw		%%mm4,%%mm0;\n"
+				" paddw		%%mm3,%%mm1;\n"
+				" movq		%%mm2,%%mm3;\n"
+				" punpcklbw	%%mm5,%%mm2;\n"
+				" punpckhbw	%%mm5,%%mm3;\n"
+				" paddw		%%mm2,%%mm0;\n"
+				" paddw		%%mm3,%%mm1;\n"
+				" paddw		%%mm7,%%mm0;\n"
+				" paddw		%%mm7,%%mm1;\n"
+				" psrlw		$2,%%mm0;\n"
+				" psrlw		$2,%%mm1;\n"
+
+				" movq		0*768+5*128+0(%4),%%mm2;\n"
+				" movq		0*768+5*128+8(%4),%%mm3;\n"
+				" psubw		%%mm0,%%mm2;\n"
+				" psubw		%%mm1,%%mm3;\n"
+				" movq		%%mm0,2*768+5*128+0(%1);\n"
+				" movq		%%mm1,2*768+5*128+8(%1);\n"
+				" movq		%%mm2,0*768+5*128+0(%1);\n"
+				" movq		%%mm3,0*768+5*128+8(%1);\n"
+
+			:: "r" (p), "c" (&dest[0][i][0]), "r" (hy), "r" (q),
+			    "r" (&mblock[0][0][i][0]));
+
+		p += mb_address.block[4].pitch;
+		q += mb_address.block[4].pitch;
+	}
+	} else {
+	asm volatile (
+		" movq		(%0),%%mm3;\n"
+		" movq		(%0,%1),%%mm4;\n"
+		" movq		c1b,%%mm7;\n"
+		" pxor		%%mm6,%%mm6;\n"
+	:: "r" (p), "r" (mb_address.block[5].offset), "r" (0));
+
+	p += hy;
+
+	if (hy) // XXX
+		asm volatile (
+			" pcmpeqb	%mm6,%mm6;\n"
+		);
+
+	for (i = 0; i < 8; i++) {
+		asm volatile (
+			" movq		(%0),%%mm2;\n"
+			" movq		%%mm3,%%mm1;\n"
+			" pxor		%%mm2,%%mm1;\n"
+			" movq		%%mm2,%%mm0;\n"
+			" pand		%%mm6,%%mm1;\n"
+			" pxor		%%mm1,%%mm0;\n"
+			" pxor		%%mm1,%%mm3;\n"
+			" movq		%%mm2,%%mm1;\n"
+			" por		%%mm0,%%mm2;\n"
+			" por		%%mm7,%%mm0;\n"
+			" por		%%mm7,%%mm1;\n"
+			" psrlq		$1,%%mm0;\n"
+			" pand		%%mm7,%%mm2;\n"
+			" psrlq		$1,%%mm1;\n"
+			" paddb		%%mm1,%%mm0;\n"
+			" paddb		%%mm2,%%mm0;\n"
+			" movq		0*768+4*128+0(%4),%%mm2;\n"
+			" movq		%%mm0,%%mm1;\n"
+			" punpcklbw	%%mm5,%%mm0;\n"
+			" movq		%%mm0,2*768+4*128+0(%2);\n"
+			" psubw		%%mm0,%%mm2;\n"
+			" movq		%%mm2,0*768+4*128+0(%2);\n"
+			" movq		(%0,%1),%%mm0;\n"
+			" movq		0*768+4*128+8(%4),%%mm2;\n"
+			" punpckhbw	%%mm5,%%mm1;\n"
+			" movq		%%mm1,2*768+4*128+8(%2);\n"
+			" psubw		%%mm1,%%mm2;\n"
+			" movq		%%mm2,0*768+4*128+8(%2);\n"
+			" movq		%%mm4,%%mm1;\n"
+			" pxor		%%mm0,%%mm1;\n"
+			" movq		%%mm0,%%mm2;\n"
+			" pand		%%mm6,%%mm1;\n"
+			" pxor		%%mm1,%%mm2;\n"
+			" pxor		%%mm1,%%mm4;\n"
+			" movq		%%mm0,%%mm1;\n"
+			" por		%%mm2,%%mm0;\n"
+			" por		%%mm7,%%mm2;\n"
+			" por		%%mm7,%%mm1;\n"
+			" psrlq		$1,%%mm2;\n"
+			" pand		%%mm7,%%mm0;\n"
+			" psrlq		$1,%%mm1;\n"
+			" paddb		%%mm1,%%mm0;\n"
+			" paddb		%%mm2,%%mm0;\n"
+			" movq		0*768+5*128+0(%4),%%mm2;\n"
+			" movq		%%mm0,%%mm1;\n"
+			" punpcklbw	%%mm5,%%mm0;\n"
+			" movq		%%mm0,2*768+5*128+0(%2);\n"
+			" psubw		%%mm0,%%mm2;\n"
+			" movq		%%mm2,0*768+5*128+0(%2);\n"
+			" movq		0*768+5*128+8(%4),%%mm2;\n"
+			" punpckhbw	%%mm5,%%mm1;\n"
+			" movq		%%mm1,2*768+5*128+8(%2);\n"
+			" psubw		%%mm1,%%mm2;\n"
+			" movq		%%mm2,0*768+5*128+8(%2);\n"
+
+		:: "r" (p), "r" (mb_address.block[5].offset),
+		     "r" (&dest[0][i][0]), "r" (0),
+		     "r" (&mblock[0][0][i][0]));
+
+		p += mb_address.block[4].pitch;
+	}
+	}
+
+	pr_end(53);
+
+	return s;
+}
+#endif
+
 static inline int
 tmp_search(int *dhx, int *dhy, unsigned char *from,
        int x, int y, int range, short dest[6][8][8],
@@ -3109,7 +3484,11 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 	bbmin = MMXRW(0xFFFE - 0x8000);
 	bbdxy = MMXRW(0x0000);
 
-	mmx_load_pref(tbuf);
+	switch (cpu_type) {
+	default:
+		mmx_load_pref(tbuf);
+		break;
+	}
 
 	p = from + mm_buf_offs + y0 * mb_address.block[0].pitch;
 

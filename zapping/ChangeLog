@@ -1,3 +1,10 @@
+15.07.2001	mpeg plugin <mschimek@users.sf.net>
+
+	* tveng.c: tveng_get_timestamp(), RETURN_UNTVLOCK()
+	  int cast of double time; symptom MPEG plugin a+v heisenbug
+	  in mp1e sync routines, delayed or inhibited recording. Added
+	  timestamp validation in mp1e.
+
 06.07.2001	mpeg plugin <mschimek@users.sf.net>
 
 	* made tveng2 EINTR aware (debugging)

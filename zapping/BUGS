@@ -7,6 +7,8 @@ Known bugs with zapping, don't report them
 	! Something leaks horribly every n-milliseconds, memprof says
 	it's x11_add_clips. Weird, but needs fixing.
 	! MPEG plugin crashes (rte, fifos?)
+rte:remote.c:112: Invalid timestamps from rte-audio: ..., 995206011,154335, 995206011,154335
+Check disabled for further examination
 	* Need better handling of no /dev/video0.
 	* Need better no-overlay-present handling.
 	* vbi eats too much CPU, investigate.

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: remote.c,v 1.5 2001-05-14 22:31:25 garetxe Exp $ */
+/* $Id: remote.c,v 1.6 2001-07-15 15:22:07 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "remote.h"
@@ -82,6 +82,7 @@ remote_stop(double time)
 bool
 remote_sync(fifo *input_fifo, unsigned int this_module, double frame_period)
 {
+	double last_time = -1;
 	buffer *b;
 
 	input_fifo->start(input_fifo);
@@ -105,6 +106,12 @@ remote_sync(fifo *input_fifo, unsigned int this_module, double frame_period)
 			pthread_cond_wait(&remote.mucon.cond, &remote.mucon.mutex);
 			continue;
 		}
+if (0)
+		if (b->time <= last_time)
+			FAIL("Invalid timestamps from %s: ..., %f, %f\n",
+				input_fifo->name, last_time, b->time);
+
+		last_time = b->time;
 
 		if (remote.start_time < b->time) {
 			printv(4, "RS %02x: propose start_time %f, was %f\n",

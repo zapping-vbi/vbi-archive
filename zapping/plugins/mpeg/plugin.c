@@ -267,7 +267,7 @@ audio_data_callback(rte_context * context, void * data, double * time, enum
 {
   struct timeval tv;
 
-  g_assert(stream == RTE_AUDIO);
+  g_assert                      (stream == RTE_AUDIO);
 
   read_audio(data, time, context);
 }
@@ -395,7 +395,7 @@ void plugin_process_bundle ( capture_bundle * bundle )
 	data_dest = rte_push_video_data(context, NULL, 0);
 
       memcpy(data_dest, bundle->data, bundle->format.sizeimage);
-      
+
       data_dest =
 	rte_push_video_data(context, data_dest, bundle->timestamp);
     }
