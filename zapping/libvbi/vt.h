@@ -107,7 +107,7 @@ typedef struct {
 
 	u8		drcs_clut[2 + 2 * 4 + 2 * 16];
 						/* f/b, dclut4, dclut16 */
-	rgba		colour_map[36];
+	rgba		colour_map[40];
 } vt_extension;
 
 typedef struct vt_triplet {
@@ -163,9 +163,10 @@ struct vt_page
 // XXX preset [+1] mode (not 0xFF) or catch
 		}		gpop, pop;
 		struct {
-			u8		raw[26][40];
-			u8		bits[48][12 * 10 / 2];	/* XXX too large for a union? */
-			u8		mode[48];
+			u8			raw[26][40];
+			u8			bits[48][12 * 10 / 2];
+			u8			mode[48];
+			unsigned long long	invalid;
 		}		gdrcs, drcs;
 
 		ait_entry	ait[46];
@@ -181,7 +182,7 @@ struct vt_page
 static inline int
 vtp_size(struct vt_page *vtp)
 {
-	switch (vtp->function) {
+/*	switch (vtp->function) {
 	case PAGE_FUNCTION_UNKNOWN:
 	case PAGE_FUNCTION_LOP:
 		if (vtp->data.lop.ext)
@@ -204,7 +205,7 @@ vtp_size(struct vt_page *vtp)
 
 	default:
 	}
-
+*/
 	return sizeof(*vtp);
 }
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc.c,v 1.3 2000-09-25 17:08:57 mschimek Exp $ */
+/* $Id: vlc.c,v 1.4 2001-01-30 23:27:16 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -38,7 +38,7 @@ int			PMV[2][2];
 
 VLC2			coded_block_pattern[64]			vlc_align(CACHE_LINE);
 VLC2			macroblock_address_increment[33]	vlc_align(CACHE_LINE);
-VLC2			motion_vector_component[128]		vlc_align(CACHE_LINE);
+VLC2			motion_vector_component[32 + 64 + 128]	vlc_align(CACHE_LINE);
 
 /* ISO/IEC 13818-2 Table B-2  Variable length codes for macroblock_type in I-pictures */
 
@@ -137,6 +137,7 @@ vlc_init(void)
 	unsigned int code;
 	int dct_dc_size;
 	int run, level, length;
+	int f_code;
 
 	/* Variable length codes for macroblock address increment */
 
@@ -162,38 +163,42 @@ vlc_init(void)
 
 	/* Variable length codes for motion vector component */
 
-	for (i = 0; i < 128; i++) {
-		int motion_code, motion_residual;
-		const int f_code = 3;
-		const int r_size = f_code - 1;
-		const int f1 = (1 << r_size) - 1;
-		int delta = (i < (128 >> 1)) ? i : i - 128;
+	for (f_code = F_CODE_MIN; f_code <= F_CODE_MAX; f_code++) {
+		int r_size = f_code - 1;
+		int f1 = (1 << r_size) - 1;
 
-		motion_code = (abs(delta) + f1) >> r_size;
-		motion_residual = (abs(delta) + f1) & f1;
+		for (i = 0; i < 16 << f_code; i++) {
+			int motion_code, motion_residual;
+			int delta = (i < (16 << r_size)) ? i : i - (16 << f_code);
 
-		length = vlc(motion_code_vlc[motion_code], &code);
+			motion_code = (abs(delta) + f1) >> r_size;
+			motion_residual = (abs(delta) + f1) & f1;
 
-		if (motion_code != 0) {
-			code = code * 2 + (delta < 0); /* sign */
-			length++;
+			length = vlc(motion_code_vlc[motion_code], &code);
+
+			if (motion_code != 0) {
+				code = code * 2 + (delta < 0); /* sign */
+				length++;
+			}
+
+			if (f_code > 1 && motion_code != 0) {
+				code = (code << r_size) + motion_residual;
+				length += r_size;
+			}
+
+			assert(code <= UCHAR_MAX);
+
+			motion_vector_component[f1 * 32 + i].code = code;
+			motion_vector_component[f1 * 32 + i].length = length;
+#if 0
+			fprintf(stderr, "MV %02x %-2d ", i, delta);
+
+			for (j = length - 1; j >= 0; j--)
+				fprintf(stderr, "%d", (code & (1 << j)) > 0);
+
+			fprintf(stderr, "\n");
+#endif
 		}
-
-		if (f_code > 1 && motion_code != 0) {
-			code = (code << r_size) + motion_residual;
-			length += r_size;
-		}
-
-		assert(code <= UCHAR_MAX);
-
-		motion_vector_component[i].code = code;
-		motion_vector_component[i].length = length;
-/*
-		fprintf(stderr, "MV %02x %-2d ", i, delta);
-		for (j = length - 1; j >= 0; j--)
-			fprintf(stderr, "%d", (code & (1 << j)) > 0);
-		fprintf(stderr, "\n");
-*/
 	}
 
 	/* Variable length codes for intra DC coefficient */

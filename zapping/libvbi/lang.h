@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.5 2001-01-10 12:17:58 mschimek Exp $ */
+/* $Id: lang.h,v 1.6 2001-01-30 23:27:16 mschimek Exp $ */
 
 #ifndef LANG_H
 #define LANG_H
@@ -100,6 +100,13 @@ gl_isalnum(int glyph)
 		return 0;
 
 	return 1;
+}
+
+static inline int
+gl_isg1(int glyph)
+{
+	return (glyph >= GL_GRAPHICS
+		&& glyph < GL_GRAPHICS + 0x80);
 }
 
 /*

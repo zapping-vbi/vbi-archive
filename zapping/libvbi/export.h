@@ -28,6 +28,8 @@ typedef struct fmt_char {
 	unsigned	bold		: 1;
 	unsigned	italic		: 1;
 	unsigned	flash		: 1;
+	unsigned	conceal		: 1;	/* XXX */
+	unsigned	proportional	: 1;
 	unsigned	size		: 8;
 	unsigned	opacity		: 8;
 	unsigned	foreground	: 8;	// 5
@@ -42,6 +44,8 @@ struct fmt_page
 	struct vt_page *vtp;
 	struct fmt_char data[H][W];
 
+	int			reveal;
+
 	rgba			screen_colour;
 	opacity			screen_opacity;
 
@@ -55,10 +59,13 @@ struct fmt_page
 	/* private */
 
 	magazine *		magazine;
+	vt_extension *		ext;
+
 	opacity			page_opacity[2];
 	opacity			boxed_opacity[2];
 
 	unsigned int		double_height_lower;
+//XXX not
 	unsigned char		row_colour[25];
 
 	/* XXX need a page update flag,

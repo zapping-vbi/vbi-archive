@@ -275,8 +275,9 @@ export_mkname(struct export *e, char *fmt, struct vt_page *vtp, char *usr)
 #define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
  #undef printv
- #define printv(templ, somethingelse...)
+ #define printv(templ, args...)
 // #define printv printf
+
 
 
 
@@ -387,17 +388,51 @@ vbi_resolve_page(int x, int y, struct vt_page *vtp, int *page,
  *  FLOF navigation
  */
 
+static const colours
+flof_link_col[4] = { RED, GREEN, YELLOW, CYAN };
+
 static void
 flof_navigation_bar(struct fmt_page *pg, struct vt_page *vtp)
 {
-	static const colours link_col[4] = { RED, GREEN, YELLOW, CYAN };
+	attr_char ac;
+	int n, i, k;
+
+	memset(&ac, 0, sizeof(ac));
+
+	ac.foreground	= WHITE;
+	ac.background	= BLACK;
+	ac.opacity	= pg->page_opacity[1];
+	ac.glyph	= GL_SPACE;
+
+	for (i = 0; i < 40; i++)
+		pg->data[24][i] = ac;
+
+	for (i = 0; i < 4; i++)
+		for (k = 0; k < 3; k++) {
+			n = ((vtp->data.lop.link[i].pgno >> ((2 - k) * 4)) & 15) + '0';
+
+			if (n > '9')
+				n += 'A' - '9';
+
+			ac.glyph = n;
+			ac.foreground = flof_link_col[i];
+			ac.link_page = vtp->data.lop.link[i].pgno;
+			ac.link_subpage = vtp->data.lop.link[i].subno;
+
+			pg->data[24][i * 10 + 3 + k] = ac;
+		}
+}
+
+static void
+flof_links(struct fmt_page *pg, struct vt_page *vtp)
+{
 	attr_char *acp = pg->data[24];
 	int i, j, k, col = -1, start = 0;
 
 	for (i = 0; i < 41; i++) {
 		if (i == 40 || (acp[i].foreground & 7) != col) {
 			for (k = 0; k < 4; k++)
-				if (link_col[k] == col)
+				if (flof_link_col[k] == col)
 					break;
 
 			if (k < 4 && !NO_PAGE(vtp->data.lop.link[k].pgno)) {
@@ -493,14 +528,15 @@ static void
 top_navigation_bar(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp)
 {
 	attr_char ac;
+	ait_entry *ait;
 	int i, got;
 
 	printv("PAGE BTT: %d\n", vtp->vbi->page_info[vtp->pgno - 0x100].btt);
 
 	memset(&ac, 0, sizeof(ac));
 
-	ac.foreground	= WHITE;
-	ac.background	= BLACK;
+	ac.foreground	= 32 + WHITE;
+	ac.background	= 32 + BLACK;
 	ac.opacity	= pg->page_opacity[1];
 	ac.glyph	= GL_SPACE;
 
@@ -526,24 +562,117 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg, struct vt_page *vtp)
 	case 10:
 		for (i = vtp->pgno; i != vtp->pgno + 1; i = (i == 0) ? 0x89a : i - 1)
 			if (vbi->page_info[i - 0x100].btt >= 4 && vbi->page_info[i - 0x100].btt <= 7) {
-				top_label(vbi, pg->font[0], &pg->data[24][1], i, 35, 0);
+				top_label(vbi, pg->font[0], &pg->data[24][1], i, 32 + WHITE, 0);
 				break;
 			}
 
 		for (i = vtp->pgno + 1, got = FALSE; i != vtp->pgno; i = (i == 0x899) ? 0x100 : i + 1)
 			switch (vbi->page_info[i - 0x100].btt) {
 			case 4 ... 5:
-				top_label(vbi, pg->font[0], &pg->data[24][27], i, 34, 2);
+				top_label(vbi, pg->font[0], &pg->data[24][27], i, 32 + YELLOW, 2);
 				return;
 
 			case 6 ... 7:
 				if (!got) {
-					top_label(vbi, pg->font[0], &pg->data[24][14], i, 33, 1);
+					top_label(vbi, pg->font[0], &pg->data[24][14], i, 32 + GREEN, 1);
 					got = TRUE;
 				}
 
 				break;
 			}
+	}
+}
+
+static void
+top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
+{
+	attr_char ac, *acp;
+	struct vt_page *vtp;
+	ait_entry *ait;
+	int i, j, k, n, lines;
+	int pgno;
+
+	memset(&ac, 0, sizeof(ac));
+
+	ac.foreground	= 32 + WHITE;
+	ac.background	= 32 + BLACK;
+	ac.opacity	= pg->page_opacity[1];
+	ac.glyph	= GL_SPACE;
+
+	for (i = 0; i < 25 * 40; i++)
+		pg->data[0][i] = ac;
+
+	acp = pg->data[4];
+	lines = 17;
+	pgno = 0;
+
+	{
+		for (i = 0; i < 8; i++) {
+			if (vbi->btt_link[i].type == 2) {
+				vtp = vbi->cache->op->get(vbi->cache,
+					vbi->btt_link[i].pgno, vbi->btt_link[i].subno, 0x3f7f);
+
+				if (!vtp) {
+					printv("top ait page %x not cached\n", vbi->btt_link[i].pgno);
+					continue;
+				} else if (vtp->function != PAGE_FUNCTION_AIT) {
+					printv("no ait page %x\n", vtp->pgno);
+					continue;
+				}
+
+				for (ait = vtp->data.ait, j = 0; j < 46; ait++, j++) {
+					// XXX
+
+					if (subno > 0) {
+						if (lines-- == 0) {
+							subno--;
+							lines = 17;
+						}
+
+						continue;
+					} else if (lines-- <= 0)
+						continue;
+
+					for (i = 11; i >= 0; i--)
+						if (ait->text[i] > 0x20)
+							break;
+
+					switch (vbi->page_info[ait->page.pgno - 0x100].btt) {
+					case 6 ... 7:
+						k = 3;
+						break;
+
+					default:
+			    			k = 1;
+					}
+
+					for (j = 0; j <= i; j++) { // XXX font
+						acp[k + j].glyph = glyph_lookup(pg->font[0]->G0,
+							pg->font[0]->subset,
+							(ait->text[j] < 0x20) ? 0x20 : ait->text[j]);
+					}
+
+					for (k += i + 2; k <= 34; k++)
+						acp[k].glyph = '.';
+
+					for (j = 0; j < 3; j++) {
+						n = ((ait->page.pgno >> ((2 - j) * 4)) & 15) + '0';
+
+						if (n > '9')
+							n += 'A' - '9';
+
+						acp[j + 35].glyph = n;
+ 					}
+
+					for (k = 1; k <= 38; k++) {
+						acp[k].link_page = ait->page.pgno;
+						acp[k].link_subpage = 0xFF & ANY_SUB;
+					}
+
+					acp += 40;
+				}
+			}
+		}
 	}
 }
 
@@ -695,22 +824,181 @@ resolve_obj_address(struct vbi *vbi, object_type type,
 	return trip + 1;
 }
 
-#define PROTECT_HEADER 0 /* n columns left hand (8) */
-
 static bool
-enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int inv_column)
+enhance(struct fmt_page *pg, object_type type,
+	vt_triplet *p, int inv_row, int inv_column)
 {
-	attr_char ac, *acp, buf[40];
-	int xattr, xattr_buf[40];
+	attr_char ac, mac, *acp;
 	int active_column, active_row;
 	int offset_column, offset_row;
-	int min_column, max_column, i;
-	int foreground, background, gl;
+	int row_colour, next_row_colour;
 	font_descriptor *font;
-	glyph_size size;
-	opacity opacity;
+	int invert;
 	int drcs_s1[2];
-	u8 *rawp;
+
+	static void
+	flush(int column)
+	{
+		int row = inv_row + active_row;
+		int i;
+
+		if (row > 24)
+			return;
+
+		printv("flush [%08x%c,%d%c,%d%c,%d%c,%d%c] %d ... %d\n",
+			ac.glyph, mac.glyph ? '*' : ' ',
+			ac.foreground, mac.foreground ? '*' : ' ',
+			ac.background, mac.background ? '*' : ' ',
+			ac.size, mac.size ? '*' : ' ',
+			ac.flash, mac.flash ? '*' : ' ',
+			active_column, column - 1);
+
+		for (i = inv_column + active_column; i < inv_column + column;) {
+			attr_char c;
+
+			if (i > 39)
+				break;
+
+			c = pg->data[row][i];
+
+			if (mac.underline) {
+				int u = ac.underline;
+
+				if (!mac.glyph)
+					ac.glyph = c.glyph;
+
+				if (gl_isg1(ac.glyph)) {
+					if (u)
+						ac.glyph |= 0x20; /* separated */
+					else
+						ac.glyph &= ~0x20; /* contiguous */
+					mac.glyph = ~0;
+					u = 0;
+				}
+
+				c.underline = u;
+			}
+			if (mac.foreground)
+				c.foreground = (ac.foreground == TRANSPARENT_BLACK) ?
+					row_colour : ac.foreground;
+			if (mac.background)
+				c.background = (ac.background == TRANSPARENT_BLACK) ?
+					row_colour : ac.background;
+			if (invert) {
+				int t = c.foreground;
+
+				c.foreground = c.background;
+				c.background = t;
+			}
+			if (mac.opacity)
+				c.opacity = ac.opacity;
+			if (mac.flash)
+				c.flash = ac.flash;
+			if (mac.conceal)
+				c.conceal = ac.conceal;
+			if (mac.glyph) {
+				c.glyph = ac.glyph;
+				mac.glyph = 0;
+
+				if (mac.size)
+					c.size = ac.size;
+			}
+
+			pg->data[row][i] = c;
+
+			if (type == OBJ_TYPE_PASSIVE)
+				break;
+
+			i++;
+
+			if (type != OBJ_TYPE_PASSIVE
+			    && type != OBJ_TYPE_ADAPTIVE) {
+				int raw;
+
+				raw = (row == 0 && i < 9) ?
+					0x20 : parity(pg->vtp->data.lop.raw[row][i - 1]);
+
+				/* set-after spacing attributes cancelling non-spacing */
+
+				switch (raw) {
+				case 0x00 ... 0x07:	/* alpha + foreground colour */
+				case 0x10 ... 0x17:	/* mosaic + foreground colour */
+					printv("... fg term %d %02x\n", i, raw);
+					mac.foreground = 0;
+					mac.conceal = 0;
+					break;
+
+				case 0x08:		/* flash */
+					mac.flash = 0;
+					break;
+
+				case 0x0A:		/* end box */
+				case 0x0B:		/* start box */
+					if (i < 40 && parity(pg->vtp->data.lop.raw[row][i]) == raw) {
+						printv("... boxed term %d %02x\n", i, raw);
+						mac.opacity = 0;
+					}
+
+					break;
+
+				case 0x0D:		/* double height */
+				case 0x0E:		/* double width */
+				case 0x0F:		/* double size */
+					printv("... size term %d %02x\n", i, raw);
+					mac.size = 0;
+					break;
+				}
+
+				if (i > 39)
+					break;
+
+				raw = (row == 0 && i < 8) ?
+					0x20 : parity(pg->vtp->data.lop.raw[row][i]);
+
+				/* set-at spacing attributes cancelling non-spacing */
+
+				switch (raw) {
+				case 0x09:		/* steady */
+					mac.flash = 0;
+					break;
+
+				case 0x0C:		/* normal size */
+					printv("... size term %d %02x\n", i, raw);
+					mac.size = 0;
+					break;
+
+				case 0x18:		/* conceal */
+					mac.conceal = 0;
+					break;
+
+					/*
+					 *  Non-spacing underlined/separated display attribute
+					 *  cannot be cancelled by a subsequent spacing attribute.
+					 */
+
+				case 0x1C:		/* black background */
+				case 0x1D:		/* new background */
+					printv("... bg term %d %02x\n", i, raw);
+					mac.background = 0;
+					break;
+				}
+			}
+		}
+
+		active_column = column;
+	}
+
+	static void
+	flush_row(void)
+	{
+		if (type == OBJ_TYPE_PASSIVE || type == OBJ_TYPE_ADAPTIVE)
+			flush(active_column + 1);
+		else
+			flush(40);
+
+		if (type != OBJ_TYPE_PASSIVE)
+			memset(&mac, 0, sizeof(mac));
+	}
 
 	active_column = 0;
 	active_row = 0;
@@ -718,42 +1006,46 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 	offset_column = 0;
 	offset_row = 0;
 
-	min_column = (inv_row == 0) ? PROTECT_HEADER : 0;
-	max_column = (type == OBJ_TYPE_ADAPTIVE) ? -1 : 39;
-
-	rawp = pg->vtp->data.lop.raw[(pg->double_height_lower & (1 << inv_row)) ? inv_row - 1 : inv_row];
-	memcpy(buf, pg->data[inv_row], 40 * sizeof(attr_char));
-
-	xattr = 0;
-	memset(xattr_buf, 0, sizeof(xattr_buf));
-
-	foreground	= WHITE;
-	background	= BLACK;
-	size		= NORMAL;
-	opacity		= pg->page_opacity[inv_row + active_row > 0];
+	// XXX todo
+	row_colour =
+	next_row_colour = pg->ext->def_row_colour;
 
 	drcs_s1[0] = 0; /* global */
 	drcs_s1[1] = 0; /* normal */
 
+	memset(&ac, 0, sizeof(ac));
+	memset(&mac, 0, sizeof(mac));
+
+	invert = 0;
+
+	if (type == OBJ_TYPE_PASSIVE) {
+		ac.foreground = WHITE;
+		ac.background = BLACK;
+		ac.opacity = pg->page_opacity[1];
+
+		mac.foreground = ~0;
+		mac.background = ~0;
+		mac.underline = ~0;
+		mac.conceal = ~0;
+		mac.flash = ~0;
+		mac.size = ~0;
+		mac.opacity = ~0;
+	}
+
 	font = pg->font[0];
 
 	for (;; p++) {
-		if (p->mode == 0xFF) {
-			printv("enh no triplet, not received (yet)?\n");
-			goto finish;
-		}
-
 		if (p->address >= 40) {
 			/*
 			 *  Row address triplets
 			 */
 			int s = p->data >> 5;
-			int row = (p->address - 40) ? : 24;
+			int column, row = (p->address - 40) ? : 24;
 
 			switch (p->mode) {
 			case 0x00:		/* full screen colour */
-				if (s == 0 && type <= OBJ_TYPE_ACTIVE
-				    && max_level >= LEVEL_2p5)
+				if (max_level >= LEVEL_2p5
+				    && s == 0 && type <= OBJ_TYPE_ACTIVE)
 					screen_colour(pg, p->data & 0x1F);
 
 				break;
@@ -767,65 +1059,49 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 				/* fall through */
 
 			case 0x01:		/* full row colour */
-				active_column = 0;
+				row_colour = next_row_colour;
+				column = 0;
 
-				if ((i = inv_row + row) < 25) {
-					if (s == 0)
-						pg->row_colour[i] = p->data & 0x1F;
-					else if (s == 3)
-						for (; i < 25; i++)
-							pg->row_colour[i] = p->data & 0x1F;
+				if (s == 0) {
+					row_colour = p->data & 0x1F;
+					next_row_colour = pg->ext->def_row_colour;
+				} else if (s == 3) {
+					row_colour =
+					next_row_colour = p->data & 0x1F;
 				}
 
 				goto set_active;
 
-			/* case 0x02: reserved */
-			/* case 0x03: reserved */
+			case 0x02:		/* reserved */
+			case 0x03:		/* reserved */
+				break;
 
 			case 0x04:		/* set active position */
 				if (max_level >= LEVEL_2p5) {
 					if (p->data >= 40)
 						break; /* reserved */
 
-					active_column = p->data;
+					column = p->data;
 				}
+
+				if (row > active_row)
+					row_colour = next_row_colour;
 
 			set_active:
-				printv("enh set_active row %d col %d\n", row, active_column);
+				printv("enh set_active row %d col %d\n", row, column);
 
-				if (row == active_row)
-					break;
-
-				active_row += inv_row;
-
-				if (active_row <= 24) {
-					if (max_column >= min_column)
-						memcpy(&pg->data[active_row][min_column],
-						       &buf[min_column],
-						       (max_column - min_column + 1) * sizeof(attr_char));
-
-					if (type == OBJ_TYPE_NONE || type == OBJ_TYPE_ACTIVE)
-						font = pg->font[0];
-				}
+				if (row > active_row)
+					flush_row();
 
 				active_row = row;
-				row += inv_row;
-
-				min_column = (row == 0) ? PROTECT_HEADER : 0;
-
-				if (row <= 24) {
-					rawp = pg->vtp->data.lop.raw[(pg->double_height_lower & (1 << row)) ? row - 1 : row];
-					memcpy(buf, pg->data[row], 40 * sizeof(attr_char));
-
-					if (type == OBJ_TYPE_ADAPTIVE)
-						max_column = -1;
-				}
+				active_column = column;
 
 				break;
 
-			/* case 0x05: reserved */
-			/* case 0x06: reserved */
-			/* case 0x08 ... 0x0F: PDC data */
+			case 0x05:		/* reserved */
+			case 0x06:		/* reserved */
+			case 0x08 ... 0x0F:	/* PDC data */
+				break;
 
 			case 0x10:		/* origin modifier */
 				if (max_level < LEVEL_2p5)
@@ -837,7 +1113,8 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 				offset_column = p->data;
 				offset_row = p->address - 40;
 
-				printv("enh origin modifier col %+d row %+d\n", offset_column, offset_row);
+				printv("enh origin modifier col %+d row %+d\n",
+					offset_column, offset_row);
 
 				break;
 
@@ -845,8 +1122,7 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 			{
 				int source = (p->address >> 3) & 3;
 				object_type new_type = p->mode & 3;
-				vt_triplet *trip; 
-				int row, column;
+				vt_triplet *trip;
 
 				if (max_level < LEVEL_2p5)
 					break;
@@ -871,7 +1147,7 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 
 					if (!(pg->vtp->enh_lines & 1)) {
 						printv("... no packet %d\n", designation);
-						break;
+						return FALSE;
 					}
 
 					trip = pg->vtp->data.enh_lop.enh + designation * 13 + triplet;
@@ -880,7 +1156,7 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 				{
 					magazine *mag = pg->magazine;
 					page_function function;
-					int pgno;
+					int pgno, i;
 
 					if (source == 3) {
 						function = PAGE_FUNCTION_GPOP;
@@ -900,7 +1176,7 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 						if (NO_PAGE(pgno)) {
 							if ((i = mag->pop_lut[pg->vtp->pgno & 0xFF]) == 0) {
 								printv("... MOT pop_lut empty\n");
-								break; /* has no link (yet) */
+								return FALSE; /* has no link (yet) */
 							}
 
 							if (max_level < LEVEL_3p5
@@ -911,13 +1187,8 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 					}
 
 					if (NO_PAGE(pgno)) {
-						int j;
-
-						printv("... dead MOT link %d: ", i);
-						for (j = 0; j < 8; j++)
-							printv("%04x ", mag->pop_link[j].pgno);
-						printv("\n");
-						break; /* has no link (yet) */
+						printv("... dead MOT link %d\n", i);
+						return FALSE; /* has no link (yet) */
 					}
 
 					printv("... %s obj\n", (source == 3) ? "global" : "public");
@@ -926,21 +1197,14 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 						(p->address << 7) + p->data, function);
 
 					if (!trip)
-						break;
+						return FALSE;
 				}
 
 				row = inv_row + active_row;
 				column = inv_column + active_column;
 
-				if (row <= 24 && max_column >= min_column)
-					memcpy(&pg->data[row][min_column], &buf[min_column],
-					       (max_column - min_column + 1) * sizeof(attr_char));
-
 				enhance(pg, new_type, trip,
 					row + offset_row, column + offset_column);
-
-				if (row <= 24)
-					memcpy(buf, pg->data[row], 40 * sizeof(attr_char));
 
 				printv("... object done\n");
 
@@ -950,9 +1214,11 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 				break;
 			}
 
-			/* case 0x14: reserved */
+			case 0x14:		/* reserved */
+				break;
 
 			case 0x15 ... 0x17:	/* object definition */
+				flush_row();
 				printv("enh obj definition 0x%02x 0x%02x\n", p->mode, p->data);
 				printv("enh terminated\n");
 				goto finish;
@@ -962,52 +1228,40 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 				drcs_s1[p->data >> 6] = p->data & 15;
 				break;
 
-			/* case 0x19 ... 0x1E: reserved */
-			
+			case 0x19 ... 0x1E:	/* reserved */
+
 			case 0x1F:		/* termination marker */
-				printv("enh terminated\n");
+			default:
+				flush_row();
+				printv("enh terminated %02x\n", p->mode);
 				goto finish;
 			}
 		} else {
 			/*
 			 *  Column address triplets
 			 */
-			int s = p->data >> 5;		
+			int s = p->data >> 5;
+			int column = p->address;
+			int gl;
 
 			switch (p->mode) {
 			case 0x00:		/* foreground colour */
-				active_column = p->address;
+				if (max_level >= LEVEL_2p5 && s == 0) {
+					if (column > active_column)
+						flush(column);
 
-				if (s == 0 && max_level >= LEVEL_2p5) {
-					foreground = p->data & 0x1F;
+					ac.foreground = p->data & 0x1F;
+					mac.foreground = ~0;
 
-					if (type != OBJ_TYPE_PASSIVE) {
-						i = inv_column + active_column;
-
-						if (i > max_column)
-							max_column = i;
-
-						for (; i < 40; i++) {
-							int raw = parity(rawp[i]) & 0x78;
-
-							buf[i].foreground = foreground;
-
-							/* spacing alpha foreground, set-after */
-							/* spacing mosaic foreground, set-after */
-							if (type != OBJ_TYPE_ADAPTIVE /* 13.4 */
-							    && (raw == 0x00 || raw == 0x10))
-								break;
-						}
-					}
-
-					printv("enh col %d foreground %d\n", active_column, foreground);
+					printv("enh col %d foreground %d\n", active_column, ac.foreground);
 				}
 
 				break;
 
 			case 0x01:		/* G1 block mosaic character */
 				if (max_level >= LEVEL_2p5) {
-					active_column = p->address;
+					if (column > active_column)
+						flush(column);
 
 					if (p->data & 0x20) {
 						gl = GL_CONTIGUOUS_BLOCK_MOSAIC_G1 + p->data;
@@ -1027,9 +1281,10 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 				/* fall through */
 
 			case 0x02:		/* G3 smooth mosaic or line drawing character */
-				active_column = p->address;
-
 				if (p->data >= 0x20) {
+					if (column > active_column)
+						flush(column);
+
 					gl = GL_SMOOTH_MOSAIC_G3 + p->data;
 					goto store;
 				}
@@ -1037,183 +1292,126 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 				break;
 
 			case 0x03:		/* background colour */
-				active_column = p->address;
+				if (max_level >= LEVEL_2p5 && s == 0) {
+					if (column > active_column)
+						flush(column);
 
-				if (s == 0 && max_level >= LEVEL_2p5) {
-					background = p->data & 0x1F;
+					ac.background = p->data & 0x1F;
+					mac.background = ~0;
 
-					if (type != OBJ_TYPE_PASSIVE) {
-						i = inv_column + active_column;
-
-						if (i > max_column)
-							max_column = i;
-
-						if (i < 40) /* override spacing attribute at active position */
-							buf[i++].background = background;
-
-						for (; i < 40; i++) {
-							int raw = parity(rawp[i]);
-
-							/* spacing black background, set-at */
-							/* spacing new background, set-at */
-							if (type != OBJ_TYPE_ADAPTIVE /* 13.4 */
-							    && (raw == 0x1C || raw == 0x1D))
-								break;
-
-							buf[i].background = background;
-						}
-					}
-
-					printv("enh col %d background %d\n", active_column, background);
+					printv("enh col %d background %d\n", active_column, ac.background);
 				}
 
 				break;
 
-			/* case 0x04: reserved */
-			/* case 0x05: reserved */
-			/* case 0x06: pdc data */
+			case 0x04:		/* reserved */
+			case 0x05:		/* reserved */
+			case 0x06:		/* PDC data */
 
-			case 0x07:		/* additional flash functions */	
-				active_column = p->address;
+			case 0x07:		/* additional flash functions */
+				if (max_level >= LEVEL_2p5) {
+					if (column > active_column)
+						flush(column);
 
-				if (s == 0 && max_level >= LEVEL_2p5) {
-					/* TODO */
+					/*
+					 *  Only one flash function (if any) implemented:
+					 *  1 - Normal flash to background colour
+					 *  0 - Slow rate (1 Hz)
+					 */
+					ac.flash = !!(p->data & 3);
+					mac.flash = ~0;
+
 					printv("enh col %d flash 0x%02x\n", active_column, p->data);
 				}
 
 				break;
 
 			case 0x08:		/* modified G0 and G2 character set designation */
-				active_column = p->address;
-
 				if (max_level >= LEVEL_2p5) {
-					printv("enh col %d modify character set %d\n", active_column, p->data);
+					if (column > active_column)
+						flush(column);
 
 					if (VALID_CHARACTER_SET(p->data))
 						font = font_descriptors + p->data;
 					else
 						font = pg->font[0];
+
+					printv("enh col %d modify character set %d\n", active_column, p->data);
 				}
 
 				break;
 
-			case 0x09:		/* G0 character */			
-				active_column = p->address;
-
+			case 0x09:		/* G0 character */
 				if (max_level >= LEVEL_2p5 && p->data >= 0x20) {
+					if (column > active_column)
+						flush(column);
+
 					gl = glyph_lookup(font->G0, NO_SUBSET, p->data);
 					goto store;
 				}
 
 				break;
 
-			/* case 0x0A: reserved */
+			case 0x0A:		/* reserved */
+				break;
 
 			case 0x0C:		/* display attributes */
-			{
-				int row = inv_row + active_row;
-				int touch;
-
 				if (max_level < LEVEL_2p5)
 					break;
 
-				active_column = p->address;
+				if (column > active_column)
+					flush(column);
+
+				ac.size = ((p->data & 0x40) ? DOUBLE_WIDTH : 0)
+					+ ((p->data & 1) ? DOUBLE_HEIGHT : 0);
+				mac.size = ~0;
+
+				if (p->data & 2) {
+					if (pg->vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE))
+						ac.opacity = SEMI_TRANSPARENT;
+					else
+						ac.opacity = TRANSPARENT_SPACE;
+				} else
+					ac.opacity = pg->page_opacity[1];
+				mac.opacity = ~0;
+
+				ac.conceal = !!(p->data & 4);
+				mac.conceal = ~0;
+
+				/* (p->data & 8) reserved */
+
+				invert = p->data & 0x10;
+
+				ac.underline = !!(p->data & 0x20);
+				mac.underline = ~0;
 
 				printv("enh col %d display attr 0x%02x\n", active_column, p->data);
 
-				size = ((p->data & 0x40) ? DOUBLE_WIDTH : 0)
-					+ ((p->data & 1) ? DOUBLE_HEIGHT : 0);
-				opacity = (p->data & 2) ? pg->boxed_opacity[row > 0] : pg->page_opacity[row > 0];
-				xattr = (xattr & ~0xFF) | p->data;
-				touch = 7;
-
-				if (type != OBJ_TYPE_PASSIVE && row < 25) {
-					i = inv_column + active_column;
-
-					if (i > max_column)
-						max_column = i;
-
-					for (; touch && i < 40; i++) {
-						int raw = parity(rawp[i]);
-
-						if (type == OBJ_TYPE_ADAPTIVE)
-							raw = -1;
-						else if (i > (inv_column + active_column))
-							/* active takes priority over set-at */
-							switch (raw) {
-							case 0x0C:		/* normal size */
-								touch &= ~1;
-								break;
-
-							case 0x18:		/* conceal */
-								touch &= ~4;
-								break;
-							}
-
-						if (touch & 1)
-							buf[i].size = size;
-						if (touch & 2)
-							buf[i].opacity = opacity;
-						xattr_buf[i] = xattr;
-
-						switch (raw) {
-						case 0x0A:		/* end box */
-						case 0x0B:		/* start box */
-							if (i < 39 && parity(rawp[i]) == raw)
-								touch &= ~2;
-							break;
-
-						case 0x0D:		/* double height */
-						case 0x0E:		/* double width */
-						case 0x0F:		/* double size */
-							touch &= ~1;
-							break;
-						}
-					}
-				}
-
 				break;
-			}
-
-			/*
-				d6	 double width
-				d5	underline / separate
-				d4	invert colour
-				d3	reserved
-				d2	conceal
-				d1	 boxing / window
-				d0	 double height
-
-				set-at, 1=yes
-				The action persists to the end of a display row but may be cancelled by
-				the transmission of a further triplet of this type with the relevant bit set to '0', or, in
-				most cases, by an appropriate spacing attribute on the Level 1 page.
-				ADAPTIVE: no spacing attr.
-				PASSIVE: no end of row.
-			*/
 
 			case 0x0D:		/* drcs character invocation */
 			{
 				magazine *mag = pg->magazine;
 				int normal = p->data >> 6;
 				int offset = p->data & 0x3F;
-				struct vt_page *drcs_vtp;
+				struct vt_page *vtp;
 				page_function function;
-				int pgno, page;
+				int pgno, page, i;
 
 				if (max_level < LEVEL_2p5)
 					break;
 
-				active_column = p->address;
-
 				if (offset >= 48)
 					break; /* invalid */
+
+				if (column > active_column)
+					flush(column);
 
 				page = normal * 16 + drcs_s1[normal];
 
 				printv("enh col %d DRCS %d/0x%02x\n", active_column, page, p->data);
 
-				if (!pg->drcs[page]) {
+				/* if (!pg->drcs[page]) */ {
 					if (!normal) {
 						function = PAGE_FUNCTION_GDRCS;
 						pgno = pg->vtp->data.lop.link[26].pgno;
@@ -1232,7 +1430,7 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 						if (NO_PAGE(pgno)) {
 							if ((i = mag->drcs_lut[pg->vtp->pgno & 0xFF]) == 0) {
 								printv("... MOT drcs_lut empty\n");
-								break; /* has no link (yet) */
+								return FALSE; /* has no link (yet) */
 							}
 
 							if (max_level < LEVEL_3p5
@@ -1244,34 +1442,39 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 
 					if (NO_PAGE(pgno)) {
 						printv("... dead MOT link %d\n", i);
-						break; /* has no link (yet) */
+						return FALSE; /* has no link (yet) */
 					}
 
 					printv("... %s drcs from page %03x/%04x\n",
 						normal ? "normal" : "global", pgno, drcs_s1[normal]);
 
-					drcs_vtp = pg->vtp->vbi->cache->op->get(pg->vtp->vbi->cache,
+					vtp = pg->vtp->vbi->cache->op->get(pg->vtp->vbi->cache,
 						pgno, drcs_s1[normal], 0x000F);
 
-					if (!drcs_vtp) {
+					if (!vtp) {
 						printv("... page not cached\n");
-						break;
+						return FALSE;
 					}
 
-					if (drcs_vtp->function == PAGE_FUNCTION_UNKNOWN) {
-						if (!(drcs_vtp = convert_page(pg->vtp->vbi, drcs_vtp, TRUE, function))) {
+					if (vtp->function == PAGE_FUNCTION_UNKNOWN) {
+						if (!(vtp = convert_page(pg->vtp->vbi, vtp, TRUE, function))) {
 							printv("... no g/drcs page or hamming error\n");
-							break;
+							return FALSE;
 						}
-					} else if (drcs_vtp->function == PAGE_FUNCTION_DRCS) {
-						drcs_vtp->function = function;
-					} else if (drcs_vtp->function != function) {
+					} else if (vtp->function == PAGE_FUNCTION_DRCS) {
+						vtp->function = function;
+					} else if (vtp->function != function) {
 						printv("... source page wrong function %d, expected %d\n",
-							drcs_vtp->function, function);
-						break;
+							vtp->function, function);
+						return FALSE;
 					}
 
-					pg->drcs[page] = drcs_vtp->data.drcs.bits[0];
+					if (vtp->data.drcs.invalid & (1ULL << offset)) {
+						printv("... invalid drcs, prob. tx error\n");
+						return FALSE;
+					}
+
+					pg->drcs[page] = vtp->data.drcs.bits[0];
 				}
 
 				gl = GL_DRCS + page * 256 + offset;
@@ -1279,21 +1482,40 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 			}
 
 			case 0x0E:		/* font style */
+			{
+				int italic, bold, proportional;
+				int col, row, count;
+
 				if (max_level < LEVEL_3p5)
 					break;
 
-				active_column = p->address;
+				row = inv_row + active_row;
+				count = (p->data >> 4) + 1;
+				proportional = (p->data >> 0) & 1;
+				bold = (p->data >> 1) & 1;
+				italic = (p->data >> 2) & 1;
 
-				/* TODO */
+				while (row <= 24 && count > 0) {
+					for (col = inv_column + column; col < 40; col++) {
+						pg->data[row][col].italic = italic;
+		    				pg->data[row][col].bold = bold;
+						pg->data[row][col].proportional = proportional;
+					}
+
+					row++;
+					count--;
+				}
 
 				printv("enh col %d font style 0x%02x\n", active_column, p->data);
 
 				break;
+			}
 
 			case 0x0F:		/* G2 character */
-				active_column = p->address;
-
 				if (p->data >= 0x20) {
+					if (column > active_column)
+						flush(column);
+
 					gl = glyph_lookup(font->G2, NO_SUBSET, p->data);
 					goto store;
 				}
@@ -1301,9 +1523,10 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 				break;
 
 			case 0x10 ... 0x1F:	/* characters including diacritical marks */
-				active_column = p->address;
-
 				if (p->data >= 0x20) {
+					if (column > active_column)
+						flush(column);
+
 					gl = glyph_lookup(font->G0, NO_SUBSET, p->data);
 					gl = compose_glyph(gl, p->mode - 16);
 
@@ -1312,18 +1535,8 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 						active_row, active_column, p->mode, p->data,
 						gl, glyph2latin(gl));
 
-					if ((i = inv_column + active_column) >= 40)
-						break;
-
-					buf[i].glyph = gl;
-
-					if (type == OBJ_TYPE_PASSIVE) {
-						buf[i].foreground = foreground;
-						buf[i].background = background;
-						buf[i].size = size;
-					} else
-						if (active_column > max_column)
-							max_column = active_column;
+					ac.glyph = gl;
+					mac.glyph = ~0;
 				}
 
 				break;
@@ -1332,18 +1545,23 @@ enhance(struct fmt_page *pg, object_type type, vt_triplet *p, int inv_row, int i
 	}
 
 finish:
-	active_row += inv_row;
-
-	if (active_row <= 24)
-		if (max_column >= min_column)
-			memcpy(&pg->data[active_row][min_column], &buf[min_column],
-			       (max_column - min_column + 1) * sizeof(attr_char));
-
 	acp = pg->data[0];
 
 	for (active_row = 0; active_row < 24; active_row++) {
 		for (active_column = 0; active_column < 40; acp++, active_column++) {
 //			printv("%d ", acp->size);
+
+			if (acp->conceal && !pg->reveal)
+				acp->glyph = GL_SPACE;
+
+			if (acp->opacity == TRANSPARENT_SPACE
+			    || (acp->foreground == TRANSPARENT_BLACK
+				&& acp->background == TRANSPARENT_BLACK)) {
+				acp->opacity = TRANSPARENT_SPACE;
+				acp->glyph = GL_SPACE;
+			} else if (acp->background == TRANSPARENT_BLACK)
+				acp->opacity = SEMI_TRANSPARENT;
+			/* transparent foreground not implemented */
 
 			switch (acp->size) {
 			case NORMAL:
@@ -1391,6 +1609,10 @@ finish:
 
 	return TRUE;
 }
+
+
+
+
 
 static inline bool
 default_object_invocation(struct fmt_page *pg)
@@ -1458,9 +1680,11 @@ fmt_page(int reveal,
 		: vtp->vbi->magazine + (vtp->pgno >> 8);
 
 	if (vtp->data.lop.ext)
-		ext = &vtp->data.ext_lop.ext;
+		pg->ext = ext = &vtp->data.ext_lop.ext;
 	else
-		ext = &mag->extension;
+		pg->ext = ext = &mag->extension;
+
+	pg->reveal = reveal;
 
 	/* Character set designation */
 
@@ -1478,7 +1702,12 @@ fmt_page(int reveal,
 		if (VALID_CHARACTER_SET(char_set))
 			pg->font[i] = font_descriptors + char_set;
 	}
-
+/*
+if (vtp->pgno >= 0x101 && vtp->pgno <= 0x108) {
+top_index(vtp->vbi, pg, vtp->pgno - 0x101);
+return 1;
+}
+*/
 	/* Colours */
 
 	screen_colour(pg, ext->def_screen_colour);
@@ -1617,7 +1846,6 @@ fmt_page(int reveal,
 			switch (raw) {
 			case 0x00 ... 0x07:	/* alpha + foreground colour */
 				ac.foreground = ext->foreground_clut + (raw & 7);
-				mosaic_glyphs = GL_CONTIGUOUS_BLOCK_MOSAIC_G1;
 				reveal |= 2;
 				mosaic = FALSE;
 				break;
@@ -1727,7 +1955,7 @@ fmt_page(int reveal,
 		bool success;
 
 		memcpy(&page, pg, sizeof(struct fmt_page));
-
+//XXX not
 		for (i = 0; i < 25; i++)
 			pg->row_colour[i] = ext->def_row_colour;
 
@@ -1748,49 +1976,17 @@ fmt_page(int reveal,
 			memcpy(pg, &page, sizeof(struct fmt_page));
 	}
 
-	if (1) { // XXX navigation, disable for search
-		if (vtp->data.lop.flof)
-			flof_navigation_bar(pg, vtp);
-		else if (vtp->vbi->top)
+	/* Navigation */
+
+	if (1) {
+		if (vtp->data.lop.flof) {
+			if (vtp->lop_lines & (1 << 24))
+				flof_links(pg, vtp);
+			else
+				flof_navigation_bar(pg, vtp);
+		} else if (vtp->vbi->top)
 			top_navigation_bar(vtp->vbi, pg, vtp);
 	}
-
-#if TEST
-	for (row = 1; row < 24; row++)
-		for (column = 0; column < 40; column++) {
-			int page = ((vtp->pgno >> 4) & 15) * 10 + (vtp->pgno & 15);
-
-			if (page <= 15) {
-				if (row <= 23 && column <= 31) {
-					pg->data[row][column].foreground = WHITE;
-					pg->data[row][column].background = BLACK;
-					pg->data[row][column].size = NORMAL;
-					pg->data[row][column].glyph =
-						compose_glyph((row - 1) * 32 + column, (page & 15));
-				}
-			} else if (page == 16) {
-				if (row <= 14 && column <= 12) {
-					pg->data[row][column].foreground = WHITE;
-					pg->data[row][column].background = BLACK;
-					pg->data[row][column].size = NORMAL;
-					pg->data[row][column].glyph =
-						national_subst[row - 1][column];
-				}
-			}
-		}
-#endif
-
-#if 0 /* ascii test */
-	/*
-	 *  NB: No mosaics, no drcs, Latin only (-> glyph2unicode),
-	 *      double height/width chars replicate.
-	 */
-	for (row = 0; row < 25; row++) {
-		for (column = 0; column < W; column++)
-			putchar(glyph2latin(pg->data[row][column].glyph));
-		putchar('\n');
-	}
-#endif
 
 	for (row = 0; row < MIN(24, display_rows); row++)
 		for (column = 0; column < W; column++) {

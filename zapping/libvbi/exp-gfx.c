@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.18 2001-01-24 22:48:52 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.19 2001-01-30 23:27:16 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -289,9 +289,10 @@ vbi_draw_page(struct fmt_page *pg, void *data)
 				if ((ac->glyph & 0xFFFF) >= GL_DRCS) {
 					draw_drcs(canvas, pg->drcs[(ac->glyph & 0x1F00) >> 8],
 						pen, ac->glyph, ac->size);
-				} else
+				} else {
 					draw_char(canvas, pen, ac->glyph,
 						ac->bold, ac->underline, ac->size);
+				}
 			}
 		}
 	}
@@ -411,8 +412,8 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 	FILE *fp;
 	png_structp png_ptr;
 	png_infop info_ptr;
-	png_color palette[72];
-	png_byte alpha[72];
+	png_color palette[80];
+	png_byte alpha[80];
 	png_text text[4];
 	char title[80];
 	png_bytep row_pointer[WH];
@@ -428,7 +429,7 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 
 		for (i = 2; i < 2 + 8 + 32; i++) {
 			pen[i]      = pg->drcs_clut[i];
-			pen[i + 64] = pg->drcs_clut[i] + 36;
+			pen[i + 64] = pg->drcs_clut[i] + 40;
 		}
 
 		for (row = 0; row < H; canvas += W * CW * CH - W * CW, row++) {
@@ -477,13 +478,13 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 					 *  them completely translucent. 
 					 */
 					if ((ac->glyph & 0xFFFF) >= GL_DRCS) {
-						pen[64] = ac->background + 36;
+						pen[64] = ac->background + 40;
 						pen[65] = ac->foreground;
 
 						draw_drcs(canvas, pg->drcs[(ac->glyph & 0x1F00) >> 8],
 							pen + 64, ac->glyph, ac->size);
 					} else {
-						pen[0] = ac->background + 36;
+						pen[0] = ac->background + 40;
 						pen[1] = ac->foreground;
 
 						draw_char(canvas, pen, ac->glyph,
@@ -555,20 +556,20 @@ png_output(struct export *e, char *name, struct fmt_page *pg)
 		PNG_FILTER_TYPE_DEFAULT);
 
 	/* Could be optimized (or does libpng?) */
-	for (i = 0; i < 36; i++) {
+	for (i = 0; i < 40; i++) {
 		palette[i].red   = pg->colour_map[i] & 0xFF;
 		palette[i].green = (pg->colour_map[i] >> 8) & 0xFF;
 		palette[i].blue	 = (pg->colour_map[i] >> 16) & 0xFF;
 		alpha[i]	 = 255;
 
-		palette[i + 36]  = palette[i];
-		alpha[i + 36]	 = 128;
+		palette[i + 40]  = palette[i];
+		alpha[i + 40]	 = 128;
 	}
 
-	alpha[8] = alpha[8 + 36] = 0; /* TRANSPARENT_BLACK */
+	alpha[8] = alpha[8 + 40] = 0; /* TRANSPARENT_BLACK */
 
-	png_set_PLTE(png_ptr, info_ptr, palette, 72);
-	png_set_tRNS(png_ptr, info_ptr, alpha, 72, NULL);
+	png_set_PLTE(png_ptr, info_ptr, palette, 80);
+	png_set_tRNS(png_ptr, info_ptr, alpha, 80, NULL);
 
 	png_set_gAMA(png_ptr, info_ptr, 1.0 / 2.2);
 

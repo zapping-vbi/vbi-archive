@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.6 2001-01-24 22:48:52 mschimek Exp $ */
+/* $Id: search.c,v 1.7 2001-01-30 23:27:16 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "vt.h"
@@ -99,25 +99,20 @@ highlight(struct search *s, struct vt_page *vtp,
 			switch (acp->size) {
 			case DOUBLE_SIZE:
 				if (offset >= ms) {
-					// XXX black/yellow not good because 3.5 can
-					// redefine and it could be confused
-					// with transmitted black/yellow. Solution:
-					// private 33rd and 34th colour. Same issue
-					// TOP.
-					acp[40].foreground = 32; // BLACK;
-					acp[40].background = 34; // YELLOW;
-					acp[41].foreground = 32; // BLACK;
-					acp[41].background = 34; // YELLOW;
+					acp[40].foreground = 32 + BLACK;
+					acp[40].background = 32 + YELLOW;
+					acp[41].foreground = 32 + BLACK;
+					acp[41].background = 32 + YELLOW;
 				}
 
 				/* fall through */
 
 			case DOUBLE_WIDTH:
 				if (offset >= ms) {
-					acp[0].foreground = 32; // BLACK;
-					acp[0].background = 34; // YELLOW;
-					acp[1].foreground = 32; // BLACK;
-					acp[1].background = 34; // YELLOW;
+					acp[0].foreground = 32 + BLACK;
+					acp[0].background = 32 + YELLOW;
+					acp[1].foreground = 32 + BLACK;
+					acp[1].background = 32 + YELLOW;
 				}
 
 				hp++;
@@ -128,16 +123,16 @@ highlight(struct search *s, struct vt_page *vtp,
 
 			case DOUBLE_HEIGHT:
 				if (offset >= ms) {
-					acp[40].foreground = 32; // BLACK;
-					acp[40].background = 34; // YELLOW;
+					acp[40].foreground = 32 + BLACK;
+					acp[40].background = 32 + YELLOW;
 				}
 
 				/* fall through */
 
 			case NORMAL:	
 				if (offset >= ms) {
-					acp[0].foreground = 32; // BLACK;
-					acp[0].background = 34; // YELLOW;
+					acp[0].foreground = 32 + BLACK;
+					acp[0].background = 32 + YELLOW;
 				}
 
 				hp++;

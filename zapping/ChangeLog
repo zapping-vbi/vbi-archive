@@ -1,3 +1,9 @@
+31.1.2001	Zapzilla <mschimek@users.sourceforge.net>
+
+	* export.c: rewrote enhancement decoder, didn't scale. Should
+		support all of 2.5, 3.5 now. Fragments of a TOP index.
+	* vbi.c: fixes
+
 30.1.2001	Key syms <garetxe@users.sourceforge.net>
 
 	* src/keysysms.h: busy, just putting up list of known keys.
