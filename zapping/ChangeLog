@@ -1,8 +1,29 @@
-30.12.2202	<garetxe@users.sf.net>
+31.12.2002	<mschimek@users.sf.net>
+
+	* common/unicode.c: (get_locale_charset): Switched to
+	  g_get_charset(), hopefully this is more reliable.
+	* src/v4linterface.c, src/tveng2.c: Fixed controls display.
+	* src/v4linterface.c: Update controls faster on channel switch etc.
+	* src/audio.c: Restored mute button/controls binding.
+	* src/tveng2.c: Added bttv mute bug work-around. Added (preliminary)
+	  audio mode menu (no luck w/bttv 0.8.45, needs another
+	  work-around).
+
+30.12.2002	<garetxe@users.sf.net>
 
 	* src/frequencies.c: Added Poland Autocom cable Frequency table,
-	contributed by Artur Flinta.
-	* src/osd.c: Ported to Pango.
+          contributed by Artur Flinta.
+        * src/osd.c: Ported to Pango.
+
+28.12.2002	<mschimek@users.sf.net>
+
+	* configure.in: Preliminary libesd check.
+	* src/tveng.h: mutable.
+	* src/tveng1.c, src/tveng2.c, src/tvengxv.c: Set
+	  info->audio_mutable flag.
+	* src/mixer.h, src/mixer.c: Added mute function.
+	* src/main.c, src/zmisc.c, src/audio.c (set_mute1): Mute
+	  by mixer if not supported by video device (preliminary).
 
 26.12.2002	<mschimek@users.sf.net>
 

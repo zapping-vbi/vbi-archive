@@ -2404,3 +2404,99 @@ void tveng_mutex_unlock(tveng_device_info * info)
 {
   UNTVLOCK;
 }
+
+/*
+ *  Future stuff
+ */
+
+#if 0
+
+tv_bool
+callback_add			(callback_node **	list,
+				 tv_bool		(* action)(void *, void *),
+				 void			(* remove)(void *, void *),
+				 void *			user_data)
+{
+	callback_node *cb;
+
+	for (; (cb = *list); list = &cb->next)
+		;
+
+	if (!(cb = calloc (1, sizeof (*cb))))
+		return FALSE;
+
+	cb->action = action;
+	cb->remove = remove;
+	cb->user_data = user_data;
+
+	*list = cb;
+
+	return TRUE;
+}
+
+void
+callback_remove			(void *			object,
+				 callback_node **	list,
+				 tv_bool		(* action)(void *, void *),
+				 void *			user_data)
+{
+	callback_node *cb;
+
+	for (; (cb = *list); list = &cb->next)
+		if (cb->action == action
+		    && cb->user_data == user_data) {
+			*list = cb->next;
+
+			if (cb->remove)
+				cb->remove (object, cb->user_data);
+
+			free (cb);
+
+			return;
+		}
+
+	assert (!"not found");
+}
+
+void
+callback_remove_all		(void *			object,
+				 callback_node **	list)
+{
+	callback_node *cb;
+
+	while ((cb = *list)) {
+		*list = cb->next;
+
+		if (cb->remove)
+			cb->remove (object, cb->user_data);
+
+		free (cb);
+	}
+}
+
+void
+callback_block			(callback_node *	cb,
+				 tv_bool		(* action)(void *, void *),
+				 void *			user_data,
+				 tv_bool		block)
+{
+	for (; cb; cb = cb->next)
+		if (cb->action == action
+		    && cb->user_data == user_data) {
+			if (block)
+				cb->blocked++;
+			else if (cb->blocked > 0)
+				cb->blocked--;
+		}
+}
+
+void
+callback_action			(void *			object,
+				 callback_node *	cb)
+{
+	for (; cb; cb = cb->next)
+		if (cb->blocked == 0)
+			cb->action (object, cb->user_data);
+}
+
+#endif

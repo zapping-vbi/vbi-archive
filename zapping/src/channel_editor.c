@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.37.2.5 2002-12-27 04:14:31 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.37.2.6 2003-01-03 06:55:56 mschimek Exp $ */
 
 /*
   TODO:
@@ -116,13 +116,9 @@ struct channel_editor
 
 #define DONT_CHANGE 0
 
-#define BLOCK(object, signal)						\
-  g_signal_handlers_block_by_func (G_OBJECT (ce->object),		\
-    (gpointer) on_ ## object ## _ ## signal, (gpointer) ce)
-
-#define UNBLOCK(object, signal)						\
-  g_signal_handlers_unblock_by_func (G_OBJECT (ce->object),		\
-    (gpointer) on_ ## object ## _ ## signal, (gpointer) ce)
+#define BLOCK(object, signal, statement)				\
+  SIGNAL_HANDLER_BLOCK(ce->object,					\
+    (gpointer) on_ ## object ## _ ## signal, statement)
 
 static GtkMenu *
 create_standard_menu		(channel_editor *	ce);
@@ -909,22 +905,20 @@ on_channel_remove_clicked	(GtkButton *		channel_remove,
   if (!channel_list_get_selection (ce, &iter, NULL, &tc, NULL))
     return;
 
-  BLOCK (channel_selection, changed);
+  BLOCK (channel_selection, changed,
+	 while (VALID_ITER (&iter, ce->channel_model))
+	   {
+	     if (!gtk_tree_selection_iter_is_selected (ce->channel_selection, &iter))
+	       break;
+    
+	     gtk_list_store_remove (ce->channel_model, &iter);
 
-  while (VALID_ITER (&iter, ce->channel_model))
-    {
-      if (!gtk_tree_selection_iter_is_selected (ce->channel_selection, &iter))
-	break;
-
-      gtk_list_store_remove (ce->channel_model, &iter);
-
-      tc_next = tc->next;
-      tveng_tuned_channel_remove (&global_channel_list, tc);
-      tveng_tuned_channel_delete (tc);
-      tc = tc_next;
-    }
-
-  UNBLOCK (channel_selection, changed);
+	     tc_next = tc->next;
+	     tveng_tuned_channel_remove (&global_channel_list, tc);
+	     tveng_tuned_channel_delete (tc);
+	     tc = tc_next;
+	   }
+	 );
 
   if (VALID_ITER (&iter, ce->channel_model))
     {
@@ -1089,70 +1083,47 @@ on_channel_selection_changed	(GtkTreeSelection *	selection,
 
   z_switch_channel (tc, main_info);
 
-  {
-    BLOCK (entry_name, changed);
+  BLOCK (entry_name, changed,
+	 gtk_entry_set_text (ce->entry_name, tc->name));
 
-    gtk_entry_set_text (ce->entry_name, tc->name);
+  BLOCK (entry_input, changed,
+         {
+	   struct tveng_enum_input *input;
+	   guint id = 0;
 
-    UNBLOCK (entry_name, changed);
-  }
+	   if (tc->input != DONT_CHANGE)
+	     if ((input = tveng_find_input_by_hash (tc->input, main_info)))
+	       id = input->index + 1;
 
-  {
-    struct tveng_enum_input *input;
-    guint id = 0;
+	   z_option_menu_set_active (GTK_WIDGET (ce->entry_input), id);
+	 }
+  );
 
-    BLOCK (entry_input, changed);
+  SIGNAL_HANDLER_BLOCK (ce->spinslider_adj,
+			(gpointer) on_entry_fine_tuning_value_changed,
+			entry_fine_tuning_set (ce, main_info, tc->freq));
 
-    if (tc->input != DONT_CHANGE)
-      if ((input = tveng_find_input_by_hash (tc->input, main_info)))
-	id = input->index + 1;
+  BLOCK (entry_standard, changed,
+	 {
+	   struct tveng_enumstd *standard;
+	   guint id = 0;
 
-    z_option_menu_set_active (GTK_WIDGET (ce->entry_input), id);
+	   /* Standards depend on current input */
+	   gtk_widget_destroy (gtk_option_menu_get_menu (ce->entry_standard));
+	   gtk_option_menu_set_menu (ce->entry_standard,
+				     GTK_WIDGET (create_standard_menu (ce)));
 
-    UNBLOCK (entry_input, changed);
-  }
+	   if (tc->standard != DONT_CHANGE)
+	     if ((standard = tveng_find_standard_by_hash (tc->standard, main_info)))
+	       id = standard->index + 1;
 
-  {
-    g_signal_handlers_block_by_func (G_OBJECT (ce->spinslider_adj),
-				     (gpointer) on_entry_fine_tuning_value_changed,
-				     (gpointer) ce);
+	   z_option_menu_set_active (GTK_WIDGET (ce->entry_standard), id);
+	 }
+  );
 
-    entry_fine_tuning_set (ce, main_info, tc->freq);
-
-    g_signal_handlers_unblock_by_func (G_OBJECT (ce->spinslider_adj),
-				       (gpointer) on_entry_fine_tuning_value_changed,
-				       (gpointer) ce);
-  }
-
-  {
-    struct tveng_enumstd *standard;
-    guint id = 0;
-
-    BLOCK (entry_standard, changed);
-
-    /* Standards depend on current input */
-    gtk_widget_destroy (gtk_option_menu_get_menu (ce->entry_standard));
-    gtk_option_menu_set_menu (ce->entry_standard,
-			      GTK_WIDGET (create_standard_menu (ce)));
-
-    if (tc->standard != DONT_CHANGE)
-      if ((standard = tveng_find_standard_by_hash (tc->standard, main_info)))
-	id = standard->index + 1;
-
-    z_option_menu_set_active (GTK_WIDGET (ce->entry_standard), id);
-
-    UNBLOCK (entry_standard, changed);
-  }
-
-  {
-    g_signal_handlers_block_by_func (G_OBJECT (z_key_entry_entry (ce->entry_accel)),
-				     (gpointer) on_entry_accel_changed, (gpointer) ce);
-
-    z_key_entry_set_key (ce->entry_accel, tc->accel);
-
-    g_signal_handlers_unblock_by_func (G_OBJECT (z_key_entry_entry (ce->entry_accel)),
-				       (gpointer) on_entry_accel_changed, (gpointer) ce);
-  }
+  SIGNAL_HANDLER_BLOCK (z_key_entry_entry (ce->entry_accel),
+			(gpointer) on_entry_accel_changed,
+			z_key_entry_set_key (ce->entry_accel, tc->accel));
 
   gtk_widget_set_sensitive (GTK_WIDGET (ce->entry_table), TRUE);
 

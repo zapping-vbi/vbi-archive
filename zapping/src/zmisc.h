@@ -406,9 +406,14 @@ z_entry_emits_response		(GtkWidget	*entry,
 				 GtkDialog	*dialog,
 				 GtkResponseType response);
 
-gboolean
-z_icon_factory_add_default_files
-				(const gchar *		stock_id,
-				 const gchar *		filename,
-				 ...);
+#define SIGNAL_HANDLER_BLOCK(object, func, statement)			\
+do { gulong handler_id_;						\
+  handler_id_ = g_signal_handler_find (G_OBJECT (object),		\
+    G_SIGNAL_MATCH_FUNC, 0, 0, 0, (gpointer) func, 0);			\
+  g_assert (handler_id_ != 0);						\
+  g_signal_handler_block (G_OBJECT (object), handler_id_);		\
+  statement;								\
+  g_signal_handler_unblock (G_OBJECT (object), handler_id_);		\
+} while (0)
+
 #endif /* __ZMISC_H__ */

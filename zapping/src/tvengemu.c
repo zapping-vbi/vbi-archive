@@ -149,6 +149,8 @@ int tvengemu_attach_device(const char* device_file,
   if (info->fd)
     tveng_close_device (info);
 
+  info->audio_mutable = 1;
+
   info -> file_name = strdup (device_file);
 
   memcpy (&info->caps, &caps, sizeof (caps));

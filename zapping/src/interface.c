@@ -254,7 +254,7 @@ create_popup_menu1 (void)
   MENU_CMD (keep_window_on_top1,"zapping.keep_on_top()");
 
   w = lookup_widget (widget, "appearance1_menu");
-  picture_sizes_append_menu (w);
+  picture_sizes_append_menu (GTK_MENU_SHELL (w));
 
   return widget;
 }

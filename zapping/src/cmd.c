@@ -33,6 +33,7 @@
 #include "zmisc.h"
 #include "zconf.h"
 #include "globals.h"
+#include "mixer.h"
 
 static PyObject* py_quit (PyObject *self, PyObject *args)
 {
@@ -43,7 +44,14 @@ static PyObject* py_quit (PyObject *self, PyObject *args)
     py_return_false;
 
   /* Mute the device */
-  tveng_set_mute (TRUE, main_info);
+  {
+    int cur_line = zconf_get_integer (NULL, "/zapping/options/audio/record_source");
+
+    if (main_info->audio_mutable)
+      tveng_set_mute (1, main_info);
+    else if (cur_line > 0)
+      mixer_set_mute (cur_line - 1, 1);
+  }
 
   /* Save the currently tuned channel */
   zconf_set_integer (cur_tuned_channel,

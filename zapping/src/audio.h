@@ -33,21 +33,12 @@ void
 read_audio_data (gpointer handle, gpointer dest, gint num_bytes,
 		 double *timestamp);
 
-/**
- * set_mute1:
- * @mode: 0 - off, 1 - on, 2 - toggle, 3 - query driver.
- * @controls: Update the controls box, if open.
- * @osd: OSD mute state, if in fullscreen mode.
- * 
- * Switch audio on or off.
- * 
- * Return value: 
- * %TRUE on success.
- **/
 gboolean
-set_mute1				(gint	        mode,
+set_mute				(gint	        mode,
 					 gboolean	controls,
 					 gboolean	osd);
+
+extern void mixer_setup ( void );
 
 /**
  * Initialization/shutdown
