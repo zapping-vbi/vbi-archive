@@ -23,8 +23,6 @@
 
 /* FIXME: This should be improved (requirements for off64_t) */
 #ifndef _GNU_SOURCE
-/* this lib is GPL, so anyone complaining about us defining this
-   symbol is an outlaw ;-) */
 #define _GNU_SOURCE 1
 #endif
 #include <sys/types.h>
@@ -90,6 +88,7 @@ typedef enum {
 
 typedef union {
   rte_int		num;
+  rte_menu		idx;
   rte_string		str;		/* gettext()ized _N() */
   rte_real		dbl;
 } rte_option_value;
@@ -104,7 +103,7 @@ typedef struct {
   union {
     rte_bool *		val;
     rte_int *           num;
-    rte_string          str;
+    rte_string *        str;
     rte_real *		dbl;
   }                     menu;
   rte_basic_type	menu_type;	/* type of data the menu contains */

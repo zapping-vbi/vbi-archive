@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.4 2001-12-16 10:35:48 garetxe Exp $
+ * $Id: rtepriv.h,v 1.5 2001-12-16 18:06:32 garetxe Exp $
  * Private stuff in the context.
  */
 
@@ -76,7 +76,12 @@ struct _rte_codec_class {
 	rte_bool		(* set_parameters)(rte_codec *, rte_stream_parameters *);
 	rte_bool		(* get_parameters)(rte_codec *, rte_stream_parameters *);
 
-	rte_bool		(* init)(rte_codec *);
+	/* Called by rte.c before building the fifos. Fill in
+	   num_buffers as needed. */
+	rte_bool		(* pre_init)(rte_codec *, int *num_buffers);
+	/* Called after building the fifos */
+	rte_bool		(* post_init)(rte_codec *);
+	/* After this the fifos will be destroyed by rte */
 	rte_bool		(* uninit)(rte_codec *);
 
 	rte_status_info *	(* status_enum)(rte_codec *, int);
@@ -96,6 +101,8 @@ struct _rte_codec {
 	rte_status		status;		/* ro */
 	rte_pointer		user_data;
 
+	int			bsize;		/* size of a frame */
+
 	enum {
 		RTE_INPUT_CB, /* Callback buffered */
 		RTE_INPUT_CD, /* Callback data */
@@ -113,10 +120,14 @@ struct _rte_codec {
 		struct {
 			rteDataCallback		get;
 		} cd;
+		/* Push data */
+		struct {
+			buffer *		last_buffer;
+		} pd;
 	} input;
 
-	/* class->init must build this, class->uninit destroys */
 	fifo			f;
+	producer		prod;
 
 	/* FIXME: this ought to be codec private */
 	int			stream;		/* multiplexer substream */
@@ -169,6 +180,7 @@ struct _rte_context {
 };
 
 typedef struct {
+	const char *		name;
 	void			(* init)(void);
 	rte_context_info *	(* context_enum)(int n);
 	rte_context *		(* context_new)(const char *keyword);
@@ -185,27 +197,37 @@ typedef struct {
 #define RTE_OPTION_BOOL_INITIALIZER(key_, label_, def_, tip_)		\
   { RTE_OPTION_BOOL, key_, label_,					\
     RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, 1, 1),		\
-    { .num = NULL }, 0, tip_ }
+    { .num = NULL }, 0, 0, tip_ }
+
+#define RTE_OPTION_MENU_INT_INITIALIZER(key_, label_, def_, menu_,	\
+    entries_, tip_) { RTE_OPTION_MENU, key_, label_,			\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.idx, def_, 0, entries_, 1),		\
+    { .num = menu_ }, RTE_INT, entries_, tip_ }
 
 #define RTE_OPTION_INT_INITIALIZER(key_, label_, def_, min_, max_,	\
-  step_, menu_, entries_, tip_) { RTE_OPTION_INT, key_, label_,		\
+  step_, tip_) { RTE_OPTION_INT, key_, label_,				\
     RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, min_, max_, step_),	\
-    { .num = menu_ }, entries_, tip_ }
+    { .num = NULL }, 0, 0, tip_ }
+
+#define RTE_OPTION_MENU_REAL_INITIALIZER(key_, label_, def_, menu_,	\
+    entries_, tip_) { RTE_OPTION_MENU, key_, label_,			\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.idx, def_, 0, entries_, 1),		\
+    { .dbl = menu_ }, RTE_REAL, entries_, tip_ }
 
 #define RTE_OPTION_REAL_INITIALIZER(key_, label_, def_, min_, max_,	\
-  step_, menu_, entries_, tip_) { RTE_OPTION_REAL, key_, label_,	\
+  step_, tip_) { RTE_OPTION_REAL, key_, label_,				\
     RTE_OPTION_BOUNDS_INITIALIZER_(.dbl, def_, min_, max_, step_),	\
-    { .dbl = menu_ }, entries_, tip_ }
+    { .dbl = NULL }, 0, 0, tip_ }
 
-#define RTE_OPTION_STRING_INITIALIZER(key_, label_, def_, menu_,	\
-  entries_, tip_) { RTE_OPTION_STRING, key_, label_,			\
+#define RTE_OPTION_MENU_STRING_INITIALIZER(key_, label_, def_, menu_,	\
+    entries_, tip_) { RTE_OPTION_MENU, key_, label_,			\
+    RTE_OPTION_BOUNDS_INITIALIZER_(.idx, def_, 0, entries_, 1),		\
+    { .str = menu_ }, RTE_STRING, entries_, tip_ }
+
+#define RTE_OPTION_STRING_INITIALIZER(key_, label_, def_, tip_) {	\
+	RTE_OPTION_STRING, key_, label_,				\
     RTE_OPTION_BOUNDS_INITIALIZER_(.str, def_, NULL, NULL, NULL),	\
-    { .str = menu_ }, entries_, tip_ }
-
-#define RTE_OPTION_MENU_INITIALIZER(key_, label_, def_, menu_,		\
-  entries_, tip_) { RTE_OPTION_MENU, key_, label_,			\
-    RTE_OPTION_BOUNDS_INITIALIZER_(.num, def_, 0, (entries_) - 1, 1),	\
-    { .str = menu_ }, entries_, tip_ }
+    { .str = NULL }, 0, 0, tip_ }
 
 #define RC(X) ((rte_context*)X)
 

@@ -49,21 +49,7 @@ output(struct multiplexer *mux,
 	if (!mbuf)
 		return &mux_buffer;
 
-	/* rte_global_context sanity checks */
-	if ((!context) || (!context->private) ||
-	    (!context->private->encode_callback)) {
-		rte_error(NULL, "sanity check failed");
-		return mbuf;
-	}
-
-	context->private->bytes_out += mbuf->used;
-
-	context->private->
-		encode_callback(context,
-				mbuf->data,
-				mbuf->used,
-				context->private->user_data);
-
+#warning TODO
 
 	return mbuf; /* any previously entered */
 }

@@ -85,8 +85,6 @@ rte_context_info_context (rte_context *context);
 /**
  * rte_context_new:
  * @keyword: Context format identifier as in rte_context_info.
- * @user_data: Any custom data you want to attach to the created
- *	       context, can be read later on with rte_context_get_user_data()
  * 
  * Creates a new rte context, encoding files of the specified type.
  *
@@ -96,7 +94,7 @@ rte_context_info_context (rte_context *context);
  * named context format is unavailable or some other error occurred.
  **/
 rte_context *
-rte_context_new(const char *keyword, rte_pointer user_data);
+rte_context_new(const char *keyword);
 
 /**
  * rte_context_delete:

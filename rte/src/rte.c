@@ -18,6 +18,10 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "rtepriv.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,12 +35,39 @@
 #define xc context->class
 #define dc codec->class
 
-static rte_backend_info *
+#ifdef MP1E
+extern const rte_backend_info b_mp1e_info;
+#endif
+
+static const rte_backend_info *
 backends[] = 
 {
+#ifdef MP1E
+	&b_mp1e_info
+#endif
 	/* tbd */
 };
 static const int num_backends = sizeof(backends)/sizeof(backends[0]);
+
+/* runs func for all used codecs in context */
+static rte_bool codec_forall(rte_context *context,
+			     rte_bool (*func)(rte_codec*, rte_pointer),
+			     rte_pointer udata)
+{
+	int i;
+	int j;
+
+	/* FIXME: Should this use codec->next instead?? */
+
+	for (i=0; i<RTE_STREAM_MAX; i++)
+		for (j=0; j<xc->public.elementary[i]; j++) {
+			rte_codec *codec = rte_codec_get(context, i, j);
+			if (codec && !func(codec, udata))
+				return FALSE;
+		}
+
+	return TRUE;
+}
 
 /* inits the backends if not already inited. */
 static void
@@ -95,7 +126,7 @@ rte_context_info_context(rte_context *context)
 }
 
 rte_context *
-rte_context_new(const char *keyword, rte_pointer user_data)
+rte_context_new(const char *keyword)
 {
 	rte_context *context = NULL;
 	int j;
@@ -318,18 +349,90 @@ rte_set_input_push_data(rte_codec *codec)
 }
 
 void
-rte_push_buffer(rte_codec *codec, rte_buffer *buffer,
+rte_push_buffer(rte_codec *codec, rte_buffer *rbuf,
 		rte_bool blocking)
 {
-	/* FIXME */
+	buffer *b;
+
+	nullcheck(codec, return);
+
+	if (codec->input_mode != RTE_INPUT_PB) {
+		rte_error(NULL, "[%s] Pushing buffer but current input mode"
+			  " isn't push_buffered", dc->public.keyword);
+		return;
+	}
+
+	if (blocking)
+		b = wait_empty_buffer(&codec->prod);
+	else {
+		b = recv_empty_buffer(&codec->prod);
+		if (!b) {
+			rte_error(codec->context,
+				  "[%s] push_buffer failed, "
+				  "would block", dc->public.keyword);
+			return;
+		}
+	}
+
+	b->time = rbuf->timestamp;
+	b->data = rbuf->data;
+	b->used = codec->bsize;
+	b->user_data = rbuf->user_data;
+
+	send_full_buffer(&codec->prod, b);
 }
 
 rte_pointer
 rte_push_data(rte_codec *codec, rte_pointer data, double timestamp,
 	      rte_bool blocking)
 {
-	/* FIXME */
-	return NULL;
+	buffer *b, *b2 = NULL;
+
+	nullcheck(codec, return NULL);
+
+	if (codec->input_mode != RTE_INPUT_PD) {
+		rte_error(NULL, "[%s] Pushing data but current input mode"
+			  " isn't push_data", dc->public.keyword);
+		return NULL;
+	}
+
+	b = codec->input.pd.last_buffer;
+	
+	if (!blocking) {
+		b2 = recv_empty_buffer(&codec->prod);
+		if (!b2) {
+			rte_error(codec->context, "[%s] push_data failed, "
+				  "would block", dc->public.keyword);
+			return NULL;
+		}
+	}
+
+	if ((data && !b) || (!data && b)) {
+		rte_error(NULL, "[%s] Stick to the usage, please",
+			  dc->public.keyword);
+		return NULL;
+	}
+
+	if (data) {
+		if (data != b->data) {
+			rte_error(NULL, "[%s] You haven't written to"
+				  " the provided buffer",
+				  dc->public.keyword);
+			return NULL;
+		}
+		/* We always send full buffers except eof */
+		/* FIXME: We should expose b->allocated somehow */
+		b->used = codec->bsize;
+		b->time = timestamp;
+		send_full_buffer(&codec->prod, b);
+	}
+
+	if (blocking)
+		b2 = wait_empty_buffer(&codec->prod);
+
+	codec->input.pd.last_buffer = b2;
+
+	return b->data;
 }
 
 void
@@ -570,10 +673,148 @@ rte_status_free(rte_status_info *status)
 	free(status);
 }
 
+/* uninit all the codecs in the given context */
+static void
+codecs_uninit(rte_context *context)
+{
+	static rte_bool uninit_codec(rte_codec *codec,
+				     rte_pointer udata) {
+		switch (codec->input_mode) {
+		case RTE_INPUT_PD:
+		{
+			/* flush */
+			buffer *b = codec->input.pd.last_buffer;
+			if (b) {
+				b->used = 0; /* EOF */
+				send_full_buffer(&codec->prod, b);
+			}
+		}
+			break;
+		default:
+			break;
+		}
+		dc->uninit(codec);
+
+		rem_producer(&codec->prod);
+		destroy_fifo(&codec->f);
+
+		memset(&codec->input, 0, sizeof(codec->input));
+
+		return TRUE;
+	}
+
+	codec_forall(context, uninit_codec, NULL);
+}
+
+/* Returns the required buffer size for the codec */
+static int
+buffer_size (rte_codec *codec)
+{
+	rte_stream_parameters par;
+	rte_video_stream_parameters *vid =
+		(rte_video_stream_parameters*)&par;
+
+	rte_codec_get_parameters(codec, &par);
+
+	if (dc->public.stream_type == RTE_STREAM_AUDIO)
+		return par.audio.fragment_size;
+	else if (dc->public.stream_type == RTE_STREAM_SLICED_VBI)
+		return 0; /* FIXME */
+	/* video */
+	switch (vid->pixfmt) {
+	case RTE_PIXFMT_YUV420:
+		/* Assumes that there's no padding between Y, U, V
+		   fields */
+		return vid->stride * vid->height +
+			vid->uv_stride * vid->height * 2;
+	default:
+		return vid->stride * vid->height;
+	}
+}
+
+static void
+rte_wait_full (fifo *f)
+{
+  /*  rte_codec *codec = (rte_codec*)f->user_data;
+      FIXME */
+}
+
+static void
+rte_send_empty (consumer *c, buffer *b)
+{
+  /* rte_codec *codec = (rte_codec*)f->user_data;
+     FIXME */
+}
+
+/* init one codec */
+static rte_bool
+init_codec (rte_codec *codec, rte_pointer udata)
+{
+	rte_context *context = (rte_context*)udata;
+	int buffers;
+	int alloc_bytes = 0;
+	int bsize = codec->bsize = buffer_size(codec);
+	rte_bool retval = dc->pre_init(codec, &buffers);
+	
+	if (!retval) {
+		rte_error(context, "Cannot pre_init %s",
+			  dc->public.keyword);
+		return FALSE;
+	}
+	
+	switch (codec->input_mode) {
+	case RTE_INPUT_PD:
+		codec->input.pd.last_buffer = NULL;
+	case RTE_INPUT_CD:
+		alloc_bytes = bsize;
+		break;
+	default:
+		alloc_bytes = 0;
+		break;
+	}
+
+	if (buffers != init_callback_fifo
+	    (&codec->f, dc->public.keyword, NULL, NULL,
+	     rte_wait_full, rte_send_empty, buffers,
+	     alloc_bytes)) {
+		rte_error(context, "not enough mem");
+		return FALSE;
+	}
+
+	codec->f.user_data = codec;
+
+	retval = dc->post_init(codec);
+
+	assert(add_producer(&codec->f, &codec->prod));
+
+	if (!retval) {
+		rem_producer(&codec->prod);
+		destroy_fifo(&codec->f);
+		rte_error(context, "Cannot post_init %s",
+			  dc->public.keyword);
+		return FALSE;
+	}
+
+	return retval;
+}
+
 rte_bool
 rte_start(rte_context *context)
 {
 	rte_bool result;
+	int num_codecs = 0;
+	char *failed_codec = NULL;
+
+	/* check that all selected codecs are in ready state and count
+	 selected codecs */
+	static rte_bool check_ready (rte_codec *codec, rte_pointer udata) {
+		if (codec->status != RTE_STATUS_READY) {
+			failed_codec = dc->public.keyword;
+			return FALSE; /* Stop forall */
+		}
+		num_codecs++;
+		return TRUE;
+	}
 
 	nullcheck(context, return FALSE);
 
@@ -588,12 +829,26 @@ rte_start(rte_context *context)
 		return FALSE;
 	}
 
-	/* FIXME: to do */
+	if (!codec_forall(context, check_ready, NULL)) {
+		rte_error(context, "Codec %s isn't ready to encode",
+			  failed_codec);
+		return FALSE;
+	}
+
+	if (!num_codecs) {
+		rte_error(context, "No codecs set");
+		return FALSE;
+	}
+
+	if (!codec_forall(context, init_codec, NULL))
+		return FALSE;
 
 	result = xc->start(context);
 
 	if (result)
 		context->status = RTE_STATUS_RUNNING;
+	else
+		codecs_uninit(context);
 
 	return result;
 }
@@ -608,7 +863,9 @@ rte_stop(rte_context *context)
 		return;
 	}
 
-	/* FIXME: to do */
+	xc->stop(context);
+
+	codecs_uninit(context);
 
 	context->status = RTE_STATUS_READY;
 }

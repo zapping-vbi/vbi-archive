@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.20 2001-12-05 07:22:46 mschimek Exp $ */
+/* $Id: mp2.c,v 1.21 2001-12-16 18:06:31 garetxe Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -910,19 +910,19 @@ menu_psycho[] = {
 
 static rte_option_info
 mpeg1_options[] = {
-	RTE_OPTION_INT_INITIALIZER
+	RTE_OPTION_MENU_INT_INITIALIZER
 	  ("bit_rate", N_("Bit rate"),
-	   80000, 32000, 384000, 1,
+	   4 /* 80000 */,
 	   (int *) &bit_rate_value[MPEG_VERSION_1][1], 14,
 	   N_("Output bit rate, all channels together")),
-	RTE_OPTION_INT_INITIALIZER
+	RTE_OPTION_MENU_INT_INITIALIZER
 	  ("sampling_rate", N_("Sampling frequency"),
-	   44100, 32000, 48000, 1,
+	   0 /* 44100 */,
 	   (int *) &sampling_freq_value[MPEG_VERSION_1][0], 3, (NULL)),
-	RTE_OPTION_MENU_INITIALIZER
+	RTE_OPTION_MENU_STRING_INITIALIZER
 	  ("audio_mode", N_("Mode"),
 	   0, menu_audio_mode, elements(menu_audio_mode), (NULL)),
-	RTE_OPTION_MENU_INITIALIZER
+	RTE_OPTION_MENU_STRING_INITIALIZER
 	  ("psycho", N_("Psychoacoustic analysis"),
 	   0, menu_psycho, elements(menu_psycho),
 	   N_("Speed/quality tradeoff. Selecting 'Accurate' is recommended "
@@ -952,7 +952,7 @@ option_enum(rte_codec *codec, int index)
 }
 
 static int
-option_get(rte_codec *codec, char *keyword, rte_option_value *v)
+option_get(rte_codec *codec, const char *keyword, rte_option_value *v)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
 
@@ -998,7 +998,7 @@ ivec_imin(int *vec, int size, int val)
 }
 
 static int
-option_set(rte_codec *codec, char *keyword, va_list args)
+option_set(rte_codec *codec, const char *keyword, va_list args)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
 
@@ -1050,7 +1050,7 @@ option_set(rte_codec *codec, char *keyword, va_list args)
 }
 
 static char *
-option_print(rte_codec *codec, char *keyword, va_list args)
+option_print(rte_codec *codec, const char *keyword, va_list args)
 {
 	mp2_context *mp2 = PARENT(codec, mp2_context, codec);
 	char buf[80];
@@ -1081,8 +1081,8 @@ option_print(rte_codec *codec, char *keyword, va_list args)
 	return strdup(buf);
 }
 
-static int
-parameters(rte_codec *codec, rte_stream_parameters *rsp)
+static rte_bool
+set_parameters(rte_codec *codec, rte_stream_parameters *rsp)
 {
 	static const rte_sndfmt valid_format[] = {
 		RTE_SNDFMT_S16LE,
@@ -1271,7 +1271,7 @@ mp1e_mpeg1_layer2_codec = {
 	.option_set	= option_set,
 	.option_print	= option_print,
 
-	.parameters	= parameters,
+	.set_parameters	= set_parameters,
 
 	.mainloop	= mainloop,
 };
@@ -1301,7 +1301,7 @@ mp1e_mpeg2_layer2_codec = {
 	.option_set	= option_set,
 	.option_print	= option_print,
 
-	.parameters	= parameters,
+	.set_parameters	= set_parameters,
 
 	.mainloop	= mainloop,
 };
@@ -1313,7 +1313,9 @@ mp1e_mp2_module_init(int test)
 	memcpy(mpeg2_options, mpeg1_options, sizeof(mpeg2_options));
 
 	mpeg2_options[0].menu.num = (int *) &bit_rate_value[MPEG_VERSION_2][1];
+	mpeg2_options[0].def.idx = 8 /* 80000 */;
 	mpeg2_options[1].menu.num = (int *) &sampling_freq_value[MPEG_VERSION_2][0];
+	mpeg2_options[1].def.idx = 0 /* 22050 */;
 
 	mp1e_mp2_subband_filter_init(test);
 	mp1e_mp2_fft_init(test);

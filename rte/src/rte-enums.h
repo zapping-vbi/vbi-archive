@@ -3,7 +3,7 @@
 
 /* Stream types */
 typedef enum {
-  RTE_STREAM_VIDEO = 1,  /* XXX STREAM :-( need a better term */
+  RTE_STREAM_VIDEO = 0,  /* XXX STREAM :-( need a better term */
   RTE_STREAM_AUDIO,	 /* input/output distinction? */
   RTE_STREAM_SLICED_VBI,
   /* ... */

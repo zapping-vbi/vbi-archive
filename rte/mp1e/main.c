@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.21 2001-12-05 07:22:45 mschimek Exp $ */
+/* $Id: main.c,v 1.22 2001-12-16 18:06:31 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -301,7 +301,7 @@ main(int ac, char **av)
 
 		memset(&rsp, 0, sizeof(rsp));
 		rsp.audio.sndfmt = pcm->format;
-		audio_codec->class->parameters(audio_codec, &rsp);
+		audio_codec->class->set_parameters(audio_codec, &rsp);
 
 		mp1e_mp2_init(audio_codec, MOD_AUDIO,
 			      audio_cap_fifo, mux);

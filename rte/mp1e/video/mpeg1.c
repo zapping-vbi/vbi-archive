@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.20 2001-12-14 10:12:36 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.21 2001-12-16 18:06:31 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -2236,18 +2236,17 @@ mpeg1_options[] = {
 	RTE_OPTION_INT_INITIALIZER
 	  ("bit_rate", N_("Bit rate"),
 	   2300000, 30000, 8000000, 1000,
-	   NULL, 0, N_("Output bit rate")),
-	RTE_OPTION_REAL_INITIALIZER
+	   N_("Output bit rate")),
+	RTE_OPTION_MENU_REAL_INITIALIZER
 	  ("coded_frame_rate", N_("Coded frame rate"),
-	   25.0, 24000.0 / 1001, 60.0, 1e-3,
-	   (double *) &frame_rate_value[1], 8, (NULL)),
+	   2 /* 25.0 */, (double *) &frame_rate_value[1], 8, (NULL)),
 	RTE_OPTION_REAL_INITIALIZER
 	  ("virtual_frame_rate", N_("Virtual frame rate"),
-	   60.0, 0.0002, 60.0, 1e-3, NULL, 0,
+	   60.0, 0.0002, 60.0, 1e-3,
 	   N_("MPEG-1 allows only a few discrete values for frames/s, "
 	      "but this codec can skip frames if you wish. Choose the "
 	      "output bit rate accordingly.")),
-	RTE_OPTION_MENU_INITIALIZER
+	RTE_OPTION_MENU_STRING_INITIALIZER
 	  ("skip_method", N_("Virtual frame rate method"),
 	   0, menu_skip_method, elements(menu_skip_method),
 	   N_("The standard compliant method has one major drawback: "
@@ -2255,7 +2254,7 @@ mpeg1_options[] = {
 	      "reducing the image quality.")),
 	RTE_OPTION_STRING_INITIALIZER
 	  ("gop_sequence", N_("GOP sequence"),
-	   "IBBPBBPBBPBB", NULL, 0, N_(GOP_RULE)),
+	   "IBBPBBPBBPBB", N_(GOP_RULE)),
 	RTE_OPTION_BOOL_INITIALIZER
 	  ("motion_compensation", N_("Motion compensation"),
 	   FALSE, N_("Enable motion compensation to improve the image "
@@ -2265,14 +2264,14 @@ mpeg1_options[] = {
 	  ("monochrome", N_("Disable color"), FALSE, (NULL)),
 XXX
 */	RTE_OPTION_STRING_INITIALIZER
-	  ("anno", N_("Annotation"), "", NULL, 0,
+	  ("anno", N_("Annotation"), "",
 	   N_("Add an annotation in the user data field shortly after "
 	      "the video stream start. This is an mp1e extension, "
 	      "players will ignore it.")),
 };
 
 static int
-option_get(rte_codec *codec, char *keyword, rte_option_value *v)
+option_get(rte_codec *codec, const char *keyword, rte_option_value *v)
 {
 	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
 
@@ -2321,12 +2320,12 @@ dvec_imin(double *vec, int size, double val)
 }
 
 static int
-option_set(rte_codec *codec, char *keyword, va_list args)
+option_set(rte_codec *codec, const char *keyword, va_list args)
 {
 	mpeg1_context *mpeg1 = PARENT(codec, mpeg1_context, codec);
 
 	if (0) {
-		static char *option_print(rte_codec *, char *, va_list);
+		static char *option_print(rte_codec *, const char *, va_list);
 		char *str = option_print(codec, keyword, args);
 
 		printv(0, "mpeg1/option_set(%p, %s, %s)\n", mpeg1, keyword, str);
@@ -2403,7 +2402,7 @@ onoff(int value)
 }
 
 static char *
-option_print(rte_codec *codec, char *keyword, va_list args)
+option_print(rte_codec *codec, const char *keyword, va_list args)
 {
 	char buf[80];
 
