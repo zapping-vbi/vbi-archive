@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.17 2002-05-29 02:32:29 mschimek Exp $ */
+/* $Id: options.c,v 1.18 2002-06-18 20:36:03 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -696,7 +696,8 @@ grte_codec_create_menu		(rte_context *		context,
         continue;
 
       menu_item = gtk_menu_item_new_with_label (_(cdinfo->label));
-      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword", cdinfo->keyword);
+      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword",
+			   (void *) cdinfo->keyword);
       set_tooltip (menu_item, _(cdinfo->tooltip));
       gtk_widget_show (menu_item);
       gtk_menu_append (GTK_MENU (menu), menu_item);
@@ -897,7 +898,8 @@ grte_context_create_menu	(const gchar *		zc_root,
 
       menu_item = gtk_menu_item_new_with_label (label);
       g_free(label);
-      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword", info->keyword);
+      gtk_object_set_data (GTK_OBJECT (menu_item), "keyword",
+			   (void *) info->keyword);
       set_tooltip (menu_item, _(info->tooltip));
       gtk_widget_show (menu_item);
       gtk_menu_append (GTK_MENU (menu), menu_item);

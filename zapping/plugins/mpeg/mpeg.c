@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.33 2002-05-29 02:32:29 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.34 2002-06-18 20:36:03 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -2579,7 +2579,7 @@ file_format_ext			(const gchar *		conf_name)
 {
   rte_context *context;
   rte_context_info *info;
-  gchar *s;
+  const gchar *s;
 
   if (!conf_name || !conf_name[0])
     return NULL;
