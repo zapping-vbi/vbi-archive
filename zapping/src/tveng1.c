@@ -510,6 +510,8 @@ int tveng1_set_input(struct tveng_enum_input * input,
   t_assert(info != NULL);
   t_assert(input != NULL);
 
+  current_mode = tveng_stop_everything(info);
+
   /* If this input has no tuner, switch to an input with a tuner and
      set the given standard. This fixes the V4L1 design flaw */
   if ((input->tuners == 0) || (!(input->flags & TVENG_INPUT_TUNER)))
@@ -556,8 +558,6 @@ int tveng1_set_input(struct tveng_enum_input * input,
 		    info->cur_input, info->cur_standard);
 	  }
       }
-
-  current_mode = tveng_stop_everything(info);
 
   /* Fill in the channel with the appropiate info */
   channel.channel = input->id;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.21 2001-11-01 03:26:25 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.22 2001-11-12 22:38:39 garetxe Exp $ */
 
 #include "plugin_common.h"
 
@@ -27,6 +27,7 @@
 
 #include "audio.h"
 #include "mpeg.h"
+#include "properties.h"
 
 /*
   TODO:
@@ -77,6 +78,10 @@ static gchar* save_dir;
 static gint output_mode; /* 0:file, 1:/dev/null */
 static gint capture_w, capture_h;
 
+/* Properties handling code */
+static void
+properties_add			(GnomeDialog	*dialog);
+
 /*
  *  This context instance is the properties dialog sandbox.
  *  The GUI displays options as reported by this context and
@@ -113,9 +118,6 @@ gboolean plugin_get_symbol (gchar * name, gint hash, gpointer * ptr)
     SYMBOL (plugin_save_config, 0x1234),
     SYMBOL (plugin_capture_stop, 0x1234),
     SYMBOL (plugin_get_public_info, 0x1234),
-    SYMBOL (plugin_add_properties, 0x1234),
-    SYMBOL (plugin_activate_properties, 0x1234),
-    SYMBOL (plugin_help_properties, 0x1234),
     SYMBOL (plugin_add_gui, 0x1234),
     SYMBOL (plugin_remove_gui, 0x1234),
     SYMBOL (plugin_get_misc_info, 0x1234),
@@ -179,6 +181,12 @@ void plugin_get_info (const gchar ** canonical_name,
 static
 gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
 {
+  /* Register the plugin as interested in the properties dialog */
+  property_handler mpeg_handler =
+  {
+    add: properties_add
+  };
+
   zapping_info = info;
 
   if (!rte_init ())
@@ -187,6 +195,8 @@ gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
 	      GNOME_MESSAGE_BOX_ERROR);
       return FALSE;
     }
+
+  append_property_handler(&mpeg_handler);
 
   return TRUE;
 }
@@ -833,30 +843,6 @@ gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
  *  Properties
  */
 
-static void
-on_property_item_changed              (GtkWidget * changed_widget,
-				       GnomePropertyBox *propertybox)
-{
-  gnome_property_box_changed (propertybox);
-}
-
-static GtkWidget *
-mpeg_prop_from_gpb (GnomePropertyBox *propertybox)
-{
-  gpointer data;
-  GtkWidget *mpeg_properties;
-
-  g_assert (propertybox);
-
-  data = gtk_object_get_data (GTK_OBJECT (propertybox), "mpeg_page");
-  mpeg_properties = gtk_notebook_get_nth_page (
-    GTK_NOTEBOOK (propertybox->notebook), GPOINTER_TO_INT (data));
-
-  g_assert (mpeg_properties);
-
-  return mpeg_properties;
-}
-
 static void nullify (void **p)
 {
   *p = NULL;
@@ -864,7 +850,7 @@ static void nullify (void **p)
 
 static void
 select_codec (GtkWidget *mpeg_properties, GtkWidget *menu,
-	      rte_stream_type stream_type, GnomePropertyBox *propertybox)
+	      rte_stream_type stream_type)
 {
   GtkWidget *menu_item = gtk_menu_get_active (GTK_MENU (menu));
   GtkWidget *vbox = 0;
@@ -899,7 +885,7 @@ select_codec (GtkWidget *mpeg_properties, GtkWidget *menu,
       codec = grte_codec_load (context_prop, MPEG_CONFIG, stream_type, keyword);
       g_assert (codec);
 
-      *optionspp = grte_options_create (context_prop, codec, propertybox);
+      *optionspp = grte_options_create (context_prop, codec);
 
       if (*optionspp)
 	{
@@ -918,32 +904,26 @@ select_codec (GtkWidget *mpeg_properties, GtkWidget *menu,
 
 static void
 on_audio_codec_changed                (GtkWidget * changed_widget,
-				       GnomePropertyBox *propertybox)
+				       GtkWidget * mpeg_properties)
 {
-  GtkWidget *mpeg_properties = mpeg_prop_from_gpb (propertybox);
-
-  select_codec (mpeg_properties, changed_widget, RTE_STREAM_AUDIO, propertybox);
-  gnome_property_box_changed (propertybox);
+  select_codec (mpeg_properties, changed_widget, RTE_STREAM_AUDIO);
 }
 
 static void
 on_video_codec_changed                (GtkWidget * changed_widget,
-				       GnomePropertyBox *propertybox)
+				       GtkWidget * mpeg_properties)
 {
-  GtkWidget *mpeg_properties = mpeg_prop_from_gpb (propertybox);
-
-  select_codec (mpeg_properties, changed_widget, RTE_STREAM_VIDEO, propertybox);
-  gnome_property_box_changed (propertybox);
+  select_codec (mpeg_properties, changed_widget, RTE_STREAM_VIDEO);
 }
 
 static void
 attach_codec_menu (GtkWidget *mpeg_properties, gchar *widget_name,
-		   rte_stream_type stream_type, GnomePropertyBox *gpb)
+		   rte_stream_type stream_type)
 {
   GtkWidget *menu, *menu_item;
   GtkWidget *widget;
   gint default_item;
-  void (* on_changed) (GtkWidget *, GnomePropertyBox *) = 0;
+  void (* on_changed) (GtkWidget *, GtkWidget *) = 0;
 
   switch (stream_type)
     {
@@ -969,13 +949,13 @@ attach_codec_menu (GtkWidget *mpeg_properties, gchar *widget_name,
   gtk_option_menu_set_menu (GTK_OPTION_MENU (widget), menu);
   gtk_option_menu_set_history (GTK_OPTION_MENU (widget), default_item);
   gtk_signal_connect (GTK_OBJECT (GTK_OPTION_MENU (widget)->menu),
-		      "deactivate", on_changed, gpb);
+		      "deactivate", on_changed, mpeg_properties);
 
-  select_codec (mpeg_properties, menu, stream_type, gpb);
+  select_codec (mpeg_properties, menu, stream_type);
 }
 
 static void
-select_format (GtkWidget *mpeg_properties, GtkWidget *menu, GnomePropertyBox *gpb)
+select_format (GtkWidget *mpeg_properties, GtkWidget *menu)
 {
   GtkWidget *menu_item = gtk_menu_get_active (GTK_MENU (menu));
   char *keyword;
@@ -987,22 +967,19 @@ select_format (GtkWidget *mpeg_properties, GtkWidget *menu, GnomePropertyBox *gp
 
   context_prop = rte_context_new (352, 288, keyword, NULL);
 
-  attach_codec_menu (mpeg_properties, "optionmenu5", RTE_STREAM_AUDIO, gpb);
-  attach_codec_menu (mpeg_properties, "optionmenu6", RTE_STREAM_VIDEO, gpb);
+  attach_codec_menu (mpeg_properties, "optionmenu5", RTE_STREAM_AUDIO);
+  attach_codec_menu (mpeg_properties, "optionmenu6", RTE_STREAM_VIDEO);
 }
 
 static void
 on_format_changed                     (GtkWidget * changed_widget,
-				       GnomePropertyBox *propertybox)
+				       GtkWidget * mpeg_properties)
 {
-  GtkWidget *mpeg_properties = mpeg_prop_from_gpb (propertybox);
-
-  select_format (mpeg_properties, changed_widget, propertybox);
-  gnome_property_box_changed (propertybox);
+  select_format (mpeg_properties, changed_widget);
 }
 
 static void
-attach_format_menu (GtkWidget *mpeg_properties, GnomePropertyBox *gpb)
+attach_format_menu (GtkWidget *mpeg_properties)
 {
   GtkWidget *menu, *menu_item;
   GtkWidget *widget;
@@ -1020,135 +997,95 @@ attach_format_menu (GtkWidget *mpeg_properties, GnomePropertyBox *gpb)
   gtk_option_menu_set_menu (GTK_OPTION_MENU (widget), menu);
   gtk_option_menu_set_history (GTK_OPTION_MENU (widget), default_item);
   gtk_signal_connect (GTK_OBJECT (GTK_OPTION_MENU (widget)->menu),
-  		      "deactivate", on_format_changed, gpb);
+  		      "deactivate", on_format_changed, mpeg_properties);
 
-  select_format (mpeg_properties, menu, gpb);
+  select_format (mpeg_properties, menu);
 }
 
 static void
 on_filename_changed                (GtkWidget * changed_widget,
-				    GnomePropertyBox *propertybox)
+				    gpointer	unused)
 {
   // z_on_electric_filename (changed_widget, NULL);
-  gnome_property_box_changed (propertybox);
 }
 
-static
-gboolean plugin_add_properties ( GnomePropertyBox * gpb )
+static void
+mpeg_setup			(GtkWidget	*page)
 {
-  GtkWidget *mpeg_properties;
-  GtkWidget *label;
   GtkWidget * widget;
   GtkWidget *menu, *menu_item;
   GtkAdjustment * adj;
-  gint page;
-
-  if (!gpb)
-    return TRUE;
-
-  mpeg_properties =
-    build_widget ("notebook1", PACKAGE_DATA_DIR "/mpeg_properties.glade");
-  label = gtk_label_new (_("MPEG"));
 
   /* Set current values and connect callbacks */
-  widget = lookup_widget (mpeg_properties, "fileentry1");
+  widget = lookup_widget (page, "fileentry1");
   widget = gnome_file_entry_gtk_entry (GNOME_FILE_ENTRY (widget));
   gtk_entry_set_text (GTK_ENTRY (widget), save_dir);
   // XXX basen.ame and auto-increment, no clips dir.
   gtk_object_set_data (GTK_OBJECT (widget), "basename", (gpointer) ".mpg");
   gtk_signal_connect (GTK_OBJECT (widget), "changed",
-		     on_filename_changed, gpb);
-  widget = lookup_widget (mpeg_properties, "spinbutton5");
+		      on_filename_changed, NULL);
+  widget = lookup_widget (page, "spinbutton5");
   gtk_spin_button_set_value (GTK_SPIN_BUTTON (widget), capture_w);
-  gtk_signal_connect (GTK_OBJECT (widget), "changed",
-		     on_property_item_changed, gpb);
 
-  widget = lookup_widget (mpeg_properties, "spinbutton6");
+  widget = lookup_widget (page, "spinbutton6");
   gtk_spin_button_set_value (GTK_SPIN_BUTTON (widget), capture_h);
-  gtk_signal_connect (GTK_OBJECT (widget), "changed",
-		     on_property_item_changed, gpb);
 
-  widget = lookup_widget (mpeg_properties, "optionmenu1");
+  widget = lookup_widget (page, "optionmenu1");
   gtk_option_menu_set_history (GTK_OPTION_MENU (widget), output_mode);
-  gtk_signal_connect (GTK_OBJECT (GTK_OPTION_MENU (widget)->menu),
-		     "deactivate", on_property_item_changed, gpb);
 
-  widget = lookup_widget (mpeg_properties, "spinbutton1");
+  widget = lookup_widget (page, "spinbutton1");
   gtk_spin_button_set_value (GTK_SPIN_BUTTON (widget), engine_verbosity);
-  gtk_signal_connect (GTK_OBJECT (widget), "changed",
-		     on_property_item_changed, gpb);
 
-  attach_format_menu (mpeg_properties, gpb);
-
-  gtk_widget_show (mpeg_properties);
-  gtk_widget_show (label);
-
-  page = gnome_property_box_append_page (gpb, mpeg_properties, label);
-
-  gtk_object_set_data (GTK_OBJECT (gpb), "mpeg_page", GINT_TO_POINTER (page));
-
-  return TRUE;
+  attach_format_menu (page);
 }
 
-static gboolean
-plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
+static void
+mpeg_apply			(GtkWidget	*page)
 {
-  gpointer data = gtk_object_get_data (GTK_OBJECT (gpb), "mpeg_page");
   GtkWidget * widget;
-  GtkWidget * mpeg_properties;
+  GtkWidget * mpeg_properties = page;
   GtkAdjustment * adj;
 
-  if (GPOINTER_TO_INT (data) == page)
-    {
-      mpeg_properties =
-	gtk_notebook_get_nth_page (GTK_NOTEBOOK (gpb->notebook), page);
+  widget = lookup_widget (mpeg_properties, "fileentry1");
+  g_free (save_dir);
+  save_dir =
+    gnome_file_entry_get_full_path (GNOME_FILE_ENTRY (widget),
+				    FALSE);
+  widget = lookup_widget (mpeg_properties, "optionmenu1");
+  output_mode = z_option_menu_get_active(widget);
 
-      widget = lookup_widget (mpeg_properties, "fileentry1");
-      g_free (save_dir);
-      save_dir =
-	gnome_file_entry_get_full_path (GNOME_FILE_ENTRY (widget),
-				       FALSE);
-      widget = lookup_widget (mpeg_properties, "optionmenu1");
-      widget = GTK_WIDGET (GTK_OPTION_MENU (widget)->menu);
-      output_mode = g_list_index (GTK_MENU_SHELL (widget)->children,
-				 gtk_menu_get_active (GTK_MENU (widget)));
+  widget = lookup_widget (mpeg_properties, "spinbutton1");
+  engine_verbosity =
+    gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (widget));
 
-      widget = lookup_widget (mpeg_properties, "spinbutton1");
-      engine_verbosity =
-	gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (widget));
+  widget = lookup_widget (mpeg_properties, "spinbutton5");
+  capture_w =
+    gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (widget));
+  capture_w &= ~15;
 
-      widget = lookup_widget (mpeg_properties, "spinbutton5");
-      capture_w =
-	gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (widget));
-      capture_w &= ~15;
+  widget = lookup_widget (mpeg_properties, "spinbutton6");
+  capture_h =
+    gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (widget));
+  capture_h &= ~15;
 
-      widget = lookup_widget (mpeg_properties, "spinbutton6");
-      capture_h =
-	gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (widget));
-      capture_h &= ~15;
-
-      if (context_prop)
-	grte_context_save (context_prop, MPEG_CONFIG);
-
-      return TRUE;
-    }
-  else
-    return FALSE;
+  if (context_prop)
+    grte_context_save (context_prop, MPEG_CONFIG);
 }
 
-static
-gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page )
+static void
+properties_add			(GnomeDialog	*dialog)
 {
-  gpointer data = gtk_object_get_data (GTK_OBJECT (gpb), "mpeg_page");
+  /* FIXME: Perhaps having a MPEG group with 3 items would be better? */
+  SidebarEntry plugin_options[] = {
+    { N_("MPEG"), ICON_GNOME, "gnome-media-player.png", "notebook1",
+      mpeg_setup, mpeg_apply }
+  };
+  SidebarGroup groups[] = {
+    { N_("Plugins"), plugin_options, acount(plugin_options) }
+  };
 
-  if (GPOINTER_TO_INT (data) == page)
-    {
-      ShowBox ("FIXME: The help for this plugin hasn't been written yet",
-	      GNOME_MESSAGE_BOX_INFO);
-      return TRUE;
-    }
-  else
-    return FALSE;
+  standard_properties_add(dialog, groups, acount(groups),
+			  PACKAGE_DATA_DIR "/mpeg_properties.glade");
 }
 
 /* User defined functions */

@@ -1,16 +1,6 @@
 #ifndef __PROPERTIES_H__
 #define __PROPERTIES_H__
 
-/* A module handling a toplevel property page */
-typedef struct {
-  /* Add a property page to the properties dialog */
-  void (*add) ( GnomePropertyBox * gpb );
-  /* Called when the OK or Apply buttons are pressed */
-  gboolean (*apply) ( GnomePropertyBox * gpb, gint page );
-  /* Called when the help button is pressed */
-  gboolean (*help) ( GnomePropertyBox * gpb, gint page );
-} property_handler;
-
 /* A module handling a toplevel property page (new version) */
 typedef struct {
   /* Add a property page to the properties dialog */
@@ -20,11 +10,13 @@ typedef struct {
   void (*apply) ( GnomeDialog *dialog, GtkWidget *page );
   /* Called when the help button is pressed */
   void (*help) ( GnomeDialog *dialog, GtkWidget *page );
-} property_handler2;
+} property_handler;
 
 /* Register a set of callbacks to manage the properties */
-void register_properties_handler (property_handler *p);
-void register_property_handler2 (property_handler2 *p);
+/* prepend/append refer to the order in which the handlers are called
+   to build the properties */
+void prepend_property_handler (property_handler *p);
+void append_property_handler (property_handler *p);
 
 /**
  * Create a group with the given name.
@@ -69,7 +61,20 @@ get_properties_page		(GtkWidget	*widget,
 				 const gchar	*item);
 
 /**
+ * Call this when some widget in the property box is changed.
+ * Usually you don't need to do this, since widgets are autoconnected
+ * when you add the page. This is only needed when you add widgets to your
+ * property page after adding it to the dialog (dynamic dialogs, for
+ * example).
+ * @widget: The modified widget.
+ */
+void
+z_property_item_modified	(GtkWidget	*widget);
+
+/**
  * Useful structures and definitions for property handlers.
+ * This isn't required (you can always add pages by hand), but using
+ * these routines/structs helps a big deal.
  */
 typedef struct {
   /* Label for the entry */
@@ -84,7 +89,9 @@ typedef struct {
   const gchar	*widget; /* Notebook page to use (must be in zapping.glade) */
   /* Apply the current config to the dialog */
   void		(*setup)(GtkWidget *widget);
-  /* Apply the dialog settings to the config */
+  /* Apply the dialog settings to the config, if NULL, a default
+     handler will be used (only valid when created with
+     standard_properties_add) */
   void		(*apply)(GtkWidget *widget);
   /* Help about this page (or NULL) */
   void		(*help)(GtkWidget *widget);
@@ -102,5 +109,18 @@ typedef struct {
 #ifndef acount
 #define acount(x) ((sizeof(x))/(sizeof(x[0])))
 #endif
+
+/**
+ * Add the groups/items that groups contains.
+ * @dialog: The properties dialog.
+ * @groups: List of groups/items to add.
+ * @num_groups: Groups to add from group, typically acount(groups)
+ * @glade_file: glade file containing the widgets.
+ */
+void
+standard_properties_add		(GnomeDialog	*dialog,
+				 SidebarGroup	*groups,
+				 gint		num_groups,
+				 const gchar	*glade_file);
 
 #endif /* properties.h */

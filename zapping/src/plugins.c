@@ -144,26 +144,6 @@ static gboolean plugin_load(gchar * file_name, struct plugin_info * info)
 		       (gpointer*)&(info->plugin_get_public_info)))
     info->plugin_get_public_info = NULL;
 
-  if (!(*plugin_get_symbol)("plugin_add_properties", 0x1234,
-		       (gpointer*)&(info->plugin_add_properties)))
-    info->plugin_add_properties = NULL;
-
-  if (!(*plugin_get_symbol)("plugin_activate_properties", 0x1234,
-		       (gpointer*)&(info->plugin_activate_properties)))
-    info->plugin_activate_properties = NULL;
-
-  if (!(*plugin_get_symbol)("plugin_help_properties", 0x1234,
-		       (gpointer*)&(info->plugin_help_properties)))
-    info->plugin_help_properties = NULL;
-
-  /* Check that these three functions are present */
-   if ((!info -> plugin_add_properties) ||
-       (!info -> plugin_activate_properties) ||
-       (!info -> plugin_help_properties))
-     info -> plugin_add_properties =
-       (gpointer) info -> plugin_activate_properties
-       = (gpointer) info -> plugin_help_properties = NULL;
-
   if (!(*plugin_get_symbol)("plugin_add_gui", 0x1234,
 		       (gpointer*)&(info->plugin_add_gui)))
     info->plugin_add_gui = NULL;
@@ -539,39 +519,6 @@ void plugin_capture_stop (struct plugin_info * info)
     (*info->plugin_capture_stop)();
 }
 
-gboolean plugin_add_properties (GnomePropertyBox * gpb, struct plugin_info
-				   * info)
-{
-  g_assert(info != NULL);
-
-  if (info -> plugin_add_properties)
-    return ((*info->plugin_add_properties)(gpb));
-  else
-    return FALSE;
-}
-
-gboolean plugin_activate_properties (GnomePropertyBox * gpb, gint
-				      page, struct plugin_info * info)
-{
-  g_assert(info != NULL);
-  g_assert(gpb != NULL);
-  if (info -> plugin_activate_properties)
-    return ((*info->plugin_activate_properties)(gpb, page));
-  else
-    return FALSE;
-}
-
-gboolean plugin_help_properties (GnomePropertyBox * gpb, gint page,
-				  struct plugin_info * info)
-{
-  g_assert(info != NULL);
-  g_assert(gpb != NULL);
-  if (info -> plugin_help_properties)
-    return ((*info->plugin_help_properties)(gpb, page));
-  else
-    return FALSE;
-}
-
 void plugin_add_gui (GnomeApp * app, struct plugin_info * info)
 {
   g_assert(info != NULL);
@@ -722,47 +669,6 @@ static gint plugin_sorter (struct plugin_info * a, struct plugin_info * b)
   return (b->misc_info.plugin_priority - a->misc_info.plugin_priority);
 }
 
-static void add_plugin_properties (GnomePropertyBox *gpb)
-{
-  GList *p = g_list_first(plugin_list);
-
-  while (p)
-    {
-      plugin_add_properties(gpb, (struct plugin_info*)p->data);
-      p = p->next;
-    }
-}
-
-static gboolean apply_plugin_properties (GnomePropertyBox *gpb, gint page)
-{
-  GList *p = g_list_first(plugin_list);
-
-  while (p)
-    {
-      if (plugin_activate_properties(gpb, page,
-				     (struct plugin_info*)p->data))
-	return TRUE;
-      p = p->next;
-    }
-
-  return FALSE;
-}
-
-static gboolean help_plugin_properties (GnomePropertyBox *gpb, gint page)
-{
-  GList *p = g_list_first(plugin_list);
-
-  while (p)
-    {
-      if (plugin_help_properties(gpb, page,
-				 (struct plugin_info*)p->data))
-	return TRUE;
-      p = p->next;
-    }
-
-  return FALSE;
-}
-
 /* Loads all the plugins in the system */
 GList * plugin_load_plugins ( void )
 {
@@ -836,17 +742,6 @@ GList * plugin_load_plugins ( void )
   /* Load all the plugins in this dir */
   list = plugin_load_plugins_in_dir (plugin_path, PLUGIN_STRID, list);
   g_free(plugin_path);
-
-  /* Register the plugin handler as a property box handler */
-  {
-    property_handler handler =
-    {
-      add:	add_plugin_properties,
-      apply:	apply_plugin_properties,
-      help:	help_plugin_properties
-    };
-    register_properties_handler(&handler);
-  }
 
   list = g_list_sort (list, (GCompareFunc) plugin_sorter);
 

@@ -112,11 +112,6 @@ static
 gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
 				 symbol, gchar ** description, gchar **
 				 type, gint * hash) __attribute__ ((unused)) ;
-static gboolean plugin_add_properties ( GnomePropertyBox * gpb ) __attribute__ ((unused)) ;
-static
-gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page ) __attribute__ ((unused)) ;
-static
-gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page ) __attribute__ ((unused)) ;
 static void plugin_add_gui ( GnomeApp * app ) __attribute__ ((unused)) ;
 static void plugin_remove_gui ( GnomeApp * app ) __attribute__ ((unused)) ;
 static struct plugin_misc_info * plugin_get_misc_info ( void ) __attribute__ ((unused)) ;

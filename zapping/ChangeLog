@@ -1,3 +1,9 @@
+12.11.2001	Plugins properties conversion <garetxe@users.sf.net>
+
+	* mpeg, lirc, screenshot: Converted properties to the new style.
+	* plugins.c: Removed properties handling code, each plugin
+	manages its properties now through the properties.h api.
+
 6.11.2001	More properties work <garetxe@users.sf.net>
 
 	* audio: Ported to the new properties code.

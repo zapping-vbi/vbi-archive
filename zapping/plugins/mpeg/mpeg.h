@@ -16,13 +16,12 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.6 2001-10-26 09:12:06 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.7 2001-11-12 22:38:39 garetxe Exp $ */
 
 #define ZCONF_DOMAIN "/zapping/plugins/mpeg"
 #define MPEG_CONFIG "default"
 
-extern GtkWidget *grte_options_create (rte_context *context, rte_codec *codec,
-				       GnomePropertyBox *propertybox);
+extern GtkWidget *grte_options_create (rte_context *context, rte_codec *codec);
 
 extern GtkWidget *grte_codec_create_menu (rte_context *context, gchar *zc_subdomain,
 					  rte_stream_type stream_type, gint *default_item);

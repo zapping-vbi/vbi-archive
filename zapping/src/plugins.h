@@ -94,14 +94,6 @@ struct plugin_info{
 				       gchar ** symbol, 
 				       gchar ** description,
 				       gchar ** type, gint * hash );
-  /* Add a property page to the properties dialog */
-  gboolean (*plugin_add_properties) ( GnomePropertyBox * gpb );
-  /* Called when the OK or Apply buttons are pressed */
-  gboolean (*plugin_activate_properties) ( GnomePropertyBox * gpb, gint
-					   page );
-  /* Called when the help button is pressed */
-  gboolean (*plugin_help_properties) ( GnomePropertyBox * gpb, gint
-				       page );
   /* Add the plugin to the GUI */
   void (*plugin_add_gui) ( GnomeApp * app );
   /* Remove the plugin from the GUI */
@@ -175,15 +167,6 @@ void plugin_read_bundle (capture_bundle * bundle,
 			 struct plugin_info * info);
 
 void plugin_capture_stop ( struct plugin_info * info);
-
-gboolean plugin_add_properties (GnomePropertyBox * gpb, struct plugin_info
-			    * info);
-
-gboolean plugin_activate_properties (GnomePropertyBox * gpb, gint
-				     page, struct plugin_info * info);
-
-gboolean plugin_help_properties (GnomePropertyBox * gpb, gint page,
-				 struct plugin_info * info);
 
 void plugin_add_gui (GnomeApp * app, struct plugin_info * info);
 

@@ -33,6 +33,7 @@
 #include "tveng.h"
 #include "remote.h"
 #include "lirc.h"
+#include "properties.h"
 
 /* This is the description of the plugin, change as appropiate */
 static const gchar str_canonical_name[] = "lirc";
@@ -50,6 +51,10 @@ static pthread_t lirc_thread_id;
 static int thread_exit = 0;
 
 static int num_channels;
+
+/* Properties handling code */
+static void
+properties_add			(GnomeDialog	*dialog);
 
 static
 int init_socket(void)
@@ -109,11 +114,6 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_load_config, 0x1234),
     SYMBOL(plugin_save_config, 0x1234),
     SYMBOL(plugin_running, 0x1234),
-    SYMBOL(plugin_add_properties, 0x1234),
-    SYMBOL(plugin_activate_properties, 0x1234),
-    SYMBOL(plugin_help_properties, 0x1234),
-    SYMBOL(plugin_add_gui, 0x1234),
-    SYMBOL(plugin_remove_gui, 0x1234),
     SYMBOL(plugin_get_misc_info, 0x1234)
   };
   gint num_exported_symbols =
@@ -180,6 +180,14 @@ void plugin_get_info (const gchar ** canonical_name,
 static
 gboolean plugin_init (PluginBridge bridge, tveng_device_info * info)
 {
+  /* Register the plugin as interested in the properties dialog */
+  property_handler lirc_handler =
+  {
+    add: properties_add
+  };
+
+  append_property_handler(&lirc_handler);
+
   num_channels = (int)remote_command("get_num_channels", NULL);
 
   printv("lirc plugin: init\n");
@@ -187,7 +195,8 @@ gboolean plugin_init (PluginBridge bridge, tveng_device_info * info)
 
   /* If this is set, autostarting is on (we should start now) */
   if (active)
-    return plugin_start();
+    plugin_start();
+
   return TRUE;
 }
 
@@ -297,68 +306,77 @@ void plugin_save_config (gchar * root_key)
   }
 }
 
-static
-gboolean plugin_add_properties ( GnomePropertyBox * gpb )
+/* mostly cut'n'paste from properties.c */
+static void
+custom_properties_add		(GnomeDialog	*dialog,
+				 SidebarGroup	*groups,
+				 gint		num_groups)
 {
-  GtkWidget * label;
-  GtkBox * vbox; /* the page added to the notebook */
+  gint i, j;
+  GtkWidget *vbox;
 
-  if (!active)
-    return FALSE;
+  for (i = 0; i<num_groups; i++)
+    {
+      append_properties_group(dialog, _(groups[i].label));
 
-  if (!gpb)
-    return TRUE;
+      for (j = 0; j<groups[i].num_items; j++)
+	{
+	  const gchar *icon_name = groups[i].items[j].icon_name;
+	  gchar *pixmap_path = (groups[i].items[j].icon_source ==
+				ICON_ZAPPING) ?
+	    g_strdup_printf("%s/%s", PACKAGE_PIXMAPS_DIR, icon_name) :
+	    g_strdup(gnome_pixmap_file(icon_name)); /* FIXME: leak?? */
+	  GtkWidget *pixmap = z_pixmap_new_from_file(pixmap_path);
+	  GtkWidget *page = gtk_vbox_new(FALSE, 15);
 
-  printv("lirc plugin: adding properties\n");
+	  gtk_object_set_data(GTK_OBJECT(page), "apply",
+			      groups[i].items[j].apply);
+	  gtk_object_set_data(GTK_OBJECT(page), "help",
+			      groups[i].items[j].help);
 
-  vbox = GTK_BOX(gtk_vbox_new(FALSE, 15));
+	  append_properties_page(dialog, _(groups[i].label),
+				 _(groups[i].items[j].label),
+				 pixmap, page);
 
-  create_lirc_properties(GTK_WIDGET(vbox));
-  add_actions_to_list();
+	  create_lirc_properties(page);
+	  add_actions_to_list();
 
-  gtk_widget_show(GTK_WIDGET(vbox));
-
-  label = gtk_label_new(_("LIRC"));
-  gtk_widget_show(label);
-  lirc_page = gnome_property_box_append_page(gpb, GTK_WIDGET(vbox), label);
-
-  gtk_object_set_data(GTK_OBJECT(gpb), "lirc_page", GINT_TO_POINTER(lirc_page));
-
-  return TRUE;
+	  g_free(pixmap_path);
+	}
+    }
 }
 
-static
-gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
-{
-  /* Return TRUE only if the given page have been builded by this
-     plugin, and apply any config changes here */
-  return FALSE;
-}
-
-static
-gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page )
+static void
+on_lirc_apply			(GtkWidget	*widget)
 {
   /*
-    Return TRUE only if the given page have been builded by this
-    plugin, and show some help (or at least sth like ShowBox
-    "Sorry, but the template plugin doesn't help you").
-  */
-  if (page == lirc_page) {
-    ShowBox("LIRC plugin version 0.1 by Marco Pfattner\nmarco.p@bigfoot.com", GNOME_MESSAGE_BOX_INFO);
-    return TRUE;
-  }
-  return FALSE;
+    Nothing, bro, but there's an assert in properties.c.
+    The right thing to do is to switch to glade files, and use
+    apply/help/etc correctly, but i'm not for it right now :-)
+   */
 }
 
-static
-void plugin_add_gui (GnomeApp * app)
+static void
+on_lirc_help			(GtkWidget	*widget)
 {
+  ShowBox("LIRC plugin version 0.1 by Marco Pfattner\nmarco.p@bigfoot.com",
+	  GNOME_MESSAGE_BOX_INFO);
 }
 
-static
-void plugin_remove_gui (GnomeApp * app)
+static void
+properties_add			(GnomeDialog	*dialog)
 {
+  SidebarEntry plugin_options[] = {
+    { N_("LIRC"), ICON_GNOME, "gnome-shutdown.png" , NULL, NULL,
+      on_lirc_apply, on_lirc_help }
+  };
+  SidebarGroup groups[] = {
+    { N_("Plugins"), plugin_options, acount(plugin_options) }
+  };
+
+  custom_properties_add(dialog, groups, acount(groups));
 }
+
 
 static
 struct plugin_misc_info * plugin_get_misc_info (void)

@@ -21,23 +21,25 @@ GtkWidget*
 find_widget(GtkWidget * parent, const char * name)
 {
   GtkWidget * widget = parent;
+  GtkWidget * result = NULL;
   GladeXML* tree;
   gchar *buf;
-  gpointer p;
 
   buf = g_strdup_printf("registered-widget-%s", name);
 
   for (;;)
     {
-      if ((p = gtk_object_get_data(GTK_OBJECT(widget), buf)))
-	{
-	  g_free(buf);
-	  return p;
-	}
+      result = (GtkWidget*)gtk_object_get_data(GTK_OBJECT(widget), buf);
+      if (result)
+	break; /* found registered widget with that name */
 
       tree = glade_get_widget_tree(widget);
       if (tree)
-	break; /* We foud a tree, success */
+      {
+	result = glade_xml_get_widget (tree, name);
+	if (result)
+	  break; /* found glade widget with that name */
+      }
 
       /* try to go to the parent widget */
       if (GTK_IS_MENU(widget))
@@ -46,13 +48,12 @@ find_widget(GtkWidget * parent, const char * name)
 	widget = widget -> parent;
 
       if (!widget)
-	return NULL;
+	break; /* Walked to the top of the tree, nothing found */
     }
 
   g_free(buf);
 
-  /* if we reach this, we have a tree */
-  return glade_xml_get_widget (tree, name);
+  return result;
 }
 
 /*

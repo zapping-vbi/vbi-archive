@@ -88,16 +88,6 @@ on_plugins1_activate                   (GtkMenuItem     *menuitem,
   gtk_widget_show(plugin_properties);
 }
 
-static gboolean
-has_config				(struct plugin_info	*info)
-{
-  if (!info->plugin_help_properties)
-    return FALSE;
-
-  return plugin_add_properties(NULL, info);
-}
-
-
 void
 on_plugin_list_select_row                   (GtkCList        *clist,
 					     gint             row,
@@ -121,7 +111,6 @@ on_plugin_list_select_row                   (GtkCList        *clist,
   GtkWidget * vbox13; /* The vbox where the exported symbols are */
   GtkWidget * plugin_start_w; /* Start it button */
   GtkWidget * plugin_stop_w; /* Stop it button */
-  GtkWidget * plugin_configure_w; /* configure it */
   gchar * buffer;
   gchar * clist_buffer[2];
   struct plugin_info * info;
@@ -152,7 +141,6 @@ on_plugin_list_select_row                   (GtkCList        *clist,
   label76 = GTK_LABEL(lookup_widget(plugin_properties, "label76"));
   plugin_start_w = lookup_widget(plugin_properties, "plugin_start");
   plugin_stop_w = lookup_widget(plugin_properties, "plugin_stop");
-  plugin_configure_w = lookup_widget(plugin_properties, "plugin_help");
   vbox13 = lookup_widget(plugin_properties, "vbox13");
 
   gtk_label_set_text(label67, plugin_get_name(info));
@@ -199,11 +187,6 @@ on_plugin_list_select_row                   (GtkCList        *clist,
       gtk_widget_set_sensitive(plugin_start_w, TRUE);
       gtk_object_set_user_data(GTK_OBJECT(plugin_start_w), info);
     }
-
-  gtk_object_set_user_data(GTK_OBJECT(plugin_configure_w), info);
-
-  /* Enable the configure button if the plugin is configurable */
-  gtk_widget_set_sensitive(plugin_configure_w, has_config(info));
 
   /* Add the items to the public symbols list if neccesary */
   if (info->num_exported_symbols == 0)
@@ -291,8 +274,6 @@ on_plugin_start_clicked                (GtkButton       *button,
     lookup_widget(GTK_WIDGET(button), "plugin_stop");
   GtkWidget * plugin_start_w =
     lookup_widget(GTK_WIDGET(button), "plugin_start");
-  GtkWidget * plugin_configure_w =
-    lookup_widget(GTK_WIDGET(button), "plugin_help");
 
   if (!plugin_start(info))
     ShowBox(_("Sorry, but the plugin couldn't be started"),
@@ -310,9 +291,6 @@ on_plugin_start_clicked                (GtkButton       *button,
       gtk_widget_set_sensitive(plugin_stop_w, FALSE);
       gtk_object_set_user_data(GTK_OBJECT(plugin_start_w), info);
     }
-
-  gtk_widget_set_sensitive(plugin_configure_w,
-			   has_config(info));
 }
 
 void
@@ -342,31 +320,6 @@ on_plugin_stop_clicked                (GtkButton       *button,
     }  
 }
 
-void
-on_plugin_help_clicked                 (GtkButton       *button,
-                                        gpointer         user_data)
-{
-  GtkWidget * property_box = gnome_property_box_new();
-  struct plugin_info * info =
-    gtk_object_get_user_data(GTK_OBJECT(button));
-
-  gtk_window_set_title(GTK_WINDOW(property_box), plugin_get_name
-		       (info));
-
-  if (!plugin_add_properties(GNOME_PROPERTY_BOX(property_box), info))
-    g_assert_not_reached();
-
-  gtk_signal_connect(GTK_OBJECT(property_box), "apply",
-		     (GtkSignalFunc)on_plugin_properties_apply,
-		     info);
-
-  gtk_signal_connect(GTK_OBJECT(property_box), "help",
-		     (GtkSignalFunc)on_plugin_properties_help,
-		     info);
-
-  gtk_widget_show(property_box);
-}
-
 gboolean
 on_plugin_properties_delete_event      (GtkWidget       *widget,
                                         GdkEvent        *event,
@@ -377,34 +330,4 @@ on_plugin_properties_delete_event      (GtkWidget       *widget,
   PluginProperties = NULL;
 
   return FALSE;
-}
-
-void
-on_plugin_properties_apply             (GnomePropertyBox *gnomepropertybox,
-                                        gint             arg1,
-                                        gpointer         user_data)
-{
-  struct plugin_info * info =
-    (struct plugin_info *) user_data;
-
-  if (arg1 == -1)
-    return;
-
-  plugin_activate_properties(gnomepropertybox, arg1, info);
-}
-
-void
-on_plugin_properties_help              (GnomePropertyBox *gnomepropertybox,
-                                        gint             arg1,
-					gpointer         user_data)
-{
-  struct plugin_info * info =
-    (struct plugin_info *) user_data;
-
-  if (arg1 == -1)
-    return;
-
-  if (!plugin_help_properties(gnomepropertybox, arg1, info))
-    ShowBox(_("Sorry, the plugin doesn't provide help for this"),
-	    GNOME_MESSAGE_BOX_INFO);
 }

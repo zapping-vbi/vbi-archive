@@ -48,7 +48,7 @@
 extern GtkWidget * main_window;
 
 static GnomeDialog *PropertiesDialog = NULL; /* Only you.. */
-static property_handler2 *handlers = NULL;
+static property_handler *handlers = NULL;
 static gint num_handlers = 0;
 
 /**
@@ -60,7 +60,7 @@ page_modified			(GnomeDialog	*dialog,
 				 gint		page_id)
 {
   GtkNotebook *notebook = GTK_NOTEBOOK
-    (lookup_widget(GTK_WIDGET(dialog), "notebook"));
+    (lookup_widget(GTK_WIDGET(dialog), "properties-notebook"));
   GtkWidget *page = gtk_notebook_get_nth_page(notebook, page_id);
 
   gtk_object_set_data(GTK_OBJECT(page), "properties-dirty",
@@ -79,6 +79,30 @@ modify_page			(GtkWidget	*widget,
   gint page_id = GPOINTER_TO_INT(page_id_ptr);
 
   page_modified(dialog, page_id);
+}
+
+void
+z_property_item_modified	(GtkWidget	*widget)
+{
+  GtkWidget *notebook = lookup_widget(widget, "properties-notebook");
+
+  /* Walk till our parent is the notebook */
+  while (widget && widget->parent != notebook && widget->parent)
+    {
+      if (GTK_IS_MENU(widget))
+	widget = gtk_menu_get_attach_widget (GTK_MENU (widget) );
+      else
+	widget = widget -> parent;
+    }
+  
+  if (!widget || !widget->parent)
+    {
+      g_warning("Property item ancestor not found!!");
+      return;
+    }
+
+  page_modified(GNOME_DIALOG(gtk_widget_get_toplevel(notebook)),
+		gtk_notebook_page_num(GTK_NOTEBOOK(notebook), widget));
 }
 
 static void
@@ -202,6 +226,15 @@ autoconnect_modify		(GnomeDialog	*dialog,
 			 GTK_SIGNAL_FUNC(color_set_bridge),
 			 GINT_TO_POINTER(page_id));
     }
+  else if (GTK_IS_RANGE(widget))
+    {
+      /* Weird cast to spare some useless code */
+      widget = (GtkWidget*)gtk_range_get_adjustment(GTK_RANGE(widget));
+      gtk_signal_connect(GTK_OBJECT(widget),
+			 "value-changed",
+			 GTK_SIGNAL_FUNC(modify_page),
+			 GINT_TO_POINTER(page_id));
+    }
 
   gtk_object_set_data(GTK_OBJECT(widget), "modify_page_dialog", dialog);
 }
@@ -286,12 +319,12 @@ generic_apply			(GnomeDialog	*dialog)
   gint i = 0;
   GtkWidget *page;
   GtkNotebook *notebook =
-    GTK_NOTEBOOK(lookup_widget(GTK_WIDGET(dialog), "notebook"));
+    GTK_NOTEBOOK(lookup_widget(GTK_WIDGET(dialog), "properties-notebook"));
 
   while ((page = gtk_notebook_get_nth_page(notebook, i++)))
     if (gtk_object_get_data(GTK_OBJECT(page), "properties-dirty"))
       {
-	property_handler2 *handler = (property_handler2*)
+	property_handler *handler = (property_handler*)
 	  gtk_object_get_data(GTK_OBJECT(page), "property-handler");
 
 	handler->apply(dialog, page);
@@ -329,10 +362,11 @@ static void
 on_properties_help_clicked	(GtkWidget	*button,
 				 GnomeDialog	*dialog)
 {
-  GtkNotebook *notebook = GTK_NOTEBOOK(lookup_widget(button, "notebook"));
+  GtkNotebook *notebook =
+    GTK_NOTEBOOK(lookup_widget(button, "properties-notebook"));
   gint cur_page = gtk_notebook_current_page(notebook);
   GtkWidget *page = gtk_notebook_get_nth_page(notebook, cur_page);
-  property_handler2 *handler = (property_handler2*)
+  property_handler *handler = (property_handler*)
     gtk_object_get_data(GTK_OBJECT(page), "property-handler");
 
   if (!handler)
@@ -431,7 +465,7 @@ on_radio_toggled		(GtkWidget	*selector,
 				 gpointer	page_id_ptr)
 {
   GtkNotebook * notebook =
-    GTK_NOTEBOOK(lookup_widget(selector, "notebook"));
+    GTK_NOTEBOOK(lookup_widget(selector, "properties-notebook"));
   gint page_id = GPOINTER_TO_INT(page_id_ptr);
 
   gtk_notebook_set_page(notebook, page_id);
@@ -466,7 +500,7 @@ build_properties_contents	(GnomeDialog	*dialog)
   gtk_notebook_set_scrollable(notebook, FALSE);
   gtk_notebook_popup_disable(notebook);
   gtk_box_pack_start_defaults(GTK_BOX(hbox), GTK_WIDGET(notebook));
-  register_widget(GTK_WIDGET(notebook), "notebook");
+  register_widget(GTK_WIDGET(notebook), "properties-notebook");
 
   /* Put our logo when nothing is selected yet */
   logo = z_pixmap_new_from_file(PACKAGE_PIXMAPS_DIR "/logo.png");
@@ -496,8 +530,12 @@ build_properties_contents	(GnomeDialog	*dialog)
       GtkWidget *page;
       handlers[i].add(dialog);
       while ((page = gtk_notebook_get_nth_page(notebook, page_count++)))
-	gtk_object_set_data(GTK_OBJECT(page), "property-handler",
-				       handlers + i);
+	{
+	  gtk_object_set_data(GTK_OBJECT(page), "property-handler",
+			      handlers + i);
+	  /* Connect widgets in these pages to modify events */
+	  autoconnect_modify(dialog, page, page_count-1);
+	}
       page_count--;
     }
 }
@@ -529,8 +567,6 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 
   gtk_window_set_policy(GTK_WINDOW(dialog), FALSE, TRUE, FALSE);
 
-  build_properties_contents(dialog);
-
   gnome_dialog_set_default(dialog, OK_ID);
   gnome_dialog_set_parent(dialog, GTK_WINDOW(main_window));
   gnome_dialog_close_hides(dialog, FALSE); /* destroy on close */
@@ -556,7 +592,10 @@ on_propiedades1_activate               (GtkMenuItem     *menuitem,
 
   PropertiesDialog = dialog;
 
-  gtk_widget_show(GTK_WIDGET(dialog));
+  /* Build the rest of the dialog */
+  build_properties_contents(dialog);
+
+  gnome_dialog_run(dialog);
 }
 
 void
@@ -605,7 +644,8 @@ append_properties_page		(GnomeDialog	*dialog,
   GtkWidget *container = lookup_widget(contents, "group-container");
   GSList *group_list = gtk_object_get_data(GTK_OBJECT(container),
 					   "group_list");
-  GtkWidget *notebook = lookup_widget(GTK_WIDGET(dialog), "notebook");
+  GtkWidget *notebook = lookup_widget(GTK_WIDGET(dialog),
+				      "properties-notebook");
   GtkWidget *vbox;
   GtkWidget *label_widget;
   guint page_id;
@@ -613,9 +653,9 @@ append_properties_page		(GnomeDialog	*dialog,
   radio = gtk_radio_button_new(group_list);
   gtk_toggle_button_set_mode(GTK_TOGGLE_BUTTON(radio), FALSE);
   gtk_box_pack_start(GTK_BOX(contents), radio, FALSE, TRUE, 0);
+  gtk_widget_show(page);
   gtk_notebook_append_page(GTK_NOTEBOOK(notebook), page, gtk_label_new(""));
   page_id = gtk_notebook_page_num(GTK_NOTEBOOK(notebook), page);
-  autoconnect_modify(dialog, page, page_id);
 
   gtk_signal_connect(GTK_OBJECT(radio), "toggled",
 		     GTK_SIGNAL_FUNC(on_radio_toggled),
@@ -665,8 +705,7 @@ open_properties_group		(GtkWidget	*dialog,
     (lookup_widget(dialog, "group-container"));
   gint cur_group, cur_item;
 
-  /* If the current selection is in a different group, switch and
-     select the hidden toggle */
+  /* If the current selection is in a different group, switch to it */
   get_cur_sel(dialog, &cur_group, &cur_item);
 
   if (cur_group == -1 ||
@@ -680,13 +719,113 @@ open_properties_group		(GtkWidget	*dialog,
   g_free(buf);
 }
 
-void register_property_handler2 (property_handler2 *p)
+void
+standard_properties_add		(GnomeDialog	*dialog,
+				 SidebarGroup	*groups,
+				 gint		num_groups,
+				 const gchar	*glade_file)
 {
-  handlers = g_realloc(handlers, (num_handlers+1)*sizeof(handlers[0]));
-  memcpy(&handlers[num_handlers++], p, sizeof(*p));
+  gint i, j;
+
+  for (i = 0; i<num_groups; i++)
+    {
+      append_properties_group(dialog, _(groups[i].label));
+
+      for (j = 0; j<groups[i].num_items; j++)
+	{
+	  const gchar *icon_name = groups[i].items[j].icon_name;
+	  gchar *pixmap_path = (groups[i].items[j].icon_source ==
+				ICON_ZAPPING) ?
+	    g_strdup_printf("%s/%s", PACKAGE_PIXMAPS_DIR, icon_name) :
+	    g_strdup(gnome_pixmap_file(icon_name)); /* FIXME: leak?? */
+	  GtkWidget *pixmap = z_pixmap_new_from_file(pixmap_path);
+	  GtkWidget *page = build_widget(groups[i].items[j].widget,
+					 glade_file);
+
+	  gtk_object_set_data(GTK_OBJECT(page), "apply",
+			      groups[i].items[j].apply);
+	  gtk_object_set_data(GTK_OBJECT(page), "help",
+			      groups[i].items[j].help);
+
+	  append_properties_page(dialog, _(groups[i].label),
+				 _(groups[i].items[j].label),
+				 pixmap, page);
+
+	  groups[i].items[j].setup(page);
+
+	  g_free(pixmap_path);
+	}
+    }
 }
 
-void register_properties_handler (property_handler *p)
+static void
+apply				(GnomeDialog	*dialog,
+				 GtkWidget	*page)
 {
-  return;
+  void (*page_apply)(GtkWidget *page) =
+    gtk_object_get_data(GTK_OBJECT(page), "apply");
+
+  g_assert(page_apply != NULL);
+
+  page_apply(page);
+}
+
+static void
+help		(GnomeDialog	*dialog,
+		 GtkWidget	*page)
+{
+  void (*page_help)(GtkWidget *page) =
+    gtk_object_get_data(GTK_OBJECT(page), "help");
+
+  if (page_help)
+    page_help(page);
+  else
+    ShowBox("No help written yet",
+	    GNOME_MESSAGE_BOX_WARNING);
+}
+
+void prepend_property_handler (property_handler *p)
+{
+  gint i;
+
+  if (!p->add)
+    g_error("broken handler");
+    
+  handlers = g_realloc(handlers,
+		       (num_handlers+1)*sizeof(handlers[0]));
+  /* Move the existing handlers forward */
+  for (i=num_handlers; i>0; i--)
+    memcpy(&handlers[i], &handlers[i-1], sizeof(*p));
+  memcpy(&handlers[0], p, sizeof(*p));
+
+  /* When not given, the default handlers are used (valid only when
+     the page is built with standard_properties_add) */
+
+  if (!handlers[0].apply)
+    handlers[0].apply = apply;
+
+  if (!handlers[0].help)
+    handlers[0].help = help;
+
+  num_handlers++;
+}
+
+void append_property_handler (property_handler *p)
+{
+  if (!p->add)
+    g_error("passing in a broken handler");
+    
+  handlers = g_realloc(handlers, (num_handlers+1)*sizeof(handlers[0]));
+  memcpy(&handlers[num_handlers], p, sizeof(*p));
+
+  /* When not given, the default handlers are used (valid only when
+     the page is built with standard_properties_add) */
+
+  if (!handlers[num_handlers].apply)
+    handlers[num_handlers].apply = apply;
+
+  if (!handlers[num_handlers].help)
+    handlers[num_handlers].help = help;
+
+  num_handlers++;
 }

@@ -405,8 +405,14 @@ on_enable_vbi_toggled	(GtkWidget	*widget,
 {
   gboolean active =
     gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
+  GtkWidget *itv_props =
+    get_properties_page(widget, _("VBI Options"),
+			_("Interactive TV"));
   gtk_widget_set_sensitive(lookup_widget(widget,
 					 "vbox19"), active);
+
+  if (itv_props)
+    gtk_widget_set_sensitive(itv_props, active);
 }
 
 /* VBI */
@@ -550,14 +556,6 @@ vbi_general_apply	(GtkWidget	*page)
     }
 }
 
-static void
-on_enable_vbi_changed	( const gchar	*key,
-			  gboolean	*new_value,
-			  GtkWidget	*page)
-{
-  gtk_widget_set_sensitive(page, *new_value);
-}
-
 /* Interactive TV */
 static void
 itv_setup		(GtkWidget	*page)
@@ -601,12 +599,9 @@ itv_setup		(GtkWidget	*page)
     zconf_get_integer(NULL,
 		      "/zapping/options/vbi/filter_level"));
 
-  /* Set sensitive/unsensitive on enable_vbi modifications */
-  zconf_add_hook_while_alive(GTK_OBJECT(page),
-			     "/zapping/options/vbi/enable_vbi",
-			     (ZConfHook)on_enable_vbi_changed,
-			     page);
-  zconf_touch("/zapping/options/vbi/enable_vbi");
+  /* Set sensitive/unsensitive according to enable_vbi state */
+  gtk_widget_set_sensitive(page, zconf_get_boolean(NULL,
+			   "/zapping/options/vbi/enable_vbi"));
 }
 
 static void
@@ -672,73 +667,19 @@ add				(GnomeDialog	*dialog)
     { N_("General Options"), general_options, acount(general_options) },
     { N_("VBI Options"), vbi_options, acount(vbi_options) }
   };
-  gint i, j;
 
-  for (i = 0; i<acount(groups); i++)
-    {
-      append_properties_group(dialog, _(groups[i].label));
+  standard_properties_add(dialog, groups, acount(groups),
+			  PACKAGE_DATA_DIR "/zapping.glade");
 
-      for (j = 0; j<groups[i].num_items; j++)
-	{
-	  const gchar *icon_name = groups[i].items[j].icon_name;
-	  gchar *pixmap_path = (groups[i].items[j].icon_source ==
-				ICON_ZAPPING) ?
-	    g_strdup_printf("%s/%s", PACKAGE_PIXMAPS_DIR, icon_name) :
-	    g_strdup(gnome_pixmap_file(icon_name)); /* FIXME: leak?? */
-	  GtkWidget *pixmap = z_pixmap_new_from_file(pixmap_path);
-	  GtkWidget *page = build_widget(groups[i].items[j].widget,
-					 PACKAGE_DATA_DIR "/zapping.glade");
-
-	  groups[i].items[j].setup(page);
-
-	  gtk_object_set_data(GTK_OBJECT(page), "apply",
-			      groups[i].items[j].apply);
-
-	  append_properties_page(dialog, _(groups[i].label),
-				 _(groups[i].items[j].label),
-				 pixmap, page);
-
-	  g_free(pixmap_path);
-	}
-    }
-
-  open_properties_group(GTK_WIDGET(dialog), _("General Options"));  
-}
-
-static void
-apply		(GnomeDialog	*dialog,
-		 GtkWidget	*page)
-{
-  void (*page_apply)(GtkWidget *page) =
-    gtk_object_get_data(GTK_OBJECT(page), "apply");
-
-  g_assert(page_apply != NULL);
-
-  page_apply(page);
-}
-
-static void
-help		(GnomeDialog	*dialog,
-		 GtkWidget	*page)
-{
-  void (*page_help)(GtkWidget *page) =
-    gtk_object_get_data(GTK_OBJECT(page), "help");
-
-  if (page_help)
-    page_help(page);
-
-  ShowBox("No help written yet",
-	  GNOME_MESSAGE_BOX_WARNING);
+  open_properties_group(GTK_WIDGET(dialog), _("General Options"));
 }
 
 void startup_properties_handler(void)
 {
-  property_handler2 handler = {
-    add:	add,
-    apply:	apply,
-    help:	help
+  property_handler handler = {
+    add:	add
   };
-  register_property_handler2(&handler);
+  prepend_property_handler(&handler);
 }
 
 void shutdown_properties_handler(void)

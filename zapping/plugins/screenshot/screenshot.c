@@ -18,6 +18,7 @@
 #include "plugin_common.h"
 #include "yuv2rgb.h"
 #include "ttxview.h"
+#include "properties.h"
 #ifdef HAVE_LIBJPEG
 #include <pthread.h>
 #include <gdk-pixbuf/gdk-pixbuf.h> /* previews */
@@ -66,6 +67,10 @@ static gint quality; /* Quality of the compressed image */
 static tveng_device_info * zapping_info = NULL; /* Info about the
 						   video device */
 
+/* Properties handling code */
+static void
+properties_add			(GnomeDialog	*dialog);
+
 /*
   1 when the plugin should save the next frame
 */
@@ -75,11 +80,6 @@ static gint save_screenshot = 0;
 static void
 on_screenshot_button_clicked          (GtkButton       *button,
 				       gpointer         user_data);
-
-/* This function is called when some item in the property box changes */
-static void
-on_property_item_changed              (GtkWidget * changed_widget,
-				       GnomePropertyBox *propertybox);
 
 /* This one starts a new thread that saves the current screenshot */
 static void
@@ -172,9 +172,6 @@ gboolean plugin_get_symbol(gchar * name, gint hash, gpointer * ptr)
     SYMBOL(plugin_save_config, 0x1234),
     SYMBOL(plugin_read_bundle, 0x1234),
     SYMBOL(plugin_get_public_info, 0x1234),
-    SYMBOL(plugin_add_properties, 0x1234),
-    SYMBOL(plugin_activate_properties, 0x1234),
-    SYMBOL(plugin_help_properties, 0x1234),
     SYMBOL(plugin_add_gui, 0x1234),
     SYMBOL(plugin_remove_gui, 0x1234),
     SYMBOL(plugin_get_misc_info, 0x1234)
@@ -236,6 +233,14 @@ void plugin_get_info (const gchar ** canonical_name,
 static
 gboolean plugin_init ( PluginBridge bridge, tveng_device_info * info )
 {
+  /* Register the plugin as interested in the properties dialog */
+  property_handler screenshot_handler =
+  {
+    add: properties_add
+  };
+
+  append_property_handler(&screenshot_handler);
+
   zapping_info = info;
 
   return TRUE;
@@ -412,123 +417,85 @@ gboolean plugin_get_public_info (gint index, gpointer * ptr, gchar **
   return TRUE; /* Exported */
 }
 
-static
-gboolean plugin_add_properties ( GnomePropertyBox * gpb )
+static void
+screenshot_setup		(GtkWidget	*page)
 {
-  GtkWidget *vbox1;
   GtkWidget *screenshot_quality;
   GtkWidget *screenshot_dir;
   GtkWidget *screenshot_command;
   GtkWidget *combo_entry1;
-  GtkObject *adj;
-  GtkWidget *label;
-  gint page;
+  GtkAdjustment *adj;
 
-  if (!gpb)
-    return TRUE;
-
-  vbox1 =
-    build_widget("vbox1", PACKAGE_DATA_DIR "/screenshot.glade");
   screenshot_quality =
-    lookup_widget(vbox1, "screenshot_quality");
+    lookup_widget(page, "screenshot_quality");
   screenshot_dir =
-    lookup_widget(vbox1, "screenshot_dir");
+    lookup_widget(page, "screenshot_dir");
   screenshot_command =
-    lookup_widget(vbox1, "screenshot_command");
-  combo_entry1 = lookup_widget(vbox1, "combo-entry1");
+    lookup_widget(page, "screenshot_command");
+  combo_entry1 = lookup_widget(page, "combo-entry1");
 
-  gtk_object_set_data(GTK_OBJECT(gpb), "screenshot_save_dir", screenshot_dir);
   gnome_file_entry_set_default_path(GNOME_FILE_ENTRY(screenshot_dir),
 				    save_dir);
 
   gtk_entry_set_text(GTK_ENTRY(combo_entry1), save_dir);
-  gtk_signal_connect(GTK_OBJECT(combo_entry1), "changed",
-		     on_property_item_changed, gpb);
 
-  adj = gtk_adjustment_new(quality, 0, 100, 1, 10,
-			   10);
-  gtk_object_set_data (GTK_OBJECT(gpb), "screenshot_quality", adj);
-  gtk_signal_connect(adj, "value-changed", 
-		     on_property_item_changed, gpb);
-
-  gtk_range_set_adjustment(GTK_RANGE(screenshot_quality),
-			   GTK_ADJUSTMENT(adj));
+  adj = gtk_range_get_adjustment(GTK_RANGE(screenshot_quality));
+  gtk_adjustment_set_value(adj, quality);
 
   gtk_entry_set_text(GTK_ENTRY(screenshot_command), command);
-  gtk_signal_connect(GTK_OBJECT(screenshot_command), "changed",
-		     on_property_item_changed, gpb);
-
-  label = gtk_label_new(_("Screenshot"));
-  gtk_widget_show(label);
-  page = gnome_property_box_append_page(gpb, GTK_WIDGET(vbox1), label);
-
-  gtk_object_set_data(GTK_OBJECT(gpb), "screenshot_page",
-		      GINT_TO_POINTER( page ));
-
-  return TRUE;
 }
 
-static
-gboolean plugin_activate_properties ( GnomePropertyBox * gpb, gint page )
+static void
+screenshot_apply		(GtkWidget	*page)
 {
-  /* Return TRUE only if the given page have been built by this
-     plugin, and apply any config changes here */
-  gpointer data = gtk_object_get_data(GTK_OBJECT(gpb), "screenshot_page");
-  GnomeFileEntry * save_dir_widget
-    = GNOME_FILE_ENTRY(gtk_object_get_data(GTK_OBJECT(gpb),
-					   "screenshot_save_dir"));
-  GtkAdjustment * quality_adj =
-    GTK_ADJUSTMENT(gtk_object_get_data(GTK_OBJECT(gpb),
-				       "screenshot_quality"));
-  GtkWidget * screenshot_command =
-    lookup_widget(GTK_WIDGET(save_dir_widget), "screenshot_command");
+  GtkAdjustment *adj = gtk_range_get_adjustment
+    (GTK_RANGE(lookup_widget(page, "screenshot_quality")));
+  GnomeFileEntry * screenshot_dir = GNOME_FILE_ENTRY
+    (lookup_widget(page, "screenshot_dir"));
+  GtkWidget *screenshot_command =
+    lookup_widget(page, "screenshot_command");
 
-  if (GPOINTER_TO_INT(data) == page)
-    {
-      /* It is our page, process */
-      g_free(save_dir);
-      save_dir = gnome_file_entry_get_full_path(save_dir_widget,
-						FALSE);
-      gnome_entry_save_history(GNOME_ENTRY(gnome_file_entry_gnome_entry(
-	 save_dir_widget)));
-      quality = quality_adj->value;
+  g_free(save_dir);
+  save_dir = gnome_file_entry_get_full_path(screenshot_dir, FALSE);
+  gnome_entry_save_history(GNOME_ENTRY(gnome_file_entry_gnome_entry(
+	 screenshot_dir)));
+  quality = adj->value;
 
-      command = g_strdup(gtk_entry_get_text(GTK_ENTRY(screenshot_command)));
-
-      return TRUE;
-    }
-
-  return FALSE;
+  g_free(command);
+  command = g_strdup(gtk_entry_get_text(GTK_ENTRY(screenshot_command)));
 }
 
-static
-gboolean plugin_help_properties ( GnomePropertyBox * gpb, gint page )
+static void
+screenshot_help			(GtkWidget	*widget)
 {
-  /*
-    Return TRUE only if the given page have been builded by this
-    plugin, and show some help (or at least sth like ShowBox
-    "Sorry, but the template plugin doesn't help you").
-  */
-  gpointer data = gtk_object_get_data(GTK_OBJECT(gpb), "screenshot_page");
   gchar * help =
-N_("The first option, the screenshot dir, lets you specify where\n"
-   "will the screenshots be saved. The file name will be:\n"
-   "save_dir/shot[1,2,3,...].jpeg\n\n"
-   "The quality option lets you choose how much info will be\n"
-   "discarded when compressing the JPEG.\n\n"
-   "The command will be run after writing to disk the screenshot,\n"
-   "with the environmental variables $SCREENSHOT_PATH, $CHANNEL_ALIAS,\n"
-   "$CHANNEL_ID, $CURRENT_STANDARD, $CURRENT_INPUT set to their\n"
-   "correct value."
-);
+    N_("The first option, the screenshot dir, lets you specify where\n"
+       "will the screenshots be saved. The file name will be:\n"
+       "save_dir/shot[1,2,3,...].jpeg\n\n"
+       "The quality option lets you choose how much info will be\n"
+       "discarded when compressing the JPEG.\n\n"
+       "The command will be run after writing to disk the screenshot,\n"
+       "with the environmental variables $SCREENSHOT_PATH, $CHANNEL_ALIAS,\n"
+       "$CHANNEL_ID, $CURRENT_STANDARD, $CURRENT_INPUT set to their\n"
+       "correct value."
+       );
 
-  if (GPOINTER_TO_INT(data) == page)
-    {
-      ShowBox(_(help), GNOME_MESSAGE_BOX_INFO);
-      return TRUE;
-    }
+  ShowBox(_(help), GNOME_MESSAGE_BOX_INFO);
+}
 
-  return FALSE;
+static void
+properties_add			(GnomeDialog	*dialog)
+{
+  SidebarEntry plugin_options[] = {
+    { N_("Screenshot"), ICON_GNOME, "gnome-digital-camera.png", "vbox1",
+      screenshot_setup, screenshot_apply, screenshot_help }
+  };
+  SidebarGroup groups[] = {
+    { N_("Plugins"), plugin_options, acount(plugin_options) }
+  };
+
+  standard_properties_add(dialog, groups, acount(groups),
+			  PACKAGE_DATA_DIR "/screenshot.glade");
 }
 
 static
@@ -602,13 +569,6 @@ on_screenshot_button_clicked          (GtkButton       *button,
 				       gpointer         user_data)
 {
   plugin_start ();
-}
-
-static void
-on_property_item_changed              (GtkWidget * changed_widget,
-				       GnomePropertyBox *propertybox)
-{
-  gnome_property_box_changed (propertybox);
 }
 
 /* This one starts a new thread that saves the current screenshot */

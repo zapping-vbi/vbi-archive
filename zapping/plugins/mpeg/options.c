@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.11 2001-11-01 03:26:25 mschimek Exp $ */
+/* $Id: options.c,v 1.12 2001-11-12 22:38:39 garetxe Exp $ */
 
 #include "plugin_common.h"
 
@@ -31,13 +31,13 @@
 #include <rte.h>
 
 #include "mpeg.h"
+#include "properties.h"
 
 typedef struct grte_options {
   rte_context *         context;
   rte_codec *		codec;
 
   GtkWidget *		table;
-  GnomePropertyBox *	propertybox;
 } grte_options;
 
 static void
@@ -137,8 +137,12 @@ on_option_control (GtkWidget *w, gpointer user_data)
 
   do_option_control (w, user_data);
 
-  if (opts->propertybox)
-    gnome_property_box_changed (opts->propertybox);
+  /* Make sure we call z_property_item_modified for *widgets* */
+  if (GTK_IS_WIDGET (w))
+    z_property_item_modified (w);
+  else if (GTK_IS_ADJUSTMENT (w))
+    z_property_item_modified ((GtkWidget*)gtk_object_get_data
+			      (GTK_OBJECT (w), "label"));
 }
 
 static void
@@ -382,7 +386,6 @@ create_checkbutton (grte_options *opts, rte_option *ro, int index)
  * grte_options_create:
  * @context: 
  * @codec: 
- * @propertybox: 
  * 
  * Create a tree of GtkWidgets containing all options of &rte_codec @codec
  * of &rte_context @context. Initially the option widgets will display the
@@ -398,8 +401,6 @@ create_checkbutton (grte_options *opts, rte_option *ro, int index)
  *      + option (|| button)
  *
  * On any widget change, the respective &rte_codec option will be set.
- * Additionally when @propertybox is given, gnome_property_box_changed()
- * will be called.
  *
  * Return value: 
  * &GtkWidget pointer, %NULL when the @codec has no options. 
@@ -409,8 +410,7 @@ create_checkbutton (grte_options *opts, rte_option *ro, int index)
  * Undocumented filtering of options.
  **/
 GtkWidget *
-grte_options_create (rte_context *context, rte_codec *codec,
-		     GnomePropertyBox *propertybox)
+grte_options_create (rte_context *context, rte_codec *codec)
 {
   GtkWidget *frame;
   grte_options *opts;
@@ -425,7 +425,6 @@ grte_options_create (rte_context *context, rte_codec *codec,
 
   opts->context = context;
   opts->codec = codec;
-  opts->propertybox = propertybox;
 
   frame = gtk_frame_new (_("Options"));
   gtk_widget_show (frame);
