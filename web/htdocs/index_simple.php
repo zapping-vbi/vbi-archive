@@ -2,7 +2,7 @@
 	"http://www.w3.org/TR/html4/loose.dtd">
 <html>
   <!--
-  Generated from index_simple.xml on Fri Oct  4 18:33:14 2002
+  Generated from index_simple.xml on Sun Feb 16 18:18:45 2003
   -->
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
@@ -20,7 +20,23 @@ project page</a> |
 <img SRC="images_simple/logo.jpeg" ALT="[Zapping Logo]" height=168 width=436>
 </p>
 </center>
-<center><h3>New release</h3></center><ul><li><b>Zapping</b> 0.6.5
+<center><h3>New release</h3></center><ul><li><b>Zapping</b> 0.6.6
+	  <p>Time for an update. This version fixes a number of bugs in the
+	  previous version, most notably recording and mute/volume problems.</p>
+	  
+	  <p>The V4L2 interface of Linux 2.5 is now supported, new commands
+	  were added to the alirc plugin: MUTE, VOL_UP, VOL_DOWN,
+	  and the SETCHANNEL function improved. The <tt>--remote</tt>
+	  command line option can be used to disable overlay.
+	  Pino Toscano kindly contributed an Italian translation.</p>
+
+	  <p>Ok, so this is another last Gnome 1 version. What about Gnome 2?
+	  Well, on an astronomic time scale we make good progress.</p></li><li><b>RTE</b> 0.5.1
+
+        <p>Another bug fix release.</p></li><li><b>ZVBI</b> 0.2.4
+
+        <p>Support for the V4L2 interface of Linux 2.5. (And this time
+	it actually works.)</p></li><li><b>Zapping</b> 0.6.5
 	  <p>It's been a long time since 0.6.4, much too long, but finally
           the beast arrived. Main change this time is the switch from rte 0.4 to
           0.5, our high speed audio/video recording library. The recording plugin
@@ -192,9 +208,10 @@ mailing list page</a>.
     hardware. Supports V4L2, V4L and XVideo with a common API, you
     can think of it as TV capturing for dummies :) If you are
     thinking about playing with the TV device under Linux, you
-    might find this interesting. <br><br><b>Downloading:</b> The latest tveng code comes with every
-    Zapping release, and there are some standalone tveng packages
-    too. The files are <i>src/tveng*</i>. 
+    might find this interesting. <br><br><b>Downloading:</b> The latest tveng code is included in the
+    Zapping source code, files <i>src/tveng*</i>. There were some
+    some standalone tveng packages too, but these are no longer
+    maintained.
 
     <center><h3>Unicode regular expressions</h3></center>
     We added support for UCS2 regular expressions in Zapzilla,

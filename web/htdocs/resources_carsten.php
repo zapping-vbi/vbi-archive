@@ -5,7 +5,7 @@
 Zapping -- Linux TV Viewer -- Resources
 </title>
 <!--
-	Generated from resources.xml on Fri Oct  4 18:33:14 2002
+	Generated from resources.xml on Sun Feb 16 18:18:45 2003
 -->
 <meta name="description" content="Zapping is a TV Viewer Software for Linux/Unix. Zapping is Open Source and has the ability to use plugins, it has also nice extra build in features.">
 <meta name="language" content="en-us">
@@ -162,9 +162,10 @@ height="480" alt=""></td>
     hardware. Supports V4L2, V4L and XVideo with a common API, you
     can think of it as TV capturing for dummies :) If you are
     thinking about playing with the TV device under Linux, you
-    might find this interesting. <br><br><b>Downloading:</b> The latest tveng code comes with every
-    Zapping release, and there are some standalone tveng packages
-    too. The files are <i>src/tveng*</i>. 
+    might find this interesting. <br><br><b>Downloading:</b> The latest tveng code is included in the
+    Zapping source code, files <i>src/tveng*</i>. There were some
+    some standalone tveng packages too, but these are no longer
+    maintained.
 
     <center><h2>Unicode regular expressions</h2></center>
     We added support for UCS2 regular expressions in Zapzilla,

@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
   <!--
-  Generated from links_modern.xml on Fri Oct  4 18:33:14 2002
+  Generated from links_modern.xml on Sun Feb 16 18:18:45 2003
   -->
   <head>
     <title>Links to useful stuff</title>
@@ -206,9 +206,10 @@
     hardware. Supports V4L2, V4L and XVideo with a common API, you
     can think of it as TV capturing for dummies :) If you are
     thinking about playing with the TV device under Linux, you
-    might find this interesting. <br><br><b>Downloading:</b> The latest tveng code comes with every
-    Zapping release, and there are some standalone tveng packages
-    too. The files are <i>src/tveng*</i>. 
+    might find this interesting. <br><br><b>Downloading:</b> The latest tveng code is included in the
+    Zapping source code, files <i>src/tveng*</i>. There were some
+    some standalone tveng packages too, but these are no longer
+    maintained.
 
     <h2>Unicode regular expressions</h2>
     We added support for UCS2 regular expressions in Zapzilla,

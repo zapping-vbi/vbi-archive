@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
   <!--
-  Generated from screenshots.xml on Fri Oct  4 18:33:14 2002
+  Generated from screenshots.xml on Sun Feb 16 18:18:45 2003
   -->
   <head>
     <title>Screenshots</title>
