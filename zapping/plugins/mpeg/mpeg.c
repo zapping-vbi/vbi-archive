@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.46 2004-08-13 01:11:37 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.47 2004-09-10 04:53:00 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -86,7 +86,6 @@ static gint			capture_h = 288;
 /* Encoding */
 
 static GtkWidget *		saving_dialog;
-static GtkWidget *		saving_popup;
 
 static volatile gboolean	active;
 static gint			capture_format_id;
@@ -102,11 +101,11 @@ static rte_codec *		video_codec;
 static rte_stream_parameters	audio_params;
 static rte_stream_parameters	video_params;
 
-static guint			update_timeout_id = -1;
+static guint			update_timeout_id = NO_SOURCE_ID;
 
 static gpointer			audio_handle;
 static void *			audio_buf;	/* preliminary */
-static int			audio_size;
+static unsigned int		audio_size;
 
 static tveng_device_info *	zapping_info;
 static zf_consumer		mpeg_consumer;
@@ -119,8 +118,8 @@ saving_dialog_attach_formats	(void);
  */
 
 static rte_bool
-audio_callback			(rte_context *		context,
-				 rte_codec *		codec,
+audio_callback			(rte_context *		context _unused_,
+				 rte_codec *		codec _unused_,
 				 rte_buffer *		rb)
 {
   rb->data = audio_buf;
@@ -132,8 +131,8 @@ audio_callback			(rte_context *		context,
 }
 
 static rte_bool
-video_callback			(rte_context *		context,
-				 rte_codec *		codec,
+video_callback			(rte_context *		context _unused_,
+				 rte_codec *		codec _unused_,
 				 rte_buffer *		rb)
 {
   zf_buffer *b;
@@ -169,8 +168,8 @@ video_callback			(rte_context *		context,
 }
 
 static rte_bool
-video_unref			(rte_context *		context,
-				 rte_codec *		codec,
+video_unref			(rte_context *		context _unused_,
+				 rte_codec *		codec _unused_,
 				 rte_buffer *		rb)
 {
   zf_send_empty_buffer (&mpeg_consumer, (zf_buffer *) rb->user_data);
@@ -200,7 +199,7 @@ qabs				(register int		n)
 static gboolean
 volume_expose			(GtkWidget *		widget,
 				 GdkEventExpose *	event,
-				 gpointer		data)
+				 gpointer		data _unused_)
 {
   gint max[2] = { 0, 0 };
   char *p, *e;
@@ -208,7 +207,7 @@ volume_expose			(GtkWidget *		widget,
 
   /* ATTENTION S16LE assumed */
   for (p = ((char *) audio_buf) + 1,
-	 e = (char *)(audio_buf + audio_size) - 2;
+	 e = ((char *) audio_buf + audio_size) - 2;
        p < e; p += 32)
     {
       gint n;
@@ -265,11 +264,10 @@ saving_dialog_status_update		(rte_context *		context)
   rte_status status;
   GtkWidget *widget;
   gint h, m, s;
-  GtkRequisition req;
 
   if (!active || !saving_dialog)
     {
-      update_timeout_id = -1;
+      update_timeout_id = NO_SOURCE_ID;
       return FALSE;
     }
 
@@ -319,10 +317,10 @@ saving_dialog_status_update		(rte_context *		context)
 static void
 saving_dialog_status_disable		(void)
 {
-  if (update_timeout_id > 0)
+  if (update_timeout_id != NO_SOURCE_ID)
     {
       g_source_remove (update_timeout_id);
-      update_timeout_id = -1;
+      update_timeout_id = NO_SOURCE_ID;
     }
 }
 
@@ -437,7 +435,8 @@ do_start			(const gchar *		file_name)
 
       CLEAR (*par);
 
-      if (zmisc_switch_mode (TVENG_CAPTURE_READ, zapping_info))
+      if (zmisc_switch_mode (DISPLAY_MODE_WINDOW,
+			     CAPTURE_MODE_READ, zapping_info))
 	{
 	  rte_context_delete (context);
 	  context_enc = NULL;
@@ -460,7 +459,7 @@ do_start			(const gchar *		file_name)
 	  break;
 
 	default:
-	  n = zconf_get_integer (NULL, "/zapping/options/main/yuv_format");
+	  n = zconf_get_int (NULL, "/zapping/options/main/yuv_format");
 	  switch (n)
 	    {
 	    case 6: pixfmt = TV_PIXFMT_YVU420; break;
@@ -759,7 +758,6 @@ record_config_menu_set_active	(GtkWidget *		option_menu,
 
   for (glist = menu_shell->children; glist; glist = glist->next)
     {
-      GObject object;
       const gchar *key;
 
       key = g_object_get_data (G_OBJECT (glist->data), "keyword");
@@ -796,7 +794,8 @@ record_config_menu_attach	(const gchar *		source,
   gchar *zcname = g_strconcat (source, "/configs", NULL);
   GtkWidget *menu;
   gchar *label;
-  gint i, def, count;
+  gint i;
+  guint def, count;
 
   if ((menu = gtk_option_menu_get_menu (GTK_OPTION_MENU (option_menu))))
     gtk_widget_destroy (menu);
@@ -806,7 +805,7 @@ record_config_menu_attach	(const gchar *		source,
   def = 0;
   count = 0;
 
-  for (i = 0; (label = zconf_get_nth (i, NULL, zcname)); i++)
+  for (i = 0; (label = zconf_get_nth ((guint) i, NULL, zcname)); i++)
     {
       gchar *base = g_path_get_basename (label);
       GtkWidget *menu_item;
@@ -845,7 +844,7 @@ record_config_zconf_copy	(const gchar *		source,
   gchar *label;
   gint i;
 
-  for (i = 0; (label = zconf_get_nth (i, NULL, zcname)); i++)
+  for (i = 0; (label = zconf_get_nth ((guint) i, NULL, zcname)); i++)
     {
       gchar *base = g_path_get_basename (label);
       rte_context *context;
@@ -879,7 +878,7 @@ record_config_zconf_find	(const gchar *		source,
   gchar *label;
   gint i;
 
-  for (i = 0; (label = zconf_get_nth (i, NULL, zcname)); i++)
+  for (i = 0; (label = zconf_get_nth ((guint) i, NULL, zcname)); i++)
     {
       gchar *base = g_path_get_basename (label);
 
@@ -1003,7 +1002,7 @@ attach_codec_menu		(GtkWidget *		mpeg_properties,
 {
   GtkWidget *menu, *menu_item;
   GtkWidget *widget, *notebook;
-  gint default_item;
+  guint default_item;
   void (* on_changed) (GtkWidget *, GtkWidget *) = 0;
   char *keyword;
 
@@ -1138,9 +1137,9 @@ static void
 rebuild_config_dialog		(GtkWidget *		mpeg_properties,
 				 const gchar *		conf_name)
 {
-  GtkWidget *menu, *menu_item;
+  GtkWidget *menu;
   GtkWidget *widget;
-  gint default_item;
+  guint default_item;
 
   g_assert (mpeg_properties != NULL);
 
@@ -1177,18 +1176,18 @@ rebuild_config_dialog		(GtkWidget *		mpeg_properties,
     gchar *zcname;
 
     zcname = g_strconcat (zconf_root_temp, "/configs/", conf_name, "/capture_width", NULL);
-    zconf_create_integer (384, "Capture width", zcname);
-    zconf_get_integer (&capture_w, zcname);
+    zconf_create_int (384, "Capture width", zcname);
+    zconf_get_int (&capture_w, zcname);
     g_free (zcname);
     widget = lookup_widget (mpeg_properties, "spinbutton9");
-    gtk_spin_button_set_value (GTK_SPIN_BUTTON (widget), capture_w);
+    gtk_spin_button_set_value (GTK_SPIN_BUTTON (widget), (gdouble) capture_w);
 
     zcname = g_strconcat (zconf_root_temp, "/configs/", conf_name, "/capture_height", NULL);
-    zconf_create_integer (288, "Capture height", zcname);
-    zconf_get_integer (&capture_h, zcname);
+    zconf_create_int (288, "Capture height", zcname);
+    zconf_get_int (&capture_h, zcname);
     g_free (zcname);
     widget = lookup_widget (mpeg_properties, "spinbutton10");
-    gtk_spin_button_set_value (GTK_SPIN_BUTTON (widget), capture_h);
+    gtk_spin_button_set_value (GTK_SPIN_BUTTON (widget), (gdouble) capture_h);
   }
 }
 
@@ -1228,7 +1227,7 @@ pref_rebuild_configs		(GtkWidget *		page,
 }
 
 static void
-pref_cancel			(GtkWidget *		page)
+pref_cancel			(GtkWidget *		page _unused_)
 {
   /* Delete preliminary changes */
 
@@ -1277,12 +1276,12 @@ pref_apply			(GtkWidget *		page)
 }
 
 static void
-on_config_new_clicked			(GtkButton *		button,
+on_config_new_clicked			(GtkButton *	       button _unused_,
 					 GtkWidget *		page)
 {
   gchar *name;
 
-  name = Prompt (main_window,
+  name = Prompt (GTK_WIDGET (zapping),
 		 _("New format"),
 		 _("Format name:"),
 		 NULL);
@@ -1323,7 +1322,7 @@ on_config_new_clicked			(GtkButton *		button,
 }
 
 static void
-on_config_delete_clicked		(GtkButton *		button,
+on_config_delete_clicked		(GtkButton *	       button _unused_,
 					 GtkWidget *		page)
 {
   /*
@@ -1344,7 +1343,7 @@ on_config_delete_clicked		(GtkButton *		button,
 }
 
 static void
-on_pref_config_changed		(GtkWidget *		menu,
+on_pref_config_changed		(GtkWidget *		menu _unused_,
 				 GtkWidget *		page)
 {
   GtkWidget *configs;
@@ -1375,7 +1374,6 @@ pref_setup			(GtkWidget *		page)
 {
   GtkWidget *new = lookup_widget (page, "new");
   GtkWidget *delete = lookup_widget (page, "delete");
-  GtkWidget *configs = lookup_widget (page, "optionmenu15");
 
   /* All changes preliminary until ok/apply */
   record_config_zconf_copy (zconf_root, zconf_root_temp);
@@ -1396,9 +1394,9 @@ pref_setup			(GtkWidget *		page)
  */
 
 static gboolean
-on_saving_delete_event		(GtkWidget *		widget,
-				 GdkEvent *		event,
-				 gpointer		user_data)
+on_saving_delete_event		(GtkWidget *		widget _unused_,
+				 GdkEvent *		event _unused_,
+				 gpointer		user_data _unused_)
 {
   saving_dialog = NULL;
 
@@ -1433,17 +1431,16 @@ file_format_ext			(const gchar *		conf_name)
   for (s = info->extension; *s != 0 && *s != ','; s++)
     ;
 
-  return g_strndup (info->extension, s - info->extension);
+  return g_strndup (info->extension, (guint)(s - info->extension));
 }
 
 static void
-on_saving_format_changed   	(GtkWidget *		menu,
-				 gpointer		user_data)
+on_saving_format_changed   	(GtkWidget *		menu _unused_,
+				 gpointer		user_data _unused_)
 {
   GtkWidget *configs;
   GtkWidget *entry;
   gchar *ext;
-  gchar *name;
 
   g_assert (saving_dialog != NULL);
 
@@ -1459,7 +1456,7 @@ on_saving_format_changed   	(GtkWidget *		menu,
 
 static void
 on_saving_configure_clicked	(GtkButton *		button,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   g_assert (saving_dialog != NULL);
 
@@ -1476,7 +1473,7 @@ on_saving_configure_clicked	(GtkButton *		button,
 
 static void
 on_saving_filename_changed   	(GtkWidget *		widget,
-				 gpointer		user_data)
+				 gpointer		user_data _unused_)
 {
   gchar *buffer;
 
@@ -1491,8 +1488,8 @@ on_saving_filename_changed   	(GtkWidget *		widget,
 }
 
 static void
-on_saving_stop_clicked		(GtkButton *		button,
-				 gpointer		user_data)
+on_saving_stop_clicked		(GtkButton *		button _unused_,
+				 gpointer		user_data _unused_)
 {
   g_assert (saving_dialog != NULL);
 
@@ -1503,8 +1500,8 @@ on_saving_stop_clicked		(GtkButton *		button,
 }
 
 static void
-on_saving_record_clicked	(GtkButton *		button,
-				 gpointer		user_data)
+on_saving_record_clicked	(GtkButton *		button _unused_,
+				 gpointer		user_data _unused_)
 {
   GtkToggleButton *record;
   GtkWidget *widget;
@@ -1575,7 +1572,7 @@ saving_dialog_attach_formats	(void)
   gint nformats;
   gchar *ext;
   gchar *name;
-  gchar *basename;
+  gchar *base_name;
 
   if (!saving_dialog)
     return;
@@ -1596,10 +1593,10 @@ saving_dialog_attach_formats	(void)
   name = find_unused_name (NULL, record_option_filename, ext);
 
   gtk_entry_set_text (GTK_ENTRY (entry), name);
-  basename = g_path_get_basename (name);
-  z_electric_set_basename (entry, basename);
+  base_name = g_path_get_basename (name);
+  z_electric_set_basename (entry, base_name);
 
-  g_free (basename);
+  g_free (base_name);
   g_free (name);
   g_free (ext);
 
@@ -1628,19 +1625,20 @@ saving_dialog_attach_formats	(void)
     }
 }
 
+#if 0
 static GtkWidget *
 saving_popup_new		(void)
 {
   static gint times[] = { 15, 30, 45, 60, 90, 120, 180 };
   GtkWidget *menu;
-  gint i;
+  guint i;
 
   menu = build_widget ("menu1", "mpeg_properties.glade2");
 
   gtk_widget_set_sensitive (lookup_widget (menu, "record_this"), FALSE);
   gtk_widget_set_sensitive (lookup_widget (menu, "record_next"), FALSE);
 
-  for (i = 0; i < sizeof(times) / sizeof (times[0]); i++)
+  for (i = 0; i < sizeof(times) / sizeof (times[0]); ++i)
     {
       GtkWidget *menu_item;
       gchar *buffer = g_strdup_printf("Record %d min", times[i]);
@@ -1654,6 +1652,7 @@ saving_popup_new		(void)
 
   return menu;
 }
+#endif
 
 static void
 saving_dialog_delete		(void)
@@ -1704,11 +1703,8 @@ saving_dialog_new_pixmap_box	(const GdkPixdata *	pixdata,
 static void
 saving_dialog_new		(gboolean		recording)
 {
-  GtkWidget *widget, *pixmap;
-  GtkWidget *dialog, *label;
+  GtkWidget *widget;
   GtkWidget *record, *stop;
-  gchar *buffer, *filename;
-  gint nformats;
 
   if (saving_dialog)
     gtk_widget_destroy (saving_dialog);
@@ -1773,7 +1769,7 @@ saving_dialog_new		(gboolean		recording)
  */
 
 static PyObject*
-py_stoprec (PyObject *self, PyObject *args)
+py_stoprec (PyObject *self _unused_, PyObject *args _unused_)
 {
   saving_dialog_delete ();
 
@@ -1783,17 +1779,16 @@ py_stoprec (PyObject *self, PyObject *args)
 }
 
 static PyObject*
-py_pauserec (PyObject *self, PyObject *args)
+py_pauserec (PyObject *self _unused_, PyObject *args _unused_)
 {
   py_return_false;
 }
 
 static PyObject*
-py_quickrec (PyObject *self, PyObject *args)
+py_quickrec (PyObject *self _unused_, PyObject *args _unused_)
 {
   gchar *ext;
   gchar *name;
-  gchar *path;
   gboolean success;
 
   if (saving_dialog || active)
@@ -1830,7 +1825,7 @@ py_quickrec (PyObject *self, PyObject *args)
 }
 
 static PyObject*
-py_record (PyObject *self, PyObject *args)
+py_record (PyObject *self _unused_, PyObject *args _unused_)
 {
   if (saving_dialog || active)
     py_return_false;
@@ -1879,7 +1874,7 @@ plugin_load_config		(gchar *		root_key)
 {
   gchar *buffer;
   gchar *default_filename;
-  gint n = strlen (root_key);
+  guint n = strlen (root_key);
 
   g_assert (n > 0 && root_key[n - 1] == '/');
   zconf_root = g_strndup (root_key, n - 1);
@@ -1939,7 +1934,6 @@ plugin_add_gui			(GnomeApp *		app)
   GtkWidget *toolbar1 = lookup_widget (GTK_WIDGET (app), "toolbar1");
   GtkWidget *button; /* The button to add */
   GtkWidget *tmp_toolbar_icon;
-  gint sig_id;
 
   tmp_toolbar_icon =
     gtk_image_new_from_stock ("zapping-recordtb",
@@ -1949,8 +1943,7 @@ plugin_add_gui			(GnomeApp *		app)
 				    _("Record"),
 				    _(tooltip), NULL, tmp_toolbar_icon,
 				    GTK_SIGNAL_FUNC (on_python_command1),
-				    (gpointer)((const gchar *)
-					       "zapping.record()"));
+				    (gpointer) "zapping.record()");
 
   /* Set up the widget so we can find it later */
   g_object_set_data (G_OBJECT (app), "mpeg_button", button);
@@ -1959,8 +1952,8 @@ plugin_add_gui			(GnomeApp *		app)
 }
 
 static void
-plugin_process_popup_menu	(GtkWidget *		widget,
-				 GdkEventButton	*	event,
+plugin_process_popup_menu	(GtkWidget *		widget _unused_,
+				 GdkEventButton	*	event _unused_,
 				 GtkMenu *		popup)
 {
   GtkWidget *menuitem;
@@ -1975,7 +1968,7 @@ plugin_process_popup_menu	(GtkWidget *		widget,
 
   g_signal_connect (G_OBJECT (menuitem), "activate",
 		    (GtkSignalFunc) on_python_command1,
-		    (gpointer)((const gchar *) "zapping.record()"));
+		    (gpointer) "zapping.record()");
 
   gtk_widget_show (menuitem);
   gtk_menu_shell_append (GTK_MENU_SHELL (popup), menuitem);
@@ -1998,12 +1991,12 @@ plugin_get_misc_info		(void)
 }
 
 static gboolean
-plugin_get_public_info		(gint			index,
-				 gpointer *		ptr,
-				 gchar **		symbol,
-				 gchar **		description,
-				 gchar **		type,
-				 gint *			hash)
+plugin_get_public_info		(gint			i _unused_,
+				 gpointer *		ptr _unused_,
+				 gchar **		symbol _unused_,
+				 gchar **		description _unused_,
+				 gchar **		type _unused_,
+				 gint *			hash _unused_)
 {
   return FALSE; /* Nothing exported */
 }
@@ -2096,7 +2089,7 @@ properties_add			(GtkDialog *		dialog)
 }
 
 static gboolean
-plugin_init			(PluginBridge		bridge,
+plugin_init			(PluginBridge		bridge _unused_,
 				 tveng_device_info *	info)
 {
   property_handler mpeg_handler = {
