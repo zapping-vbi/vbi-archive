@@ -2127,11 +2127,6 @@ tveng_start_capturing(tveng_device_info * info)
   t_assert(info != NULL);
   t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
 
-#ifdef TVENG_BLOCK_CAPTURING
-#warning
-  return -1;
-#endif
-
   REQUIRE_IO_MODE (-1);
 
   TVLOCK;
@@ -2421,7 +2416,7 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	case 0: /* in child */
 		/* First try the zapping_setup_fb install path. */
-		r = execvp (ZSFB_DIR "zapping_setup_fb", argv);
+		r = execvp (ZSFB_DIR "/zapping_setup_fb", argv);
 
 		if (-1 == r && ENOENT == errno) {
 			/* Try in $PATH. */
@@ -2455,9 +2450,7 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	if (!WIFEXITED (status)) {
 		info->tveng_errno = errno;
-		t_error_msg ("WIFEXITED(status)", 
-			     "zapping_setup_fb exited abnormally, check stderr",
-			     info);
+		tv_error_msg (info, _("zapping_setup_fb exited abnormally."));
 		goto failure;
 	}
 
@@ -2472,18 +2465,19 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 		break;
 
 	case 1: /* zapping_setup_fb failure */
-		info->tveng_errno = -1;
-		t_error_msg ("1", "zapping_setup_fb failed", info);
+		info->tveng_errno = -1; /* unknown */
+		tv_error_msg (info, _("zapping_setup_fb failed."));
 		goto failure;
 
 	case 2: /* zapping_setup_fb ENOENT */
 		info->tveng_errno = ENOENT;
-		t_error_msg ("ENOENT", "zapping_setup_fb not found", info);
+		tv_error_msg (info, _("zapping_setup_fb not found in "
+			ZSFB_DIR " or executable search path."));
 		goto failure;
 
 	default:
-		info->tveng_errno = -1;
-		t_error_msg ("?", "Unknown error in zapping_setup_fb", info);
+		info->tveng_errno = -1; /* unknown */
+		tv_error_msg (info, _("Unknown error in zapping_setup_fb."));
 	failure:
 		RETURN_UNTVLOCK (FALSE);
 	}
@@ -2759,216 +2753,6 @@ int
 tveng_get_zapping_setup_fb_verbosity(tveng_device_info * info)
 {
   return (info->priv->zapping_setup_fb_verbosity);
-}
-
-#include "zmisc.h"
-
-/* 
-   Sets up everything and starts previewing (fullscreen overlay).
-   Just call this function to start previewing, it takes care of
-   (mostly) everything.
-   Returns -1 on error.
-*/
-int
-tveng_start_previewing (tveng_device_info * info, const char *mode)
-{
-  x11_vidmode_info *v;
-  unsigned int width, height;
-
-  t_assert(info != NULL);
-  t_assert(info->current_controller != TVENG_CONTROLLER_NONE);
-
-  REQUIRE_IO_MODE (-1);
-  REQUIRE_SUPPORT (info->priv->module.set_overlay, -1);
-
-  if (info->current_controller != TVENG_CONTROLLER_XV)
-    REQUIRE_SUPPORT (info->priv->module.set_preview_window, -1);
-
-  TVLOCK;
-
-  /* XXX we must distinguish between (limited) Xv overlay and Xv scaling.
-   * 1) determine natural size (videostd -> 480, 576 -> 640, 768),
-   *    try Xv target size, get actual
-   * 2) find closest vidmode
-   * 3) try Xv target size from vidmode, get actual,
-   *    if closer go back to 2) until sizes converge 
-   */
-  if (info->current_controller == TVENG_CONTROLLER_XV
-      && (mode == NULL || 0 == strcmp (mode, "auto")))
-     mode = NULL; /* not needed  XXX wrong */
-  else
-  /* XXX ditto, limited V4L/V4L2 overlay */
-    if (!x11_dga_present (&dga_param))
-      {
-	info->tveng_errno = -1;
-	t_error_msg("tveng_detect_XF86DGA",
-		    "No DGA present, make sure you enable it in"
-		    " /etc/X11/XF86Config.",
-		    info);
-	UNTVLOCK;
-	return -1;
-      }
-
-  /* special code, used only inside tveng, means remember from last
-     time */
-  if (mode == (const char *) -1)
-    mode = info->priv->mode;
-  else
-    {
-      g_free (info->priv->mode);
-      info->priv->mode = g_strdup (mode);
-    }
-
-  /* XXX wrong */
-  if (info->cur_video_standard)
-    {
-      /* Note e.g. v4l2(old) bttv reports 48,32-922,576 */
-      width = MIN ((unsigned int) info->caps.maxwidth,
-		   info->cur_video_standard->frame_width);
-      height = MIN ((unsigned int) info->caps.maxheight,
-		    info->cur_video_standard->frame_height);
-    }
-  else
-    {
-      width = MIN (info->caps.maxwidth, 768);
-      height = MIN (info->caps.maxheight, 576);
-    }
-
-  width = MIN (width, dga_param.width);
-  height = MIN (height, dga_param.height);
-
-  v = NULL;
-
-  if (mode == NULL || mode[0] == 0)
-    {
-      /* Don't change, v = NULL */
-    }
-  else if (vidmodes && !(v = x11_vidmode_by_name (vidmodes, mode)))
-    {
-      x11_vidmode_info *vmin;
-      long long amin;
-
-      /* Automatic */
-
-      vmin = vidmodes;
-      amin = 1LL << 62;
-
-      for (v = vidmodes; v; v = v->next)
-	{
-	  long long a;
-	  long long dw, dh;
-
-	  if (0)
-	    fprintf (stderr, "width=%d height=%d cur %ux%u@%u best %ux%u@%u\n",
-		     width, height,
-		     v->width, v->height, (unsigned int)(v->vfreq + 0.5),
-		     vmin->width, vmin->height, (unsigned int)(vmin->vfreq + 0.5));
-
-	  /* XXX ok? */
-	  dw = (long long) v->width - width;
-	  dh = (long long) v->height - height;
-	  a = dw * dw + dh * dh;
-
-	  if (a < amin
-	      || (a == amin
-		  && v->vfreq > vmin->vfreq))
-	    {
-	      vmin = v;
-	      amin = a;
-	    }
-	}
-
-      v = vmin;
-
-      if (info->debug_level > 0)
-	fprintf (stderr, "Using mode %ux%u@%u for %ux%u\n",
-		 v->width, v->height, (unsigned int)(v->vfreq + 0.5),
-		 width, height);
-    }
-
-  if (!x11_vidmode_switch (vidmodes, v, &info->priv->old_mode))
-    goto failure;
-
-  // XXX
-  if (info->current_controller == TVENG_CONTROLLER_XV)
-    {
-      if (!tv_set_overlay_xwindow (info, info->overlay_window.win,
-				   info->overlay_window.gc))
-	goto failure;
-    }
-  else
-    {
-      /* Center the window, dwidth is always >= width */
-      info->overlay_window.x = (dga_param.width - width) >> 1;
-      info->overlay_window.y = (dga_param.height - height) >> 1;
-      info->overlay_window.width = width;
-      info->overlay_window.height = height;
-      tv_clip_vector_clear (&info->overlay_window.clip_vector);
-
-      /* Set new capture dimensions */
-      if (-1 == info->priv->module.set_preview_window (info))
-	goto failure;
-
-      if (info->overlay_window.width != width
-	  || info->overlay_window.height != height)
-	{
-	  info->overlay_window.x =
-	    (dga_param.width - info->overlay_window.width) >> 1;
-	  info->overlay_window.y =
-	    (dga_param.height - info->overlay_window.height) >> 1;
-
-	  if (-1 == info->priv->module.set_preview_window (info))
-	    goto failure;
-	}
-    }
-
-  /* Start preview */
-  if (-1 == info->priv->module.set_overlay (info, TRUE))
-    goto failure;
-
-  info -> current_mode = TVENG_CAPTURE_PREVIEW; /* "fullscreen overlay" */
-
-  RETURN_UNTVLOCK (0);
-
- failure:
-  UNTVLOCK;
-  return -1;
-}
-
-/*
-  Stops the fullscreen mode. Returns -1 on error
-*/
-int
-tveng_stop_previewing(tveng_device_info * info)
-{
-  int return_code = 0;
-
-  t_assert(info != NULL);
-
-  REQUIRE_IO_MODE (-1);
-
-  TVLOCK;
- 
-  if (info -> current_mode == TVENG_NO_CAPTURE)
-    {
-      fprintf(stderr, 
-	      "Warning: trying to stop preview with no capture active\n");
-      RETURN_UNTVLOCK (0); /* Nothing to be done */
-    }
-  t_assert(info->current_mode == TVENG_CAPTURE_PREVIEW);
-
-  if (info->priv->module.set_overlay)
-    return_code = info->priv->module.set_overlay (info, FALSE);
-  else
-    return_code = -1;
-
-  info -> current_mode = TVENG_NO_CAPTURE;
-
-  x11_vidmode_restore (vidmodes, &info->priv->old_mode);
-
-  UNTVLOCK;
-
-  return return_code;
 }
 
 // FIXME static
@@ -3845,13 +3629,29 @@ tv_pixfmt_to_pixel_format	(tv_pixel_format *	format,
 #if 0
 
 typedef enum {
-	/* y8 yuv24 yuva24 yuyv yuv420 yuv422 yuv444, more? */
-
-	TV_PIXFMT_RGBA24_LE = 32, /* R G B A in memory */
-	TV_PIXFMT_RGBA24_BE,	  /* A G B R */
-	TV_PIXFMT_BGRA24_LE,	  /* B G R A */
-	TV_PIXFMT_BGRA24_BE,      /* A R G B */
-	TV_PIXFMT_ABGR24_BE = 32, /* synonyms */
+	TV_PIXFMT_YUV444 = 0,		/* planar */
+	TV_PIXFMT_YVU444,
+	TV_PIXFMT_YUV422,
+	TV_PIXFMT_YVU422,
+	TV_PIXFMT_YUV411,
+	TV_PIXFMT_YVU411,
+	TV_PIXFMT_YUV420,
+	TV_PIXFMT_YVU420,
+	TV_PIXFMT_YUV410,
+	TV_PIXFMT_YVU410,
+	TV_PIXFMT_YUVA24_LE = 16,	/* Y U V A */
+	TV_PIXFMT_YUVA24_BE,		/* A V U Y */
+	TV_PIXFMT_YUV24,		/* Y U V */
+	TV_PIXFMT_YUYV = 24,
+	TV_PIXFMT_YVYU,
+	TV_PIXFMT_UYVY,
+	TV_PIXFMT_VYUY,
+	TV_PIXFMT_Y8 = 30,
+	TV_PIXFMT_RGBA24_LE = 32,	/* R G B A in memory */
+	TV_PIXFMT_RGBA24_BE,		/* A G B R */
+	TV_PIXFMT_BGRA24_LE,		/* B G R A */
+	TV_PIXFMT_BGRA24_BE,		/* A R G B */
+	TV_PIXFMT_ABGR24_BE = 32,	/* synonyms */
 	TV_PIXFMT_ABGR24_LE,
 	TV_PIXFMT_ARGB24_BE,
 	TV_PIXFMT_ARGB24_LE,
@@ -3869,7 +3669,20 @@ typedef enum {
 	TV_PIXFMT_ARGB15_BE,
 	TV_PIXFMT_ABGR15_LE,
 	TV_PIXFMT_ABGR15_BE,
-	/* 4444, 332, 2321 */
+	TV_PIXFMT_RGBA12_LE,
+	TV_PIXFMT_RGBA12_BE,
+	TV_PIXFMT_BGRA12_LE,
+	TV_PIXFMT_BGRA12_BE,
+	TV_PIXFMT_ARGB12_LE,
+	TV_PIXFMT_ARGB12_BE,
+	TV_PIXFMT_ABGR12_LE,
+	TV_PIXFMT_ABGR12_BE,
+	TV_PIXFMT_RGB8,
+	TV_PIXFMT_BGR8,
+	TV_PIXFMT_RGBA7,
+	TV_PIXFMT_BGRA7,
+	TV_PIXFMT_ARGB7,
+	TV_PIXFMT_ABGR7
 } tv_pixfmt;
 
 /* Broken-down pixfmt and color space. */
@@ -3919,6 +3732,9 @@ struct format {					// e.g.
 		+ MFMT (BGRA15_LE) + MFMT (BGRA15_BE)
 		+ MFMT (ABGR15_LE) + MFMT (ABGR15_BE);
 
+	if (pixfmt >= 64)
+		return FALSE;
+
 	format->fmt = pixfmt;
 	format->color_space = colspc;
 
@@ -3937,7 +3753,7 @@ struct format {					// e.g.
 	format->mask.rgb.a = 0;
 
 	switch (pixfmt) {
-	case yuv_le:
+	case TV_PIXFMT_YUV24:
 		format->mask.rgb.y = 0xFF;
 		format->mask.rgb.u = 0xFF << 8;
 		format->mask.rgb.v = 0xFF << 16;
