@@ -3,12 +3,14 @@
 bin_PROGRAMS = zapping_setup_fb
 bin_SCRIPTS = zapping_fix_overlay
 
-EXTRA_DIST = zapping_setup_fb.pam zsfb.capps.in zapping_fix_overlay
+EXTRA_DIST = zapping_setup_fb.pam zapping_fix_overlay.in
 
-install-binPROGRAMS: $(bin_PROGRAMS)
+install-binPROGRAMS: $(bin_PROGRAMS) zsfb.capps
 if SUID_ZSFB
 	$(mkinstalldirs) $(DESTDIR)$(bindir)
-	$(INSTALL) -m4755 -o root -g root zapping_setup_fb $(DESTDIR)$(bindir)
+	$(INSTALL) -m4755 -o root -g root zapping_setup_fb $(DESTDIR)$(sbindir)
+	ln -sf $(DESTDIR)$(sbindir)/zapping_setup_fb \
+		$(DESTDIR)$(bindir)/zapping_setup_fb
 else
 	$(mkinstalldirs) $(DESTDIR)$(bindir)
 	$(mkinstalldirs) $(DESTDIR)$(sbindir)
@@ -40,3 +42,7 @@ zapping_setup_fbSOURCES = \
 
 zapping_setup_fb_LDADD = $(X_LIBS) \
 -lX11 -lXext -lXxf86dga $(X_EXTRA_LIBS)
+
+zsfb.capps:
+	echo USER=root >$@
+	echo PROGRAM=$(DESTDIR)$(sbindir)/zapping_setup_fb >>$@
