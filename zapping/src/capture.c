@@ -909,7 +909,7 @@ capture_stop			(void)
   for (p = g_list_first (plugin_list); p; p = p->next)
     plugin_capture_stop ((struct plugin_info *) p->data);
 
-  if (1 && tv_get_caps (zapping->info)->flags & TVENG_CAPS_QUEUE)
+  if (source)
     {
       capture_source *cs;
 
@@ -956,6 +956,13 @@ capture_start			(tveng_device_info *	info,
 {
   guint i;
   GList *p;
+  gboolean cont;
+
+  for (i = 0; i < n_formats; ++i)
+    if (formats[i].flags & REQ_CONTINUOUS)
+      break;
+
+  cont = (i < n_formats);
 
   if (-1 == tveng_start_capturing (info))
     {
@@ -983,7 +990,9 @@ capture_start			(tveng_device_info *	info,
       zf_add_buffer (&capture_fifo, &pb->frame.b);
     }
 
-  if (1 && tv_get_caps (info)->flags & TVENG_CAPS_QUEUE)
+  /* Recording doesn't work with a queue,
+     see plugins/mpeg/mpeg.c for details. */
+  if (!cont && (tv_get_caps (info)->flags & TVENG_CAPS_QUEUE))
     {
       capture_source *cs;
 
@@ -1232,8 +1241,8 @@ change_capture_format		(tveng_device_info *	info,
       fmt = NULL; /* failed */
     }
 
-  /* XXX caller doesn't properly handle a stop.
-     if (CAPTURE_MODE_READ == old_mode) */
+  /* XXX caller doesn't properly handle a stop? */
+  if (CAPTURE_MODE_READ == old_mode)
     tveng_start_capturing (info);
 
   return fmt;
