@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.37.2.12 2003-08-24 23:54:14 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.37.2.13 2003-09-24 18:34:13 mschimek Exp $ */
 
 /*
   TODO:
@@ -26,15 +26,14 @@
   * notify other modules (ttx bookmarks, schedule etc) about changes
   * device column
   * wizard
-  * XawTV import
   * channel merging e.g.
     12 FooBar +              key
        + dev1 tuner E5 fine  key
        + dev2 tuner E5 fine  key
  */
 
-#include "../site_def.h"
-#include "../config.h"
+#include "site_def.h"
+#include "config.h"
 
 #include <gnome.h>
 
@@ -47,6 +46,7 @@
 #include "zvbi.h"
 #include "v4linterface.h"
 #include "i18n.h"
+#include "xawtv.h"
 
 #include "channel_editor.h"
 
@@ -94,6 +94,7 @@ struct channel_editor
 
   GtkButton *		channel_search;
   GtkButton *		add_all_channels;
+  GtkButton *		import_xawtv;
 
   GtkTreeView *		freq_treeview;
   GtkListStore *	freq_model;
@@ -312,12 +313,9 @@ channel_list_get_selection	(const channel_editor *	ce,
 {
   GtkTreeIter iter, last;
 
-  if (!gtk_tree_model_get_iter_first (GTK_TREE_MODEL (ce->channel_model), &iter))
-    return FALSE; /* empty list */
-
-  while (!gtk_tree_selection_iter_is_selected (ce->channel_selection, &iter))
-    if (!gtk_tree_model_iter_next (GTK_TREE_MODEL (ce->channel_model), &iter))
-      return FALSE; /* nothing selected */
+  if (!z_tree_selection_iter_first (ce->channel_selection,
+				    GTK_TREE_MODEL (ce->channel_model), &iter))
+    return FALSE; /* nothing selected */
 
   if (iter_first)
     *iter_first = iter;
@@ -349,9 +347,7 @@ channel_list_get_selection	(const channel_editor *	ce,
 static gchar *
 rf_channel_string		(const tveng_tuned_channel *tc)
 {
-  return g_strdup_printf ("%s  %.2f MHz",
-			  tc->rf_name,
-			  tc->freq / 1000.0);
+  return g_strdup_printf ("%s  %.2f MHz", tc->rf_name, tc->frequ / 1e6);
 }
 
 static void
@@ -375,7 +371,7 @@ channel_list_add_tuned_channel	(channel_editor *	ce,
 	continue;
 
       if (tunable_input (ce, main_info, tc)
-	  && (tci->freq - tc->freq) > 3000)
+	  && abs (tci->frequ - tc->frequ) > 3000000)
 	continue;
 
       gtk_tree_model_iter_nth_child (model, &iter, NULL, i);
@@ -649,7 +645,7 @@ station_search_timeout		(gpointer		p)
   tc.name	= station_name;
   tc.rf_name	= (gchar *) cs->ch.channel_name;
   tc.rf_table	= (gchar *) cs->ch.table_name;
-  tc.freq	= cs->freq;
+  tc.frequ	= cs->freq;
 
   channel_list_add_tuned_channel (ce, &global_channel_list, &tc);
 
@@ -771,7 +767,7 @@ on_add_all_channels_clicked	(GtkButton *		add_all_channels,
 	    tc.name	= (gchar *) ch.channel_name;
 	    tc.rf_name	= (gchar *) ch.channel_name;
 	    tc.rf_table	= (gchar *) ch.table_name;
-	    tc.freq	= ch.frequency / 1000;
+	    tc.frequ	= ch.frequency;
 
 	    tveng_tuned_channel_replace (&global_channel_list,
 					 tveng_tuned_channel_new (&tc),
@@ -793,11 +789,27 @@ on_add_all_channels_clicked	(GtkButton *		add_all_channels,
 	tc.name		= (gchar *) ch.channel_name;
 	tc.rf_name	= (gchar *) ch.channel_name;
 	tc.rf_table	= (gchar *) ch.table_name;
-	tc.freq		= ch.frequency / 1000;
+	tc.frequ	= ch.frequency;
 
 	channel_list_add_tuned_channel (ce, &global_channel_list, &tc);
       }
   while (tv_rf_channel_next (&ch));
+}
+
+static void
+on_import_xawtv_clicked		(GtkButton *		add_all_channels,
+				 channel_editor *	ce)
+{
+  GtkTreeIter iter;
+  guint i;
+
+  /* XXX error ignored */
+  xawtv_import_config (main_info, &global_channel_list);
+
+  gtk_list_store_clear (ce->channel_model);
+
+  for (i = tveng_tuned_channel_num (global_channel_list); i > 0; --i)
+    gtk_list_store_append (ce->channel_model, &iter);
 }
 
 static void
@@ -842,7 +854,7 @@ on_freq_selection_changed	(GtkTreeSelection *	selection,
 	  tc->rf_name = g_strdup (ch.channel_name);
 	}
 
-      tc->freq = ch.frequency / 1000;
+      tc->frequ = ch.frequency;
 
       if (tc == tc_last)
 	break;
@@ -962,7 +974,7 @@ on_channel_remove_clicked	(GtkButton *		channel_remove,
 	     if (!gtk_tree_selection_iter_is_selected (ce->channel_selection, &iter))
 	       break;
     
-	     gtk_list_store_remove (ce->channel_model, &iter);
+     gtk_list_store_remove (ce->channel_model, &iter);
 
 	     tc_next = tc->next;
 	     tveng_tuned_channel_remove (&global_channel_list, tc);
@@ -1051,9 +1063,9 @@ on_entry_fine_tuning_value_changed (GtkAdjustment *	spin_adj,
   if (!channel_list_get_selection (ce, &first, &last, &tc, &tc_last))
     return;
 
-  tc->freq = (guint)(spin_adj->value * 1000);
+  tc->frequ = (guint)(spin_adj->value * 1000000);
 
-  tv_set_tuner_frequency (main_info, tc->freq * 1000);
+  tv_set_tuner_frequency (main_info, tc->frequ);
 
   for (; tc_last != tc; tc_last = tc_last->prev)
     {
@@ -1063,7 +1075,7 @@ on_entry_fine_tuning_value_changed (GtkAdjustment *	spin_adj,
 	  tc_last->rf_name = g_strdup (tc->rf_name);
 	}
 
-      tc_last->freq = tc->freq;
+      tc_last->frequ = tc->frequ;
     }
 
   channel_list_rows_changed (ce, &first, &last);
@@ -1158,13 +1170,13 @@ on_channel_selection_changed	(GtkTreeSelection *	selection,
 		 break;
 
 	   if (l)
-	     z_option_menu_set_active (GTK_WIDGET (ce->entry_input), index);
+	     z_option_menu_set_active (GTK_WIDGET (ce->entry_input), index + 1);
 	 }
   );
 
   SIGNAL_HANDLER_BLOCK (ce->spinslider_adj,
 			(gpointer) on_entry_fine_tuning_value_changed,
-			entry_fine_tuning_set (ce, main_info, tc->freq * 1000));
+			entry_fine_tuning_set (ce, main_info, tc->frequ));
 
   BLOCK (entry_standard, changed,
 	 {
@@ -1186,7 +1198,7 @@ on_channel_selection_changed	(GtkTreeSelection *	selection,
 		 break;
 
 	   if (s)
-	     z_option_menu_set_active (GTK_WIDGET (ce->entry_standard), index);
+	     z_option_menu_set_active (GTK_WIDGET (ce->entry_standard), index + 1);
 	 }
   );
 
@@ -1310,7 +1322,7 @@ set_func_channel		(GtkTreeViewColumn *	column,
   tveng_tuned_channel *tc = tree_model_tuned_channel (model, iter);
 
   if (tunable_input (ce, main_info, tc)
-      && tc->freq != 0)
+      && tc->frequ != 0)
     {
       gchar *rf_name;
 
@@ -1736,8 +1748,9 @@ create_channel_editor		(void)
 	
 	  {
 	    GtkWidget *vbox;
+#if 0
 	    GtkWidget *label;
-	    
+#endif	    
 	    vbox = gtk_vbox_new (FALSE, 3);
 	    gtk_widget_show (vbox);
 	    gtk_box_pack_start (GTK_BOX (hbox), vbox, TRUE, TRUE, 0);
@@ -1750,7 +1763,7 @@ create_channel_editor		(void)
 	    {
 	      GtkWidget *hbox;
 	      
-	      hbox = gtk_hbox_new (TRUE, 3);
+	      hbox = gtk_vbox_new (TRUE, 3);
 	      gtk_widget_show (hbox);
 	      gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 0);
 	      
@@ -1769,20 +1782,32 @@ create_channel_editor		(void)
 	      ce->add_all_channels = GTK_BUTTON (gtk_button_new_with_mnemonic
 						 (_("Add all _channels")));
 	      gtk_widget_show (GTK_WIDGET (ce->add_all_channels));
-	      gtk_box_pack_start (GTK_BOX (hbox),	GTK_WIDGET (ce->add_all_channels),
+	      gtk_box_pack_start (GTK_BOX (hbox), GTK_WIDGET (ce->add_all_channels),
 				  TRUE, TRUE, 0);
 	      CONNECT (add_all_channels, clicked);
 	      gtk_tooltips_set_tip (ce->tooltips,
 				    GTK_WIDGET (ce->add_all_channels),
 				    _("Add all channels in the frequency "
 				      "table to the channel list."), NULL);
-	    }
-	    
-	    label = gtk_label_new (_("When your country is not listed or misrepresented please send an e-mail,\n"
-				     "if possible including the correct frequency table, to zapping-misc@lists.sf.net."));
 
+	      ce->import_xawtv = GTK_BUTTON (gtk_button_new_with_mnemonic
+					     (_("_Import XawTV configuration")));
+	      gtk_widget_show (GTK_WIDGET (ce->import_xawtv));
+	      gtk_widget_set_sensitive (GTK_WIDGET (ce->import_xawtv),
+					xawtv_config_present ());
+	      gtk_box_pack_start (GTK_BOX (hbox), GTK_WIDGET (ce->import_xawtv),
+				  TRUE, TRUE, 0);
+	      CONNECT (import_xawtv, clicked);
+	    }
+
+#if 0
+	    label = gtk_label_new (_("When your country is not listed or "
+				     "misrepresented please send an e-mail,\n"
+				     "if possible including the correct "
+				     "frequency table, to zapping-misc@lists.sf.net."));
 	    gtk_widget_show (label);
 	    gtk_box_pack_start (GTK_BOX (vbox), label, TRUE, TRUE, 0);
+#endif
 	  }
 	  
 	  scrolledwindow = create_freq_treeview (ce);
@@ -1951,7 +1976,7 @@ void
 startup_channel_editor		(void)
 {
   cmd_register ("channel_editor", py_channel_editor, METH_VARARGS,
-		_("Opens the channel editor"), "zapping.channel_editor()");
+		("Channel editor"), "zapping.channel_editor()");
 }
 
 void
