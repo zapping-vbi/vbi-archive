@@ -20,12 +20,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_divx4linux.c,v 1.4 2002-12-14 00:48:49 mschimek Exp $ */
+/* $Id: b_divx4linux.c,v 1.5 2002-12-27 04:16:38 mschimek Exp $ */
 
 #include <dlfcn.h>
 #include "b_divx4linux.h"
-
-#define DIVX4LINUX_DEBUG 1
 
 #ifdef DIVX4LINUX_DEBUG
 #define dprintf(templ, args...) fprintf(stderr, "d4l: " templ ,##args)
@@ -230,10 +228,10 @@ avi_write_trailer		(d4l_context *		dx,
 static void *
 mainloop			(void *			p)
 {
-	extern rte_context_class divx_avi_context;
+	static rte_context_class divx_avi_context;
 	d4l_context *dx = p;
 	uint8_t header[1024];
-	uint32_t movi_bytes;
+	uint32_t movi_bytes = 0;
 
 	/* No interruption btw read & unref, mutex */
 	pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, NULL);

@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: rte 0.5\n"
-"POT-Creation-Date: 2002-12-25 07:55+0100\n"
+"POT-Creation-Date: 2002-12-27 04:43+0100\n"
 "PO-Revision-Date: 2002-03-28 16:56+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -41,7 +41,7 @@ msgstr ""
 #: mp1e/video/mpeg1.c:2586 mp1e/video/mpeg1.c:2943 mp1e/audio/mp2.c:1161
 #: mp1e/b_mp1e.c:448 mp1e/b_mp1e.c:498 mp1e/b_mp1e.c:508 mp1e/b_mp1e.c:1095
 #: ffmpeg/b_ffmpeg.c:673 ffmpeg/b_ffmpeg.c:1453 ffmpeg/b_ffmpeg.c:1880
-#: divx4linux/b_divx4linux.c:488 divx4linux/b_divx4linux.c:931
+#: divx4linux/b_divx4linux.c:486 divx4linux/b_divx4linux.c:929
 msgid "Out of memory."
 msgstr "Memoria exhausta."
 
@@ -59,7 +59,7 @@ msgstr "Insertar cuadros espúreos."
 
 #: mp1e/video/mpeg1.c:2698 mp1e/audio/mp2.c:982 ffmpeg/b_ffmpeg.c:914
 #: ffmpeg/b_ffmpeg.c:918 ffmpeg/b_ffmpeg.c:931 ffmpeg/b_ffmpeg.c:935
-#: divx4linux/b_divx4linux.c:681
+#: divx4linux/b_divx4linux.c:679
 msgid "Bit rate"
 msgstr "Tasa de bits"
 
@@ -116,7 +116,7 @@ msgstr ""
 "Añade una nota en el campo de datos del usuario un poco después del comienzo "
 "del vídeo. Ésta es una extensión de mp1e, los reproductores la ignorarán."
 
-#: mp1e/video/mpeg1.c:2744 ffmpeg/b_ffmpeg.c:985 divx4linux/b_divx4linux.c:710
+#: mp1e/video/mpeg1.c:2744 ffmpeg/b_ffmpeg.c:985 divx4linux/b_divx4linux.c:708
 #, c-format
 msgid "%5.3f Mbit/s"
 msgstr "%5.3f Mbits/s"
@@ -131,11 +131,11 @@ msgstr "%4.2f frames/s"
 msgid "%5.3f frames/s"
 msgstr "%5.3f frames/s"
 
-#: mp1e/video/mpeg1.c:2759 divx4linux/b_divx4linux.c:720
+#: mp1e/video/mpeg1.c:2759 divx4linux/b_divx4linux.c:718
 msgid "on"
 msgstr "on"
 
-#: mp1e/video/mpeg1.c:2759 divx4linux/b_divx4linux.c:720
+#: mp1e/video/mpeg1.c:2759 divx4linux/b_divx4linux.c:718
 msgid "off"
 msgstr "off"
 
@@ -270,7 +270,7 @@ msgstr ""
 "El backend MP1E requiere MMX pero el tipo de CPU no es conocido, el backend "
 "se desactivará."
 
-#: ffmpeg/b_ffmpeg.c:501 divx4linux/b_divx4linux.c:432
+#: ffmpeg/b_ffmpeg.c:501 divx4linux/b_divx4linux.c:430
 msgid "Insufficient resources to start encoding thread.\n"
 msgstr "Recursos insuficientes para iniciar el hilo de compresión.\n"
 
@@ -386,69 +386,69 @@ msgstr "Animación Shockwave"
 msgid "AVI File"
 msgstr "Fichero AVI"
 
-#: divx4linux/b_divx4linux.c:671
+#: divx4linux/b_divx4linux.c:669
 msgid "Fastest encoding, worst quality"
 msgstr "Codificación más rápida, la peor calidad"
 
-#: divx4linux/b_divx4linux.c:672
+#: divx4linux/b_divx4linux.c:670
 msgid "Lower quality"
 msgstr "Calidad baja"
 
-#: divx4linux/b_divx4linux.c:673
+#: divx4linux/b_divx4linux.c:671
 msgid "Medium quality"
 msgstr "Calidad media"
 
-#: divx4linux/b_divx4linux.c:674
+#: divx4linux/b_divx4linux.c:672
 msgid "Higher quality"
 msgstr "Calidad alta"
 
-#: divx4linux/b_divx4linux.c:675
+#: divx4linux/b_divx4linux.c:673
 msgid "Slowest encoding, best quality"
 msgstr "Codificación más lenta, la mejor calidad"
 
-#: divx4linux/b_divx4linux.c:684
+#: divx4linux/b_divx4linux.c:682
 msgid "Key frame distance"
 msgstr "Distancia entre cuadros 'key'"
 
-#: divx4linux/b_divx4linux.c:687
+#: divx4linux/b_divx4linux.c:685
 msgid "Compression quality"
 msgstr "Calidad de compresión"
 
-#: divx4linux/b_divx4linux.c:690
+#: divx4linux/b_divx4linux.c:688
 msgid "Bidirectional encoding"
 msgstr "Compresión bidireccional"
 
-#: divx4linux/b_divx4linux.c:692
+#: divx4linux/b_divx4linux.c:690
 msgid "Overlapped block motion compensation"
 msgstr "Compensación de movimiento en bloques solapados"
 
-#: divx4linux/b_divx4linux.c:694
+#: divx4linux/b_divx4linux.c:692
 msgid "Deinterlace"
 msgstr "Deentrelazar"
 
-#: divx4linux/b_divx4linux.c:820
+#: divx4linux/b_divx4linux.c:818
 msgid "DivX 4.x Video"
 msgstr "DivX 4.x Video"
 
-#: divx4linux/b_divx4linux.c:951
+#: divx4linux/b_divx4linux.c:949
 msgid "DivX Video Elementary Stream"
 msgstr "DivX Video Elementary Stream"
 
-#: divx4linux/b_divx4linux.c:986
+#: divx4linux/b_divx4linux.c:984
 #, fuzzy
 msgid "DivX AVI Stream"
 msgstr "DivX AVI Stream"
 
-#: divx4linux/b_divx4linux.c:1042
+#: divx4linux/b_divx4linux.c:1040
 #, c-format
 msgid "Version %d not supported\n"
 msgstr "Versión %d no soportada\n"
 
-#: divx4linux/b_divx4linux.c:1058
+#: divx4linux/b_divx4linux.c:1056
 msgid "DivX 5.x Video"
 msgstr "DivX 5.x Video"
 
-#: divx4linux/b_divx4linux.c:1072
+#: divx4linux/b_divx4linux.c:1070
 #, c-format
 msgid "DivX4Linux library not available. %s\n"
 msgstr "La librería DivX4Linux no está disponible. %s\n"
