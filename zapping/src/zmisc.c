@@ -1058,6 +1058,18 @@ append_text			(GtkEditable *		e,
   gtk_editable_set_position (e, old_pos);
 }
 
+void
+z_electric_set_basename		(GtkWidget *		w,
+				 const gchar *		basename)
+{
+  g_assert (NULL != w);
+  g_assert (NULL != basename);
+
+  g_object_set_data_full (G_OBJECT (w), "basename",
+			  g_strdup (basename),
+			  (GtkDestroyNotify) g_free);
+}
+
 /* See ttx export or screenshot for a demo */
 void
 z_on_electric_filename		(GtkWidget *		w,
@@ -1075,13 +1087,16 @@ z_on_electric_filename		(GtkWidget *		w,
   name = gtk_entry_get_text (GTK_ENTRY (w));
   len = strlen (name);
 
-  /* Last '/' in name. */
-  for (ext = name + len - 1; ext > name && *ext != '/'; ext--)
-    ;
+  if (len > 0)
+    {
+      /* Last '/' in name. */
+      for (ext = name + len - 1; ext > name && *ext != '/'; ext--)
+	;
 
-  /* First '.' in last part of name. */
-  for (; *ext && *ext != '.'; ext++)
-    ;
+      /* First '.' in last part of name. */
+      for (; *ext && *ext != '.'; ext++)
+	;
+    }
 
   basename = (gchar *) g_object_get_data (G_OBJECT (w), "basename");
   g_assert (basename != NULL);
@@ -1164,10 +1179,9 @@ z_electric_replace_extension	(GtkWidget *		w,
   gchar *new_name;
 
   old_base = (gchar *) g_object_get_data (G_OBJECT (w), "basename");
+  g_assert (NULL != old_base);
   new_name = z_replace_filename_extension (old_base, ext);
-  g_object_set_data (G_OBJECT (w), "basename", (gpointer) new_name);
-
-  g_free (old_base);
+  z_electric_set_basename (w, new_name);
 
   old_name = gtk_entry_get_text (GTK_ENTRY (w));
   new_name = z_replace_filename_extension (old_name, ext);
