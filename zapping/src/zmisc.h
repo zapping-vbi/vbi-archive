@@ -232,7 +232,7 @@ zmisc_resolve_pixformat(int bpp, GdkByteOrder byte_order)
       g_warning("Unrecognized image bpp: %d", bpp);
       break;
     }
-  return -1;
+  return (enum tveng_frame_pixformat) -1; /* ouch */
 }
 
 /**
@@ -369,7 +369,8 @@ GtkWidget *
 z_spinslider_new		(GtkAdjustment *spin_adj,
 				 GtkAdjustment *hscale_adj,
 				 const gchar *unit,
-				 gfloat reset_value);
+				 gfloat reset_value,
+				 gint digits);
 GtkAdjustment *
 z_spinslider_get_spin_adj	(GtkWidget *hbox);
 GtkAdjustment *
@@ -395,4 +396,9 @@ z_entry_emits_response		(GtkWidget	*entry,
 				 GtkDialog	*dialog,
 				 GtkResponseType response);
 
+gboolean
+z_icon_factory_add_default_files
+				(const gchar *		stock_id,
+				 const gchar *		filename,
+				 ...);
 #endif /* __ZMISC_H__ */
