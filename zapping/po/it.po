@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: zapping\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2004-11-03 16:40+0100\n"
-"PO-Revision-Date: 2004-10-17 13:07+0200\n"
+"PO-Revision-Date: 2004-11-05 18:35+0100\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <kde-i18n-it@kde.org>\n"
 "MIME-Version: 1.0\n"
@@ -139,7 +139,7 @@ msgstr "Dimensione minima della cattura:"
 
 #: glade/zapping.glade2.h:30
 msgid "Mute while ch_anging channels"
-msgstr "_Evita rumore nel cambiare canale"
+msgstr "Evit_a rumore nel cambiare canale"
 
 #: glade/zapping.glade2.h:31
 msgid "NTSC"
@@ -239,7 +239,7 @@ msgstr "Barra di stato"
 
 #: glade/zapping.glade2.h:55
 msgid "Stop this plugin"
-msgstr "Ferma il plugin"
+msgstr "Ferma questo plugin"
 
 #: glade/zapping.glade2.h:56
 msgid "TV viewer for the Gnome environment"
@@ -371,23 +371,22 @@ msgstr ""
 "raddoppierà la dimensione dell'immagine."
 
 #: libvbi/exp-gfx.c:1624
-#, fuzzy
 msgid "PPM"
-msgstr "BPP"
+msgstr "PPM"
 
 #: libvbi/exp-gfx.c:1625
 msgid "Export this page as raw PPM image"
 msgstr "Esporta questa pagina come grezza immagine PPM"
 
 #: libvbi/exp-gfx.c:1935
-#, fuzzy, c-format
+#, c-format
 msgid "Teletext Page %x.%x"
-msgstr " Pagina del Televideo %x"
+msgstr "Pagina del Televideo %x.%x"
 
 #: libvbi/exp-gfx.c:1939
-#, fuzzy, c-format
+#, c-format
 msgid "Teletext Page %x"
-msgstr " Pagina del Televideo %x"
+msgstr "Pagina del Televideo %x"
 
 #: libvbi/exp-gfx.c:2002
 msgid "PNG"
@@ -414,13 +413,13 @@ msgid "ASCII art"
 msgstr ""
 
 #: libvbi/exp-html.c:109 libvbi/exp-txt.c:132
+#, fuzzy
 msgid "Replace graphic characters by ASCII art"
-msgstr ""
+msgstr "sostituisci i caratteri grafici da [ASCII art]"
 
 #: libvbi/exp-html.c:111
-#, fuzzy
 msgid "Color (CSS)"
-msgstr "Colore"
+msgstr "Colore (CSS)"
 
 #: libvbi/exp-html.c:112
 msgid "Store the page colors using CSS attributes"
@@ -442,14 +441,14 @@ msgid "<title lang=\"en\">"
 msgstr "<title lang=\"it\">"
 
 #: libvbi/exp-html.c:526
-#, fuzzy, c-format
+#, c-format
 msgid "Teletext Page %3x.%x"
-msgstr " Pagina del Televideo %x"
+msgstr "Pagina del Televideo %3x.%x"
 
 #: libvbi/exp-html.c:529
-#, fuzzy, c-format
+#, c-format
 msgid "Teletext Page %3x"
-msgstr " Pagina del Televideo %x"
+msgstr "Pagina del Televideo %3x"
 
 #: libvbi/exp-html.c:837
 msgid "HTML"
@@ -465,39 +464,39 @@ msgstr "ASCII"
 
 #: libvbi/exp-txt.c:76
 msgid "ISO-8859-1 (Latin-1 Western languages)"
-msgstr "ISO-8859-1 (Latin-1 Lingue Occidentali)"
+msgstr "ISO-8859-1 (Latin-1 Lingue occidentali)"
 
 #: libvbi/exp-txt.c:77
 msgid "ISO-8859-2 (Latin-2 Central and Eastern European languages)"
-msgstr ""
+msgstr "ISO-8859-2 (Latin-2 Lingue dell'Europa centrale ed orientale)"
 
 #: libvbi/exp-txt.c:78
 msgid "ISO-8859-4 (Latin-3 Baltic languages)"
-msgstr "ISO-8859-4 (Latin-3 Lingue Baltiche)"
+msgstr "ISO-8859-4 (Latin-3 Lingue baltiche)"
 
 #: libvbi/exp-txt.c:79
 msgid "ISO-8859-5 (Cyrillic)"
-msgstr "ISO-8859-5 (Cirillico)"
+msgstr "ISO-8859-5 (cirillico)"
 
 #: libvbi/exp-txt.c:80
 msgid "ISO-8859-7 (Greek)"
-msgstr "ISO-8859-7 (Greco)"
+msgstr "ISO-8859-7 (greco)"
 
 #: libvbi/exp-txt.c:81
 msgid "ISO-8859-8 (Hebrew)"
-msgstr "ISO-8859-8 (Ebraico)"
+msgstr "ISO-8859-8 (ebraico)"
 
 #: libvbi/exp-txt.c:82
 msgid "ISO-8859-9 (Turkish)"
-msgstr "ISO-8859-9 (Turco)"
+msgstr "ISO-8859-9 (turco)"
 
 #: libvbi/exp-txt.c:83
 msgid "KOI8-R (Russian and Bulgarian)"
-msgstr "KOI8-R (Russo e Bulgaro)"
+msgstr "KOI8-R (russo e bulgaro)"
 
 #: libvbi/exp-txt.c:84
 msgid "KOI8-U (Ukranian)"
-msgstr "KOI8-U (Ucraino)"
+msgstr "KOI8-U (ucraino)"
 
 #: libvbi/exp-txt.c:85
 msgid "ISO-10646/UTF-8 (Unicode)"
@@ -505,9 +504,8 @@ msgstr "ISO-10646/UTF-8 (Unicode)"
 
 #. TRANSLATORS: Terminal control codes menu
 #: libvbi/exp-txt.c:106
-#, fuzzy
 msgid "No control codes"
-msgstr "Controlli"
+msgstr "Nessun codice di controllo"
 
 #: libvbi/exp-txt.c:107
 msgid "ANSI X3.64 / VT 100"
@@ -520,22 +518,19 @@ msgstr "VT 200"
 #. TRANSLATORS: Text export encoding (ASCII, Unicode, ...) menu
 #: libvbi/exp-txt.c:121
 msgid "Encoding"
-msgstr ""
+msgstr "Codifica"
 
 #: libvbi/exp-txt.c:134
-#, fuzzy
 msgid "Control codes"
-msgstr "Controlli"
+msgstr "Codici di controllo"
 
 #: libvbi/exp-txt.c:1021
-#, fuzzy
 msgid "Text"
-msgstr "Televideo"
+msgstr "Testo"
 
 #: libvbi/exp-txt.c:1022
-#, fuzzy
 msgid "Export this page as text file"
-msgstr "Salva questa pagina su file"
+msgstr "Esporta questa pagina come file di testo"
 
 #: libvbi/exp-vtx.c:75
 msgid "Can only export Teletext pages."
@@ -543,36 +538,34 @@ msgstr "Possibile solo l'esportazione di pagine del Televideo."
 
 #: libvbi/exp-vtx.c:82
 msgid "Page is not cached."
-msgstr ""
+msgstr "La pagina non è salvata in cache."
 
 #: libvbi/exp-vtx.c:91
 msgid "Cannot export this page, is not displayable."
-msgstr ""
+msgstr "Impossibile esportare questa pagina, non è visualizzabile."
 
 #: libvbi/exp-vtx.c:128
 msgid "VTX"
-msgstr ""
+msgstr "VTX"
 
 #: libvbi/exp-vtx.c:129
-msgid ""
-"Export this page as VTX file, the format used by VideoteXt and vbidecode"
+msgid "Export this page as VTX file, the format used by VideoteXt and vbidecode"
 msgstr ""
 "Esporta questa pagina come file VTX, il formato usato da VideoteXt e "
 "vbidecode"
 
 #: libvbi/export.c:197
 msgid "Write error."
-msgstr ""
+msgstr "Errore di scrittura."
 
 #: libvbi/export.c:207
-#, fuzzy
 msgid "Out of memory."
 msgstr "Senza memoria disponibile."
 
 #: libvbi/export.c:232
 #, c-format
 msgid "Export module %s has no option %s."
-msgstr ""
+msgstr "Il modulo di esportazione %s non ha l'opzione %s."
 
 #: libvbi/export.c:292
 #, c-format
@@ -580,14 +573,13 @@ msgid "Invalid argument %s for option %s of export module %s."
 msgstr "Invalido argomento %s per l'opzione %s del modulo di esportazione %s."
 
 #: libvbi/export.c:347
-#, fuzzy
 msgid "Unknown error."
-msgstr "Audio sconosciuto"
+msgstr "Errore sconosciuto."
 
 #: libvbi/export.c:433
-#, fuzzy, c-format
+#, c-format
 msgid "Could not create %s. %s."
-msgstr "Impossibile creare %s: %s"
+msgstr "Impossibile creare %s. %s."
 
 #: libvbi/export.c:1333
 #, c-format
@@ -603,13 +595,15 @@ msgstr "Modulo di esportazione sconosciuto '%s'."
 #, c-format
 msgid "Cannot initialize export module '%s', probably lack of memory."
 msgstr ""
-"Impossibile inizializzare il modulo di esportazione '%s', probabilmente "
-"mancanza di memoria."
+"Impossibile inizializzare il modulo di esportazione '%s', probabile mancanza "
+"di memoria."
 
 #: libvbi/export.c:1468
 #, c-format
 msgid "Cannot initialize export module %s, out of memory."
 msgstr ""
+"Impossibile inizializzare il modulo di esportazione %s, senza memoria "
+"disponibile."
 
 #: plugins/alirc/alirc.c:37
 msgid "Another lirc plugin"
@@ -699,7 +693,7 @@ msgstr "Opzioni"
 #. TRANSLATORS: Which codec: None, A, B, C, ...
 #: plugins/mpeg/options.c:739
 msgid "No codec"
-msgstr ""
+msgstr "Nessun codec"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:2
 msgid "Capture _height:"
@@ -903,7 +897,7 @@ msgstr "_Aggiungi segnalibro"
 
 #: plugins/teletext/bookmark.c:348
 msgid "_Edit Bookmarks..."
-msgstr "Modifica s_egnalibri..."
+msgstr "_Modifica segnalibri..."
 
 #: plugins/teletext/bookmark.c:589
 msgid "Bookmarks"
@@ -923,7 +917,7 @@ msgstr "Descrizione"
 
 #: plugins/teletext/export.c:479 plugins/teletext/export.c:505
 msgid "Could not save page"
-msgstr ""
+msgstr "Impossibile salvare la pagina"
 
 #: plugins/teletext/export.c:550
 msgid "Save as"
@@ -951,19 +945,19 @@ msgstr "Plugin del televideo"
 
 #: plugins/teletext/preferences.c:51
 msgid "Western and Central Europe"
-msgstr "Europa Occidentale e Centrale"
+msgstr "Europa occidentale e centrale"
 
 #: plugins/teletext/preferences.c:52
 msgid "Eastern Europe"
-msgstr "Europa Orientale"
+msgstr "Europa orientale"
 
 #: plugins/teletext/preferences.c:53
 msgid "Western Europe and Turkey"
-msgstr "Europa Occidentale e Turchia"
+msgstr "Europa occidentale e turchia"
 
 #: plugins/teletext/preferences.c:54
 msgid "Central and Southeast Europe"
-msgstr "Europa Centrale e del Sud-Est"
+msgstr "Europa centrale e sud-orientale"
 
 #: plugins/teletext/preferences.c:55
 msgid "Cyrillic"
@@ -971,7 +965,7 @@ msgstr "Cirillica"
 
 #: plugins/teletext/preferences.c:56
 msgid "Greek and Turkish"
-msgstr "Greca e Turca"
+msgstr "Greca e turca"
 
 #: plugins/teletext/preferences.c:57
 msgid "Arabic"
@@ -979,58 +973,51 @@ msgstr "Araba"
 
 #: plugins/teletext/preferences.c:58
 msgid "Hebrew and Arabic"
-msgstr "Ebraica ed Araba"
+msgstr "Ebraica ed araba"
 
 #: plugins/teletext/preferences.c:73
-#, fuzzy
 msgid "Level 1"
-msgstr "Livello 1.0"
+msgstr "Livello 1"
 
 #: plugins/teletext/preferences.c:74
 msgid "Level 1.5 (additional national characters)"
 msgstr "Livello 1.5 (caratteri nazionali aggiuntivi)"
 
 #: plugins/teletext/preferences.c:75
-#, fuzzy
 msgid "Level 2.5 (more colors, font styles and graphics)"
-msgstr "Livello 2.5 (più colori, stile dei caratteri e grafica)"
+msgstr "Livello 2.5 (più colori, stili per i caratteri e grafica)"
 
 #: plugins/teletext/preferences.c:76
-#, fuzzy
 msgid "Level 3.5 (proportional spacing, multicolor graphics)"
 msgstr "Livello 3.5 (proporzionato, grafica multicolori)"
 
 #: plugins/teletext/preferences.c:91
-#, fuzzy
 msgid "Nearest (fast, low quality)"
-msgstr "Più vicino (veloce, brutto quando scala)"
+msgstr "Più vicino (veloce, bassa qualità)"
 
 #: plugins/teletext/preferences.c:92
-#, fuzzy
 msgid "Tiles"
-msgstr "_File"
+msgstr "Tessere"
 
 #: plugins/teletext/preferences.c:93
 msgid "Bilinear"
-msgstr ""
+msgstr "Bilineare"
 
 #: plugins/teletext/preferences.c:94
 msgid "Hyper (slow, high quality)"
-msgstr ""
+msgstr "Iper (lento, alta qualità)"
 
 #: plugins/teletext/preferences.c:270
-#, fuzzy
 msgid "<b>General</b>"
-msgstr "Generale"
+msgstr "<b>Generale</b>"
 
 #: plugins/teletext/preferences.c:272
 msgid "_Teletext implementation:"
 msgstr "Implemen_tazione del Televideo:"
 
 #: plugins/teletext/preferences.c:278
-#, fuzzy
 msgid "_Default encoding:"
-msgstr "_Regione predefinita:"
+msgstr "Co_difica predefinita:"
 
 #: plugins/teletext/preferences.c:282
 msgid ""
@@ -1045,7 +1032,7 @@ msgstr ""
 
 #: plugins/teletext/preferences.c:288
 msgid "<b>Page memory</b>"
-msgstr ""
+msgstr "<b>Memoria di pagina</b>"
 
 #: plugins/teletext/preferences.c:290
 msgid "_Size:"
@@ -1057,30 +1044,27 @@ msgstr "_Dimensione:"
 #. TRANSLATORS: Kilobyte (2^10)
 #: plugins/teletext/preferences.c:316
 msgid "KiB"
-msgstr ""
+msgstr "KB"
 
 #: plugins/teletext/preferences.c:323
-#, fuzzy
 msgid "_Channels:"
-msgstr "_Canali"
+msgstr "_Canali:"
 
 #: plugins/teletext/preferences.c:343
 msgid "<b>Display</b>"
 msgstr "<b>Visualizzazione</b>"
 
 #: plugins/teletext/preferences.c:345
-#, fuzzy
 msgid "_Brightness:"
-msgstr "Luminosità"
+msgstr "_Luminosità:"
 
 #: plugins/teletext/preferences.c:367
-#, fuzzy
 msgid "_Contrast:"
-msgstr "Contrasto"
+msgstr "_Contrasto:"
 
 #: plugins/teletext/preferences.c:389
 msgid "S_caling:"
-msgstr ""
+msgstr "S_cala:"
 
 #: plugins/teletext/preferences.c:393
 msgid "Quality/speed trade-off when scaling and anti-aliasing the page."
@@ -1093,7 +1077,7 @@ msgstr "Testo da cercare:"
 #: plugins/teletext/search.c:151
 #, c-format
 msgid "Found text on page %x.%02x:"
-msgstr "Testo trovato nella pagine %x.%02x:"
+msgstr "Testo trovato nella pagina %x.%02x:"
 
 #: plugins/teletext/search.c:158
 msgid "Not found:"
@@ -1117,9 +1101,8 @@ msgstr "Non d_istinguere MAIUSCOLE/minuscole"
 
 #. Future stuff.
 #: plugins/teletext/search.c:361
-#, fuzzy
 msgid "_All channels"
-msgstr "Aggiungi tutti i _canali"
+msgstr "Tutti i c_anali"
 
 #: plugins/teletext/toolbar.c:123
 msgid "Next page"
@@ -1164,14 +1147,14 @@ msgid " Subpage %x"
 msgstr " Sottopagina %x"
 
 #: plugins/teletext/view.c:1289
-#, fuzzy, c-format
+#, c-format
 msgid "Loading page %X..."
-msgstr "Caricamento pagina %x..."
+msgstr "Caricamento pagina %X..."
 
 #: plugins/teletext/view.c:1291
-#, fuzzy, c-format
+#, c-format
 msgid "Loading page %X.%02X..."
-msgstr "Caricamento pagina %x.%02x..."
+msgstr "Caricamento pagina %X.%02X..."
 
 #: plugins/teletext/view.c:2270
 msgid "Selection copied to clipboard"
@@ -1253,7 +1236,7 @@ msgstr "Pagina precedente nella cronologia"
 
 #: plugins/teletext/view.c:3147
 msgid "Next page in history"
-msgstr "Pagina seguente nella cronologia"
+msgstr "Pagina successiva nella cronologia"
 
 #: plugins/teletext/view.c:3148
 msgid "Index"
@@ -1270,9 +1253,8 @@ msgstr "Salva questa pagina su file"
 #. TRANSLATORS: Choose from the Teletext page cache the currently
 #. received channel.
 #: plugins/teletext/window.c:306
-#, fuzzy
 msgid "_Received"
-msgstr "_Registra"
+msgstr "_Ricevuto"
 
 #: plugins/teletext/window.c:337 src/v4linterface.c:1120
 #: src/v4linterface.c:2222
@@ -1281,17 +1263,15 @@ msgstr "Senza nome"
 
 #: plugins/teletext/window.c:559
 msgid " (Latin)"
-msgstr ""
+msgstr " (Latino)"
 
 #: plugins/teletext/window.c:561
-#, fuzzy
 msgid " (Cyrillic)"
-msgstr "Cirillica"
+msgstr " (Cirillico)"
 
 #: plugins/teletext/window.c:604
-#, fuzzy
 msgid "_Automatic"
-msgstr "Automatica"
+msgstr "_Automatico"
 
 #: plugins/teletext/window.c:791 src/zapping.c:400
 msgid "_File"
@@ -1306,9 +1286,8 @@ msgid "_View"
 msgstr "_Visualizza"
 
 #: plugins/teletext/window.c:797
-#, fuzzy
 msgid "_Encoding"
-msgstr "Abilita d_ecodifica VBI"
+msgstr "_Codifica"
 
 #. 2.6 GTK_STOCK_EDIT
 #: plugins/teletext/window.c:798 src/zapping.c:407 src/zapping.c:420
@@ -1316,14 +1295,12 @@ msgid "_Channels"
 msgstr "_Canali"
 
 #: plugins/teletext/window.c:858 src/zapping.c:442
-#, fuzzy
 msgid "_Toolbar"
-msgstr "Barra degli strumenti"
+msgstr "Barra degli s_trumenti"
 
 #: plugins/teletext/window.c:860
-#, fuzzy
 msgid "_Statusbar"
-msgstr "Barra di stato"
+msgstr "Barra di _stato"
 
 #. TRANSLATORS: Soundcard mixer line.
 #: src/audio.c:498
@@ -1429,8 +1406,7 @@ msgstr "Aggiungi tutti i _canali"
 
 #: src/channel_editor.c:1820
 msgid "Add all channels in the frequency table to the channel list."
-msgstr ""
-"Aggiungi tutti i canali della tavola delle frequenze alla lista dei canali."
+msgstr "Aggiungi tutti i canali della tavola delle frequenze alla lista dei canali."
 
 #: src/channel_editor.c:1824
 msgid "_Import XawTV configuration"
@@ -1932,7 +1908,7 @@ msgstr "Impostazioni predefinite del desktop (%s)"
 #. TRANSLATORS: Fullscreen video mode
 #: src/properties-handler.c:1165
 msgid "Do not change"
-msgstr "Non cambiare modalità"
+msgstr "Non cambiare"
 
 #: src/properties-handler.c:1169 src/tveng.c:4335
 msgid "Automatic"
@@ -1954,7 +1930,7 @@ msgstr "TV interattiva"
 
 #: src/properties-handler.c:1523
 msgid "Main Window"
-msgstr "Finestra Principale"
+msgstr "Finestra principale"
 
 #: src/properties-handler.c:1531
 msgid "General"
@@ -2339,16 +2315,14 @@ msgid "Hide the statusbar"
 msgstr "Nascondi la barra di stato"
 
 #: src/zmisc.c:1193
-#, fuzzy, c-format
+#, c-format
 msgid "%s is not a directory."
-msgstr "%s non è una directory"
+msgstr "%s non è una directory."
 
 #: src/zmisc.c:1235
-#, fuzzy, c-format
+#, c-format
 msgid "Could not create directory %s"
-msgstr ""
-"Impossibile creare la directory %s:\n"
-"%s"
+msgstr "Impossibile creare la directory %s"
 
 #: src/zmisc.c:1931 src/zmisc.c:1935
 msgid "Reset"
@@ -2367,9 +2341,9 @@ msgid "Device file:"
 msgstr "File del dispositivo:"
 
 #: src/zmisc.c:2561
-#, fuzzy, c-format
+#, c-format
 msgid "Overwrite %s?"
-msgstr "S_ovrascrivi"
+msgstr "Sovrascrivere %s?"
 
 #: src/zmisc.c:2566
 msgid "_Overwrite"
@@ -2381,22 +2355,21 @@ msgid "%s is a directory."
 msgstr "%s è una directory."
 
 #: src/zmisc.c:2589
-#, fuzzy, c-format
+#, c-format
 msgid "%s is a special file"
-msgstr "%s è un file speciale."
+msgstr "%s è un file speciale"
 
 #: src/zmisc.c:2593
 msgid "Continue"
 msgstr "Continua"
 
 #: src/zmisc.c:3429
-#, fuzzy
 msgid "Could not open help file"
-msgstr "Impossibile aprire %s, provare con altri dispositivi?"
+msgstr "Impossibile aprire il file d'aiuto"
 
 #: src/zmisc.c:3461
 msgid "Could not open URL"
-msgstr ""
+msgstr "Impossibile aprire l'URL"
 
 #: src/zvbi.c:300
 #, c-format
@@ -2457,90 +2430,3 @@ msgstr ""
 msgid "Zapping TV Viewer"
 msgstr "Zapping Visualizzatore TV"
 
-#~ msgid "None"
-#~ msgstr "Nessuno"
-
-#~ msgid ""
-#~ "Cannot create destination directory:\n"
-#~ "%s\n"
-#~ "%s"
-#~ msgstr ""
-#~ "Impossibile creare la directory di destinazione:\n"
-#~ "%s\n"
-#~ "%s"
-
-#~ msgid ""
-#~ "Cannot create directory:\n"
-#~ "%s\n"
-#~ "%s"
-#~ msgstr ""
-#~ "Impossibile creare la directory:\n"
-#~ "%s\n"
-#~ "%s"
-
-#~ msgid "Text Color"
-#~ msgstr "Colore del testo"
-
-#~ msgid "Tiles (slightly slower, somewhat better)"
-#~ msgstr "Tessere (leggermente più lento, qualcosa migliore)"
-
-#~ msgid "Bilinear (good quality but slow)"
-#~ msgstr "Bilineare (buona qualità ma lento)"
-
-#~ msgid "Hyper (best quality but CPU intensive)"
-#~ msgstr "Iper (migliore qualità ma usa intensiamente la CPU)"
-
-#~ msgid "_Interpolation type:"
-#~ msgstr "T_ipo di interpolazione:"
-
-#~ msgid "VBI has been disabled"
-#~ msgstr "VBI è stato disabilitato"
-
-#~ msgid "Text export failed"
-#~ msgstr "Esportazione del testo fallita"
-
-#~ msgid "_Colors..."
-#~ msgstr "_Colori..."
-
-#~ msgid ""
-#~ "Cannot open %s:\n"
-#~ "%s"
-#~ msgstr ""
-#~ "Impossibile aprire %s:\n"
-#~ "%s"
-
-#~ msgid "Alternate 1"
-#~ msgstr "Alternativo 1"
-
-#~ msgid "Alternate 2"
-#~ msgstr "Alternativo 2"
-
-#~ msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
-#~ msgstr "Spiacente, ma \"%s\" non può fare select() sui descrittori dei file"
-
-#~ msgid "The path must start with /"
-#~ msgstr "Il percorso deve iniziare con /"
-
-#~ msgid "%s exists."
-#~ msgstr "%s esiste."
-
-#~ msgid "No Audio"
-#~ msgstr "Senza audio"
-
-#~ msgid "Stereo Surround"
-#~ msgstr "Stereo Surround"
-
-#~ msgid "Simulated Stereo"
-#~ msgstr "Stereo simulato"
-
-#~ msgid "Video Descriptions"
-#~ msgstr "Descrizioni del video"
-
-#~ msgid "Non-program Audio"
-#~ msgstr "Audio esterno al programma"
-
-#~ msgid "Special Effects"
-#~ msgstr "Effetti speciali"
-
-#~ msgid "Data Service"
-#~ msgstr "Servizio di dati"
