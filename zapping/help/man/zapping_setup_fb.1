@@ -1,0 +1,100 @@
+.\" This -*- nroff -*- file has been generated from
+.\" DocBook SGML with docbook-to-man on Debian GNU/Linux.
+...\"
+...\"	transcript compatibility for postscript use.
+...\"
+...\"	synopsis:  .P! <file.ps>
+...\"
+.de P!
+\\&.
+.fl			\" force out current output buffer
+\\!%PB
+\\!/showpage{}def
+...\" the following is from Ken Flowers -- it prevents dictionary overflows
+\\!/tempdict 200 dict def tempdict begin
+.fl			\" prolog
+.sy cat \\$1\" bring in postscript file
+...\" the following line matches the tempdict above
+\\!end % tempdict %
+\\!PE
+\\!.
+.sp \\$2u	\" move below the image
+..
+.de pF
+.ie     \\*(f1 .ds f1 \\n(.f
+.el .ie \\*(f2 .ds f2 \\n(.f
+.el .ie \\*(f3 .ds f3 \\n(.f
+.el .ie \\*(f4 .ds f4 \\n(.f
+.el .tm ? font overflow
+.ft \\$1
+..
+.de fP
+.ie     !\\*(f4 \{\
+.	ft \\*(f4
+.	ds f4\"
+'	br \}
+.el .ie !\\*(f3 \{\
+.	ft \\*(f3
+.	ds f3\"
+'	br \}
+.el .ie !\\*(f2 \{\
+.	ft \\*(f2
+.	ds f2\"
+'	br \}
+.el .ie !\\*(f1 \{\
+.	ft \\*(f1
+.	ds f1\"
+'	br \}
+.el .tm ? font underflow
+..
+.ds f1\"
+.ds f2\"
+.ds f3\"
+.ds f4\"
+'\" t 
+.ta 8n 16n 24n 32n 40n 48n 56n 64n 72n  
+.TH "ZAPPING_SETUP_FB" "1" 
+.SH "NAME" 
+zapping_setup_fb \(em  sets up the Framebuffer for zapping. 
+.SH "SYNOPSIS" 
+.PP 
+\fBzapping_setup_fb\fP [\fB--device \fP\fIdev\fP]  [\fB--display \fP\fId\fP]  [\fB--bpp \fP\fIx\fP]  [\fB--verbose\fP]  [\fB--quiet\fP]  [\fB--help, -?\fP]  [\fB--usage\fP]  [\fB--version\fP]  
+.SH "DESCRIPTION" 
+.PP 
+\fBzapping_setup_fb\fP is a small program intended to be 
+installed as suid root that sets up the Framebuffer. If you have pam
+installed, it can be pam'ified too.
+.SH "POURPOUSE"
+Overlaying TV in the video ram requires the driver to know the
+destination address in memory. To set this value root permissions are
+needed, this is why \fBzapping_setup_fb\fP needs this level of
+privileges. I've tried to make it secure, but better don't trust it
+very much.
+.SH "OPTIONS" 
+.IP "\fB--device  dev\fP" 10 
+The video device to open, /dev/video0 by default. 
+.IP "\fB--display d\fP" 10 
+The X display to use. 
+.IP "\fB--bpp     x\fP" 10 
+Current X bpp. 
+.IP "\fB--verbose\fP         " 10 
+Increments the verbosity level.
+.IP "\fB--quiet\fP         " 10 
+Decrements the verbosity level. 
+.IP "\fB--help, -?\fP" 10 
+Shows this message. 
+.IP "\fB--usage\fP         " 10 
+Shows this message. 
+.IP "\fB--version\fP         " 10 
+Shows the program version.
+.SH "BUGS"
+None known.
+.SH "SEE ALSO"
+zapping(1)
+.SH "AUTHORS"
+.IP \(em
+Iñaki García Etxebarria (garetxe@users.sf.net)
+.IP \(em
+This manual page was written by Christian Marillat (marillat@debian.org) for 
+the \fBDebian GNU/Linux\fP system, but may be used by others. 
+...\" created by instant / docbook-to-man, Mon 02 Jul 2001, 11:31 
