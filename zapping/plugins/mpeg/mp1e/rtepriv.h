@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rtepriv.h,v 1.11 2000-11-04 20:38:02 garetxe Exp $
+ * $Id: rtepriv.h,v 1.12 2001-04-07 14:48:36 garetxe Exp $
  * Private stuff in the context.
  */
 
@@ -82,8 +82,6 @@ struct _rte_context_private {
 	buffer * last_video_buffer; /* video buffer the app should be
 				       encoding to */
 	buffer * last_audio_buffer; /* audio buffer */
-	_rte_filter rgbfilter; /* the filter used for conversion, if any */
-	char * rgbmem; /* allocated mem for the rgb image */
 };
 
 /* Some macros for avoiding repetitive typing */

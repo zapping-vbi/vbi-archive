@@ -32,7 +32,7 @@
 /*
  * Lib build ID, for debugging.
  */
-#define RTE_ID " $Id: rte.h,v 1.18 2000-11-10 22:55:06 garetxe Exp $ "
+#define RTE_ID " $Id: rte.h,v 1.19 2001-04-07 14:48:36 garetxe Exp $ "
 
 /*
  * What are we going to encode, audio only, video only or both
@@ -45,12 +45,12 @@ enum rte_mux_mode {
 };
 
 /*
- * Which interface to use for fetching data
+ * Which interface rte will use for fetching data.
  */
 enum rte_interface {
 	RTE_NO_INTERFACE = 0,
-	RTE_PUSH = 1,
-	RTE_CALLBACKS = 2
+	RTE_PUSH = 1, /* the push_* family of functions will be used */
+	RTE_CALLBACKS = 2 /* callbacks will be provided by the app */
 };
 
 /*
@@ -62,15 +62,6 @@ enum rte_interface {
 enum rte_pixformat {
 	RTE_YUV420, /* Planar Y:Cb:Cr 1.5 bytes per pixel */
 	RTE_YUYV, /* YCbYCr linear, 2 bytes per pixel */
-	/* RGB modes, get converted to YUV420 */
-	/* fixme: the rgb modes are currently unsupported in buffered
-	   mode, and very slow otherwise. Somebody has to fix this. */
-	RTE_RGB555,
-	RTE_RGB565,
-	RTE_BGR24,
-	RTE_RGB24,
-	RTE_BGR32,
-	RTE_RGB32,
 	/* these are the additional formats mp1e supports */
 	/* in decimation modes the height of the buffer you have to
 	   fill is twice the height of the resulting image */
@@ -189,8 +180,7 @@ typedef void (*rteDataCallback)(rte_context * context,
 #define RTE_DATA_CALLBACK(function) ((rteDataCallback)function)
 
 /*
- * Struct used for buffered input. We could use mp1e's own buffers and
- * save some complexity ... or maybe add some more :-)
+ * Struct used for buffered input.
  */
 typedef struct {
 	void	*data; /* Pointer to the data in the buffer */
@@ -324,6 +314,9 @@ int rte_start_encoding ( rte_context * context );
   rte_context_destroy. This has the advantage that the current setting
   are kept, and rte_start can be called again on the same context.
   It flushes output buffers too.
+  If you are pushing data from a thread different to the thread this
+  is called from, you must make sure the thread has stopped pushing
+  before calling this.
 */
 void rte_stop ( rte_context * context );
 

@@ -468,10 +468,9 @@ static void set_capture_size(gint w, gint h, tveng_device_info *info)
 #ifdef NO_INTERLACE
   if (have_xv)
     {
-      if (w > 384)
-	w = 384;
-      if (h > 288)
-	h = 288;
+      /* FIXME: Don't hardcode this, it must depend on the standard */
+      w = 320;
+      h = 240;
     }
 #endif
 

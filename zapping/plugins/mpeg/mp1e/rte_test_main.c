@@ -1,7 +1,7 @@
 /*
  *  Test program for RTE (real time encoder)
  *
- *  Copyright (C) 2000 Iñaki García Etxebarria
+ *  Copyright (C) 2000-2001 Iñaki García Etxebarria
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * $Id: rte_test_main.c,v 1.19 2001-04-02 22:39:49 garetxe Exp $
+ * $Id: rte_test_main.c,v 1.20 2001-04-07 14:48:36 garetxe Exp $
  * This is a simple RTE test.
  */
 
@@ -45,7 +45,7 @@
 #include <esd.h>
 #endif
 
-#define TEST_VIDEO_FORMAT RTE_YUV420 /* RTE_YUYV */
+#define TEST_VIDEO_FORMAT RTE_YUV420 /* or RTE_YUYV, etc... */
 
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
@@ -458,6 +458,20 @@ buffer_callback(rte_context * context, rte_buffer * buffer,
 	}
 }
 
+static void
+data_callback(rte_context * context, void * data, double * time,
+	      enum rte_mux_mode stream, void * user_data)
+{
+	if (stream & RTE_AUDIO) {
+		read_audio(data, time, context);
+	}
+	else {
+		fprintf(stderr, "stream type not supported: %d\n",
+			stream);
+		exit(1);
+	}
+}
+
 /* Set to 1 to shut down audio thread */
 static volatile int thread_exit_signal=0;
 
@@ -470,11 +484,10 @@ void * audio_thread(void * p)
 	p = rte_push_audio_data(context, NULL, 0);
 
 	while (!thread_exit_signal) {
-		read_audio(p, &timestamp, context);
+		if (p)
+			read_audio(p, &timestamp, context);
 		p = rte_push_audio_data(context, p, timestamp);
 	}
-
-	fprintf(stderr, "alive!");
 
 	return NULL;
 }
@@ -484,7 +497,7 @@ int main(int argc, char *argv[])
 	rte_context * context;
 	enum rte_frame_rate rate_code;
 	int width = 16, height = 16;
-	int sleep_time = 15;
+	int sleep_time = 5;
 	int audio_rate=44100, stereo=0;
 	char * video_device = "/dev/video0";
 	char * audio_device = "/dev/audio0";
@@ -492,6 +505,7 @@ int main(int argc, char *argv[])
 	pthread_t audio_thread_id;
 	enum rte_mux_mode mux_mode = RTE_AUDIO | RTE_VIDEO;
 	enum rte_interface video_interface = RTE_PUSH;
+	enum rte_interface audio_interface = RTE_PUSH;
 	int num_encoded_frames;
 	void * dest_ptr = NULL;
 	int i=0;
@@ -542,7 +556,12 @@ int main(int argc, char *argv[])
 	 */
 	/* context, mux_mode, interface, buffered, data_callback,
 	   buffer_callback, unref_callback */
-	rte_set_input(context, RTE_AUDIO, RTE_PUSH, FALSE, NULL, NULL, NULL);
+	if (audio_interface == RTE_CALLBACKS)
+		rte_set_input(context, RTE_AUDIO, RTE_CALLBACKS,
+			      FALSE, data_callback, NULL, NULL);
+	else
+		rte_set_input(context, RTE_AUDIO, RTE_PUSH, FALSE,
+			      NULL, NULL, NULL);
 	if (video_interface == RTE_CALLBACKS)
 		rte_set_input(context, RTE_VIDEO, RTE_CALLBACKS, TRUE,
 			      NULL, buffer_callback, unref_callback);
@@ -570,7 +589,8 @@ int main(int argc, char *argv[])
 		}
 		
 		thread_exit_signal = 0;
-		if (mux_mode & RTE_AUDIO)
+		if ((mux_mode & RTE_AUDIO) &&
+		    (audio_interface == RTE_PUSH))
 			pthread_create(&audio_thread_id, NULL,
 				       audio_thread, context);
 
@@ -588,27 +608,35 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "going to bed (%d secs)\n", sleep_time);
 
 		/* let rte encode video for some time */
-		if (video_interface == RTE_CALLBACKS)
-			sleep(sleep_time);
-		else for (num_encoded_frames = 0;
-			  num_encoded_frames < (sleep_time*25);
-			  num_encoded_frames++) {
-			rte_buffer buf;
-			if (!dest_ptr) {
-				dest_ptr = rte_push_video_data(context, NULL,
-							       0);
-				continue;
+		if (mux_mode & RTE_VIDEO) {
+			if (video_interface == RTE_CALLBACKS)
+				sleep(sleep_time);
+			else for (num_encoded_frames = 0;
+				  num_encoded_frames < (sleep_time*25);
+				  num_encoded_frames++) {
+				rte_buffer buf;
+				if (!dest_ptr) {
+					dest_ptr =
+						rte_push_video_data(context,
+								    NULL,
+								    0);
+					continue;
+				}
+				read_video(&buf);
+				memcpy(dest_ptr, buf.data,
+				       context->video_bytes); 
+				dest_ptr =
+					rte_push_video_data(context, dest_ptr,
+							    buf.time);
+				unref_callback(context, &buf);
 			}
-			read_video(&buf);
-			memcpy(dest_ptr, buf.data, context->video_bytes);
-			dest_ptr = rte_push_video_data(context, dest_ptr,
-						       buf.time);
-			unref_callback(context, &buf);
-		}
+		} else /* audio only*/
+			sleep(sleep_time);
 		
 		/* Stop pushing before stopping the context */
 		thread_exit_signal = 1;
-		if (mux_mode & RTE_AUDIO)
+		if ((mux_mode & RTE_AUDIO) &&
+		    (audio_interface == RTE_PUSH))
 			pthread_join(audio_thread_id, NULL);
 		
 		fprintf(stderr, "done encoding\n");

@@ -646,7 +646,7 @@ void plugin_process_sample(plugin_sample * sample)
       g_message("encoding to %s", context->file_name);
     }
 
-  if ((coded_frames++) > (25*10)) /* If we have encoded 10 seconds */
+  if (stop_encoding) /* If we have encoded 10 seconds */
     {
       context = rte_context_destroy(context);
       if ((mux_mode+1) & 1)

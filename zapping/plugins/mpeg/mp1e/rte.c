@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rte.c,v 1.49 2001-04-07 14:48:36 garetxe Exp $ */
+/* $Id: rte.c,v 1.50 2001-04-07 14:51:11 garetxe Exp $ */
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -32,7 +32,6 @@
 #include "common/mmx.h"
 #include "common/math.h"
 #include "rtepriv.h"
-#include "convert_ry.h"
 #include "video/video.h"
 #include "audio/libaudio.h"
 #include "audio/mpeg.h"
