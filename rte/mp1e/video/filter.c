@@ -17,16 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.6 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: filter.c,v 1.7 2002-05-13 05:37:10 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
 #include "../common/math.h"
 #include "../options.h"
 #include "video.h"
-
-int			(* filter)(unsigned char *, unsigned char *);
-// removed bool			temporal_interpolation;
 
 const char		cbp_order[6] = { 5, 4, 3, 1, 2, 0 };
 
@@ -40,22 +37,22 @@ filter_labels[] = {
 	"YUYV 4:2:2 w/vertical interpolation",
 	"YUYV 4:2:2 field progressive 50/60 Hz",
 	"YUYV 4:2:2 50/60 Hz w/temporal interpolation", /* REMOVED */
+	"YUV 4:2:0 w/vertical decimation",
+	"",
+	"",
 	"YVU 4:2:0 fastest",
-	"",
-	"",
-	"",
 };
 
-/* static */ int	filter_y_offs,
-			filter_u_offs,
-			filter_v_offs,
-			filter_y_pitch;
-
-extern int		mmx_YUV_420(unsigned char *, unsigned char *);
-extern int		mmx_YUYV_422(unsigned char *, unsigned char *);
-extern int		mmx_YUYV_422_2v(unsigned char *, unsigned char *);
-extern int		mmx_YUYV_422_ti(unsigned char *, unsigned char *);
-extern int		mmx_YUYV_422_vi(unsigned char *, unsigned char *);
+extern filter_fn	pmmx_YUV420_0;
+extern filter_fn	pmmx_YUV420_2;
+extern filter_fn	sse_YUV420_0;
+extern filter_fn	sse_YUV420_2;
+extern filter_fn	pmmx_YUYV_0;
+extern filter_fn	pmmx_YUYV_2;
+extern filter_fn	pmmx_YUYV_6;
+extern filter_fn	sse_YUYV_0;
+extern filter_fn	sse_YUYV_2;
+extern filter_fn	sse_YUYV_6;
 
 static int (* color_pred)(unsigned char *, unsigned char *);
 
@@ -87,218 +84,6 @@ color_trap(unsigned char *buffer1, unsigned char *buffer2)
 	return r;
 }
 
-
-
-
-
-/* Experimental low pass filter */
-
-int
-YUYV_422_exp1(unsigned char *buffer, unsigned char *unused)
-{
-	static const char
-	f[5][5] = {
-		{ 1,  3,  4,  3, 1 },
-		{ 3,  9, 12,  9, 3 },
-		{ 4, 12, 16, 12, 4 },
-		{ 3,  9, 12,  9, 3 },
-		{ 1,  3,  4,  3, 1 },
-	};
-	unsigned int n, s = 0, s2 = 0;
-	int y, x;
-	int i, j;
-
-//	if (mb_row <= 0 || mb_row >= mb_last_row)
-//		return mmx_YUYV_422(buffer, NULL);
-
-	buffer += filter_y_pitch * mb_row * 16 + mb_col * 16 * 2 + filter_y_offs;
-
-	for (y = 0; y < 16; y++)
-		for (x = 0; x < 8; x++) {
-			n = 0;
-			for (j = 0; j < 5; j++)
-				for (i = 0; i < 5; i++)
-					n += buffer[(y + j) * filter_y_pitch + (x + i) * 2] * f[j][i];
-			mblock[0][0][y][x] = (n + 72) / 144;
-			n = 0;
-			for (j = 0; j < 5; j++)
-				for (i = 0; i < 5; i++)
-					n += buffer[(y + j) * filter_y_pitch + (x + i) * 2 + 16] * f[j][i];
-			mblock[0][2][y][x] = (n + 72) / 144;
-		}
-
-	for (y = 0; y < 8; y++)
-		for (x = 0; x < 8; x++) {
-			mblock[0][4][y][x] = (short) buffer[y * filter_y_pitch * 2 + x * 4 + 1];
-			mblock[0][5][y][x] = (short) buffer[y * filter_y_pitch * 2 + x * 4 + 3];
-		}
-
-	for (x = 0; x < 4 * 64; x++) {
-		n = mblock[0][0][0][x];
-		s += n;
-		s2 += n * n;
-	}
-
-	return s2 * 256 - (s * s);
-}
-
-
-/* Experimental low pass filter */
-
-int
-YUYV_422_exp2(unsigned char *buffer, unsigned char *buffer2)
-{
-	unsigned int n, s = 0, s2 = 0;
-	int y, x;
-
-	x = mmx_YUYV_422(buffer, buffer2);
-//	x = mmx_YUYV_422_ti(buffer, buffer2);
-
-//	if (mb_row <= 0 || mb_row >= mb_last_row)
-//		return x;
-	if (x < 65536 * 128)
-		return x;
-
-	buffer += filter_y_pitch * mb_row * 16 + mb_col * 16 * 2 + filter_y_offs;
-//	buffer2 += filter_y_pitch * mb_row * 16 + mb_col * 16 * 2 + filter_y_offs;
-
-	for (y = 0; y < 16; y++)
-		for (x = 0; x < 8; x++) {
-			n =	buffer[(y - 1) * filter_y_pitch + (x - 1) * 2] +
-				buffer[(y - 1) * filter_y_pitch + (x + 1) * 2] +
-				buffer[(y + 1) * filter_y_pitch + (x - 1) * 2] +
-				buffer[(y + 1) * filter_y_pitch + (x + 1) * 2];
-			n +=   (buffer[(y - 1) * filter_y_pitch + (x + 0) * 2] +
-				buffer[(y + 1) * filter_y_pitch + (x + 0) * 2] +
-				buffer[(y + 0) * filter_y_pitch + (x - 1) * 2] +
-				buffer[(y + 0) * filter_y_pitch + (x + 1) * 2]) * 2;
-			n +=	buffer[(y + 0) * filter_y_pitch + (x + 0) * 2] * 4;
-			mblock[0][0][y][x] = (n + 8) >> 4;
-			n =	buffer[(y - 1) * filter_y_pitch + (x - 1) * 2 + 16] +
-				buffer[(y - 1) * filter_y_pitch + (x + 1) * 2 + 16] +
-				buffer[(y + 1) * filter_y_pitch + (x - 1) * 2 + 16] +
-				buffer[(y + 1) * filter_y_pitch + (x + 1) * 2 + 16];
-			n +=   (buffer[(y - 1) * filter_y_pitch + (x + 0) * 2 + 16] +
-				buffer[(y + 1) * filter_y_pitch + (x + 0) * 2 + 16] +
-				buffer[(y + 0) * filter_y_pitch + (x - 1) * 2 + 16] +
-				buffer[(y + 0) * filter_y_pitch + (x + 1) * 2 + 16]) * 2;
-			n +=	buffer[(y + 0) * filter_y_pitch + (x + 0) * 2 + 16] * 4;
-			mblock[0][2][y][x] = (n + 8) >> 4;
-		}
-
-//	mblock[0][0][0][0] = 0;
-
-	for (y = 0; y < 8; y++)
-		for (x = 0; x < 8; x++) {
-			n =	buffer[(y - 1) * filter_y_pitch * 2 + (x - 1) * 4 + 1] +
-				buffer[(y - 1) * filter_y_pitch * 2 + (x + 1) * 4 + 1] +
-				buffer[(y + 1) * filter_y_pitch * 2 + (x - 1) * 4 + 1] +
-				buffer[(y + 1) * filter_y_pitch * 2 + (x + 1) * 4 + 1];
-			n +=   (buffer[(y - 1) * filter_y_pitch * 2 + (x + 0) * 4 + 1] +
-				buffer[(y + 1) * filter_y_pitch * 2 + (x + 0) * 4 + 1] +
-				buffer[(y + 0) * filter_y_pitch * 2 + (x - 1) * 4 + 1] +
-				buffer[(y + 0) * filter_y_pitch * 2 + (x + 1) * 4 + 1]) * 2;
-			n +=	buffer[(y + 0) * filter_y_pitch * 2 + (x + 0) * 4 + 1] * 4;
-			mblock[0][4][y][x] = (n + 8) >> 4;
-			n =	buffer[(y - 1) * filter_y_pitch * 2 + (x - 1) * 4 + 3] +
-				buffer[(y - 1) * filter_y_pitch * 2 + (x + 1) * 4 + 3] +
-				buffer[(y + 1) * filter_y_pitch * 2 + (x - 1) * 4 + 3] +
-				buffer[(y + 1) * filter_y_pitch * 2 + (x + 1) * 4 + 3];
-			n +=   (buffer[(y - 1) * filter_y_pitch * 2 + (x + 0) * 4 + 3] +
-				buffer[(y + 1) * filter_y_pitch * 2 + (x + 0) * 4 + 3] +
-				buffer[(y + 0) * filter_y_pitch * 2 + (x - 1) * 4 + 3] +
-				buffer[(y + 0) * filter_y_pitch * 2 + (x + 1) * 4 + 3]) * 2;
-			n +=	buffer[(y + 0) * filter_y_pitch * 2 + (x + 0) * 4 + 3] * 4;
-			mblock[0][5][y][x] = (n + 8) >> 4;
-		}
-
-	for (x = 0; x < 4 * 64; x++) {
-		n = mblock[0][0][0][x];
-		s += n;
-		s2 += n * n;
-	}
-
-	return s2 * 256 - (s * s);
-}
-
-/* Experimental low pass filter */
-
-int
-YUYV_422_exp3(unsigned char *buffer, unsigned char *buffer2)
-{
-	static unsigned char temp[19 * 40];
-	unsigned int n, s = 0, s2 = 0;
-	int y, x;
-
-	buffer += filter_y_pitch * (mb_row * 32 - 1) + mb_col * 16 * 2 + filter_y_offs;
-	buffer2 += filter_y_pitch * (mb_row * 32 - 1) + mb_col * 16 * 2 + filter_y_offs;
-
-	for (y = 0; y < 19; y++) {
-		for (x = 0; x < 40; x++)
-			temp[y * 40 + x] = (buffer[x - 4] + buffer2[x - 4] + 1) >> 1;
-		buffer += filter_y_pitch * 2;
-		buffer2 += filter_y_pitch * 2;
-	}
-
-	for (y = 0; y < 16; y++)
-		for (x = 0; x < 8; x++) {
-			n =	temp[(y + 0) * 40 + (x + 0) * 2] +
-				temp[(y + 0) * 40 + (x + 2) * 2] +
-				temp[(y + 2) * 40 + (x + 0) * 2] +
-				temp[(y + 2) * 40 + (x + 2) * 2];
-			n +=   (temp[(y + 0) * 40 + (x + 1) * 2] +
-				temp[(y + 2) * 40 + (x + 1) * 2] +
-				temp[(y + 1) * 40 + (x + 0) * 2] +
-				temp[(y + 1) * 40 + (x + 2) * 2]) * 2;
-			n +=	temp[(y + 1) * 40 + (x + 1) * 2] * 4;
-			mblock[0][0][y][x] = (n + 8) >> 4;
-			n =	temp[(y + 0) * 40 + (x + 0) * 2 + 16] +
-				temp[(y + 0) * 40 + (x + 2) * 2 + 16] +
-				temp[(y + 2) * 40 + (x + 0) * 2 + 16] +
-				temp[(y + 2) * 40 + (x + 2) * 2 + 16];
-			n +=   (temp[(y + 0) * 40 + (x + 1) * 2 + 16] +
-				temp[(y + 2) * 40 + (x + 1) * 2 + 16] +
-				temp[(y + 1) * 40 + (x + 0) * 2 + 16] +
-				temp[(y + 1) * 40 + (x + 2) * 2 + 16]) * 2;
-			n +=	temp[(y + 1) * 40 + (x + 1) * 2 + 16] * 4;
-			mblock[0][2][y][x] = (n + 8) >> 4;
-		}
-
-//	mblock[0][0][0][0] = 0;
-
-	for (y = 0; y < 8; y++)
-		for (x = 0; x < 8; x++) {
-			n =	temp[(y + 0) * 40 * 2 + (x + 0) * 4 + 1] +
-				temp[(y + 0) * 40 * 2 + (x + 2) * 4 + 1] +
-				temp[(y + 2) * 40 * 2 + (x + 0) * 4 + 1] +
-				temp[(y + 2) * 40 * 2 + (x + 2) * 4 + 1];
-			n +=   (temp[(y + 0) * 40 * 2 + (x + 1) * 4 + 1] +
-				temp[(y + 2) * 40 * 2 + (x + 1) * 4 + 1] +
-				temp[(y + 1) * 40 * 2 + (x + 0) * 4 + 1] +
-				temp[(y + 1) * 40 * 2 + (x + 2) * 4 + 1]) * 2;
-			n +=	temp[(y + 1) * 40 * 2 + (x + 1) * 4 + 1] * 4;
-			mblock[0][4][y][x] = (n + 8) >> 4;
-			n =	temp[(y + 0) * 40 * 2 + (x + 0) * 4 + 3] +
-				temp[(y + 0) * 40 * 2 + (x + 2) * 4 + 3] +
-				temp[(y + 2) * 40 * 2 + (x + 0) * 4 + 3] +
-				temp[(y + 2) * 40 * 2 + (x + 2) * 4 + 3];
-			n +=   (temp[(y + 0) * 40 * 2 + (x + 1) * 4 + 3] +
-				temp[(y + 2) * 40 * 2 + (x + 1) * 4 + 3] +
-				temp[(y + 1) * 40 * 2 + (x + 0) * 4 + 3] +
-				temp[(y + 1) * 40 * 2 + (x + 2) * 4 + 3]) * 2;
-			n +=	temp[(y + 1) * 40 * 2 + (x + 1) * 4 + 3] * 4;
-			mblock[0][5][y][x] = (n + 8) >> 4;
-		}
-
-	for (x = 0; x < 4 * 64; x++) {
-		n = mblock[0][0][0][x];
-		s += n;
-		s2 += n * n;
-	}
-
-	return s2 * 256 - (s * s);
-}
-
 /*
  *  Legacy mp1e code, not used with rte
  *
@@ -312,13 +97,26 @@ YUYV_422_exp3(unsigned char *buffer, unsigned char *buffer2)
  *  filter initialized
  */
 void
-filter_init(rte_video_stream_params *par)
+filter_init(rte_video_stream_params *par, struct filter_param *fp)
 {
 	int padded_width, padded_height;
 	int y_bpp = 2, scale_x = 1, scale_y = 1;
 	int off_x, off_y;
 	int uv_size = 0;
 	int u = 4, v = 5;
+	int sse;
+
+	switch (cpu_type) {
+	case CPU_PENTIUM_III:
+	case CPU_PENTIUM_4:
+	case CPU_ATHLON:
+		sse = 1;
+		break;
+
+	default:
+		sse = 0;
+		break;
+	}
 
 	par->stride = par->width * 2;
 
@@ -326,32 +124,41 @@ filter_init(rte_video_stream_params *par)
 	case CM_YVU:
 		u = 5; v = 4;
 	case CM_YUV:
-		filter = mmx_YUV_420;
+		fp->func = sse ? sse_YUV420_0 : pmmx_YUV420_0;
 		assert((par->width % 2) == 0);
 		par->stride = par->width;
 		par->uv_stride = par->width >> 1;
-		uv_size = par->uv_stride * par->height / 4;
+		uv_size = par->uv_stride * par->height / 2;
+		y_bpp = 1;
+		break;
+
+	case CM_YUV_VERTICAL_DECIMATION:
+		fp->func = sse ? sse_YUV420_2 : pmmx_YUV420_2;
+		scale_y = 2;
+		assert((par->width % 2) == 0);
+		par->stride = par->width;
+		par->uv_stride = par->width >> 1;
+		uv_size = par->uv_stride * par->height / 2;
 		y_bpp = 1;
 		break;
 
 	case CM_YUYV:
 	case CM_YUYV_PROGRESSIVE:
-		filter = mmx_YUYV_422;
+		fp->func = sse ? sse_YUYV_0 : pmmx_YUYV_0;
 		break;
 
-	case CM_YUYV_EXP:
 	case CM_YUYV_EXP2:
 	case CM_YUYV_EXP_VERTICAL_DECIMATION:
 		FAIL("Sorry, the selected filter mode was experimental and is no longer available.\n");
 		break;
 
 	case CM_YUYV_VERTICAL_DECIMATION:
-		filter = mmx_YUYV_422_2v;
+		fp->func = sse ? sse_YUYV_2 : pmmx_YUYV_2;
 		scale_y = 2;
 		break;
 
 	case CM_YUYV_VERTICAL_INTERPOLATION:
-		filter = mmx_YUYV_422_vi;
+		fp->func = sse ? sse_YUYV_6 : pmmx_YUYV_6;
 		break;
 
 	case CM_YUYV_TEMPORAL_INTERPOLATION:
@@ -363,13 +170,6 @@ filter_init(rte_video_stream_params *par)
 		FAIL("Filter '%s' out of order",
 			filter_labels[filter_mode]);
 	}
-
-	/*
-	 *  Need a clipping mechanism (or padded buffers?), currently
-	 *  all memory accesses as 16 x 16 mblocks. Step #2: clear outside
-	 *  blocks to all zero and all outside samples to average of
-	 *  inside samples (for prediction and FDCT).
-	 */
 
 	padded_width = ((width + 15) & -16) * scale_x;
 	padded_height = ((height + 15) & -16) * scale_y;
@@ -392,29 +192,18 @@ filter_init(rte_video_stream_params *par)
 	if (off_y + padded_height > par->height)
 		off_y = par->height - padded_height;
 
-	filter_y_pitch = par->stride;
+	fp->stride	= par->stride;
+	fp->uv_stride	= fp->stride >> 1;
 
-	filter_y_offs = par->stride * off_y + off_x * y_bpp;
-	filter_u_offs = uv_size * u + (filter_y_offs >> 2);
-	filter_v_offs = uv_size * v + (filter_y_offs >> 2);
+	fp->offset	= par->stride * off_y + off_x * y_bpp;
+	fp->u_offset	= uv_size * u + (fp->offset >> 2);
+	fp->v_offset	= uv_size * v + (fp->offset >> 2);
 
 	printv(2, "Filter '%s'\n", filter_labels[filter_mode]);
-
+ /*
 	if (luma_only) {
 		color_pred = filter;
 		filter = color_trap;
 	}
-/*
-	void *			dest;		// 0
-	void *			src;		// 1
-	filter_fn *		func;		// 2
-	int			offset;		// 3
-	int			u_offset;	// 4
-	int			v_offset;	// 5
-	int			stride;		// 6
-	int			uv_stride;	// 7
-	int			clip_col;	// 8
-	int			clip_row;	// 9
-	int			resv[6];
-*/
+ */
 }
