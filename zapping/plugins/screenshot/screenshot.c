@@ -512,7 +512,7 @@ static void
 properties_add			(GnomeDialog	*dialog)
 {
   SidebarEntry plugin_options[] = {
-    { N_("Screenshot"), ICON_GNOME, "gnome-digital-camera.png", "vbox1",
+    { N_("Screenshot"), ICON_ZAPPING, "gnome-digital-camera.png", "vbox1",
       screenshot_setup, screenshot_apply, screenshot_help }
   };
   SidebarGroup groups[] = {

@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.25 2001-11-22 17:48:11 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.26 2001-11-26 17:08:15 garetxe Exp $ */
 
 #include "plugin_common.h"
 
@@ -1032,7 +1032,7 @@ properties_add			(GnomeDialog	*dialog)
 {
   /* FIXME: Perhaps having a MPEG group with 3 items would be better? */
   SidebarEntry plugin_options[] = {
-    { N_("MPEG"), ICON_GNOME, "gnome-media-player.png", "notebook1",
+    { N_("MPEG"), ICON_ZAPPING, "gnome-media-player.png", "notebook1",
       mpeg_setup, mpeg_apply }
   };
   SidebarGroup groups[] = {

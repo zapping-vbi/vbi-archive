@@ -213,7 +213,7 @@ static void
 add				(GnomeDialog	*dialog)
 {
   SidebarEntry general_options[] = {
-    { N_("Audio"), ICON_GNOME, "gnome-grecord.png", "vbox39",
+    { N_("Audio"), ICON_ZAPPING, "gnome-grecord.png", "vbox39",
       audio_setup, audio_apply }
   };
   SidebarGroup groups[] = {

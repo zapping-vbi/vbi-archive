@@ -645,21 +645,21 @@ static void
 add				(GnomeDialog	*dialog)
 {
   SidebarEntry device_info[] = {
-    { N_("Device Info"), ICON_GNOME, "gnome-info.png", "vbox9",
+    { N_("Device Info"), ICON_ZAPPING, "gnome-info.png", "vbox9",
       di_setup, di_apply }
   };
   SidebarEntry general_options[] = {
-    { N_("Main Window"), ICON_GNOME, "gnome-session.png", "vbox35",
+    { N_("Main Window"), ICON_ZAPPING, "gnome-session.png", "vbox35",
       mw_setup, mw_apply },
-    { N_("OSD"), ICON_GNOME, "gnome-oscilloscope.png", "vbox37",
+    { N_("OSD"), ICON_ZAPPING, "gnome-oscilloscope.png", "vbox37",
       osd_setup, osd_apply },
     { N_("Video"), ICON_ZAPPING, "gnome-television.png", "vbox36",
       video_setup, video_apply }
   };
   SidebarEntry vbi_options[] = {
-    { N_("General"), ICON_GNOME, "gnome-monitor.png", "vbox17",
+    { N_("General"), ICON_ZAPPING, "gnome-monitor.png", "vbox17",
       vbi_general_setup, vbi_general_apply },
-    { N_("Interactive TV"), ICON_GNOME, "gnome-monitor.png", "vbox33",
+    { N_("Interactive TV"), ICON_ZAPPING, "gnome-monitor.png", "vbox33",
       itv_setup, itv_apply }
   };
   SidebarGroup groups[] = {

@@ -367,7 +367,7 @@ static void
 properties_add			(GnomeDialog	*dialog)
 {
   SidebarEntry plugin_options[] = {
-    { N_("LIRC"), ICON_GNOME, "gnome-shutdown.png" , NULL, NULL,
+    { N_("LIRC"), ICON_ZAPPING, "gnome-shutdown.png" , NULL, NULL,
       on_lirc_apply, on_lirc_help }
   };
   SidebarGroup groups[] = {
