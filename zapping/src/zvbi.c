@@ -86,9 +86,8 @@ vbi_program_info program_info[2]; /* current and next program */
 
 double zvbi_ratio = 4.0/3.0;
 
-/* symbols used by osd.c */
-vbi_pgno		zvbi_page = 1;
-vbi_subno		zvbi_subpage = VBI_ANY_SUBNO;
+/* used by osd.c; use python caption_page to change this var */
+vbi_pgno		zvbi_caption_pgno	= 0;
 
 /**
  * The blink of items in the page is done by applying the patch once
@@ -355,7 +354,7 @@ join (char *who, pthread_t id, gboolean *ack, gint timeout)
   return timeout;
 }
 
-// XXX vbi must be restarted on video std change. is it?
+/* XXX vbi must be restarted on video std change. is it?*/
 
 static gboolean
 threads_init (const gchar *dev_name, int given_fd)
@@ -434,7 +433,7 @@ threads_init (const gchar *dev_name, int given_fd)
 
   D();
 
-  // XXX when we have WSS625, disable video sampling
+  /* XXX when we have WSS625, disable video sampling*/
 
   raw = vbi_capture_parameters (capture);
   buffer_size = (raw->count[0] + raw->count[1]) * sizeof(vbi_sliced);
@@ -551,12 +550,12 @@ static void cc_event(vbi_event *ev, void *data)
   switch (ev->type)
     {
       case VBI_EVENT_TTX_PAGE:
-        if (ev->ev.ttx_page.pgno != zvbi_page)
+        if (ev->ev.ttx_page.pgno != zvbi_caption_pgno)
           return;
 	break;
 
       case VBI_EVENT_CAPTION:
-        if (ev->ev.caption.pgno != zvbi_page)
+        if (ev->ev.caption.pgno != zvbi_caption_pgno)
           return;
 	break;
 
@@ -673,9 +672,9 @@ acknowledge_trigger			(vbi_link	*link)
       return;
     }
 #warning
-  //  pix = gtk_image_new_from_stock (link->eacem ?
-  //				  "zapping-eacem-icon" : "zapping-atvef-icon",
-  //				  GTK_ICON_SIZE_BUTTON);
+  /*  pix = gtk_image_new_from_stock (link->eacem ?
+  				  "zapping-eacem-icon" : "zapping-atvef-icon",
+  				  GTK_ICON_SIZE_BUTTON);*/
   pix=0;
 
   if (pix)
@@ -2038,8 +2037,8 @@ vbi_gui_sensitive (gboolean on)
     "program_info1",
 #endif
     "toolbar-teletext",
+    "toolbar-subtitle",
     "new_ttxview",
-    "closed_caption1",
     NULL
   };
   const gchar **sp;
@@ -2072,26 +2071,91 @@ vbi_gui_sensitive (gboolean on)
     }
 }
 
+#ifndef ZVBI_CAPTION_DEBUG
+#define ZVBI_CAPTION_DEBUG 0
+#endif
+
 #ifdef HAVE_LIBZVBI
 
-static PyObject *
-py_closed_caption (PyObject *self, PyObject *args)
+static vbi_pgno
+find_subtitle_page		(void)
 {
-  int status = -1;
-  int ok = PyArg_ParseTuple (args, "|i", &status);
+  vbi_decoder *vbi;
+  vbi_pgno pgno;
 
-  if (!ok)
-    g_error ("zappin.closed_caption(|i)");
+  if (!(vbi = zvbi_get_object ()))
+    return 0;
 
-  if (status < 0)
-    status = zconf_get_boolean (NULL,
-				"/zapping/internal/callbacks/closed_caption");
+  for (pgno = 1; pgno <= 0x899;
+       pgno = (pgno == 4) ? 0x100 : vbi_add_bcd (pgno, 0x001))
+    {
+      vbi_page_type classf;
 
-  zconf_set_boolean (!!status,
-		     "/zapping/internal/callbacks/closed_caption");
+      classf = vbi_classify_page (vbi, pgno, NULL, NULL);
 
-  if (!status)
-    osd_clear ();
+      if (VBI_SUBTITLE_PAGE == classf)
+	return pgno;
+    }
+
+  return 0;
+}
+
+static PyObject *
+py_closed_caption		(PyObject *		self,
+				 PyObject *		args)
+{
+  static const char *key = "/zapping/internal/callbacks/closed_caption";
+  int active;
+
+  active = -1; /* toggle */
+
+  if (!PyArg_ParseTuple (args, "|i", &active))
+    g_error ("zapping.closed_caption(|i)");
+
+  if (-1 == active)
+    active = !zconf_get_boolean (NULL, key);
+
+  if (ZVBI_CAPTION_DEBUG)
+    fprintf (stderr, "CC enable %d\n", active);
+
+  zconf_set_boolean (active, key);
+
+  if (active)
+    {
+      vbi_subno dummy;
+
+      /* In Teletext mode, overlay currently displayed page. */
+      if (get_ttxview_page (main_window, &zvbi_caption_pgno, &dummy))
+	{
+	  if (ZVBI_CAPTION_DEBUG)
+	    fprintf (stderr, "CC Teletext pgno %x\n", zvbi_caption_pgno);
+
+	  zmisc_restore_previous_mode (main_info);
+	}
+      /* In video mode, use previous page or find subtitles. */
+      else if (zvbi_caption_pgno <= 0)
+	{
+	  zvbi_caption_pgno = find_subtitle_page ();
+
+	  if (ZVBI_CAPTION_DEBUG)
+	    fprintf (stderr, "CC lookup pgno %x\n", zvbi_caption_pgno);
+
+	  if (zvbi_caption_pgno <= 0)
+	    {
+	      /* Bad luck. */
+	      zconf_set_boolean (FALSE, key);
+	    }
+	}
+      else
+	{
+	  if (ZVBI_CAPTION_DEBUG)
+	    fprintf (stderr, "CC previous pgno %x\n", zvbi_caption_pgno);
+	}
+    }
+  else
+    {
+      osd_clear ();
+    }
 
   py_return_true;
 }
@@ -2104,8 +2168,10 @@ startup_zvbi(void)
 #else
   zcc_bool(FALSE, "Enable VBI decoding", "enable_vbi");
 #endif
+  /* No longer used */
   zcc_bool(TRUE, "Use VBI for getting station names", "use_vbi");
   zcc_bool(FALSE, "Overlay subtitle pages automagically", "auto_overlay");
+
   zcc_char("/dev/vbi0", "VBI device", "vbi_device");
   zcc_int(0, "Default TTX region", "default_region");
   zcc_int(3, "Teletext implementation level", "teletext_level");
@@ -2117,6 +2183,9 @@ startup_zvbi(void)
   zcc_int(1, "Sponsor messages", "sp_trigger");
   zcc_int(1, "Operator messages", "op_trigger");
   zcc_int(INTERP_MODE, "Quality speed tradeoff", "qstradeoff");
+
+  zconf_create_boolean (FALSE, "Display subtitles",
+			"/zapping/internal/callbacks/closed_caption");
 
   cmd_register ("closed_caption", py_closed_caption, METH_VARARGS,
 		("Closed Caption on/off"), "zapping.closed_caption()");
