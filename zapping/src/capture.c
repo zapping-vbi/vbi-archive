@@ -119,7 +119,11 @@ buffer_done                     (zf_fifo *              f _unused_,
       if (0)
 	fprintf (stderr, "/%p\n", pb->src_buffer);
 
-      tv_queue_capture_buffer (zapping->info, pb->src_buffer);
+      /* Don't requeue after capturing stopped, the pointers are
+         no longer valid (and tveng25.c complains - triumph of paranoia). */
+      if (CAPTURE_MODE_READ == tv_get_capture_mode (zapping->info))
+	tv_queue_capture_buffer (zapping->info, pb->src_buffer);
+
       pb->src_buffer = NULL;
     }
 }
@@ -885,8 +889,11 @@ capture_stop			(void)
 
   /* Don't stop when recording. */
   for (i = 0; i < n_formats; ++i)
-    if (formats[i].flags & REQ_SIZE)
+    if (formats[i].flags & REQ_CONTINUOUS) {
+      tv_error_msg (zapping->info,
+		    _("Cannot stop capturing while recording."));
       return FALSE;
+    }
 
   tveng_stop_capturing (zapping->info);
 
@@ -1304,6 +1311,7 @@ get_capture_format		(gint			id,
    current capture size. pixfmt_set - set of acceptable pixel formats.
    flags - REQ_SIZE if the image size must not change until
    release_capture_format(). REQ_PIXFMT ditto for the pixel format.
+   REQ_CONTINUOUS if capturing shall not be interrupted.
 
    Returns a capture_format ID on success, -1 otherwise. */
 gint
@@ -1337,9 +1345,10 @@ request_capture_format		(tveng_device_info *	info,
 	    c = '|';
 	  }
 
-      printv (" %ux%u%s requested\n",
+      printv (" %ux%u%s%s requested\n",
 	      width, height,
-	      (flags & REQ_SIZE) ? " (locked)" : "");
+	      (flags & REQ_SIZE) ? " (size locked)" : "",
+	      (flags & REQ_CONTINUOUS) ? " (continuous)" : "");
     }
 
   _pthread_rwlock_wrlock (&fmt_rwlock);
