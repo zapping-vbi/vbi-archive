@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.38 2001-06-29 01:29:10 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.39 2001-07-01 04:52:00 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -186,6 +186,8 @@ do { int i, j, n;					\
 
 #else /* !TEST12 */
 
+#define TEST12 0
+#define LOWVAR 0
 #define ZMB1
 #define ZMB2
 #define PBF 2

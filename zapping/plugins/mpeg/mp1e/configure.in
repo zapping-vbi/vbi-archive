@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.25 2001-06-29 03:33:40 mschimek Exp $
+dnl $Id: configure.in,v 1.26 2001-07-01 04:52:00 mschimek Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(mp1e, 1.9pre2)
@@ -13,8 +13,8 @@ dnl No more duplicates in the CVS, make dist will follow these links
 COMMON=../../../common
 for i in list.h fifo.h fifo.c; do
 	test -e common/$i || {
-		test -d $COMMON || {
-			echo "Mp1e needs files from the Zapping CVS tree" $COMMON
+		test -f $COMMON/$i || {
+			echo "Mp1e needs files from the Zapping CVS tree at" $COMMON
 			echo "which is available from http://zapping.sourceforge.net."
 			echo "Sorry for the inconvenience."
 			exit 1
