@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.13.2.4 2004-01-30 00:43:03 mschimek Exp $ */
+/* $Id: export.c,v 1.13.2.5 2004-02-13 02:13:43 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -134,9 +134,9 @@ initialize(void)
 	extern vbi_export_class vbi_export_class_vtx;
 
 	static vbi_export_class *modules[] = {
-	  //TODO		&vbi_export_class_ppm,
+		&vbi_export_class_ppm,
 #ifdef HAVE_LIBPNG
-	  //TODO		&vbi_export_class_png,
+		&vbi_export_class_png,
 #endif
 		&vbi_export_class_html,
 		&vbi_export_class_text,
