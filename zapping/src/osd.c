@@ -711,7 +711,7 @@ typedef struct {
 
 #define sec(label, entry, entry_sp) \
 else if (!strcasecmp(name, #label) && ctx->entry_sp < (ATTR_STACK-1)) \
-  ctx->entry[++ctx->entry_sp] = label
+  ctx->entry[++ctx->entry_sp] = VBI_##label
 
 static void
 my_startElement (void *ptr,
@@ -728,19 +728,19 @@ my_startElement (void *ptr,
   else if (!strcasecmp(name, "f"))
     ctx->flash++;
 
-  sec(VBI_TRANSPARENT_SPACE, opacity, opacity_sp);
-  sec(VBI_TRANSPARENT_FULL, opacity, opacity_sp);
-  sec(VBI_SEMI_TRANSPARENT, opacity, opacity_sp);
-  sec(VBI_OPAQUE, opacity, opacity_sp);
+  sec(TRANSPARENT_SPACE, opacity, opacity_sp);
+  sec(TRANSPARENT_FULL, opacity, opacity_sp);
+  sec(SEMI_TRANSPARENT, opacity, opacity_sp);
+  sec(OPAQUE, opacity, opacity_sp);
 
-  sec(VBI_BLACK, fg, fg_sp);
-  sec(VBI_RED, fg, fg_sp);
-  sec(VBI_GREEN, fg, fg_sp);
-  sec(VBI_YELLOW, fg, fg_sp);
-  sec(VBI_BLUE, fg, fg_sp);
-  sec(VBI_MAGENTA, fg, fg_sp);
-  sec(VBI_CYAN, fg, fg_sp);
-  sec(VBI_WHITE, fg, fg_sp);
+  sec(BLACK, fg, fg_sp);
+  sec(RED, fg, fg_sp);
+  sec(GREEN, fg, fg_sp);
+  sec(YELLOW, fg, fg_sp);
+  sec(BLUE, fg, fg_sp);
+  sec(MAGENTA, fg, fg_sp);
+  sec(CYAN, fg, fg_sp);
+  sec(WHITE, fg, fg_sp);
 }
 
 #define eec(label, entry_sp) \
@@ -1186,7 +1186,7 @@ osd_render_sgml		(const char *string, ...)
   if (xmlSAXUserParseMemory(&handler, &ctx, buf2,
 			    strlen(buf2)))
     {
-      g_warning("Couldn't parse XML string: %s", buf);
+      g_warning("Couldn't parse XML string: %s [%s]", buf, buf2);
       g_free(buf2);
       g_free(buf);
       return;

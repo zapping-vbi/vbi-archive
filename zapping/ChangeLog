@@ -1,3 +1,10 @@
+24.01.2002	Added @euro charset <garetxe@users.sf.net>
+
+	* common/unicode.c: Added support for the ISO-8859-15 locale
+	(@euro), and a default when the charset is unknown.
+	* src/osd.c: Prefixed correctly VBI_BLUE in sax parsing, etc,
+	otherwise they would be ignored.
+
 19.01.2002	<mschimek@users.sf.net>
 
 	* src/osd.c: Segv fix in geometry_update().
