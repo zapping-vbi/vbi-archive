@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.6.2.2 2003-06-16 06:05:24 mschimek Exp $ */
+/* $Id: search.c,v 1.6.2.3 2004-02-13 02:11:30 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -59,7 +59,7 @@ struct vbi_search {
 
 	vbi_bool		(* progress)(vbi_page *pg);
 
-	vbi_page		pg;
+	vbi_page_private	pgp;
 
 	ure_buffer_t		ub;
 	ure_dfa_t		ud;
@@ -72,10 +72,10 @@ struct vbi_search {
 #define LAST_ROW 24
 
 static void
-highlight(struct vbi_search *s, vt_page *vtp,
+highlight(struct vbi_search *s, const vt_page *vtp,
 	  ucs2_t *first, long ms, long me)
 {
-	vbi_page *pg = &s->pg;
+	vbi_page *pg = &s->pgp.pg;
 	ucs2_t *hp;
 	int i, j;
 
@@ -184,12 +184,13 @@ search_page_fwd(void *p, const vt_page *vtp, vbi_bool wrapped)
 	if (vtp->function != PAGE_FUNCTION_LOP)
 		return 0; /* try next */
 
-#warning format flags 
-	if (!vbi_format_vt_page(s->vbi, &s->pg, vtp, s->vbi->vt.max_level, 0))
+	if (!vbi_format_vt_page (s->vbi,&s->pgp, vtp,
+				 VBI_WST_LEVEL, s->vbi->vt.max_level,
+				 VBI_END))
 		return -3; /* formatting error, abort */
 
 	if (s->progress)
-		if (!s->progress(&s->pg)) {
+		if (!s->progress(&s->pgp.pg)) {
 			if (_this != start) {
 				s->start_pgno = vtp->pgno;
 				s->start_subno = vtp->subno;
@@ -212,7 +213,7 @@ search_page_fwd(void *p, const vt_page *vtp, vbi_bool wrapped)
 		return 0; /* try next page */
 
 	for (i = FIRST_ROW; i < LAST_ROW; i++) {
-		acp = &s->pg.text[i * s->pg.columns];
+		acp = &s->pgp.pg.text[i * s->pgp.pg.columns];
 
 		for (j = 0; j < 40; acp++, j++) {
 			if (i == row && j <= s->col[0])
@@ -282,12 +283,13 @@ search_page_rev(void *p, const vt_page *vtp, vbi_bool wrapped)
 	if (vtp->function != PAGE_FUNCTION_LOP)
 		return 0; /* try next page */
 
-#warning format flags
-	if (!vbi_format_vt_page(s->vbi, &s->pg, vtp, s->vbi->vt.max_level, 0))
+	if (!vbi_format_vt_page (s->vbi,&s->pgp, vtp,
+				 VBI_WST_LEVEL, s->vbi->vt.max_level,
+				 VBI_END))
 		return -3; /* formatting error, abort */
 
 	if (s->progress)
-		if (!s->progress(&s->pg)) {
+		if (!s->progress(&s->pgp.pg)) {
 			if (this != start) {
 				s->start_pgno = vtp->pgno;
 				s->start_subno = vtp->subno;
@@ -309,7 +311,7 @@ search_page_rev(void *p, const vt_page *vtp, vbi_bool wrapped)
 		goto break2;
 
 	for (i = FIRST_ROW; i < LAST_ROW; i++) {
-		acp = &s->pg.text[i * s->pg.columns];
+		acp = &s->pgp.pg.text[i * s->pgp.pg.columns];
 
 		for (j = 0; j < 40; acp++, j++) {
 			if (i == row && j >= s->col[1])
@@ -392,7 +394,7 @@ vbi_search_delete(vbi_search *search)
 static size_t
 ucs2_strlen(const void *string)
 {
-	const ucs2_t *p = (ucs2_t *) string;
+	const ucs2_t *p = (const ucs2_t *) string;
 	size_t i = 0;
 
 	if (!string)
@@ -598,7 +600,7 @@ vbi_search_next(vbi_search *search, vbi_page **pg, int dir)
 				   (dir > 0) ? search_page_fwd
 				   : search_page_rev, search)) {
 	case 1:
-		*pg = &search->pg;
+		*pg = &search->pgp.pg;
 		return VBI_SEARCH_SUCCESS;
 
 	case 0:
