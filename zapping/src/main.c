@@ -560,7 +560,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.183 2004-09-12 03:29:25 mschimek Exp $",
+	 "$Id: main.c,v 1.184 2004-09-14 04:46:30 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -649,6 +649,18 @@ int main(int argc, char * argv[])
 	     GTK_MESSAGE_ERROR);
       return 0;
     }
+
+  /* We need the display pixfmt to optimize the capture format.
+     This info should be avaialable even without Xinerama and DGA. */
+  if (TV_PIXFMT_NONE == screens->target.format.pixfmt)
+    {
+      /* XXX could use XVideo without. */
+      /* XXX localize */
+      RunBox(("Cannot determine display pixel format"),
+	     GTK_MESSAGE_ERROR);
+      return 0;
+    }
+
   D();
 
   if (debug_msg)

@@ -2155,7 +2155,12 @@ py_closed_caption		(PyObject *		self _unused_,
 #ifdef HAVE_LIBZVBI
   static const char *key = "/zapping/internal/callbacks/closed_caption";
 #endif
+  static int block = 0;
   int active;
+
+  if (block)
+    py_return_true;
+  block = 1; /* XXX should be fixed elsewhere, toolbar button? */
 
   active = -1; /* toggle */
 
@@ -2211,6 +2216,8 @@ py_closed_caption		(PyObject *		self _unused_,
     }
 
 #endif /* HAVE_LIBZVBI */
+
+  block = 0; 
 
   py_return_true;
 }

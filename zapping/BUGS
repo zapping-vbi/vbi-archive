@@ -1,13 +1,8 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
-Zapping 0.7.1 bugs:
-* Xine w/o DGA untested.
-  Section "Module"
-    SubSection  "extmod"
-      Option    "omit xfree86-dga"
-    EndSubSection
-* Teletext toolbar button does not properly toggle.
+Zapping 0.7.1:
+* Teletext toolbar reorientation is broken. To be fixed in ttx plugin.
 
 Zapping 0.7 bugs, need more work later:
 * Video size isn't always right on startup.
@@ -24,10 +19,6 @@ Zapping 0.7 bugs, need more work later:
 * When a/v recording is started under high system load the
   timestamps may differ too much, triggering the mp1e
   "cannot sync" check and aborting Zapping.
-* App specific toolbar_style is pointless. Gnome can already
-  handle that for us, see gnome-app-helper.c. Or right click
-  on the toolbar dock bevel. Note also Ctrl-Cursor to move
-  the toolbar around.
 * 2003-11-27 From windowed overlay to fullscreen w/automatic vidmode hang
   on RH at switch_mode (PREVIEW) -> z_set_window_bg -> calloc segv.
   Circumstances might be coincidental, it doesn't happen predictable.

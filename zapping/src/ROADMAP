@@ -678,3 +678,12 @@ Overlay
     will paint c-k color (true?), must be another parameter.
 3) cropping and scaling
   - get|set_overlay_source (zoom effect etc), where available.
+
+-----
+
+Xinerama/DGA tests:
+- one screen
+- two screens
+- Screen "Screen1" RightOf "Screen0", -xinerama
+- Screen "Screen1" RightOf "Screen0", +xinerama
+- Screen "Screen1" RightOf "Screen0", +xinerama, -extension dga

@@ -1,3 +1,18 @@
+2004-09-13    <mschimek@users.sf.net>
+
+	* Release 0.7.1.
+
+2004-09-13    <mschimek@users.sf.net>
+
+	* src/x11stuff.c (x11_vidmode_switch): No-Vidmode fix.
+	* src/zmisc.c (zmisc_switch_mode): Fixed previous_mode.
+	* help/C/zapping.xml: Version number update.
+	* src/fullscreen.c: Vidmode fixes.
+	* src/zmisc.c (zmisc_switch_mode): Teletext tool button fix.
+	* libtv/screen.c: Made sure screens have a pixfmt without DGA.
+	(dga_query): If possible try to determine screen pixfmt from
+	  XDGAModes, don't guess bpp 16, more sanity checks. No-DGA fix.
+
 2004-09-11    <mschimek@users.sf.net>
 
 	* src/main.c (main), libtv/screen.c (dga_query),

@@ -6,8 +6,9 @@ the changes.
 This time we have three major improvements: Zapping now runs on FreeBSD
 using the bktr driver, missing only support for remote controls and
 recording. Again it also runs on Solaris using XVideo, fixes courtesy
-of Roger Fuji. Finally we have Xinerama support in all display modes.
-In the minor category Teletext mode now shows a second toolbar. 
+of Roger Fuji. Finally Xinerama is supported in all display modes.
+In the minor improvements category the Teletext mode now shows a second
+toolbar instead of squeezing more buttons into the primary toolbar.
 
 Important bug fixes:
 - Using V4L2 (Linux 2.6) there is now a working audio mode
