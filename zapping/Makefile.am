@@ -6,5 +6,5 @@ Multimedia_DATA = zapping.desktop
 EXTRA_DIST = $(Multimedia_DATA) \
 README.plugins BUGS THANKS zapping.spec.in zapping.spec
 
-SUBDIRS = intl po macros libvbi src zapping_setup_fb glade help \
+SUBDIRS = intl po macros libvbi common src zapping_setup_fb glade help \
 plugins pixmaps
