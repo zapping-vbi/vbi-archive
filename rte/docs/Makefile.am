@@ -19,12 +19,15 @@ MKDB_OPTIONS=--sgml-mode
 # Extra options to supply to gtkdoc-fixref.
 FIXXREF_OPTIONS=
 
+# Extra header files for gtkdoc-scan.
+EXTRA_HFILES=$(top_srcdir)/src/librte.h
+
 # Used for dependencies.
 HFILE_GLOB=$(top_srcdir)/src/*.c
 CFILE_GLOB=$(top_srcdir)/src/*.h
 
 # Header files to ignore when scanning.
-IGNORE_HFILES=librte.h
+IGNORE_HFILES=
 
 # Images to copy into HTML directory.
 HTML_IMAGES =
@@ -89,7 +92,7 @@ scan-build.stamp: $(HFILE_GLOB)
 	    done \
 	fi
 	cd $(srcdir) && \
-	  gtkdoc-scan --module=$(DOC_MODULE) --source-dir=$(DOC_SOURCE_DIR) --ignore-headers="$(IGNORE_HFILES)" $(SCAN_OPTIONS) $(EXTRA_HFILES)
+	  gtkdoc-scan --module=$(DOC_MODULE) --ignore-headers="$(IGNORE_HFILES)" $(SCAN_OPTIONS) $(EXTRA_HFILES)
 	touch scan-build.stamp
 
 $(DOC_MODULE)-decl.txt $(SCANOBJ_FILES): scan-build.stamp
