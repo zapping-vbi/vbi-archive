@@ -18,9 +18,9 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "screenshot.h"
-#include "yuv2rgb.h"
-#include "ttxview.h"
-#include "properties.h"
+#include "src/yuv2rgb.h"
+#include "src/ttxview.h"
+#include "src/properties.h"
 #include <gdk-pixbuf/gdk-pixbuf.h> /* previews */
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -344,11 +344,11 @@ plugin_init ( PluginBridge bridge, tveng_device_info * info )
   zapping_info = info;
 
   cmd_register ("screenshot", py_screenshot, METH_VARARGS,
-		_("Takes a screenshot after asking some questions"),
-		"zapping.screenshot([png])");
+		("Screenshot dialog"),	"zapping.screenshot()");
   cmd_register ("quickshot", py_quickshot, METH_VARARGS,
-		_("Takes a screenshot"),
-		"zapping.quickshot([png])");
+		("Screenshot"), "zapping.quickshot()",
+		("PPM Screenshot"), "zapping.quickshot('ppm')",
+		("JPEG Screenshot"), "zapping.quickshot('jpeg')");
 
   return TRUE;
 }

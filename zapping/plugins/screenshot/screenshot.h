@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "plugin_common.h"
+#include "src/plugin_common.h"
 #include <pthread.h>
 
 typedef struct screenshot_data screenshot_data;

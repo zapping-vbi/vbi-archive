@@ -14,6 +14,4 @@ libscreenshot_zapping_la_LIBADD = $(JPEG_LIB)
 pkgdata_DATA = screenshot.glade2
 
 CFLAGS = $(PLUGIN_DEFAULT_FLAGS)
-INCLUDES = \
-	$(COMMON_INCLUDES) \
-	-I$(top_srcdir)/src ## Let the plugin access Zapping headers
+INCLUDES = -I$(top_srcdir) $(COMMON_INCLUDES)

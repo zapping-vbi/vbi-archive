@@ -15,7 +15,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include "plugin_common.h"
+#include "src/plugin_common.h"
 /*
   You can use this code as the template for your own plugins. If you
   have any doubts after reading this and the docs, please contact the

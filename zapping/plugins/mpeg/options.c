@@ -19,9 +19,9 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.19.2.5 2003-03-06 21:57:23 mschimek Exp $ */
+/* $Id: options.c,v 1.19.2.6 2003-09-24 18:40:33 mschimek Exp $ */
 
-#include "plugin_common.h"
+#include "src/plugin_common.h"
 
 #ifdef HAVE_LIBRTE
 
@@ -30,7 +30,7 @@
 #include <glade/glade.h>
 
 #include "mpeg.h"
-#include "properties.h"
+#include "src/properties.h"
 
 typedef struct grte_options {
   rte_context *         context;
