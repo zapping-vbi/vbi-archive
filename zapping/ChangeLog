@@ -1,3 +1,13 @@
+14.11.2001	Killed parrot <garetxe@users.sf.net>
+
+	* parrot: Removed from build tree.
+	* configure.in: Added --with-gnome-prefix, overrides
+	'gnome-config --prefix'
+	* prepare_dist: Added optional prefix parameter.
+	* channel_editor.c: Sync with glade file.
+	* TODO: I think ttx search gui is clear enough, removing from
+	here.
+
 12.11.2001	Plugins properties conversion <garetxe@users.sf.net>
 
 	* mpeg, lirc, screenshot: Converted properties to the new style.

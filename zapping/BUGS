@@ -23,3 +23,7 @@ Known bugs with zapping, don't report them
 	  both displayed and recorded, apparently due to incorrect scan
 	  line pitch. Happened with my driver and the v4l2 sample driver
 	  alike, so I suspect a bug in the capture routines.
+	! With very bad signal i often get:
+zapping: fifo.c:684: send_full_buffer called from /home/garetxe/cvs/zapping/libvbi/v4lx.c:1029: Assertion "!p->eof_sent" failed
+Abortado
+

@@ -118,17 +118,26 @@ build_channel_list(GtkCList *clist, tveng_tuned_channel * list)
 {
   gint i=0;
   tveng_tuned_channel * tuned_channel;
+  gchar index[256];
   gchar alias[256];
   gchar channel[256];
   gchar country[256];
   gchar freq[256];
   gchar accel[256];
+  gchar standard[256];
   gchar * buffer;
   gfloat value;
+  struct tveng_enumstd *std;
 
-  gchar *entry[] = {alias, channel, country, freq, accel};
+  gchar *entry[] = {index, alias, country, channel, freq, standard, accel};
 
-  alias[255] = channel[255] = country[255] = freq[255] = accel[255] = 0;
+  index[sizeof(index)-1] =
+    alias[sizeof(alias)-1] =
+    channel[sizeof(channel)-1] =
+    country[sizeof(country)-1] =
+    freq[sizeof(freq)-1] =
+    accel[sizeof(accel)-1] =
+    standard[sizeof(standard)-1] = 0;
 
   value = gtk_clist_get_vadjustment(clist)->value;
 
@@ -139,24 +148,34 @@ build_channel_list(GtkCList *clist, tveng_tuned_channel * list)
   /* Setup the channel list */
   while ((tuned_channel = tveng_retrieve_tuned_channel_by_index(i++, list)))
     {
-      g_snprintf(entry[0], 255, tuned_channel->name);
-      g_snprintf(entry[1], 255, tuned_channel->real_name);
-      g_snprintf(entry[2], 255, _(tuned_channel->country));
-      g_snprintf(entry[3], 255, "%u", tuned_channel->freq);
+      g_snprintf(index, sizeof(index)-1, "%u", i); /* 1...n */
+      g_snprintf(alias, sizeof(alias)-1, tuned_channel->name);
+      g_snprintf(country, sizeof(country)-1, _(tuned_channel->country));
+      g_snprintf(channel, sizeof(channel)-1, tuned_channel->real_name);
+      g_snprintf(freq, sizeof(freq)-1, "%u", tuned_channel->freq);
       if (tuned_channel->accel_key)
 	{
 	  buffer = gdk_keyval_name(tuned_channel->accel_key);
 	  if (buffer)
-	    g_snprintf(entry[4], 255, "%s%s%s%s",
+	    g_snprintf(accel, sizeof(accel)-1, "%s%s%s%s",
 		       (tuned_channel->accel_mask&GDK_CONTROL_MASK)?"Ctl+":"",
 		       (tuned_channel->accel_mask&GDK_MOD1_MASK)?"Alt+":"",
 		       (tuned_channel->accel_mask&GDK_SHIFT_MASK)?"Shift+":"",
 		       buffer);
 	  else
-	    entry[4][0] = 0;
+	    accel[0] = 0;
 	}
       else
-	entry[4][0] = 0;
+	accel[0] = 0;
+      if (tuned_channel->standard &&
+	  (std = tveng_find_standard_by_hash(tuned_channel->standard,
+					     main_info)))
+	{
+	  g_snprintf(standard, sizeof(standard)-1, std->name);
+	}
+      else
+	standard[0] = 0;
+
       gtk_clist_append(clist, entry);
     }
 

@@ -32,7 +32,7 @@ features, plus extensibility through a plugin system.
 %setup -q
 
 %build
-./configure --prefix=%{prefix}
+./configure --with-gnome-prefix=%{prefix}
 make
 
 %install

@@ -5,6 +5,8 @@
 # and the files to release are placed under the ver-release dir.
 # (C) Iñaki García Etxebarria 2000-2001, under the GPL and stuff
 #
+# Usage is ./prepare_dist.sh [gnome_prefix]
+#
 # Modified 2001-06-01 Michael H. Schimek <mschimek@users.sf.net>
 # - bzip2 (0.9.0c) -c didn't, changed to -f, added --repetitive-best
 ##############################################################################
@@ -28,7 +30,11 @@ echo
 echo "Generating the Makefiles"
 echo "------------------------" && echo
 (NOCONFIGURE="yes" && ./autogen.sh) || exit 1
-./configure || exit 1
+if test ! x$1 = x; then
+    ./configure --with-gnome-prefix=$1 || exit 1
+else
+    ./configure || exit 1
+fi
 
 clear
 echo "Rebuilding the project to check whether it compiles"
