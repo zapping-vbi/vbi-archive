@@ -198,6 +198,10 @@ on_add_channel_clicked                 (GtkButton       *button,
                                         gpointer         user_data);
 
 void
+on_add_all_channels_clicked            (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
 on_modify_channel_clicked              (GtkButton       *button,
                                         gpointer         user_data);
 

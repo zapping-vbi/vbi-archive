@@ -3,6 +3,10 @@
 	* exp-html.c: Added color option, fixed anchor insertion.
 	* ttxview.c: Didn't set vbi export from zconf, fixed.
 
+15.08.2001	add all channels <garetxe@users.sf.net>
+
+	* channel_editor: Added 'Add all channel' button.
+
 15.08.2001	libvbi et al <mschimek@users.sf.net>
 
 	* glade: Removed the gettextized "labelxx" and the like.

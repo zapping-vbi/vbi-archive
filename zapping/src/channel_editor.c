@@ -655,6 +655,36 @@ on_add_channel_clicked                 (GtkButton       *button,
 }
 
 void
+on_add_all_channels_clicked            (GtkButton       *button,
+                                        gpointer         user_data)
+{
+  GtkWidget * channel_list = lookup_widget(GTK_WIDGET(button),
+					   "channel_list");
+  GtkWidget * channel_window = lookup_widget(GTK_WIDGET(button),
+					     "channel_window");
+  tveng_tuned_channel * list =
+    gtk_object_get_data(GTK_OBJECT(channel_window), "list");
+  tveng_tuned_channel tc;
+  tveng_channel *chan;
+  int i = 0;
+
+  while ((chan = tveng_get_channel_by_id(i++, current_country)))
+    {
+      memset(&tc, 0, sizeof(tveng_tuned_channel));
+      tc.real_name = tc.name = chan->name;
+      tc.country = current_country -> name;
+      tc.freq = chan->freq;
+      store_control_values(&tc.num_controls, &tc.controls, main_info);
+      list = tveng_insert_tuned_channel_sorted(&tc, list);
+      g_free(tc.controls);
+    }
+
+  gtk_object_set_data(GTK_OBJECT(channel_window), "list", list);
+
+  build_channel_list(GTK_CLIST(channel_list), list);
+}
+
+void
 on_modify_channel_clicked              (GtkButton       *button,
                                         gpointer         user_data)
 {
