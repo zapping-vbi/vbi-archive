@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.25 2002-08-22 22:10:39 mschimek Exp $
+dnl $Id: configure.in,v 1.26 2002-09-26 20:42:19 mschimek Exp $
 
 AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(rte, 0.5cvs)
+AM_INIT_AUTOMAKE(rte, 0.5)
 AM_CONFIG_HEADER(config.h)
 AM_ACLOCAL_INCLUDE(m4)
 
@@ -28,7 +28,15 @@ AC_TRY_COMPILE(, __asm__ __volatile__ (" movdqu 0,%xmm0\n"),
   [AC_DEFINE(USE_SSE2, 1, [Define if 'as' supports SSE2])
     use_sse2=yes])
 AC_MSG_RESULT($use_sse2)
-AM_CONDITIONAL(USE_SSE2, test x$use_sse2 = xyes)
+AM_CONDITIONAL(USE_SSE2, test "$use_sse2" = "yes")
+
+dnl
+dnl For debugging
+dnl
+AC_ARG_ENABLE(ccmalloc,
+  AC_HELP_STRING([--enable-ccmalloc], [Link with ccmalloc]),
+  CCMALLOC=-lccmalloc, CCMALLOC=)
+AC_SUBST(CCMALLOC)
 
 dnl ---------------------------------------------------------------------------
 dnl Backends
@@ -36,9 +44,9 @@ dnl ---------------------------------------------------------------------------
 
 BACKEND_MP1E=no
 AC_ARG_WITH(mp1e,
-  AC_HELP_STRING([--with-mp1e], [Add the mp1e backend]),
+  AC_HELP_STRING([--with-mp1e], [Add the mp1e backend (yes)]),
   BACKEND_MP1E="$withval", BACKEND_MP1E="yes")
-if test "x$BACKEND_MP1E" = "xyes"; then
+if test "$BACKEND_MP1E" = "yes"; then
   AC_DEFINE(BACKEND_MP1E, 1, [Define if mp1e is built])
 
   dnl When builddir is different, no mp1e dir yet
@@ -60,9 +68,9 @@ AM_CONDITIONAL(HAVE_2, ! test 0)
 
 BACKEND_FFMPEG=no
 AC_ARG_WITH(ffmpeg,
-  AC_HELP_STRING([--with-ffmpeg], [Add the ffmpeg backend]),
+  AC_HELP_STRING([--with-ffmpeg], [Add the ffmpeg backend (yes)]),
   BACKEND_FFMPEG="$withval", [BACKEND_FFMPEG="yes"])
-if test "x$BACKEND_FFMPEG" = "xyes"; then
+if test "$BACKEND_FFMPEG" = "yes"; then
   AC_DEFINE(BACKEND_FFMPEG, 1, [Define if ffmpeg is built])
 
       AC_DEFINE(ARCH_X86, 1, [ffmpeg config])
@@ -89,12 +97,26 @@ if test "x$BACKEND_FFMPEG" = "xyes"; then
   ])
 fi
 
-dnl Notify David Cougle when added.
-BACKEND_DIVX4LINUX="not implemented yet"
+BACKEND_DIVX4LINUX=no
+AC_ARG_WITH(divx4linux,
+  AC_HELP_STRING([--with-divx4linux], [Add the divx4linux backend (yes)]),
+  BACKEND_DIVX4LINUX="$withval", [BACKEND_DIVX4LINUX="yes"])
+if test "$BACKEND_DIVX4LINUX" = "yes"; then
+  AC_CHECK_HEADER(encore2.h,, [BACKEND_DIVX4LINUX="not installed"])
+  AC_CHECK_HEADER(dlfcn.h,, [BACKEND_DIVX4LINUX="not linkable"])
+  AC_CHECK_LIB(dl, dlopen,, [BACKEND_DIVX4LINUX="not linkable"])
+  if test "$BACKEND_DIVX4LINUX" = "yes"; then
+    AC_DEFINE(BACKEND_DIVX4LINUX, 1, [Define if divx4linux is built])
 
-AM_CONDITIONAL(BACKEND_FFMPEG, test "$BACKEND_FFMPEG" = yes)
-AM_CONDITIONAL(BACKEND_MP1E, test "$BACKEND_MP1E" = yes)
-AM_CONDITIONAL(BACKEND_DIVX4LINUX, test "$BACKEND_DIVX4LINUX" = yes)
+    AC_CONFIG_FILES([
+      divx4linux/Makefile
+    ])
+  fi
+fi
+
+AM_CONDITIONAL(BACKEND_FFMPEG, [test "$BACKEND_FFMPEG" = "yes"])
+AM_CONDITIONAL(BACKEND_MP1E, [test "$BACKEND_MP1E" = "yes"])
+AM_CONDITIONAL(BACKEND_DIVX4LINUX, [test "$BACKEND_DIVX4LINUX" = "yes"])
 
 CFLAGS="$CFLAGS -I`cd $srcdir; pwd`/src"
 
@@ -112,12 +134,17 @@ dnl
 dnl Native language support.
 dnl 
 AM_GNU_GETTEXT([external], [need-ngettext])
+if test "x${prefix}" = "xNONE"; then
+  AC_DEFINE_UNQUOTED(PACKAGE_LOCALE_DIR, "${ac_default_prefix}/share/locale", [ld])
+else
+  AC_DEFINE_UNQUOTED(PACKAGE_LOCALE_DIR, "${prefix}/share/locale", [ld])
+fi
 
 dnl 
 dnl Build docs from the sources if Doxygen is installed.
 dnl 
 AC_CHECK_PROG(HAVE_DOXYGEN, doxygen, yes, no)
-AM_CONDITIONAL(HAVE_DOXYGEN, test "x$HAVE_DOXYGEN" = "xyes")
+AM_CONDITIONAL(HAVE_DOXYGEN, test "$HAVE_DOXYGEN" = "yes")
 
 AC_CONFIG_FILES([
   Makefile
