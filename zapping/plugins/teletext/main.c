@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.7 2004-11-08 16:24:57 mschimek Exp $ */
+/* $Id: main.c,v 1.8 2004-11-09 06:59:43 mschimek Exp $ */
 
 #include "config.h"
 
@@ -28,6 +28,7 @@
 #include "src/plugin_common.h"
 #include "src/properties.h"
 #include "src/zmisc.h"
+#include "src/zvbi.h"		/* zvbi_add_decoder() */
 #include "src/remote.h"
 #include "view.h"
 #include "window.h"
@@ -178,6 +179,46 @@ actions [] = {
 };
 
 static void
+decoder				(const vbi_sliced *	sliced,
+				 unsigned int		n_lines,
+				 double			timestamp)
+{
+  while (n_lines > 0)
+    {
+      if (sliced->id & VBI_SLICED_TELETEXT_B)
+	vbi3_teletext_decoder_decode (td, sliced->data, timestamp);
+
+      ++sliced;
+      --n_lines;
+    }
+}
+
+static void
+channel_switch			(const tveng_tuned_channel *channel,
+				 guint			scanning)
+{
+  vbi3_network nk;
+
+  if (channel)
+    {
+      CLEAR (nk);
+
+      nk.name = channel->name;
+
+      /* XXX this is weak, better use a hash or CNIs. */
+      nk.user_data = (void *)(channel->index + 1);
+    }
+
+  fprintf (stderr, "CHANNEL SW %p\n", channel);
+
+  vbi3_teletext_decoder_reset (td,
+			       channel ? &nk : NULL,
+			       (525 == scanning) ?
+			       VBI3_VIDEOSTD_SET_525_60 :
+			       VBI3_VIDEOSTD_SET_625_50);
+}
+
+static void
 plugin_close			(void)
 {
   while (teletext_windows)
@@ -194,7 +235,7 @@ plugin_close			(void)
 
   vbi3_network_destroy (&anonymous_network);
 
-  stop_zvbi ();
+  zvbi_remove_decoder (decoder, channel_switch);
 
   vbi3_teletext_decoder_delete (td);
   td = NULL;
@@ -225,6 +266,8 @@ plugin_init			(PluginBridge		bridge _unused_,
   static const property_handler ph = {
     .add = properties_add,
   };
+  vbi3_cache *ca;
+  gint value;
 
   /* Preliminary. */
   _ttxview_popup_menu_new = ttxview_popup_menu_new;
@@ -256,7 +299,19 @@ plugin_init			(PluginBridge		bridge _unused_,
   td = vbi3_teletext_decoder_new (NULL, NULL, VBI3_VIDEOSTD_SET_625_50);
   g_assert (NULL != td);
 
-  start_zvbi ();
+  ca = vbi3_teletext_decoder_get_cache (td);
+
+  value = 1 << 30;
+  z_gconf_get_int (&value, GCONF_DIR "/cache_size");
+  vbi3_cache_set_memory_limit (ca, (unsigned int) value);
+
+  value = 1;
+  z_gconf_get_int (&value, GCONF_DIR "/cache_networks");
+  vbi3_cache_set_network_limit (ca, (unsigned int) value);
+
+  vbi3_cache_unref (ca);
+
+  zvbi_add_decoder (decoder, channel_switch);
 
   return TRUE;
 }
