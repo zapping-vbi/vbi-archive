@@ -6,6 +6,10 @@
 #include "cache.h"
 #include "lang.h"
 
+/* #include "../common/fifo.h"
+  libvbi.h exports this globally :-(
+ */
+
 #define PLL_ADJUST	4
 
 struct raw_page
@@ -40,6 +44,8 @@ struct vbi
     int bpb;			// bytes per bit * 2^16
     int bp8bl, bp8bh;		// bytes per 8-bit low/high
     int soc, eoc;		// start/end of clock run-in
+    // sliced data source
+    void *fifo;
 };
 
 struct vbi_client
