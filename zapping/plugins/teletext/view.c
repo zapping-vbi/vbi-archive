@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.4 2004-11-03 06:41:46 mschimek Exp $ */
+/* $Id: view.c,v 1.5 2004-11-03 17:05:59 mschimek Exp $ */
 
 /*
  *  Zapping (TV viewer for the Gnome Desktop)
@@ -42,7 +42,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.4 2004-11-03 06:41:46 mschimek Exp $ */
+/* $Id: view.c,v 1.5 2004-11-03 17:05:59 mschimek Exp $ */
 
 #include "config.h"
 
@@ -3378,7 +3378,7 @@ class_init			(gpointer		g_class,
   GA_CLIPBOARD = gdk_atom_intern ("CLIPBOARD", FALSE);
 
   z_gconf_auto_update_bool (&rolling_header, GCONF_DIR "/view/rolling_header");
-  z_gconf_auto_update_bool (&live_clock, GCONF_DIR "/live_clock");
+  z_gconf_auto_update_bool (&live_clock, GCONF_DIR "/view/live_clock");
 
   /* Error ignored */
   z_gconf_notify_add (GCONF_DIR "/level", teletext_level_notify, NULL);
