@@ -42,7 +42,7 @@ librteincludedir = $(includedir)
 librteinclude_HEADERS = librte.h
 
 librte_la_LIBADD = $(PTHREAD_LIB) $(CCMALLOC) \
-	$(LTLIBICONV) $(LTLIBINTL) \
+	$(INTLLIBS) \
 	$(ffmpeg_libs) $(mp1e_libs) $(divx4linux_libs)
 
 librte_la_LDFLAGS = -export-dynamic -export-symbols rte.sym \
