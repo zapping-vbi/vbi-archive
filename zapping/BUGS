@@ -6,5 +6,7 @@ Known bugs with zapping, don't report them
 
 	! Something leaks horribly every n-milliseconds, memprof says
 	it's x11_add_clips. Weird, but needs fixing.
+	! MPEG plugin crashes (rte, fifos?)
+	* Need better handling of no /dev/video0.
 	* Need better no-overlay-present handling.
 	* The standard is changed when changing modes.
