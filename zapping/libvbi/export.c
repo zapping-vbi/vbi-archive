@@ -109,7 +109,7 @@ export_open(char *fmt)
 		break;
 	if (em)
 	{
-	    if ((e = malloc(sizeof(*e) + em->local_size)))
+	    if ((e = calloc(sizeof(*e) + em->local_size, 1)))
 	    {
 		e->mod = em;
 		e->fmt_str = fmt;

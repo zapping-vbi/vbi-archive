@@ -6,8 +6,6 @@ Known bugs with zapping, don't report them
 	
 	! Something leaks horribly every n-milliseconds, memprof says
 	it's x11_add_clips. Weird, but needs fixing.
-	! Segfault when pasting text under certain circunstances,
-	needs investigation.
 	* Need better no-overlay-present handling.
 	! Sometimes the program hangs when exiting (i cannot reproduce
 	this now, maybe it's fixed?)

@@ -67,8 +67,8 @@ static pthread_t zvbi_thread_id; /* VBI thread in libvbi */
  */
 struct ttx_patch {
   int		col, row, width, height; /* geometry of the patch */
-  GdkPixbuf	*unscaled_on; /* "on" state of the patch, unscaled */
-  GdkPixbuf	*unscaled_off; /* "off" state of the patch, unscaled */
+  GdkPixbuf	*unscaled_on;
+  GdkPixbuf	*unscaled_off;
   GdkPixbuf	*scaled_on;
   GdkPixbuf	*scaled_off;
   gboolean	phase; /* flash phase 0 ... 3, 0 == off */
@@ -80,7 +80,8 @@ struct ttx_client {
   int		id; /* of the client */
   pthread_mutex_t mutex;
   struct fmt_page fp; /* formatted page */
-  GdkPixbuf	*unscaled; /* unscaled version of the page */
+  GdkPixbuf	*unscaled_on; /* unscaled version of the page (on) */
+  GdkPixbuf	*unscaled_off;
   GdkPixbuf	*scaled; /* scaled version of the page */
   int		w, h;
   int		freezed; /* do not refresh the current page */
@@ -197,7 +198,8 @@ remove_client(struct ttx_client *client)
 
   uninit_fifo(&client->mqueue);
   pthread_mutex_destroy(&client->mutex);
-  gdk_pixbuf_unref(client->unscaled);
+  gdk_pixbuf_unref(client->unscaled_on);
+  gdk_pixbuf_unref(client->unscaled_off);
   if (client->scaled)
     gdk_pixbuf_unref(client->scaled);
   for (i = 0; i<client->num_patches; i++)
@@ -232,20 +234,26 @@ register_ttx_client(void)
 			     "../pixmaps/zapping/vt_loading",
 			     (rand()%2)+1);
   vbi_get_rendered_size(&w, &h);
-  client->unscaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w,
-				  h);
-  g_assert(client->unscaled != NULL);
+  client->unscaled_on = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w,
+				    h);
+  client->unscaled_off = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w,
+				    h);
+  
+  g_assert(client->unscaled_on != NULL);
+  g_assert(client->unscaled_off != NULL);
   
   simple = gdk_pixbuf_new_from_file(filename);
   g_free(filename);
   if (simple)
     {
       gdk_pixbuf_scale(simple,
-		       client->unscaled, 0, 0, w, h,
+		       client->unscaled_on, 0, 0, w, h,
 		       0, 0,
 		       (double) w / gdk_pixbuf_get_width(simple),
 		       (double) h / gdk_pixbuf_get_height(simple),
 		       INTERP_MODE);
+      z_pixbuf_copy_area(client->unscaled_on, 0, 0, w, h,
+			   client->unscaled_off, 0, 0);
       gdk_pixbuf_unref(simple);
     }
 
@@ -398,31 +406,27 @@ add_patch(struct ttx_client *client, int col, int row, attr_char *ac)
       break;
     }
 
-  patch.unscaled_on =
-    gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, patch.width * CW,
-		   patch.height * CH);
-  patch.unscaled_off =
-    gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, patch.width * CW,
-		   patch.height * CH);
+  sw = (client->w*(patch.width*CW+10))/
+    gdk_pixbuf_get_width(client->unscaled_on);
+  sh = (client->h*(patch.height*CH+10))/
+    gdk_pixbuf_get_height(client->unscaled_on);
 
-  vbi_draw_page_region(&client->fp,
-		       gdk_pixbuf_get_pixels(patch.unscaled_on), 0,
-		       patch.col, patch.row, patch.width, patch.height,
-		       gdk_pixbuf_get_rowstride(patch.unscaled_on), 1);
-
-  vbi_draw_page_region(&client->fp,
-		       gdk_pixbuf_get_pixels(patch.unscaled_off), 0,
-		       patch.col, patch.row, patch.width, patch.height,
-		       gdk_pixbuf_get_rowstride(patch.unscaled_off), 0);
-
+  patch.unscaled_on = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
+				     patch.width*CW+10, patch.height*CH+10);
+  patch.unscaled_off = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
+				      patch.width*CW+10, patch.height*CH+10);
   g_assert(patch.unscaled_on != NULL);
   g_assert(patch.unscaled_off != NULL);
 
+  z_pixbuf_copy_area(client->unscaled_on, patch.col*CW-5,
+		       patch.row*CH-5, patch.width*CW+10,
+		       patch.height*CH+10, patch.unscaled_on, 0, 0);
+  z_pixbuf_copy_area(client->unscaled_off, patch.col*CW-5,
+		     patch.row*CH-5, patch.width*CW+10,
+		     patch.height*CH+10, patch.unscaled_off, 0, 0);
+
   if (client->w > 0  &&  client->h > 0)
     {
-      /* FIXME: Take roundoff into account */
-      sw = (client->w*patch.width)/client->fp.columns;
-      sh = (client->h*patch.height)/client->fp.rows;
       patch.scaled_on =
 	gdk_pixbuf_scale_simple(patch.unscaled_on, sw, sh, INTERP_MODE);
       patch.scaled_off =
@@ -447,8 +451,10 @@ resize_patches(struct ttx_client *client)
 
   for (i=0; i<client->num_patches; i++)
     {
-      sw = (client->w*client->patches[i].width)/client->fp.columns;
-      sh = (client->h*client->patches[i].height)/client->fp.rows;
+      sw = (client->w*(client->patches[i].width*CW+10))/
+	gdk_pixbuf_get_width(client->unscaled_on);
+      sh = (client->h*(client->patches[i].height*CH+10))/
+	gdk_pixbuf_get_height(client->unscaled_on);
 
       if (client->patches[i].scaled_on)
 	gdk_pixbuf_unref(client->patches[i].scaled_on);
@@ -476,8 +482,6 @@ build_patches(struct ttx_client *client)
 
   for (i = 0; i<client->num_patches; i++)
     {
-      gdk_pixbuf_unref(client->patches[i].unscaled_on);
-      gdk_pixbuf_unref(client->patches[i].unscaled_off);
       if (client->patches[i].scaled_on)
 	gdk_pixbuf_unref(client->patches[i].scaled_on);
       if (client->patches[i].scaled_off)
@@ -500,60 +504,64 @@ build_patches(struct ttx_client *client)
 /**
  * Applies the patches into the page.
  */
+static void
+refresh_ttx_page_intern(struct ttx_client *client, GtkWidget *drawable)
+{
+  int i;
+  struct ttx_patch *p;
+  GdkPixbuf *scaled;
+  gint x, y;
+  gint sx, sy;
+
+  for (i=0; i<client->num_patches; i++)
+    {
+      p = &(client->patches[i]);
+      p->phase = (p->phase + 1) & 3;
+      if (p->phase > 1)
+	continue;
+      else if (p->phase)
+	scaled = p->scaled_on;
+	  else
+	    scaled = p->scaled_off;
+      
+      /* Update the scaled version of the page */
+      if ((scaled) && (client->scaled) && (client->w > 0)
+	  && (client->h > 0))
+	{
+	  /* fixme: roundoff */
+	  x = (client->w*p->col)/client->fp.columns;
+	  y = (client->h*p->row)/client->fp.rows;
+	  sx = (gdk_pixbuf_get_width(scaled)*5)/
+	    gdk_pixbuf_get_width(p->unscaled_on);
+	  sy = (gdk_pixbuf_get_height(scaled)*5)/
+	    gdk_pixbuf_get_height(p->unscaled_on);
+	  
+	  z_pixbuf_copy_area(scaled, sx, sy,
+			     gdk_pixbuf_get_width(scaled)-sx*2,
+			     gdk_pixbuf_get_height(scaled)-sy*2,
+			     client->scaled,
+			     x, y);
+	  
+	  if (drawable)
+	    gdk_window_clear_area_e(drawable->window, x, y,
+				    gdk_pixbuf_get_width(scaled)-sx*2,
+				    gdk_pixbuf_get_height(scaled)-sy*2);
+	}
+    }
+}
+
 void
 refresh_ttx_page(int id, GtkWidget *drawable)
 {
-  int i;
   struct ttx_client *client;
-  struct ttx_patch *p;
-  GdkPixbuf *unscaled, *scaled;
-  gint x, y;
 
   pthread_mutex_lock(&clients_mutex);
-
   if ((client = find_client(id)))
-    for (i=0; i<client->num_patches; i++)
-      {
-	p = &(client->patches[i]);
-	p->phase = (p->phase + 1) & 3;
-	if (p->phase > 1)
-	  continue;
-	else if (p->phase)
-	  {
-	    unscaled = p->unscaled_on;
-	    scaled = p->scaled_on;
-	  }
-	else
-	  {
-	    unscaled = p->unscaled_off;
-	    scaled = p->scaled_off;
-	  }
-
-	/* Update the unscaled version of the page */
-	gdk_pixbuf_copy_area(unscaled, 0, 0,
-			     gdk_pixbuf_get_width(unscaled),
-			     gdk_pixbuf_get_height(unscaled),
-			     client->unscaled,
-			     p->col*CW, p->row*CH);
-
-	/* Update the scaled version of the page */
-	if ((scaled) && (client->scaled) && (client->w > 0)
-	    && (client->h > 0))
-	  {
-	    x = (client->w*p->col)/client->fp.columns;
-	    y = (client->h*p->row)/client->fp.rows;
-	    gdk_pixbuf_copy_area(scaled, 0, 0,
-				 gdk_pixbuf_get_width(scaled),
-				 gdk_pixbuf_get_height(scaled),
-				 client->scaled,
-				 x, y);
-
-	    gdk_window_clear_area_e(drawable->window, x, y,
-				    gdk_pixbuf_get_width(scaled),
-				    gdk_pixbuf_get_height(scaled));
-	  }
-      }
-
+    {
+      pthread_mutex_lock(&client->mutex);
+      refresh_ttx_page_intern(client, drawable);
+      pthread_mutex_unlock(&client->mutex);
+    }
   pthread_mutex_unlock(&clients_mutex);
 }
 
@@ -574,7 +582,10 @@ build_client_page(struct ttx_client *client, int page, int subpage)
 	  return 0;
 	}
       vbi_draw_page(&client->fp,
-		    gdk_pixbuf_get_pixels(client->unscaled), 0);
+		    gdk_pixbuf_get_pixels(client->unscaled_on), 0);
+      vbi_draw_page_region(&client->fp,
+			   gdk_pixbuf_get_pixels(client->unscaled_off),
+			   0, 0, 0, 40, 25, -1, 0);
     }
   else if (page == 0)
     {
@@ -588,17 +599,21 @@ build_client_page(struct ttx_client *client, int page, int subpage)
       if (simple)
 	{
 	  gdk_pixbuf_scale(simple,
-			   client->unscaled, 0, 0,
-			   gdk_pixbuf_get_width(client->unscaled),
-			   gdk_pixbuf_get_height(client->unscaled),
+			   client->unscaled_on, 0, 0,
+			   gdk_pixbuf_get_width(client->unscaled_on),
+			   gdk_pixbuf_get_height(client->unscaled_on),
 			   0, 0,
 			   (double)
-			   gdk_pixbuf_get_width(client->unscaled) /
+			   gdk_pixbuf_get_width(client->unscaled_on) /
 			   gdk_pixbuf_get_width(simple),
 			   (double)
-			   gdk_pixbuf_get_height(client->unscaled) /
+			   gdk_pixbuf_get_height(client->unscaled_on) /
 			   gdk_pixbuf_get_height(simple),
 			   INTERP_MODE);
+	  z_pixbuf_copy_area(client->unscaled_on, 0, 0,
+			       gdk_pixbuf_get_width(client->unscaled_on),
+			       gdk_pixbuf_get_height(client->unscaled_off),
+			       client->unscaled_off, 0, 0);
 	  gdk_pixbuf_unref(simple);
 	}
     }
@@ -609,16 +624,17 @@ build_client_page(struct ttx_client *client, int page, int subpage)
     client->scaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
 				    client->w, client->h);
   if (client->scaled)
-    gdk_pixbuf_scale(client->unscaled,
+    gdk_pixbuf_scale(client->unscaled_on,
 		     client->scaled, 0, 0, client->w, client->h,
 		     0, 0,
 		     (double) client->w /
-		     gdk_pixbuf_get_width(client->unscaled),
+		     gdk_pixbuf_get_width(client->unscaled_on),
 		     (double) client->h /
-		      gdk_pixbuf_get_height(client->unscaled),
+		      gdk_pixbuf_get_height(client->unscaled_on),
 		     INTERP_MODE);
 
   build_patches(client);
+  refresh_ttx_page_intern(client, NULL);
 
   pthread_mutex_unlock(&client->mutex);
   return 1; /* success */
@@ -666,7 +682,10 @@ void monitor_ttx_this(int id, struct fmt_page *pg)
       client->freezed = TRUE;
       memcpy(&client->fp, pg, sizeof(struct fmt_page));
       vbi_draw_page(&client->fp,
-		    gdk_pixbuf_get_pixels(client->unscaled), 0);
+		    gdk_pixbuf_get_pixels(client->unscaled_on), 0);
+      vbi_draw_page_region(&client->fp,
+			   gdk_pixbuf_get_pixels(client->unscaled_off),
+			   0, 0, 0, 40, 25, -1, 0);
       build_client_page(client, -1, -1);
       clear_message_queue(client);
       send_ttx_message(client, TTX_PAGE_RECEIVED);
@@ -738,19 +757,21 @@ void resize_ttx_page(int id, int w, int h)
 	  client->scaled = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
 					  w, h);
 	  if (client->scaled)
-	    gdk_pixbuf_scale(client->unscaled,
+	    gdk_pixbuf_scale(client->unscaled_on,
 			     client->scaled, 0, 0, w, h,
 			     0, 0,
 			     (double) w /
-			     gdk_pixbuf_get_width(client->unscaled),
+			     gdk_pixbuf_get_width(client->unscaled_on),
 			     (double) h /
-			     gdk_pixbuf_get_height(client->unscaled),
+			     gdk_pixbuf_get_height(client->unscaled_on),
 			     INTERP_MODE);
 	  
 	  client->w = w;
 	  client->h = h;
 
 	  resize_patches(client);
+
+	  /* fixme: apply patches? */
 	}
       pthread_mutex_unlock(&client->mutex);
     }

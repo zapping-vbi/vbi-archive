@@ -1,3 +1,9 @@
+20.2.2001	TTX <garetxe@users.sourceforge.net>
+
+	* export.c: Zero 'struct export *' on allocation, caused segv
+	when pasting text.
+	* zvbi.c: Better patch generation, corrects errors caused by interp.
+
 20.2.2001	caption <mschimek@users.sourceforge.net>
 
 	* Fixed 'double height acute vowels' bug.

@@ -539,3 +539,61 @@ void set_stock_pixmap	(GtkWidget	*button,
 }
 #endif
 
+/**
+ * Just like gdk_pixbuf_copy_area but does clipping.
+ */
+void
+z_pixbuf_copy_area		(GdkPixbuf	*src_pixbuf,
+				 gint		src_x,
+				 gint		src_y,
+				 gint		width,
+				 gint		height,
+				 GdkPixbuf	*dest_pixbuf,
+				 gint		dest_x,
+				 gint		dest_y)
+{
+  gint src_w = gdk_pixbuf_get_width(src_pixbuf);
+  gint src_h = gdk_pixbuf_get_height(src_pixbuf);
+  gint dest_w = gdk_pixbuf_get_width(dest_pixbuf);
+  gint dest_h = gdk_pixbuf_get_height(dest_pixbuf);
+
+  if (src_x < 0)
+    {
+      width += src_x;
+      src_x = 0;
+    }
+  if (src_y < 0)
+    {
+      height += src_y;
+      src_y = 0;
+    }
+
+  if (src_x + width > src_w)
+    width = src_w - src_x;
+  if (src_y + height > src_h)
+    height = src_h - src_y;
+
+  if (dest_x < 0)
+    {
+      src_x -= dest_x;
+      width += dest_x;
+      dest_x = 0;
+    }
+  if (dest_y < 0)
+    {
+      src_y -= dest_y;
+      height += dest_y;
+      dest_y = 0;
+    }
+
+  if (dest_x + width > dest_w)
+    width = dest_w - dest_x;
+  if (dest_y + height > dest_h)
+    height = dest_h - dest_y;
+
+  if ((width <= 0) || (height <= 0))
+    return;
+
+  gdk_pixbuf_copy_area(src_pixbuf, src_x, src_y, width, height,
+		       dest_pixbuf, dest_x, dest_y);
+}

@@ -29,6 +29,7 @@
 #endif
 
 #include <gnome.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include <tveng.h>
 
@@ -183,5 +184,18 @@ zmisc_resolve_pixformat(int bpp, GdkByteOrder byte_order)
     }
   return -1;
 }
+
+/**
+ * Just like gdk_pixbuf_copy_area but does clipping.
+ */
+void
+z_pixbuf_copy_area		(GdkPixbuf	*src_pixbuf,
+				 gint		src_x,
+				 gint		src_y,
+				 gint		width,
+				 gint		height,
+				 GdkPixbuf	*dest_pixbuf,
+				 gint		dest_x,
+				 gint		dest_y);
 
 #endif /* ZMISC.H */
