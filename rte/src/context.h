@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.h,v 1.6 2002-08-22 22:08:26 mschimek Exp $ */
+/* $Id: context.h,v 1.7 2002-09-26 20:43:30 mschimek Exp $ */
 
 #ifndef CONTEXT_H
 #define CONTEXT_H
@@ -61,7 +61,7 @@ typedef struct {
 
 	/**
 	 * @p label is a name for the context to be presented to the user,
-	 *  can be localized with gettext(label).
+	 *  can be localized with dgettext("rte", label).
 	 */
 	const char *		label;
 
