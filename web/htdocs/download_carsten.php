@@ -5,7 +5,7 @@
 Zapping -- Linux TV Viewer -- Downloading
 </title>
 <!--
-	Generated from download.xml on Thu Mar 13 18:53:46 2003
+	Generated from download.xml on Sat Nov 29 23:57:14 2003
 -->
 <meta name="description" content="Zapping is a TV Viewer Software for Linux/Unix. Zapping is Open Source and has the ability to use plugins, it has also nice extra build in features.">
 <meta name="language" content="en-us">
@@ -190,8 +190,7 @@ cd zapping
     access the CVS server anonymously. <b>Remember there is no
     warranty that it will even compile.</b> This method is mainly
     for developers and people who want to have the very latest,
-    probably very buggy, and occasionally very bugfixed, version.
-    Enter the following:</p><ol><li><pre>
+    probably very buggy, and occasionally very bugfixed, version.</p><p>Note the most recent version in CVS requires <b>Gnome 2.x</b>.</p><p>Enter the following:</p><ol><li><pre>
 cvs -z3 -d:pserver:anonymous@cvs.zapping.sf.net:/cvsroot/zapping login
    
 </pre>

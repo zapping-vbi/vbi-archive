@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
   <!--
-  Generated from index_modern.xml on Thu Mar 13 18:53:46 2003
+  Generated from index_modern.xml on Sat Nov 29 23:57:15 2003
   -->
   <head>
     <title>Zapping source code</title>
@@ -203,8 +203,8 @@
 
 	  <p>This is the last release of Zapping using Gnome 1. The next version
 	  0.7 will require Gnome 2, so please stop asking now. :-) If you like to
-	  live on the bleeding edge, the tree is in CVS, branch zapping-gnome2.
-	  It will move to the HEAD trunk at the appropriate time.</p></li><li><b>RTE</b> 0.5
+	  live on the bleeding edge, the tree is in CVS (former branch
+	  zapping-gnome2, now on the trunk).</p></li><li><b>RTE</b> 0.5
 
         <p>Well, see above. Want to help? The documentation of librte
 	is now <a href="doc/librte">online</a>.</p></li><li><b>ZVBI</b> 0.2.2

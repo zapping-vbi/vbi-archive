@@ -2,7 +2,7 @@
 	"http://www.w3.org/TR/html4/loose.dtd">
 <html>
   <!--
-  Generated from index_simple.xml on Thu Mar 13 18:53:46 2003
+  Generated from index_simple.xml on Sat Nov 29 23:57:15 2003
   -->
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
@@ -49,8 +49,8 @@ project page</a> |
 
 	  <p>This is the last release of Zapping using Gnome 1. The next version
 	  0.7 will require Gnome 2, so please stop asking now. :-) If you like to
-	  live on the bleeding edge, the tree is in CVS, branch zapping-gnome2.
-	  It will move to the HEAD trunk at the appropriate time.</p></li><li><b>RTE</b> 0.5
+	  live on the bleeding edge, the tree is in CVS (former branch
+	  zapping-gnome2, now on the trunk).</p></li><li><b>RTE</b> 0.5
 
         <p>Well, see above. Want to help? The documentation of librte
 	is now <a href="doc/librte">online</a>.</p></li><li><b>ZVBI</b> 0.2.2
@@ -117,8 +117,7 @@ cd zapping
     access the CVS server anonymously. <b>Remember there is no
     warranty that it will even compile.</b> This method is mainly
     for developers and people who want to have the very latest,
-    probably very buggy, and occasionally very bugfixed, version.
-    Enter the following:</p><ol><li><pre>
+    probably very buggy, and occasionally very bugfixed, version.</p><p>Note the most recent version in CVS requires <b>Gnome 2.x</b>.</p><p>Enter the following:</p><ol><li><pre>
 cvs -z3 -d:pserver:anonymous@cvs.zapping.sf.net:/cvsroot/zapping login
    
 </pre>

@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
   <!--
-  Generated from download.xml on Thu Mar 13 18:53:46 2003
+  Generated from download.xml on Sat Nov 29 23:57:15 2003
   -->
   <head>
     <title>Downloading</title>
@@ -220,8 +220,7 @@ cd zapping
     access the CVS server anonymously. <b>Remember there is no
     warranty that it will even compile.</b> This method is mainly
     for developers and people who want to have the very latest,
-    probably very buggy, and occasionally very bugfixed, version.
-    Enter the following:</p><ol><li><pre>
+    probably very buggy, and occasionally very bugfixed, version.</p><p>Note the most recent version in CVS requires <b>Gnome 2.x</b>.</p><p>Enter the following:</p><ol><li><pre>
 cvs -z3 -d:pserver:anonymous@cvs.zapping.sf.net:/cvsroot/zapping login
    
 </pre>

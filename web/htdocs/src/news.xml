@@ -46,8 +46,8 @@ HTML tags can be used freely in the body.
 
 	  <p>This is the last release of Zapping using Gnome 1. The next version
 	  0.7 will require Gnome 2, so please stop asking now. :-) If you like to
-	  live on the bleeding edge, the tree is in CVS, branch zapping-gnome2.
-	  It will move to the HEAD trunk at the appropriate time.</p>
+	  live on the bleeding edge, the tree is in CVS (former branch
+	  zapping-gnome2, now on the trunk).</p>
       </li>
       <li>
         <b>RTE</b> 0.5

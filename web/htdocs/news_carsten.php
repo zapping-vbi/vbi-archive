@@ -5,7 +5,7 @@
 Zapping -- Linux TV Viewer -- News page
 </title>
 <!--
-	Generated from news.xml on Thu Mar 13 18:53:46 2003
+	Generated from news.xml on Sat Nov 29 23:57:15 2003
 -->
 <meta name="description" content="Zapping is a TV Viewer Software for Linux/Unix. Zapping is Open Source and has the ability to use plugins, it has also nice extra build in features.">
 <meta name="language" content="en-us">
@@ -173,8 +173,8 @@ height="480" alt=""></td>
 
 	  <p>This is the last release of Zapping using Gnome 1. The next version
 	  0.7 will require Gnome 2, so please stop asking now. :-) If you like to
-	  live on the bleeding edge, the tree is in CVS, branch zapping-gnome2.
-	  It will move to the HEAD trunk at the appropriate time.</p></li><li><b>RTE</b> 0.5
+	  live on the bleeding edge, the tree is in CVS (former branch
+	  zapping-gnome2, now on the trunk).</p></li><li><b>RTE</b> 0.5
 
         <p>Well, see above. Want to help? The documentation of librte
 	is now <a href="doc/librte">online</a>.</p></li><li><b>ZVBI</b> 0.2.2
