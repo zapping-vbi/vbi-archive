@@ -16,7 +16,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.28 2001-08-15 23:15:36 mschimek Exp $ */
+/* $Id: fifo.c,v 1.29 2001-08-17 20:59:08 garetxe Exp $ */
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +34,11 @@
 
 #ifndef CACHE_LINE
 #define CACHE_LINE 32
+#endif
+
+#ifndef HAVE_PROGRAM_INVOCATION_NAME
+extern const char* program_invocation_name;
+extern const char* program_invocation_short_name;
 #endif
 
 static char *

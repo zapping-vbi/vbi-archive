@@ -35,6 +35,7 @@ Outstanding issues for the next release (0.6.0)
 	  raw dump, so users can send updates. Upd: Oops, we do have a raw
 	  dump: VTX.
 	+ zapzilla: channel selector, properties.
+	+ libvbi: SGML error reporting.
 
 > Somewhen...
 	+ Do realtime effects to the image, plainly wonderful, see

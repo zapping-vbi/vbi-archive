@@ -601,13 +601,15 @@ static gint idle_handler(gpointer ignored)
 
   print_info(main_window);
 
-  b = recv_full_buffer(&cf_idle_consumer);
+  b = wait_full_buffer(&cf_idle_consumer);
 
+  /*
   if (!b)
     {
       usleep(2000);
       return TRUE;
     }
+  */
 
   cb = (capture_buffer*)b;
   d = &(cb->d);

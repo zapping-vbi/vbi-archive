@@ -298,6 +298,11 @@ fi
 
 AC_SUBST(ARCH_CFLAGS)
 
+dnl -----------------------------------------------------------
+dnl Check whether program_invocation_name exists, GNU extension
+dnl -----------------------------------------------------------
+AC_CHECK_FUNCS(program_invocation_name)
+
 AM_PATH_LIBGLADE(,
 AC_MSG_ERROR(*** Cannot find libglade in your system. Is it installed? ***),
 gnome)

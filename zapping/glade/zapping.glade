@@ -3416,15 +3416,6 @@ in the next release of this program.</label>
   <name>popup_menu1</name>
 
   <widget>
-    <class>GtkPixmapMenuItem</class>
-    <name>channel_list1</name>
-    <tooltip>The list of channels you have configured in the Channel Editor</tooltip>
-    <label>Channel list</label>
-    <right_justify>False</right_justify>
-    <stock_icon>GNOME_STOCK_MENU_INDEX</stock_icon>
-  </widget>
-
-  <widget>
     <class>GtkMenuItem</class>
     <name>separador3</name>
     <right_justify>False</right_justify>

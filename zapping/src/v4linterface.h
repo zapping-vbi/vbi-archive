@@ -91,6 +91,13 @@ store_control_values		(gint		*num_controls,
 				 tveng_tc_control **list,
 				 tveng_device_info *info);
 
+/* Returns whether something (useful) was added */
+gboolean
+add_channel_entries		(GtkMenu *menu,
+				 gint pos,
+				 gint menu_max_entries,
+				 tveng_device_info *info);
+
 /* Do the startup/shutdown */
 void startup_v4linterface	(tveng_device_info *info);
 void shutdown_v4linterface	(void);

@@ -219,13 +219,6 @@ on_zapping_delete_event                (GtkWidget       *widget,
   return FALSE;
 }
 
-/* Activate a TV channel */
-void on_channel_activate              (GtkMenuItem     *menuitem,
-				       gpointer        user_data)
-{
-  z_select_channel(GPOINTER_TO_INT(user_data));
-}
-
 void
 on_controls_clicked                    (GtkButton       *button,
                                         gpointer         user_data)
@@ -307,38 +300,13 @@ on_go_previewing2_activate             (GtkMenuItem     *menuitem,
     ShowBox(main_info->error, GNOME_MESSAGE_BOX_ERROR);
 }
 
-/* the returned string needs to be g_free'ed */
-gchar *
-build_channel_tooltip(tveng_tuned_channel * tuned_channel)
-{
-  gchar * buffer;
-
-  if ((!tuned_channel) || (!tuned_channel->accel_key) ||
-      (tuned_channel->accel_key == GDK_VoidSymbol))
-    return NULL;
-
-  buffer = gdk_keyval_name(tuned_channel->accel_key);
-
-  if (!buffer)
-    return NULL;
-
-  return g_strdup_printf("%s%s%s%s",
-        	 (tuned_channel->accel_mask&GDK_CONTROL_MASK)?"Ctl+":"",
-	       (tuned_channel->accel_mask&GDK_MOD1_MASK)?"Alt+":"",
-	       (tuned_channel->accel_mask&GDK_SHIFT_MASK)?"Shift+":"",
-	       buffer);
-
-}
-
 gboolean
 on_tv_screen_button_press_event        (GtkWidget       *widget,
 					GdkEvent        *event,
 					gpointer        user_data)
 {
-  gint i;
   GtkWidget * zapping = lookup_widget(widget, "zapping");
   GdkEventButton * bevent = (GdkEventButton *) event;
-  gchar * tooltip;
 
   if (event->type != GDK_BUTTON_PRESS)
     return FALSE;
@@ -348,79 +316,9 @@ on_tv_screen_button_press_event        (GtkWidget       *widget,
     case 3:
       {
 	GtkMenu * menu = GTK_MENU(create_popup_menu1());
-	GtkWidget * menuitem;
-	GtkMenu * submenu;
-	tveng_tuned_channel * tuned;
 	/* it needs to be realized before operating on it */
 	gtk_widget_realize(GTK_WIDGET(menu));
-	gtk_widget_hide(lookup_widget(GTK_WIDGET(menu), "channel_list1"));
-	if (tveng_tuned_channel_num(global_channel_list) == 0)
-	  {
-	    menuitem = z_gtk_pixmap_menu_item_new(_("No tuned channels"),
-						  GNOME_STOCK_PIXMAP_CLOSE);
-	    gtk_widget_set_sensitive(menuitem, FALSE);
-	    gtk_widget_show(menuitem);
-	    gtk_menu_insert(menu, menuitem, 1);
-	  }
-	else
-	  {
-	    if (tveng_tuned_channel_num(global_channel_list) <= 7)
-	      for (i = tveng_tuned_channel_num(global_channel_list)-1;
-		   i >= 0; i--)
-		{
-		  tuned = tveng_retrieve_tuned_channel_by_index(i,
-					global_channel_list);
-		  g_assert(tuned != NULL);
-		  menuitem =
-		    z_gtk_pixmap_menu_item_new(tuned->name,
-					       GNOME_STOCK_PIXMAP_PROPERTIES);
-		  gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-				     GTK_SIGNAL_FUNC(on_channel_activate),
-				     GINT_TO_POINTER(i));
-		  tooltip = build_channel_tooltip(tuned);
-		  if (tooltip)
-		    {
-		      set_tooltip(menuitem, tooltip);
-		      g_free(tooltip);
-		    }
-		  gtk_widget_show(menuitem);
-		  gtk_menu_insert(menu, menuitem, 1);
-		}
-	    else
-	      {
-		menuitem = lookup_widget(GTK_WIDGET(menu),
-					 "channel_list1");
-		gtk_widget_show(menuitem);
-		submenu = GTK_MENU(gtk_menu_new());
-		gtk_widget_show(GTK_WIDGET(submenu));
-		gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem),
-					  GTK_WIDGET(submenu));
-		menuitem = gtk_tearoff_menu_item_new();
-		gtk_widget_show(menuitem);
-		gtk_menu_append(submenu, menuitem);
-		for (i = tveng_tuned_channel_num(global_channel_list)-1;
-		     i >= 0; i--)
-		  {
-		    tuned = tveng_retrieve_tuned_channel_by_index(i,
-				global_channel_list);
-		    g_assert(tuned != NULL);
-		    menuitem =
-		      z_gtk_pixmap_menu_item_new(tuned->name,
-					 GNOME_STOCK_PIXMAP_PROPERTIES);
-		    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-				       GTK_SIGNAL_FUNC(on_channel_activate),
-				       GINT_TO_POINTER(i));
-		    tooltip = build_channel_tooltip(tuned);
-		    if (tooltip)
-		      {
-			set_tooltip(menuitem, tooltip);
-			g_free(tooltip);
-		      }
-		    gtk_widget_show(menuitem);
-		    gtk_menu_insert(submenu, menuitem, 1);
-		  }
-	      }
-	  }
+	add_channel_entries(menu, 1, 10, main_info);
 	if (disable_preview)
 	  {
 	    widget = lookup_widget(GTK_WIDGET(menu), "go_fullscreen2");

@@ -144,11 +144,6 @@ void set_tooltip	(GtkWidget	*widget,
 			 const gchar	*new_tip);
 
 /**
- * Builds a suitable tooltip for the given channel, or NULL
- */
-char * build_channel_tooltip (tveng_tuned_channel *tc);
-
-/**
  * Widget: a GTK_PIXMAP_MENU_ITEM that you want to change.
  * Any of the attributes can be NULL, means don't change.
  */

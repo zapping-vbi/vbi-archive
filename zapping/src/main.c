@@ -45,6 +45,11 @@
 #include "osd.h"
 #include "remote.h"
 
+#ifndef HAVE_PROGRAM_INVOCATION_NAME
+char *program_invocation_name;
+char *program_invocation_short_name;
+#endif
+
 /* This comes from callbacks.c */
 extern enum tveng_capture_mode restore_mode; /* the mode set when we went
 						fullscreen */
@@ -377,6 +382,11 @@ int main(int argc, char * argv[])
   gnome_init_with_popt_table ("zapping", VERSION, argc, argv, options,
 			      0, NULL);
 
+#ifndef HAVE_PROGRAM_INVOCATION_NAME
+  program_invocation_name = argv[0];
+  program_invocation_short_name = g_get_progname();
+#endif
+
   if (x11_get_bpp() < 15)
     {
       RunBox("The current depth (%i bpp) isn't supported by Zapping",
@@ -385,7 +395,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.125 2001-08-17 00:12:19 garetxe Exp $",
+	 "$Id: main.c,v 1.126 2001-08-17 20:59:08 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())
@@ -461,7 +471,7 @@ int main(int argc, char * argv[])
       else if (!strcasecmp(yuv_format, "YVU420"))
 	zcs_int(TVENG_PIX_YVU420, "yuv_format");
       else
-	g_warning("Unkown pixformat %s: Must be one of (YUYV | YVU420)\n"
+	g_warning("Unknown pixformat %s: Must be one of (YUYV | YVU420)\n"
 		  "The current format is %s",
 		  yuv_format, zcg_int(NULL, "yuv_format") ==
 		  TVENG_PIX_YUYV ? "YUYV" : "YVU420");
@@ -487,6 +497,7 @@ int main(int argc, char * argv[])
       return 1;
     }
   D();
+
   /* try to run the auxiliary suid program */
   if (!disable_zsfb &&
       tveng_run_zapping_setup_fb(main_info) == -1)

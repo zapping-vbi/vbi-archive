@@ -44,34 +44,14 @@ ZModel *z_input_model = NULL;
 /* Minimize updates */
 static gboolean freeze = FALSE, needs_refresh = FALSE;
 
-/* Activate an input */
-static
-void on_input_activate              (GtkMenuItem     *menuitem,
-				     gpointer        user_data)
-{
-  z_switch_input(GPOINTER_TO_INT(user_data), main_info);
-}
-
-/* Activate an standard */
-static
-void on_standard_activate              (GtkMenuItem     *menuitem,
-					gpointer        user_data)
-{
-  z_switch_standard(GPOINTER_TO_INT(user_data), main_info);
-}
-
 static void
 update_bundle				(ZModel		*model,
 					 tveng_device_info *info)
 {
   GtkMenuItem *channels =
     GTK_MENU_ITEM(lookup_widget(main_window, "channels"));
-  GtkMenu *menu, *menu2;
+  GtkMenu *menu;
   GtkWidget *menu_item;
-  gint i;
-  tveng_tuned_channel *tc;
-  gchar *tooltip;
-  gboolean sth = FALSE;
 
   if (freeze)
     {
@@ -85,96 +65,11 @@ update_bundle				(ZModel		*model,
   gtk_widget_show(menu_item);
   gtk_menu_append(menu, menu_item);
 
-  /* If no tuned channels show error not sensitive */
-  if (tveng_tuned_channel_num(global_channel_list))
-    for (i = 0;
-	 (tc = tveng_retrieve_tuned_channel_by_index(i,
-						     global_channel_list));
-	 i++)
-      {
-	menu_item =
-	  z_gtk_pixmap_menu_item_new(tc->name,
-				     GNOME_STOCK_PIXMAP_PROPERTIES);
-	gtk_signal_connect_object(GTK_OBJECT(menu_item), "activate",
-				  GTK_SIGNAL_FUNC(z_select_channel),
-				  GINT_TO_POINTER(i));
-	tooltip = build_channel_tooltip(tc);
-	if (tooltip)
-	  {
-	    set_tooltip(menu_item, tooltip);
-	    g_free(tooltip);
-	  }
-	gtk_widget_show(menu_item);
-	gtk_menu_append(menu, menu_item);
-	sth = TRUE;
-      }
-  else
-    {
-      menu_item = gtk_menu_item_new_with_label(_("No tuned channels"));
-      gtk_widget_show (menu_item);
-      gtk_widget_set_sensitive(menu_item, FALSE);
-      gtk_menu_append (GTK_MENU (menu), menu_item);
-    }
-
-  if (info->num_standards || info->num_inputs)
-    {
-      sth = TRUE;
-      /* separator */
-      menu_item = gtk_menu_item_new();
-      gtk_widget_show(menu_item);
-      gtk_menu_append (GTK_MENU (menu), menu_item);
-    }
-
-  if (info->num_inputs)
-    {
-      menu2 = GTK_MENU(gtk_menu_new());
-      menu_item =
-	    z_gtk_pixmap_menu_item_new(_("Inputs"),
-				       GNOME_STOCK_PIXMAP_LINE_IN);
-      gtk_widget_show(menu_item);
-      gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
-				GTK_WIDGET(menu2));
-      gtk_menu_append(menu, menu_item);
-      for (i = 0; i<info->num_inputs; i++)
-	{
-	  menu_item =
-	    z_gtk_pixmap_menu_item_new(info->inputs[i].name,
-				       GNOME_STOCK_PIXMAP_LINE_IN);
-	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			     GTK_SIGNAL_FUNC(on_input_activate),
-			     GINT_TO_POINTER(info->inputs[i].hash));
-	  gtk_widget_show(menu_item);
-	  gtk_menu_append(menu2, menu_item);
-	}
-    }
-
-  if (info->num_standards)
-    {
-      menu2 = GTK_MENU(gtk_menu_new());
-      menu_item =
-	    z_gtk_pixmap_menu_item_new("Standards",
-				       GNOME_STOCK_PIXMAP_COLORSELECTOR);
-      gtk_widget_show(menu_item);
-      gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
-				GTK_WIDGET(menu2));
-      gtk_menu_append(menu, menu_item);
-      for (i = 0; i<info->num_standards; i++)
-	{
-	  menu_item =
-	    z_gtk_pixmap_menu_item_new(info->standards[i].name,
-				       GNOME_STOCK_PIXMAP_COLORSELECTOR);
-	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
-			     GTK_SIGNAL_FUNC(on_standard_activate),
-			     GINT_TO_POINTER(info->standards[i].hash));
-	  gtk_widget_show(menu_item);
-	  gtk_menu_append(menu2, menu_item);
-	}
-    }
-
   gtk_widget_show(GTK_WIDGET(menu));
   gtk_menu_item_remove_submenu(channels);
   gtk_menu_item_set_submenu(channels, GTK_WIDGET(menu));
-  gtk_widget_set_sensitive(GTK_WIDGET(channels), sth);
+  gtk_widget_set_sensitive(GTK_WIDGET(channels),
+			   add_channel_entries(menu, 1, 16, info));
 }
 
 static void
@@ -986,6 +881,205 @@ void store_control_values(gint *num_controls,
     *list = NULL;
 }
 
+/* Activate an input */
+static
+void on_input_activate              (GtkMenuItem     *menuitem,
+				     gpointer        user_data)
+{
+  z_switch_input(GPOINTER_TO_INT(user_data), main_info);
+}
+
+/* Activate an standard */
+static
+void on_standard_activate              (GtkMenuItem     *menuitem,
+					gpointer        user_data)
+{
+  z_switch_standard(GPOINTER_TO_INT(user_data), main_info);
+}
+
+/**
+ * Builds a suitable tooltip for the given channel, or NULL
+ */
+/* the returned string needs to be g_free'ed */
+static gchar *
+build_channel_tooltip(tveng_tuned_channel * tuned_channel)
+{
+  gchar * buffer;
+
+  if ((!tuned_channel) || (!tuned_channel->accel_key) ||
+      (tuned_channel->accel_key == GDK_VoidSymbol))
+    return NULL;
+
+  buffer = gdk_keyval_name(tuned_channel->accel_key);
+
+  if (!buffer)
+    return NULL;
+
+  return g_strdup_printf("%s%s%s%s",
+        	 (tuned_channel->accel_mask&GDK_CONTROL_MASK)?"Ctl+":"",
+	       (tuned_channel->accel_mask&GDK_MOD1_MASK)?"Alt+":"",
+	       (tuned_channel->accel_mask&GDK_SHIFT_MASK)?"Shift+":"",
+	       buffer);
+
+}
+
+static inline void
+insert_one_channel			(GtkMenu *menu,
+					 gint index,
+					 gint pos)
+{
+  tveng_tuned_channel *tuned =
+    tveng_retrieve_tuned_channel_by_index(index, global_channel_list);
+  gchar *tooltip;
+  GtkWidget *menu_item =
+    z_gtk_pixmap_menu_item_new(tuned->name,
+			       GNOME_STOCK_PIXMAP_PROPERTIES);
+  gtk_signal_connect_object(GTK_OBJECT(menu_item), "activate",
+			    GTK_SIGNAL_FUNC(z_select_channel),
+			    (GtkObject*)GINT_TO_POINTER(index));
+  tooltip = build_channel_tooltip(tuned);
+  if (tooltip)
+    {
+      set_tooltip(menu_item, tooltip);
+      g_free(tooltip);
+    }
+  gtk_widget_show(menu_item);
+  gtk_menu_insert(menu, menu_item, pos);
+}
+
+/* Returns whether something (useful) was added */
+gboolean
+add_channel_entries			(GtkMenu *menu,
+					 gint pos,
+					 gint menu_max_entries,
+					 tveng_device_info *info)
+{
+  GtkWidget *menu_item = NULL;
+  GtkMenu *menu2 = NULL;
+  gchar *buf = NULL;
+  gint i;
+  gboolean sth = FALSE;
+
+  if (info->num_standards)
+    {
+      menu2 = GTK_MENU(gtk_menu_new());
+      menu_item =
+	    z_gtk_pixmap_menu_item_new("Standards",
+				       GNOME_STOCK_PIXMAP_COLORSELECTOR);
+      gtk_widget_show(menu_item);
+      gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
+				GTK_WIDGET(menu2));
+      gtk_menu_insert(menu, menu_item, pos);
+      menu_item = gtk_tearoff_menu_item_new();
+      gtk_widget_show(menu_item);
+      gtk_menu_append(menu2, menu_item);
+      for (i = 0; i<info->num_standards; i++)
+	{
+	  menu_item =
+	    z_gtk_pixmap_menu_item_new(info->standards[i].name,
+				       GNOME_STOCK_PIXMAP_COLORSELECTOR);
+	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
+			     GTK_SIGNAL_FUNC(on_standard_activate),
+			     GINT_TO_POINTER(info->standards[i].hash));
+	  gtk_widget_show(menu_item);
+	  gtk_menu_append(menu2, menu_item);
+	}
+    }
+
+  if (info->num_inputs)
+    {
+      menu2 = GTK_MENU(gtk_menu_new());
+      menu_item =
+	    z_gtk_pixmap_menu_item_new(_("Inputs"),
+				       GNOME_STOCK_PIXMAP_LINE_IN);
+      gtk_widget_show(menu_item);
+      gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
+				GTK_WIDGET(menu2));
+      gtk_menu_insert(menu, menu_item, pos);
+      menu_item = gtk_tearoff_menu_item_new();
+      gtk_widget_show(menu_item);
+      gtk_menu_append(menu2, menu_item);
+      for (i = 0; i<info->num_inputs; i++)
+	{
+	  menu_item =
+	    z_gtk_pixmap_menu_item_new(info->inputs[i].name,
+				       GNOME_STOCK_PIXMAP_LINE_IN);
+	  gtk_signal_connect(GTK_OBJECT(menu_item), "activate",
+			     GTK_SIGNAL_FUNC(on_input_activate),
+			     GINT_TO_POINTER(info->inputs[i].hash));
+	  gtk_widget_show(menu_item);
+	  gtk_menu_append(menu2, menu_item);
+	}
+    }
+
+  if ((info->num_standards || info->num_inputs) &&
+      tveng_tuned_channel_num(global_channel_list))
+    {
+      /* separator */
+      menu_item = gtk_menu_item_new();
+      gtk_widget_show(menu_item);
+      gtk_menu_insert (menu, menu_item, pos);
+      sth = TRUE;
+    }
+
+#define ITEMS_PER_SUBMENU 20
+
+  if (tveng_tuned_channel_num(global_channel_list) == 0)
+    {
+      menu_item = z_gtk_pixmap_menu_item_new(_("No tuned channels"),
+					     GNOME_STOCK_PIXMAP_CLOSE);
+      gtk_widget_set_sensitive(menu_item, FALSE);
+      gtk_widget_show(menu_item);
+      gtk_menu_insert(menu, menu_item, pos);
+      /* This doesn't count as something added */
+    }
+  else
+    {
+      sth = TRUE;
+      i = tveng_tuned_channel_num(global_channel_list);
+      if (i <= ITEMS_PER_SUBMENU && i <= menu_max_entries)
+	for (--i;i>=0;i--)
+	  insert_one_channel(menu, i, pos);
+      else {
+	if ((((--i)+1) % ITEMS_PER_SUBMENU) == 1)
+	    insert_one_channel(menu, i--, pos);
+	menu2 = NULL;
+	for (;i>=0;i--) {
+	  if (!menu2)
+	    {
+	      menu2 = GTK_MENU(gtk_menu_new());
+	      menu_item = gtk_tearoff_menu_item_new();
+	      gtk_widget_show(menu_item);
+	      gtk_menu_append(menu2, menu_item);
+	      gtk_widget_show(GTK_WIDGET(menu2));
+	      menu_item =
+		z_gtk_pixmap_menu_item_new("foobar",
+					   GNOME_STOCK_PIXMAP_LINE_IN);
+	      gtk_widget_show(menu_item);
+	      gtk_menu_insert(menu, menu_item, pos);
+	      gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
+					GTK_WIDGET(menu2));
+	      buf =
+		tveng_retrieve_tuned_channel_by_index(i,
+				      global_channel_list)->name;
+	    }
+	  insert_one_channel(menu2, i, 1);
+	  if (!(i%ITEMS_PER_SUBMENU))
+	    {
+	      buf = g_strdup_printf("%s/%s",
+			    tveng_retrieve_tuned_channel_by_index(i,
+			    global_channel_list)->name, buf);
+	      z_change_menuitem(menu_item, NULL, buf, NULL);
+	      g_free(buf);
+	      menu2 = NULL;
+	    }
+	}
+      }
+    }
+
+  return sth;
+}
+
 void
 startup_v4linterface(tveng_device_info *info)
 {
@@ -1003,7 +1097,6 @@ shutdown_v4linterface(void)
 {
   gtk_object_destroy(GTK_OBJECT(z_input_model));
 }
-
 
 
 
