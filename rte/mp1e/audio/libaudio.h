@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libaudio.h,v 1.12 2002-02-08 15:03:11 mschimek Exp $ */
+/* $Id: libaudio.h,v 1.13 2002-12-14 00:43:44 mschimek Exp $ */
 
 #include "../b_mp1e.h"
 #include "../common/fifo.h"
@@ -30,7 +30,7 @@ struct pcm_context {
 
 	rte_sndfmt      format;
 	int		sampling_rate;
-	bool		stereo;
+	rte_bool	stereo;
 };
 
 /* mp2.c */
@@ -54,8 +54,8 @@ extern char *		mix_sources(void);
 
 /* misc (mp1e) */
 
-extern void		open_pcm_oss(char *dev_name, int sampling_rate, bool stereo, fifo **);
-extern void		open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo, fifo **);
-extern void		open_pcm_esd(char *, int sampling_rate, bool stereo, fifo **);
-extern void		open_pcm_arts(char *, int sampling_rate, bool stereo, fifo **);
-extern void		open_pcm_afl(char *name, int, bool, fifo **);
+extern void		open_pcm_oss(char *dev_name, int sampling_rate, rte_bool stereo, fifo **);
+extern void		open_pcm_alsa(char *dev_name, int sampling_rate, rte_bool stereo, fifo **);
+extern void		open_pcm_esd(char *, int sampling_rate, rte_bool stereo, fifo **);
+extern void		open_pcm_arts(char *, int sampling_rate, rte_bool stereo, fifo **);
+extern void		open_pcm_afl(char *name, int, rte_bool, fifo **);

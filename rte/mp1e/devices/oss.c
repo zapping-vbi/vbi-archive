@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.5 2002-10-02 20:52:40 mschimek Exp $ */
+/* $Id: oss.c,v 1.6 2002-12-14 00:43:44 mschimek Exp $ */
 
 #include "../common/log.h"
 
@@ -187,7 +187,7 @@ static const int format_preference[][2] = {
 };
 
 void
-open_pcm_oss(char *dev_name, int sampling_rate, bool stereo, fifo **f)
+open_pcm_oss(char *dev_name, int sampling_rate, rte_bool stereo, fifo **f)
 {
 	struct oss_context *oss;
 	int oss_format = AFMT_S16_LE;
@@ -379,7 +379,7 @@ mix_sources(void)
 #else /* !HAVE_OSS */
 
 void
-open_pcm_oss(char *dev_name, int sampling_rate, bool stereo, fifo **f)
+open_pcm_oss(char *dev_name, int sampling_rate, rte_bool stereo, fifo **f)
 {
 	FAIL("Not compiled with OSS interface.");
 }

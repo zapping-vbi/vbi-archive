@@ -17,9 +17,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.h,v 1.15 2002-05-07 06:39:10 mschimek Exp $ */
+/* $Id: audio.h,v 1.16 2002-12-14 00:43:43 mschimek Exp $ */
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <pthread.h>
 #include "../common/bstream.h"
 
@@ -107,7 +107,7 @@ typedef struct mp2_context {
 	double			nominal_time_elapsed;
 	double			nominal_sample_period;
 	uint32_t		format_sign;
-	bool			format_scale;
+	rte_bool		format_scale;
 
 	/* Output */
 

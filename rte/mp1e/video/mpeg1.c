@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.41 2002-10-07 14:53:04 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.42 2002-12-14 00:43:44 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -242,7 +242,7 @@ calc_vbv_delay(int pict_type, double frame_rate, int bit_rate)
 
 
 static inline void
-tmp_slice_i(mpeg1_context *mpeg1, bool motion)
+tmp_slice_i(mpeg1_context *mpeg1, rte_bool motion)
 {
 	for (mb_col = 0; mb_col < mb_width; mb_col++) {
 		unsigned int var;
@@ -366,7 +366,7 @@ if (0)
 }
 
 static inline int
-tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, bool motion)
+tmp_picture_i(mpeg1_context *mpeg1, unsigned char *org, rte_bool motion)
 {
 	int S;
 
@@ -501,7 +501,7 @@ do {									\
 
 static inline int
 tmp_picture_p(mpeg1_context *mpeg1, unsigned char *org,
-	      bool motion, int dist, int forward_motion)
+	      rte_bool motion, int dist, int forward_motion)
 {
 	int S, quant, prev_quant, quant1 = 1;
 	struct bs_rec mark;
@@ -868,7 +868,7 @@ if (!T3RT) quant = 2;
 
 static inline int
 tmp_picture_b(mpeg1_context *mpeg1, unsigned char *org,
-	      bool motion, int dist, int forward_motion, int backward_motion)
+	      rte_bool motion, int dist, int forward_motion, int backward_motion)
 {
 	short (* iblock)[6][8][8];
 	int S, quant, prev_quant, quant1 = 1;
@@ -1625,10 +1625,10 @@ encode_bframes(mpeg1_context *mpeg1, int stacked_bframes)
 		_send_full_buffer(mpeg1, last);
 }
 
-static inline bool
+static inline rte_bool
 encode_keyframe(mpeg1_context *mpeg1, stacked_frame *this,
 		int stacked_bframes, int key_offset,
-		buffer *obuf, bool pframe)
+		buffer *obuf, rte_bool pframe)
 {
 	mpeg1->gop_frame_count += key_offset;
 
@@ -1681,8 +1681,8 @@ encode_keyframe(mpeg1_context *mpeg1, stacked_frame *this,
 	return pframe;
 }
 
-static bool
-encode_stacked_frames(mpeg1_context *mpeg1, buffer *obuf, int stacked, bool pframe)
+static rte_bool
+encode_stacked_frames(mpeg1_context *mpeg1, buffer *obuf, int stacked, rte_bool pframe)
 {
 	int stacked_bframes = stacked - 1;
 	int key_offset = stacked_bframes;
@@ -2228,7 +2228,7 @@ video_reset(mpeg1_context *mpeg1)
 "intra coded, 'P' forward predicted and 'B' bidirectionally "		\
 "predicted, in any order headed by an 'I' picture."
 
-static bool
+static rte_bool
 gop_validation(mpeg1_context *mpeg1, char *gop_sequence)
 {
 	int bmax;

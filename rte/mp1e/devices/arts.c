@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: arts.c,v 1.5 2002-10-02 20:52:40 mschimek Exp $ */
+/* $Id: arts.c,v 1.6 2002-12-14 00:43:44 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/math.h"
@@ -109,7 +109,7 @@ send_empty(consumer *c, buffer *b)
 }
 
 void
-open_pcm_arts(char *unused, int sampling_rate, bool stereo, fifo **f)
+open_pcm_arts(char *unused, int sampling_rate, rte_bool stereo, fifo **f)
 {
 	struct arts_context *arts;
 	int errcode;
@@ -162,7 +162,7 @@ open_pcm_arts(char *unused, int sampling_rate, bool stereo, fifo **f)
 #else /* !HAVE_ARTS */
 
 void
-open_pcm_arts(char *dev_name, int sampling_rate, bool stereo, fifo **f)
+open_pcm_arts(char *dev_name, int sampling_rate, rte_bool stereo, fifo **f)
 {
 	FAIL("Not compiled with ARTS interface.\n");
 }

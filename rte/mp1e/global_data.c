@@ -17,15 +17,17 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.18 2002-10-02 20:55:17 mschimek Exp $ */
+/* $Id: global_data.c,v 1.19 2002-12-14 00:43:43 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <getopt.h>
 #include <ctype.h>
 #include <limits.h>
 #include <unistd.h>
+#ifdef HAVE_GETOPT_LONG
+#include <getopt.h>
+#endif
 #include <sys/time.h>
 #include <asm/types.h>
 #include <linux/soundcard.h>

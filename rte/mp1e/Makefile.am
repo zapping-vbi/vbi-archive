@@ -1,5 +1,5 @@
 ## Process this file with automake to produce Makefile.in
-## $Id: Makefile.am,v 1.14 2002-10-04 13:51:22 mschimek Exp $
+## $Id: Makefile.am,v 1.15 2002-12-14 00:43:43 mschimek Exp $
 
 INCLUDES = -D_GNU_SOURCE -D_REENTRANT -include $(top_builddir)/config.h \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
@@ -36,7 +36,7 @@ mp1e_LDADD = \
 	systems/libsystems.la \
 	audio/libaudio.la vbi/libvbi.la \
 	devices/libdevices.la video/libvideo.la common/libcommon.la \
-	test/libtest.la $(X_LIBS) -lm -lpthread $(ESD_LIBS)
+	test/libtest.la $(X_LIBS) -lm $(PTHREAD_LIB) $(ESD_LIBS)
 
 man_MANS = mp1e.1
 

@@ -15,19 +15,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: types.h,v 1.2 2001-08-22 01:28:08 mschimek Exp $ */
+/* $Id: types.h,v 1.3 2002-12-14 00:43:44 mschimek Exp $ */
 
 #ifndef TYPES_H
 #define TYPES_H
 
 #include <stddef.h>
-
-#undef TRUE
-#undef FALSE
-
-enum { FALSE, TRUE };
-
-typedef unsigned char bool;
+#include "option.h" /* rte_bool */
 
 #define PARENT(ptr, type, member) \
 	((type *)(((char *) ptr) - offsetof(type, member)))

@@ -23,7 +23,7 @@
 #ifndef __OUTPUT_H__
 #define __OUTPUT_H__
 
-extern bool                     output_init(void);
+extern rte_bool                 output_init(void);
 extern void                     output_end(void);
 
 #endif // OUTPUT.H

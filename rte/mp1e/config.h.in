@@ -12,6 +12,9 @@
 /* Define if you have ESD. */
 #undef HAVE_ESD
 
+/* Define to 1 if you have the `getopt_long' function. */
+#undef HAVE_GETOPT_LONG
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
@@ -23,6 +26,9 @@
 
 /* Define to 1 if you have the `mmxemu' library (-lmmxemu). */
 #undef HAVE_LIBMMXEMU
+
+/* Define to 1 if you have the `pthread' library (-lpthread). */
+#undef HAVE_LIBPTHREAD
 
 /* Define if you have the XVideo library (-lxv). */
 #undef HAVE_LIBXV

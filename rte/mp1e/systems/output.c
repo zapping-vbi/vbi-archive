@@ -67,7 +67,7 @@ output_stdout(struct multiplexer *mux,
 	return b;
 }
 
-bool
+rte_bool
 init_output_stdout(multiplexer *mux)
 {
 	int bsize = (mux_syn == 4) ? 2324 /* VCD */ : PACKET_SIZE;

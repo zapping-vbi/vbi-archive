@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.9 2002-10-07 14:53:36 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.10 2002-12-14 00:43:44 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -602,16 +602,16 @@ _send_full_buffer(mpeg1_context *mpeg1, buffer *b)
 }
 
 /* obsolete */
-static inline bool
+static inline rte_bool
 encode_keyframe(mpeg1_context *mpeg1, stacked_frame *this,
 		int stacked_bframes, int key_offset,
-		buffer *obuf, bool pframe)
+		buffer *obuf, rte_bool pframe)
 {
 	return 0;
 }
 
-static bool
-encode_stacked_frames(mpeg1_context *mpeg1, buffer *obuf, int stacked, bool pframe)
+static rte_bool
+encode_stacked_frames(mpeg1_context *mpeg1, buffer *obuf, int stacked, rte_bool pframe)
 {
 	int stacked_bframes = stacked - 1;
 	int key_offset = stacked_bframes;
@@ -1072,7 +1072,7 @@ video_reset(mpeg1_context *mpeg1)
 "intra coded, 'P' forward predicted and 'B' bidirectionally "		\
 "predicted, in any order headed by an 'I' picture."
 
-static bool
+static rte_bool
 gop_validation(mpeg1_context *mpeg1, char *gop_sequence)
 {
 	int bmax;

@@ -17,14 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alloc.h,v 1.6 2002-10-02 20:51:58 mschimek Exp $ */
+/* $Id: alloc.h,v 1.7 2002-12-14 00:43:44 mschimek Exp $ */
 
 #ifndef ALLOC_H
 #define ALLOC_H
 
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
+/* #include <malloc.h> */
 #include "types.h"
 
 #ifdef HAVE_MEMALIGN
@@ -33,7 +33,7 @@
 #define free_aligned(p) free(((void **) p)[-1])
 #endif
 
-extern void *alloc_aligned(size_t, int, bool);
+extern void *alloc_aligned(size_t, int, rte_bool);
 
 static inline void *
 malloc_aligned(size_t size, int align)

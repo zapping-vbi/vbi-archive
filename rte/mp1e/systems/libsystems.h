@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libsystems.h,v 1.7 2002-06-24 03:21:11 mschimek Exp $ */
+/* $Id: libsystems.h,v 1.8 2002-12-14 00:43:44 mschimek Exp $ */
 
 #ifndef LIBSYSTEMS_H
 #define LIBSYSTEMS_H
@@ -40,7 +40,7 @@ typedef struct multiplexer {
 	rte_status		status;
 } multiplexer;
 
-extern bool			mux_init	(multiplexer *mux, void *user_data);
+extern rte_bool			mux_init	(multiplexer *mux, void *user_data);
 extern void			mux_destroy	(multiplexer *mux);
 extern multiplexer *		mux_alloc	(void *user_data);
 extern void			mux_free	(multiplexer *mux);
@@ -59,7 +59,7 @@ extern void *			vcd_system_mux(void *mux);
 
 extern double			get_idle(void);
 
-extern bool			init_output_stdout(multiplexer *mux);
+extern rte_bool			init_output_stdout(multiplexer *mux);
 extern void *                   output_thread(void * unused);
 extern int                      output_init(void);
 extern void                     output_end(void);

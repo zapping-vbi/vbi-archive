@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.1 2002-06-18 02:23:44 mschimek Exp $ */
+/* $Id: fifo.h,v 1.2 2002-12-14 00:43:44 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -66,7 +66,7 @@ struct buffer {
 	int			dequeued;
 	int			enqueued;
 
-	bool			remove;
+	rte_bool		remove;
 
 	/* Consumer read only, see send_full_buffer() */
 
@@ -120,7 +120,7 @@ struct fifo {
 
 	list			buffers;	/* add/rem_buffer */
 
-	bool			unlink_full_buffers; /* default true */
+	rte_bool		unlink_full_buffers; /* default true */
 
 	void			(* wait_empty)(fifo *);
 	void			(* send_full)(producer *, buffer *);
@@ -128,7 +128,7 @@ struct fifo {
 	void			(* wait_full)(fifo *);
 	void			(* send_empty)(consumer *, buffer *);
 
-	bool			(* start)(fifo *);
+	rte_bool			(* start)(fifo *);
 	void			(* stop)(fifo *);
 
 	void			(* destroy)(fifo *);
@@ -143,7 +143,7 @@ struct producer {
 	fifo *			fifo;
 
 	int			dequeued;	/* bookkeeping */
-	bool			eof_sent;
+	rte_bool			eof_sent;
 };
 
 struct consumer {
@@ -389,7 +389,7 @@ unget_empty_buffer(producer *p, buffer *b)
 extern void			send_full_buffer(producer *p, buffer *b);
 
 extern void			rem_buffer(buffer *b);
-extern bool			add_buffer(fifo *f, buffer *b);
+extern rte_bool			add_buffer(fifo *f, buffer *b);
 
 extern int			init_buffered_fifo(fifo *f, char *name, int num_buffers, ssize_t buffer_size);
 extern int			init_callback_fifo(fifo *f, char *name, void (* custom_wait_empty)(fifo *), void (* custom_send_full)(producer *, buffer *), void (* custom_wait_full)(fifo *), void (* custom_send_empty)(consumer *, buffer *), int num_buffers, ssize_t buffer_size);
@@ -403,7 +403,7 @@ extern consumer	*		add_consumer(fifo *f, consumer *c);
 /* XXX TBD */
 /* start only *after* adding a consumer? */
 /* mp-fifos? */
-static inline bool
+static inline rte_bool
 start_fifo(fifo *f)
 {
 	return f->start(f);

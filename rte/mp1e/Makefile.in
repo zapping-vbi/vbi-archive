@@ -100,6 +100,7 @@ INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 @BACKEND_MP1E_TRUE@LIB = @LIB@
 @BACKEND_MP1E_TRUE@LIBICONV = @LIBICONV@
 @BACKEND_MP1E_TRUE@LIBINTL = @LIBINTL@
+@BACKEND_MP1E_TRUE@LIBRTE_SO_VERSION = @LIBRTE_SO_VERSION@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 @BACKEND_MP1E_TRUE@LTLIB = @LTLIB@
@@ -140,7 +141,7 @@ INCLUDES = -D_GNU_SOURCE -D_REENTRANT -include $(top_builddir)/config.h 	-Wall -
 
 @BACKEND_MP1E_FALSE@mp1e_SOURCES = main.c options.c global_data.c options.h
 
-@BACKEND_MP1E_FALSE@mp1e_LDADD = @BACKEND_MP1E_FALSE@	systems/libsystems.la @BACKEND_MP1E_FALSE@	audio/libaudio.la vbi/libvbi.la @BACKEND_MP1E_FALSE@	devices/libdevices.la video/libvideo.la common/libcommon.la @BACKEND_MP1E_FALSE@	test/libtest.la $(X_LIBS) -lm -lpthread $(ESD_LIBS)
+@BACKEND_MP1E_FALSE@mp1e_LDADD = @BACKEND_MP1E_FALSE@	systems/libsystems.la @BACKEND_MP1E_FALSE@	audio/libaudio.la vbi/libvbi.la @BACKEND_MP1E_FALSE@	devices/libdevices.la video/libvideo.la common/libcommon.la @BACKEND_MP1E_FALSE@	test/libtest.la $(X_LIBS) -lm $(PTHREAD_LIB) $(ESD_LIBS)
 
 
 @BACKEND_MP1E_FALSE@man_MANS = mp1e.1

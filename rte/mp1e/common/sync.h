@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sync.h,v 1.9 2002-02-25 06:22:19 mschimek Exp $ */
+/* $Id: sync.h,v 1.10 2002-12-14 00:43:44 mschimek Exp $ */
 
 #ifndef SYNC_H
 #define SYNC_H
@@ -57,9 +57,9 @@ typedef struct {
 } sync_stream;
 
 extern void mp1e_sync_init(sync_main *, sync_set modules, sync_set time_base);
-extern bool mp1e_sync_start(sync_main *, double time);
-extern bool mp1e_sync_stop(sync_main *, double time);
-extern bool mp1e_sync_run_in(sync_main *, sync_stream *, consumer *, int *frame_frac);
+extern rte_bool mp1e_sync_start(sync_main *, double time);
+extern rte_bool mp1e_sync_stop(sync_main *, double time);
+extern rte_bool mp1e_sync_run_in(sync_main *, sync_stream *, consumer *, int *frame_frac);
 
 static inline int
 mp1e_sync_break(sync_stream *str, double time)

@@ -17,19 +17,21 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.40 2002-10-02 20:55:17 mschimek Exp $ */
+/* $Id: main.c,v 1.41 2002-12-14 00:43:43 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <string.h>
+#include <unistd.h>
+#ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
+#endif
 #include <math.h>
 #include <signal.h>
 #include <time.h>
 #include <limits.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <pthread.h>

@@ -17,17 +17,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.21 2002-10-02 20:55:17 mschimek Exp $ */
+/* $Id: options.c,v 1.22 2002-12-14 00:43:43 mschimek Exp $ */
 
 #include "site_def.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
+#endif
 #include <ctype.h>
 #include <limits.h>
-#include <unistd.h>
 #include <sys/time.h>
 #include <asm/types.h>
 #include <linux/soundcard.h>
@@ -40,6 +42,7 @@
 #include "audio/libaudio.h"
 #include "audio/mpeg.h"
 #include "options.h"
+#include "librte.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -174,9 +177,9 @@ long_options[] = {
 };
 
 static void
-options_from_file(char *name, bool fail)
+options_from_file(char *name, rte_bool fail)
 {
-	static bool parse_option(int c);
+	static rte_bool parse_option(int c);
 	static int recursion = 0;
 	char *s, *p, buffer[300];
 	FILE *fi;
@@ -318,13 +321,13 @@ multi_suboption(const char **optp, int n, int def)
 	return r;
 }
 
-static bool have_audio_bit_rate = FALSE;
-static bool have_image_size = FALSE;
-static bool have_grab_size = FALSE;
-static bool have_letterbox = FALSE;
-static bool have_filter = FALSE;
+static rte_bool have_audio_bit_rate = FALSE;
+static rte_bool have_image_size = FALSE;
+static rte_bool have_grab_size = FALSE;
+static rte_bool have_letterbox = FALSE;
+static rte_bool have_filter = FALSE;
 
-static bool
+static rte_bool
 parse_option(int c)
 {
 	int i;

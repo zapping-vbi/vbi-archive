@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: math.h,v 1.2 2001-08-22 01:28:08 mschimek Exp $ */
+/* $Id: math.h,v 1.3 2002-12-14 00:43:44 mschimek Exp $ */
 
 #ifndef MATH_H
 #define MATH_H
@@ -80,6 +80,8 @@ saturate(int val, int min, int max)
 
 /*
  *  Absolute value w/o a branch
+ *  For some reason the gcc builtin still(?) uses
+ *  an if, maybe -INT_MIN.
  */
 static inline unsigned int
 nbabs(register int n)

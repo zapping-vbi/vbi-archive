@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alsa.c,v 1.5 2002-10-02 20:52:40 mschimek Exp $ */
+/* $Id: alsa.c,v 1.6 2002-12-14 00:43:44 mschimek Exp $ */
 
 #include "../common/log.h" 
 
@@ -233,7 +233,7 @@ send_empty(consumer *c, buffer *b)
 		alsa->curr_frag = 0;
 }
 
-static bool
+static rte_bool
 start(fifo *f)
 {
 	struct alsa_context *alsa = f->user_data;
@@ -245,7 +245,7 @@ start(fifo *f)
 }
 
 void
-open_pcm_alsa(char *dev_name1, int sampling_rate, bool stereo, fifo **f)
+open_pcm_alsa(char *dev_name1, int sampling_rate, rte_bool stereo, fifo **f)
 {
 	struct alsa_context *alsa;
 	snd_pcm_info_t pcm_info;
@@ -493,7 +493,7 @@ send_empty(consumer *c, buffer *b)
 	b->data = NULL;
 }
 
-static bool
+static rte_bool
 start(fifo *f)
 {
 	struct alsa_context *alsa = f->user_data;
@@ -505,7 +505,7 @@ start(fifo *f)
 }
 
 void
-open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo, fifo **f)
+open_pcm_alsa(char *dev_name, int sampling_rate, rte_bool stereo, fifo **f)
 {
 	struct alsa_context *alsa;
 	snd_pcm_info_t *info;
@@ -636,7 +636,7 @@ open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo, fifo **f)
 #else /* !HAVE_ALSA */
 
 void
-open_pcm_alsa(char *dev_name, int sampling_rate, bool stereo, fifo **f)
+open_pcm_alsa(char *dev_name, int sampling_rate, rte_bool stereo, fifo **f)
 {
 	FAIL("Not compiled with ALSA interface.\n"
 	     "For more info about ALSA visit http://www.alsa-project.org\n");

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.11 2002-06-24 03:21:11 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.12 2002-12-14 00:43:44 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -210,7 +210,7 @@ PES_packet_header(unsigned char *p, stream *str)
 #define Rvid (1.0 / 1024)
 #define Raud (0.0)
 
-static inline bool
+static inline rte_bool
 next_access_unit(stream *str, double *ppts, unsigned char **pph)
 {
 	buffer *buf;

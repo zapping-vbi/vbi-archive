@@ -17,12 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.23 2002-10-02 02:13:48 mschimek Exp $ */
+/* $Id: video.h,v 1.24 2002-12-14 00:43:44 mschimek Exp $ */
 
 #ifndef VIDEO_H
 #define VIDEO_H
 
-#include <stdint.h>
+#include <inttypes.h>
 
 #include "../common/bstream.h"
 #include "../common/fifo.h"
@@ -120,10 +120,10 @@ struct mpeg1_context {
 
 	uint8_t *	oldref;			/* past reference frame buffer */
 
-	bool		insert_gop_header;
-	bool		closed_gop;		/* random access point, no fwd ref */
-	bool		referenced;		/* by other P or B pictures */
-	bool		slice;
+	rte_bool	insert_gop_header;
+	rte_bool	closed_gop;		/* random access point, no fwd ref */
+	rte_bool	referenced;		/* by other P or B pictures */
+	rte_bool	slice;
 
 //	int		quant_sum;
 
@@ -174,8 +174,8 @@ struct mpeg1_context {
 	double		virtual_frame_rate;
 	char *		gop_sequence;
 	int		skip_method;
-	bool		motion_compensation;
-	bool		monochrome;
+	rte_bool	motion_compensation;
+	rte_bool	monochrome;
 	char *		anno;
 	double		num_frames;
 };
@@ -218,10 +218,10 @@ struct mpeg2_context {
 
 	uint8_t *	oldref;			/* past reference frame buffer */
 
-	bool		insert_gop_header;
-	bool		closed_gop;		/* random access point, no fwd ref */
-	bool		referenced;		/* by other P or B pictures */
-	bool		slice;
+	rte_bool	insert_gop_header;
+	rte_bool	closed_gop;		/* random access point, no fwd ref */
+	rte_bool	referenced;		/* by other P or B pictures */
+	rte_bool	slice;
 
 //	int		quant_sum;
 
@@ -272,8 +272,8 @@ struct mpeg2_context {
 	double		virtual_frame_rate;
 	char *		gop_sequence;
 	int		skip_method;
-	bool		motion_compensation;
-	bool		monochrome;
+	rte_bool	motion_compensation;
+	rte_bool	monochrome;
 	char *		anno;
 	double		num_frames;
 };

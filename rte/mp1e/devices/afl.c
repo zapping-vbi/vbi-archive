@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: afl.c,v 1.5 2002-10-02 20:52:40 mschimek Exp $ */
+/* $Id: afl.c,v 1.6 2002-12-14 00:43:44 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../audio/audio.h"
@@ -40,7 +40,7 @@ struct afl_context {
 
 	AFfilehandle		file;
 	double			time, buffer_period;
-	bool			eof;
+	rte_bool		eof;
 };
 
 static void
@@ -87,7 +87,7 @@ send_empty(consumer *c, buffer *b)
 }
 
 void
-open_pcm_afl(char *name, int ignored1, bool ignored2, fifo **f)
+open_pcm_afl(char *name, int ignored1, rte_bool ignored2, fifo **f)
 {
 	struct afl_context *afl;
 	int buffer_size = 8192;
@@ -174,7 +174,7 @@ open_pcm_afl(char *name, int ignored1, bool ignored2, fifo **f)
 #else /* !HAVE_LIBAUDIOFILE */
 
 void
-open_pcm_afl(char *name, int ignored1, bool ignored2, fifo **f)
+open_pcm_afl(char *name, int ignored1, rte_bool ignored2, fifo **f)
 {
 	FAIL("Audio compression from file requires libaudiofile:\n"
 		"http://www.68k.org/~michael/audiofile\n");

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sync.c,v 1.7 2002-04-12 03:12:50 mschimek Exp $ */
+/* $Id: sync.c,v 1.8 2002-12-14 00:43:44 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "sync.h"
@@ -51,7 +51,7 @@ mp1e_sync_init(sync_main *mn, sync_set modules, sync_set time_base)
  * 
  * Return value: 
  **/
-bool
+rte_bool
 mp1e_sync_start(sync_main *mn, double time)
 {
 	pthread_mutex_lock(&mn->mucon.mutex);
@@ -77,7 +77,7 @@ mp1e_sync_start(sync_main *mn, double time)
  * 
  * Return value: 
  **/
-bool
+rte_bool
 mp1e_sync_stop(sync_main *mn, double time)
 {
 	pthread_mutex_lock(&mn->mucon.mutex);
@@ -109,7 +109,7 @@ mp1e_sync_stop(sync_main *mn, double time)
  * 
  * Return value: 
  **/
-bool
+rte_bool
 mp1e_sync_run_in(sync_main *mn, sync_stream *str, consumer *c, int *frame_frac)
 {
 	double first_time, last_time = -1;

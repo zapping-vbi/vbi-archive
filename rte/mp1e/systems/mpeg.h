@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.2 2001-08-22 01:28:08 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.3 2002-12-14 00:43:44 mschimek Exp $ */
 
 #define PACKET_START_CODE		0x00000100L	// + stream_id
 #define ISO_END_CODE			0x000001B9L
@@ -44,9 +44,13 @@
 #define IS_AUDIO_STREAM(stream_id) (((unsigned int)(stream_id) & (~0x1F)) == AUDIO_STREAM)
 #define IS_VIDEO_STREAM(stream_id) (((unsigned int)(stream_id) & (~0x0F)) == VIDEO_STREAM)
 
-#define MARKER_SCR			2
-#define MARKER_DTS			1
-#define MARKER_PTS_ONLY			2
-#define MARKER_PTS			3
+typedef enum {
+	MARKER_SCR		= 2,	/* %0010 pack() SCR */
+	MARKER_DTS		= 1,	/* %0001 packet() DTS of PTS/DTS pair */ 
+	MARKER_PTS_ONLY,		/* %0010 packet() PTS */
+	MARKER_PTS,			/* %0011 packet() PTS of PTS/DTS pair */
+} tstamp_marker;
 
 #define SYSTEM_TICKS			90000
+
+#define PADDING_BYTE			0xFF

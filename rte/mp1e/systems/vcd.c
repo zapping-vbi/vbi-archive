@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vcd.c,v 1.12 2002-06-24 03:21:11 mschimek Exp $ */
+/* $Id: vcd.c,v 1.13 2002-12-14 00:43:44 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +45,7 @@ const int system_rate		= 75 * 2324;		/* bytes */
 const int ticks_per_packet	= SYSTEM_TICKS / 75;	/* SYSTEM_TICKS */
 const int BS_audio		= 4096;			/* bytes */
 const int BS_video		= 40960;		/* bytes */
+/* video XXX? */
 
 #define put(p, val, bytes)						\
 do {									\
@@ -52,7 +53,8 @@ do {									\
 									\
 	switch (bytes) {						\
 	case 4:								\
-		*((uint32_t *)(p)) = swab32(v);				\
+		/* Uses bswap or compile time swapping if const	*/	\
+		*((uint32_t *)(p)) = swab32 (v);			\
 		break;							\
 	case 3:	(p)[bytes - 3] = v >> 16;				\
 	case 2:	(p)[bytes - 2] = v >> 8;				\
@@ -60,14 +62,16 @@ do {									\
 	}								\
 } while (0)
 
-static inline unsigned char *
-time_stamp(unsigned char *p, int marker, tstamp ts)
+static inline uint8_t *
+timestamp			(uint8_t *		p,
+				 tstamp_marker		marker,
+				 tstamp			ts)
 {
 	p[0] = (marker << 4) + ((ts >> 29) & 0xE) + 1;
-	p[1] = ((int) ts >> 22);
-	p[2] = ((int) ts >> 14) | 1;
-	p[3] = ((int) ts >> 7);
-	p[4] = (int) ts * 2 + 1;
+	p[1] = ((uint32_t) ts >> 22);
+	p[2] = ((uint32_t) ts >> 14) | 1;
+	p[3] = ((uint32_t) ts >> 7);
+	p[4] = (uint32_t) ts * 2 + 1;
 	/*
 	 *  marker [4], TS [32..30], marker_bit,
 	 *  TS [29..15], marker_bit,
@@ -77,84 +81,94 @@ time_stamp(unsigned char *p, int marker, tstamp ts)
 	return p + 5;
 }
 
-#define PACK_HEADER_SIZE 12
+/*
+ *  SCR indicates the intended time of arrival of the last
+ *  byte of the system_clock_reference field at the input of the STD.
+ */
 #define SCR_offset 8
 
-static inline unsigned char *
-pack_header(unsigned char *p, tstamp scr, int system_rate)
+#define PACK_HEADER_SIZE 12
+
+static inline uint8_t *
+pack_header			(uint8_t *		p,
+				 tstamp			scr,
+				 int			system_rate)
 {
-	int mux_rate = ((unsigned int) ceil(system_rate + 49)) / 50;
+	unsigned int mux_rate = ((unsigned int) ceil (system_rate + 49)) / 50;
 
-	assert(mux_rate > 0);
+	assert (mux_rate < (1 << 22));
 
-	put(p, PACK_START_CODE, 4);
-	time_stamp(p + 4, MARKER_SCR, scr);
-	put(p + 9, (mux_rate >> 15) | 0x80, 1);
-	put(p + 10, mux_rate >> 7, 1);
-	put(p + 11, (mux_rate << 1) | 1, 1);
-	/*
-	 *  pack_start_code [32], system_clock_reference [40],
-	 *  marker_bit, program_mux_rate, marker_bit
-	 */
+	put (p, PACK_START_CODE, 4);			/* pack_start_code [32] */
+	timestamp (p + 4, MARKER_SCR, scr);		/* system_clock_reference [40] */
+	put (p + 9, (mux_rate >> 15) | 0x80, 1);	/* marker_bit, */
+	put (p + 10, mux_rate >> 7, 1);			/* program_mux_rate [22], */
+	put (p + 11, mux_rate * 2 + 1, 1);		/* marker_bit */
 
 	return p + 12;
 }
 
 #define SYSTEM_HEADER_SIZE 15
 
-static inline unsigned char *
-system_header(unsigned char *p, stream *str, int system_rate_bound)
+static inline uint8_t *
+system_header			(uint8_t *		p,
+				 stream *		str,
+				 int			system_rate_bound)
 {
-	int mux_rate_bound = (system_rate_bound + 49) / 50;
-	int audio_bound = 0;
-	int video_bound = 0;
+	unsigned int mux_rate_bound = (system_rate_bound + 49) / 50;
+	unsigned int audio_bound = 0;
+	unsigned int video_bound = 0;
 
-	assert(mux_rate_bound > 0);
+	assert (mux_rate_bound < (1 << 22));
 
-	put(p + 12, str->stream_id, 1);
+	put (p + 12, str->stream_id, 1);		/* stream_id */
 
 	if (str->stream_id == VIDEO_STREAM + 0) {
-		put(p + 13, (0x3 << 14) + (1 << 13) + (BS_video >> 10), 2);
+		put(p + 13, (0x3 << 14)			/* '11' */
+			    + (1 << 13)			/* STD_buffer_bound_scale */
+			    + (BS_video >> 10), 2);	/* STD_buffer_size_bound */
 		video_bound++;
 	} else if (str->stream_id == AUDIO_STREAM + 0) {
-		put(p + 13, (0x3 << 14) + (0 << 13) + (BS_audio >> 7), 2);
+		put(p + 13, (0x3 << 14)			/* '11' */
+			    + (0 << 13)			/* STD_buffer_bound_scale */
+			    + (BS_audio >> 7), 2);	/* STD_buffer_size_bound */
 		audio_bound++;
 	} else {
 		FAIL("Stream id mismatch\n");
 	}
 
-	put(p, SYSTEM_HEADER_CODE, 4);
-	put(p + 4, 9, 2);
-	put(p + 6, (mux_rate_bound >> 15) | 0x80, 1);
-	put(p + 7, mux_rate_bound >> 7, 1);
-	put(p + 8, (mux_rate_bound << 1) | 1, 1);
-	put(p + 9, (audio_bound << 2) + (0 << 1) + (1 << 0), 1);
-	put(p + 10, (1 << 7) + (1 << 6) + (0x1 << 5) + (video_bound << 0), 1);
-	put(p + 11, 0xFF, 1);
-	/*
-	 *  system_header_start_code [32], header_length [16],
-	 *  marker_bit, rate_bound [22], marker_bit,
-	 *  audio_bound [6], fixed_flag, CSPS_flag,
-	 *  system_audio_lock_flag, system_video_lock_flag,
-	 *  marker_bit, video_bound [5], reserved_byte [8]
-	 */
+	put (p, SYSTEM_HEADER_CODE, 4);			/* system_header_start_code [32] */
+	put (p + 4, 9, 2);				/* header_length [16] */
+	put (p + 6, (mux_rate_bound >> 15) | 0x80, 1);	/* marker_bit, */
+	put (p + 7, mux_rate_bound >> 7, 1);		/* rate_bound [22], */
+	put (p + 8, (mux_rate_bound << 1) | 1, 1);	/* marker_bit */
+	put (p + 9, (audio_bound << 2)			/* audio_bound [6] */
+		   + (0 << 1)				/* fixed_flag */
+		   + (1 << 0), 1);			/* CSPS_flag */
+	put (p + 10, (1 << 7)				/* system_audio_lock_flag */
+		    + (1 << 6)				/* system_video_lock_flag */
+		    + (1 << 5)				/* marker_bit */
+		    + (video_bound << 0), 1);		/* video_bound [5] */
+	put (p + 11, 0xFF, 1);				/* reserved_byte [8] */
 
 	return p + 15;
 }
 
-#define PADDING_MIN 8
+#define PADDING_MIN 7
 
-static inline unsigned char *
-padding_packet(unsigned char *p, int size)
+static inline uint8_t *
+padding_packet			(uint8_t *		p,
+				 int			size)
 {
 	if (size < PADDING_MIN)
 		return p;
 
-	put(p, PACKET_START_CODE + PADDING_STREAM, 4);
-	put(p + 4, size - 6, 2);
-	put(p + 6, 0x0F, 1);
+	put (p, PACKET_START_CODE			/* packet_start_code_prefix [23] */
+		+ PADDING_STREAM, 4);			/* stream_id [8] */
+	/* 2.4.4.3: bytes after packet_length field */
+	put (p + 4, size - 6, 2);			/* packet_length [16] */
+	put (p + 6, 0x0F, 1);				/* '0000 1111' */
 
-	memset(p + 7, 0xFF, size - 7);
+	memset (p + 7, PADDING_BYTE, size - 7);		/* N * packet_data_byte [8] */
 
 	return p + size;
 }
@@ -162,7 +176,10 @@ padding_packet(unsigned char *p, int size)
 #define PACKET_HEADER_SIZE(id) (((id) == (VIDEO_STREAM + 0)) ? 18 : 13)
 
 static inline rte_bool
-stamp_packet(stream *str, buffer *buf, uint8_t *ph, tstamp *ppts)
+stamp_packet			(stream *		str,
+				 buffer *		buf,
+				 uint8_t *		ph,
+				 tstamp *		ppts)
 {
 	if (str->stream_id == VIDEO_STREAM + 0) {
 		/*
@@ -174,20 +191,29 @@ stamp_packet(stream *str, buffer *buf, uint8_t *ph, tstamp *ppts)
 		switch (buf->type) {
 		case I_TYPE:
 			*ppts = str->dts + str->ticks_per_frame * (buf->offset + 1);
-			put(ph + 6, (0x1 << 14) + (1 << 13) + (BS_video >> 10), 2);
-			time_stamp(ph +  8, MARKER_PTS, *ppts);
-			time_stamp(ph + 13, MARKER_DTS, str->dts);
+			/* STD_buffer is optional, this mimics a reference stream */
+			put (ph + 6, (0x1 << 14)		/* '01' */
+				     + (1 << 13)		/* STD_buffer_scale */
+				     + (BS_video >> 10), 2);	/* STD_buffer_size [13] */
+			timestamp (ph +  8, MARKER_PTS, *ppts);
+			timestamp (ph + 13, MARKER_DTS, str->dts);
 			return TRUE;
 
 		case P_TYPE:
 			*ppts = str->dts + str->ticks_per_frame * (buf->offset + 1);
-			time_stamp(ph +  8, MARKER_PTS, *ppts);
-			time_stamp(ph + 13, MARKER_DTS, str->dts);
+			/* Caller stores 2 * stuffing_byte [8] = PADDING_BYTE at ph + 6 */
+			timestamp (ph +  8, MARKER_PTS, *ppts);
+			timestamp (ph + 13, MARKER_DTS, str->dts);
 			return TRUE;
 
 		case B_TYPE:
 			*ppts = str->dts;
-			time_stamp(ph + 13, MARKER_PTS_ONLY, *ppts);
+			/*
+			 *  Caller stores 7 * stuffing_byte [8] = PADDING_BYTE at ph + 6.
+			 *  No DTS here but we need a constant header length to predict
+			 *  data rates.
+			 */
+			timestamp (ph + 13, MARKER_PTS_ONLY, *ppts);
 			return TRUE;
 
 		default:
@@ -195,8 +221,11 @@ stamp_packet(stream *str, buffer *buf, uint8_t *ph, tstamp *ppts)
 		}
 	} else {
 		*ppts = str->dts + str->pts_offset;
-		put(ph + 6, (0x1 << 14) + (0 << 13) + (BS_audio >> 7), 2);
-		time_stamp(ph + 8, MARKER_PTS_ONLY, *ppts);
+		/* STD_buffer is optional, this mimics a reference stream */
+		put (ph + 6, (0x1 << 14)		/* '01' */
+			     + (0 << 13)		/* STD_buffer_scale */
+			     + (BS_audio >> 7), 2);	/* STD_buffer_size [13] */
+		timestamp (ph + 8, MARKER_PTS_ONLY, *ppts);
 		return TRUE;
 	}
 }

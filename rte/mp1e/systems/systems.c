@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: systems.c,v 1.13 2002-09-07 01:48:10 mschimek Exp $ */
+/* $Id: systems.c,v 1.14 2002-12-14 00:43:44 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,7 +51,7 @@ mux_destroy(multiplexer *mux)
 	memset(mux, 0, sizeof(*mux));
 }
 
-bool
+rte_bool
 mux_init(multiplexer *mux, void *user_data)
 {
 	init_xlist(&mux->streams);

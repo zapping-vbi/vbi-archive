@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.6 2002-10-02 20:52:40 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.7 2002-12-14 00:43:44 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -172,7 +172,7 @@ randomize(char *s, int n)
  *  Synchronous I/O
  */
 
-static bool
+static rte_bool
 capture_on(fifo *unused)
 {
 	int str_type = V4L2_BUF_TYPE_CAPTURE;

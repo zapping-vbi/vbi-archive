@@ -15,7 +15,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.5 2002-10-02 20:51:58 mschimek Exp $ */
+/* $Id: fifo.c,v 1.6 2002-12-14 00:43:44 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,7 +88,7 @@ asserts_fail(char *assertion, char *file, unsigned int line,
  *  Buffer
  */
 
-static bool
+static rte_bool
 nop(void)
 {
 	return TRUE;
@@ -284,7 +284,7 @@ uninit_fifo(fifo *f)
 	f->wait_full  = (void (*)(fifo *)) dead_fifo;
 	f->send_empty = (void (*)(consumer *, buffer *)) dead_consumer;
 
-	f->start      = (bool (*)(fifo *)) dead_fifo;
+	f->start      = (rte_bool (*)(fifo *)) dead_fifo;
 	f->stop       = (void (*)(fifo *)) dead_fifo;
 
 	f->alloc_buffer = NULL;
@@ -789,7 +789,7 @@ attach_buffer(fifo *f, buffer *b)
  * Return value: 
  * %FALSE when @b is %NULL.
  **/
-bool
+rte_bool
 add_buffer(fifo *f, buffer *b)
 {
 	consumer c;
@@ -823,7 +823,7 @@ init_fifo(fifo *f, char *name,
 	f->wait_full  = custom_wait_full;
 	f->send_empty = custom_send_empty;
 
-	f->start = (bool (*)(fifo *)) nop;
+	f->start = (rte_bool (*)(fifo *)) nop;
 	f->stop  = (void (*)(fifo *)) nop;
 
 	f->destroy = uninit_fifo;

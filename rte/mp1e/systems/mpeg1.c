@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.14 2002-09-07 01:48:02 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.15 2002-12-14 00:43:44 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -176,7 +176,7 @@ static FILE *cdlog;
 
 #define TPF 3600.0
 
-static inline bool
+static inline rte_bool
 next_access_unit(stream *str, double *ppts,
 		 unsigned char **pph, rte_bool *eof)
 {
