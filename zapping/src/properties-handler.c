@@ -37,7 +37,6 @@
 #include "zmisc.h"
 #define ZCONF_DOMAIN "/zapping/internal/callbacks/"
 #include "zconf.h"
-//#include "zvbi.h"
 #include "osd.h"
 #include "x11stuff.h"
 #include "keyboard.h"

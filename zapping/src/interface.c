@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: interface.c,v 1.33 2005-01-19 04:16:20 mschimek Exp $ */
+/* $Id: interface.c,v 1.34 2005-02-12 13:33:14 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 toolbar changes */
 #undef GTK_DISABLE_DEPRECATED
@@ -39,7 +39,6 @@
 #include "zvideo.h"
 #include "v4linterface.h"
 #include "plugins.h"
-//#include "zvbi.h"
 #include "remote.h"
 
 extern gboolean have_wm_hints;

@@ -33,7 +33,6 @@
 #include "zconf.h"
 #include "x11stuff.h"
 #include "zmisc.h"
-//#include "zvbi.h"
 #include "overlay.h"
 #include "osd.h"
 #include "globals.h"
