@@ -58,8 +58,8 @@
  *  Kernel interface
  */
 #include <linux/types.h> /* __u32 etc */
-#include "../common/videodev25.h"
-#include "../common/fprintf_videodev25.h"
+#include "common/videodev25.h"
+#include "common/fprintf_videodev25.h"
 
 #define v4l25_ioctl(info, cmd, arg)					\
 (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
@@ -170,17 +170,17 @@ update_control			(tveng_device_info *	info,
 
 static tv_bool
 set_control			(tveng_device_info *	info,
-				 tv_control *		tc,
+				 tv_control *		c,
 				 int			value)
 {
 	struct private_tveng25_device_info * p_info = P_INFO (info);
 	struct v4l2_control ctrl;
 
-	if (C(tc)->id == TVENG25_AUDIO_MAGIC) {
+	if (C(c)->id == TVENG25_AUDIO_MAGIC) {
 		if (IS_TUNER_LINE (info->cur_video_input)) {
 			struct v4l2_tuner tuner;
 
-			memset(&tuner, 0, sizeof(tuner));
+			CLEAR (tuner);
 			tuner.index = VI(info->cur_video_input)->tuner;
 
 			/* XXX */
@@ -198,7 +198,7 @@ set_control			(tveng_device_info *	info,
 		return TRUE;
 	}
 
-	ctrl.id = C(tc)->id;
+	ctrl.id = C(c)->id;
 	ctrl.value = value;
 
 	if (-1 == v4l25_ioctl(info, VIDIOC_S_CTRL, &ctrl))
@@ -210,18 +210,18 @@ set_control			(tveng_device_info *	info,
 		  FIXME we should check at runtime.
 		*/
 		if (ctrl.id == V4L2_CID_AUDIO_MUTE) {
-			if (tc->value != value) {
-				tc->value = value;
-				tv_callback_notify (tc, tc->_callback);
+			if (c->value != value) {
+				c->value = value;
+				tv_callback_notify (c, c->_callback);
 			}
 			return TRUE;
 		}
 
-		return do_update_control (p_info, C(tc));
+		return do_update_control (p_info, C(c));
 	} else {
-		if (tc->value != value) {
-			tc->value = value;
-			tv_callback_notify (tc, tc->_callback);
+		if (c->value != value) {
+			c->value = value;
+			tv_callback_notify (c, c->_callback);
 		}
 
 		return TRUE;
