@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vlc_gen.c,v 1.1 2002-06-12 03:58:27 mschimek Exp $ */
+/* $Id: vlc_gen.c,v 1.2 2002-09-04 21:27:49 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -596,7 +596,7 @@ mp1e_macroblock_type_b_notc[4] align(8) =
 /*
  *  Translates bit string to vlc, returns length
  */
-int
+static int
 vlc (const char *s, unsigned int *code)
 {
 	int i;
@@ -613,7 +613,7 @@ vlc (const char *s, unsigned int *code)
  *  Finds dct coefficient vlc, not including sign bit
  *  (append 0 for positive level, 1 for negative level)
  */
-int
+static int
 coeff_vlc (int table, int run, int level, unsigned int *vlcp)
 {
 	const struct dct_coeff *dcp;
