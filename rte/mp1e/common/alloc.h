@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alloc.h,v 1.10 2005-02-25 18:30:47 mschimek Exp $ */
+/* $Id: alloc.h,v 1.11 2005-02-26 16:10:58 mschimek Exp $ */
 
 #ifndef ALLOC_H
 #define ALLOC_H
@@ -26,12 +26,12 @@
 #include <string.h>
 #include "types.h"
 
-#ifdef HAVE_MEMALIGN
+/* #ifdef HAVE_MEMALIGN Doesn't work reliable.
 #  include <malloc.h>
 #  define free_aligned(p) free (p)
-#else
+#else */
 #  define free_aligned(p) free (((void **) p)[-1])
-#endif
+/* #endif */
 
 void *
 alloc_aligned			(size_t			size,
@@ -44,11 +44,11 @@ malloc_aligned			(size_t			size,
 {
 	void *p;
 
-#ifdef HAVE_MEMALIGN
+/* #ifdef HAVE_MEMALIGN
 	p = (void *) memalign (align, size);
-#else
+#else */
 	p = alloc_aligned (size, align, FALSE);
-#endif
+/* #endif */
 	return p;
 }
 
@@ -58,12 +58,12 @@ calloc_aligned			(size_t			size,
 {
 	void *p;
 
-#ifdef HAVE_MEMALIGN
+/* #ifdef HAVE_MEMALIGN
 	if ((p = (void *) memalign (align, size)))
 		memset (p, 0, size);
-#else
+#else */
 	p = alloc_aligned (size, align, TRUE);
-#endif
+/* #endif */
 	return p;
 }
 

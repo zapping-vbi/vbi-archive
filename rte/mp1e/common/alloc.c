@@ -17,13 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alloc.c,v 1.8 2005-02-25 18:30:46 mschimek Exp $ */
+/* $Id: alloc.c,v 1.9 2005-02-26 16:10:58 mschimek Exp $ */
 
 #include <stdlib.h>
 #include "math.h"
 #include "alloc.h"
 
-#ifndef HAVE_MEMALIGN
+/* #ifndef HAVE_MEMALIGN */
 
 void *
 alloc_aligned			(size_t			size,
@@ -54,4 +54,4 @@ alloc_aligned			(size_t			size,
 	return p;
 }
 
-#endif /* !HAVE_MEMALIGN */
+/* #endif *//* !HAVE_MEMALIGN */

@@ -1,3 +1,8 @@
+2005-02-26    <mschimek@users.sf.net>
+
+	* common/alloc.h, common/alloc.c: Don't use memalign/free, they're
+	  unreliable.
+
 2005-02-20    <mschimek@users.sf.net>
 
 	* systems/systems.c (mpeg_header_name): Constness fix.

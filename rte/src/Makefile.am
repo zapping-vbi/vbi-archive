@@ -2,58 +2,66 @@
 
 lib_LTLIBRARIES = librte.la
 
-EXTRA_DIST = rte.sym
+librte_la_LIBADD = \
+	$(PTHREAD_LIB) \
+	$(INTLLIBS)
 
-INCLUDES = -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
-## -D_LARGEFILE64_SOURCE to enable lseek64, off64_t not portable, sigh.
-INCLUDES += -D_REENTRANT
+librte_la_LDFLAGS = \
+	-export-dynamic \
+	-export-symbols $(srcdir)/rte.sym \
+	-version-info $(LIBRTE_SO_VERSION)
 
 if BACKEND_MP1E
-mp1e = ../mp1e
-mp1e_libs = \
-	$(mp1e)/video/libvideo.la \
-	$(mp1e)/audio/libaudio.la \
-	$(mp1e)/systems/libsystems.la \
-	$(mp1e)/common/libcommon.la \
-	$(mp1e)/libmp1e.la
+librte_la_LIBADD += \
+	$(top_builddir)/mp1e/video/libvideo.la \
+	$(top_builddir)/mp1e/audio/libaudio.la \
+	$(top_builddir)/mp1e/systems/libsystems.la \
+	$(top_builddir)/mp1e/common/libcommon.la \
+	$(top_builddir)/mp1e/libmp1e.la
 endif
 
 if BACKEND_FFMPEG
-ffmpeg = ../ffmpeg
-ffmpeg_libs = \
-	$(ffmpeg)/libffmpeg.la \
-	$(ffmpeg)/libav/libav.la \
-	$(ffmpeg)/libavcodec/libavcodec.la
+librte_la_LIBADD += \
+	$(top_builddir)/ffmpeg/libffmpeg.la \
+	$(top_builddir)/ffmpeg/libav/libav.la \
+	$(top_builddir)/ffmpeg/libavcodec/libavcodec.la
 endif
 
 if BACKEND_DIVX4LINUX
-divx4linux = ../divx4linux
-divx4linux_libs = \
-	$(divx4linux)/libdivx4linux.la
+librte_la_LIBADD += \
+	$(top_builddir)/divx4linux/libdivx4linux.la
 endif
+
+# -D_LARGEFILE64_SOURCE: enable lseek64, off64_t if possible.
+INCLUDES = \
+	-D_REENTRANT \
+	-D_LARGEFILE64_SOURCE
+
+EXTRA_DIST = rte.sym
 
 librte_la_SOURCES = \
 	rte.c rte.h \
 	context.c context.h \
 	codec.c codec.h \
-	option.h rtepriv.h
+	option.h rtepriv.h \
+	rte.sym
 
 librteincludedir = $(includedir)
 librteinclude_HEADERS = librte.h
 
-librte_la_LIBADD = $(PTHREAD_LIB) $(CCMALLOC) \
-	$(INTLLIBS) \
-	$(ffmpeg_libs) $(mp1e_libs) $(divx4linux_libs)
-
-librte_la_LDFLAGS = -export-dynamic -export-symbols rte.sym \
-	-version-info $(LIBRTE_SO_VERSION)
-
-BUILT_SOURCES = rte.sym librte.h
+BUILT_SOURCES = \
+	librte.h \
+	rte.sym
 
 rte.sym: librte.h
-	sed -n '/extern.*/!d;s/\(.*\)\(rte.*\)(\(.*\)/\2/p' <librte.h >$@
+	sed -n '/extern.*/!d;s/\(.*\)\(rte.*\)(\(.*\)/\2/p' <$^ >$@
 
-LIBRTE_HDRS = option.h context.h codec.h rte.h
+# Keep order.
+LIBRTE_HDRS = \
+	option.h \
+	context.h \
+	codec.h \
+	rte.h
 
 # Concat the header files in this order and filter out all lines
 #   before "^/* Public", after "^/* Private" and dox between "^/**"..."*/$"
