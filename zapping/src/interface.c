@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: interface.c,v 1.24.2.13 2003-11-04 21:04:04 mschimek Exp $ */
+/* $Id: interface.c,v 1.24.2.14 2003-11-26 07:15:55 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 toolbar changes */
 #undef GTK_DISABLE_DEPRECATED
@@ -186,19 +186,29 @@ build_widget			(const gchar *		name,
   return widget;
 }
 
-/* Main window callbacks */
+/* Menu callbacks */
 
 static void
-on_toolbar_toggled		(GtkCheckMenuItem *	check_menu_item,
+on_python_check_menu_toggled	(GtkCheckMenuItem *	check_menu_item,
 				 gpointer		user_data)
 {
   python_command_printf (GTK_WIDGET (check_menu_item),
-			 "zapping.hide_controls(%u)",
+			 "zapping.%s(%u)", (const char *) user_data,
+			 check_menu_item->active);
+}
+
+static void
+on_python_check_menu_toggled_reverse
+				(GtkCheckMenuItem *	check_menu_item,
+				 gpointer		user_data)
+{
+  python_command_printf (GTK_WIDGET (check_menu_item),
+			 "zapping.%s(%u)", (const char *) user_data,
 			 !check_menu_item->active);
 }
 
 static void
-zconf_hook_toolbar		(const gchar *		key,
+zconf_hook_show_toolbar		(const gchar *		key,
 				 gpointer		new_value_ptr,
 				 GtkCheckMenuItem *	item)
 {
@@ -225,16 +235,6 @@ zconf_hook_toolbar		(const gchar *		key,
     }
 
   gtk_widget_queue_resize (main_window);
-}
-
-
-static void
-on_keep_window_on_top_toggled	(GtkCheckMenuItem *	check_menu_item,
-				 gpointer		user_data)
-{
-  python_command_printf (GTK_WIDGET (check_menu_item),
-			 "zapping.keep_on_top(%u)",
-			 check_menu_item->active);
 }
 
 static void
@@ -278,13 +278,13 @@ static GnomeUIInfo
 popup_appearance_uiinfo [] = {
   {
     GNOME_APP_UI_TOGGLEITEM, N_("Menu and Toolbar"), NULL,
-    G_CALLBACK (on_toolbar_toggled), NULL, NULL,
+    G_CALLBACK (on_python_check_menu_toggled_reverse), "hide_controls", NULL,
     GNOME_APP_PIXMAP_NONE, NULL,
     GDK_H, (GdkModifierType) GDK_CONTROL_MASK, NULL
   },
   {
     GNOME_APP_UI_TOGGLEITEM, N_("Keep Window on Top"), NULL,
-    G_CALLBACK (on_keep_window_on_top_toggled), NULL, NULL,
+    G_CALLBACK (on_python_check_menu_toggled), "keep_on_top", NULL,
     GNOME_APP_PIXMAP_NONE, NULL,
     GDK_K, (GdkModifierType) GDK_CONTROL_MASK, NULL
   },
@@ -298,19 +298,19 @@ popup_uiinfo [] = {
     GNOME_APP_UI_ITEM, N_("_Fullscreen"), NULL,
     G_CALLBACK (on_python_command1), "zapping.switch_mode('fullscreen')", NULL,
     GNOME_APP_PIXMAP_STOCK, GTK_STOCK_EXECUTE,
-    GDK_F, (GdkModifierType) GDK_CONTROL_MASK, NULL
+    0, (GdkModifierType) 0, NULL
   },
   {
     GNOME_APP_UI_ITEM, N_("_Overlay mode"), NULL,
     G_CALLBACK (on_python_command1), "zapping.switch_mode('preview')", NULL,
     GNOME_APP_PIXMAP_STOCK, GTK_STOCK_EXECUTE,
-    GDK_O, (GdkModifierType) GDK_CONTROL_MASK, NULL
+    0, (GdkModifierType) 0, NULL
   },
   {
     GNOME_APP_UI_ITEM, N_("_Capture mode"), NULL,
     G_CALLBACK (on_python_command1), "zapping.switch_mode('capture')", NULL,
     GNOME_APP_PIXMAP_STOCK, GTK_STOCK_EXECUTE,
-    GDK_C, (GdkModifierType) GDK_CONTROL_MASK, NULL
+    0, (GdkModifierType) 0, NULL
   },
   GNOMEUIINFO_SEPARATOR,
   {
@@ -322,7 +322,7 @@ popup_uiinfo [] = {
   {
     GNOME_APP_UI_ITEM, N_("_Subtitles"), NULL,
     NULL, NULL, NULL,
-    GNOME_APP_PIXMAP_NONE, NULL,
+    GNOME_APP_PIXMAP_STOCK, "zapping-subtitle",
     0, (GdkModifierType) 0, NULL
   },
   {
@@ -382,15 +382,6 @@ zapping_popup_menu_new		(GdkEventButton *	event)
 	      gtk_widget_set_sensitive (teletext, FALSE);
 	      gtk_widget_hide (teletext);
 	    }
-
-	  /*
-	    widget = lookup_widget(mw, "videotext2");
-	    z_change_menuitem(widget,
-			      "gnome-stock-table-fill",
-			      _("Overlay this page"),
-			      _("Return to windowed mode and use the current "
-				"page as subtitles"));
-	  */
 
 	  widget = popup_uiinfo[7].widget; /* bookmarks */
 	  gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget),
@@ -472,7 +463,7 @@ zapping_popup_menu_new		(GdkEventButton *	event)
       zconf_get_boolean (NULL, "/zapping/internal/callbacks/hide_controls"));
     zconf_add_hook_while_alive (G_OBJECT (widget),
 				"/zapping/internal/callbacks/hide_controls",
-				(ZConfHook) zconf_hook_toolbar,
+				(ZConfHook) zconf_hook_show_toolbar,
 				GTK_CHECK_MENU_ITEM (widget), FALSE);
 
     widget = popup_appearance_uiinfo[1].widget;
@@ -563,26 +554,26 @@ main_view_uiinfo [] = {
   GNOMEUIINFO_SEPARATOR,
   {
     GNOME_APP_UI_TOGGLEITEM, N_("_Mute"), NULL,
-    G_CALLBACK (on_python_command1), "zapping.mute()", NULL,
+    G_CALLBACK (on_python_check_menu_toggled), "mute", NULL,
     GNOME_APP_PIXMAP_STOCK, "zapping-mute",
     GDK_A, (GdkModifierType) GDK_CONTROL_MASK, NULL
   },
   {
     GNOME_APP_UI_TOGGLEITEM, N_("_Subtitles"), NULL,
-    G_CALLBACK (on_python_command1), "zapping.closed_caption()", NULL,
-    GNOME_APP_PIXMAP_NONE, NULL,
-    0, (GdkModifierType) 0, NULL
+    G_CALLBACK (on_python_check_menu_toggled), "closed_caption", NULL,
+    GNOME_APP_PIXMAP_STOCK, "zapping-subtitle",
+    GDK_U, (GdkModifierType) GDK_CONTROL_MASK, NULL
   },
   GNOMEUIINFO_SEPARATOR,
   {
     GNOME_APP_UI_TOGGLEITEM, N_("Menu and toolbar"), NULL,
-    NULL, NULL, NULL,
+    G_CALLBACK (on_python_check_menu_toggled_reverse), "hide_controls", NULL,
     GNOME_APP_PIXMAP_NONE, NULL,
     GDK_H, (GdkModifierType) GDK_CONTROL_MASK, NULL
   },
   {
     GNOME_APP_UI_TOGGLEITEM, N_("Keep window on top"), NULL,
-    NULL, NULL, NULL,
+    G_CALLBACK (on_python_check_menu_toggled), "keep_on_top", NULL,
     GNOME_APP_PIXMAP_NONE, NULL,
     GDK_K, (GdkModifierType) GDK_CONTROL_MASK, NULL
   },
@@ -638,27 +629,38 @@ zapping_menu_new		(GtkWidget *		zapping)
   register_widget (zapping, main_view_uiinfo[5].widget, "new_ttxview");
   register_widget (zapping, main_view_uiinfo[6].widget, "separador5");
   register_widget (zapping, main_view_uiinfo[7].widget, "mute2");
-  register_widget (zapping, main_view_uiinfo[8].widget, "closed_caption1");
+
+  widget = main_view_uiinfo[8].widget; /* subtitles */
+  register_widget (zapping, widget, "context-subtitle");
+  zconf_add_hook_while_alive (G_OBJECT (widget),
+			      "/zapping/internal/callbacks/closed_caption",
+			      (ZConfHook) zconf_hook_check_menu,
+			      GTK_CHECK_MENU_ITEM (widget), TRUE);
 
   widget = main_view_uiinfo[10].widget; /* hide menu and toolbar */
-  g_signal_connect (G_OBJECT (widget), "toggled",
-		    (GCallback) on_toolbar_toggled, NULL);
   zconf_add_hook_while_alive (G_OBJECT (widget),
 			      "/zapping/internal/callbacks/hide_controls",
-			      (ZConfHook) zconf_hook_toolbar,
+			      (ZConfHook) zconf_hook_show_toolbar,
 			      GTK_CHECK_MENU_ITEM (widget), FALSE);
 
   widget = main_view_uiinfo[11].widget; /* keep window on top */
   /* XXX tell why not */
   gtk_widget_set_sensitive (widget, !!have_wm_hints);
-  g_signal_connect (G_OBJECT (widget), "toggled",
-		    (GCallback) on_keep_window_on_top_toggled, NULL);
   zconf_add_hook_while_alive (G_OBJECT (widget),
 			      "/zapping/options/main/keep_on_top",
 			      (ZConfHook) zconf_hook_keep_window_on_top,
 			      GTK_CHECK_MENU_ITEM (widget), FALSE);
 
   return menu;
+}
+
+static void
+on_python_toggle_button_toggled	(GtkToggleButton *	toggle_button,
+				 gpointer		user_data)
+{
+  python_command_printf (GTK_WIDGET (toggle_button),
+			 "zapping.%s(%u)", (const char *) user_data,
+			 gtk_toggle_button_get_active (toggle_button));
 }
 
 static GtkWidget *
@@ -702,8 +704,8 @@ zapping_toolbar_new		(GtkWidget *		zapping)
   icon = gtk_image_new_from_stock ("zapping-mute", icon_size);
   widget = gtk_toolbar_append_element
     (toolbar, GTK_TOOLBAR_CHILD_TOGGLEBUTTON, NULL,
-     _("Mute"), _("Switch audio on or off"), NULL,
-     icon, G_CALLBACK (on_python_command1), "zapping.mute()");
+     _("Mute"), _("Switch audio on or off"), NULL, icon,
+     G_CALLBACK (on_python_toggle_button_toggled), "mute");
   register_widget (zapping, widget, "toolbar-mute");
 
   widget = gtk_toolbar_insert_stock (toolbar, "zapping-teletext",
@@ -711,6 +713,17 @@ zapping_toolbar_new		(GtkWidget *		zapping)
 				     G_CALLBACK (on_python_command1),
 				     "zapping.switch_mode('teletext')", -1);
   register_widget (zapping, widget, "toolbar-teletext");
+
+  icon = gtk_image_new_from_stock ("zapping-subtitle", icon_size);
+  widget = gtk_toolbar_append_element
+    (toolbar, GTK_TOOLBAR_CHILD_TOGGLEBUTTON, NULL,
+     _("Subtitles"), _("Switch subtitles on or off"), NULL, icon,
+     G_CALLBACK (on_python_toggle_button_toggled), "closed_caption");
+  zconf_add_hook_while_alive (G_OBJECT (widget),
+			      "/zapping/internal/callbacks/closed_caption",
+			      (ZConfHook) zconf_hook_toggle_button,
+			      GTK_TOGGLE_BUTTON (widget), TRUE);
+  register_widget (zapping, widget, "toolbar-subtitle");
 
   gtk_container_foreach (GTK_CONTAINER (widget),
 			 (GtkCallback) gtk_widget_show_all,
