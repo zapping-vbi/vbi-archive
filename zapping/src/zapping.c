@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.c,v 1.8 2004-11-11 14:34:11 mschimek Exp $ */
+/* $Id: zapping.c,v 1.9 2004-12-02 02:46:42 mschimek Exp $ */
 
 #include "config.h"
 #include "site_def.h"
@@ -877,10 +877,12 @@ instance_init			(GTypeInstance *	instance,
   action = gtk_action_group_get_action (z->vbi_action_group, "RestoreVideo");
   z_action_set_visible (action, FALSE);
 
+#ifdef HAVE_LIBZVBI
   action = gtk_action_group_get_action (z->vbi_action_group, "Subtitles");
   zconf_add_hook ("/zapping/internal/callbacks/closed_caption",
 		  (ZConfHook) zconf_hook_subtitles,
 		  GTK_TOGGLE_ACTION (action));
+#endif
 
   /* We add the submenu ourselves. Make sure the menu item is
      visible despite initially without menu. */
