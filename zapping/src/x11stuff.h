@@ -69,6 +69,8 @@ extern void
 (* x11_window_on_top)		(GtkWindow *window, gboolean on);
 extern void
 (* x11_window_fullscreen)	(GtkWindow *window, gboolean on);
+extern void
+(* x11_window_below)		(GtkWindow *window, gboolean on);
 extern gboolean
 wm_hints_detect			(void);
 

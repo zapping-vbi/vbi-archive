@@ -357,6 +357,18 @@ void (* x11_window_fullscreen)	(GtkWindow *		window,
 				 gboolean		on)
   = dummy_window_something;
 
+/**
+ * window_background:
+ * @window:
+ * @on:
+ *
+ * Tell the WM to keep the window below most other windows.
+ * You must call wm_hints_detect () and gtk_widget_show (window) first.
+ */
+void (* x11_window_below)	(GtkWindow *		window,
+				 gboolean		on)
+  = dummy_window_something;
+
 static GdkFilterReturn
 wm_event_handler		(GdkXEvent *		xevent _unused_,
 				 GdkEvent *		event _unused_,
@@ -376,6 +388,7 @@ enum {
 static Atom _XA_NET_SUPPORTED;
 static Atom _XA_NET_WM_STATE;
 static Atom _XA_NET_WM_STATE_ABOVE;
+static Atom _XA_NET_WM_STATE_BELOW;
 static Atom _XA_NET_WM_STATE_FULLSCREEN;
 
 static void
@@ -396,6 +409,16 @@ net_wm_fullscreen		(GtkWindow *		window,
 			     _XA_NET_WM_STATE,
 			     on ? _NET_WM_STATE_ADD : _NET_WM_STATE_REMOVE,
 			     _XA_NET_WM_STATE_FULLSCREEN);
+}
+
+static void
+net_wm_below			(GtkWindow *		window,
+				 gboolean		on)
+{
+  gtk_window_send_x11_event (window,
+			     _XA_NET_WM_STATE,
+			     on ? _NET_WM_STATE_ADD : _NET_WM_STATE_REMOVE,
+			     _XA_NET_WM_STATE_BELOW);
 }
 
 enum {
@@ -430,6 +453,16 @@ gnome_fullscreen		(GtkWindow *		window,
 			     0);
 }
 
+static void
+gnome_below			(GtkWindow *		window,
+				 gboolean		on)
+{
+  gtk_window_send_x11_event (window,
+			     _XA_WIN_LAYER,
+			     on ? WIN_LAYER_BELOW : WIN_LAYER_NORMAL,
+			     0);
+}
+
 /**
  * wm_hints_detect:
  * Check if we can tell the WM to keep a window on top of other windows.
@@ -453,6 +486,7 @@ wm_hints_detect			(void)
   _XA_NET_WM_STATE		= XInternAtom (display, "_NET_WM_STATE", False);
   _XA_NET_WM_STATE_FULLSCREEN	= XInternAtom (display, "_NET_WM_STATE_FULLSCREEN", False);
   _XA_NET_WM_STATE_ABOVE	= XInternAtom (display, "_NET_WM_STATE_ABOVE", False);
+  _XA_NET_WM_STATE_BELOW	= XInternAtom (display, "_NET_WM_STATE_BELOW", False);
 
   /* Netwm compliant */
 
@@ -486,6 +520,7 @@ wm_hints_detect			(void)
 
 		x11_window_on_top = net_wm_window_on_top;
 		x11_window_fullscreen = net_wm_fullscreen;
+		x11_window_below = net_wm_below;
 
 		gdk_add_client_message_filter
 		  (gdk_x11_xatom_to_atom (_XA_NET_WM_STATE),
@@ -529,6 +564,7 @@ wm_hints_detect			(void)
 
 	  x11_window_on_top = gnome_window_on_top;
 	  x11_window_fullscreen = gnome_fullscreen;
+	  x11_window_below = gnome_below;
 
 	  gdk_add_client_message_filter
 	    (gdk_x11_xatom_to_atom (_XA_WIN_LAYER),
