@@ -3,7 +3,9 @@
 ## Don't forget to put these files into the distribution
 EXTRA_DIST = gen_conv.s zmarshalers.list 
 
-INCLUDES = -I$(top_srcdir)/common @DEFAULT_CFLAGS@ @COMMON_INCLUDES@
+INCLUDES = -I$(top_srcdir) @DEFAULT_CFLAGS@ @COMMON_INCLUDES@ \
+	$(LIBXML_CFLAGS) \
+	-DZSFB_DIR="\"$(DESTDIR)$(sbindir)\""
 
 bin_PROGRAMS = zapping
 
@@ -74,10 +76,13 @@ zapping_SOURCES = \
 	plugin_properties.c plugin_properties.h \
 	channel_editor.c channel_editor.h \
 	i18n.c i18n.h \
-	zvideo.c zvideo.h
+	zvideo.c zvideo.h \
+	eggcellrendererkeys.c eggcellrendererkeys.h \
+	eggaccelerators.c eggaccelerators.h \
+	xawtv.c xawtv.h
 
 zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(PACKAGE_LIBS) $(PYTHON_LIBS) \
   $(X_LIBS) $(X_DPMS_LIBS) \
   $(X_XF86DGA_LIBS) $(X_XF86VMODE_LIBS) $(X_XV_LIBS) \
-  $(CCMALLOC) $(ZVBI_LIB) $(ARTS_LIBS) $(ESD_LIBS)
+  $(CCMALLOC) $(ZVBI_LIB) $(ARTS_LIBS) $(ESD_LIBS) $(LIBXML_LIBS)
 zapping_LDFLAGS = -export-dynamic
