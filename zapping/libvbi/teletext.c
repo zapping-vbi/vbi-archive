@@ -201,7 +201,7 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg,
 	attr_char ac;
 	int i, got;
 
-	printv("PAGE BTT: %d\n", vbi->vt.page_info[vtp->pgno - 0x100].btt);
+	printv("PAGE MIP/BTT: %d\n", vbi->vt.page_info[vtp->pgno - 0x100].code);
 
 	memset(&ac, 0, sizeof(ac));
 
@@ -216,44 +216,27 @@ top_navigation_bar(struct vbi *vbi, struct fmt_page *pg,
 	if (pg->page_opacity[1] != OPAQUE)
 		return;
 
-	if (0 && DEBUG)
-		for (i = 0x100; i < 0x8FF; i++) {
-			printv("%x ", vbi->vt.page_info[i - 0x100].btt & 15);
-			if ((i & 0x3F) == 0x3F) putchar('\n');
+	for (i = vtp->pgno; i != vtp->pgno + 1; i = (i == 0) ? 0x89a : i - 1)
+		if (vbi->vt.page_info[i - 0x100].code == VBI_TOP_BLOCK ||
+		    vbi->vt.page_info[i - 0x100].code == VBI_TOP_GROUP) {
+			top_label(vbi, pg, pg->font[0], 0, i, 32 + WHITE, 0);
+			break;
 		}
 
-//	top_label(vbi, pg, pg->font[0], 0, vtp->pgno, RED, FALSE);
+	for (i = vtp->pgno + 1, got = FALSE; i != vtp->pgno; i = (i == 0x899) ? 0x100 : i + 1)
+		switch (vbi->vt.page_info[i - 0x100].code) {
+		case VBI_TOP_BLOCK:
+			top_label(vbi, pg, pg->font[0], 2, i, 32 + YELLOW, 2);
+			return;
 
-	switch (vbi->vt.page_info[vtp->pgno - 0x100].btt) {
-	case 1: // subtitles?
-	default:
-		break;
-
-	case 4 ... 5:
-	case 6 ... 7:
-	case 8:
-	case 10:
-		for (i = vtp->pgno; i != vtp->pgno + 1; i = (i == 0) ? 0x89a : i - 1)
-			if (vbi->vt.page_info[i - 0x100].btt >= 4 && vbi->vt.page_info[i - 0x100].btt <= 7) {
-				top_label(vbi, pg, pg->font[0], 0, i, 32 + WHITE, 0);
-				break;
+		case VBI_TOP_GROUP:
+			if (!got) {
+				top_label(vbi, pg, pg->font[0], 1, i, 32 + GREEN, 1);
+				got = TRUE;
 			}
 
-		for (i = vtp->pgno + 1, got = FALSE; i != vtp->pgno; i = (i == 0x899) ? 0x100 : i + 1)
-			switch (vbi->vt.page_info[i - 0x100].btt) {
-			case 4 ... 5:
-				top_label(vbi, pg, pg->font[0], 2, i, 32 + YELLOW, 2);
-				return;
-
-			case 6 ... 7:
-				if (!got) {
-					top_label(vbi, pg, pg->font[0], 1, i, 32 + GREEN, 1);
-					got = TRUE;
-				}
-
-				break;
-			}
-	}
+			break;
+		}
 }
 
 static ait_entry *
@@ -360,8 +343,8 @@ top_index(struct vbi *vbi, struct fmt_page *pg, int subno)
 			if (ait->text[i] > 0x20)
 				break;
 
-		switch (vbi->vt.page_info[ait->page.pgno - 0x100].btt) {
-		case 6 ... 7:
+		switch (vbi->vt.page_info[ait->page.pgno - 0x100].code) {
+		case VBI_TOP_GROUP:
 			k = 3;
 			break;
 
@@ -1516,7 +1499,7 @@ post_enhance(struct fmt_page *pg)
 
 	for (row = 0; row < ROWS - 1; row++) {
 		for (column = 0; column < COLUMNS; acp++, column++) {
-			printv("%d", acp->flash);
+//			printv("%d", acp->flash);
 
 			if (acp->opacity == TRANSPARENT_SPACE
 			    || (acp->foreground == TRANSPARENT_BLACK
@@ -1568,7 +1551,7 @@ post_enhance(struct fmt_page *pg)
 			}
 		}
 
-		printv("\n");
+//		printv("\n");
 	}
 }
 

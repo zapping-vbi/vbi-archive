@@ -210,36 +210,53 @@ vtp_size(struct vt_page *vtp)
 }
 
 /*
- *  Note:
- *  0x01 ... 0x51 -> 0x01 (subpages)
- *  0x70 ... 0x77 -> 0x70 (language)
- *  0x7B -> 0x7C (subpages)
- *  0x7E -> 0x7F (subpages)
- *  0x81 ... 0xD1 -> 0x81 (subpages)
- *  reserved -> MIP_UNKNOWN
+ *  MIP 0x01 ... 0x51 -> 0x01 (subpages)
+ *  MIP 0x70 ... 0x77 -> 0x70 (language)
+ *  MIP 0x7B -> 0x7C (subpages)
+ *  MIP 0x7E -> 0x7F (subpages)
+ *  MIP 0x81 ... 0xD1 -> 0x81 (subpages)
+ *  MIP reserved -> 0xFF (VBI_UNKNOWN_PAGE)
  *
- *  0x80 and 0xE0 ... 0xFE are for decoder internal
+ *  MIP 0x80 and 0xE0 ... 0xFE are for decoder internal
  *  use only and have no corresponding VBI_ classification.
+ *
+ *  BTT 0 -> 0x00 (VBI_NOPAGE)
+ *  BTT 1 -> 0x70 (VBI_SUBTITLE_PAGE)
+ *  BTT 2 ... 3 -> 0x7F (VBI_PROGR_INDEX)
+ *  BTT 4 ... 5 -> 0xFA (VBI_TOP_BLOCK -> VBI_NORMAL_PAGE) 
+ *  BTT 6 ... 7 -> 0xFB (VBI_TOP_GROUP -> VBI_NORMAL_PAGE)
+ *  BTT 8 ... 11 -> 0x01 (VBI_NORMAL_PAGE)
+ *  BTT 12 ... 15 -> 0xFF (VBI_UNKNOWN_PAGE)
+ *
+ *  0xFA, 0xFB, 0xFF are reserved MIP codes used
+ *  internally by libvbi.
  */
-#define MIP_NO_PAGE		0x00
-#define MIP_NORMAL_PAGE		0x01
-#define MIP_SUBTITLE		0x70
-#define MIP_SUBTITLE_INDEX	0x78
-#define MIP_NONSTD_SUBPAGES	0x79
-#define MIP_WARNING		0x7A
-#define MIP_CURRENT_PROGR	0x7C
-#define MIP_NOW_AND_NEXT	0x7D
-#define MIP_PROGR_INDEX		0x7F
-#define MIP_NOT_PUBLIC		0x80
-#define MIP_PROGR_SCHEDULE	0x81
-#define MIP_CA_DATA_BROADCAST	0xE0
-#define MIP_EPG_DATA		0xE3
-#define MIP_SYSTEM_PAGE		0xE7
-#define MIP_DISP_SYSTEM_PAGE	0xF7
-#define MIP_KEYWORD_SEARCH_LIST 0xF9
-#define MIP_ACI			0xFD
-#define MIP_TOP_PAGE		0xFE
-#define MIP_UNKNOWN		0xFF	/* libvbi internal, not for display */
+#define VBI_NOT_PUBLIC		0x80
+#define VBI_CA_DATA_BROADCAST	0xE0
+#define VBI_EPG_DATA		0xE3
+#define VBI_SYSTEM_PAGE		0xE7
+#define VBI_DISP_SYSTEM_PAGE	0xF7
+#define VBI_KEYWORD_SEARCH_LIST 0xF9
+#define VBI_TOP_BLOCK		0xFA
+#define VBI_TOP_GROUP		0xFB
+#define VBI_ACI			0xFD
+#define VBI_TOP_PAGE		0xFE
+
+typedef enum {
+	BTT_NO_PAGE = 0,
+	BTT_SUBTITLE,
+	BTT_PROGR_INDEX_S,
+	BTT_PROGR_INDEX_M,
+	BTT_BLOCK_S,
+	BTT_BLOCK_M,
+	BTT_GROUP_S,
+	BTT_GROUP_M,
+	BTT_NORMAL_S,
+	BTT_NORMAL_9, /* ? */
+	BTT_NORMAL_M,
+	BTT_NORMAL_11, /* ? */
+	/* 12 ... 15 ? */
+} btt_page_class;
 
 typedef enum {
 	LOCAL_ENHANCEMENT_DATA = 0,
@@ -299,10 +316,10 @@ struct teletext {
         pagenum		        initial_page;
 	magazine		magazine[9];		/* 1 ... 8; #0 unmodified level 1.5 default */
 
-	struct {
-		signed char		btt;
-		unsigned char		mip;
-		unsigned short		subpages;
+	struct page_info {
+		unsigned 		code : 8;
+		unsigned		language : 8;
+		unsigned 		subcode : 16;
 	}			page_info[0x800];
 
 	pagenum		        btt_link[15];

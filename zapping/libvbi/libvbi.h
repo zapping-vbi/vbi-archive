@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.29 2001-03-28 07:48:15 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.30 2001-03-30 06:48:38 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -202,18 +202,43 @@ typedef struct {
  */
 
 #define VBI_NO_PAGE		0x00	/* not in transmission */
-#define VBI_NORMAL_PAGE		0x01	/* normal page -> subpages 1++ */
+#define VBI_NORMAL_PAGE		0x01	/* normal page -> subpage */
 #define VBI_SUBTITLE_PAGE	0x70	/* subtitle page -> language */
 #define VBI_SUBTITLE_INDEX	0x78	/* subtitle index page */
 #define VBI_NONSTD_SUBPAGES	0x79	/* non-std subpages, eg. clock page */
 #define VBI_PROGR_WARNING	0x7A	/* program related warning */
-#define VBI_CURRENT_PROGR	0x7C	/* current program info -> subpages 1++ */
+#define VBI_CURRENT_PROGR	0x7C	/* current program info -> subpage */
 #define VBI_NOW_AND_NEXT	0x7D	/* program related */
 #define VBI_PROGR_INDEX		0x7F	/* program index page */
-#define VBI_PROGR_SCHEDULE	0x81	/* program schedule page -> subpages 1++ */
+#define VBI_PROGR_SCHEDULE	0x81	/* program schedule page -> subpage */
 #define VBI_UNKNOWN_PAGE	0xFF	/* libvbi internal, page not for display */
 
-extern int		vbi_classify_page(struct vbi *vbi, int pgno, int *subpages);
+/*
+ *  pgno: 0x100 ... 0x8FF
+ *  subpage: returns highest subpage number used,
+ *    0			- single page
+ *    1			- should not appear
+ *    2 ... 0x3F7F	- subpages 1 ... 0x3F7F
+ *    0xFFFE		- has unknown number of subpages
+ *    0xFFFF		- unknown
+ *  language: returns the language of a subtitle page, NULL if unknown or
+ *    not VBI_SUBTITLE_PAGE. If valid, *language points to a language
+ *    name in the the lang.c font_descriptors table (XXX i18n?).
+ *
+ *  subpage and/or language can be NULL, the function returns one of the
+ *  VBI_ classification codes above.
+ *
+ *  WARNING the results of this function are volatile: As more information
+ *  becomes available and pages are edited (eg. activation of subtitles,
+ *  news updates, program related pages) VBI_NO_PAGE, VBI_UNKNOWN_PAGE,
+ *  subpage 0xFFFE and 0xFFFF can be revoked; Subpage numbers can grow, page
+ *  classifications and languages can change.
+ *
+ *  The subpage number can be larger (but not smaller) than the number of
+ *  subpages actually received and cached. One cannot exclude the possibility
+ *  an advertised subpages will never appear.
+ */
+extern int		vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **language);
 
 /*
  *  Event (vbi.c)
@@ -249,7 +274,7 @@ extern int		vbi_classify_page(struct vbi *vbi, int pgno, int *subpages);
  *     can confuse the logic.
  */
 
-#define	VBI_EVENT_WEBLINK	(1 << 5)
+#define	VBI_EVENT_WEBLINK	0 // (1 << 5)
 /*
  *  A web link has been received, vbi_event.p is a vbi_weblink pointer.
  *  The event will not repeat*) unless a different web link has been

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.11 2001-03-09 17:39:01 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.12 2001-03-30 06:48:38 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -195,12 +195,17 @@ init_bit_slicer(struct bit_slicer *d,
 	}
 }
 
+int offset[32][1024];
+int thresh[32][1024];
+
 static bool
-bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
+bit_slicer(struct bit_slicer *d, unsigned char *raw1, unsigned char *buf, int row)
 {
+	unsigned char *raw = raw1;
 	int i, j, k, cl = 0, thresh0 = d->thresh;
 	unsigned int c = 0, t;
 	unsigned char b, b1 = 0, tr;
+	int pos = 0, q;
 
 	for (i = d->cri_bytes; i > 0; raw++, i--) {
 		tr = d->thresh >> 9;
@@ -225,6 +230,10 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 						c = 0;
 
 						for (j = d->frc_bits; j > 0; j--) {
+//		tr = d->thresh >> 9;
+//		d->thresh += 4 * ((int) raw[(i>>8)+0] - tr) * nbabs(raw[(i>>8)+1] - raw[(i>>8)+0]);
+offset[row][pos] = (i >> 8) + (raw - raw1);
+thresh[row][pos++] = tr;
 							c = c * 2 + (raw[i >> 8] >= tr);
     							i += d->step;
 						}
@@ -236,6 +245,12 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 							for (j = d->payload; j > 0; j--) {
 								for (k = 0; k < 8; k++) {
 						    			c >>= 1;
+offset[row][pos] = (i >> 8) + (raw - raw1);
+thresh[row][pos++] = tr;
+for (q = i >> 8; q < ((i + d->step) >> 8); q++) { 
+		tr = d->thresh >> 9;
+		d->thresh += 2 * ((int) raw[q+0] - tr) * nbabs(raw[q+1] - raw[q+0]);
+}
 									c += (raw[i >> 8] >= tr) << 7;
 			    						i += d->step;
 								}
@@ -245,6 +260,10 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 						} else {
 							for (j = d->payload; j > 0; j--) {
 								for (k = 0; k < 8; k++) {
+		tr = d->thresh >> 9;
+		d->thresh += 4 * ((int) raw[(i>>8)+0] - tr) * nbabs(raw[(i>>8)+1] - raw[(i>>8)+0]);
+offset[row][pos] = (i >> 8) + (raw - raw1);
+thresh[row][pos++] = tr;
 									c = c * 2 + (raw[i >> 8] >= tr);
 			    						i += d->step;
 								}
@@ -548,7 +567,7 @@ decode(struct vbi_capture *vbi, unsigned char *raw1, vbi_sliced *out1)
 #if #cpu (i386)
 				if (opt_profile) {
 					tsc_t begin = rdtsc();
-					bool r = bit_slicer(&job->slicer, raw + job->offset, out->data);
+					bool r = bit_slicer(&job->slicer, raw + job->offset, out->data, i);
 
 					sum += rdtsc() - begin;
 					repeats++;
@@ -557,7 +576,7 @@ decode(struct vbi_capture *vbi, unsigned char *raw1, vbi_sliced *out1)
 						continue;
 				} else
 #endif
-				if (!bit_slicer(&job->slicer, raw + job->offset, out->data))
+				if (!bit_slicer(&job->slicer, raw + job->offset, out->data, i))
 					continue;
 
 				out->id = job->id;
@@ -2305,6 +2324,7 @@ int			depth;
 unsigned char *		save_raw;
 int			draw_row, draw_offset;
 int			draw_count = -1;
+int			zoom = 1;
 
 static void
 draw(struct vbi_capture *vbi, unsigned char *data1)
@@ -2380,8 +2400,16 @@ draw(struct vbi_capture *vbi, unsigned char *data1)
 	for (i = 1; i < end; i++) {
 		int h = dst_h - (data1[i] * v) / 256;
 
-		XDrawLine(display, window, gc, i - 1, h0, i, h);
+		XDrawLine(display, window, gc, (i - 1) * zoom, h0, i * zoom, h);
 		h0 = h;
+	}
+
+	for (i = 0; i < 1024; i++) {
+		int x = offset[draw_row][i] - draw_offset;
+		int h = dst_h - (thresh[draw_row][i] * v) / 256;
+
+//		XDrawLine(display, window, gc, (x - 1) * zoom, h, (x + 1) * zoom, h);
+		XDrawLine(display, window, gc, (x) * zoom, h - 1, (x) * zoom, h + 1);
 	}
 }
 
@@ -2401,6 +2429,10 @@ xevent(struct vbi_capture *vbi)
 
 			case 'l':
 				draw_count = -1;
+				break;
+
+			case 'z':
+				zoom = 3 - zoom;
 				break;
 
 			case 'q':

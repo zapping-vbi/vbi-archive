@@ -29,6 +29,8 @@ dump_raw(struct vt_page *vtp, bool unham)
 {
 	int i, j;
 
+	printf("Page %03x.%04x\n", vtp->pgno, vtp->subno);
+
 	for (j = 0; j < 25; j++) {
 		if (unham)
 			for (i = 0; i < 40; i++)
@@ -99,14 +101,14 @@ dump_page_info(struct teletext *vt)
 {
 	int i, j;
 
-	for (i = 0; i < 0x800; i += 8) {
+	for (i = 0; i < 0x800; i += 16) {
 		printf("%03x: ", i + 0x100);
 
-		for (j = 0; j < 8; j++)
+		for (j = 0; j < 16; j++)
 			printf("%02x:%02x:%04x ",
-				vt->page_info[i + j].btt & 0xFF,
-				vt->page_info[i + j].mip & 0xFF,
-				vt->page_info[i + j].subpages & 0xFFFF);
+			       vt->page_info[i + j].code & 0xFF,
+			       vt->page_info[i + j].language & 0xFF, 
+			       vt->page_info[i + j].subcode & 0xFFFF);
 
 		putchar('\n');
 	}
@@ -428,12 +430,47 @@ convert_drcs(struct vt_page *vtp, unsigned char *raw)
 	return TRUE;
 }
 
+static int
+page_language(struct teletext *vt, struct vt_page *vtp, int pgno, int national)
+{
+	magazine *mag;
+	extension *ext;
+	int char_set;
+	int lang = -1; /***/
+
+	if (vtp) {
+		if (vtp->function != PAGE_FUNCTION_LOP)
+			return lang;
+
+		pgno = vtp->pgno;
+		national = vtp->national;
+	}
+
+	mag = (vt->max_level <= VBI_LEVEL_1p5) ?
+		vt->magazine : vt->magazine + (pgno >> 8);
+
+	ext = (vtp && vtp->data.lop.ext) ?
+		&vtp->data.ext_lop.ext : &mag->extension;
+
+	char_set = ext->char_set[0];
+
+	if (VALID_CHARACTER_SET(char_set))
+		lang = char_set;
+
+	char_set = (char_set & ~7) + national;
+
+	if (VALID_CHARACTER_SET(char_set))
+		lang = char_set;
+
+	return lang;
+}
+
 static bool
-parse_mip_page(struct teletext *vt, struct vt_page *vtp,
+parse_mip_page(struct vbi *vbi, struct vt_page *vtp,
 	int pgno, int code, int *subp_index)
 {
 	unsigned char *raw;
-	int subp;
+	int subc, old_code, old_subc;
 
 	if (code < 0)
 		return FALSE;
@@ -443,20 +480,22 @@ parse_mip_page(struct teletext *vt, struct vt_page *vtp,
 	case 0xD2 ... 0xDF: /* reserved */
 	case 0xFA ... 0xFC: /* reserved */
 	case 0xFF: 	    /* reserved, we use it as 'unknown' flag */
-		break;
+		return TRUE;
 
 	case 0x02 ... 0x4F:
 	case 0x82 ... 0xCF:
-		vt->page_info[pgno - 0x100].mip =
-			(code >= 0x80) ? MIP_PROGR_SCHEDULE :
-					 MIP_NORMAL_PAGE;
-		vt->page_info[pgno - 0x100].subpages = code & 0x7F;
+		subc = code & 0x7F;
+		code = (code >= 0x80) ? VBI_PROGR_SCHEDULE :
+					VBI_NORMAL_PAGE;
 		break;
 
 	case 0x70 ... 0x77:
-		vt->page_info[pgno - 0x100].mip = MIP_SUBTITLE;
-		vt->page_info[pgno - 0x100].subpages = 1;
-		/* XXX C12, C13, C14 */
+		code = VBI_SUBTITLE_PAGE;
+		subc = 0;
+		vbi->vt.page_info[pgno - 0x100].language =
+			page_language(&vbi->vt,
+				vbi->cache->op->get(vbi->cache, pgno, 0, 0),
+				pgno, code & 7);
 		break;
 
 	case 0x50 ... 0x51: /* normal */
@@ -469,38 +508,48 @@ parse_mip_page(struct teletext *vt, struct vt_page *vtp,
 
 		raw = &vtp->data.unknown.raw[*subp_index / 13 + 15]
 				    [(*subp_index % 13) * 3 + 1];
-
 		(*subp_index)++;
 
-		if ((subp = hamm16a(raw) | (hamm8a[raw[2]] << 8)) < 0)
+		if ((subc = hamm16a(raw) | (hamm8a[raw[2]] << 8)) < 0)
 			return FALSE;
 
 		if ((code & 15) == 1)
-			subp += 1 << 12;
-		else if (subp < 2)
+			subc += 1 << 12;
+		else if (subc < 2)
 			return FALSE;
 
-		vt->page_info[pgno - 0x100].mip =
-			(code == 0xF8) ? MIP_KEYWORD_SEARCH_LIST :
-			(code == 0x7B) ? MIP_CURRENT_PROGR :
-			(code >= 0xE0) ? MIP_CA_DATA_BROADCAST :
-			(code >= 0xD0) ? MIP_PROGR_SCHEDULE :
-					 MIP_NORMAL_PAGE;
-		vt->page_info[pgno - 0x100].subpages = subp;
-
+		code =	(code == 0xF8) ? VBI_KEYWORD_SEARCH_LIST :
+			(code == 0x7B) ? VBI_CURRENT_PROGR :
+			(code >= 0xE0) ? VBI_CA_DATA_BROADCAST :
+			(code >= 0xD0) ? VBI_PROGR_SCHEDULE :
+					 VBI_NORMAL_PAGE;
 		break;
 
 	default:
-		vt->page_info[pgno - 0x100].mip = code;
-		vt->page_info[pgno - 0x100].subpages = 1;
+		code = code;
+		subc = 0;
 		break;
 	}
+
+	old_code = vbi->vt.page_info[pgno - 0x100].code;
+	old_subc = vbi->vt.page_info[pgno - 0x100].subcode;
+
+	/*
+	 *  When we got incorrect numbers and proved otherwise by
+	 *  actually receiving the page...
+	 */
+	if (old_code == VBI_UNKNOWN_PAGE || old_code == VBI_SUBTITLE_PAGE
+	    || code != VBI_NO_PAGE || code == VBI_SUBTITLE_PAGE)
+		vbi->vt.page_info[pgno - 0x100].code = code;
+
+	if (old_code == VBI_UNKNOWN_PAGE || subc > old_subc)
+		vbi->vt.page_info[pgno - 0x100].subcode = subc;
 
 	return TRUE;
 }
 
 static bool
-parse_mip(struct teletext *vt, struct vt_page *vtp)
+parse_mip(struct vbi *vbi, struct vt_page *vtp)
 {
 	int packet, pgno, i, spi = 0;
 
@@ -512,10 +561,10 @@ parse_mip(struct teletext *vt, struct vt_page *vtp)
 			unsigned char *raw = vtp->data.unknown.raw[packet];
 
 			for (i = 0x00; i <= 0x09; raw += 2, i++)
-				if (!parse_mip_page(vt, vtp, pgno + i, hamm16a(raw), &spi))
+				if (!parse_mip_page(vbi, vtp, pgno + i, hamm16a(raw), &spi))
 					return FALSE;
 			for (i = 0x10; i <= 0x19; raw += 2, i++)
-				if (!parse_mip_page(vt, vtp, pgno + i, hamm16a(raw), &spi))
+				if (!parse_mip_page(vbi, vtp, pgno + i, hamm16a(raw), &spi))
 					return FALSE;
 		}
 
@@ -524,15 +573,15 @@ parse_mip(struct teletext *vt, struct vt_page *vtp)
 			unsigned char *raw = vtp->data.unknown.raw[packet];
 
 			for (i = 0x0A; i <= 0x0F; raw += 2, i++)
-				if (!parse_mip_page(vt, vtp, pgno + i, hamm16a(raw), &spi))
+				if (!parse_mip_page(vbi, vtp, pgno + i, hamm16a(raw), &spi))
 					return FALSE;
 			if (packet == 14) /* 0xFA ... 0xFF */
 				break;
 			for (i = 0x1A; i <= 0x1F; raw += 2, i++)
-				if (!parse_mip_page(vt, vtp, pgno + i, hamm16a(raw), &spi))
+				if (!parse_mip_page(vbi, vtp, pgno + i, hamm16a(raw), &spi))
 					return FALSE;
 			for (i = 0x2A; i <= 0x2F; raw += 2, i++)
-				if (!parse_mip_page(vt, vtp, pgno + i, hamm16a(raw), &spi))
+				if (!parse_mip_page(vbi, vtp, pgno + i, hamm16a(raw), &spi))
 					return FALSE;
 		}
 
@@ -540,31 +589,43 @@ parse_mip(struct teletext *vt, struct vt_page *vtp)
 }
 
 int
-vbi_classify_page(struct vbi *vbi, int pgno, int *subpages)
+vbi_classify_page(struct vbi *vbi, int pgno, int *subpage, char **language)
 {
-	int code, subp;
+	struct page_info *pi;
+	int code, subc;
+	char *lang;
 
-	if (!subpages)
-		subpages = &subp;
+	if (!subpage)
+		subpage = &subc;
+	if (!language)
+		language = &lang;
 
-	*subpages = 1;
+	*subpage = 0;
+	*language = NULL;
 
 	if (pgno < 0x100 || pgno > 0x8FF) {
 		return VBI_UNKNOWN_PAGE;
 	}
 
-	code = vbi->vt.page_info[pgno - 0x100].mip;
+	pi = vbi->vt.page_info + pgno - 0x100;
+	code = pi->code;
 
-	if (code != MIP_UNKNOWN) {
-		if (code == 0x80 || code > 0xE0)
+	if (code != VBI_UNKNOWN_PAGE) {
+		if (code == VBI_SUBTITLE_PAGE) {
+			if (pi->language != 0xFF)
+				*language = font_descriptors[pi->language].label;
+		} else if (code == VBI_TOP_BLOCK || code == VBI_TOP_GROUP)
+			code = VBI_NORMAL_PAGE;
+		else if (code == VBI_NOT_PUBLIC || code > 0xE0)
 			return VBI_UNKNOWN_PAGE;
 
-		*subpages = vbi->vt.page_info[pgno - 0x100].subpages;
+		*subpage = pi->subcode;
+
 		return code;
 	}
 
 	if ((pgno & 0xFF) <= 0x99) {
-		*subpages = INT_MAX;
+		*subpage = 0xFFFF;
 		return VBI_NORMAL_PAGE; /* wild guess */
 	}
 
@@ -574,7 +635,7 @@ vbi_classify_page(struct vbi *vbi, int pgno, int *subpages)
 /*
  *  Zap2Web links (as of Mar 2001 broadcasted by ZDF and VOX)
  *
- *  http:// ???
+ *  EACEM TP-14-99-16-v0.8
  */
 
 static attr_char *
@@ -628,8 +689,7 @@ z2w_decoder(struct vbi *vbi, attr_char *s1)
 
 				/*
 				 *  Checksum is a four digit hex number eg. [12FE].
-				 *  The checksum algorithm is unclear,
-				 *  XXX we pretend the check suceeded.
+				 *  The checksum algorithm is RTF 1071, TODO.
 				 */
 				if (!1)
 					return NULL;
@@ -739,18 +799,66 @@ top_page_number(pagenum *p, unsigned char *raw)
 }
 
 static inline bool
-parse_btt(struct teletext *vt, unsigned char *raw, int packet)
+parse_btt(struct vbi *vbi, unsigned char *raw, int packet)
 {
+	struct vt_page *vtp;
+
 	switch (packet) {
 	case 1 ... 20:
 	{
-		int i, j, index = dec2bcdp[packet - 1];
-		char n;
+		int i, j, code, index = dec2bcdp[packet - 1];
 
 		for (i = 0; i < 4; i++) {
-			for (j = 0; j < 10; index++, j++)
-				if ((n = hamm8a[*raw++]) >= 0)
-					vt->page_info[index].btt = n;
+			for (j = 0; j < 10; index++, j++) {
+				struct page_info *pi = vbi->vt.page_info + index;
+
+				if ((code = hamm8a[*raw++]) < 0)
+					break;
+
+				switch (code) {
+				case BTT_SUBTITLE:
+					pi->code = VBI_SUBTITLE_PAGE;
+					if ((vtp = vbi->cache->op->get(vbi->cache, index + 0x100, 0, 0)))
+						pi->language = page_language(&vbi->vt, vtp, 0, 0);
+					break;
+
+				case BTT_PROGR_INDEX_S:
+				case BTT_PROGR_INDEX_M:
+					pi->code = VBI_PROGR_INDEX;
+					break;
+
+				case BTT_BLOCK_S:
+				case BTT_BLOCK_M:
+					pi->code = VBI_TOP_BLOCK;
+					break;
+
+				case BTT_GROUP_S:
+				case BTT_GROUP_M:
+					pi->code = VBI_TOP_GROUP;
+					break;
+
+				case 8 ... 11:
+					pi->code = VBI_NORMAL_PAGE;
+					break;
+
+				default:
+					pi->code = VBI_NO_PAGE;
+					continue;
+				}
+
+				switch (code) {
+				case BTT_PROGR_INDEX_M:
+				case BTT_BLOCK_M:
+				case BTT_GROUP_M:
+				case BTT_NORMAL_M:
+					/* -> mpt, mpt_ex */
+					break;
+
+				default:
+					pi->subcode = 0;
+					break;
+				}
+			}
 
 			index += ((index & 0xFF) == 0x9A) ? 0x66 : 0x06;
 		}
@@ -760,10 +868,10 @@ parse_btt(struct teletext *vt, unsigned char *raw, int packet)
 
 	case 21 ... 23:
 	    {
-		pagenum *p = vt->btt_link + (packet - 21) * 5;
+		pagenum *p = vbi->vt.btt_link + (packet - 21) * 5;
 		int i;
 
-		vt->top = TRUE;
+		vbi->vt.top = TRUE;
 
 		for (i = 0; i < 5; raw += 8, p++, i++) {
 			if (!top_page_number(p, raw))
@@ -775,9 +883,11 @@ parse_btt(struct teletext *vt, unsigned char *raw, int packet)
 			}
 
 			switch (p->type) {
-			case 1: // MPT?
-			case 2: // AIT?
-				vt->page_info[p->pgno - 0x100].mip = MIP_TOP_PAGE;
+			case 1: /* MPT */
+			case 2: /* AIT */
+			case 3: /* MPT-EX */
+				vbi->vt.page_info[p->pgno - 0x100].code = VBI_TOP_PAGE;
+				vbi->vt.page_info[p->pgno - 0x100].subcode = 0;
 				break;
 			}
 		}
@@ -787,7 +897,7 @@ parse_btt(struct teletext *vt, unsigned char *raw, int packet)
 	}
 
 	if (0 && packet == 1)
-		dump_page_info(vt);
+		dump_page_info(&vbi->vt);
 
 	return TRUE;
 }
@@ -822,7 +932,7 @@ static inline bool
 parse_mpt(struct teletext *vt, unsigned char *raw, int packet)
 {
 	int i, j, index;
-	char n;
+	int n;
 
 	switch (packet) {
 	case 1 ... 20:
@@ -831,12 +941,57 @@ parse_mpt(struct teletext *vt, unsigned char *raw, int packet)
 		for (i = 0; i < 4; i++) {
 			for (j = 0; j < 10; index++, j++)
 				if ((n = hamm8a[*raw++]) >= 0) {
-					if (n > 0)
-						vt->page_info[index].subpages = n;
+					int code = vt->page_info[index].code;
+					int subc = vt->page_info[index].subcode;
+
+					if (n > 9)
+						n = 0xFFFEL; /* mpt_ex? not transm?? */
+
+					if (code != VBI_NO_PAGE && code != VBI_UNKNOWN_PAGE
+					    && (subc >= 0xFFFF || n > subc))
+						vt->page_info[index].subcode = n;
 				}
 
 			index += ((index & 0xFF) == 0x9A) ? 0x66 : 0x06;
 		}
+	}
+
+	return TRUE;
+}
+
+static inline bool
+parse_mpt_ex(struct teletext *vt, unsigned char *raw, int packet)
+{
+	int i, code, subc;
+	pagenum p;
+
+	switch (packet) {
+	case 1 ... 23:
+		for (i = 0; i < 5; raw += 8, i++) {
+			if (!top_page_number(&p, raw))
+				continue;
+
+			if (0) {
+				printf("MPT-EX #%d: ", (packet - 1) * 5);
+				dump_pagenum(p);
+			}
+
+			if (p.pgno < 0x100)
+				break;
+			else if (p.pgno > 0x8FF || p.subno < 1)
+				continue;
+
+			code = vt->page_info[p.pgno - 0x100].code;
+			subc = vt->page_info[p.pgno - 0x100].subcode;
+
+			if (code != VBI_NO_PAGE && code != VBI_UNKNOWN_PAGE
+			    && (p.subno > subc /* evidence */
+				/* || subc >= 0xFFFF unknown */
+				|| subc >= 0xFFFE /* mpt > 9 */))
+				vt->page_info[p.pgno - 0x100].subcode = p.subno;
+		}
+
+		break;
 	}
 
 	return TRUE;
@@ -905,6 +1060,12 @@ vbi_convert_page(struct vbi *vbi, struct vt_page *vtp, bool cached, page_functio
 		break;
 
 	case PAGE_FUNCTION_MPT_EX:
+		for (i = 1; i <= 20; i++)
+			if (vtp->lop_lines & (1 << i))
+				if (!parse_mpt_ex(&vbi->vt, vtp->data.unknown.raw[i], i))
+					return FALSE;
+		break;
+
 	default:
 		return NULL;
 	}
@@ -1482,6 +1643,7 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 		pgno = mag8 * 256 + page;
 
 		while ((curr = vbi->vt.current)) {
+			struct page_info *pi;
 			vbi_event ev;
 
 			vtp = curr->page;
@@ -1502,6 +1664,17 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 				break;
 
 			case PAGE_FUNCTION_LOP:
+				pi = vbi->vt.page_info + vtp->pgno - 0x100;
+
+				if (pi->code == VBI_SUBTITLE_PAGE) {
+					if (pi->language == 0xFF)
+						pi->language = page_language(&vbi->vt, vtp, 0, 0);
+				} else if (pi->code == VBI_NO_PAGE || pi->code == VBI_UNKNOWN_PAGE)
+					pi->code = VBI_NORMAL_PAGE;
+
+				if (pi->subcode >= 0xFFFE || vtp->subno > pi->subcode)
+					pi->subcode = vtp->subno;
+
 				ev.p = NULL;
 
 				if (!(vtp->flags & C9_INTERRUPTED)
@@ -1536,7 +1709,7 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 				break;
 
 			case PAGE_FUNCTION_MIP:
-				parse_mip(&vbi->vt, vtp);
+				parse_mip(vbi, vtp);
 				break;
 
 			case PAGE_FUNCTION_ZAP2WEB:
@@ -1571,7 +1744,7 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 		if (0 && ((page & 15) > 9 || page > 0x99))
 			printf("data page %03x/%04x\n", cvtp->pgno, cvtp->subno);
 
-		if (0
+		if (1
 		    && pgno != 0x1E7
 		    && !(cvtp->flags & C4_ERASE_PAGE)
 		    && (vtp = vbi->cache->op->get(vbi->cache, cvtp->pgno, cvtp->subno, 0xFFFF)))
@@ -1603,19 +1776,20 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 
 			if (cvtp->pgno == 0x1F0) {
 				cvtp->function = PAGE_FUNCTION_BTT;
-				vbi->vt.page_info[0x1F0 - 0x100].mip = MIP_TOP_PAGE;
+				vbi->vt.page_info[0x1F0 - 0x100].code = VBI_TOP_PAGE;
 			} else if (cvtp->pgno == 0x1E7) {
 				cvtp->function = PAGE_FUNCTION_ZAP2WEB;
-				vbi->vt.page_info[0x1E7 - 0x100].mip = MIP_DISP_SYSTEM_PAGE;
+				vbi->vt.page_info[0x1E7 - 0x100].code = VBI_DISP_SYSTEM_PAGE;
+				vbi->vt.page_info[0x1E7 - 0x100].subcode = 0;
 				memset(cvtp->data.unknown.raw[0], 0x20, sizeof(cvtp->data.unknown.raw));
 				memset(cvtp->data.enh_lop.enh, 0xFF, sizeof(cvtp->data.enh_lop.enh));
 				cvtp->data.unknown.ext = FALSE;
 			} else if (page == 0xFD) {
 				cvtp->function = PAGE_FUNCTION_MIP;
-				vbi->vt.page_info[(mag8 * 256) + 0xFD - 0x100].mip = MIP_SYSTEM_PAGE;
+				vbi->vt.page_info[cvtp->pgno - 0x100].code = VBI_SYSTEM_PAGE;
 			} else if (page == 0xFE) {
 				cvtp->function = PAGE_FUNCTION_MOT;
-				vbi->vt.page_info[(mag8 * 256) + 0xFE - 0x100].mip = MIP_SYSTEM_PAGE;
+				vbi->vt.page_info[cvtp->pgno - 0x100].code = VBI_SYSTEM_PAGE;
 			} else {
 				cvtp->function = PAGE_FUNCTION_UNKNOWN;
 
@@ -1635,19 +1809,21 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 		if (cvtp->function == PAGE_FUNCTION_UNKNOWN) {
 			page_function function = PAGE_FUNCTION_UNKNOWN;
 
-			switch (vbi->vt.page_info[cvtp->pgno - 0x100].mip) {
+			switch (vbi->vt.page_info[cvtp->pgno - 0x100].code) {
 			case 0x01 ... 0x51:
 			case 0x70 ... 0x7F:
 			case 0x81 ... 0xD1:
 			case 0xF4 ... 0xF7:
+			case VBI_TOP_BLOCK:
+			case VBI_TOP_GROUP:
 				function = PAGE_FUNCTION_LOP;
 				break;
 
-			case MIP_SYSTEM_PAGE:	/* no MOT or MIP?? */
+			case VBI_SYSTEM_PAGE:	/* no MOT or MIP?? */
 				/* remains function = PAGE_FUNCTION_UNKNOWN; */
 				break;
 
-			case MIP_TOP_PAGE:
+			case VBI_TOP_PAGE:
 				for (i = 0; i < 8; i++)
 					if (cvtp->pgno == vbi->vt.btt_link[i].pgno)
 						break;
@@ -1656,11 +1832,12 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 					case 1:
 						function = PAGE_FUNCTION_MPT;
 						break;
-
 					case 2:
 						function = PAGE_FUNCTION_AIT;
 						break;
-
+					case 3:
+						function = PAGE_FUNCTION_MPT_EX;
+						break;
 					default:
 						if (0)
 							printf("page is TOP, link %d, unknown type %d\n",
@@ -1682,14 +1859,14 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 				break;
 
 			case 0x52 ... 0x6F:	/* reserved */
-			case MIP_EPG_DATA:	/* EPG/NexTView transport layer */
-			case MIP_ACI:		/* ACI page */
-			case MIP_NOT_PUBLIC:
+			case VBI_EPG_DATA:	/* EPG/NexTView transport layer */
+			case VBI_ACI:		/* ACI page */
+			case VBI_NOT_PUBLIC:
 			case 0xD2 ... 0xDF:	/* reserved */
 			case 0xE0 ... 0xE2:	/* data broadcasting */
 			case 0xE4:		/* data broadcasting */
 			case 0xF0 ... 0xF3:	/* broadcaster system page */
-			case 0xFA ... 0xFC:	/* reserved */
+			case 0xFC:		/* reserved */
 				function = PAGE_FUNCTION_DISCARD;
 				break;
 
@@ -1713,6 +1890,9 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 
 	case 1 ... 25:
 		switch (cvtp->function) {
+			char n;
+			int i;
+
 		case PAGE_FUNCTION_DISCARD:
 			return TRUE;
 
@@ -1720,7 +1900,6 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 			if (!parse_mot(vbi->vt.magazine + mag8, p, packet))
 				return FALSE;
 			break;
-
 
 		case PAGE_FUNCTION_GPOP:
 		case PAGE_FUNCTION_POP:
@@ -1734,7 +1913,7 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 			break;
 
 		case PAGE_FUNCTION_BTT:
-			if (!parse_btt(&vbi->vt, p, packet))
+			if (!parse_btt(vbi, p, packet))
 				return FALSE;
 			break;
 
@@ -1748,8 +1927,21 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 				return FALSE;
 			break;
 
-		case PAGE_FUNCTION_MIP:
+		case PAGE_FUNCTION_MPT_EX:
+			if (!(parse_mpt_ex(&vbi->vt, p, packet)))
+				return FALSE;
+			break;
+
+		case PAGE_FUNCTION_LOP:
 		case PAGE_FUNCTION_ZAP2WEB:
+			for (n = i = 0; i < 40; i++)
+				n |= parity(p[i]);
+			if (n < 0)
+				return FALSE;
+			memcpy(cvtp->data.unknown.raw[packet], p, 40);
+			break;
+
+		case PAGE_FUNCTION_MIP:
 		default:
 			memcpy(cvtp->data.unknown.raw[packet], p, 40);
 			break;
@@ -1777,7 +1969,9 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 		case PAGE_FUNCTION_BTT:
 		case PAGE_FUNCTION_AIT:
 		case PAGE_FUNCTION_MPT:
+		case PAGE_FUNCTION_MPT_EX:
 			/* X/26 ? */
+			vbi_teletext_desync(vbi);
 			return TRUE;
 
 		case PAGE_FUNCTION_ZAP2WEB:
@@ -1802,7 +1996,7 @@ vbi_teletext_packet(struct vbi *vbi, unsigned char *p)
 // XXX if !err
 			cvtp->data.enh_lop.enh[rvtp->num_triplets++] = triplet;
 
-			if (0) /* ATTN: mind PDC transmission order */
+			if (0)
 				if (triplet.mode >= 6 && triplet.mode <= 13)
 					parse_x26_pdc(triplet.address, triplet.mode, triplet.data);
 		}
@@ -2189,7 +2383,7 @@ vbi_init_teletext(struct teletext *vt)
 
 	vt->top = FALSE;
 
-	memset(vt->page_info, 0xFF, sizeof(vt->page_info));	/* unknown */
+	memset(vt->page_info, 0xFF, sizeof(vt->page_info));
 
 	/* Magazine defaults */
 

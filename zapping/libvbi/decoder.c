@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.c,v 1.3 2001-03-09 17:39:01 mschimek Exp $ */
+/* $Id: decoder.c,v 1.4 2001-03-30 06:48:38 mschimek Exp $ */
 
 /*
     XXX NTSC transmits 0-4 (AFAIS) CC packets per frame,
@@ -33,10 +33,19 @@
 
 /*
  *  Bit Slicer
- *  XXX restore old
  */
 
-#define OVERSAMPLING 2		// 1, 2, 4, 8
+#define OVERSAMPLING 4		// 1, 2, 4, 8
+
+static inline int
+sample(unsigned char *raw, int offs)
+{
+	unsigned char frac = offs;
+
+	raw += offs >> 8;
+
+	return (raw[1] - raw[0]) * frac + (raw[0] << 8);
+}
 
 bool
 bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
@@ -68,7 +77,7 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 						c = 0;
 
 						for (j = d->frc_bits; j > 0; j--) {
-							c = c * 2 + (raw[i >> 8] >= tr);
+							c = c * 2 + (sample(raw, i) >= (tr * 256));
     							i += d->step;
 						}
 
@@ -79,7 +88,7 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 							for (j = d->payload; j > 0; j--) {
 								for (k = 0; k < 8; k++) {
 						    			c >>= 1;
-									c += (raw[i >> 8] >= tr) << 7;
+									c += (sample(raw, i) >= tr * 256) << 7;
 			    						i += d->step;
 								}
 
@@ -88,7 +97,7 @@ bit_slicer(struct bit_slicer *d, unsigned char *raw, unsigned char *buf)
 						} else {
 							for (j = d->payload; j > 0; j--) {
 								for (k = 0; k < 8; k++) {
-									c = c * 2 + (raw[i >> 8] >= tr);
+									c = c * 2 + (sample(raw, i) >= tr * 256);
 			    						i += d->step;
 								}
 

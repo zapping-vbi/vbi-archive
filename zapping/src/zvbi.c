@@ -1094,15 +1094,16 @@ event(vbi_event *ev, void *unused)
 		   ev->subno & 0xFF);
 	  }
       }
-/*
+      if (0)
         {
-	  int classf, subpages;
+	  int classf, subpage;
+	  char *language;
 	  
-	  classf = vbi_classify_page(vbi, ev->pgno, &subpages);
-	  printf("Received page %x.%04x, class %d, subpages %d\n",
-	    ev->pgno, ev->subno, classf, subpages);
+	  classf = vbi_classify_page(vbi, ev->pgno, &subpage, &language);
+	  printf("Received page %x.%04x, class %d, subpage %d, language %s\n",
+	    ev->pgno, ev->subno, classf, subpage, language);
         }
-*/
+
 	/* Set the dirty flag on the page */
 	notify_clients(ev->pgno, ev->subno);
 	break;
@@ -1119,7 +1120,7 @@ event(vbi_event *ev, void *unused)
 
 	  w = (vbi_weblink *) ev->p;
 	  printf("<> name: %s url: %s\n",
-	         w->name ? w->name : "none", w->url);
+	         w->name, w->url);
 	  /* !name ? maybe %30s... of url */
         }
       break;
