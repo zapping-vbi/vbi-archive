@@ -18,10 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: list.h,v 1.1 2000-08-09 09:40:14 mschimek Exp $ */
+/* $Id: list.h,v 1.2 2000-08-12 02:14:37 mschimek Exp $ */
 
 #ifndef LIST_H
 #define LIST_H
+
+#include "types.h"
 
 typedef struct _node {
 	struct _node *		next;
@@ -31,6 +33,19 @@ typedef struct _list {
 	struct _node *		head;
 	struct _node *		tail;
 } list;
+
+static inline void
+init_list(list *l)
+{
+	l->head = NULL;
+	l->tail = NULL;
+}
+
+static inline int
+empty_list(list *l)
+{
+	return !((long) l->head | (long) l->tail);
+}
 
 static inline void
 add_head(list *l, node *n)

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: video.h,v 1.3 2000-08-10 01:18:59 mschimek Exp $ */
+/* $Id: video.h,v 1.4 2000-08-12 02:14:37 mschimek Exp $ */
 
 #include "../common/bstream.h"
 #include "../common/fifo.h"
@@ -45,7 +45,7 @@ extern const char *	filter_labels[];
 extern int		video_frame_count;
 extern int		video_frames_dropped;
 
-extern fifo		vid;
+extern fifo *		video_fifo;
 extern pthread_t	video_thread_id;
 
 extern void *		mpeg1_video_ipb(void *unused);

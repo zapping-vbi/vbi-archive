@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.2 2000-08-10 01:18:59 mschimek Exp $ */
+/* $Id: fifo.h,v 1.3 2000-08-12 02:14:37 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -158,8 +158,9 @@ _empty_buffer(_fifo *f, _buffer *b)
 
 
 
-
-
+/*
+ *  New stuff(tm)
+ */
 
 typedef struct {
 	node 			node;
@@ -181,7 +182,6 @@ typedef struct {
 	// buffer->size != _buffer->size
 } buffer;
 
-
 typedef struct _fifo {
 	mucon			producer;
 	mucon *			consumer;
@@ -191,27 +191,17 @@ typedef struct _fifo {
 
 	buffer *		(* wait_full)(struct _fifo *);
 	void			(* send_empty)(struct _fifo *, buffer *);
+	buffer *		(* wait_empty)(struct _fifo *);
+	void			(* send_full)(struct _fifo *, buffer *);
 
 	buffer *		buffers;
 	int			num_buffers;
-
-	/* temporary */
-	/* MUX parameters */	
-	int			in, out, max;
-	_buffer *		buf;
-	buffer *		buf2;
-
-	unsigned char *		ptr;
-	int			left;
-	double			time, tpb;
-	double			dts, tick;
-	double			rtime, rtick;
-
 } fifo;
 
 extern bool	init_buffer(buffer *b, int size);
 extern void	uninit_buffer(buffer *b);
 extern int	init_buffered_fifo(fifo *f, mucon *consumer, int size, int num_buffers);
+extern int	init_callback_fifo(fifo *f, buffer * (* wait_full)(fifo *), void (* send_empty)(fifo *, buffer *), buffer * (* wait_empty)(fifo *), void (* send_full)(fifo *, buffer *), int size, int num_buffers);
 extern void	uninit_fifo(fifo *f);
 extern int	buffers_queued(fifo *f);
 
@@ -231,6 +221,11 @@ extern int	buffers_queued(fifo *f);
 static inline void
 send_full_buffer(fifo *f, buffer *b)
 {
+	if (f->send_full) {
+		f->send_full(f, b);
+		return;
+	}
+
 	pthread_mutex_lock(&f->consumer->mutex);
 
 	add_tail(&f->full, &b->node);
@@ -260,14 +255,13 @@ wait_full_buffer(fifo *f)
 {
 	buffer *b;
 
-	if (!f->wait_full)
-		pthread_mutex_lock(&f->consumer->mutex);
+	if (f->wait_full)
+		return (b = (buffer *) rem_head(&f->full)) ? b : f->wait_full(f);
+
+	pthread_mutex_lock(&f->consumer->mutex);
 
 	while (!(b = (buffer *) rem_head(&f->full)))
-		if (f->wait_full)
-			return f->wait_full(f);
-		else
-			pthread_cond_wait(&f->consumer->cond, &f->consumer->mutex);
+		pthread_cond_wait(&f->consumer->cond, &f->consumer->mutex);
 
 	pthread_mutex_unlock(&f->consumer->mutex);
 
@@ -280,12 +274,11 @@ __recv_full_buffer(fifo *f)
 {
 	buffer *b;
 
-	if (!f->wait_full)
-		pthread_mutex_lock(&f->consumer->mutex);
+	if (f->wait_full)
+		return (b = (buffer *) rem_head(&f->full)) ? b : f->wait_full(f);
 
-	if (!(b = (buffer *) rem_head(&f->full)) && f->wait_full)
-		return f->wait_full(f);
-
+	pthread_mutex_lock(&f->consumer->mutex);
+	b = (buffer *) rem_head(&f->full);
 	pthread_mutex_unlock(&f->consumer->mutex);
 
 	return b;
@@ -312,6 +305,9 @@ wait_empty_buffer(fifo *f)
 {
 	buffer *b;
 
+	if (f->wait_empty)
+		return (b = (buffer *) rem_head(&f->empty)) ? b : f->wait_empty(f);
+
 	pthread_mutex_lock(&f->producer.mutex);
 
 	while (!(b = (buffer *) rem_head(&f->empty)))
@@ -327,10 +323,11 @@ __recv_empty_buffer(fifo *f)
 {
 	buffer *b;
 
+	if (f->wait_empty)
+		return (b = (buffer *) rem_head(&f->empty)) ? b : f->wait_empty(f);
+
 	pthread_mutex_lock(&f->producer.mutex);
-
 	b = (buffer *) rem_head(&f->empty);
-
 	pthread_mutex_unlock(&f->producer.mutex);
 
 	return b;

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tsp.c,v 1.2 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: tsp.c,v 1.3 2000-08-12 02:14:37 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,11 +65,13 @@
 static AFILE *		AFp;
 static long		offs;
 static float *		Fbuff;
-static short *		buffer;
+static short *		abuffer;
 static int		scan_range;
 static int		look_ahead;
 static int		samples_per_frame;
 static short *		ubuffer;
+static buffer		buf;
+static fifo		tsp_fifo;
 
 extern char *		pcm_dev;
 extern int		sampling_rate;
@@ -80,8 +82,9 @@ extern int		audio_mode;
  * Subband window size 512 samples, step width 32 samples (32 * 3 * 12 per frame)
  */
 
-static short *
-tsp_read(double *ftime)
+// XXX only one at a time, not checked
+static buffer *
+tsp_wait_full(fifo *f)
 {
 	static double rtime = 0, utime;
 	static int left = 0;
@@ -97,12 +100,12 @@ tsp_read(double *ftime)
 	} else if (ubuffer) {
 		p = ubuffer;
 		ubuffer = NULL;
-		*ftime = utime;
-
-		return p;
+		buf.time = utime;
+		buf.data = (unsigned char *) p;
+		return &buf;
 	}
 
-	*ftime = utime = rtime + (double) offs / sampling_rate;
+	utime = rtime + (double) offs / sampling_rate;
 
 	if (left <= 0)
 	{
@@ -113,14 +116,14 @@ tsp_read(double *ftime)
 			return NULL;
 /*
 		if (offs == 0) {
-			p = buffer;
+			p = abuffer;
 			n = scan_range + look_ahead;
 		} else
 */
 		{
-			memcpy(buffer, buffer + scan_range, look_ahead * sizeof(buffer[0]));
+			memcpy(abuffer, abuffer + scan_range, look_ahead * sizeof(abuffer[0]));
 
-			p = buffer + look_ahead;
+			p = abuffer + look_ahead;
 			n = scan_range;
 		}
 
@@ -151,19 +154,24 @@ tsp_read(double *ftime)
 			n -= r;
 		}
 
-		return p = buffer;
+		p = abuffer;
+
+		buf.time = utime;
+		buf.data = (unsigned char *) p;
+		return &buf;
 	}
 
 	left -= samples_per_frame;
+	p += samples_per_frame;
 
-	return p += samples_per_frame;
+	buf.time = utime;
+	buf.data = (unsigned char *) p;
+	return &buf;
 }
 
 void
-tsp_unget(short *p)
+tsp_send_empty(fifo *f, buffer *b)
 {
-	assert(!ubuffer);
-	ubuffer = p;
 }
 
 void
@@ -213,8 +221,9 @@ tsp_init(void)
 
 	printv(3, "Allocated audio buffers, %d bytes\n", buffer_size * (sizeof(buffer[0]) + sizeof(Fbuff[0])));
 
-	audio_read = tsp_read;
-	audio_unget = tsp_unget;
+	init_callback_fifo(audio_cap_fifo = &tsp_fifo,
+		tsp_wait_full, tsp_send_empty,
+		NULL, NULL, 0, 0);
 }
 
 #else

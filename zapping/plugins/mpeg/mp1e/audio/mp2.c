@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.4 2000-08-10 01:18:59 mschimek Exp $ */
+/* $Id: mp2.c,v 1.5 2000-08-12 02:14:37 mschimek Exp $ */
 
 #include <limits.h>
 #include "../options.h"
@@ -95,6 +95,7 @@ static struct audio_seg
 } aseg __attribute__ ((aligned (4096)));
 
 fifo *			audio_fifo;
+
 int			mpeg_version;
 int			bit_rate_code;
 int			sampling_freq_code;
@@ -331,15 +332,30 @@ audio_init(void)
 		sampling_freq / (double) SAMPLES_PER_FRAME, bit_rate);
 }
 
+static void
+terminate(void)
+{
+	buffer *obuf;
+
+	printv(2, "Audio: End of file\n");
+
+	for (;;) {
+		obuf = wait_empty_buffer(audio_fifo);
+		obuf->used = 0;
+		// XXX other?
+		send_full_buffer(audio_fifo, obuf);
+	}
+}
+
 void *
 mpeg_audio_layer_ii_mono(void *unused)
 {
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
 	for (;;) {
-		buffer *obuf;
+		buffer *ibuf, *obuf;
 		unsigned int adb, bpf;
-		double stime;
+		double time;
 
 		header_template &= ~(1 << 9);
 		adb = whole_SpF * BITS_PER_SLOT;
@@ -356,35 +372,35 @@ mpeg_audio_layer_ii_mono(void *unused)
 
 		// FDCT and psychoacoustic analysis
 
-		{
-			short *p;
+		if (audio_frame_count > audio_num_frames)
+			terminate();
 
-			if (audio_frame_count > audio_num_frames ||
-			    !(p = audio_read(&stime)) ||
-			    stime >= audio_stop_time) {
-				printv(2, "Audio: End of file\n");
+		ibuf = wait_full_buffer(audio_cap_fifo);
 
-				obuf = wait_empty_buffer(audio_fifo);
-				obuf->used = 0;
-				send_full_buffer(audio_fifo, obuf);
-				continue;
-			}
-
-			audio_frame_count++;
-
-			pr_start(38, "Audio frame (1152 samples)");
-			pr_start(35, "Subband filter x 36");
-
-			mmx_filter_mono(p, aseg.sb_samples[0][0][0]);
-
-			pr_end(35);
-
-			pr_start(34, "Psychoacoustic analysis");
-
-			psycho(p, aseg.mnr[0], 1);
-
-			pr_end(34);
+		if (!ibuf || ibuf->time >= audio_stop_time) {
+			if (ibuf)
+				send_empty_buffer(audio_cap_fifo, ibuf);
+			terminate();
 		}
+
+		time = ibuf->time;
+
+		audio_frame_count++;
+
+		pr_start(38, "Audio frame (1152 samples)");
+		pr_start(35, "Subband filter x 36");
+
+		mmx_filter_mono((short *) ibuf->data, aseg.sb_samples[0][0][0]);
+
+		pr_end(35);
+
+		pr_start(34, "Psychoacoustic analysis");
+
+		psycho((short *) ibuf->data, aseg.mnr[0], 1);
+
+		pr_end(34);
+
+		send_empty_buffer(audio_cap_fifo, ibuf);
 
 		pr_start(36, "Bit twiddling");
 
@@ -601,7 +617,7 @@ mpeg_audio_layer_ii_mono(void *unused)
 			*((unsigned int *)(aseg.out.p))++ = 0;
 
 		obuf->used = bpf;
-		obuf->time = stime;
+		obuf->time = time;
 
 		send_full_buffer(audio_fifo, obuf);
 	}
@@ -615,9 +631,9 @@ mpeg_audio_layer_ii_stereo(void *unused)
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
 	for (;;) {
-		buffer *obuf;
+		buffer *ibuf, *obuf;
 		unsigned int adb, bpf;
-		double stime;
+		double time;
 
 		header_template &= ~(1 << 9);
 		adb = whole_SpF * BITS_PER_SLOT;
@@ -634,36 +650,36 @@ mpeg_audio_layer_ii_stereo(void *unused)
 
 		// FDCT and psychoacoustic analysis
 
-		{
-			short *p;
+		if (audio_frame_count > audio_num_frames)
+			terminate();
 
-			if (audio_frame_count > audio_num_frames ||
-			    !(p = audio_read(&stime)) ||
-			    stime >= audio_stop_time) {
-				printv(2, "Audio: End of file\n");
+		ibuf = wait_full_buffer(audio_cap_fifo);
 
-				obuf = wait_empty_buffer(audio_fifo);
-				obuf->used = 0;
-				send_full_buffer(audio_fifo, obuf);
-				continue;
-			}
-
-			audio_frame_count++;
-
-			pr_start(38, "Audio frame (2304 samples)");
-			pr_start(35, "Subband filter x 72");
-
-			mmx_filter_stereo(p, aseg.sb_samples[0][0][0]);
-
-			pr_end(35);
-
-			pr_start(34, "Psychoacoustic analysis");
-
-			psycho(p,     aseg.mnr[0], 2);
-			psycho(p + 1, aseg.mnr[1], 2);
-
-			pr_end(34);
+		if (!ibuf || ibuf->time >= audio_stop_time) {
+			if (ibuf)
+				send_empty_buffer(audio_cap_fifo, ibuf);
+			terminate();
 		}
+
+		time = ibuf->time;
+
+		audio_frame_count++;
+
+		pr_start(38, "Audio frame (2304 samples)");
+		pr_start(35, "Subband filter x 72");
+
+		mmx_filter_stereo((short *) ibuf->data, aseg.sb_samples[0][0][0]);
+
+		pr_end(35);
+
+		pr_start(34, "Psychoacoustic analysis");
+
+		psycho(((short *) ibuf->data),     aseg.mnr[0], 2);
+		psycho(((short *) ibuf->data) + 1, aseg.mnr[1], 2);
+
+		pr_end(34);
+
+		send_full_buffer(audio_cap_fifo, ibuf);
 
 		pr_start(36, "Bit twiddling");
 
@@ -930,7 +946,7 @@ mpeg_audio_layer_ii_stereo(void *unused)
 		pr_end(38);
 
 		obuf->used = bpf;
-		obuf->time = stime;
+		obuf->time = time;
 
 		send_full_buffer(audio_fifo, obuf);
 	}

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: stream.c,v 1.1 2000-08-10 18:51:19 mschimek Exp $ */
+/* $Id: stream.c,v 1.2 2000-08-12 02:14:37 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -317,20 +317,21 @@ void
 synchronize_capture_modules(void)
 {
 	int vindex;
-	void *ap = NULL, *vp = NULL;
-	double atime, vtime, d, max_d = 0.75 / frame_rate_value[frame_rate_code];
+	void *vp = NULL;
+	buffer *ab = NULL;
+	double vtime, d, max_d = 0.75 / frame_rate_value[frame_rate_code];
 
 	for (;;) {
-		if (!ap)
-			ap = audio_read(&atime);
+		if (!ab)
+			ab = wait_full_buffer(audio_cap_fifo);
 		if (!vp)
 			vp = video_wait_frame(&vtime, &vindex);
-		if (!ap || !vp)
+		if (!ab || !vp)
 			FAIL("Premature end of file");
 
-		printv(3, "Sync vtime=%f, atime=%f\n", vtime, atime);
+		printv(3, "Sync vtime=%f, atime=%f\n", vtime, ab->time);
 
-		d = vtime - atime;
+		d = vtime - ab->time;
 
 		if (fabs(d) <= max_d) {
 			break;
@@ -339,10 +340,12 @@ synchronize_capture_modules(void)
 		if (d < 0) {
 			video_frame_done(vindex);
 			vp = NULL;
-		} else
-			ap = NULL;
+		} else {
+			send_empty_buffer(audio_cap_fifo, ab);
+			ab = NULL;
+		}
 	}
 
 	video_unget_frame(vindex);
-	audio_unget(ap);
+	unget_full_buffer(audio_cap_fifo, ab);
 }

@@ -852,21 +852,22 @@ video_input_unget_frame(int buf_index)
 }
 
 /* audio_read = audio_input_read */
-static short *
-audio_input_read( double *ftime)
+static buffer *
+audio_input_read(fifo *f1)
 {
 	rte_context * context = rte_global_context; /* FIXME: this shoudn't be global */
 	_buffer * b;
 	_fifo * f;
+	buffer *b1 = calloc(sizeof(buffer), 1);
 
 	b = context->private->a_ubuffer;
 
 	if (context->private->a_again) {
 		ASSERT("re-using audio before using it\n", b != NULL);
-		*ftime = b->time;
 		context->private->a_again = 0;
-
-		return ((short*)b->data);
+		b1->time = b->time;
+		b1->data = b->data;
+		return b1;
 	}
 
 	f = &(context->private->aud);
@@ -891,17 +892,28 @@ audio_input_read( double *ftime)
 		pthread_mutex_unlock(&(f->mutex));
 	}
 
-	*ftime = b->time;
 	context->private->a_ubuffer = b;
 
-	return ((short*)b->data);
+	b1->time = b->time;
+	b1->data = b->data;
+	return b1;
 }
 
+static void
+audio_input_done(fifo *f, buffer *b)
+{
+	free(b);
+}
+
+/* obsolete, fifo routines implement unget now */
 /* audio_unget = audio_input_unget */
 static void
-audio_input_unget(short * p)
+audio_input_unget(buffer *b)
 {
 	rte_context * context = rte_global_context; /* fixme: avoid global */
+	short *p = (short *) b->data;
+
+	free(b);
 
 	ASSERT("Ungetting an incorrect buffer\n",
 	       p == (short*)context->private->a_ubuffer->data);
@@ -911,6 +923,8 @@ audio_input_unget(short * p)
 
 	context->private->a_again = 1;
 }
+
+static fifo		rte_audio_cap_fifo;
 
 int rte_init ( void )
 {
@@ -924,8 +938,9 @@ int rte_init ( void )
 	video_frame_done = video_input_frame_done;
 	video_unget_frame = video_input_unget_frame;
 
-	audio_read = audio_input_read;
-	audio_unget = audio_input_unget;
+	init_callback_fifo(audio_cap_fifo = &rte_audio_cap_fifo,
+		audio_input_read, audio_input_done,
+		NULL, NULL, 0, 0);
 
 	return 1;
 }

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.4 2000-08-10 01:18:58 mschimek Exp $ */
+/* $Id: options.c,v 1.5 2000-08-12 02:14:37 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,8 +74,13 @@ int			psycho_loops		= 0;			// 0 = static, low, hi quality
 int			mute			= 0;			// bttv specific, boolean
 
 int			cap_buffers		= 12;			// capture -> video compression
-int			vid_buffers		= 6;			// video compression -> mux
-int			aud_buffers		= 20;			// audio compression -> mux
+int			vid_buffers		= 8;			// video compression -> mux
+int			aud_buffers		= 32;			// audio compression -> mux
+/*
+ *  NB vid_buffers and aud_buffers occupy physical memory only as fifo
+ *  load requires. Consider page swapping delays. cap_buffers occupy
+ *  physical memory or device memory permanently.
+ */
 
 static const char *mux_options[] = { "", "video", "audio", "video_and_audio" };
 static const char *mux_syn_options[] = { "bypass", "mpeg1", "mpeg2-ps" };
@@ -530,4 +535,7 @@ options(int ac, char **av)
 			usage(stderr);
 
 	bark();
+
+	if (width * height < 128000)
+		cap_buffers *= 2;
 }

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.10 2000-08-10 18:51:19 mschimek Exp $ */
+/* $Id: main.c,v 1.11 2000-08-12 02:14:37 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,6 +38,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <asm/types.h>
+#include "videodev2.h"
 #include "audio/mpeg.h"
 #include "video/mpeg.h"
 #include "video/video.h"
@@ -61,8 +62,7 @@ double			video_stop_time = 1e30;
 double			audio_stop_time = 1e30;
 
 pthread_t		audio_thread_id;
-short *			(* audio_read)(double *);
-void			(* audio_unget)(short *);
+fifo *			audio_cap_fifo;
 int			stereo;
 
 pthread_t		video_thread_id;
@@ -98,16 +98,17 @@ pthread_t audio_emulation_thread_id;
 pthread_mutex_t video_device_mutex=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t audio_device_mutex=PTHREAD_MUTEX_INITIALIZER;
 
+fifo *			ye_olde_audio_cap_fifo;
+
 unsigned char *		(* ye_olde_wait_frame)(double *, int *);
 void			(* ye_olde_frame_done)(int);
-short *			(* ye_olde_audio_read)(double *);
-void			(* ye_olde_audio_unget)(short *);
 
 void emulation_data_callback(void * data, double * time, int video,
 			     rte_context * context, void * user_data)
 {
 	int frame;
 	void * misc_data;
+	buffer *b;
 
 	if (video) {
 		pthread_mutex_lock(&video_device_mutex);
@@ -118,9 +119,12 @@ void emulation_data_callback(void * data, double * time, int video,
 	}
 	else {
 		pthread_mutex_lock(&audio_device_mutex);
-		misc_data = ye_olde_audio_read(time);
+		b = wait_full_buffer(ye_olde_audio_cap_fifo);
+		misc_data = b->data;
+		*time = b->time;
 		pthread_mutex_unlock(&audio_device_mutex);
 		memcpy(data, misc_data, context->audio_bytes);
+		send_empty_buffer(ye_olde_audio_cap_fifo, b);
 	}
 }
 
@@ -151,14 +155,18 @@ void * audio_emulation_thread (void * ptr)
 	short * data;
 	short * audio_data;
 	rte_context * context = (rte_context *)ptr;
+	buffer *b;
 
 	data = rte_push_audio_data(context, NULL, 0);
 	for (;data;) {
 		pthread_mutex_lock(&audio_device_mutex);
-		audio_data = ye_olde_audio_read(&timestamp);
+		b = wait_full_buffer(ye_olde_audio_cap_fifo);
+		audio_data = (short *) b->data;
+		timestamp = b->time;
 		pthread_mutex_unlock(&audio_device_mutex);
 		memcpy(data, audio_data, context->audio_bytes);
 		data = rte_push_audio_data(context, data, timestamp);
+		send_empty_buffer(ye_olde_audio_cap_fifo, b);
 	}
 	fprintf(stderr, "audio emulation: %s\n", context->error);
 	return NULL;
@@ -182,8 +190,8 @@ int emulation_thread_init ( void )
 
 	ye_olde_wait_frame = video_wait_frame;
 	ye_olde_frame_done = video_frame_done;
-	ye_olde_audio_read = audio_read;
-	ye_olde_audio_unget = audio_unget;
+
+	ye_olde_audio_cap_fifo = audio_cap_fifo;
 
 	if (!rte_init())
 		return 0;

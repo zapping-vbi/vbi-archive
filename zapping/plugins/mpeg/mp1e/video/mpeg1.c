@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.5 2000-08-10 01:18:59 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.6 2000-08-12 02:14:37 mschimek Exp $ */
 
 #include <assert.h>
 #include <limits.h>
@@ -1858,7 +1858,7 @@ video_init(void)
 	if (bmax >= sizeof(stack) / sizeof(stack[0]))
 		FAIL("Too many successive B pictures");
 /*
-	if (preview) {
+	if (preview || motion) {
 		for (i = 0; i < 4; i++)
 			mb_address[0].pitch = lalign(mb_width * 16, CACHE_LINE);
 		mb_address[1].offset = 0;
@@ -1867,15 +1867,6 @@ video_init(void)
 		mb_address[4].pitch =
 		mb_address[5].pitch = mb_address[0].pitch >> 1;
 		mb_address[5].offset = mb_address[4].pitch * mb_height;
-	} else if (motion) {
-		for (i = 0; i < 4; i++)
-			mb_address[0].pitch = lalign(mb_width * 16, CACHE_LINE);
-		mb_address[1].offset = 0;
-		mb_address[2].offset = 8 - mb_address[0].pitch * 16;
-		mb_address[3].offset = 0;
-		mb_address[4].pitch = 8;
-		mb_address[5].pitch = 8;
-		mb_address[5].offset = 64;
 	} else { // not used
 		for (i = 0; i < 6; i++) {
 			mb_address[i].offset = 64;

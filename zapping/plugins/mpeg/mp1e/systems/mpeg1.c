@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.4 2000-08-10 01:18:59 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.5 2000-08-12 02:14:37 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -465,15 +465,20 @@ reschedule:
 			min = sec / 60;
 			sec -= min * 60;
 
+			printv(1, "%d:%02d (%.1f MB), system load %4.1f %%",
+				min, sec, bytes_out / (double)(1 << 20),
+				100.0 * system_load);
+
 			if (video_frames_dropped > 0)
-				printv(1, "%d:%02d (%.1f MB), %.2f %% dropped, system load %.1f %%  %c",
-					min, sec, bytes_out / (double)(1 << 20),
-					100.0 * video_frames_dropped / video_frame_count,
-					100.0 * system_load, (verbose > 3) ? '\n' : '\r');
-			else
-				printv(1, "%d:%02d (%.1f MB), system load %.1f %%  %c",
-					min, sec, bytes_out / (double)(1 << 20),
-					100.0 * system_load, (verbose > 3) ? '\n' : '\r');
+				printv(1, ", %5.2f %% dropped",
+					100.0 * video_frames_dropped / video_frame_count);
+
+			if (0)
+				printv(1, ", fifo v=%5.2f%% a=%5.2f%%",
+					100.0 * buffers_queued(video_fifo) / video_fifo->num_buffers,
+					100.0 * buffers_queued(audio_fifo) / audio_fifo->num_buffers);
+
+			printv(1, (verbose > 3) ? "\n" : "  \r");
 
 			fflush(stderr);
 		}

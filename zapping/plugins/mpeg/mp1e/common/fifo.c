@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.2 2000-08-10 01:18:59 mschimek Exp $ */
+/* $Id: fifo.c,v 1.3 2000-08-12 02:14:37 mschimek Exp $ */
 
 #include "fifo.h"
 #include "alloc.h"
@@ -28,7 +28,7 @@ void
 uninit_buffer(buffer *b)
 {
 	if (b && b->allocated)
-		free(b->allocated);
+		free_aligned(b->allocated);
 
 	b->allocated = NULL;
 	b->_size = 0;
@@ -56,6 +56,12 @@ init_buffer(buffer *b, int size)
 	return TRUE;
 }
 
+static void
+dead_end(fifo *f)
+{
+	FAIL("Invalid fifo %p", f);
+}
+
 void
 uninit_fifo(fifo * f)
 {
@@ -70,6 +76,11 @@ uninit_fifo(fifo * f)
 
 	mucon_destroy(&f->producer);
 
+	f->wait_full  = (buffer * (*)(fifo *)) dead_end;
+	f->send_empty = (void (*)(fifo *, buffer *)) dead_end;
+	f->wait_empty = (buffer * (*)(fifo *)) dead_end;
+	f->send_full  = (void (*)(fifo *, buffer *)) dead_end;
+
 	memset(f, 0, sizeof(fifo));
 }
 
@@ -80,26 +91,79 @@ init_buffered_fifo(fifo *f, mucon *consumer, int size, int num_buffers)
 
 	memset(f, 0, sizeof(fifo));
 
-	mucon_init(&f->producer);
-	f->consumer = consumer; /* NB the consumer mucon can be shared,
-				   cf. video, audio -> mux */
-
 	if (!(f->buffers = calloc(num_buffers, sizeof(buffer))))
 		return 0;
 
 	for (i = 0; i < num_buffers; i++)
-		f->buffers[i].index = -1;
-
-	for (i = 0; i < num_buffers; i++) {
-		if (!init_buffer(&f->buffers[i], size))
-			break;
-
 		f->buffers[i].index = i;
 
-		add_tail(&f->empty, &f->buffers[i].node);
+	if (size > 0) {
+		for (i = 0; i < num_buffers; i++) {
+			if (!init_buffer(&f->buffers[i], size))
+				break;
+
+			add_tail(&f->empty, &f->buffers[i].node);
+		}
+
+		if (i == 0) {
+			free(f->buffers);
+			f->buffers = NULL;
+			return 0;
+		}
 	}
 
-	return f->num_buffers = i;
+	mucon_init(&f->producer);
+	f->consumer = consumer; /* NB the consumer mucon can be shared,
+				   cf. video, audio -> mux */
+
+	return f->num_buffers = i; // sic
+}
+
+int
+init_callback_fifo(fifo *f,
+	buffer * (* wait_full)(fifo *),
+	void     (* send_empty)(fifo *, buffer *),
+	buffer * (* wait_empty)(fifo *),
+	void     (* send_full)(fifo *, buffer *),
+	int size, int num_buffers)
+{
+	int i;
+
+	memset(f, 0, sizeof(fifo));
+
+	if (num_buffers > 0) {
+		if (!(f->buffers = calloc(num_buffers, sizeof(buffer))))
+			return 0;
+
+		for (i = 0; i < num_buffers; i++)
+			f->buffers[i].index = i;
+
+		if (size > 0) {
+			for (i = 0; i < num_buffers; i++) {
+				if (!init_buffer(&f->buffers[i], size))
+					break;
+
+				add_tail(&f->empty, &f->buffers[i].node);
+			}
+
+			if (i == 0) {
+				free(f->buffers);
+				f->buffers = NULL;
+				return 0;
+			}
+		}
+
+		f->num_buffers = i;
+	}
+
+	mucon_init(&f->producer);
+
+	f->wait_full  = wait_full;
+	f->send_empty = send_empty;
+	f->wait_empty = wait_empty;
+	f->send_full  = send_full;
+
+	return f->num_buffers;
 }
 
 int

@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: oss.c,v 1.3 2000-08-09 09:41:36 mschimek Exp $ */
+/* $Id: oss.c,v 1.4 2000-08-12 02:14:37 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,6 +57,8 @@ static int		look_ahead;
 static char		first;
 static int		samples_per_frame;
 static short *		ubuffer;
+static buffer		buf;
+static fifo		pcm_fifo;
 
 extern char *		pcm_dev;
 extern int		sampling_rate;
@@ -72,8 +74,9 @@ extern int		stereo;
  *   closer to the sampling instant.]
  */
 
-static short *
-pcm_read(double *ftime)
+// XXX only one at a time, not checked
+static buffer *
+pcm_wait_full(fifo *f)
 {
 	static double rtime, utime;
 	static int left = 0;
@@ -82,8 +85,9 @@ pcm_read(double *ftime)
 	if (ubuffer) {
 		p = ubuffer;
 		ubuffer = NULL;
-		*ftime = utime;
-		return p;
+		buf.time = utime;
+		buf.data = (unsigned char *) p;
+		return &buf;
 	}
 
 	if (left <= 0)
@@ -133,23 +137,27 @@ pcm_read(double *ftime)
 		rtime = tv.tv_sec + tv.tv_usec / 1e6;
 		rtime -= (scan_range - n + info.bytes) / (double) sampling_rate;
 
-		*ftime = rtime;
 		left = scan_range - samples_per_frame;
+		p = abuffer;
 
-		return p = abuffer;
+		buf.time = rtime;
+		buf.data = (unsigned char *) p;
+		return &buf;
 	}
 
-	*ftime = utime = rtime + ((p - abuffer) >> stereo) / (double) sampling_rate;
+	utime = rtime + ((p - abuffer) >> stereo) / (double) sampling_rate;
 	left -= samples_per_frame;
 
-	return p += samples_per_frame;
+	p += samples_per_frame;
+
+	buf.time = utime;
+	buf.data = (unsigned char *) p;
+	return &buf;
 }
 
 void
-pcm_unget(short *p)
+pcm_send_empty(fifo *f, buffer *b)
 {
-	assert(!ubuffer);
-	ubuffer = p;
 }
 
 void
@@ -191,8 +199,9 @@ pcm_init(void)
 		printv(3, "Dsp buffer size %i\n", frag_size);
 	}
 
-	audio_read = pcm_read;
-	audio_unget = pcm_unget;
+	init_callback_fifo(audio_cap_fifo = &pcm_fifo,
+		pcm_wait_full, pcm_send_empty,
+		NULL, NULL, 0, 0);
 }
 
 
