@@ -22,8 +22,8 @@
 
 #include <gnome.h>
 #include <gdk/gdkx.h>
-#include <gnome-xml/tree.h>
-#include <gnome-xml/parser.h>
+//#include <gnome-xml/tree.h>
+//#include <gnome-xml/parser.h>
 #include <glade/glade.h>
 #include <signal.h>
 #define ZCONF_DOMAIN "/zapping/options/main/"
@@ -80,6 +80,7 @@ on_zapping_key_press			(GtkWidget	*widget,
 					 gpointer	*user_data)
 {
   return on_user_key_press (widget, event, user_data)
+    || on_picture_size_key_press (widget, event, user_data)
     || on_channel_key_press (widget, event, user_data);
 }
 
@@ -134,15 +135,15 @@ gint resize_timeout		( gpointer ignored )
   return FALSE;
 }
 
-#include "../pixmaps/brightness.h"
-#include "../pixmaps/contrast.h"
-#include "../pixmaps/saturation.h"
-#include "../pixmaps/hue.h"
-#include "../pixmaps/recordtb.h"
-#include "../pixmaps/mute.h"
-#include "../pixmaps/teletext.h"
-#include "../pixmaps/video.h"
-#include "../pixmaps/screenshot.h"
+#include "pixmaps/brightness.h"
+#include "pixmaps/contrast.h"
+#include "pixmaps/saturation.h"
+#include "pixmaps/hue.h"
+#include "pixmaps/recordtb.h"
+#include "pixmaps/mute.h"
+#include "pixmaps/teletext.h"
+#include "pixmaps/video.h"
+#include "pixmaps/screenshot.h"
 
 #define ADD_STOCK(name)							\
   item.stock_id = "zapping-" #name;					\
@@ -353,7 +354,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.165.2.20 2003-08-24 23:51:32 mschimek Exp $",
+	 "$Id: main.c,v 1.165.2.21 2003-09-24 18:35:57 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -479,9 +480,12 @@ int main(int argc, char * argv[])
     zcs_char(video_device, "video_device");
 
   if (!debug_msg)
-    tveng_set_zapping_setup_fb_verbosity(zcg_int(NULL,
-						 "zapping_setup_fb_verbosity"),
+#if 1
+    tveng_set_zapping_setup_fb_verbosity(0, main_info);
+#else
+    tveng_set_zapping_setup_fb_verbosity(zcg_int(NULL, "zapping_setup_fb_verbosity"),
 					 main_info);
+#endif
   else
     tveng_set_zapping_setup_fb_verbosity(3, main_info);
 
@@ -588,14 +592,17 @@ int main(int argc, char * argv[])
 		     "key-press-event",
 		     G_CALLBACK(on_zapping_key_press), NULL);
 
+  /* Once again hiding doesn't work earlier... */
+  gtk_widget_hide (lookup_widget (main_window, "appbar2"));
+  gtk_widget_queue_resize (main_window);
+
   /* ensure that the main window is realized */
-  gtk_widget_realize(main_window);
   gtk_widget_realize(tv_screen);
+  gtk_widget_realize(main_window);
   while (!tv_screen->window)
     z_update_gui();
   D();
-      /* Once again hiding doesn't work earlier... */
-      gtk_widget_hide (lookup_widget (main_window, "appbar2"));
+
       D();
 
   if (unmutable)
@@ -827,7 +834,11 @@ static void shutdown_zapping(void)
   g_free (buffer);
 
       SAVE_CONFIG (string,  name,         name,         "Station name");
-      SAVE_CONFIG (integer, freq,         freq,         "Tuning frequency");
+
+      buffer = g_strdup_printf (ZCONF_DOMAIN "tuned_channels/%d/freq", i);
+      zconf_create_integer (channel->frequ / 1000, "Tuning frequency", buffer);
+      g_free (buffer);
+
       SAVE_CONFIG (z_key,   accel,        accel,        "Accelerator key");
       /* historic "real_name", changed to less confusing rf_name */
       SAVE_CONFIG (string,  rf_name,      real_name,    "RF channel name");
@@ -971,7 +982,7 @@ static gboolean startup_zapping(gboolean load_plugins)
   startup_remote ();
   startup_cmd ();
 #if GNOME2_PORT_COMPLETE
-  cmd_register ("subtitle_overlay", subtitle_overlay_cmd, NULL);
+  cmd_register ("subtitle_overlay", subtitle_overlay_cmd, 0, NULL);
 #endif
   startup_properties();
   D();
@@ -997,8 +1008,6 @@ static gboolean startup_zapping(gboolean load_plugins)
 
   zcc_char("/dev/video0", "The device file to open on startup",
 	   "video_device");
-  zcc_bool(FALSE, "TRUE if Zapping should be started without sound",
-	   "start_muted");
   zcc_bool(FALSE, "TRUE if the controls info should be saved with each "
 	   "channel", "save_controls");
   zcc_int(0, "Verbosity value given to zapping_setup_fb",
@@ -1041,7 +1050,8 @@ static gboolean startup_zapping(gboolean load_plugins)
 
       LOAD_CONFIG (string,  name,         name);
       LOAD_CONFIG (string,  rf_name,      real_name);
-      LOAD_CONFIG (integer, freq,         freq);
+      LOAD_CONFIG (integer, frequ,        freq);
+      new_channel.frequ *= 1000;
       LOAD_CONFIG (z_key,   accel,        accel);
       LOAD_CONFIG (string,  rf_table,     country);
       LOAD_CONFIG (integer, input,        input);
