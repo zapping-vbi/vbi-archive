@@ -119,6 +119,9 @@ typedef struct {
   void		(*cancel)(GtkWidget *widget);
   /* Link id in zapping.xml, instead of help handler. */
   const gchar *help_link_id;
+  /* Function to create preferences instead of glade file name
+     in standard_properties_add(), .widget and .setup above. */
+  GtkWidget *	(*create)(void);
 } SidebarEntry;
 
 typedef struct {
