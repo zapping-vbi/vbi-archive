@@ -494,6 +494,7 @@ tvengxv_get_inputs(tveng_device_info *info)
       info->inputs = realloc(info->inputs, (info->num_inputs+1)*
 			     sizeof(struct tveng_enum_input));
       info->inputs[info->num_inputs].id = i;
+      info->inputs[info->num_inputs].index = info->num_inputs;
       info->inputs[info->num_inputs].flags = 0;
       /* The XVideo extension provides very little info about encodings,
 	 we must just make something up */
@@ -583,7 +584,7 @@ tvengxv_set_input(struct tveng_enum_input * input,
     XvSetPortAttribute(info->private->display, p_info->port,
 		       p_info->encoding, i);
 
-  info->cur_input = input->id;
+  info->cur_input = input->index;
 
   return 0;
 }

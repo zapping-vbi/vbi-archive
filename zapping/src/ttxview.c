@@ -44,6 +44,7 @@ extern gboolean flag_exit_program;
  */
 static GdkCursor	*hand=NULL;
 static GdkCursor	*arrow=NULL;
+static GdkCursor	*xterm=NULL;
 static GtkWidget	*search_progress=NULL;
 
 typedef struct {
@@ -122,7 +123,8 @@ startup_ttxview (void)
   gint page, subpage;
 
   hand = gdk_cursor_new (GDK_HAND2);
-  arrow = gdk_cursor_new(GDK_LEFT_PTR);
+  arrow = gdk_cursor_new (GDK_LEFT_PTR);
+  xterm = gdk_cursor_new (GDK_XTERM);
   model = ZMODEL(zmodel_new());
 
   zcc_char(g_get_home_dir(), "Directory to export pages to",
@@ -159,6 +161,7 @@ shutdown_ttxview (void)
 
   gdk_cursor_destroy(hand);
   gdk_cursor_destroy(arrow);
+  gdk_cursor_destroy(xterm);
 
   /* Store the bookmarks in the config */
   zconf_delete(ZCONF_DOMAIN "bookmarks");
@@ -413,6 +416,10 @@ event_timeout				(ttxview_data	*data)
 
   while ((msg = peek_ttx_message(data->id)))
     {
+      /* discard page received messages while selecting */
+      if (data->selecting)
+	continue;
+
       switch (msg)
 	{
 	case TTX_PAGE_RECEIVED:
@@ -1450,7 +1457,8 @@ process_ttxview_menu_popup		(GtkWidget	*widget,
 
 /*
  * Inverts the color of the given region.
- * The region is in to 40x25 coordinates
+ * The region is given in to 40x25 coordinates
+ * The complexity is needed to avoid integer division roundof errors.
  */
 static void
 select_region				(gint		x1,
@@ -1464,15 +1472,6 @@ select_region				(gint		x1,
 
   gdk_window_get_size(data->da->window, &w, &h);
 
-  if (x1 < 0) x1 = 0;
-  else if (x1 > 39) x1 = 39;
-  if (x2 < 0) x2 = 0;
-  else if (x2 > 39) x2 = 39;
-  if (y1 < 0) y1 = 0;
-  else if (y1 > 24) y1 = 24;
-  if (y2 < 0) y2 = 0;
-  else if (y2 > 24) y2 = 24;
-
   if (y1 > y2)
     {
       temp = x1;
@@ -1482,23 +1481,22 @@ select_region				(gint		x1,
       y1 = y2;
       y2 = temp;
     }
-  else if ((y1 == y2) && (x1 > x2))
+
+  if (x1 > x2)
     {
       temp = x1;
       x1 = x2;
       x2 = temp;
     }
 
-  while (y1 != y2)
-    {
-      gdk_draw_rectangle(data->da->window, data->xor_gc, TRUE,
-			 (x1*w)/40, (y1*h)/25, w-((x1*w)/40), h/25);
-      y1++;
-      x1 = 0;
-    }
+  /* transform into pixel coordinates */
+  x1 = (x1*w)/40;
+  y1 = (y1*h)/25;
+  x2 = ((x2+1)*w)/40;
+  y2 = ((y2+1)*h)/25;
 
   gdk_draw_rectangle(data->da->window, data->xor_gc, TRUE,
-		     (x1*w)/40, (y1*h)/25, ((x2-x1+1)*w)/40, h/25);
+		     x1, y1, x2-x1, y2-y1);
 }
 
 static void select_start(gint x, gint y, ttxview_data * data)
@@ -1506,8 +1504,8 @@ static void select_start(gint x, gint y, ttxview_data * data)
   if (data->fmt_page->vtp->pgno < 0x100)
     {
       if (data->appbar)
-	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
-				_("No page loaded"));
+  	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
+  				_("No page loaded"));
       return;
     }
 
@@ -1516,6 +1514,8 @@ static void select_start(gint x, gint y, ttxview_data * data)
 
   if (data->appbar)
     gnome_appbar_push(GNOME_APPBAR(data->appbar), _("Selecting"));
+
+  gdk_window_set_cursor(data->da->window, xterm);
 
   data->ssx = x;
   data->ssy = y;
@@ -1543,13 +1543,22 @@ static void select_stop(ttxview_data * data)
       srow = (data->ssy*25)/h;
       col = (data->osx*40)/w;
       row = (data->osy*25)/h;
+      if (col > 39) col = 39;
+      if (col < 0) col = 0;
+      if (row > 24) row = 24;
+      if (row < 0) row = 0;
+      if (scol > 39) scol = 39;
+      if (scol < 0) scol = 0;
+      if (srow > 24) srow = 24;
+      if (srow < 0) srow = 0;
+
       select_region(scol, srow, col, row, data);
       
       /* EXPORT TO CLIPBOARD HERE */
 
       if (data->appbar)
 	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
-				_("selection copied to clipboard"));
+				_("Selection copied to clipboard"));
     }
 
   data->selecting = FALSE;
@@ -1558,33 +1567,73 @@ static void select_stop(ttxview_data * data)
   update_pointer(data);
 }
 
+/* TODO: Double height lines, avoid flicker */
+
 static void select_update(gint x, gint y, ttxview_data * data)
 {
   gint w, h;
-  gint ocol, orow, col, row;
+  gint ocol, orow, col, row, scol, srow;
+  //  gint odir=0, dir=0;
 
   if (!data->selecting)
     return;
-
-  if (data->osx == -1)
-    {
-      data->osx = data->ssx; /* pointer moved flag */
-      data->osy = data->ssy;
-    }
 
   gdk_window_get_size(data->da->window, &w, &h);
 
   col = (x*40)/w;
   row = (y*25)/h;
-  ocol = (data->osx*40)/w;
-  orow = (data->osy*25)/h;
+  scol = (data->ssx*40)/w;
+  srow = (data->ssy*25)/h;
+  if (data->osx == -1)
+    {
+      ocol = (data->ssx*40)/w;
+      orow = (data->ssy*25)/h;
+    }
+  else
+    {
+      ocol = (data->osx*40)/w;
+      orow = (data->osy*25)/h;
+    }
 
-  /* FIXME: This needs to be optimized (draw just once, avoid flicker,
-     make it work :-) */
-  select_region(ocol, orow, col, row, data);
+  if (col > 39) col = 39;
+  if (col < 0) col = 0;
+  if (row > 24) row = 24;
+  if (row < 0) row = 0;
+  if (scol > 39) scol = 39;
+  if (scol < 0) scol = 0;
+  if (srow > 24) srow = 24;
+  if (srow < 0) srow = 0;
+  if (ocol > 39) ocol = 39;
+  if (ocol < 0) ocol = 0;
+  if (orow > 24) orow = 24;
+  if (orow < 0) orow = 0;
 
-  data->osx = x;
+  /* first movement */
+  if (data->osx == -1)
+    {
+      select_region(ocol, orow, col, row, data);
+      data->osx = (x < 0)?0:x;
+      data->osy = y;
+      return;
+    }
+
+  /* not changed, done */
+  if ((ocol == col) && (orow == row))
+    {
+      data->osx = (x < 0)?0:x;
+      data->osy = y;
+      return;
+    }
+
+#if 1 /* This is the easy way... but it flickers too much, needs rewrite */
+  select_region(scol, srow, ocol, orow, data);
+  select_region(scol, srow, col, row, data);
+  data->osx = (x < 0)?0:x;
   data->osy = y;
+#else
+  data->osx = (x < 0)?0:x;
+  data->osy = y;
+#endif
 }
 
 static gboolean
@@ -1810,6 +1859,10 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
       active =
 	gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ttxview_hold));
       gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ttxview_hold), !active);
+      break;
+    case GDK_P:
+    case GDK_p:
+      select_region(30, 10, 10, 20, data);
       break;
     default:
       return FALSE;
@@ -2061,6 +2114,9 @@ ttxview_detach			(GtkWidget	*parent)
 				data);
   gtk_signal_disconnect_by_func(GTK_OBJECT(data->da),
 				GTK_SIGNAL_FUNC(on_ttxview_button_press),
+				data);
+  gtk_signal_disconnect_by_func(GTK_OBJECT(data->da),
+				GTK_SIGNAL_FUNC(on_ttxview_button_release),
 				data);
 
   gtk_toolbar_set_style(GTK_TOOLBAR(data->parent_toolbar),

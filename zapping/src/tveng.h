@@ -205,6 +205,7 @@ enum tveng_input_type{
 /* info about an input */
 struct tveng_enum_input{
   int id; /* Id of the input */
+  int index; /* Index in info->inputs */
   char name[32]; /* Canonical name for the input */
   int tuners; /* Number of tuners for this input */
   int flags; /* Flags for this channel */

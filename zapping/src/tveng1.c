@@ -469,6 +469,7 @@ static int tveng1_get_inputs(tveng_device_info * info)
       info->inputs = realloc(info->inputs, (info->num_inputs+1)*
 			     sizeof(struct tveng_enum_input));
       info->inputs[info->num_inputs].id = i;
+      info->inputs[info->num_inputs].index = info->num_inputs;
       snprintf(info->inputs[info->num_inputs].name, 32, channel.name);
       info->inputs[info->num_inputs].tuners = channel.tuners;
       info->inputs[info->num_inputs].flags = 0;

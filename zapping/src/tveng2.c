@@ -462,6 +462,7 @@ int tveng2_get_inputs(tveng_device_info * info)
       info->inputs = realloc(info->inputs, (i+1)*
 			     sizeof(struct tveng_enum_input));
       info->inputs[i].id = i;
+      info->inputs[i].index = i;
       snprintf(info->inputs[i].name, 32, input.name);
       info->inputs[i].flags = 0;
       if (input.type & V4L2_INPUT_TYPE_TUNER)

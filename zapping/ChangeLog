@@ -1,3 +1,13 @@
+9.2.2001	CP work <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: Visual selection works, needs to get flicker free
+	(easy, but time consuming). Fixed SEGV (button_release not
+	disconnected).
+	* src/tvengxv.c: Fixed cur_input setting, added index field to
+	tveng_enum_input.
+	* src/tveng.c: Applied patch to do normalized comparing of
+	standards and inputs (Magnus).
+
 8.2.2001	gnome-help-browser <garetxe@users.sourceforge.net>
 
 	* src/ttxview.c: Action for links. Configure with gnomecc,

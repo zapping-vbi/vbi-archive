@@ -29,6 +29,7 @@
 #include <signal.h>
 #include <X11/Xlib.h> /* We use some X calls */
 #include <X11/Xutil.h>
+#include <ctype.h>
 
 /* This undef's are to avoid a couple of header warnings */
 #undef WNOHANG
@@ -336,6 +337,63 @@ int tveng_get_inputs(tveng_device_info * info)
   return -1;
 }
 
+/* nomalize and compare */
+static int tveng_normstrcmp (const char * in1, const char * in2)
+{
+  int i;
+  char * s1;
+  char * s2;
+  char * strptr;
+
+  s1 = strdup(in1);
+  s2 = strdup(in2);
+
+  /* if this fails, typically there's no way to recover, so just abort */
+  t_assert(s1 != NULL);
+  t_assert(s2 != NULL);
+
+  /* Normalize the first string */
+  i=0;
+  strptr = (char *)in1;
+  while (strptr[0] != 0) {
+    if (strptr[0] == '_' || strptr[0] == '-' || strptr[0] == ' ') {
+      strptr++;
+      continue;
+    }
+    s1[i] = tolower(strptr[0]);
+
+    strptr++;
+    i++;
+  }
+  s1[i] = 0;
+
+  /* Normalize the second string */
+  i = 0;
+  strptr = (char *)in2;
+  while (strptr[0] != 0) {
+    if (strptr[0] == '_' || strptr[0] == '-' || strptr[0] == ' ') {
+      strptr++;
+      continue;
+    }
+    s2[i] = tolower(strptr[0]);
+
+    strptr++;
+    i++;
+  }
+  s2[i] = 0;
+
+  /* Compare the strings */
+  if (!strcmp(s1, s2)) {
+    free(s1);
+    free(s2);
+    return 1;
+  } else {
+    free(s1);
+    free(s2);
+    return 0;
+  }
+}
+
 /*
   Sets the current input for the capture
 */
@@ -369,7 +427,7 @@ tveng_set_input_by_name(const char * input_name,
   t_assert(info != NULL);
 
   for (i = 0; i < info->num_inputs; i++)
-    if (!strcasecmp(info->inputs[i].name, input_name))
+    if (tveng_normstrcmp(info->inputs[i].name, input_name))
       return tveng_set_input(&(info->inputs[i]), info);
 
   info->tveng_errno = -1;
@@ -467,7 +525,7 @@ tveng_set_standard_by_name(const char * name, tveng_device_info * info)
 {
   int i;
   for (i = 0; i < info->num_standards; i++)
-    if (!strcmp(name, info->standards[i].name))
+    if (tveng_normstrcmp(name, info->standards[i].name))
       return tveng_set_standard(&(info->standards[i]), info);
 
   info->tveng_errno = -1;

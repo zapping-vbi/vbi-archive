@@ -364,6 +364,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
   if (new_mode != TVENG_NO_CAPTURE)
     {
+      gtk_widget_hide(lookup_widget(main_window, "appbar2"));
       ttxview_detach(main_window);
       tveng_close_device(info);
     }
@@ -389,6 +390,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	g_warning("preview has been disabled");
 	tveng_attach_device(zcg_char(NULL, "video_device"),
 			    TVENG_ATTACH_READ, info);
+	g_free(old_name);
 	return -1;
       }
 
@@ -445,6 +447,7 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 
       if (disable_preview) {
 	g_warning("preview has been disabled");
+	g_free (old_name);
 	return -1;
       }
 
@@ -482,15 +485,20 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
 	}
 
       /* start vbi code */
+      gtk_widget_show(lookup_widget(main_window, "appbar2"));
       ttxview_attach(main_window, lookup_widget(main_window, "tv_screen"),
-		     lookup_widget(main_window, "toolbar1"), NULL);
+		     lookup_widget(main_window, "toolbar1"),
+		     lookup_widget(main_window, "appbar2"));
 
       break; /* TVENG_NO_CAPTURE */
     }
 
-  if (old_name)
-    tveng_set_input_by_name(old_name, info);
-  g_free(old_name);
+  /* Restore old input if we found it earlier */
+  if (old_name != NULL)
+    if (-1 == tveng_set_input_by_name(old_name, info))
+      g_warning("couldn't restore old input");
+
+  g_free (old_name);
 
   /* Update the controls window if it's open */
   update_control_box(info);
@@ -499,6 +507,9 @@ zmisc_switch_mode(enum tveng_capture_mode new_mode,
   /* Updating the properties is not so useful, and it isn't so easy,
      since there might be multiple properties dialog open */
   tveng_set_mute(muted, info);
+
+  /* Find optimum size for widgets */
+  gtk_widget_queue_resize(main_window);
 
   return return_value;
 }

@@ -364,8 +364,6 @@ on_videotext1_activate                 (GtkMenuItem     *menuitem,
 {
   /* Stop any current capture mode, and start TTX */
   zmisc_switch_mode(TVENG_NO_CAPTURE, main_info);
-
-  gtk_widget_queue_resize(main_window);
 }
 
 void
