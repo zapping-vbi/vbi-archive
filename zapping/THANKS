@@ -12,5 +12,7 @@ Thanks are due to the following people for helping with the program:
 	      fixes for the .spec.in file.
 - Marco Pfattner: LIRC plugin.
 - Carsten Menke: German translation of the main help file.
+- Christian Riedel: RH7 RPM.
+- Eduardo Díaz Comellas: Debian package.
 
 And, of course, thanks to the people that sent bug reports and suggestions.

@@ -1466,7 +1466,7 @@ void on_be_destroy			(GtkObject	*widget,
 }
 
 static
-void on_delete_bookmarks_activated	(GtkWidget	*widget,
+void on_edit_bookmarks_activated	(GtkWidget	*widget,
 					 ttxview_data	*data)
 {
   GtkWidget *be = create_widget("bookmarks_editor");
@@ -2178,7 +2178,7 @@ build_subtitles_submenu(GtkWidget *widget,
 				   GNOME_STOCK_PIXMAP_ALIGN_JUSTIFY);
       set_tooltip(menu_item, _("Select subtitles page"));
       gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item),
-				  GTK_WIDGET(menu));
+				GTK_WIDGET(menu));
       gtk_widget_show(menu_item);
       gtk_widget_show(GTK_WIDGET(menu));
       gtk_menu_insert(GTK_MENU(zmenu), menu_item, insert_index++);
@@ -2200,6 +2200,7 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
   GList *p = g_list_first(bookmarks);
   struct bookmark *bookmark;
   GtkWidget *menuitem;
+  GtkWidget *menu;
   gchar *buffer, *buffer2;
 
   /* convert to fmt_page space */
@@ -2225,9 +2226,9 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
   gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "add_bookmark")),
 		     "activate",
 		     GTK_SIGNAL_FUNC(new_bookmark), data);
-  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "delete_bookmarks")),
+  gtk_signal_connect(GTK_OBJECT(lookup_widget(popup, "edit_bookmarks")),
 		     "activate",
-		     GTK_SIGNAL_FUNC(on_delete_bookmarks_activated),
+		     GTK_SIGNAL_FUNC(on_edit_bookmarks_activated),
 		     data);
 
   /* Bookmark entries */
@@ -2269,7 +2270,8 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
       vbi_export_module *xm;
       gint i;
 
-      export = lookup_widget(popup, "export1_menu");
+      menu = gtk_menu_new();
+      gtk_widget_show(menu);
 
       for (i = 0; (xm = vbi_export_enum(i)); i++)
         if (xm->label) /* for public use */
@@ -2279,11 +2281,12 @@ GtkWidget *build_ttxview_popup (ttxview_data *data, gint page, gint subpage)
 	      set_tooltip(menuitem, xm->tooltip);
 	    gtk_object_set_user_data(GTK_OBJECT(menuitem), xm->keyword);
 	    gtk_widget_show(menuitem);
-	    gtk_menu_append(GTK_MENU(export), menuitem);
+	    gtk_menu_append(GTK_MENU(menu), menuitem);
 	    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
 			       GTK_SIGNAL_FUNC(on_export_menu),
 			       data);
 	  }
+      gtk_menu_item_set_submenu(GTK_MENU_ITEM(export), menu);
     }
 
   build_subtitles_submenu(data->parent, GTK_MENU(popup), FALSE);

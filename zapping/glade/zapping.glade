@@ -3453,11 +3453,6 @@ in the next release of this program.</label>
     <label>_Export</label>
     <right_justify>False</right_justify>
     <stock_icon>GNOME_STOCK_MENU_CONVERT</stock_icon>
-
-    <widget>
-      <class>GtkMenu</class>
-      <name>export1_menu</name>
-    </widget>
   </widget>
 
   <widget>
@@ -3483,9 +3478,9 @@ in the next release of this program.</label>
 
       <widget>
 	<class>GtkPixmapMenuItem</class>
-	<name>delete_bookmarks</name>
-	<tooltip>Delete some bookmarks</tooltip>
-	<label>_Delete Bookmarks...</label>
+	<name>edit_bookmarks</name>
+	<tooltip>Use this dialog to delete any bookmarks you wish to remove</tooltip>
+	<label>_Edit Bookmarks...</label>
 	<right_justify>False</right_justify>
 	<stock_icon>GNOME_STOCK_MENU_INDEX</stock_icon>
       </widget>
