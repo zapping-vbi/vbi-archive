@@ -4,8 +4,18 @@ $default_theme="simple";
 $this_file =
     strtolower(str_replace(".php", "", basename($PHP_SELF)));
 
-if (!$theme) {
-  $theme = $default_theme;
+$this_dir = dirname($PHP_SELF);
+
+if (!$theme)
+{
+	$theme = $default_theme;
+}
+
+function redirect($url)
+{
+	global $this_dir;
+	global $SERVER_NAME;
+	header("Location: http://" . $SERVER_NAME . $this_dir . "/" . $url);
 }
 
 switch ($sel_theme)

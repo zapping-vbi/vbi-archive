@@ -8,7 +8,7 @@ switch ($theme)
   include($this_file . "_" . $theme . ".php");
   break;
  default:
-   header("Location: index.php#" . $this_file);
+   redirect("index.php#" . $this_file);
    break;
 }
 

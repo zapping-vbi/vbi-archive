@@ -7,10 +7,10 @@ switch ($theme)
   include($this_file . "_" . $theme . ".php");
   break;
  case "modern":
-   header("Location: contact.php#bugs");
+   redirect("contact.php#bugs");
    break;
  default:
-   header("Location: index.php#" . $this_file);
+   redirect("index.php#" . $this_file);
    break;
 }
 
