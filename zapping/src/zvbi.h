@@ -71,6 +71,12 @@ void unregister_ttx_client(int id);
 void monitor_ttx_page(int id/*client*/, int page, int subpage);
 
 /*
+ * Render the provided page to the client, and send the RECEIVED
+ * event. Set it as the currently monitored page.
+ */
+void monitor_ttx_this(int id, struct fmt_page *pg);
+
+/*
  * Gets the page number of the index page
  */
 void get_ttx_index(int id, int *pgno, int *subno);

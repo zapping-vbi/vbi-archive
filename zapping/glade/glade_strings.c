@@ -217,3 +217,5 @@ gchar *s = N_("Search");
 gchar *s = N_("Regular Expression:");
 gchar *s = N_("Enter here the regular expression you want to look for. Click help if you don't know about regular expressions.");
 gchar *s = N_("Ignore case when matching");
+gchar *s = N_("Search in progress...");
+gchar *s = N_("%P %%");

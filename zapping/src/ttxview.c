@@ -26,7 +26,6 @@
 
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#include <regex.h> /* FIXME: This should be a cache operation */
 
 #include "interface.h"
 #include "ttxview.h"
@@ -37,14 +36,16 @@
 #include "zmodel.h"
 #include "../common/fifo.h"
 
+extern gboolean flag_exit_program;
+
 /*
   TODO:
-	Search
 	ttxview in main window (alpha et al)
 */
 
 static GdkCursor	*hand=NULL;
 static GdkCursor	*arrow=NULL;
+static GtkWidget	*search_progress=NULL;
 
 typedef struct {
   GdkBitmap		*mask;
@@ -431,13 +432,15 @@ event_timeout				(ttxview_data	*data)
 }
 
 static void
-load_page (int page, int subpage, ttxview_data *data)
+load_page (int page, int subpage, ttxview_data *data,
+	   struct fmt_page *pg)
 {
   GtkWidget *appbar1 = lookup_widget(data->da, "appbar1");
   GtkWidget *ttxview_url = lookup_widget(data->da, "ttxview_url");
   GtkWidget *ttxview_hold = lookup_widget(data->da, "ttxview_hold");
   GtkWidget *widget;
   gchar *buffer;
+  gint i;
 
   buffer = g_strdup_printf("%d", hex2dec(page));
   gtk_label_set_text(GTK_LABEL(ttxview_url), buffer);
@@ -467,15 +470,19 @@ load_page (int page, int subpage, ttxview_data *data)
     }
   else
     buffer = g_strdup_printf(_("Warning: Page not valid"));
+
   gnome_appbar_set_status(GNOME_APPBAR(appbar1), buffer);
   g_free(buffer);
 
   gtk_widget_grab_focus(data->da);
   
-  while (gtk_events_pending())
-    gtk_main_iteration(); /* make all the changes show now */
+  for (i = gtk_events_pending(); i>-1; i--)
+    gtk_main_iteration();
 
-  monitor_ttx_page(data->id, page, subpage);
+  if (!pg)
+    monitor_ttx_page(data->id, page, subpage);
+  else
+    monitor_ttx_this(data->id, pg);
 }
 
 static
@@ -485,7 +492,7 @@ void on_ttxview_home_clicked		(GtkButton	*button,
   int page, subpage;
 
   get_ttx_index(data->id, &page, &subpage);
-  load_page(page, subpage, data);
+  load_page(page, subpage, data, NULL);
 }
 
 static
@@ -499,9 +506,9 @@ void on_ttxview_hold_toggled		(GtkToggleButton *button,
       data->hold = hold;
       if (hold)
 	load_page(data->fmt_page->vtp->pgno, data->fmt_page->vtp->subno,
-		  data);
+		  data, NULL);
       else
-	load_page(data->fmt_page->vtp->pgno, ANY_SUB, data);
+	load_page(data->fmt_page->vtp->pgno, ANY_SUB, data, NULL);
     }
 }
 
@@ -523,7 +530,7 @@ void on_ttxview_prev_sp_cache_clicked	(GtkButton	*button,
   
   if (((subpage = find_prev_subpage(data, data->subpage)) >= 0) &&
       (subpage != data->subpage))
-    load_page(data->fmt_page->vtp->pgno, subpage, data);
+    load_page(data->fmt_page->vtp->pgno, subpage, data, NULL);
   else
     gnome_appbar_set_status(GNOME_APPBAR(appbar1),
 			    _("No other subpage in the cache"));
@@ -536,7 +543,7 @@ void on_ttxview_prev_subpage_clicked	(GtkButton	*button,
   gint new_subpage = dec2hex(hex2dec(data->subpage) - 1);
   if (new_subpage < 0)
     new_subpage = 0x99;
-  load_page(data->fmt_page->vtp->pgno, new_subpage, data);
+  load_page(data->fmt_page->vtp->pgno, new_subpage, data, NULL);
 }
 
 static
@@ -557,7 +564,7 @@ void on_ttxview_next_sp_cache_clicked	(GtkButton	*button,
   
   if (((subpage = find_next_subpage(data, data->subpage)) >= 0) &&
       (subpage != data->subpage))
-    load_page(data->fmt_page->vtp->pgno, subpage, data);
+    load_page(data->fmt_page->vtp->pgno, subpage, data, NULL);
   else
     gnome_appbar_set_status(GNOME_APPBAR(appbar1),
 			    _("No other subpage in the cache"));
@@ -570,7 +577,99 @@ void on_ttxview_next_subpage_clicked	(GtkButton	*button,
   gint new_subpage = dec2hex(hex2dec(data->subpage) + 1);
   if (new_subpage > 0x99)
     new_subpage = 0;
-  load_page(data->fmt_page->vtp->pgno, new_subpage, data);
+  load_page(data->fmt_page->vtp->pgno, new_subpage, data, NULL);
+}
+
+static
+void on_search_progress_destroy		(GtkObject	*widget,
+					 gpointer	context)
+{
+  gpointer running = gtk_object_get_user_data(widget);
+
+  search_progress = NULL;
+
+  if (!running)
+    vbi_delete_search(context);
+}
+
+static
+void run_next				(GtkButton	*button,
+					 gpointer	context)
+{
+  gint return_code;
+  struct fmt_page *pg;
+  ttxview_data *data =
+    (ttxview_data *)gtk_object_get_data(GTK_OBJECT(button),
+					"ttxview_data");
+  GtkWidget *search_cancel = lookup_widget(GTK_WIDGET(button),
+					   "button19");
+
+  gtk_widget_set_sensitive(GTK_WIDGET(button), FALSE);
+  gtk_widget_set_sensitive(search_cancel, TRUE);
+  gtk_widget_set_sensitive(lookup_widget(search_cancel,
+					 "progressbar2"), TRUE);
+  gtk_label_set_text(GTK_LABEL(lookup_widget(search_cancel, "label97")),
+		     "");
+
+  gtk_object_set_user_data(GTK_OBJECT(search_progress),
+			   (gpointer)0xdeadbeef);
+
+  switch ((return_code = vbi_next_search(context, &pg)))
+    {
+    case 1: /* found, show the page, enable next */
+      load_page(pg->vtp->pgno, pg->vtp->subno, data, pg);
+      if (search_progress)
+	{
+	  gtk_widget_set_sensitive(GTK_WIDGET(button), TRUE);
+	  gtk_widget_set_sensitive(search_cancel, FALSE);
+	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_cancel,
+						     "label97")),
+			     _("Found"));
+	  gtk_widget_set_sensitive(lookup_widget(search_cancel,
+						 "progressbar2"), FALSE);
+	}
+      break;
+    case 0: /* not found */
+      if (search_progress)
+	{
+	  gtk_widget_set_sensitive(GTK_WIDGET(button), TRUE);
+	  gtk_widget_set_sensitive(search_cancel, FALSE);
+	  gtk_label_set_text(GTK_LABEL(lookup_widget(search_cancel,
+						     "label97")),
+			     _("Not found"));
+	  gtk_widget_set_sensitive(lookup_widget(search_cancel,
+						 "progressbar2"), FALSE);
+	}
+      break;      
+    case -1: /* cancelled */
+      break;
+    case -2: /* error */
+      break;
+    default:
+      g_message("Unknown search return code: %d",
+		return_code);
+      break;
+    }
+
+  if (search_progress)
+    gtk_object_set_user_data(GTK_OBJECT(search_progress), NULL);
+  
+  if (return_code < 0)
+    {
+      if (search_progress)
+	gtk_widget_destroy(search_progress);
+
+      vbi_delete_search(context);
+    }
+}
+
+static
+void on_search_progress_next		(GtkButton	*button,
+					 gpointer	context)
+{
+  gtk_signal_emit_stop_by_name(GTK_OBJECT(button), "clicked");
+
+  run_next(button, context);
 }
 
 static
@@ -587,6 +686,75 @@ void show_search_help			(GtkButton	*button,
   gtk_signal_emit_stop_by_name(GTK_OBJECT(button), "clicked");
 }
 
+/*
+  Substitute the special search keywords by the appropiate regex,
+  returns a newly allocated string, and g_free's the given string.
+  Valid search keywords:
+  #url#  -> Expands to "https?://([:alnum:]|[-~./?%_=+])+"
+  #email# -> Expands to "([:alnum:]|[-~.])+@([:alnum:]|[-~.])+"
+*/
+static
+gchar *subtitute_search_keywords	(gchar		*string)
+{
+  gint i;
+  gchar *found;
+  gchar *search_keys[][2] = {
+    {"#email#", "([:alnum:]|[-~.])+@([:alnum:]|[-~.])+"},
+    {"#url#", "https?://([:alnum:]|[-~./?%_=+])+"}
+  };
+
+  if ((!string) || (!*string))
+    {
+      g_free(string);
+      return g_strdup("");
+    }
+
+  for (i=0; i<2; i++)
+     while ((found = strstr(string, search_keys[i][0])))
+     {
+       gchar *p;
+
+       *found = 0;
+       
+       p = g_strconcat(string, search_keys[i][1],
+		       found+strlen(search_keys[i][0]), NULL);
+       g_free(string);
+       string = p;
+     }
+
+  return string;
+}
+
+static
+int progress_update			(struct fmt_page *pg)
+{
+  gint i = gtk_events_pending();
+  gchar *buffer;
+  GtkProgress *progress;
+
+  if (search_progress)
+    {
+      buffer = g_strdup_printf(_("Scanning %x.%02x"), pg->vtp->pgno,
+			       pg->vtp->subno);
+      gtk_label_set_text(GTK_LABEL(lookup_widget(search_progress, "label97")),
+			 buffer);
+      g_free(buffer);
+      progress =
+	GTK_PROGRESS(lookup_widget(search_progress, "progressbar2"));
+      gtk_progress_set_value(progress, 1-gtk_progress_get_value(progress));
+    }
+  else
+    return FALSE;
+
+  while ((i--) > -1)
+    gtk_main_iteration();
+    
+  if (flag_exit_program)
+    return FALSE;
+  else
+    return TRUE;
+}
+
 static
 void on_ttxview_search_clicked		(GtkButton	*button,
 					 ttxview_data	*data)
@@ -597,7 +765,11 @@ void on_ttxview_search_clicked		(GtkButton	*button,
   GtkToggleButton *checkbutton9 =
     GTK_TOGGLE_BUTTON(lookup_widget(GTK_WIDGET(ure_search),
 				    "checkbutton9"));
+  GtkWidget *search_progress_next;
   gboolean result;
+  gchar *needle;
+  void *search_context;
+  ucs2_t *pattern;
 
   gnome_dialog_set_parent(ure_search, GTK_WINDOW(data->parent));
   gnome_dialog_close_hides(ure_search, TRUE);
@@ -606,17 +778,55 @@ void on_ttxview_search_clicked		(GtkButton	*button,
   gnome_dialog_button_connect(ure_search, 2,
 			      GTK_SIGNAL_FUNC(show_search_help), data);
 
+  gtk_widget_grab_focus(entry1);
+
   gtk_toggle_button_set_active(checkbutton9,
 			       zcg_bool(NULL, "ure_casefold"));
 
   result = gnome_dialog_run_and_close(ure_search);
-
+  needle = gtk_entry_get_text(GTK_ENTRY(entry1));
+  if (needle)
+    needle = g_strdup(needle);
+  
   zcs_bool(gtk_toggle_button_get_active(checkbutton9), "ure_casefold");
   gtk_widget_destroy(GTK_WIDGET(ure_search));
 
-  if (!result)
+  if ((!result) && (needle))
     {
-      g_message("searching...\n");
+      needle = subtitute_search_keywords(needle);
+      pattern = local2ucs2(needle);
+      g_free(needle);
+      if (pattern)
+	{
+	  search_context =
+	    vbi_new_search(zvbi_get_object(),
+			   0x100, ANY_SUB, pattern,
+			   zcg_bool(NULL, "ure_casefold"), progress_update);
+	  free(pattern);
+	  if (search_context)
+	    {
+	      if (search_progress)
+		gtk_widget_destroy(search_progress);
+	      search_progress = create_widget("search_progress");
+	      gtk_window_set_modal(GTK_WINDOW(search_progress), TRUE);
+	      gnome_dialog_set_parent(GNOME_DIALOG(search_progress),
+				      GTK_WINDOW(data->parent));
+	      gtk_signal_connect(GTK_OBJECT(search_progress), "destroy",
+				 GTK_SIGNAL_FUNC(on_search_progress_destroy),
+				 search_context);
+	      search_progress_next = lookup_widget(search_progress,
+						   "button21");
+	      gtk_signal_connect(GTK_OBJECT(search_progress_next), "clicked",
+				 GTK_SIGNAL_FUNC(on_search_progress_next),
+				 search_context);
+	      gtk_object_set_data(GTK_OBJECT(search_progress_next),
+				  "ttxview_data", data);
+	      gtk_widget_set_sensitive(search_progress_next, FALSE);
+	      gtk_widget_show(search_progress);
+
+	      run_next(GTK_BUTTON(search_progress_next), search_context);
+	    }
+	}
     }
 }
 
@@ -638,7 +848,7 @@ void on_ttxview_history_prev_clicked	(GtkButton	*button,
   pc_subpage = (pc_subpage == 0xffff) ? ANY_SUB : pc_subpage;
 
   data->no_history = TRUE;
-  load_page(page, pc_subpage, data);
+  load_page(page, pc_subpage, data, NULL);
   setup_history_gui(data);
 }
 
@@ -659,7 +869,7 @@ void on_ttxview_history_next_clicked	(GtkButton	*button,
   pc_subpage = (pc_subpage == 0xffff) ? ANY_SUB : pc_subpage;
 
   data->no_history = TRUE;
-  load_page(page, pc_subpage, data);
+  load_page(page, pc_subpage, data, NULL);
   setup_history_gui(data);
 }
 
@@ -672,14 +882,15 @@ void on_ttxview_clone_clicked		(GtkButton	*button,
 
   if (data->fmt_page->vtp->pgno)
     load_page(data->fmt_page->vtp->pgno, data->monitored_subpage,
-	      (ttxview_data*)gtk_object_get_user_data(GTK_OBJECT(dolly)));
+	      (ttxview_data*)gtk_object_get_user_data(GTK_OBJECT(dolly)),
+	      NULL);
   else
     load_page(0x100, ANY_SUB,
-	      (ttxview_data*)gtk_object_get_user_data(GTK_OBJECT(dolly)));
+	      (ttxview_data*)gtk_object_get_user_data(GTK_OBJECT(dolly)),
+	      NULL);
   gdk_window_get_size(data->parent->window, &w, &h);
   gtk_widget_realize(dolly);
-  while (gtk_events_pending())
-    gtk_main_iteration();
+  gtk_main_iteration();
   gdk_window_resize(dolly->window, w, h);
   gtk_widget_show(dolly);
 }
@@ -721,7 +932,8 @@ void popup_new_win			(GtkWidget	*widget,
 {
   GtkWidget *dolly = build_ttxview();
   load_page(data->pop_pgno, data->pop_subno,
-	    (ttxview_data*)gtk_object_get_user_data(GTK_OBJECT(dolly)));
+	    (ttxview_data*)gtk_object_get_user_data(GTK_OBJECT(dolly)),
+	    NULL);
   gtk_widget_show(dolly);
 }
 
@@ -1013,7 +1225,7 @@ void on_bookmark_activated		(GtkWidget	*widget,
   struct bookmark *bookmark = (struct bookmark*)
     gtk_object_get_user_data(GTK_OBJECT(widget));
 
-  load_page(bookmark->page, bookmark->subpage, data);
+  load_page(bookmark->page, bookmark->subpage, data, NULL);
 }
 
 static
@@ -1121,14 +1333,14 @@ on_ttxview_button_press			(GtkWidget	*widget,
     {
     case 1:
       if (page)
-	load_page(page, subpage, data);
+	load_page(page, subpage, data, NULL);
       break;
     case 2: /* middle button, open link in new window */
       if (page)
 	{
 	  dolly = build_ttxview();
 	  load_page(page, subpage,
-	    (ttxview_data*)gtk_object_get_user_data(GTK_OBJECT(dolly)));
+	    (ttxview_data*)gtk_object_get_user_data(GTK_OBJECT(dolly)), NULL);
 	  gtk_widget_show(dolly);
 	}
       break;
@@ -1159,7 +1371,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
       if (data->page > 0x899)
 	data->page = 0x899;
       if (data->page >= 0x100)
-	load_page(data->page, ANY_SUB, data);
+	load_page(data->page, ANY_SUB, data, NULL);
       else
 	{
 	  buffer = g_strdup_printf("%d", hex2dec(data->page));
@@ -1175,7 +1387,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
       if (data->page > 0x899)
 	data->page = 0x899;
       if (data->page >= 0x100)
-	load_page(data->page, ANY_SUB, data);
+	load_page(data->page, ANY_SUB, data, NULL);
       else
 	{
 	  buffer = g_strdup_printf("%d", hex2dec(data->page));
@@ -1192,7 +1404,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	data->page += 0x10;
       if (data->page > 0x899)
 	data->page = 0x100;
-      load_page(data->page, ANY_SUB, data);
+      load_page(data->page, ANY_SUB, data, NULL);
       break;
     case GDK_Page_Up:
     case GDK_KP_Page_Up:
@@ -1202,7 +1414,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	data->page = data->page - 0x10;
       if (data->page < 0x100)
 	data->page = 0x899;
-      load_page(data->page, ANY_SUB, data);
+      load_page(data->page, ANY_SUB, data, NULL);
       break;
     case GDK_KP_Up:
     case GDK_Up:
@@ -1212,7 +1424,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	data->page = dec2hex(hex2dec(data->page) - 1);
       if (data->page < 0x100)
 	data->page = 0x899;
-      load_page(data->page, ANY_SUB, data);
+      load_page(data->page, ANY_SUB, data, NULL);
       break;
     case GDK_KP_Down:
     case GDK_Down:
@@ -1222,7 +1434,7 @@ gboolean on_ttxview_key_press		(GtkWidget	*widget,
 	data->page = dec2hex(hex2dec(data->page) + 1);
       if (data->page > 0x899)
 	data->page = 0x100;
-      load_page(data->page, ANY_SUB, data);
+      load_page(data->page, ANY_SUB, data, NULL);
       break;
     case GDK_KP_Left:
     case GDK_Left:
@@ -1326,7 +1538,7 @@ build_ttxview(void)
   gtk_widget_realize(ttxview);
   gdk_window_set_back_pixmap(data->da->window, NULL, FALSE);
 
-  load_page(0x100, ANY_SUB, data);
+  load_page(0x100, ANY_SUB, data, NULL);
 
   return (ttxview);
 }

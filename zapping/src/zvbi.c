@@ -224,7 +224,6 @@ register_ttx_client(void)
   int w, h; /* of the unscaled image */
   GdkPixbuf *simple;
 
-  pthread_mutex_lock(&clients_mutex);
   client = g_malloc(sizeof(struct ttx_client));
   memset(client, 0, sizeof(struct ttx_client));
   client->id = id++;
@@ -252,6 +251,7 @@ register_ttx_client(void)
     }
 
   g_assert(init_buffered_fifo(&client->mqueue, NULL, 16, 0) > 0);
+  pthread_mutex_lock(&clients_mutex);
   ttx_clients = g_list_append(ttx_clients, client);
   pthread_mutex_unlock(&clients_mutex);
   return client->id;
@@ -378,7 +378,7 @@ build_client_page(struct ttx_client *client, struct vt_page *vtp)
   g_assert(client != NULL);
 
   pthread_mutex_lock(&client->mutex);
-  if (vtp)
+  if ((vtp) && (vtp != (struct vt_page*)-1))
     {
       memcpy(&client->vtp, vtp, sizeof(struct vt_page));
       if (!fmt_page(FALSE, &client->fp, vtp, 25))
@@ -387,7 +387,7 @@ build_client_page(struct ttx_client *client, struct vt_page *vtp)
       vbi_draw_page(&client->fp,
 		    gdk_pixbuf_get_pixels(client->unscaled));
     }
-  else
+  else if (vtp != (struct vt_page*)-1)
     {
       memset(&client->vtp, 0, sizeof(struct vt_page));
       memset(&client->fp, 0, sizeof(struct fmt_page));
@@ -461,6 +461,29 @@ monitor_ttx_page(int id/*client*/, int page, int subpage)
 	clear_message_queue(client);
 	send_ttx_message(client, TTX_PAGE_RECEIVED);
       }
+    }
+  pthread_mutex_unlock(&clients_mutex);
+}
+
+void monitor_ttx_this(int id, struct fmt_page *pg)
+{
+  struct ttx_client *client;
+
+  if ((!pg) || (!pg->vtp))
+    return;
+
+  pthread_mutex_lock(&clients_mutex);
+  if ((client = find_client(id)))
+    {
+      client->page = pg->vtp->pgno;
+      client->subpage = pg->vtp->subno;
+      memcpy(&client->vtp, pg->vtp, sizeof(struct vt_page));
+      memcpy(&client->fp, pg, sizeof(struct fmt_page));
+      vbi_draw_page(&client->fp,
+		    gdk_pixbuf_get_pixels(client->unscaled));
+      build_client_page(client, (struct vt_page*)-1);
+      clear_message_queue(client);
+      send_ttx_message(client, TTX_PAGE_RECEIVED);
     }
   pthread_mutex_unlock(&clients_mutex);
 }
