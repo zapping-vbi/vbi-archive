@@ -1,3 +1,11 @@
+19.09.2001	more renderer work <garetxe@users.sf.net>
+
+	* osd.c: Make the renderer honour <i>, <u>, <b> and the colour
+	tags. Cleanup of the code, now the renderer is integrated with the
+	SAX parser and no charset translation is needed.
+	* release a new updated package with the .spec hopefully working
+	for RH (the new OSD code is disabled in here).
+
 18.09.2001	SGML renderer <garetxe@users.sf.net>
 
 	* osd.c: Wrote sgml gdk renderer, sgml tags still not

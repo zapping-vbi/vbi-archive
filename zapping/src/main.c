@@ -207,10 +207,6 @@ gboolean on_zapping_key_press		(GtkWidget	*widget,
 	}
     }
 
-  if (event->keyval == GDK_O ||
-      event->keyval == GDK_o)
-    osd_render_sgml("Iñaki <i>%d</i>, %s", 5, "6g");
-
   return FALSE;
 }
 
@@ -418,7 +414,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.133 2001-09-18 23:06:59 garetxe Exp $",
+	 "$Id: main.c,v 1.134 2001-09-19 19:21:06 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU support... ");
   switch (cpu_detection())

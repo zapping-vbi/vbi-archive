@@ -16,15 +16,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: math.h,v 1.2 2001-09-13 17:27:26 garetxe Exp $ */
+/* $Id: math.h,v 1.3 2001-09-19 19:21:05 garetxe Exp $ */
 
 #ifndef MATH_H
 #define MATH_H
 
 #include <math.h>
 
+#ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+#ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
 
 #define swap(a, b)						\
 do {								\

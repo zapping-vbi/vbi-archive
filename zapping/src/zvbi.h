@@ -200,13 +200,4 @@ zvbi_name_unknown(void);
 void
 zvbi_channel_switched(void);
 
-/**
- * Given the input string (valid utf8, xml), produces a formatted
- * attr_char array, and stores in len the number of characters.
- * returns a malloc'ed array if it succeeds, or NULL on error.
- */
-attr_char *
-sgml2attr_char		(const char		*input,
-			 int			*len);
-
 #endif /* zvbi.h */

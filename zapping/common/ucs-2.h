@@ -55,6 +55,11 @@ local2utf8 (const char *string);
 void*
 utf82ucs2 (const char *string);
 
+/**
+ * Returns the name of the current locale, shouldn't be freed.
+ */
+const char *get_locale_charset(void);
+
 /*
  * Startup/shutdown functions. Must be called before using any other
  * routine in this file, or in URE.

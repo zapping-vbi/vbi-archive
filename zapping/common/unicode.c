@@ -144,9 +144,6 @@ ucs22code (const void *string, const char *code)
   return convert(string, len, ucs2_label, code);
 }
 
-/* An alternative to nl_langinfo, where not present */
-static const char *get_locale_charset(void);
-
 void*
 local2ucs2 (const void *string)
 {
@@ -283,7 +280,7 @@ shutdown_ucs2(void)
 static const char* locale_charset = NULL;
 #define streq(s1,s2) (!strcmp(s1,s2))
 
-static const char* get_locale_charset (void)
+const char* get_locale_charset (void)
 {
   // When you call setlocale(LC_CTYPE,""), is examines the environment
   // variables:
