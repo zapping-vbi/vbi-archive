@@ -16,13 +16,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: threads.h,v 1.2 2000-12-15 23:26:46 garetxe Exp $ */
+/* $Id: threads.h,v 1.3 2001-06-30 10:33:46 mschimek Exp $ */
 
 #ifndef THREADS_H
 #define THREADS_H
 
 #undef _GNU_SOURCE
 #define _GNU_SOURCE 1
+/* XXX for rwlocks, but the parent file
+   may have included pthread.h already */
 
 #include <pthread.h>
 

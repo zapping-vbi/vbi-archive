@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 1999-2000 Michael H. Schimek
+ *  Copyright (C) 1999-2001 Michael H. Schimek
  *
  *  Modified by Iñaki G.E.
  *
@@ -18,15 +18,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.12 2001-05-26 22:45:18 garetxe Exp $ */
+/* $Id: fifo.h,v 1.13 2001-06-30 10:33:46 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
 
-#include <stdlib.h>
 #include "list.h"
-#include "types.h"
 #include "threads.h"
+
+#include <stdlib.h>
 
 /*
   TODO:
@@ -382,5 +382,348 @@ recv_empty_buffer(fifo *f)
 
 	return b;
 }
+
+/*
+ *  NEW STUFF
+ */
+
+typedef struct fifo2 fifo2;
+typedef struct buffer2 buffer2;
+typedef struct consumer consumer;
+typedef struct producer producer;
+
+struct buffer2 {
+	node2 			node;		/* fifo->full/empty */
+	fifo2 *			fifo;
+
+	/*
+	 *  These fields are used for the "virtual full queue".
+	 *
+	 *  consumer->next points to the next buffer in fifo->full
+	 *  to be dequeued, NULL if all buffers have been consumed.
+	 *  refcount counts the number of these references.
+	 *
+	 *  consumers is their number at send_full time, always > 0
+	 *  because without consumers the buffer is instantly
+	 *  send_emptied. We can't use fifo->consumers.members
+	 *  because new consumers shall not dequeue old buffers.
+	 *
+	 *  dequeued and enqueued count the wait_full and send_empty
+	 *  calls, respectively. A buffer is actually send_emptied
+	 *  when enqueued >= consumers, and can be "recycled" when
+	 *  dequeued == 0. enqueued > dequeued is already implied by
+	 *  enqueued > consumers and no steady state.
+	 *
+	 *  For empty buffers refcount is n/a, consumers always 0 and
+	 *  dequeued counts the wait_empty calls. enqueued is n/a
+	 *  because send_full transfers the buffer immediately to
+	 *  the full queue.
+	 *
+	 *  See rem_buffer for scheduled removal.
+	 */
+	int			refcount;	/* consumer->next */
+	int			consumers;
+
+	int			dequeued;
+	int			enqueued;
+
+	bool			remove;
+
+	/* Consumer read only, see send_full_buffer() */
+
+	int			type;		/* application specific */
+	int			offset;
+	double			time;
+
+	unsigned char *		data;		/* mandatory */
+	ssize_t			used;
+
+	int			error;
+	char *			errstr;
+
+	/* Owner private */
+
+	node2			added;		/* fifo->buffers */
+
+	unsigned char *		allocated;
+	ssize_t			size;
+
+	void			(* destroy)(buffer2 *);
+
+	void *			user_data;
+};
+
+struct fifo2 {
+	node2			node;		/* owner private */
+
+	char			name[64];	/* for debug messages */
+
+	mucon			pro, con;
+
+	list2			full;		/* FIFO */
+	list2			empty;		/* LIFO */
+
+	list2			producers;
+	list2			consumers;
+
+	int			p_reentry;
+	int			c_reentry;
+
+	/* Owner private */
+
+	mucon *			producer;	/* -> pro */
+	mucon *			consumer;	/* -> con */
+
+	list2			buffers;	/* add/rem_buffer */
+
+	void			(* wait_empty)(producer *);
+	void			(* send_full)(producer *, buffer2 *);
+
+	void			(* wait_full)(consumer *);
+	void			(* send_empty)(consumer *, buffer2 *);
+
+	bool			(* start)(fifo2 *);
+	void			(* stop)(fifo2 *);
+
+	void			(* destroy)(fifo2 *);
+
+	void *			user_data;
+};
+
+struct producer {
+	node2			node;		/* fifo->producers */
+	fifo2 *			fifo;
+
+	int			dequeued;	/* bookkeeping */
+};
+
+struct consumer {
+	node2			node;		/* fifo->consumers */
+	fifo2 *			fifo;
+
+	buffer2 *		next;		/* virtual pointer */
+	int			dequeued;	/* bookkeeping */
+};
+
+/**
+ * destroy_buffer:
+ * @b: buffer2 *
+ * 
+ * Free all resources associated with the buffer. This is a
+ * low-level function, don't call it for buffers which have
+ * been added to a fifo. No op when @b is NULL.
+ **/
+static inline void
+destroy_buffer(buffer2 *b)
+{
+	if (b && b->destroy)
+		b->destroy(b);
+}
+
+extern buffer2 *		init_buffer2(buffer2 *, ssize_t);
+extern buffer2 *		alloc_buffer(ssize_t);
+
+/**
+ * destroy_fifo:
+ * @f: fifo2 *
+ * 
+ * Free all resources associated with the fifo, including all
+ * buffers. Make sure no threads are using the fifo and no
+ * producers or consumers can be added.
+ *
+ * Removing all producers and consumers before calling this
+ * function is not necessary, for example when a consumer
+ * aborted before detaching himself from the fifo.
+ *
+ * No op when @f is NULL.
+ **/
+static inline void
+destroy_fifo(fifo2 *f)
+{
+	if (f && f->destroy)
+		f->destroy(f);
+}
+
+/* These are just larger than reasonable for inlining */
+
+extern buffer2 *		recv_full_buffer2(consumer *c);
+extern buffer2 *		wait_full_buffer2(consumer *c);
+extern void			unget_full_buffer2(consumer *c, buffer2 *b);
+
+/**
+ * send_empty_buffer:
+ * @c: consumer *
+ * @b: buffer *
+ * 
+ * Consumers call this function when done with a previously dequeued
+ * full buffer. Dereferencing the buffer pointer after sending the
+ * buffer is not permitted.
+ **/
+static inline void
+send_empty_buffer2(consumer *c, buffer2 *b)
+{
+	/* Migration prohibited */
+	assert(c->fifo == b->fifo);
+
+	c->dequeued--;
+
+	c->fifo->send_empty(c, b);
+}
+
+/**
+ * recv_empty_buffer:
+ * @p: producer *
+ * 
+ * Dequeues an empty buffer, no particular order, from the producer's fifo's
+ * empty queue. Remind callback (unbuffered) fifos do not fill automatically
+ * but only when the producer calls wait_empty_buffer().
+ * 
+ * Send filled buffers with send_full_buffer(). You can dequeue more buffers
+ * before sending and buffers need not be sent in dequeuing order.
+ *
+ * None of the fifo functions depend on the identity of the calling thread
+ * (thread_t), however we assume the producer object is not shared. 
+ *
+ * Return value:
+ * Buffer pointer, or NULL if the empty queue is empty.
+ **/
+static inline buffer2 *
+recv_empty_buffer2(producer *p)
+{
+	fifo2 *f = p->fifo;
+	buffer2 *b;
+
+	pthread_mutex_lock(&f->producer->mutex);
+
+	b = PARENT(rem_head2(&f->empty), buffer2, node);
+
+	pthread_mutex_unlock(&f->producer->mutex);
+
+	b->dequeued = 1;
+	p->dequeued++;
+
+	return b;
+}
+
+/**
+ * wait_empty_buffer:
+ * @c: consumer *
+ * 
+ * Suspends execution of the calling thread until an empty buffer becomes
+ * available. Otherwise identical to recv_empty_buffer.
+ *
+ * Return value:
+ * Buffer pointer, never NULL.
+ **/
+static inline buffer2 *
+wait_empty_buffer2(producer *p)
+{
+	fifo2 *f = p->fifo;
+	buffer2 *b;
+
+	pthread_mutex_lock(&f->producer->mutex);
+
+	while (!(b = PARENT(rem_head2(&f->empty), buffer2, node))) {
+		if (f->p_reentry++)
+			pthread_cond_wait(&f->producer->cond, &f->producer->mutex);
+		else
+			f->wait_empty(p);
+		f->p_reentry--;
+	}
+
+	pthread_mutex_unlock(&f->producer->mutex);
+
+	b->dequeued = 1;
+	p->dequeued++;
+
+	return b;
+}
+
+/**
+ * unget_empty_buffer:
+ * @p: producer *
+ * @b: buffer *
+ * 
+ * Put buffer @b, dequeued with wait_empty_buffer() or recv_empty_buffer()
+ * and not yet enqueued with send_full_buffer(), back on the empty queue
+ * of its fifo, to be dequeued again later. You can unget more than one
+ * buffer, in any order, but not the same buffer twice.
+ *
+ * It may happen another producer grabs the ungot buffer, so a subsequent
+ * recv_empty_buffer() will not necessarily succeed.
+ **/
+static inline void
+unget_empty_buffer2(producer *p, buffer2 *b)
+{
+	fifo2 *f = p->fifo;
+
+	/* Migration prohibited, don't use this to add buffers to the fifo */
+	assert(p->fifo == b->fifo && b->dequeued == 1);
+
+	p->dequeued--;
+	b->dequeued = 0;
+
+	pthread_mutex_lock(&f->producer->mutex);
+
+	add_tail2(&f->empty, &b->node);
+
+	pthread_mutex_unlock(&f->producer->mutex);
+}
+
+/**
+ * send_full_buffer:
+ * @p: producer *
+ * @b: buffer *
+ * 
+ * Producers call this function when a previously dequeued empty
+ * buffer has been filled and is ready for consumption. Dereferencing
+ * the buffer pointer after sending the buffer is not permitted.
+ * 
+ * These fields must be valid:
+ * b->data    Pointer to the buffer payload.
+ * b->used    Bytes of buffer payload. Zero indicates the end of a
+ *            stream and negative values indicate a non-recoverable
+ *            error. On their first encounter of b->used <= zero
+ *            consumers are supposed to return the buffer
+ *            with send_empty_buffer() and terminate. 
+ * b->errno   Copy of errno if appropriate, zero otherwise.
+ * b->errstr  Pointer to a localized error message for display
+ *            to the user if appropriate, NULL otherwise. Shall not
+ *            include strerror(errno), but rather hint the attempted
+ *            action (e.g. "tried to read foo", errno = [no such file]).
+ *
+ * These fields have application specific semantics:
+ * b->type    e.g. MPEG picture type
+ * b->offset  e.g. IPB picture reorder offset
+ * b->time    Seconds elapsed since some arbitrary reference point,
+ *            usually epoch (gettimeofday), for example the capture
+ *            instant of a picture. b->time may not always increase,
+ *            but consumers are guaranteed to receive buffers in
+ *            sent order.
+ **/
+static inline void
+send_full_buffer2(producer *p, buffer2 *b)
+{
+	/* Migration prohibited, don't use this to add buffers to the fifo */
+	assert(p->fifo == b->fifo && b->dequeued == 1);
+
+	b->refcount = 0;
+
+	b->dequeued = 0;
+	b->enqueued = 0;
+
+	p->dequeued--;
+
+	p->fifo->send_full(p, b);
+}
+
+extern void			rem_buffer(buffer2 *b);
+extern bool			add_buffer(fifo2 *f, buffer2 *b);
+extern int			init_buffered_fifo2(fifo2 *f, char *name, int num_buffers, ssize_t buffer_size);
+extern int			init_callback_fifo2(fifo2 *f, char *name, void (* custom_wait_empty)(producer *), void (* custom_send_full)(producer *, buffer2 *), void (* custom_wait_full)(consumer *), void (* custom_send_empty)(consumer *, buffer2 *), int num_buffers, ssize_t buffer_size);
+extern void			rem_producer(producer *p);
+extern producer *		add_producer(fifo2 *f, producer *p);
+extern void			rem_consumer(consumer *c);
+extern consumer	*		add_consumer(fifo2 *f, consumer *c);
 
 #endif /* FIFO_H */

@@ -1,71 +1,76 @@
 /*
  *  Fifo test
  *
- *  gcc -O0 -g fifotest.c -ofifotest -lpthread
+ *  gcc -g fifotest.c -ofifotest -lpthread
  *
  */
 
-/* $Id: fifotest.c,v 1.1 2001-05-29 08:10:51 mschimek Exp $ */
+/* $Id: fifotest.c,v 1.2 2001-06-30 10:33:46 mschimek Exp $ */
 
 #define _GNU_SOURCE 1
-#undef HAVE_MEMALIGN
+#define _REENTRANT 1
+#define HAVE_MEMALIGN 1
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+
+#include "list.h"
 #include "fifo.c"
-#include "alloc.c"
 
 #define SEC 1000000
 
-fifo test_fifo;
-pthread_t id[10];
-coninfo *ci[10];
+static fifo2 test_fifo;
+static pthread_t id[10];
 
-void
-unfifo(void)
+static int timestamp = 0;
+static int eof_forever = 0;
+static int eof_ack = 0;
+
+static void
+kill_fifo(void)
 {
-//	uninit_fifo(&test_fifo); /* XXX hangs */
-
+	destroy_fifo(&test_fifo);
 	memset(&test_fifo, 0, sizeof test_fifo);	
 }
 
-void
+static void
 cancel_join(pthread_t id)
 {
 	pthread_cancel(id);
 	pthread_join(id, NULL);
 }
 
-int timestamp = 0;
-
 /*
  *  Producing thread
  */
-void *
+static void *
 prod1(void *p)
 {
+	producer prod;
 	int frame = 0, delay = (int) p;
 	struct timeval tv;
 	double start_time, time;
-	buffer *b;
+	buffer2 *b;
 	int i;
 
 	printf("prod1 started, sending 10 messages, creation delay %d ms\n", delay / 1000);
+
+	add_producer(&test_fifo, &prod);
 
 	for (i = 0; i < 10; i++) {
 		gettimeofday(&tv, NULL);
 		start_time = tv.tv_sec * (double) SEC + tv.tv_usec
 			- (++frame) * delay;
 
-		b = wait_empty_buffer(&test_fifo);
+		b = wait_empty_buffer2(&prod);
 
 		gettimeofday(&tv, NULL);
 		time = tv.tv_sec * (double) SEC + tv.tv_usec;
 		frame = (time - start_time) / delay + 0.5;
 
 		if (timestamp)
-			b->used = snprintf(b->data, 255, "Message %d, created at %02d:%02d:%02d.%03d UTC",
+			b->used = snprintf(b->data, 255, "Message %d, created at %02ld:%02ld:%02ld.%03ld UTC",
 				i + 1, (tv.tv_sec / 3600) % 24, (tv.tv_sec / 60) % 60,
 				tv.tv_sec % 60,	tv.tv_usec / (SEC / 1000));
 		else
@@ -76,7 +81,7 @@ prod1(void *p)
 
 		printf("prod1 sends: <%s>\n", b->data);
 
-		send_full_buffer(&test_fifo, b);
+		send_full_buffer2(&prod, b);
 	}
 
 	for (;;) {
@@ -85,15 +90,109 @@ prod1(void *p)
 		 *  main() can't/won't cancel before the consumer received EOF,
 		 *  so we don't have to explicitely disable/enable cancelation
 		 *  in the producing thread.
+		 *
+		 *  Attention the producer will spinloop without consumers,
+		 *  an endless eof loop is no longer recommended.
 		 */
-		b = wait_empty_buffer(&test_fifo);
+		b = wait_empty_buffer2(&prod);
 
 		b->used = 0; /* EOF */
 
 		printf("prod1 sends EOF\n");
 
-		send_full_buffer(&test_fifo, b);
+		if (!eof_forever) {
+			send_full_buffer2(&prod, b);
+
+			/*
+			 *  This wasn't really planned and may not actually
+			 *  be useful, it just happens to work.
+			 *
+			 *  NB fresh buffers (add_buffer) have
+			 *  b->used == -1, EINVAL and consumers aren't
+			 *  allowed to change b->used.
+			 */
+			while (eof_ack) {
+				int used;
+
+				printf("prod1 waits for EOF ack...\n");
+
+				b = wait_empty_buffer2(&prod);
+				used = b->used;
+				b->used = 0; /* EOF */
+	    			send_full_buffer2(&prod, b);
+
+				if (used == 0) {
+					printf("prod1: got it\n");
+					break;
+				} else
+					printf("prod1: none\n");
+			}
+
+			break;
+		}
+
+		send_full_buffer2(&prod, b);
 	}
+
+	/* We may never reach this, but it doesn't matter */
+
+	printf("prod1 returns\n");
+
+	rem_producer(&prod);
+
+	return NULL;
+}
+
+/*
+ *  Producing thread 2, delayed
+ */
+static void *
+prod2(void *p)
+{
+	producer prod;
+	int frame = 0, delay = (int) p;
+	struct timeval tv;
+	double start_time, time;
+	buffer2 *b;
+	int i;
+
+	usleep(delay * 3);
+
+	printf("prod2 started, sending 5 messages, creation delay %d ms\n", delay / 1000);
+
+	add_producer(&test_fifo, &prod);
+
+	for (i = 0; i < 5; i++) {
+		gettimeofday(&tv, NULL);
+		start_time = tv.tv_sec * (double) SEC + tv.tv_usec
+			- (++frame) * delay;
+
+		b = wait_empty_buffer2(&prod);
+
+		gettimeofday(&tv, NULL);
+		time = tv.tv_sec * (double) SEC + tv.tv_usec;
+		frame = (time - start_time) / delay + 0.5;
+
+		if (timestamp)
+			b->used = snprintf(b->data, 255, "Message %d, created at %02ld:%02ld:%02ld.%03ld UTC",
+				i + 1, (tv.tv_sec / 3600) % 24, (tv.tv_sec / 60) % 60,
+				tv.tv_sec % 60,	tv.tv_usec / (SEC / 1000));
+		else
+			b->used = snprintf(b->data, 255, "Message %d, frame %d",
+				i + 1, frame);
+
+		usleep(delay);
+
+		printf("prod2 sends: <%s>\n", b->data);
+
+		send_full_buffer2(&prod, b);
+	}
+
+	printf("prod2 returns w/o EOF\n");
+
+	assert (!eof_ack);
+
+	rem_producer(&prod);
 
 	return NULL;
 }
@@ -101,28 +200,36 @@ prod1(void *p)
 /*
  *  Consuming thread / subroutine 1
  */
-void *
+static void *
 cons1(void *p)
 {
+	consumer cons;
 	int delay = (int) p;
-	buffer *b;
+	buffer2 *b;
 
 	printf("cons1 started, processing delay %d ms\n", delay / 1000);
 
-	for (;;) {
-		b = wait_full_buffer(&test_fifo);
+	add_consumer(&test_fifo, &cons);
 
-		if (!b->used)
+	for (;;) {
+		b = wait_full_buffer2(&cons);
+
+		if (!b->used) {
+			/* Tidy and acknowledge the EOF. */
+			send_empty_buffer2(&cons, b);
 			break;
+		}
 
 		printf("cons1 received: <%s>\n", b->data);
 
 		usleep(delay);
 
-		send_empty_buffer(&test_fifo, b);
+		send_empty_buffer2(&cons, b);
 	}
 
 	printf("cons1 received EOF, returns\n");
+
+	rem_consumer(&cons);
 
 	return 0;
 }
@@ -139,13 +246,16 @@ char *delay_pattern;
 void *
 cons1unget(void *p)
 {
+	consumer cons;
 	int delay = (int) p;
-	buffer *b1, *b2, *b3, *b4;
+	buffer2 *b1, *b2, *b3, *b4;
 
 	printf("cons1 started\n");
 
+	add_consumer(&test_fifo, &cons);
+
 	for (;;) {
-		b1 = wait_full_buffer(&test_fifo);
+		b1 = wait_full_buffer2(&cons);
 
 		if (!b1->used)
 			break;
@@ -155,11 +265,12 @@ cons1unget(void *p)
 
 		usleep(delay * delay_pattern[0] / 2);
 
-		b2 = wait_full_buffer(&test_fifo);
+		b2 = wait_full_buffer2(&cons);
 
 		if (!b2->used) {
-			printf("cons1 returns #1 because EOF follows\n", b1->data);
-			send_empty_buffer(&test_fifo, b1);
+			printf("cons1 returns #1 because EOF follows\n");
+			send_empty_buffer2(&cons, b1);
+			send_empty_buffer2(&cons, b2);
 			break;
 		}
 
@@ -170,13 +281,14 @@ cons1unget(void *p)
 
 		printf("cons1 returns #1 out of order\n");
 
-		send_empty_buffer(&test_fifo, b1);
+		send_empty_buffer2(&cons, b1);
 
-		b3 = wait_full_buffer(&test_fifo);
+		b3 = wait_full_buffer2(&cons);
 
 		if (!b3->used) {
-			printf("cons1 returns #2 because EOF follows\n", b1->data);
-			send_empty_buffer(&test_fifo, b2);
+			printf("cons1 returns #2 because EOF follows\n");
+			send_empty_buffer2(&cons, b2);
+			send_empty_buffer2(&cons, b3);
 			break;
 		}
 
@@ -190,15 +302,16 @@ cons1unget(void *p)
 
 		/* must be in reverse order (restriction for mc-fifos) */
 
-		unget_full_buffer(&test_fifo, b3);
-		unget_full_buffer(&test_fifo, b2);
+		unget_full_buffer2(&cons, b3);
+		unget_full_buffer2(&cons, b2);
 
 		usleep(delay * delay_pattern[3] / 2);
 
-		b4 = wait_full_buffer(&test_fifo);
+		b4 = wait_full_buffer2(&cons);
 
 		if (!b4->used) {
 			printf("cons1 can't re-obtain #2, got EOF (maybe ok)\n");
+			send_empty_buffer2(&cons, b4);
 			break;
 		}
 
@@ -207,10 +320,16 @@ cons1unget(void *p)
 
 		usleep(delay * delay_pattern[4] / 2);
 
-		send_empty_buffer(&test_fifo, b4);
+		send_empty_buffer2(&cons, b4);
 
 		/* b5 == b1 */
 	}
+
+	/*
+	 *  This isn't strictly necessary, but we behave and
+	 *  it also checks wait/send paired properly.
+	 */
+	rem_consumer(&cons);
 
 	printf("cons1 received EOF, returns\n");
 
@@ -223,24 +342,27 @@ cons1unget(void *p)
 void *
 cons1of2(void *p)
 {
+	consumer cons;
 	struct timeval tv;
 	int delay = (int) p;
-	buffer *b;
+	buffer2 *b;
 
 	printf("cons1/2 started, processing delay %d ms\n", delay / 1000);
 
-	ci[0] = create_consumer(&test_fifo);
+	add_consumer(&test_fifo, &cons);
 
 	for (;;) {
-		b = wait_full_buffer(&test_fifo);
+		b = wait_full_buffer2(&cons);
 
 		gettimeofday(&tv, NULL);
 
-		if (!b->used)
+		if (!b->used) {
+			send_empty_buffer2(&cons, b);
 			break;
+		}
 
 		if (timestamp)
-			printf("cons1/2 received: <%s> at %02d:%02d:%02d.%03d UTC\n",
+			printf("cons1/2 received: <%s> at %02ld:%02ld:%02ld.%03ld UTC\n",
 				b->data, (tv.tv_sec / 3600) % 24, (tv.tv_sec / 60) % 60,
 				tv.tv_sec % 60,	tv.tv_usec / (SEC / 1000));
 		else
@@ -248,10 +370,12 @@ cons1of2(void *p)
 
 		usleep(delay);
 
-		send_empty_buffer(&test_fifo, b);
+		send_empty_buffer2(&cons, b);
 	}
 
 	printf("cons1/2 received EOF, returns\n");
+
+	rem_consumer(&cons);
 
 	return 0;
 }
@@ -262,24 +386,27 @@ cons1of2(void *p)
 void *
 cons2of2(void *p)
 {
+	consumer cons;
 	struct timeval tv;
 	int delay = (int) p;
-	buffer *b;
+	buffer2 *b;
 
 	printf("cons2/2 started, processing delay %d ms\n", delay / 1000);
 
-	ci[1] = create_consumer(&test_fifo);
+	add_consumer(&test_fifo, &cons);
 
 	for (;;) {
-		b = wait_full_buffer(&test_fifo);
+		b = wait_full_buffer2(&cons);
 
 		gettimeofday(&tv, NULL);
 
-		if (!b->used)
+		if (!b->used) {
+			send_empty_buffer2(&cons, b);
 			break;
+		}
 
 		if (timestamp)
-			printf("cons2/2 received: <%s> at %02d:%02d:%02d.%03d UTC\n",
+			printf("cons2/2 received: <%s> at %02ld:%02ld:%02ld.%03ld UTC\n",
 				b->data, (tv.tv_sec / 3600) % 24, (tv.tv_sec / 60) % 60,
 				tv.tv_sec % 60,	tv.tv_usec / (SEC / 1000));
 		else
@@ -287,10 +414,12 @@ cons2of2(void *p)
 
 		usleep(delay);
 
-		send_empty_buffer(&test_fifo, b);
+		send_empty_buffer2(&cons, b);
 	}
 
 	printf("cons2/2 received EOF, returns\n");
+
+	rem_consumer(&cons);
 
 	return 0;
 }
@@ -301,24 +430,27 @@ cons2of2(void *p)
 void *
 cons3of2(void *p)
 {
+	consumer cons;
 	struct timeval tv;
 	int delay = (int) p;
-	buffer *b;
+	buffer2 *b;
 
 	printf("cons3/2 started, processing delay %d ms\n", delay / 1000);
 
-	ci[0] = create_consumer(&test_fifo);
+	add_consumer(&test_fifo, &cons);
 
 	for (;;) {
-		b = wait_full_buffer(&test_fifo);
+		b = wait_full_buffer2(&cons);
 
 		gettimeofday(&tv, NULL);
 
-		if (!b->used)
+		if (!b->used) {
+			send_empty_buffer2(&cons, b);
 			break;
+		}
 
 		if (timestamp)
-			printf("cons3/2 received: <%s> at %02d:%02d:%02d.%03d UTC\n",
+			printf("cons3/2 received: <%s> at %02ld:%02ld:%02ld.%03ld UTC\n",
 				b->data, (tv.tv_sec / 3600) % 24, (tv.tv_sec / 60) % 60,
 				tv.tv_sec % 60,	tv.tv_usec / (SEC / 1000));
 		else
@@ -326,10 +458,12 @@ cons3of2(void *p)
 
 		usleep(delay);
 
-		send_empty_buffer(&test_fifo, b);
+		send_empty_buffer2(&cons, b);
 	}
 
 	printf("cons3/2 received EOF, returns\n");
+
+	rem_consumer(&cons);
 
 	return 0;
 }
@@ -340,8 +474,9 @@ cons3of2(void *p)
 void *
 cons2later(void *p)
 {
+	consumer cons;
 	int delay = (int) p;
-	buffer *b;
+	buffer2 *b;
 
 	printf("cons2later started, startup delay %d ms, "
 		"processing delay 100 ms\n", delay / 1000);
@@ -350,22 +485,26 @@ cons2later(void *p)
 
 	printf("cons2/2 creating consumer\n");
 
-	ci[1] = create_consumer(&test_fifo);
+	add_consumer(&test_fifo, &cons);
 
 	for (;;) {
-		b = wait_full_buffer(&test_fifo);
+		b = wait_full_buffer2(&cons);
 
-		if (!b->used)
+		if (!b->used) {
+			send_empty_buffer2(&cons, b);
 			break;
+		}
 
 		printf("cons2/2 received: <%s>\n", b->data);
 
 		usleep(100 * 1000);
 
-		send_empty_buffer(&test_fifo, b);
+		send_empty_buffer2(&cons, b);
 	}
 
 	printf("cons2/2 received EOF, returns\n");
+
+	rem_consumer(&cons);
 
 	return 0;
 }
@@ -376,31 +515,36 @@ cons2later(void *p)
 void *
 cons2early(void *p)
 {
+	consumer cons;
 	int delay = (int) p;
-	buffer *b;
+	buffer2 *b;
 	int i;
 
 	printf("cons2/2 started, processing delay %d ms\n", delay / 1000);
 
-	ci[1] = create_consumer(&test_fifo);
+	add_consumer(&test_fifo, &cons);
 
 	for (i = 0; i < 5; i++) {
-		b = wait_full_buffer(&test_fifo);
+		b = wait_full_buffer2(&cons);
 
-		if (!b->used)
+		if (!b->used) {
+			send_empty_buffer2(&cons, b);
 			break;
+		}
 
 		printf("cons2/2 received: <%s>\n", b->data);
 
 		usleep(delay);
 
-		send_empty_buffer(&test_fifo, b);
+		send_empty_buffer2(&cons, b);
 	}
 
 	if (i >= 5)
 		printf("cons2/2 terminates early\n");
 	else
 		printf("cons2/2 received EOF, returns\n");
+
+	rem_consumer(&cons);
 
 	return 0;
 }
@@ -413,29 +557,33 @@ cons2early(void *p)
 void *
 cons2unget(void *p)
 {
+	consumer cons;
 	int delay = (int) p;
-	buffer *b1, *b2, *b3, *b4;
+	buffer2 *b1, *b2, *b3, *b4;
 
 	printf("cons2/2 started\n");
 
-	ci[1] = create_consumer(&test_fifo);
+	add_consumer(&test_fifo, &cons);
 
 	for (;;) {
-		b1 = wait_full_buffer(&test_fifo);
+		b1 = wait_full_buffer2(&cons);
 
-		if (!b1->used)
+		if (!b1->used) {
+			send_empty_buffer2(&cons, b1);
 			break;
+		}
 
 		printf("cons2/2 received #1: <%s>, delays %d ms\n",
 			b1->data, delay * delay_pattern[0] / 2000);
 
 		usleep(delay * delay_pattern[0] / 2);
 
-		b2 = wait_full_buffer(&test_fifo);
+		b2 = wait_full_buffer2(&cons);
 
 		if (!b2->used) {
-			printf("cons2/2 returns #1 because EOF follows\n", b1->data);
-			send_empty_buffer(&test_fifo, b1);
+			printf("cons2/2 returns #1 because EOF follows\n");
+			send_empty_buffer2(&cons, b1);
+			send_empty_buffer2(&cons, b2);
 			break;
 		}
 
@@ -446,13 +594,14 @@ cons2unget(void *p)
 
 		printf("cons2/2 returns #1 out of order\n");
 
-		send_empty_buffer(&test_fifo, b1);
+		send_empty_buffer2(&cons, b1);
 
-		b3 = wait_full_buffer(&test_fifo);
+		b3 = wait_full_buffer2(&cons);
 
 		if (!b3->used) {
-			printf("cons2/2 returns #2 because EOF follows\n", b1->data);
-			send_empty_buffer(&test_fifo, b2);
+			printf("cons2/2 returns #2 because EOF follows\n");
+			send_empty_buffer2(&cons, b2);
+			send_empty_buffer2(&cons, b3);
 			break;
 		}
 
@@ -466,15 +615,16 @@ cons2unget(void *p)
 
 		/* must be in reverse order (restriction for mc-fifos) */
 
-		unget_full_buffer(&test_fifo, b3);
-		unget_full_buffer(&test_fifo, b2);
+		unget_full_buffer2(&cons, b3);
+		unget_full_buffer2(&cons, b2);
 
 		usleep(delay * delay_pattern[3] / 2);
 
-		b4 = wait_full_buffer(&test_fifo);
+		b4 = wait_full_buffer2(&cons);
 
 		if (!b4->used) {
 			printf("cons2/2 can't re-obtain #2, got EOF (maybe ok)\n");
+			send_empty_buffer2(&cons, b4);
 			break;
 		}
 
@@ -483,34 +633,35 @@ cons2unget(void *p)
 
 		usleep(delay * delay_pattern[4] / 2);
 
-		send_empty_buffer(&test_fifo, b4);
+		send_empty_buffer2(&cons, b4);
 
 		/* b5 == b1 */
 	}
 
 	printf("cons2/2 received EOF, returns\n");
 
+	rem_consumer(&cons);
+
 	return 0;
 }
-
 
 int
 main(int ac, char **av)
 {
-	int i;
-
 	printf("test: two threads (mp1e style)\n");
 
-	init_buffered_fifo(&test_fifo, "test", 5, 256);
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
 	pthread_create(&id[0], NULL, prod1, (void *)(SEC / 10));
 	cons1((void *)(SEC / 10));
 	cancel_join(id[0]);
 	printf("prod1 joined, test finished\n\n");
-	unfifo();
+	kill_fifo();
 
-	printf("test: supervising a producer and consumer thread\n");
+	printf("test: supervising a producer and consumer thread,\n"
+	       "endless eof, will cancel the producer\n");
 
-	init_buffered_fifo(&test_fifo, "test", 5, 256);
+	eof_forever = 1;
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
 	pthread_create(&id[1], NULL, cons1, (void *)(SEC / 10));
 	pthread_create(&id[0], NULL, prod1, (void *)(SEC / 10));
 	printf("main thread waiting for cons1\n");
@@ -518,181 +669,216 @@ main(int ac, char **av)
 	printf("cons1 joined\n");
 	cancel_join(id[0]);
 	printf("prod1 joined, test finished\n\n");
-	unfifo();
+	kill_fifo();
+	eof_forever = 0;
+
+	printf("test: supervising a producer and consumer thread\n");
+
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
+	pthread_create(&id[1], NULL, cons1, (void *)(SEC / 10));
+	pthread_create(&id[0], NULL, prod1, (void *)(SEC / 10));
+	/*
+	 *  Here the order is irrelevant because we don't cancel,
+	 *  the threads exit when done.
+	 */
+	printf("main thread waiting for cons1\n");
+	pthread_join(id[1], NULL); /* when finished */
+	printf("cons1 joined, waiting for prod1\n");
+	pthread_join(id[0], NULL); /* when finished */
+	printf("prod1 joined, test finished\n\n");
+	kill_fifo();
+
+	printf("test: producer waits for EOF ack\n");
+
+	eof_ack = 1;
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
+	pthread_create(&id[1], NULL, cons1, (void *)(SEC / 10));
+	pthread_create(&id[0], NULL, prod1, (void *)(SEC / 10));
+	printf("main thread waiting for cons1\n");
+	pthread_join(id[1], NULL); /* when finished */
+	printf("cons1 joined, waiting for prod1\n");
+	pthread_join(id[0], NULL); /* when finished */
+	printf("prod1 joined, test finished\n\n");
+	kill_fifo();
+	eof_ack = 0;
 
 	printf("test: consumer overlaps wait/send"
-		" and ungets two buffers in a row, delay 2-2-0-0-2\n", i);
+		" and ungets two buffers in a row, delay 2-2-0-0-2\n");
 
 	delay_pattern = "\2\2\0\0\2";
-	init_buffered_fifo(&test_fifo, "test", 5, 256);
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
 	pthread_create(&id[1], NULL, cons1unget, (void *)(SEC / 10));
 	pthread_create(&id[0], NULL, prod1, (void *)(SEC / 10));
 	printf("main thread waiting for cons1\n");
 	pthread_join(id[1], NULL); /* when finished */
-	printf("cons1 joined\n");
-	cancel_join(id[0]);
+	printf("cons1 joined, waiting for prod1\n");
+	pthread_join(id[0], NULL); /* when finished */
 	printf("prod1 joined, test finished\n\n");
-	unfifo();
+	kill_fifo();
 
 	printf("test: consumer overlaps wait/send"
-		" and ungets two buffers in a row, delay 1-1-1-4-1\n", i);
+		" and ungets two buffers in a row, delay 1-1-1-4-1\n");
 
 	delay_pattern = "\1\1\1\4\1";
-	init_buffered_fifo(&test_fifo, "test", 5, 256);
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
 	pthread_create(&id[1], NULL, cons1unget, (void *)(SEC / 10));
 	pthread_create(&id[0], NULL, prod1, (void *)(SEC / 10));
 	printf("main thread waiting for cons1\n");
 	pthread_join(id[1], NULL); /* when finished */
-	printf("cons1 joined\n");
-	cancel_join(id[0]);
+	printf("cons1 joined, waiting for prod1\n");
+	pthread_join(id[0], NULL); /* when finished */
 	printf("prod1 joined, test finished\n\n");
-	unfifo();
+	kill_fifo();
 
 	printf("test: slow producer\n");
 
-	init_buffered_fifo(&test_fifo, "test", 5, 256);
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
 	pthread_create(&id[1], NULL, cons1, (void *)(SEC / 10));
 	pthread_create(&id[0], NULL, prod1, (void *)(SEC / 2));
 	printf("main thread waiting for cons1\n");
 	pthread_join(id[1], NULL); /* when finished */
-	printf("cons1 joined\n");
-	cancel_join(id[0]);
+	printf("cons1 joined, waiting for prod1\n");
+	pthread_join(id[0], NULL); /* when finished */
 	printf("prod1 joined, test finished\n\n");
-	unfifo();
+	kill_fifo();
 
 	printf("test: slow consumer (prod1 shall drop frames, "
 		"reducing the cpu load)\n");
 
-	init_buffered_fifo(&test_fifo, "test", 5, 256);
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
 	pthread_create(&id[1], NULL, cons1, (void *)(SEC / 2));
 	pthread_create(&id[0], NULL, prod1, (void *)(SEC / 10));
 	printf("main thread waiting for cons1\n");
 	pthread_join(id[1], NULL); /* when finished */
-	printf("cons1 joined\n");
-	cancel_join(id[0]);
+	printf("cons1 joined, waiting for prod1\n");
+	pthread_join(id[0], NULL); /* when finished */
 	printf("prod1 joined, test finished\n\n");
-	unfifo();
+	kill_fifo();
 
 	printf("test: two consumers\n");
 
 	timestamp = 1;
-	init_buffered_fifo(&test_fifo, "test", 5, 256);
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
 	pthread_create(&id[2], NULL, cons2of2, (void *)(SEC / 10));
 	pthread_create(&id[1], NULL, cons1of2, (void *)(SEC / 10));
 	pthread_create(&id[0], NULL, prod1, (void *)(SEC / 10));
-	printf("main thread waiting for cons1/2, cons2/2\n");
-/* XXX hangs */
-//	pthread_join(id[2], NULL); /* when finished */
-//	printf("cons2/2 joined\n");
-//	pthread_join(id[1], NULL); /* when finished */
-//	printf("cons1/2 joined\n");
-usleep(SEC * 2);
-printf("main thread aborts waiting\n");
-	cancel_join(id[0]);
+	printf("main thread waiting for cons2/2\n");
+	pthread_join(id[2], NULL); /* when finished */
+	printf("cons2/2 joined, waiting for cons1/2\n");
+	pthread_join(id[1], NULL); /* when finished */
+	printf("cons1/2 joined, waiting for prod1\n");
+	pthread_join(id[0], NULL); /* when finished */
 	printf("prod1 joined, test finished\n\n");
-	unfifo();
+	kill_fifo();
 	timestamp = 0;
 
 	printf("test: two unbalanced consumers "
 	    "(cons2/2 shall drop frames, not prod1)\n");
 
-	init_buffered_fifo(&test_fifo, "test", 5, 256);
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
 	pthread_create(&id[2], NULL, cons2of2, (void *)(SEC * 1));
 	pthread_create(&id[1], NULL, cons1of2, (void *)(SEC / 10));
 	pthread_create(&id[0], NULL, prod1, (void *)(SEC / 10));
-	printf("main thread waiting for cons1/2, cons2/2\n");
-/* XXX hangs */
-//	pthread_join(id[2], NULL); /* when finished */
-//	printf("cons2/2 joined\n");
-//	pthread_join(id[1], NULL); /* when finished */
-//	printf("cons1/2 joined\n");
-usleep(SEC * 12);
-printf("main thread aborts waiting\n");
-	cancel_join(id[0]);
+	printf("main thread waiting for cons2/2\n");
+	pthread_join(id[2], NULL); /* when finished */
+	printf("cons2/2 joined, waiting for cons1/2\n");
+	pthread_join(id[1], NULL); /* when finished */
+	printf("cons1/2 joined, waiting for prod1\n");
+	pthread_join(id[0], NULL); /* when finished */
 	printf("prod1 joined, test finished\n\n");
-	unfifo();
+	kill_fifo();
 
 	printf("test: two consumers, cons2/2 joins in later "
 	    "(cons2/2 shall not receive old messages, "
 	    "prod1 and cons1/2 shall not be interrupted)\n");
 
-	init_buffered_fifo(&test_fifo, "test", 5, 256);
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
 	pthread_create(&id[2], NULL, cons2later, (void *)(5 * SEC / 10));
 	pthread_create(&id[1], NULL, cons1of2, (void *)(SEC / 10));
 	pthread_create(&id[0], NULL, prod1, (void *)(SEC / 10));
-	printf("main thread waiting for cons1/2, cons2/2\n");
-/* XXX hangs */
-//	pthread_join(id[2], NULL); /* when finished */
-//	printf("cons2/2 joined\n");
-//	pthread_join(id[1], NULL); /* when finished */
-//	printf("cons1/2 joined\n");
-usleep(SEC * 2);
-printf("main thread aborts waiting\n");
-	cancel_join(id[0]);
+	printf("main thread waiting for cons2/2\n");
+	pthread_join(id[2], NULL); /* when finished */
+	printf("cons2/2 joined, waiting for cons1/2\n");
+	pthread_join(id[1], NULL); /* when finished */
+	printf("cons1/2 joined, waiting for prod1\n");
+	pthread_join(id[0], NULL); /* when finished */
 	printf("prod1 joined, test finished\n\n");
-	unfifo();
+	kill_fifo();
 
 	printf("test: two consumers, cons2/2 leaves early "
 	   "(prod1 and cons1/2 shall not be interrupted)\n");
 
-	init_buffered_fifo(&test_fifo, "test", 5, 256);
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
 	pthread_create(&id[2], NULL, cons2early, (void *)(SEC / 10));
 	pthread_create(&id[1], NULL, cons1of2, (void *)(SEC / 10));
 	pthread_create(&id[0], NULL, prod1, (void *)(SEC / 10));
-	printf("main thread waiting for cons1/2, cons2/2\n");
-/* XXX hangs */
-//	pthread_join(id[2], NULL); /* when finished */
-//	printf("cons2/2 joined\n");
-//	pthread_join(id[1], NULL); /* when finished */
-//	printf("cons1/2 joined\n");
-usleep(SEC * 2);
-printf("main thread aborts waiting\n");
-	cancel_join(id[0]);
+	printf("main thread waiting for cons2/2\n");
+	pthread_join(id[2], NULL); /* when finished */
+	printf("cons2/2 joined, waiting for cons1/2\n");
+	pthread_join(id[1], NULL); /* when finished */
+	printf("cons1/2 joined, waiting for prod1\n");
+	pthread_join(id[0], NULL); /* when finished */
 	printf("prod1 joined, test finished\n\n");
-	unfifo();
+	kill_fifo();
 
 	printf("test: two consumers, cons2/2 ungets, delay 2-0-2-1-1 "
 	   "(prod1 and cons1/2 should be interrupted as little as possible)\n");
 
 	delay_pattern = "\2\0\2\1\1";
-	init_buffered_fifo(&test_fifo, "test", 5, 256);
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
 	pthread_create(&id[2], NULL, cons2unget, (void *)(SEC / 10));
 	pthread_create(&id[1], NULL, cons1of2, (void *)(SEC / 10));
 	pthread_create(&id[0], NULL, prod1, (void *)(SEC / 10));
-	printf("main thread waiting for cons1/2, cons2/2\n");
-/* XXX hangs */
-//	pthread_join(id[2], NULL); /* when finished */
-//	printf("cons2/2 joined\n");
-//	pthread_join(id[1], NULL); /* when finished */
-//	printf("cons1/2 joined\n");
-usleep(SEC * 2);
-printf("main thread aborts waiting\n");
-	cancel_join(id[0]);
+	printf("main thread waiting for cons2/2\n");
+	pthread_join(id[2], NULL); /* when finished */
+	printf("cons2/2 joined, waiting for cons1/2\n");
+	pthread_join(id[1], NULL); /* when finished */
+	printf("cons1/2 joined, waiting for prod1\n");
+	pthread_join(id[0], NULL); /* when finished */
 	printf("prod1 joined, test finished\n\n");
-	unfifo();
+	kill_fifo();
 
 	printf("test: three consumers\n");
 
 	timestamp = 1;
-	init_buffered_fifo(&test_fifo, "test", 5, 256);
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
 	pthread_create(&id[2], NULL, cons3of2, (void *)(SEC / 10));
 	pthread_create(&id[2], NULL, cons2of2, (void *)(SEC / 10));
 	pthread_create(&id[1], NULL, cons1of2, (void *)(SEC / 10));
 	pthread_create(&id[0], NULL, prod1, (void *)(SEC / 10));
-	printf("main thread waiting for cons1/2, cons2/2\n");
-/* XXX hangs */
-//	pthread_join(id[3], NULL); /* when finished */
-//	printf("cons3/2 joined\n");
-//	pthread_join(id[2], NULL); /* when finished */
-//	printf("cons2/2 joined\n");
-//	pthread_join(id[1], NULL); /* when finished */
-//	printf("cons1/2 joined\n");
-usleep(SEC * 2);
-printf("main thread aborts waiting\n");
-	cancel_join(id[0]);
+	printf("main thread waiting for cons3/2\n");
+	pthread_join(id[3], NULL); /* when finished */
+	printf("cons3/2 joined, waiting for cons2/2\n");
+	pthread_join(id[2], NULL); /* when finished */
+	printf("cons2/2 joined, waiting for cons1/2\n");
+	pthread_join(id[1], NULL); /* when finished */
+	printf("cons1/2 joined, waiting for prod1\n");
+	pthread_join(id[0], NULL); /* when finished */
 	printf("prod1 joined, test finished\n\n");
-	unfifo();
+	kill_fifo();
 	timestamp = 0;
+
+	printf("test: two producers\n");
+
+	/*
+	 *  XXX This needs more thoughts.
+	 *  The fifo should delay EOF when more
+	 *  than one producer is present
+	 */
+	init_buffered_fifo2(&test_fifo, "test", 5, 256);
+	pthread_create(&id[2], NULL, cons1, (void *)(SEC / 10));
+	pthread_create(&id[1], NULL, prod1, (void *)(SEC / 10));
+	pthread_create(&id[0], NULL, prod2, (void *)(SEC / 10));
+	printf("main thread waiting for cons1\n");
+	pthread_join(id[2], NULL); /* when finished */
+	printf("cons1 joined, waiting for prod1\n");
+	pthread_join(id[1], NULL); /* when finished */
+	printf("prod1 joined, waiting for prod2\n");
+	pthread_join(id[0], NULL); /* when finished */
+	printf("prod2 joined, test finished\n\n");
+	kill_fifo();
+
+	/* more */
 
 	exit(EXIT_SUCCESS);
 }

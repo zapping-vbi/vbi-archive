@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: types.h,v 1.2 2000-12-13 04:09:50 mschimek Exp $ */
+/* $Id: types.h,v 1.3 2001-06-30 10:33:46 mschimek Exp $ */
 
 #ifndef TYPES_H
 #define TYPES_H
@@ -30,6 +30,10 @@ enum { FALSE, TRUE };
 
 typedef unsigned char bool;
 
+/*
+ *  Get a pointer to a structure of <type> from
+ *  a <ptr> to one of its <members>.
+ */
 #define PARENT(ptr, type, member) \
 	((type *)(((char *) ptr) - offsetof(type, member)))
 
