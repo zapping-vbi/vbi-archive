@@ -47,13 +47,14 @@
 /*
   BUGS:
       . Callbacks + push doesn't work yet.
-      . Audio doesn't work.
       . It isn't reentrant.
       . Plenty of unknown bugs
+  TODO:
+      . We should allow to use different interfaces for audio or video (easy)
 */
 
-#define NUM_VIDEO_BUFFERS 4 /* video buffers in the video fifo */
-#define NUM_AUDIO_BUFFERS 4 /* audio buffers in the audio fifo */
+#define NUM_VIDEO_BUFFERS 8 /* video buffers in the video fifo */
+#define NUM_AUDIO_BUFFERS 8 /* audio buffers in the audio fifo */
 
 rte_context * rte_global_context = NULL;
 
@@ -61,7 +62,7 @@ rte_context * rte_global_context = NULL;
  * Global options from rte.
  */
 char *			my_name="rte";
-int			verbose=0;
+int			verbose=1;
 
 double			video_stop_time = 1e30;
 double			audio_stop_time = 1e30;
@@ -103,7 +104,7 @@ wait_data(rte_context * context, int video)
 	else
 		f = &context->private->aud;
 
-	consumer = &context->private->consumer;
+	consumer = f->consumer;
 
 	/* do we have an available buffer from the push interface? */
 	pthread_mutex_lock(&consumer->mutex);
@@ -116,7 +117,6 @@ wait_data(rte_context * context, int video)
 
 	if (context->private->data_callback) { /* no, callback
 						  interface */
-		/* wait until one buffer gets freed */
 		b = wait_empty_buffer(f);
 
 		ASSERT("size checks",
@@ -131,7 +131,7 @@ wait_data(rte_context * context, int video)
 		return b;
 	}
 
-	/* wait using the callback interface */
+	/* wait for the push interface */
 	while (!(b = (buffer*) rem_head(&f->full)))
 		pthread_cond_wait(&consumer->cond, &consumer->mutex);
 
@@ -269,11 +269,14 @@ void * rte_context_destroy ( rte_context * context )
 		rte_stop(context);
 
 	if (context->private->inited) {
-		if (context->mode & RTE_MUX_VIDEO_ONLY)
+		if (context->mode & RTE_MUX_VIDEO_ONLY) {
 			uninit_fifo(&context->private->aud);
-		if (context->mode & RTE_MUX_AUDIO_ONLY)
+			mucon_destroy(&context->private->vid_consumer);
+		}
+		if (context->mode & RTE_MUX_AUDIO_ONLY) {
 			uninit_fifo(&context->private->vid);
-		mucon_destroy(&context->private->consumer);
+			mucon_destroy(&context->private->aud_consumer);
+		}
 	}
 
 	if (context->private->rgbmem) {
@@ -604,7 +607,10 @@ int rte_init_context ( rte_context * context )
 			RTE_ENCODE_CALLBACK(default_write_callback);
 	}
 
-	mucon_init(&(context->private->consumer));
+	if (context->mode & RTE_MUX_AUDIO_ONLY)
+		mucon_init(&(context->private->aud_consumer));
+	if (context->mode & RTE_MUX_VIDEO_ONLY)
+		mucon_init(&(context->private->vid_consumer));
 
 	/* create needed fifos */
 	if (context->mode & RTE_MUX_VIDEO_ONLY) {
@@ -634,7 +640,7 @@ int rte_init_context ( rte_context * context )
 		}
 
 		if (4 > init_buffered_fifo(&(context->private->vid),
-			&(context->private->consumer), alloc_bytes,
+			&(context->private->vid_consumer), alloc_bytes,
 					   NUM_VIDEO_BUFFERS)) {
 			rte_error(context, "not enough mem");
 			return 0;
@@ -646,7 +652,7 @@ int rte_init_context ( rte_context * context )
 
 	if (context->mode & RTE_MUX_AUDIO_ONLY) {
 		if (4 > init_buffered_fifo(&(context->private->aud),
-		      &(context->private->consumer), context->audio_bytes,
+		      &(context->private->aud_consumer), context->audio_bytes,
 					   NUM_AUDIO_BUFFERS)) {
 			uninit_fifo(&(context->private->vid));
 			rte_error(context, "not enough mem");
@@ -760,11 +766,14 @@ void rte_stop ( rte_context * context )
 
 	output_end();
 
-	if (context->mode & RTE_MUX_VIDEO_ONLY)
+	if (context->mode & RTE_MUX_VIDEO_ONLY) {
 		uninit_fifo(&context->private->aud);
-	if (context->mode & RTE_MUX_AUDIO_ONLY)
+		mucon_destroy(&context->private->vid_consumer);
+	}
+	if (context->mode & RTE_MUX_AUDIO_ONLY) {
 		uninit_fifo(&context->private->vid);
-	mucon_destroy(&context->private->consumer);
+		mucon_destroy(&context->private->aud_consumer);
+	}
 
 //	pr_report();
 

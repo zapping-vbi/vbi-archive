@@ -1,10 +1,12 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.8 2000-09-29 17:54:31 mschimek Exp $
+dnl $Id: configure.in,v 1.9 2000-10-11 22:51:47 garetxe Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(mp1e, 1.8.0-pre5)
 
-CFLAGS="$CFLAGS -Wall -O2 -fomit-frame-pointer"
+dnl Use this in the final release, debugging info until then
+dnl CFLAGS="$CFLAGS -Wall -O2 -fomit-frame-pointer"
+CFLAGS="$CFLAGS -Wall -O2 -g"
 
 AC_PROG_CC
 AC_CHECK_FUNCS(memalign)
@@ -29,6 +31,17 @@ dnl 	exit(1);
 dnl }], OPT="$OPT -march=i686",, OPT=$OPT)
 dnl 
 dnl AC_SUBST(OPT)
+
+AC_MSG_CHECKING(for EsounD)
+ESD_VERSION=`esd-config --version`
+if test $? -eq 0; then
+	AC_MSG_RESULT($ESD_VERSION)
+	ESD_LIBS=`esd-config --libs`
+	AC_SUBST(ESD_LIBS)
+	AC_DEFINE(USE_ESD)
+else
+	AC_MSG_RESULT([no, OSS will be used instead])
+fi
 
 AC_PATH_XTRA
 AC_CHECK_LIB(Xv, XvShmPutImage,,, $X_LIBS -lX11 -lXext)

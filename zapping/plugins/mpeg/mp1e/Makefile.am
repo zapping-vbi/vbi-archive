@@ -20,4 +20,4 @@ rte_test_SOURCES = rte_test_main.c \
 		convert_ry.c convert_ry.h
 
 rte_test_LDADD = video/libvideo.a audio/libaudio.a systems/librtesystems.a \
-common/libcommon.a $(TEST_MODULES) $(X_LIBS) -lm -lpthread
+common/libcommon.a $(TEST_MODULES) $(X_LIBS) $(ESD_LIBS) -lm -lpthread

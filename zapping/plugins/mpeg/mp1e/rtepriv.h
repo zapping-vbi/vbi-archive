@@ -62,7 +62,8 @@ struct _rte_context_private {
 	int fd; /* file descriptor of the file we are saving */
 	void * user_data; /* user data given to the callback */
 	fifo aud, vid; /* callback fifos for pushing */
-	mucon consumer; /* consumer mucon for aud + vid */
+	mucon aud_consumer; /* consumer mucon for audio */
+	mucon vid_consumer; /* consumer mucon for video */
 	int depth; /* video bit depth (bytes per pixel, includes
 		      packing) */
 	buffer * last_video_buffer; /* video buffer the app should be

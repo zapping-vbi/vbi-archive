@@ -93,7 +93,6 @@ if test $? -eq 0; then
 	TMP_VAR=`gtk-config --libs | sed "s/\//\\\\\\\\\//g"`
 	GDK_PIXBUF_LIBS=`gdk-pixbuf-config --libs`
 	GDK_PIXBUF_LIBS=`echo $GDK_PIXBUF_LIBS | sed "s/$TMP_VAR//g"`
-	AC_SUBST(GDK_PIXBUF_VERSION)
 	AC_SUBST(GDK_PIXBUF_CFLAGS)
 	AC_SUBST(GDK_PIXBUF_LIBS)
 	HAVE_GDK_PIXBUF="yes"

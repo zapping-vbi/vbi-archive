@@ -6,6 +6,7 @@ Outstanding issues for the next release
 	+ XGetScreenSaver
 	+ make the channel ordering configurable
 	+ Fix web page so the table is correctly viewed with Mozilla
+	+ Disable audio by default
 	+ Bug fixes
 	> Release 0.5.5
 	+ Subtitles support

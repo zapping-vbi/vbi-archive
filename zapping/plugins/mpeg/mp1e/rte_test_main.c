@@ -33,10 +33,19 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <asm/types.h>
-#include <linux/soundcard.h>
 #include "common/log.h"
 #include "videodev2.h"
 #include "rte.h"
+
+#undef USE_ESD /* doesn't work yet */
+
+#ifndef USE_ESD
+#include <linux/soundcard.h>
+#else
+#include <esd.h>
+#endif
+
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 static int			fd; /* fd:video, fd2:audio */
 static void*			buffers[16];
@@ -88,12 +97,13 @@ read_video(void * data, double * time, rte_context * context)
 static void
 mute_restore(void)
 {
+	old_mute.value = 1;
 	if (old_mute.id)
 		ioctl(fd, VIDIOC_S_CTRL, &old_mute);
 }
 
 static enum rte_frame_rate
-init_video(const char * cap_dev, int width, int height)
+init_video(const char * cap_dev, int * width, int * height)
 {
 	int str_type = V4L2_BUF_TYPE_CAPTURE;
 	int num_buffers;
@@ -121,8 +131,8 @@ init_video(const char * cap_dev, int width, int height)
 	printv(2, "Video standard is '%s'\n", vstd.name);
 
 	vfmt.type = V4L2_BUF_TYPE_CAPTURE;
-	vfmt.fmt.pix.width = width;
-	vfmt.fmt.pix.height = height;
+	vfmt.fmt.pix.width = *width;
+	vfmt.fmt.pix.height = *height;
 
 	vfmt.fmt.pix.depth = 12;
 	vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
@@ -131,9 +141,12 @@ init_video(const char * cap_dev, int width, int height)
 	ASSERT("set capture mode to YUV420", ioctl(fd, VIDIOC_S_FMT,
 						   &vfmt) == 0);
 
-	if ((vfmt.fmt.pix.width != width) || (vfmt.fmt.pix.height !=
-					      height))
-		FAIL("width and height not valid");
+	if ((vfmt.fmt.pix.width & 15) || (vfmt.fmt.pix.height & 15))
+		FAIL("width and height not valid: %d x %d",
+		     vfmt.fmt.pix.width, vfmt.fmt.pix.height);
+
+	*width = vfmt.fmt.pix.width;
+	*height = vfmt.fmt.pix.height;
 
 	vrbuf.type = V4L2_BUF_TYPE_CAPTURE;
 	vrbuf.count = 8;
@@ -190,10 +203,169 @@ init_video(const char * cap_dev, int width, int height)
 	return rate_code;
 }
 
-#if 0
+/*
+ *  PCM Device, OSS API
+ */
+
+#define BUFFER_SIZE 32768 // bytes per read(), appx.
+
+/*
+ * rte doesn't require buffering at all, but it is more efficient this way.
+ */
+#ifndef USE_ESD
+static int		fd2;
+static short *		abuffer;
+static int		scan_range;
+static int		look_ahead;
+static int		buffer_size;
+static int		samples_per_frame;
+#else /* use esd */
+static int		esd_recording_socket;
+static short 		abuffer[ESD_BUF_SIZE*2];
+#endif
+
+/*
+ *  Read window: samples_per_frame (1152 * channels) + look_ahead (480 * channels);
+ *  Subband window size 512 samples, step width 32 samples (32 * 3 * 12 total)
+ */
+/*
+ *  If you have a better idea for timestamping go ahead.
+ *  [DSP_CAP_TRIGGER, DSP_CAP_MMAP? Not really what I want but maybe
+ *   closer to the sampling instant.]
+ */
+#ifndef USE_ESD
 static void
-init_audio(const char * pcm_dev, int format, int speed, int stereo)
+read_audio(void * data, double * time, rte_context * context)
 {
+	static double rtime, utime;
+	static int left = 0;
+	static short *p;
+	int stereo = (context->audio_mode == RTE_AUDIO_MODE_STEREO) ? 1
+		: 0;
+	struct timeval tv;
+	int sampling_rate = context->audio_rate;
+
+	if (left <= 0)
+	{
+		struct audio_buf_info info;
+		ssize_t r;
+		int n;
+
+		memcpy(abuffer, abuffer + scan_range, look_ahead *
+		       sizeof(abuffer[0]));
+
+		p = abuffer + look_ahead;
+		n = scan_range * sizeof(abuffer[0]);
+
+		while (n > 0) {
+			r = read(fd2, p, n);
+			
+			if (r < 0 && errno == EINTR)
+				continue;
+
+			if (r == 0) {
+				memset(p, 0, n);
+				break;
+			}
+
+			ASSERT("read PCM data, %d bytes", r > 0, n);
+
+			(char *) p += r;
+			n -= r;
+		}
+
+		gettimeofday(&tv, NULL);
+		ASSERT("check PCM hw buffer maximum occupancy(tm)",
+			ioctl(fd2, SNDCTL_DSP_GETISPACE, &info) != 1);
+
+		rtime = tv.tv_sec + tv.tv_usec / 1e6;
+		rtime -= (scan_range - n + info.bytes) / (double)
+			sampling_rate;
+
+		left = scan_range - samples_per_frame;
+		p = abuffer;
+
+		*time = rtime;
+		memcpy(data, p, context->audio_bytes);
+		return;
+	}
+
+	utime = rtime + ((p - abuffer) >> stereo) / (double) sampling_rate;
+	left -= samples_per_frame;
+
+	p += samples_per_frame;
+
+	*time = utime;
+	memcpy(data, p, context->audio_bytes);
+	return;
+}
+#else /* use esd */
+#warning The ESD interface is still experimental
+static void
+read_audio(void * data, double * time, rte_context * context)
+{
+	fd_set rdset;
+	struct timeval tv;
+	int n, r = context->audio_bytes;
+	void * p = data;
+	double ltime;
+	int stereo = (context->audio_mode == RTE_AUDIO_MODE_STEREO) ? 1
+		: 0;
+	int sampling_rate = context->audio_rate;
+
+	while (r>0) {
+		FD_ZERO(&rdset);
+		FD_SET(esd_recording_socket, &rdset);
+		
+		tv.tv_sec = 1;
+		tv.tv_usec = 0;
+/*		n = select(esd_recording_socket, &rdset, NULL, NULL, &tv);
+		
+		gettimeofday(&tv, NULL);
+		fprintf(stderr, "selected\n");
+		if (n<0)
+			continue;
+			fprintf(stderr, "reading\n");*/
+		n = read(esd_recording_socket, p, r);
+//		fprintf(stderr, "n: %d, r: %d\n", n, r);
+		r -= n;
+
+		if (r <= 0)
+			gettimeofday(&tv, NULL);
+
+		p += n;
+	}
+
+	ltime = ((double)context->audio_bytes) / (2 * (double)sampling_rate *
+						  (stereo+1));
+
+	ltime += ((double)esd_get_latency(esd_recording_socket))/(44.1e3);
+
+	*time = tv.tv_sec + tv.tv_usec/1e6;
+
+	*time -= ltime;
+}
+#endif
+
+static void
+init_audio(const char * pcm_dev, int speed, int stereo)
+{
+#ifdef USE_ESD
+	esd_format_t format;
+
+	format = ESD_STREAM | ESD_RECORD | ESD_BITS16;
+
+	if (stereo)
+		format |= ESD_STEREO;
+	else
+		format |= ESD_MONO;
+
+	esd_recording_socket =
+		esd_record_stream_fallback(format, speed, NULL, NULL);
+
+#else /* don't use ESD */
+	int format=AFMT_S16_LE;
+
 	ASSERT("open PCM device %s", (fd2 = open(pcm_dev, O_RDONLY))
 	       != -1, pcm_dev);
 
@@ -206,70 +378,40 @@ init_audio(const char * pcm_dev, int format, int speed, int stereo)
 	ASSERT("set PCM sampling rate %d Hz",
 	       ioctl(fd2, SNDCTL_DSP_SPEED, &speed) != -1, speed);
 
-	fprintf(stderr, "audio doesn't work yet!\n");
-}
+	samples_per_frame = 1152 << stereo;
 
-/*
- * fixme: Audio is harder to get right. Give a look to the routines in
- * audio/oss.c
- */
-static void
-read_audio(void * data, double * time, rte_context * context)
-{
-	struct timeval tv;
-	int n = context->audio_bytes;
-	int r;
-	void * p = data;
-	double frame_time;
+	scan_range = MAX(BUFFER_SIZE / sizeof(short) /
+			 samples_per_frame, 1) * samples_per_frame;
 
-	while (n>0) {
-		r = read(fd2, p, n);
+	look_ahead = (512 - 32) << stereo;
 
-		if (r<0 && errno == EINTR)
-			continue;
-
-		(char*)p += r;
-		n -= r;
-	}
-
-	gettimeofday(&tv, NULL);
-
-	*time = tv.tv_sec + tv.tv_usec/1e6;
-
-	frame_time = context->audio_bytes/(double)context->audio_rate;
-	if (context->audio_mode == RTE_AUDIO_MODE_STEREO)
-		frame_time = frame_time/2;
-
-	*time -= frame_time;;
-}
+	buffer_size = (scan_range + look_ahead)	* sizeof(abuffer[0]);
 #endif
+}
 
 static void
 data_callback(void * data, double * time, int video, rte_context *
 	      context, void * user_data)
 {
-	struct timeval tv;
-
 	if (user_data != (void*)0xdeadbeef)
 		fprintf(stderr, "check failed: %p\n", user_data);
 
 	if (video)
 		read_video(data, time, context);
 	else
-//		read_audio(data, time, context);
-	{
-		gettimeofday(&tv, NULL);
-		*time = tv.tv_sec + tv.tv_usec/1e6;		
-	}
+		read_audio(data, time, context);
 }
 
 int main(int argc, char *argv[])
 {
 	rte_context * context;
 	enum rte_frame_rate rate_code;
-	int width = 32, height = 32;
-	int sleep_time = 5;
-//	int audio_format=AFMT_S16_LE, audio_rate=44100, stereo=0;
+	int width = 16, height = 16;
+	int sleep_time = 10;
+	int audio_rate=44100, stereo=0;
+	char * video_device = "/dev/video";
+	char * audio_device = "/dev/audio";
+	char * dest_file = "temp.mpeg";
 
 	if (!rte_init()) {
 		fprintf(stderr, "RTE couldn't be inited\n");
@@ -278,18 +420,18 @@ int main(int argc, char *argv[])
 
 	srand(time(NULL));
 
-	width *= (rand()%15)+5;
-	height *= (rand()%15)+5;
+	width *= (rand()%30)+10;
+	height *= (rand()%30)+10;
 
-	width = 640; height = 480;
+	width = 320; height = 240;
 
-	fprintf(stderr, "%dx%d\n", width, height);
+	fprintf(stderr, "%d x %d\n", width, height);
 
-	rate_code = init_video("/dev/video", width, height);
-//	init_audio("/dev/dsp", audio_format, audio_rate, stereo);
+	rate_code = init_video(video_device, &width, &height);
+	init_audio(audio_device, audio_rate, stereo);
 
 	context = rte_context_new(width, height, RTE_YUV420,
-				  rate_code, "temp.mpeg", NULL,
+				  rate_code, dest_file, NULL,
 				  data_callback, (void*)0xdeadbeef);
 
 	if (!context) {
@@ -297,14 +439,18 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-//	rte_set_audio_parameters(context, audio_rate, stereo ?
-//				 RTE_AUDIO_MODE_STEREO :
-//				 RTE_AUDIO_MODE_MONO,
-//				 context->output_audio_bits);
+	rte_set_audio_parameters(context, audio_rate, stereo ?
+				 RTE_AUDIO_MODE_STEREO :
+				 RTE_AUDIO_MODE_MONO,
+				 context->output_audio_bits);
 
-	rte_set_mode(context, RTE_MUX_VIDEO_ONLY);
+#ifndef USE_ESD
+	abuffer = malloc(buffer_size);
+	memset(abuffer, 0, buffer_size);
+#endif
 
 	fprintf(stderr, "starting encode\n");
+
 	if (!rte_init_context(context) ||
 	    (!rte_start_encoding(context))) {
 		fprintf(stderr, "cannot start encoding: %s\n",
@@ -313,7 +459,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	fprintf(stderr, "going to bed (%d secs)\n", sleep_time);
-	// Encode video for 5 secs
+	// let rte encode video for some time
 	sleep(sleep_time);
 
 	fprintf(stderr, "done encoding\n");
