@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: motion.c,v 1.15 2002-10-02 20:50:42 mschimek Exp $ */
+/* $Id: motion.c,v 1.16 2004-10-22 00:58:31 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -3314,6 +3314,7 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 			for (i = x0; i < x1; i += 8)
 				switch (cpu_type) {
 				case CPU_PENTIUM_III:
+				case CPU_CYRIX_NEHEMIAH:
 				case CPU_PENTIUM_4:
 					sse_psse_8(tbuf, p + i, mb_address.block[0].pitch);
 					break;
@@ -3345,6 +3346,7 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 		break;
 #endif
 	case CPU_PENTIUM_III:
+	case CPU_CYRIX_NEHEMIAH:
 		mmx_load_ref(tbuf);
 		min = sse_sad(tbuf, p, mb_address.block[0].pitch);
 		break;
@@ -3369,6 +3371,7 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 			break;
 #endif
 		case CPU_PENTIUM_III:
+		case CPU_CYRIX_NEHEMIAH:
 			act = sse_sad(tbuf,
 				p + bbdxy.b[i * 2 + 0] /* x */ 
 				+ bbdxy.b[i * 2 + 1] * mb_address.block[0].pitch,
@@ -3459,6 +3462,7 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 		break;
 
 	case CPU_PENTIUM_III:
+	case CPU_CYRIX_NEHEMIAH:
 	case CPU_PENTIUM_4:
 		sse_load_interp(from, mb_address.block[0].pitch,
 			(x + dx - 1) >> 1, (y + dy - 1) >> 1);
@@ -3497,6 +3501,7 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 		// act = sad1(tbuf, *pat1, iright, idown); mini[1][1] = act;
 		switch (cpu_type) {
 		case CPU_PENTIUM_III:
+		case CPU_CYRIX_NEHEMIAH:
 		case CPU_PENTIUM_4:
 			act = sse_sad2h(tbuf, *pat1, idown, &act2);
 			break;
@@ -3510,6 +3515,7 @@ tmp_search(int *dhx, int *dhy, unsigned char *from,
 
 	switch (cpu_type) {
 	case CPU_PENTIUM_III:
+	case CPU_CYRIX_NEHEMIAH:
 	case CPU_PENTIUM_4:
 		act = sse_sad2h(tbuf, *pat3, idown, &act2); mini[1][0] = act; mini[1][2] = act2;
 		act = sse_sad2h(tbuf, *pat4, 0, &act2); mini[0][0] = act; mini[0][2] = act2;

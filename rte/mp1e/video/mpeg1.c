@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.43 2003-03-09 00:32:23 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.44 2004-10-22 00:58:31 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -2399,6 +2399,7 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 
 	switch (cpu_type) {
 	case CPU_PENTIUM_III:
+	case CPU_CYRIX_NEHEMIAH:
 	case CPU_PENTIUM_4:
 	case CPU_ATHLON:
 		sse = 1;
@@ -2526,6 +2527,7 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 			break;
 #endif
 		case CPU_PENTIUM_III:
+		case CPU_CYRIX_NEHEMIAH:
 		case CPU_ATHLON:
 			search = sse_search;
 			break;

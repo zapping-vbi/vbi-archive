@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: filter.c,v 1.12 2003-03-09 00:32:47 mschimek Exp $ */
+/* $Id: filter.c,v 1.13 2004-10-22 00:58:31 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/mmx.h"
@@ -132,6 +132,7 @@ filter_init(rte_video_stream_params *par, struct filter_param *fp)
 
 	switch (cpu_type) {
 	case CPU_PENTIUM_III:
+	case CPU_CYRIX_NEHEMIAH:
 	case CPU_PENTIUM_4:
 	case CPU_ATHLON:
 		sse = 1;

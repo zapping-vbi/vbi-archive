@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.42 2003-01-15 23:33:46 mschimek Exp $ */
+/* $Id: main.c,v 1.43 2004-10-22 00:58:15 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -422,6 +422,7 @@ main(int ac, char **av)
 		break;
 
 	case CPU_PENTIUM_III:
+	case CPU_CYRIX_NEHEMIAH:
 	case CPU_ATHLON:
 		printv(2, "Using SSE optimized routines.\n");
 		break;

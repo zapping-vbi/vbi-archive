@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.23 2003-01-03 05:37:33 mschimek Exp $ */
+/* $Id: options.c,v 1.24 2004-10-22 00:58:15 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -51,7 +51,7 @@ static const char *mux_options[] = { "", "video", "audio", "video_and_audio", "s
 static const char *mux_syn_options[] = { "nirvana", "bypass", "mpeg1", "mpeg2-ps", "vcd" };
 static const char *audio_options[] = { "stereo", "", "dual_channel", "mono" };
 static const char *mute_options[] = { "unmute", "mute", "ignore" };
-static const char *cpu_options[] = { "", "pmmx", "p2", "p3", "p4", "k6-2", "k7", "m2", "c3" };
+static const char *cpu_options[] = { "", "pmmx", "p2", "p3", "p4", "k6-2", "k7", "m2", "c3", "n1" };
 static const char *skip_options[] = { "compatible", "mux", "fake_picture" };
 
 void usage(FILE *fi);
@@ -525,7 +525,7 @@ parse_option(int c)
 	}
 
 	case 'C':
-		if ((cpu_type = suboption(cpu_options, 9, 0)) < 0)
+		if ((cpu_type = suboption(cpu_options, 10, 0)) < 0)
 			return FALSE;
 		break;
 
