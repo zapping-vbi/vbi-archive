@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: interface.c,v 1.26 2003-12-17 06:34:26 mschimek Exp $ */
+/* $Id: interface.c,v 1.27 2004-08-13 01:10:41 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 toolbar changes */
 #undef GTK_DISABLE_DEPRECATED
@@ -30,7 +30,6 @@
 #include <glade/glade.h>
 
 #include "interface.h"
-#include "remote.h"
 #include "zmisc.h"
 #include "globals.h"
 #include "zconf.h"
@@ -40,6 +39,7 @@
 #include "plugins.h"
 #include "ttxview.h"
 #include "zvbi.h"
+#include "remote.h"
 
 extern gboolean have_wm_hints;
 

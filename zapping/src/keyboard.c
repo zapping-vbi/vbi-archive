@@ -28,12 +28,12 @@
 #include <gnome.h>
 
 #include "keyboard.h"
-#include "remote.h"
 #include "properties.h"
 #include "interface.h"
 #include "zconf.h"
 #include "eggcellrendererkeys.h"
 #include "zmisc.h"
+#include "remote.h"
 
 #ifndef KEYBOARD_KEY_LOG
 #define KEYBOARD_KEY_LOG 0

@@ -26,7 +26,6 @@
 
 #include <gnome.h>
 
-#include "remote.h"
 #include "cmd.h"
 #include "interface.h"
 #include "plugins.h"
@@ -34,6 +33,7 @@
 #include "zconf.h"
 #include "globals.h"
 #include "audio.h"
+#include "remote.h"
 
 static PyObject* py_quit (PyObject *self, PyObject *args)
 {
