@@ -17,14 +17,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced.h,v 1.3 2002-10-22 04:42:40 mschimek Exp $ */
+/* $Id: sliced.h,v 1.3.2.1 2004-01-30 00:40:48 mschimek Exp $ */
 
 #ifndef SLICED_H
 #define SLICED_H
 
+#include "misc.h"
+
 /* Public */
 
-#include <inttypes.h>
+#include <inttypes.h>		/* uint32_t */
 
 /**
  * @addtogroup Sliced Sliced VBI data
@@ -48,39 +50,83 @@
  * No data service, blank vbi_sliced structure.
  */
 #define VBI_SLICED_NONE			0
+/**
+ * Antiope a.k.a. Teletext System A
+ *
+ * Reference: <a href="http://www.itu.ch">ITU-R BT.653
+ * "Teletext Systems"</a>
+ *
+ * vbi_sliced payload: Last 37 bytes, without clock run-in and
+ * framing code, lsb first transmitted.
+ */
+#define VBI_SLICED_ANTIOPE		0x00002000
+#define VBI_SLICED_TELETEXT_A		0x00002000
 #define VBI_SLICED_TELETEXT_B_L10_625	0x00000001
 #define VBI_SLICED_TELETEXT_B_L25_625	0x00000002
 /**
- * Teletext System B.
+ * Teletext System B for 625 line systems
  *
  * Note this is separated into Level 1.0 and Level 2.5+ since the latter
- * permits occupation of PAL/SECAM scan line 6 which is frequently out of
+ * permits occupation of scan line 6 which is frequently out of
  * range of raw VBI capture drivers. Clients should request decoding of both,
  * may then verify Level 2.5 is covered. Also sliced data can be tagged
  * as both Level 1.0 and 2.5+, i. e. VBI_SLICED_TELETEXT_B.
  *
  * Reference: <a href="http://www.etsi.org">ETS 300 706
- * "Enhanced Teletext specification"</a>.
+ * "Enhanced Teletext specification"</a>, <a href="http://www.itu.ch">
+ * ITU-R BT.653 "Teletext Systems"</a>
  *
  * vbi_sliced payload: Last 42 of the 45 byte Teletext packet, that is
  * without clock run-in and framing code, lsb first transmitted.
  */
-#define VBI_SLICED_TELETEXT_B		(VBI_SLICED_TELETEXT_B_L10_625 | VBI_SLICED_TELETEXT_B_L25_625)
+#define VBI_SLICED_TELETEXT_B_625	(VBI_SLICED_TELETEXT_B_L10_625	\
+					 | VBI_SLICED_TELETEXT_B_L25_625)
+/* Older definition */
+#define VBI_SLICED_TELETEXT_B		VBI_SLICED_TELETEXT_B_625
 /**
- * Video Program System.
+ * Teletext System C for 625 line systems
+ *
+ * Reference: <a href="http://www.itu.ch">ITU-R BT.653
+ * "Teletext Systems"</a>
+ *
+ * vbi_sliced payload: Last 33 bytes, without clock run-in and
+ * framing code, lsb first transmitted.
+ */
+#define VBI_SLICED_TELETEXT_C_625	0x00004000
+/**
+ * Teletext System D for 625 line systems
+ *
+ * Reference: <a href="http://www.itu.ch">ITU-R BT.653
+ * "Teletext Systems"</a>
+ *
+ * vbi_sliced payload: Last 34 bytes, without clock run-in and
+ * framing code, lsb first transmitted.
+ */
+#define VBI_SLICED_TELETEXT_D_625	0x00008000
+/**
+ * Video Program System
  *
  * Reference: <a href="http://www.etsi.org">ETS 300 231
- * "Specification of the domestic video Programme Delivery Control system (PDC)"
- * </a>.
+ * "Specification of the domestic video Programme 
+ * Delivery Control system (PDC)"</a>, <a href="http://www.irt.de">
+ * IRT 8R2 "Video-Programm-System (VPS)"</a>.
  *
  * vbi_sliced payload: Byte number 3 to 15 according to Figure 9,
  * lsb first transmitted.
  */
 #define VBI_SLICED_VPS			0x00000004
+/**
+ * Pseudo-VPS signal transmitted on field 2
+ *
+ * Reference: ?
+ *
+ * vbi_sliced payload: 13 bytes.
+ */
+#define VBI_SLICED_VPS_F2		0x00001000
 #define VBI_SLICED_CAPTION_625_F1	0x00000008
 #define VBI_SLICED_CAPTION_625_F2	0x00000010
 /**
- * Closed Caption for 625 line systems (PAL, SECAM).
+ * Closed Caption for 625 line systems
  *
  * Note this is split into field one and two services since for basic
  * caption decoding only field one is required. Clients should compare
@@ -92,11 +138,27 @@
  * vbi_sliced payload: First and second byte including parity,
  * lsb first transmitted.
  */
-#define VBI_SLICED_CAPTION_625		(VBI_SLICED_CAPTION_625_F1 | VBI_SLICED_CAPTION_625_F2)
+#define VBI_SLICED_CAPTION_625		(VBI_SLICED_CAPTION_625_F1	\
+					 | VBI_SLICED_CAPTION_625_F2)
+/**
+ * Wide Screen Signalling for 625 line systems
+ *
+ * Reference: <a href="http://www.etsi.org">EN 300 294
+ * "625-line television Wide Screen Signalling (WSS)"</a>.
+ *
+ * vbi_sliced payload:
+ * <pre>
+ * Byte         0                  1
+ *       msb         lsb  msb             lsb
+ * bit   7 6 5 4 3 2 1 0  x x 13 12 11 10 9 8<br></pre>
+ * according to EN 300 294 Table 1, lsb first transmitted. 
+ */
+#define VBI_SLICED_WSS_625		0x00000400
+
 #define VBI_SLICED_CAPTION_525_F1	0x00000020
 #define VBI_SLICED_CAPTION_525_F2	0x00000040
 /**
- * Closed Caption for 525 line systems (NTSC).
+ * Closed Caption for 525 line systems (NTSC)
  *
  * Note this is split into field one and two services since for basic
  * caption decoding only field one is required. Clients should compare
@@ -110,9 +172,10 @@
  * vbi_sliced payload: First and second byte including parity,
  * lsb first transmitted.
  */
-#define VBI_SLICED_CAPTION_525		(VBI_SLICED_CAPTION_525_F1 | VBI_SLICED_CAPTION_525_F2)
+#define VBI_SLICED_CAPTION_525		(VBI_SLICED_CAPTION_525_F1	\
+					 | VBI_SLICED_CAPTION_525_F2)
 /**
- * Closed Caption at double bit rate.
+ * Closed Caption at double bit rate for 525 line systems
  *
  * Reference: ?
  *
@@ -121,42 +184,46 @@
  */
 #define VBI_SLICED_2xCAPTION_525	0x00000080
 /**
- * North American Basic Teletext Specification.
+ * Teletext System B for 525 line systems
  *
- * (Supposedly this standard fell into disuse.)
+ * Reference: <a href="http://www.itu.ch">ITU-R BT.653
+ * "Teletext Systems"</a>
+ *
+ * vbi_sliced payload: Last 34 bytes, without clock run-in and
+ * framing code, lsb first transmitted.
+ */
+#define VBI_SLICED_TELETEXT_B_525	0x00010000
+/**
+ * North American Basic Teletext Specification
+ * a. k. a. Teletext System C for 525 line systems
  *
  * Reference: <a href="http://global.ihs.com">EIA-516
- * "North American Basic Teletext Specification (NABTS)"</a>.
+ * "North American Basic Teletext Specification (NABTS)"</a>,
+ * <a href="http://www.itu.ch">ITU-R BT.653 "Teletext Systems"</a>
  *
- * vbi_sliced payload: 33 bytes.
+ * vbi_sliced payload: Last 33 bytes, without clock run-in and
+ * framing code, lsb first transmitted.
  */
 #define VBI_SLICED_NABTS		0x00000100
+#define VBI_SLICED_TELETEXT_C_525	0x00000100
 /**
- * ?
- *
- * Reference: ?
- *
- * vbi_sliced payload: 34 bytes.
+ * Incorrect, don't use in new code.
  */
 #define VBI_SLICED_TELETEXT_BD_525	0x00000200
 /**
- * Wide Screen Signalling for 625 line systems (PAL, SECAM)
+ * Teletext System D for 525 line systems
  *
- * Reference: <a href="http://www.etsi.org">EN 300 294
- * "625-line television Wide Screen Signalling (WSS)"</a>.
+ * Reference: <a href="http://www.itu.ch">ITU-R BT.653
+ * "Teletext Systems"</a>
  *
- * vbi_sliced payload:
- * <pre>
- * Byte         0                  1
- *       msb         lsb  msb             lsb
- * bit   7 6 5 4 3 2 1 0  x x 13 12 11 10 9 8<br></pre>
- * according to EN 300 294 Table 1, lsb first transmitted. 
+ * vbi_sliced payload: Last 34 bytes, without clock run-in and
+ * framing code, lsb first transmitted.
  */
-#define VBI_SLICED_WSS_625		0x00000400
+#define VBI_SLICED_TELETEXT_D_525	0x00020000
 /**
  * Wide Screen Signalling for NTSC Japan
  *
- * Reference: EIA-J CPR-1024 (?)
+ * Reference: <a href="http://www.jeita.or.jp">EIA-J CPR-1024</a>
  *
  * vbi_sliced payload:
  * <pre>
@@ -184,6 +251,13 @@
 
 /**
  * @ingroup Sliced
+ * Data service identifier. A logical 'or' of VBI_SLICED_ symbols.
+ */
+/* NB must be u32 for compatibility with older struct vbi_sliced. */
+typedef uint32_t vbi_service_set;
+
+/**
+ * @ingroup Sliced
  * @brief This structure holds one scan line of sliced vbi data.
  *
  * For example the contents of NTSC line 21, two bytes of Closed Caption
@@ -195,7 +269,7 @@ typedef struct {
 	 * A @ref VBI_SLICED_ symbol identifying the data service. Under cirumstances
 	 * (see VBI_SLICED_TELETEXT_B) this can be a set of VBI_SLICED_ symbols.
 	 */
-	uint32_t		id;
+	vbi_service_set		id;
 	/**
 	 * Source line number according to the ITU-R line numbering scheme,
 	 * a value of @c 0 if the exact line number is unknown. Note that some
@@ -212,12 +286,22 @@ typedef struct {
 	uint8_t			data[56];
 } vbi_sliced;
 
-/** @addtogroup Sliced
+/**
+ * @addtogroup Sliced
  * @{
  */
-extern const char *		vbi_sliced_name(unsigned int service);
+extern const char *
+vbi_sliced_name			(vbi_service_set	service)
+	vbi_attribute_const;
+extern unsigned int
+vbi_sliced_payload_bits		(vbi_service_set	service)
+	vbi_attribute_const;
 /** @} */
 
 /* Private */
+
+struct _vbi_service_par;	/* defined in raw_decoder.h */
+
+typedef struct _vbi_service_par vbi_service_par;
 
 #endif /* SLICED_H */
