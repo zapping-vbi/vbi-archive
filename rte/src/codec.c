@@ -19,33 +19,29 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.c,v 1.6 2002-06-14 07:57:10 mschimek Exp $ */
+/* $Id: codec.c,v 1.7 2002-08-22 22:09:06 mschimek Exp $ */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
+#include "config.h"
 #include "rtepriv.h"
 
-#define xc context->class
-#define dc codec->class
+#define xc context->_class
+#define dc codec->_class
 
 /**
- * rte_codec_info_enum:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @index: Index into the codec table.
+ * @param context Initialized rte_context as returned by rte_context_new().
+ * @param index Index into the codec table.
  * 
  * Enumerates elementary stream codecs available for the selected
- * backend / file format / mux format. You should start at index
+ * context (backend/file format/mux format). You should start at index
  * 0, incrementing.
  * 
- * Return value:
- * Static pointer, data not to be freed, to a #rte_codec_info
- * structure, %NULL if the context is invalid or the index is out
+ * @return
+ * Static pointer, data not to be freed, to a rte_codec_info
+ * structure. @c NULL if the @a context is invalid or the @a index is out
  * of bounds.
- **/
+ */
 rte_codec_info *
-rte_codec_info_enum(rte_context *context, int index)
+rte_codec_info_enum(rte_context *context, unsigned int index)
 {
 	nullcheck(context, return NULL);
 	rte_error_reset(context);
@@ -57,21 +53,19 @@ rte_codec_info_enum(rte_context *context, int index)
 }
 
 /**
- * rte_codec_info_keyword:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @keyword: Codec identifier as in #rte_codec_info,
- *   rte_codec_get() or rte_codec_set().
+ * @param context Initialized rte_context as returned by rte_context_new().
+ * @param keyword Codec identifier as in rte_codec_info,
+ *   rte_set_codec() or rte_get_codec().
  * 
  * Similar to rte_codec_enum(), but this function attempts to find a
  * codec by keyword.
  * 
- * Return value:
- * Static pointer to a #rte_codec_info structure, %NULL if the
- * context is invalid or the named codec has not been found.
- **/
+ * @return
+ * Static pointer to a rte_codec_info structure, @c NULL if the
+ * @a context is invalid or the named codec has not been found.
+ */
 rte_codec_info *
-rte_codec_info_keyword(rte_context *context,
-		       const char *keyword)
+rte_codec_info_by_keyword(rte_context *context, const char *keyword)
 {
 	rte_codec_info *ci;
 	int i, keylen;
@@ -96,116 +90,32 @@ rte_codec_info_keyword(rte_context *context,
 }
 
 /**
- * rte_codec_info_codec:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
  *
- * Returns the codec info for the given @codec.
+ * Returns the codec info for the given @a codec.
  *
- * Return value:
- * Static pointer to a #rte_codec_info structure, %NULL if the
- * @codec is %NULL.
- **/
+ * @return
+ * Static pointer to a rte_codec_info structure, @c NULL if the
+ * @a codec is @c NULL.
+ */
 rte_codec_info *
-rte_codec_info_codec(rte_codec *codec)
+rte_codec_info_by_codec(rte_codec *codec)
 {
 	rte_context *context = NULL;
 
 	nullcheck(codec, return NULL);
 
-	return &dc->public;
+	return &dc->_public;
 }
 
 /**
- * rte_codec_set:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @keyword: Codec identifier as in #rte_codec_info.
- * @stream_index: Elementary stream number.
- * @user_data: Pointer stored in the codec, can be retrieved
- *   with rte_codec_user_data().
- * 
- * Assigns the codec to encode data for the elementary stream of the
- * codec's type and @stream_index of this @context. The stream number refers
- * for example to one of the 16 video or 32 audio streams in a MPEG-1 program
- * stream. The required and permitted number of elementary streams of each
- * type is available from #rte_context_info. The first and default stream has
- * index number 0. Naturally a context needs at least one elementary stream.
- * When you already selected a codec for this stream it will be replaced.
- * All properties of the new codec instance are reset to their defaults.
- *
- * <example><title>Possible mp1e backend initialization (error checks omitted)
- * </title><programlisting>
- * context = rte_context_new("mp1e_mpeg1_ps", NULL, NULL);  // MPEG-1 Program stream
- * rte_codec_set(context, "mp1e_mpeg1_video", 0, NULL);     // MPEG-1 Video (first elementary)
- * rte_codec_set(context, "mp1e_mpeg2_layer2", 0, NULL);    // MPEG-2 Audio (first elementary)
- * rte_codec_set(context, "mp1e_mpeg1_layer2", 1, NULL);    // MPEG-1 Audio (second elementary)
- * </programlisting></example>
- * 
- * As a special service you can set <emphasis>codec</> options
- * by appending to the keyword like this:
- * 
- * <informalexample><programlisting>
- * rte_codec_set(context, 0, "mp1e_mpeg2_layer_2; bit_rate=128000, comment=\"example\"");
- * </programlisting></informalexample>
- * 
- * Return value: 
- * Static pointer, data not to be freed, to an opaque #rte_codec object.
- * On error %NULL is returned, which may be caused by invalid parameters, an
- * unknown @codec_keyword, a stream type of the codec not suitable for the
- * context or an invalid option string. See also rte_errstr(). 
- **/
-rte_codec *
-rte_codec_set(rte_context *context, const char *keyword,
-	      int stream_index, void *user_data)
-{
-	char key[256];
-	rte_codec *codec;
-	int keylen;
-
-	nullcheck(context, return NULL);
-	rte_error_reset(context);
-
-	nullcheck(keyword, return NULL);
-
-	for (keylen = 0; keyword[keylen] && keylen < (sizeof(key) - 1)
-	     && keyword[keylen] != ';' && keyword[keylen] != ','; keylen++)
-	     key[keylen] = keyword[keylen];
-	key[keylen] = 0;
-
-	assert(xc->codec_set != NULL);
-
-	codec = xc->codec_set(context, key, 0, stream_index);
-
-	if (codec) {
-		codec->user_data = user_data;
-
-		if (keyword[keylen] && !rte_option_string(
-			context, codec, keyword + keylen + 1)) {
-			xc->codec_set(context, NULL,
-				      codec->class->public.stream_type,
-				      codec->stream_index);
-			codec = NULL;
-		}
-	}
-
-	return codec;
-}
-
-/*
- *  Removed rte_codec_set_user_data because when we set only
- *  at rte_codec_set() we can save codec->mutex locking on
- *  every access. Then again this whole locking business
- *  sucks, removed.
- */
-
-/**
- * rte_codec_user_data:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
  * 
  * Retrieves the pointer stored in the user data field of the codec.
  * 
- * Return value:
+ * @return
  * User pointer.
- **/
+ */
 void *
 rte_codec_user_data(rte_codec *codec)
 {
@@ -216,102 +126,23 @@ rte_codec_user_data(rte_codec *codec)
 	return codec->user_data;
 }
 
-/**
- * rte_codec_remove:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @stream_type: RTE_STREAM_VIDEO, RTE_STREAM_AUDIO, ...
- * @stream_index: Elementary stream number.
- * 
- * Removes the codec previously assigned with rte_codec_set() to encode
- * the respective elementary stream type and number.
- **/
-void
-rte_codec_remove(rte_context *context,
-		 rte_stream_type stream_type,
-		 int stream_index)
-{
-	nullcheck(context, return);
-	rte_error_reset(context);
-
-	assert(xc->codec_set != NULL);
-
-	xc->codec_set(context, NULL, stream_type, stream_index);
-}
-
-/**
- * rte_codec_remove_codec:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * 
- * Similar to rte_codec_remove(), but this function removes the
- * @codec from the stream type and number it has been assigned to.
- **/
-void
-rte_codec_remove_codec(rte_codec *codec)
-{
-	rte_context *context = NULL;
-
-	nullcheck(codec, return);
-
-	context = codec->context;
-	rte_error_reset(context);
-
-	assert(xc->codec_set != NULL);
-
-	xc->codec_set(context, NULL,
-		      codec->class->public.stream_type,
-		      codec->stream_index);
-}
-
-/**
- * rte_codec_get:
- * @context: Initialized #rte_context as returned by rte_context_new().
- * @stream_type: RTE_STREAM_VIDEO, RTE_STREAM_AUDIO, ...
- * @stream_index: Elementary stream number.
- *
- * Returns a pointer to the #rte_codec assigned with rte_codec_set()
- * to encode this elementary stream. This is the same pointer
- * rte_codec_set() returns.
- *
- * Return value:
- * Static pointer to an opaque #rte_codec object, %NULL if no
- * codec has been assigned or the codec has been removed with
- * rte_codec_remove().
- **/
-rte_codec *
-rte_codec_get(rte_context *context,
-	      rte_stream_type stream_type,
-	      int stream_index)
-{
-	rte_codec *codec;
-
-	nullcheck(context, return NULL);
-	rte_error_reset(context);
-
-	assert(xc->codec_get != NULL);
-
-	codec = xc->codec_get(context, stream_type, stream_index);
-
-	return codec;
-}
-
 /*
  *  Options
  */
 
 /**
- * rte_codec_option_info_enum:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @index: Index into the option table.
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param index Index into the option table.
  * 
- * Enumerates the options available of the given codec.
+ * Enumerates the options available for the given @a codec.
  * You should start at index 0, incrementing by one.
  *
- * Return value:
- * Static pointer, data not to be freed, to a #rte_option_info
- * structure. %NULL if the @index is out of bounds.
- **/
+ * @return
+ * Static pointer, data not to be freed, to a rte_option_info
+ * structure. @c NULL if the @a index is out of bounds.
+ */
 rte_option_info *
-rte_codec_option_info_enum(rte_codec *codec, int index)
+rte_codec_option_info_enum(rte_codec *codec, unsigned int index)
 {
 	rte_context *context = NULL;
 
@@ -329,22 +160,21 @@ rte_codec_option_info_enum(rte_codec *codec, int index)
 }
 
 /**
- * rte_codec_option_info_keyword:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @keyword: Keyword identifying the option as in #rte_option_info.
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param keyword Keyword identifying the option as in rte_option_info.
  * 
  * Similar to rte_codec_option_info_enum() but this function tries
  * to find the option info by keyword.
  * 
- * Return value:
- * Static pointer to a #rte_option_info structure, %NULL if
- * the keyword was not found.
- **/
+ * @return
+ * Static pointer to a rte_option_info structure, @c NULL if
+ * the @a keyword was not found.
+ */
 rte_option_info *
-rte_codec_option_info_keyword(rte_codec *codec, const char *keyword)
+rte_codec_option_info_by_keyword(rte_codec *codec, const char *keyword)
 {
 	rte_context *context = NULL;
-	rte_option_info *(* enumerate)(rte_codec *, int);
+	rte_option_info *(* enumerate)(rte_codec *, unsigned int);
 	rte_option_info *oi;
 	int i;
 
@@ -370,18 +200,17 @@ rte_codec_option_info_keyword(rte_codec *codec, const char *keyword)
 }
 
 /**
- * rte_codec_option_get:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @keyword: Keyword identifying the option as in #rte_option_info.
- * @value: A place to store the option value.
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param keyword Keyword identifying the option as in rte_option_info.
+ * @param value A place to store the option value.
  * 
  * This function queries the current value of the option. When the
- * option is a string, you must free() @value.str when not longer
+ * option is a string, you must free() @a value.str when not longer
  * needed.
  *
- * Return value:
- * %TRUE on success, otherwise @value remained unchanged.
- **/
+ * @return
+ * @c TRUE on success, otherwise @a value remained unchanged.
+ */
 rte_bool
 rte_codec_option_get(rte_codec *codec, const char *keyword,
 		     rte_option_value *value)
@@ -414,26 +243,26 @@ rte_codec_option_get(rte_codec *codec, const char *keyword,
 }
 
 /**
- * rte_codec_option_set:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @keyword: Keyword identifying the option as in #rte_option_info.
- * @Varargs: New value to set.
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param keyword Keyword identifying the option as in rte_option_info.
+ * @param Varargs New value to set.
  * 
  * Sets the value of the option. Make sure you are casting the
  * value to the correct type (int, double, char *).
  * 
  * Typical usage is:
- * <informalexample><programlisting>
- * rte_codec_option_set(codec, "frame_rate", (double) 3.141592);
- * </programlisting></informalexample>
+ *
+ * @code
+ * rte_codec_option_set (codec, "frame_rate", (double) 3.141592);
+ * @endcode
  * 
- * Note setting an option invalidates prior sample parameter
- * negotiation with rte_codec_set_parameters(), so you should
+ * Note setting an option invalidates prior input stream parameter
+ * negotiation with rte_parameters_set(), so you should
  * initialize the codec options first.
  * 
- * Return value:
- * %TRUE on success.
- **/
+ * @return
+ * @c TRUE on success.
+ */
 rte_bool
 rte_codec_option_set(rte_codec *codec, const char *keyword, ...)
 {
@@ -468,10 +297,9 @@ rte_codec_option_set(rte_codec *codec, const char *keyword, ...)
 }
 
 /**
- * rte_codec_option_print:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @keyword: Keyword identifying the option as in #rte_option_info.
- * @Varargs: Option value.
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param keyword Keyword identifying the option as in rte_option_info.
+ * @param Varargs Option value.
  *
  * Return a string representation of the option value. When for example
  * the option is a memory size, a value of 2048 may result in a string
@@ -479,9 +307,9 @@ rte_codec_option_set(rte_codec *codec, const char *keyword, ...)
  * (int, double, char *). You must free() the returned string when
  * no longer needed.
  *
- * Return value:
- * String pointer or %NULL on failure.
- **/
+ * @return
+ * String pointer or @c NULL on failure.
+ */
 char *
 rte_codec_option_print(rte_codec *codec, const char *keyword, ...)
 {
@@ -516,19 +344,18 @@ rte_codec_option_print(rte_codec *codec, const char *keyword, ...)
 }
 
 /**
- * rte_codec_option_menu_get:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @keyword: Keyword identifying the option as in #rte_option_info.
- * @entry: A place to store the current menu entry.
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param keyword Keyword identifying the option as in rte_option_info.
+ * @param entry A place to store the current menu entry.
  * 
  * Similar to rte_codec_option_get() this function queries the current
  * value of the named option, but returns this value as number of the
  * corresponding menu entry. Naturally this must be an option with
  * menu or the function will fail.
  * 
- * Return value: 
- * %TRUE on success, otherwise @value remained unchanged.
- **/
+ * @return 
+ * @c TRUE on success, otherwise @a value remained unchanged.
+ */
 rte_bool
 rte_codec_option_menu_get(rte_codec *codec, const char *keyword, int *entry)
 {
@@ -545,7 +372,7 @@ rte_codec_option_menu_get(rte_codec *codec, const char *keyword, int *entry)
 
 	nullcheck(entry, return FALSE);
 
-	if (!(oi = rte_codec_option_info_keyword(codec, keyword)))
+	if (!(oi = rte_codec_option_info_by_keyword(codec, keyword)))
 		return FALSE;
 
 	if (!rte_codec_option_get(codec, keyword, &val))
@@ -588,10 +415,9 @@ rte_codec_option_menu_get(rte_codec *codec, const char *keyword, int *entry)
 }
 
 /**
- * rte_codec_option_menu_set:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @keyword: Keyword identifying the option as in #rte_option_info.
- * @entry: Menu entry to be selected.
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param keyword Keyword identifying the option as in rte_option_info.
+ * @param entry Menu entry to be selected.
  * 
  * Similar to rte_codec_option_set() this function sets the value of
  * the named option, however it does so by number of the corresponding
@@ -599,12 +425,12 @@ rte_codec_option_menu_get(rte_codec *codec, const char *keyword, int *entry)
  * function will fail.
  * 
  * Note setting an option invalidates prior sample parameter
- * negotiation with rte_codec_set_parameters(), so you should
+ * negotiation with rte_parameters_set(), so you should
  * initialize the codec options first.
  *
- * Return value: 
- * %TRUE on success, otherwise the option is not changed.
- **/
+ * @return 
+ * @c TRUE on success, otherwise the option is not changed.
+ */
 rte_bool
 rte_codec_option_menu_set(rte_codec *codec, const char *keyword, int entry)
 {
@@ -613,7 +439,7 @@ rte_codec_option_menu_set(rte_codec *codec, const char *keyword, int entry)
 
 	nullcheck(codec, return FALSE);
 
-	if (!(oi = rte_codec_option_info_keyword(codec, keyword)))
+	if (!(oi = rte_codec_option_info_by_keyword(codec, keyword)))
 		return FALSE;
 
 	if (entry < oi->min.num || entry > oi->max.num)
@@ -644,15 +470,14 @@ rte_codec_option_menu_set(rte_codec *codec, const char *keyword, int entry)
 }
 
 /**
- * rte_codec_options_reset:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
  * 
  * Resets all options of the codec to their respective default, that
- * is the value they have after calling rte_codec_set().
+ * is the value they have after calling rte_set_codec().
  * 
- * Return value: 
- * %TRUE on success, otherwise some options may be reset and some not.
- **/
+ * @return 
+ * @c TRUE on success, on failure not all options may be reset.
+ */
 rte_bool
 rte_codec_options_reset(rte_codec *codec)
 {
@@ -712,67 +537,69 @@ rte_codec_options_reset(rte_codec *codec)
  */
 
 /**
- * rte_codec_parameters_set:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @params: Parameters describing the source data.
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param params Parameters describing the source data.
  * 
  * This function is used to negotiate the source data parameters such
- * as image width and height or audio sampling frequency. The @params
+ * as image width and height or audio sampling frequency. The @a params
  * structure must be cleared before calling this function, you can
  * propose parameters by setting the respective fields. On return all
  * fields will be set to the nearest possible value, for example
  * the image width and height rounded to a multiple of 16. The cycle
  * can repeat until a suitable set of parameters has been negotiated.
  *
- * <example><title>Typical usage of rte_codec_parameters_set()</title>
- * <programlisting>
+ * Typical usage of rte_parameters_set():
+ *
+ * @code
  * rte_stream_parameters params;
- * &nbsp;
- * memset(&amp;params, 0, sizeof(params));
- * &nbsp;
+ * 
+ * memset (&params, 0, sizeof(params));
+ * 
  * params.video.pixfmt = RTE_PIXFMT_YUYV;
  * params.video.frame_rate = 24.0;
  * params.video.width = 384;
  * params.video.height = 288;
- * &nbsp;
- * rte_codec_parameters_set(video_codec, &amp;params);
- * </programlisting></example> 
+ * 
+ * rte_parameters_set (video_codec, &params);
+ * @endcode
  *
  * When the codec supports clipping, scaling and resampling
- * you can do it this:
+ * you can do this:
  *
- * <example><title>Video clipping</title>
- * <programlisting>
- * rte_codec_option_set(video_codec, "width", dest_x1 - dest_x0 + 1);
- * rte_codec_option_set(video_codec, "height", dest_y1 - dest_y0 + 1);
- * &nbsp;
+ * Video clipping:
+ * @code
+ * rte_codec_option_set (video_codec, "width", dest_x1 - dest_x0 + 1);
+ * rte_codec_option_set (video_codec, "height", dest_y1 - dest_y0 + 1);
+ *
  * params.video.stride = source_y1 - source_y0 + 1;
  * params.video.offset = dest_x0 + dest_y0 * params.video.stride;
  * params.video.width  = dest_x1 - dest_x0 + 1;
  * params.video.height = dest_y1 - dest_y0 + 1;
- * </programlisting></example> 
- * <example><title>Video scaling</title>
- * <programlisting>
- * rte_codec_option_set(video_codec, "width", dest_x1 - dest_x0 + 1);
- * rte_codec_option_set(video_codec, "height", dest_y1 - dest_y0 + 1);
- * &nbsp;
+ * @endcode
+ *
+ * Video scaling:
+ * @code
+ * rte_codec_option_set (video_codec, "width", dest_x1 - dest_x0 + 1);
+ * rte_codec_option_set (video_codec, "height", dest_y1 - dest_y0 + 1);
+ *
  * params.video.stride = source_y1 - source_y0 + 1;
  * params.video.offset = 0;
  * params.video.width  = source_x1 - source_x0 + 1;
  * params.video.height = source_y1 - source_y0 + 1;
- * </programlisting></example> 
- * <example><title>Audio resampling</title>
- * <programlisting>
- * rte_codec_option_set(audio_codec, "sampling_rate", 44100.0);
- * &nbsp;
- * params.audio.sampling_rate = 32000.0;
- * </programlisting></example>
+ * @endcode
  *
- * Return value:
- * %FALSE if the parameters are somehow ambiguous.
- **/
+ * Audio resampling:
+ * @code
+ * rte_codec_option_set (audio_codec, "sampling_freq", 44100.0);
+ *
+ * params.audio.sampling_freq = 32000.0;
+ * @endcode
+ *
+ * @return
+ * @c FALSE if the parameters are somehow ambiguous.
+ */
 rte_bool
-rte_codec_parameters_set(rte_codec *codec, rte_stream_parameters *params)
+rte_parameters_set(rte_codec *codec, rte_stream_parameters *params)
 {
 	rte_context *context = NULL;
 	rte_bool r = FALSE;
@@ -795,17 +622,16 @@ rte_codec_parameters_set(rte_codec *codec, rte_stream_parameters *params)
 }
 
 /**
- * rte_codec_parameters_get:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @params: Parameters describing the source data.
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param params Parameters describing the source data.
  *
  * Query the negotiated data parameters.
  *
- * Return value:
- * %FALSE if no parameters have been negotiated.
- **/
+ * @return
+ * @c FALSE if no parameters have been negotiated.
+ */
 rte_bool
-rte_codec_parameters_get(rte_codec *codec, rte_stream_parameters *params)
+rte_parameters_get(rte_codec *codec, rte_stream_parameters *params)
 {
 	rte_context *context = NULL;
 	rte_bool r;
@@ -833,68 +659,337 @@ rte_codec_parameters_get(rte_codec *codec, rte_stream_parameters *params)
 	return r;
 }
 
-#if 0 /* obsolete */
-
-/*
- *  Status
+/**
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param read_cb Function called by the codec to read more data to encode.
+ * @param unref_cb Optional function called by the codec to free the data.
+ * @param queue_length When non-zero, the codec queue length is returned here. That
+ *   is the maximum number of buffers read before freeing the oldest.
+ *   When for example @a read_cb and @a unref_cb calls always pair, this number
+ *   is 1.
+ *
+ * Sets the input mode for the codec and puts the codec into ready state.
+ * Using this method, when the @a codec needs more data it will call @a read_cb
+ * with a rte_buffer to be initialized by the rte client. After using the
+ * data, it is released by calling @a unref_cb. See rte_buffer_callback for
+ * the handshake details.
+ *
+ * @warning A codec may read more than once before freeing the data, and it
+ * may also free the data in a different order than it has been read. As of
+ * RTE version 0.5, this is <b>the only input method all codecs must implement</b>.
+ *
+ * Typical usage of rte_set_input_callback_master():
+ * @code
+ * rte_bool
+ * my_read_cb (rte_context *context, rte_codec *codec, rte_buffer *buffer)
+ * {
+ *         buffer->data = malloc ();
+ *         read (buffer->data, &buffer->timestamp);
+ *         return TRUE;
+ * }
+ * 
+ * rte_bool
+ * my_unref_cb (rte_context *context, rte_codec *codec, rte_buffer *buffer)
+ * {
+ *         free (buffer->data);
+ * }
+ * @endcode
+ *
+ * @return
+ * Before selecting an input method you must negotiate sample parameters with
+ * rte_parameters_set(), else this function fails with a return value
+ * of @c FALSE. Setting codec options invalidates previously selected sample
+ * parameters, and thus also the input method selection. The function can
+ * also fail when the codec does not support this input method.
  */
-
-/**
- * rte_codec_status_enum:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @n: Status token index.
- *
- * Enumerates available status statistics for the codec, starting
- * from 0.
- *
- * Return value: A rte_status_info object that you should free with
- * rte_status_free(), or %NULL if the index is out of bounds.
- **/
-rte_status_info *
-rte_codec_status_enum(rte_codec *codec, int n)
+rte_bool
+rte_set_input_callback_master(rte_codec *codec,
+			      rte_buffer_callback read_cb,
+			      rte_buffer_callback unref_cb,
+			      unsigned int *queue_length)
 {
 	rte_context *context = NULL;
+	rte_bool r = FALSE;
+	int ql = 0;
 
-	nullcheck(codec, return NULL);
+	nullcheck(codec, return FALSE);
 
 	context = codec->context;
 	rte_error_reset(context);
 
-	nullcheck(dc->status_enum, return NULL);
+	nullcheck(read_cb, return FALSE);
 
-	return dc->status_enum(codec, n);
+	if (!queue_length)
+		queue_length = &ql;
+
+	if (xc->set_input)
+		r = xc->set_input(codec, RTE_CALLBACK_MASTER,
+				  read_cb, unref_cb, queue_length);
+	else if (dc->set_input)
+		r = dc->set_input(codec, RTE_CALLBACK_MASTER,
+				  read_cb, unref_cb, queue_length);
+	else
+		assert(!"codec bug");
+
+	if (r) {
+		codec->input_method = RTE_CALLBACK_MASTER;
+		codec->input_fd = -1;
+	}
+
+	return r;
 }
 
 /**
- * rte_codec_status_keyword:
- * @codec: Pointer to a #rte_codec returned by rte_codec_get() or rte_codec_set().
- * @keyword: Status token keyword.
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param read_cb Function called by the codec to read more data to encode.
  *
- * Tries to find the status token by keyword.
+ * Sets the input mode for the codec and puts the codec into ready state.
+ * Using this method the codec allocates the necessary buffers. When it
+ * needs more data it calls @a data_cb, passing a pointer to the buffer
+ * space where the client shall copy the data.
  *
- * Return value: A rte_status object that you should free with
- * rte_status_free(), or %NULL if @keyword couldn't be found.
- **/
-rte_status_info *
-rte_codec_status_keyword(rte_codec *codec, const char *keyword)
+ * Typical usage of rte_set_input_callback_slave():
+ * @code
+ * rte_bool
+ * my_read_cb (rte_context *context, rte_codec *codec, rte_buffer *buffer)
+ * {
+ *         read (buffer->data, &buffer->timestamp);
+ *         return TRUE;
+ * }
+ * @endcode
+ *
+ * @return
+ * Before selecting an input method you must negotiate sample parameters with
+ * rte_parameters_set(), else this function fails with a return value
+ * of @c FALSE. Setting codec options invalidates previously selected sample
+ * parameters, and thus also the input method selection. The function can
+ * also fail when the codec does not support this input method.
+ */
+rte_bool
+rte_set_input_callback_slave(rte_codec *codec,
+			       rte_buffer_callback read_cb)
 {
 	rte_context *context = NULL;
-	rte_status_info *si;
-	int i;
+	rte_bool r = FALSE;
+	int ql = 0;
 
-	nullcheck(codec, return NULL);
+	nullcheck(codec, return FALSE);
 
 	context = codec->context;
 	rte_error_reset(context);
 
-	nullcheck(dc->status_enum, return NULL);
+	nullcheck(read_cb, return FALSE);
 
-	for (i = 0;; i++)
-	        if (!(si = dc->status_enum(codec, i))
-		    || strcmp(keyword, si->keyword) == 0)
-			break;
+	if (xc->set_input)
+		r = xc->set_input(codec, RTE_CALLBACK_SLAVE, read_cb, NULL, &ql);
+	else if (dc->set_input)
+		r = dc->set_input(codec, RTE_CALLBACK_SLAVE, read_cb, NULL, &ql);
+	else
+		assert(!"codec bug");
 
-	return si;
+	if (r) {
+		codec->input_method = RTE_CALLBACK_SLAVE;
+		codec->input_fd = -1;
+	}
+
+	return r;
 }
 
-#endif
+/**
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param unref_cb Optional function called as subroutine of rte_push_buffer()
+ *   to free the data.
+ * @param queue_request The minimum number of buffers you will be able to push before
+ *   rte_push_buffer() blocks.
+ * @param queue_length When non-zero the codec queue length is returned here. This is
+ *   at least the number of buffers read before freeing the oldest, and at most
+ *   @a queue_request. When for example rte_push_buffer() and @a unref_cb calls
+ *   always pair, the length is 1.
+ *
+ * Sets the input mode for the codec and puts the codec into ready state.
+ * Using this method, when the codec needs data it waits until the rte client
+ * calls rte_push_buffer(). After using the data, it is released by calling
+ * @a unref_cb. See rte_buffer_callback for the handshake details.
+ *
+ * @warning A codec may wait for more than one buffer before releasing the
+ * oldest, it may also unref in a different order than has been pushed.
+ *
+ * Typical usage of rte_set_input_push_master():
+ * @code
+ * rte_bool
+ * my_unref_cb (rte_context *context, rte_codec *codec, rte_buffer *buffer)
+ * {
+ *         free (buffer->data);
+ * }
+ * 
+ * while (have_data) {
+ *         rte_buffer buffer;
+ * 
+ * 	   buffer.data = malloc ();
+ *         read (buffer.data, &buffer.timestamp);
+ *         if (!rte_push_buffer (codec, &buffer, FALSE)) {
+ *                 // The codec is not fast enough, we drop the frame.
+ *                 free (buffer.data);
+ *         }
+ * }
+ * @endcode
+ *
+ * @return
+ * Before selecting an input method you must negotiate sample parameters with
+ * rte_parameters_set(), else this function fails with a return value
+ * of @c FALSE. Setting codec options invalidates previously selected sample
+ * parameters, and thus also the input method selection. The function can
+ * also fail when the codec does not support this input method.
+ */
+rte_bool
+rte_set_input_push_master(rte_codec *codec,
+			  rte_buffer_callback unref_cb,
+			  unsigned int queue_request,
+			  unsigned int *queue_length)
+{
+	rte_context *context = NULL;
+	rte_bool r = FALSE;
+
+	nullcheck(codec, return FALSE);
+
+	context = codec->context;
+	rte_error_reset(context);
+
+	if (!queue_length)
+		queue_length = &queue_request;
+	else
+		*queue_length = queue_request;
+
+	if (xc->set_input)
+		r = xc->set_input(codec, RTE_PUSH_MASTER,
+				  NULL, unref_cb, queue_length);
+	else if (dc->set_input)
+		r = dc->set_input(codec, RTE_PUSH_MASTER,
+				  NULL, unref_cb, queue_length);
+	else
+		assert(!"codec bug");
+
+	if (r) {
+		codec->input_method = RTE_PUSH_MASTER;
+		codec->input_fd = -1;
+	}
+
+	return r;
+}
+
+/**
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param queue_request The minimum number of buffers you will be able to push before
+ *   rte_push_buffer() blocks.
+ * @param queue_length When non-zero the actual codec queue length is returned here,
+ *   this may be more or less than @a queue_request.
+ *
+ * Sets the input mode for the codec and puts the codec into ready state.
+ * Using this method the codec allocates the necessary buffers. When it needs more
+ * data it waits until the rte client calls rte_push_buffer(). In buffer->data
+ * this function always returns a pointer to buffer space where the rte client
+ * shall store the data. You can pass @c NULL as buffer->data to start the cycle.
+ *
+ * Typical usage of rte_set_input_push_slave():
+ * @code
+ * rte_buffer buffer;
+ * 
+ * buffer.data = NULL;
+ *
+ * rte_push_buffer (codec, &buffer, FALSE); // cannot fail
+ * 
+ * while (have_data) {
+ *         read (buffer.data, &buffer.timestamp);
+ *         if (!rte_push_buffer(codec, &buffer, FALSE)) {
+ *         // The codec is not fast enough, we drop the frame.
+ *         }
+ * }
+ * @endcode
+ *
+ * @return
+ * Before selecting an input method you must negotiate sample parameters with
+ * rte_parameters_set(), else this function fails with a return value
+ * of @c FALSE. Setting codec options invalidates previously selected sample
+ * parameters, and thus also the input method selection. The function can
+ * also fail when the codec does not support this input method.
+ */
+rte_bool
+rte_set_input_push_slave(rte_codec *codec,
+			   unsigned int queue_request,
+			   unsigned int *queue_length)
+{
+	rte_context *context = NULL;
+	rte_bool r = FALSE;
+
+	nullcheck(codec, return FALSE);
+
+	context = codec->context;
+	rte_error_reset(context);
+
+	if (!queue_length)
+		queue_length = &queue_request;
+	else
+		*queue_length = queue_request;
+
+	if (xc->set_input)
+		r = xc->set_input(codec, RTE_PUSH_SLAVE,
+				  NULL, NULL, queue_length);
+	else if (dc->set_input)
+		r = dc->set_input(codec, RTE_PUSH_SLAVE,
+				  NULL, NULL, queue_length);
+	else
+		assert(!"codec bug");
+
+	if (r) {
+		codec->input_method = RTE_PUSH_SLAVE;
+		codec->input_fd = -1;
+	}
+
+	return r;
+}
+
+/**
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param buffer Pointer to a rte_buffer, can be @c NULL.
+ * @param blocking @c TRUE to enable blocking behaviour.
+ * 
+ * Passes data for encoding to the codec when the input method is 'push'.
+ * When the codec input queue is full and @a blocking is @c TRUE this function waits
+ * until space becomes available, when @a blocking is @c FALSE it immediately
+ * returns @c FALSE.
+ *
+ * @return
+ * @c FALSE if the function would block. In master push mode and when the function
+ * fails, the contents of @a buffer are unmodified on return. Otherwise in
+ * slave push mode, buffer->data points to the next buffer space to be filled.
+ * You can always obtain a pointer by calling rte_push_buffer() with buffer->data
+ * set to @c NULL, in master push mode this does nothing.
+ */
+rte_bool
+rte_push_buffer(rte_codec *codec, rte_buffer *buffer, rte_bool blocking)
+{
+	rte_context *context = NULL;
+
+	nullcheck(codec, return FALSE);
+
+	context = codec->context;
+	rte_error_reset(context);
+
+	if (xc->push_buffer)
+		return xc->push_buffer(codec, buffer, blocking);
+	else if (dc->push_buffer)
+		return dc->push_buffer(codec, buffer, blocking);
+	else
+		return FALSE;
+}
+
+/**
+ * @param codec Pointer to a rte_codec returned by rte_get_codec() or rte_set_codec().
+ * @param status Status structure to be filled.
+ * 
+ * Fill a rte_status structure with information about the encoding
+ * process. Data applies to this particular codec, not the context as a whole.
+ * @see rte_context_status().
+ */
+static_inline void
+rte_codec_status(rte_codec *codec, rte_status *status);
