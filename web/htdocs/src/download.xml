@@ -4,13 +4,21 @@ title -> head
 abstract -> short text that describes the page (for themes that support it)
 -->
 <document title="Downloading" abstract="Downloading">
-<header>Requirements</header>
-There are some requirements for running Zapping:
+<header>Requirements for running Zapping</header>
 <ul>
-<li>V4L, V4L2 or XVideo support for your card</li>
+<li>V4L, V4L2 or XVideo support for your TV card</li>
 <li>A working Gnome desktop, with the common libraries</li>
-<li>libunicode >= 0.4</li>
+<li>libunicode version 0.4 or later</li>
+<li>The remote control plugin (alirc incarnation) needs the LIRC (Linux
+Infrared Remote Control) package. If not already part of your
+distribution you can download LIRC from <a
+href="http://www.lirc.org">http://www.lirc.org</a>.</li>
+<li>The mpeg plugin needs the <b>rte library</b>, available from
+the <a href="http://sourceforge.net/project/showfiles.php?group_id=2599">
+Zapping dowload page</a>. You need not download <b>mp1e</b> or <b>tveng</b>,
+as these are already included in the rte library and Zapping, respectively.</li>
 </ul>
+<header>RPM packages</header>
 The precompiled RPM packages I distribute are built in a SuSE 7.2 system with
 all the extra packages installed. If you want to build your own packages, you
 can run the script named '<i>prepare_dist.sh</i>' that comes with the zapping
@@ -24,13 +32,10 @@ if you are interested, please <a href="mailto:garetxe@users.sf.net">mail
 me</a>. Everything you need to do is to type the lines above and send me the
 resulting package.
 <p>
-If you have some required dependency missing, a good way to install
-them easily is getting a <a href="http://www.ximian.com">Ximian</a>
-GNOME desktop, following <a
-href="http://www.ximian.com/gethelix.php3">this link</a>.
-</p>
-<p>
-Alternatively, if you have an RPM based distro, you can look for the
+If some package dependency cannot be solved, a good way to install
+the missing packages is to <a href="http://www.ximian.com/gethelix.php3">
+fetch</a> a <a href="http://www.ximian.com">Ximian</a> GNOME desktop.
+If you have an RPM based distro, you can alternatively look for the
 packages using <a href="http://www.rpmfind.net">RPMFIND</a>. Debian
 users can get the debian packages from <a
 href="http://packages.debian.org/testing/graphics/zapping.html">testing</a>
@@ -38,56 +43,48 @@ and <a
 href="http://packages.debian.org/unstable/graphics/zapping.html">unstable</a>,
 both maintained by Christian Marillat.
 </p>
+<header>Compiling Zapping</header>
 <p>
-If you want to compile it, make sure you have the appropiate development
+If you want to compile Zapping yourself, make sure you have the appropiate development
 packages installed. For example, if compiling complains about AM_PATH_LIBGLADE,
 make sure you have libglade-devel correctly installed.
 </p>
+<header>Downloading via HTTP</header>
 <p>
-The remote control plugin (alirc incarnation) needs the LIRC (Linux
-Infrared Remote Control) package. If not already part of your
-distribution you can download LIRC from <a
-href="http://www.lirc.org">http://www.lirc.org</a>.
+You can download the latest version of Zapping from the
+<a href="http://sourceforge.net/projects/zapping">SourceForge project page</a>,
+or all files released by this project from the
+<a href="http://sourceforge.net/project/showfiles.php?group_id=2599">dowload page</a>.
 </p>
-<p>
-The mpeg plugin needs the library <b>RTE</b>, you can get it from the same
-place you get Zapping.
+<p>Due to popular demand, the code interfacing with video capture drivers (V4L, V4L2
+and XVideo) has been published as a separate package. The module called <b>tveng</b>
+is also available from the <a href="http://sourceforge.net/projects/zapping">project
+page.</a> The realtime MPEG-1 encoder <b>mp1e</b> the rte library is based on, is
+available as a stand-alone command line application from the same place.
 </p>
 <a name="CVS"></a>
-<header>Downloading CVS</header>
-To get the latest development version of zapping, you can access
-anonymously the cvs server. <b>Remember that there is no warranty that
-it will even compile.</b> This method is mainly for developers and people
-that want to have the very latest, probably very buggy,
-version. Use the following:
-<ol>
-<li><i>cvs -z3 -d:pserver:anonymous@cvs.zapping.sourceforge.net:/cvsroot/zapping
-login</i></li>
-<li>You will be asked for a password, just hit return.</li>
-<li><i>cvs -z3 -d:pserver:anonymous@cvs.zapping.sourceforge.net:/cvsroot/zapping
-co zapping</i>.<br></br>This will checkout the latest zapping release, from now on you can
-use:</li>
-<li><i>cvs -z3
--d:pserver:anonymous@cvs.zapping.sourceforge.net:/cvsroot/zapping
-update -P</i><br></br>to update your local copy of the repository.</li>
-</ol>
-You can also <a
-href="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/zapping">browse</a>
-the CVS repository, or get daily <a
-href="http://cvs.sourceforge.net/cvstarballs/zapping-cvsroot.tar.gz">snapshots</a>
-of the CVS tree.
-<header>Downloading HTTP</header>
-You can get the releases through HTTP, just follow <a
-href="http://sourceforge.net/project/showfiles.php?group_id=2599&amp;amp;package_id=2569">
-this link</a> and download the latest version.
+<header>Downloading via CVS</header>
 <p>
-You can also see all the releases directly from the Sourceforge
-project page <a
-href="http://sourceforge.net/project/showfiles.php?group_id=2599">here</a>.
+To get the latest development version of Zapping you can access the CVS server anonymously.
+<b>Remember that there is no warranty that it will even compile.</b> This method is mainly
+for developers and people that want to have the very latest, probably very buggy, and
+occasionally heavily bugfixed, version. Enter the following:
+<ol>
+<li><pre>cvs -z3 -d:pserver:anonymous@cvs.zapping.sf.net:/cvsroot/zapping login
+</pre>You will be asked for a password, just hit return.
+<pre></pre></li>
+<li><pre>cvs -z3 -d:pserver:anonymous@cvs.zapping.sf.net:/cvsroot/zapping co zapping
+</pre>This will check out the latest version of Zapping (or "co rte" if you want),
+from now on you can enter in your zapping (or rte) directory:
+<pre></pre></li>
+<li><pre>cvs -z3 update -dP
+</pre>to update your local copy of the CVS repository.</li>
+</ol>
 </p>
-<p>Due to popular demand, the code that manages V4L and V4L2 has been
-published as a separate package. It is the module called <b>tveng</b>,
-and it is available from the <a
-href="http://sourceforge.net/projects/zapping">Sourceforge
-project page</a>.</p>
+<p>
+You can also <a href="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/zapping">browse</a>
+the CVS repository, or download this daily updated snapshot of the CVS tree <a
+href="http://cvs.sourceforge.net/cvstarballs/zapping-cvsroot.tar.gz">
+zapping-cvsroot.tar.gz</a>.
+</p>
 </document>
