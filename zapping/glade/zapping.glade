@@ -949,6 +949,20 @@
 
 	<widget>
 	  <class>GtkCheckButton</class>
+	  <name>checkbutton13</name>
+	  <can_focus>True</can_focus>
+	  <label>Keep window on top</label>
+	  <active>False</active>
+	  <draw_indicator>True</draw_indicator>
+	  <child>
+	    <padding>0</padding>
+	    <expand>False</expand>
+	    <fill>False</fill>
+	  </child>
+	</widget>
+
+	<widget>
+	  <class>GtkCheckButton</class>
 	  <name>checkbutton4</name>
 	  <can_focus>True</can_focus>
 	  <label>Resize using fixed increments</label>
