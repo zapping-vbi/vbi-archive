@@ -26,6 +26,7 @@
 #include "mpegvideo.h"
 
 //#define ABS(a) ((a)>0 ? (a) : -(a))
+#undef MAX
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define INTER_BIAS	257
 

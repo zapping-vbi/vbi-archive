@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: codec.h,v 1.9 2002-10-02 20:58:49 mschimek Exp $ */
+/* $Id: codec.h,v 1.10 2002-12-25 09:44:14 mschimek Exp $ */
 
 #ifndef CODEC_H
 #define CODEC_H
@@ -442,6 +442,14 @@ extern rte_bool			rte_codec_options_reset(rte_codec *codec);
  */
 extern rte_bool			rte_parameters_set(rte_codec *codec, rte_stream_parameters *params);
 extern rte_bool			rte_parameters_get(rte_codec *codec, rte_stream_parameters *params);
+/** @} */
+
+/**
+ * @addtogroup Param
+ * @{
+ */
+extern rte_bool			rte_codec_parameters_set(rte_codec *codec, rte_stream_parameters *params);
+extern rte_bool			rte_codec_parameters_get(rte_codec *codec, rte_stream_parameters *params);
 /** @} */
 
 /**

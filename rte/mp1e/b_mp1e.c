@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.46 2002-12-25 03:33:02 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.47 2002-12-25 09:44:14 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -74,6 +74,11 @@ int				outFileFD;
 int				mux_syn;
 int				split_sequence = 0;
 long long			part_length = 0;
+
+#ifndef HAVE_PROGRAM_INVOCATION_NAME
+char *				program_invocation_name = "b_mp1e";
+char *				program_invocation_short_name = "b_mp1e";
+#endif
 
 void packed_preview(unsigned char *buffer, int mb_cols, int mb_rows);
 void preview_init(int *argc, char ***argv);

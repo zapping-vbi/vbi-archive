@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.10 2002-12-14 00:45:17 mschimek Exp $ */
+/* $Id: io.c,v 1.11 2002-12-25 09:44:14 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -31,6 +31,8 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
+#include <limits.h>
+#include <sys/stat.h>
 #ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
 #endif
@@ -394,7 +396,7 @@ write_cb(rte_context *context, rte_codec *codec, rte_buffer *buffer)
 }
 
 static rte_bool
-seek_cb(rte_context *context, off64_t offset, int whence)
+seek_cb(rte_context *context, long long offset, int whence)
 {
 	if (fd == STDOUT_FILENO) {
 		fprintf(stderr, "Codec needs seeking which isn't possible on stdout.\n"
@@ -402,7 +404,14 @@ seek_cb(rte_context *context, off64_t offset, int whence)
 		exit(EXIT_FAILURE);
 	}
 
+#if defined(HAVE_LARGEFILE) && defined(O_LARGEFILE)
 	lseek64(fd, offset, whence);
+#else
+	if (offset < INT_MIN || offset > INT_MAX)
+		return FALSE; 
+
+	lseek(fd, offset, whence);
+#endif
 
 	return TRUE;
 }
@@ -574,11 +583,19 @@ main(int argc, char **argv)
 	/* Start */
 
 	if (filename)
+#if defined(HAVE_LARGEFILE) && defined(O_LARGEFILE)
 		fd = open64(filename,
-			    O_CREAT | O_TRUNC | O_WRONLY | O_LARGEFILE, 0
-			    | S_IRUSR | S_IWUSR
-			    | S_IRGRP | S_IWGRP
-			    | S_IROTH | S_IWOTH);
+			    O_CREAT | O_WRONLY | O_TRUNC | O_LARGEFILE,
+			    S_IRUSR | S_IWUSR |
+			    S_IRGRP | S_IWGRP |
+			    S_IROTH | S_IWOTH);
+#else
+		fd = open(filename,
+			  O_CREAT | O_WRONLY | O_TRUNC,
+			  S_IRUSR | S_IWUSR |
+			  S_IRGRP | S_IWGRP |
+			  S_IROTH | S_IWOTH);
+#endif
 	else
 		fd = STDOUT_FILENO;
 

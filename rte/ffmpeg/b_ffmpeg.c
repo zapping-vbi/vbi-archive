@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_ffmpeg.c,v 1.15 2002-12-14 00:46:19 mschimek Exp $ */
+/* $Id: b_ffmpeg.c,v 1.16 2002-12-25 09:44:14 mschimek Exp $ */
 
 #include <limits.h>
 #include "b_ffmpeg.h"
@@ -166,6 +166,7 @@ do_video_out			(ffmpeg_context *	fx,
 	if (enc->codec_id == CODEC_ID_RAWVIDEO) {
 		assert (0);
 		/* write_picture (s, ost->index, pict, enc->pix_fmt, enc->width, enc->height); */
+		coded_size = 0;
 	} else {
 		coded_size = avcodec_encode_video (enc, fd->packet_buffer, 0, pict);
 		fx->av.format->write_packet (&fx->av, fd->stream_index, fd->packet_buffer,

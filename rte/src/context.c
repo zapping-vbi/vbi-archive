@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: context.c,v 1.12 2002-12-14 00:48:50 mschimek Exp $ */
+/* $Id: context.c,v 1.13 2002-12-25 09:44:14 mschimek Exp $ */
 
 #include "config.h"
 
@@ -1010,15 +1010,19 @@ rte_set_output_file(rte_context *context, const char *filename)
 
 	rte_error_reset(context);
 
-	fd = open(filename,
 #if defined(HAVE_LARGEFILE) && defined(O_LARGEFILE)
+	fd = open64(filename,
 		  O_CREAT | O_WRONLY | O_TRUNC | O_LARGEFILE,
-#else
-		  O_CREAT | O_WRONLY | O_TRUNC,
-#endif
 		  S_IRUSR | S_IWUSR |
 		  S_IRGRP | S_IWGRP |
 		  S_IROTH | S_IWOTH);
+#else
+	fd = open(filename,
+		  O_CREAT | O_WRONLY | O_TRUNC,
+		  S_IRUSR | S_IWUSR |
+		  S_IRGRP | S_IWGRP |
+		  S_IROTH | S_IWOTH);
+#endif
 
 	if (fd == -1) {
 		rte_error_printf(context, "Cannot create file '%s': %s.",

@@ -243,14 +243,14 @@ uninstall-am: uninstall-info-am
 	uninstall-info-am
 
 
-@HAVE_DOXYGEN_TRUE@all-local: html-build.stamp
+all-local: html-build.stamp
 
-@HAVE_DOXYGEN_TRUE@html-build.stamp: Doxyfile
+html-build.stamp: Doxyfile
 @HAVE_DOXYGEN_TRUE@	doxygen Doxyfile
-@HAVE_DOXYGEN_TRUE@	touch html-build.stamp
+	touch html-build.stamp
 
-@HAVE_DOXYGEN_TRUE@clean-local:
-@HAVE_DOXYGEN_TRUE@	rm -rf html html-build.stamp
+clean-local:
+	rm -rf html html-build.stamp
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
