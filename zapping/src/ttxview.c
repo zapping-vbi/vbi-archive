@@ -26,6 +26,7 @@
 
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#include <gdk/gdkx.h>
 
 #include "interface.h"
 #include "ttxview.h"
@@ -37,6 +38,22 @@
 #include "../common/fifo.h"
 
 extern gboolean flag_exit_program;
+
+/* targets for the clipboard */
+enum
+{
+  TARGET_STRING,
+  TARGET_PIXMAP
+};
+
+static const GtkTargetEntry clip_targets[] =
+{
+  { "STRING", 0, TARGET_STRING },
+  { "PIXMAP", 0, TARGET_PIXMAP }
+};
+
+static const gint n_clip_targets = sizeof(clip_targets) /
+sizeof(clip_targets[0]);
 
 /*
  * BUGS: No alpha yet.
@@ -74,9 +91,11 @@ typedef struct {
   gint		        ssx, ssy; /* starting positions for the
 				     selection */
   gint			osx, osy; /* old positions for the selection */
-  gchar			*clipboard_text; /* text that goes to the clipboard */
-  gchar			*primary_text; /* text that goes to the
-					  primary selection */
+  gboolean		in_clipboard; /* in the "CLIPBOARD" clipboard */
+  gboolean		in_selection; /* in the primary selection */
+  struct vt_page	clipboard_page; /* page that contains the
+					   selection */
+  gint			sel_col, sel_row, sel_width, sel_height;
 } ttxview_data;
 
 struct bookmark {
@@ -321,17 +340,15 @@ remove_ttxview_instance			(ttxview_data	*data)
 
   gdk_gc_unref(data->xor_gc);
 
-  if (data->clipboard_text)
+  if (data->in_clipboard)
     {
-      g_free(data->clipboard_text);
       if (gdk_selection_owner_get (clipboard_atom) ==
 	  data->da->window)
 	gtk_selection_owner_set (NULL, clipboard_atom,
 				 GDK_CURRENT_TIME);
     }
-  if (data->primary_text)
+  if (data->in_selection)
     {
-      g_free(data->primary_text);
       if (gdk_selection_owner_get (GDK_SELECTION_PRIMARY) ==
 	  data->da->window)
 	gtk_selection_owner_set (NULL, GDK_SELECTION_PRIMARY,
@@ -359,16 +376,13 @@ static gint selection_clear		(GtkWidget	*widget,
 					 GdkEventSelection *event,
 					 ttxview_data	*data)
 {
+  g_message("clearing selection");
+
   if (event->selection == GDK_SELECTION_PRIMARY)
-    {
-      g_free(data->primary_text);
-      data->primary_text = NULL;
-    }
+    data->in_selection = FALSE;
   else if (event->selection == clipboard_atom)
-    {
-      g_free(data->clipboard_text);
-      data->clipboard_text = NULL;
-    }
+    data->in_clipboard = FALSE;
+
   return TRUE;
 }
 
@@ -378,16 +392,77 @@ static void selection_handle		(GtkWidget	*widget,
 					 guint		time_stamp,
 					 ttxview_data	*data)
 {
-  if ((selection_data->selection == GDK_SELECTION_PRIMARY) &&
-      (data->primary_text))
-    gtk_selection_data_set (selection_data, GDK_SELECTION_TYPE_STRING,
-			    8, data->primary_text,
-			    strlen(data->primary_text));
-  else if ((selection_data->selection == clipboard_atom) &&
-	   (data->clipboard_text))
-    gtk_selection_data_set (selection_data, GDK_SELECTION_TYPE_STRING,
-			    8, data->clipboard_text,
-			    strlen(data->clipboard_text));
+  gint rw, rh;
+  gint CW, CH;
+
+  vbi_get_rendered_size(&rw, &rh);
+  CW = rw/40;
+  CH = rh/25;
+
+  if (((selection_data->selection == GDK_SELECTION_PRIMARY) &&
+       (data->in_selection)) ||
+      ((selection_data->selection == clipboard_atom) &&
+       (data->in_clipboard)))
+    {
+      if (info == TARGET_STRING)
+	{
+	  struct export *e;
+	  gchar * buffer =
+	    g_strdup_printf("string,col=%d,row=%d,width=%d,height=%d",
+			    data->sel_col, data->sel_row,
+			    data->sel_width, data->sel_height);
+	  gchar *result;
+
+	  if ((e = export_open(buffer)))
+	    {
+	      if ((result = (gchar*)export(e, &data->clipboard_page,
+					   "memory")))
+		{
+		  gtk_selection_data_set (selection_data,
+					  GDK_SELECTION_TYPE_STRING, 8,
+					  result, strlen(result));
+		  free(result);
+		}
+	      else
+		g_warning("couldn't export as string: %s", export_errstr());
+	      export_close(e);
+	    }
+	  else
+	    g_warning("couldn't init export struct: <%s> %s", buffer,
+		      export_errstr());
+
+	  g_free(buffer);
+	}
+      else if (info == TARGET_PIXMAP)
+	{
+	  GdkPixmap *pixmap =
+	    gdk_pixmap_new(data->da->window, data->sel_width*CW,
+			   data->sel_height*CH, -1);
+	  GdkPixbuf *canvas = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE,
+					     8, rw,
+					     data->sel_height*CH);
+	  gint id[2];
+	  struct fmt_page fmt;
+
+	  vbi_format_page(&fmt, &data->clipboard_page, 25);
+
+	  vbi_draw_page_region(&fmt,
+			       gdk_pixbuf_get_pixels(canvas), 0,
+			       data->sel_col, data->sel_row,
+			       data->sel_width, data->sel_height);
+	  gdk_pixbuf_render_to_drawable(canvas, pixmap,
+					data->da->style->white_gc, 0,
+					0, 0, 0, data->sel_width*CW,
+					data->sel_height*CH,
+					GDK_RGB_DITHER_NORMAL, 0, 0);
+	  id[0] = GDK_WINDOW_XWINDOW(pixmap);
+	  gtk_selection_data_set (selection_data,
+				  GDK_SELECTION_TYPE_PIXMAP, 32,
+				  (char*)&id[0], 4);
+	  /* FIXME: Is there any way to free the pixmap? */
+	  gdk_pixbuf_unref(canvas);
+	}
+    }
 }
 
 static void
@@ -1582,9 +1657,6 @@ static void select_stop(ttxview_data * data)
 {
   gint w, h;
   gint scol, srow, col, row, temp;
-  struct export *e;
-  gchar *buffer;
-  char *exported;
 
   if (!data->selecting)
     return;
@@ -1646,68 +1718,29 @@ static void select_stop(ttxview_data * data)
 	}
 
       select_region(scol, srow, col, row, data);
-      
-      buffer =
-	g_strdup_printf("string,col=%d,row=%d,width=%d,height=%d",
-			scol, srow, (col-scol)+1, (row-srow)+1);
 
-      if ((e = export_open(buffer)))
-	{
-	  if ((exported = (char*)export(e, data->fmt_page->vtp, "memory")))
-	    {
-	      if (data->clipboard_text)
-		{
-		  g_free(data->clipboard_text);
-		  data->clipboard_text = g_strdup(exported);
-		}
-	      else
-		{
-		  if (gtk_selection_owner_set(data->da,
-					      clipboard_atom,
-					      GDK_CURRENT_TIME))
-		    data->clipboard_text = g_strdup(exported);
-		}
+      data->sel_col = scol;
+      data->sel_row = srow;
+      data->sel_width = (col-scol)+1;
+      data->sel_height = (row-srow)+1;
+      memcpy(&data->clipboard_page, data->fmt_page->vtp,
+	     vtp_size(data->fmt_page->vtp));
 
-	      if (data->primary_text)
-		{
-		  g_free(data->primary_text);
-		  data->primary_text = g_strdup(exported);
-		}
-	      else
-		{
-		  if (gtk_selection_owner_set(data->da,
-					      GDK_SELECTION_PRIMARY,
-					      GDK_CURRENT_TIME))
-		    data->primary_text = g_strdup(exported);
-		}
+      if (!data->in_clipboard)
+	if (gtk_selection_owner_set(data->da,
+				    clipboard_atom,
+				    GDK_CURRENT_TIME))
+	  data->in_clipboard = TRUE;
 
-	      if (data->appbar)
-		gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
-					_("Selection copied to clipboard"));
-	      free(exported);
-	    }
-	  else
-	    {
-	      g_warning("couldn't export data to memory");
-	      
-	      if (data->appbar)
-		gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
-					"Error exporting to clipboard"
-					" (couldn't export data to memory)");
-	    }
-	  export_close(e);
-	}
-      else
-	{
-	  g_warning("couldn't create export structure");
+      if (!data->in_selection)
+	if (gtk_selection_owner_set(data->da,
+				    GDK_SELECTION_PRIMARY,
+				    GDK_CURRENT_TIME))
+	  data->in_selection = TRUE;
 
-	  if (data->appbar)
-	    gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
-				    "Error exporting to clipboard"
-				    " (couldn't create export structure)");
-	}
-
-      g_free(buffer);
+      if (data->appbar)
+	gnome_appbar_set_status(GNOME_APPBAR(data->appbar),
+				_("Selection copied to clipboard"));
     }
 
   data->selecting = FALSE;
@@ -2234,6 +2267,7 @@ build_ttxview(void)
 {
   GtkWidget *ttxview = create_ttxview();
   ttxview_data *data;
+  
 
   if (!zvbi_get_object())
     {
@@ -2319,12 +2353,10 @@ build_ttxview(void)
   /* selection (aka clipboard) handling */
   gtk_signal_connect (GTK_OBJECT(data->da), "selection_clear_event",
 		      GTK_SIGNAL_FUNC (selection_clear), data);
-  gtk_selection_add_target (data->da,
-			    GDK_SELECTION_PRIMARY,
-			    GDK_SELECTION_TYPE_STRING,
-		            1);
-  gtk_selection_add_target(data->da, clipboard_atom,
-			   GDK_SELECTION_TYPE_STRING, 1);
+  gtk_selection_add_targets(data->da, GDK_SELECTION_PRIMARY,
+			    clip_targets, n_clip_targets);
+  gtk_selection_add_targets(data->da, clipboard_atom,
+			    clip_targets, n_clip_targets);
   gtk_signal_connect (GTK_OBJECT(data->da), "selection_get",
 		      GTK_SIGNAL_FUNC (selection_handle), data);
 
@@ -2436,14 +2468,10 @@ ttxview_attach			(GtkWidget	*parent,
 		     GTK_SIGNAL_FUNC(on_ttxview_button_release), data);
   gtk_signal_connect (GTK_OBJECT(data->da), "selection_clear_event",
 		      GTK_SIGNAL_FUNC (selection_clear), data);
-  gtk_selection_add_target (data->da,
-			    GDK_SELECTION_PRIMARY,
-			    GDK_SELECTION_TYPE_STRING,
-		            1);
-  gtk_selection_add_target (data->da,
-			    clipboard_atom,
-			    GDK_SELECTION_TYPE_STRING,
-		            1);
+  gtk_selection_add_targets(data->da, GDK_SELECTION_PRIMARY,
+			    clip_targets, n_clip_targets);
+  gtk_selection_add_targets(data->da, clipboard_atom,
+			    clip_targets, n_clip_targets);
   gtk_signal_connect (GTK_OBJECT(data->da), "selection_get",
 		      GTK_SIGNAL_FUNC (selection_handle), data);
 

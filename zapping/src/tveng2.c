@@ -908,13 +908,16 @@ p_tveng2_build_controls(tveng_device_info * info)
   int i;
   int j;
   int p;
+  int start=V4L2_CID_BASE, end=V4L2_CID_LASTP1;
 
   memset(&qc, 0, sizeof(struct v4l2_queryctrl));
-  for (p = V4L2_CID_BASE; p < V4L2_CID_LASTP1; p++)
+  
+ build_controls:
+  for (p = start; p < end; p++)
     {
       qc.id = p;
       if ((ioctl(info->fd, VIDIOC_QUERYCTRL, &qc) == 0) &&
-	  (!(qc.flags & V4L2_CTRL_FLAG_DISABLED)))
+	  (!(qc.flags & (V4L2_CTRL_FLAG_DISABLED | V4L2_CTRL_FLAG_GRABBED))))
 	{
 	  snprintf(control.name, 32, qc.name);
 	  /* search for possible translations */
@@ -968,7 +971,7 @@ p_tveng2_build_controls(tveng_device_info * info)
 	      break;
 	    default:
 	      fprintf(stderr,
-		      _("V4L2: Unknown control type 0x%x (%s)\n"),
+		      "V4L2: Unknown control type 0x%x (%s)\n",
 		      qc.type, qc.name);
 	      continue; /* Skip this one */
 	    }
@@ -976,6 +979,15 @@ p_tveng2_build_controls(tveng_device_info * info)
 	    return -1;
 	}
     }
+
+  /* Build now the private controls */
+  if (start == V4L2_CID_BASE)
+    {
+      start = V4L2_CID_PRIVATE_BASE;
+      end = start+100;
+      goto build_controls;
+    }
+
   return tveng2_update_controls(info);
 }
 

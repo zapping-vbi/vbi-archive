@@ -88,7 +88,11 @@ struct export *export_open(char *fmt);
 void export_close(struct export *e);
 int export(struct export *e, struct vt_page *vtp, char *user_str);
 
-void vbi_draw_page(struct fmt_page *pg, void *data, int conceal);
+void vbi_draw_page_region(struct fmt_page *pg, void *data, int
+			  conceal, int scol, int srow, int width, int
+			  height);
+#define vbi_draw_page(X, Y, Z) \
+	vbi_draw_page_region(X, Y, Z, 0, 0, 40, 25)
 void vbi_get_rendered_size(int *w, int *h);
 
 

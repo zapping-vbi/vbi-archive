@@ -28,7 +28,7 @@ static gint draw_offset = 0; /* vertical shift between pixmap and win */
 static guint32 char_canvas[CHAR_WIDTH*CHAR_HEIGHT];
 
 /* 1 for smoother scroll, CHAR_HEIGHT or above for no scroll */
-#define LINES_PER_BLOCK CHAR_HEIGHT-1
+#define LINES_PER_BLOCK 1
 #define MOVES_PER_SEC ((CHAR_HEIGHT+5)*5)
 
 static guint32 palette[9] = {
@@ -194,7 +194,8 @@ dump_strange_info(gpointer user_data)
 		"Whew, who's that scrolling little long and short and"
 		" green and black line that doesn't fit?",
 		"I hope the clouds get better",
-		"How many words are there in the Enciclopaedia?"
+		"How many words are there in the Enciclopaedia?",
+		"Jelou japi pipol!!!"
 	};
 	int num_messages = sizeof(messages)/sizeof(char*);
 

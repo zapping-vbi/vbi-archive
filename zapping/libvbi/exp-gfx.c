@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.20 2001-02-07 04:39:30 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.21 2001-02-15 00:16:01 garetxe Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -279,7 +279,8 @@ draw_blank(int canvas_type, u8 *canvas, unsigned int colour)
 }
 
 void
-vbi_draw_page(struct fmt_page *pg, void *data, int conceal)
+vbi_draw_page_region(struct fmt_page *pg, void *data, int conceal,
+		     int scol, int srow, int width, int height)
 {
 	unsigned int *canvas = (unsigned int *) data;
 	unsigned int pen[64];
@@ -292,8 +293,10 @@ vbi_draw_page(struct fmt_page *pg, void *data, int conceal)
 	for (i = 2; i < 2 + 8 + 32; i++)
 		pen[i] = pg->colour_map[pg->drcs_clut[i]];
 
-	for (row = 0; row < H; canvas += W * CW * CH - W * CW, row++) {
-		for (column = 0; column < W; canvas += CW, column++) {
+	for (row = srow; row < srow+height;
+	     canvas += W * CW * CH - W * CW, row++) {
+		for (column = scol; column < scol+width;
+		     canvas += CW, column++) {
 			ac = &pg->data[row][column];
 
 			glyph = (ac->conceal & conceal) ? GL_SPACE : ac->glyph;
@@ -311,6 +314,7 @@ vbi_draw_page(struct fmt_page *pg, void *data, int conceal)
 				}
 			}
 		}
+		canvas += (W-width)*CW;
 	}
 }
 

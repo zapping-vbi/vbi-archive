@@ -1,3 +1,10 @@
+15.2.2001	Copy (pixmaps) <garetxe@users.sourceforge.net>
+
+	* src/ttxview.c: The selection is now exported as a pixmap too
+	(can be pasted into xpaint, for example)
+	* src/tveng2.c: Support for driver private controls (untested)
+	* libvbi/exp-gfx.c: Partial (region) rendering.
+
 11.2.2001	Copy (text) <garetxe@users.sourceforge.net>
 
 	* src/ttxview.c: Exports the selection as TEXT to the primary
