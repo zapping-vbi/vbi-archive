@@ -1,3 +1,11 @@
+21.09.2001	mpeg properties fixes <garetxe@users.sf.net>
+
+	* mpeg.c: Fixed options frame deletion (objects are created with a
+	floating ref, attaching them to a parent makes this ref be 1, when
+	the parent is destroyed the widget is unref'ed, and thus
+	destroyed, no need to call gtk_object_ref/unref ourselves).
+	* plugins.c: First load plugins under $home, then global.
+
 19.09.2001	more renderer work <garetxe@users.sf.net>
 
 	* osd.c: Make the renderer honour <i>, <u>, <b> and the colour

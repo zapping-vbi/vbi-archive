@@ -715,23 +715,7 @@ GList * plugin_load_plugins ( void )
   FILE * fd;
   gint i;
 
-  /* First load plugins in $(prefix)/lib/zapping/plugins */
-#ifdef PACKAGE_LIB_DIR
-  buffer = PACKAGE_LIB_DIR;
-#else
-  buffer = "/usr/lib/zapping"; /* Choose by default this location */
-#endif
-
-  g_assert(strlen(buffer) > 0);
-  if (buffer[strlen(buffer)-1] == '/')
-    plugin_path = g_strconcat(buffer, "plugins", NULL);
-  else
-    plugin_path = g_strconcat(buffer, "/plugins", NULL);
-  /* Load all the plugins in this dir */
-  list = plugin_load_plugins_in_dir (plugin_path, PLUGIN_STRID, list);
-  g_free(plugin_path);
-
-  /* Now load plugins in the home dir */
+  /* First load plugins in the home dir */
   buffer = g_get_home_dir();
   if (buffer)
     {
@@ -754,8 +738,8 @@ GList * plugin_load_plugins ( void )
       g_free(plugin_path);
       if (fd)
 	{
-	  buffer = g_malloc(1024);
-	  while (fgets(buffer, 1024, fd))
+	  buffer = g_malloc0(1024);
+	  while (fgets(buffer, 1023, fd))
 	    {
 	      plugin_path = buffer;
 	      /* Skip all spaces */
@@ -783,6 +767,18 @@ GList * plugin_load_plugins ( void )
 	  g_free (buffer);
 	}
     }
+
+  /* Now load plugins in $(prefix)/lib/zapping/plugins */
+  buffer = PACKAGE_LIB_DIR;
+
+  g_assert(strlen(buffer) > 0);
+  if (buffer[strlen(buffer)-1] == '/')
+    plugin_path = g_strconcat(buffer, "plugins", NULL);
+  else
+    plugin_path = g_strconcat(buffer, "/plugins", NULL);
+  /* Load all the plugins in this dir */
+  list = plugin_load_plugins_in_dir (plugin_path, PLUGIN_STRID, list);
+  g_free(plugin_path);
 
   list = g_list_sort (list, (GCompareFunc) plugin_sorter);
 

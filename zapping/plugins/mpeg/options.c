@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.1 2001-09-14 14:22:18 mschimek Exp $ */
+/* $Id: options.c,v 1.2 2001-09-21 20:04:00 garetxe Exp $ */
 
 #include "plugin_common.h"
 
@@ -321,28 +321,7 @@ grte_options_create (rte_context *context, rte_codec *codec, gchar *zc_domain)
 
   gtk_container_add (GTK_CONTAINER (frame), opts->table);
 
-  gtk_widget_ref (frame); /* the returned pointer */
-
   return frame;
-}
-
-/*
- *  Disconnect options from the rte_context/codec, mandatory.
- */
-void
-grte_options_unref (GtkWidget *frame)
-{
-  grte_options *opts;
-
-  if (!frame)
-    return;
-
-  opts = (grte_options *) gtk_object_get_data (GTK_OBJECT (frame), "opts");
-
-  opts->context = NULL;
-  opts->codec = NULL;
-
-  gtk_widget_unref (frame);
 }
 
 #endif /* HAVE_LIBRTE */

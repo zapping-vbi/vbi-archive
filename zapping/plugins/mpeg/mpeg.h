@@ -16,7 +16,6 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.1 2001-09-14 14:22:18 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.2 2001-09-21 20:04:00 garetxe Exp $ */
 
 extern GtkWidget *grte_options_create (rte_context *context, rte_codec *codec, gchar *zc_domain);
-extern void grte_options_unref (GtkWidget *);

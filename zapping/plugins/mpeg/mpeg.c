@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.10 2001-09-13 12:20:14 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.11 2001-09-21 20:04:00 garetxe Exp $ */
 
 #include "plugin_common.h"
 
@@ -45,7 +45,7 @@ static const gchar str_author[] = "Iñaki García Etxebarria";
 /* The format of the version string must be
    %d[[.%d[.%d]][other_things]], where the things between [] aren't
    needed, and if not present, 0 will be assumed */
-static const gchar str_version[] = "0.1";
+static const gchar str_version[] = "0.2";
 /* TRUE if we are running */
 static volatile gboolean active = FALSE;
 /* The context we are encoding to */
@@ -173,7 +173,6 @@ destroy_options(GtkWidget **options_p)
   if (!*options_p)
     return;
  
-  grte_options_unref(*options_p);
   gtk_widget_destroy(*options_p);
 
   *options_p = NULL;
@@ -1084,6 +1083,11 @@ audio_source_sensitive (GtkWidget *mpeg_properties, gboolean state)
     (mpeg_properties, "fileentry2"), state);
 }
 
+static void nullify (void **p)
+{
+  *p = NULL;
+}
+
 static void
 set_audio_codec (GtkWidget *mpeg_properties, GtkWidget *menu)
 {
@@ -1122,6 +1126,10 @@ set_audio_codec (GtkWidget *mpeg_properties, GtkWidget *menu)
           gtk_table_attach (GTK_TABLE (table), audio_options, 0, 2, 3, 4,
 			    (GtkAttachOptions) (GTK_FILL),
 			    (GtkAttachOptions) (0), 3, 3);
+
+	  gtk_signal_connect_object (GTK_OBJECT(audio_options), "destroy",
+				     GTK_SIGNAL_FUNC (nullify),
+				     (GtkObject*)(&audio_options));
 	}
 
       g_free (zc_domain);
