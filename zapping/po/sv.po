@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2004-09-22 23:04+0200\n"
-"PO-Revision-Date: 2004-09-21 06:51+0200\n"
+"POT-Creation-Date: 2004-09-26 15:07+0200\n"
+"PO-Revision-Date: 2004-09-26 15:15+0200\n"
 "Last-Translator: <snout@ctrl-c.liu.se>\n"
 "Language-Team: Swedish <sv@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -41,421 +41,330 @@ msgstr ""
 msgid "Advanced"
 msgstr "Avancerat"
 
-#: glade/zapping.glade2.h:5 plugins/teletext/main.c:619
-msgid "Arabic"
-msgstr "Arabisk"
-
-#: glade/zapping.glade2.h:6 src/audio.c:520 src/audio.c:525 src/tveng.c:4402
+#: glade/zapping.glade2.h:5 src/audio.c:520 src/audio.c:525 src/tveng.c:4402
 #: src/tveng2.c:615
 msgid "Audio"
 msgstr "Ljud"
 
-#: glade/zapping.glade2.h:7
+#: glade/zapping.glade2.h:6
 msgid "Author:"
 msgstr "Författare:"
 
-#: glade/zapping.glade2.h:8
+#: glade/zapping.glade2.h:7
 msgid "Biggest noninterlaced (autodetect)"
 msgstr "Största ickeinterlaceade (autodetektera)"
 
-#: glade/zapping.glade2.h:9 plugins/teletext/main.c:633
-msgid "Bilinear (good quality but slow)"
-msgstr "Bilinjär (bra kvalite men långsam)"
-
 # src/interface.c:405
-#: glade/zapping.glade2.h:10
+#: glade/zapping.glade2.h:8
 msgid "Canonical name:"
 msgstr "Kanoniskt namn:"
 
-#: glade/zapping.glade2.h:11 plugins/teletext/main.c:616
-msgid "Central and Southeast Europe"
-msgstr "Centrala och sydöstra Europa"
-
 # src/interface.c:362
-#: glade/zapping.glade2.h:12
+#: glade/zapping.glade2.h:9
 msgid "Channel list number"
 msgstr "Kanallistenummer"
 
-#: glade/zapping.glade2.h:13
+#: glade/zapping.glade2.h:10
 msgid "Choose a color"
 msgstr "Välj en färg"
 
-#: glade/zapping.glade2.h:14
+#: glade/zapping.glade2.h:11
 msgid "Clean console"
 msgstr "Töm konsollen"
 
 # src/interface.c:448
-#: glade/zapping.glade2.h:15
+#: glade/zapping.glade2.h:12
 msgid "Click here when you are done"
 msgstr "Tryck här när du är klar"
 
-#: glade/zapping.glade2.h:16
+#: glade/zapping.glade2.h:13
 msgid "Console"
 msgstr "Konsoll"
 
-#: glade/zapping.glade2.h:17
+#: glade/zapping.glade2.h:14
 msgid "Copyright (C) 2000-2003 the contributors\n"
 msgstr "Copyright (C) 2000-2003 medverkande författare\n"
 
-#: glade/zapping.glade2.h:19
+#: glade/zapping.glade2.h:16
 msgid "Current controller:"
 msgstr "Nuvarande kontroller:"
 
-#: glade/zapping.glade2.h:20 plugins/teletext/main.c:617
-msgid "Cyrillic"
-msgstr "Kyrillisk"
-
-#: glade/zapping.glade2.h:21 plugins/teletext/main.c:647
-msgid "Default _region:"
-msgstr "Standard_region:"
-
-#: glade/zapping.glade2.h:22
+#: glade/zapping.glade2.h:17
 msgid "Device name:"
 msgstr "Enhetsnamn:"
 
-#: glade/zapping.glade2.h:23 src/audio.c:530 src/properties-handler.c:1537
+#: glade/zapping.glade2.h:18 src/audio.c:530 src/properties-handler.c:1537
 msgid "Devices"
 msgstr "Enheter"
 
-#: glade/zapping.glade2.h:24
+#: glade/zapping.glade2.h:19
 msgid "Disable _screensaver"
 msgstr "_Stäng av skärmsläckare"
 
-# src/frequencies.c:821
-#: glade/zapping.glade2.h:25 plugins/teletext/main.c:614
-msgid "Eastern Europe"
-msgstr "Östeuropa"
-
-#: glade/zapping.glade2.h:26
+#: glade/zapping.glade2.h:20
 msgid "Enter key"
 msgstr "Mata in tangent"
 
-#: glade/zapping.glade2.h:27
+#: glade/zapping.glade2.h:21
 msgid "F_ont:"
 msgstr "_Typsnitt"
 
-#: glade/zapping.glade2.h:28
+#: glade/zapping.glade2.h:22
 msgid "Favorite _picture sizes:"
 msgstr "Föredragen _bildstorlek:"
 
-#: glade/zapping.glade2.h:29
+#: glade/zapping.glade2.h:23
 msgid "General options"
 msgstr "Diverse val"
 
-#: glade/zapping.glade2.h:30 plugins/teletext/main.c:618
-msgid "Greek and Turkish"
-msgstr "Grekisk och turkisk"
-
-#: glade/zapping.glade2.h:31 plugins/teletext/main.c:620
-msgid "Hebrew and Arabic"
-msgstr "Hebreisk och arabisk"
-
-#: glade/zapping.glade2.h:32 plugins/teletext/main.c:634
-msgid "Hyper (best quality but CPU intensive)"
-msgstr "Hyper (bästa kvaliteten, men CPU-intensiv)"
-
-#: glade/zapping.glade2.h:33
+#: glade/zapping.glade2.h:24
 msgid "Interlaced (window size)"
 msgstr "Interlacead (fönsterstorlek)"
 
-#: glade/zapping.glade2.h:34
+#: glade/zapping.glade2.h:25
 msgid "Kernel _device"
 msgstr "Kärnenhet (kernel _device)"
 
-#: glade/zapping.glade2.h:35 src/keyboard.c:1141
+#: glade/zapping.glade2.h:26 src/keyboard.c:1141
 msgid "Keyboard"
 msgstr "Tangentbord"
 
-#: glade/zapping.glade2.h:36
+#: glade/zapping.glade2.h:27
 msgid "Known key names"
 msgstr "Kända tangentnamn"
 
-#: glade/zapping.glade2.h:37 plugins/teletext/main.c:624
-msgid "Level 1.0"
-msgstr "Nivå 1.0"
-
-#: glade/zapping.glade2.h:38 plugins/teletext/main.c:625
-msgid "Level 1.5 (additional national characters)"
-msgstr "Nivå 1.5 (ytterligare nationella tecken)"
-
-#: glade/zapping.glade2.h:39 plugins/teletext/main.c:626
-msgid "Level 2.5 (more colours, font styles and graphics)"
-msgstr "Nivå 2.5 (fler färger, teckenuppsättningar och mer grafik)"
-
-#: glade/zapping.glade2.h:40 plugins/teletext/main.c:627
-msgid "Level 3.5 (proportional spacing, multicolour graphics)"
-msgstr "Nivå 3.5 (proportionell skrift, flerfärgig grafik)"
-
-#: glade/zapping.glade2.h:41
+#: glade/zapping.glade2.h:28
 msgid "Maximum capture size:"
 msgstr "Största inspelningsstorlek:"
 
-#: glade/zapping.glade2.h:42
+#: glade/zapping.glade2.h:29
 msgid "Minimum capture size:"
 msgstr "Minsta inspelningsstorlek:"
 
-#: glade/zapping.glade2.h:43
+#: glade/zapping.glade2.h:30
 msgid "Mute while ch_anging channels"
 msgstr ""
 
-#: glade/zapping.glade2.h:44
+#: glade/zapping.glade2.h:31
 msgid "NTSC"
 msgstr "NTSC"
 
-#: glade/zapping.glade2.h:45 plugins/teletext/main.c:631
-msgid "Nearest (fast, looks ugly when scaled)"
-msgstr "Närmsta (snabb, ser ful ut när den skalas)"
-
-#: glade/zapping.glade2.h:46
+#: glade/zapping.glade2.h:32
 msgid "No Display"
 msgstr "Ingen Visning"
 
-#: glade/zapping.glade2.h:47
+#: glade/zapping.glade2.h:33
 msgid "OK, let's go on"
 msgstr "Ok, vi fortsätter"
 
-#: glade/zapping.glade2.h:48 src/osd.c:1330
+#: glade/zapping.glade2.h:34 src/osd.c:1330
 msgid "OSD"
 msgstr "OSD"
 
-#: glade/zapping.glade2.h:49
+#: glade/zapping.glade2.h:35
 msgid "On Screen Display (OSD)"
 msgstr "Överlagrade Menyer (OSD)"
 
-#: glade/zapping.glade2.h:50
+#: glade/zapping.glade2.h:36
 msgid "PAL"
 msgstr "PAL"
 
-#: glade/zapping.glade2.h:51
+#: glade/zapping.glade2.h:37
 msgid "Plugin location"
 msgstr "Pluginkälla"
 
-#: glade/zapping.glade2.h:52
+#: glade/zapping.glade2.h:38
 msgid "Plugin priority:"
 msgstr "Pluginprioritet:"
 
-#: glade/zapping.glade2.h:53
+#: glade/zapping.glade2.h:39
 msgid "Plugin properties"
 msgstr "Pluginegenskaper"
 
-#: glade/zapping.glade2.h:54
+#: glade/zapping.glade2.h:40
 msgid "Plugin version:"
 msgstr "Pluginversion:"
 
-#: glade/zapping.glade2.h:55
+#: glade/zapping.glade2.h:41
 msgid "Properties"
 msgstr "Egenskaper"
 
-#: glade/zapping.glade2.h:56 plugins/teletext/main.c:665
-msgid "Quality/speed trade-off when scaling and anti-aliasing the page."
-msgstr "Kvalitets/hastighetsavvägning vid skalning och utjämning av sidan."
-
 # src/interface.c:362
-#: glade/zapping.glade2.h:57
+#: glade/zapping.glade2.h:42
 msgid "RF channel number"
 msgstr "RF-kanalnummer"
 
 # src/v4l2interface.c:344
-#: glade/zapping.glade2.h:58
+#: glade/zapping.glade2.h:43
 msgid "Remember this video standard"
 msgstr "Kom ihåg denna videostandard"
 
-#: glade/zapping.glade2.h:59
+#: glade/zapping.glade2.h:44
 msgid "Remove all this mess"
 msgstr "Ta bort den här smörjan"
 
-#: glade/zapping.glade2.h:60
+#: glade/zapping.glade2.h:45
 msgid "Run the plugin"
 msgstr "Kör pluginen"
 
-#: glade/zapping.glade2.h:61
+#: glade/zapping.glade2.h:46
 msgid "SECAM"
 msgstr "SECAM"
 
 # src/interface.c:247
-#: glade/zapping.glade2.h:62
+#: glade/zapping.glade2.h:47
 msgid "S_how toolbar as:"
 msgstr "Visa verktygsrad som:"
 
-#: glade/zapping.glade2.h:63
+#: glade/zapping.glade2.h:48
 msgid "Save _control values per channel"
 msgstr "Spara _kontrollvärdena med kanal-infon"
 
-#: glade/zapping.glade2.h:64
+#: glade/zapping.glade2.h:49
 msgid "Save window _geometry (some WM's don't like it)"
 msgstr "Spara _fönstergeometri (vissa fönsterhanterare gillar inte det)"
 
-#: glade/zapping.glade2.h:65
+#: glade/zapping.glade2.h:50
 msgid "Select OSD font"
 msgstr "Välj OSD-typsnitt"
 
-#: glade/zapping.glade2.h:66
+#: glade/zapping.glade2.h:51
 msgid "Select the V4L device"
 msgstr "Välj V4l-enhet"
 
-#: glade/zapping.glade2.h:67
+#: glade/zapping.glade2.h:52
 msgid "Select the VBI device"
 msgstr "Välj VBI-enhet"
 
 # src/interface.c:247
-#: glade/zapping.glade2.h:68
+#: glade/zapping.glade2.h:53
 msgid "Show _tooltips"
 msgstr "V_isa hjälptexter"
 
-#: glade/zapping.glade2.h:69 plugins/teletext/main.c:654
-msgid ""
-"Some stations fail to transmit a complete language identifier, so the "
-"Teletext viewer may not display the correct font or national characters. You "
-"can select your geographical region here as an additional hint."
-msgstr ""
-"Vissa stationer sänder inte en komplett språkidentifierare, så teletext-"
-"visaren kanske inte visar korrekt teckenupsättning. Du kan välja din "
-"geografiska region här som en extra vink åt programmet."
-
-#: glade/zapping.glade2.h:70
+#: glade/zapping.glade2.h:54
 msgid "Status Bar"
 msgstr "Statusrad"
 
-#: glade/zapping.glade2.h:71
+#: glade/zapping.glade2.h:55
 msgid "Stop this plugin"
 msgstr "Stoppa pluginen"
 
-#: glade/zapping.glade2.h:72
+#: glade/zapping.glade2.h:56
 msgid "TV viewer for the Gnome environment"
 msgstr "En TV-visare för skrivbordsomgivningen Gnome"
 
-#: glade/zapping.glade2.h:73
+#: glade/zapping.glade2.h:57
 msgid ""
 "The video capture device does not report the correct video standard, please "
 "select manually:"
 msgstr ""
 "Videoenheten rapporterar inte rätt videostandard, var god välj manuellt:"
 
-#: glade/zapping.glade2.h:74 plugins/teletext/main.c:632
-msgid "Tiles (slightly slower, somewhat better)"
-msgstr "Rutor (lite långsammare, något bättre)"
-
-#: glade/zapping.glade2.h:75
+#: glade/zapping.glade2.h:58
 msgid "Title _bar contents:"
 msgstr "_Titelradsinnehåll:"
 
-#: glade/zapping.glade2.h:76
+#: glade/zapping.glade2.h:59
 msgid "VBI options"
 msgstr "VBI-val"
 
 # src/v4l2interface.c:344
-#: glade/zapping.glade2.h:77 src/main.c:166 src/properties-handler.c:1515
+#: glade/zapping.glade2.h:60 src/main.c:166 src/properties-handler.c:1515
 #: src/properties-handler.c:1523
 msgid "Video"
 msgstr "Bild"
 
 # src/v4l2interface.c:344
-#: glade/zapping.glade2.h:78
+#: glade/zapping.glade2.h:61
 msgid "Video Standard"
 msgstr "Videostandard"
 
-#: glade/zapping.glade2.h:79
+#: glade/zapping.glade2.h:62
 msgid "Video device capabilities"
 msgstr "Videoenhetsmöjligheter"
 
-#: glade/zapping.glade2.h:80 plugins/teletext/main.c:615
-msgid "Western Europe and Turkey"
-msgstr "Västeuropa och Turkiet"
-
-#: glade/zapping.glade2.h:81 plugins/teletext/main.c:613
-msgid "Western and Central Europe"
-msgstr "Väst- och centrala Europa"
-
-#: glade/zapping.glade2.h:82
+#: glade/zapping.glade2.h:63
 msgid "Window"
 msgstr "Fönster"
 
-#: glade/zapping.glade2.h:83
+#: glade/zapping.glade2.h:64
 msgid "Zapping Preferences"
 msgstr "Egenskaper"
 
-#: glade/zapping.glade2.h:84
+#: glade/zapping.glade2.h:65
 msgid "Zapping error console"
 msgstr "Zapping felkonsoll"
 
-#: glade/zapping.glade2.h:85
+#: glade/zapping.glade2.h:66
 msgid "_Background color:"
 msgstr "_Bakgrundsfärg:"
 
-#: glade/zapping.glade2.h:86
+#: glade/zapping.glade2.h:67
 msgid "_Capture size under XVideo:"
 msgstr "_Inspelningläge under XVideo:"
 
-#: glade/zapping.glade2.h:87
+#: glade/zapping.glade2.h:68
 msgid "_Command:"
 msgstr "_Kommando:"
 
-#: glade/zapping.glade2.h:88
+#: glade/zapping.glade2.h:69
 msgid "_Control volume with soundcard mixer"
 msgstr "Kontrollera volymen med ljudkortets _mixer"
 
-#: glade/zapping.glade2.h:89
+#: glade/zapping.glade2.h:70
 msgid "_Device file:"
 msgstr "_Enhetsfil:"
 
-#: glade/zapping.glade2.h:90
+#: glade/zapping.glade2.h:71
 msgid "_Display mode:"
 msgstr "Bild_läge:"
 
-#: glade/zapping.glade2.h:91
+#: glade/zapping.glade2.h:72
 msgid "_Enable VBI decoding"
 msgstr "_Slå på VBI-avkodning"
 
 # src/v4l2interface.c:146
-#: glade/zapping.glade2.h:92
+#: glade/zapping.glade2.h:73
 msgid "_Enter channels by:"
 msgstr "_Mata in kanaler efter:"
 
-#: glade/zapping.glade2.h:93
+#: glade/zapping.glade2.h:74
 msgid "_Foreground color:"
 msgstr "_Förgrundsfärg:"
 
-#: glade/zapping.glade2.h:94
+#: glade/zapping.glade2.h:75
 msgid "_Fullscreen video resolution:"
 msgstr "_Fullskärmsläge:"
 
-#: glade/zapping.glade2.h:95
+#: glade/zapping.glade2.h:76
 msgid "_Gnome sound daemon (ESD)"
 msgstr "_Gnomes ljuddemon (ESD)"
 
-#: glade/zapping.glade2.h:96 plugins/teletext/main.c:649
-msgid "_Interpolation type:"
-msgstr "_Interpolationstyp:"
-
-#: glade/zapping.glade2.h:97
+#: glade/zapping.glade2.h:77
 msgid "_KDE sound daemon (ARTS)"
 msgstr "_KDEs ljuddemon (ARTS)"
 
-#: glade/zapping.glade2.h:98
+#: glade/zapping.glade2.h:78
 msgid "_Mute on exit"
 msgstr "_Tysta ljudet vid avslutning"
 
-#: glade/zapping.glade2.h:99
+#: glade/zapping.glade2.h:79
 msgid "_No audio recording"
 msgstr "_Ingen ljudinspelning"
 
-#: glade/zapping.glade2.h:100
+#: glade/zapping.glade2.h:80
 msgid "_Remove after:"
 msgstr "_Radera efter:"
 
-#: glade/zapping.glade2.h:101
+#: glade/zapping.glade2.h:81
 msgid "_Resize using fixed increments"
 msgstr "_Skala om i fixa steg"
 
-#: glade/zapping.glade2.h:102
+#: glade/zapping.glade2.h:82
 msgid "_Start Zapping muted"
 msgstr "_Starta Zapping med ljud av"
 
-#: glade/zapping.glade2.h:103 plugins/teletext/main.c:648
-msgid "_Teletext implementation:"
-msgstr "_Teletext-implementation:"
-
-#: glade/zapping.glade2.h:104
+#: glade/zapping.glade2.h:83
 msgid "seconds"
 msgstr "sekunder"
 
@@ -614,7 +523,7 @@ msgid "_Stop"
 msgstr "_Stopp"
 
 # src/v4l2interface.c:344
-#: plugins/mpeg/mpeg_properties.glade2.h:17 src/zapping.c:376
+#: plugins/mpeg/mpeg_properties.glade2.h:17 src/zapping.c:466
 msgid "_Video"
 msgstr "Bild"
 
@@ -828,6 +737,97 @@ msgstr "_Editera bokmärken"
 msgid "Teletext plugin"
 msgstr "Teletext"
 
+#: plugins/teletext/main.c:613
+msgid "Western and Central Europe"
+msgstr "Väst- och centrala Europa"
+
+# src/frequencies.c:821
+#: plugins/teletext/main.c:614
+msgid "Eastern Europe"
+msgstr "Östeuropa"
+
+#: plugins/teletext/main.c:615
+msgid "Western Europe and Turkey"
+msgstr "Västeuropa och Turkiet"
+
+#: plugins/teletext/main.c:616
+msgid "Central and Southeast Europe"
+msgstr "Centrala och sydöstra Europa"
+
+#: plugins/teletext/main.c:617
+msgid "Cyrillic"
+msgstr "Kyrillisk"
+
+#: plugins/teletext/main.c:618
+msgid "Greek and Turkish"
+msgstr "Grekisk och turkisk"
+
+#: plugins/teletext/main.c:619
+msgid "Arabic"
+msgstr "Arabisk"
+
+#: plugins/teletext/main.c:620
+msgid "Hebrew and Arabic"
+msgstr "Hebreisk och arabisk"
+
+#: plugins/teletext/main.c:624
+msgid "Level 1.0"
+msgstr "Nivå 1.0"
+
+#: plugins/teletext/main.c:625
+msgid "Level 1.5 (additional national characters)"
+msgstr "Nivå 1.5 (ytterligare nationella tecken)"
+
+#: plugins/teletext/main.c:626
+msgid "Level 2.5 (more colours, font styles and graphics)"
+msgstr "Nivå 2.5 (fler färger, teckenuppsättningar och mer grafik)"
+
+#: plugins/teletext/main.c:627
+msgid "Level 3.5 (proportional spacing, multicolour graphics)"
+msgstr "Nivå 3.5 (proportionell skrift, flerfärgig grafik)"
+
+#: plugins/teletext/main.c:631
+msgid "Nearest (fast, looks ugly when scaled)"
+msgstr "Närmsta (snabb, ser ful ut när den skalas)"
+
+#: plugins/teletext/main.c:632
+msgid "Tiles (slightly slower, somewhat better)"
+msgstr "Rutor (lite långsammare, något bättre)"
+
+#: plugins/teletext/main.c:633
+msgid "Bilinear (good quality but slow)"
+msgstr "Bilinjär (bra kvalite men långsam)"
+
+#: plugins/teletext/main.c:634
+msgid "Hyper (best quality but CPU intensive)"
+msgstr "Hyper (bästa kvaliteten, men CPU-intensiv)"
+
+#: plugins/teletext/main.c:647
+msgid "Default _region:"
+msgstr "Standard_region:"
+
+#: plugins/teletext/main.c:648
+msgid "_Teletext implementation:"
+msgstr "_Teletext-implementation:"
+
+#: plugins/teletext/main.c:649
+msgid "_Interpolation type:"
+msgstr "_Interpolationstyp:"
+
+#: plugins/teletext/main.c:654
+msgid ""
+"Some stations fail to transmit a complete language identifier, so the "
+"Teletext viewer may not display the correct font or national characters. You "
+"can select your geographical region here as an additional hint."
+msgstr ""
+"Vissa stationer sänder inte en komplett språkidentifierare, så teletext-"
+"visaren kanske inte visar korrekt teckenupsättning. Du kan välja din "
+"geografiska region här som en extra vink åt programmet."
+
+#: plugins/teletext/main.c:665
+msgid "Quality/speed trade-off when scaling and anti-aliasing the page."
+msgstr "Kvalitets/hastighetsavvägning vid skalning och utjämning av sidan."
+
 #: plugins/teletext/main.c:701 src/main.c:164
 msgid "Teletext"
 msgstr "Teletext"
@@ -867,7 +867,7 @@ msgstr "Hittades inte:"
 msgid "Page memory is empty"
 msgstr "Sidminnet är tomt"
 
-#: plugins/teletext/search.c:345 plugins/teletext/view.c:2134
+#: plugins/teletext/search.c:345 plugins/teletext/view.c:2137
 msgid "Search page memory"
 msgstr "Sök sidminnet"
 
@@ -987,7 +987,7 @@ msgstr "Öppna i _nytt fönster"
 msgid "_Open Link"
 msgstr "_Öppna länk"
 
-#: plugins/teletext/view.c:1584 plugins/teletext/window.c:216
+#: plugins/teletext/view.c:1584 plugins/teletext/window.c:202
 msgid "_New Window"
 msgstr "_Nytt fönster"
 
@@ -1007,13 +1007,13 @@ msgstr "_Färger"
 msgid "S_ubtitles"
 msgstr "_Undertext"
 
-#: plugins/teletext/view.c:1614 plugins/teletext/window.c:221
-#: src/zapping.c:373
+#: plugins/teletext/view.c:1614 plugins/teletext/window.c:207
+#: src/zapping.c:463
 msgid "_Bookmarks"
 msgstr "_Bokmärken"
 
 #. TRANSLATORS: "Cannot open <URL>" (http or smtp).
-#: plugins/teletext/view.c:1908 src/zvbi.c:630
+#: plugins/teletext/view.c:1911 src/zvbi.c:630
 #, c-format
 msgid ""
 "Cannot open %s:\n"
@@ -1022,50 +1022,50 @@ msgstr ""
 "Kan inte öppna %s:\n"
 "%s"
 
-#: plugins/teletext/view.c:2126
+#: plugins/teletext/view.c:2129
 msgid "_Go"
 msgstr "_Gå"
 
-#: plugins/teletext/view.c:2128
+#: plugins/teletext/view.c:2131
 msgid "Previous page in history"
 msgstr "Förra sidan i historian"
 
-#: plugins/teletext/view.c:2130
+#: plugins/teletext/view.c:2133
 msgid "Next page in history"
 msgstr "Nästa sida i historian"
 
-#: plugins/teletext/view.c:2131
+#: plugins/teletext/view.c:2134
 msgid "Index"
 msgstr "Innehåll"
 
-#: plugins/teletext/view.c:2132
+#: plugins/teletext/view.c:2135
 msgid "Go to the index page"
 msgstr "Till indexsidan"
 
-#: plugins/teletext/view.c:2136
+#: plugins/teletext/view.c:2139
 #, fuzzy
 msgid "Save this page to a file"
 msgstr "Öppna denna sida med Zapzilla"
 
-#: plugins/teletext/window.c:215 src/zapping.c:325
+#: plugins/teletext/window.c:201 src/zapping.c:399
 msgid "_File"
 msgstr "_Arkiv"
 
-#: plugins/teletext/window.c:219 src/zapping.c:327
+#: plugins/teletext/window.c:205 src/zapping.c:401
 msgid "_Edit"
 msgstr "_Redigera"
 
 # src/v4l2interface.c:344
-#: plugins/teletext/window.c:220 src/zapping.c:334
+#: plugins/teletext/window.c:206 src/zapping.c:408
 msgid "_View"
 msgstr "_Visa"
 
 # src/v4l2interface.c:344
-#: plugins/teletext/window.c:280 src/zapping.c:363
+#: plugins/teletext/window.c:266 src/zapping.c:441
 msgid "Toolbar"
 msgstr "Verktygsrad"
 
-#: plugins/teletext/window.c:282
+#: plugins/teletext/window.c:268
 #, fuzzy
 msgid "Statusbar"
 msgstr "_Statusrad"
@@ -1088,7 +1088,7 @@ msgstr "<span foreground=\"blue\">Ljud av</span>"
 msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr "<span foreground=\"yellow\">Ljud på</span>"
 
-#: src/capture.c:445
+#: src/capture.c:447
 #, c-format
 msgid "Cannot start capturing: %s"
 msgstr "Kan inte påbörja inspelning: %s"
@@ -1913,11 +1913,11 @@ msgstr "Dubbelscan"
 msgid "Adjust %s"
 msgstr "Ställa in %s"
 
-#: src/v4linterface.c:615 src/zapping.c:353
+#: src/v4linterface.c:615 src/zapping.c:431
 msgid "Controls"
 msgstr "Kontroller"
 
-#: src/v4linterface.c:1107 src/zmisc.c:1858
+#: src/v4linterface.c:1107 src/zmisc.c:1888
 msgid "Unknown"
 msgstr "Okänd"
 
@@ -1954,106 +1954,114 @@ msgstr "Videoingångar"
 msgid "No channels"
 msgstr "Inga kanaler inställda"
 
-#: src/zapping.c:330
+#: src/zapping.c:404
 msgid "P_lugins"
 msgstr "P_lugins"
 
 # src/interface.c:362
 #. 2.6 GTK_STOCK_EDIT
-#: src/zapping.c:332 src/zapping.c:341
+#: src/zapping.c:406 src/zapping.c:419
 msgid "_Channels"
 msgstr "_Kanaler"
 
-#: src/zapping.c:335
+#: src/zapping.c:409 src/zapping.c:450
+msgid "_Window"
+msgstr "_Fönster"
+
+#: src/zapping.c:411 src/zapping.c:452
 msgid "_Fullscreen"
 msgstr "_Fullskärm"
 
-#: src/zapping.c:337
+#: src/zapping.c:413 src/zapping.c:454
+msgid "_Background"
+msgstr "_Bakgrund"
+
+#: src/zapping.c:415
 msgid "_Overlay mode"
 msgstr "_Overlayläge"
 
-#: src/zapping.c:339
+#: src/zapping.c:417
 msgid "_Capture mode"
 msgstr "_Bildläge"
 
-#: src/zapping.c:342
+#: src/zapping.c:420
 msgid "_Help"
 msgstr "_Hjälp"
 
-#: src/zapping.c:343
+#: src/zapping.c:421
 msgid "_Contents"
 msgstr "_Innehåll"
 
-#: src/zapping.c:345
+#: src/zapping.c:423
 msgid "_About"
 msgstr "_Om"
 
-#: src/zapping.c:348
+#: src/zapping.c:426
 msgid "Appearance"
 msgstr "Utseende"
 
-#: src/zapping.c:349
+#: src/zapping.c:427
 msgid "Ch. Up"
 msgstr "Upp"
 
 # src/interface.c:362
-#: src/zapping.c:350
+#: src/zapping.c:428
 msgid "Switch to higher channel"
 msgstr "Gå till högre kanal"
 
-#: src/zapping.c:351
+#: src/zapping.c:429
 msgid "Ch. Down"
 msgstr "Ner"
 
-#: src/zapping.c:352
+#: src/zapping.c:430
 msgid "Switch to lower channel"
 msgstr "Gå till lägre kanal"
 
-#: src/zapping.c:354
+#: src/zapping.c:432
 msgid "Change picture controls"
 msgstr "Ändra bildinställningar"
 
-#: src/zapping.c:359
+#: src/zapping.c:437
 msgid "_Mute"
 msgstr "_Ljud av"
 
-#: src/zapping.c:360
+#: src/zapping.c:438
 msgid "Switch audio on or off"
 msgstr "Sätt på eller av ljudet"
 
-#: src/zapping.c:361
+#: src/zapping.c:439
 msgid "Menu"
 msgstr "Meny"
 
-#: src/zapping.c:365 src/zapping.c:898
+#: src/zapping.c:443 src/zapping.c:1005
 msgid "Keep window on top"
 msgstr "Behåll fönstret längst fram"
 
-#: src/zapping.c:371 src/zapping.c:374
+#: src/zapping.c:461 src/zapping.c:464
 msgid "_Teletext"
 msgstr "_Teletext"
 
-#: src/zapping.c:372 src/zapping.c:384
+#: src/zapping.c:462 src/zapping.c:474
 msgid "_Subtitles"
 msgstr "_Undertexter"
 
-#: src/zapping.c:375
+#: src/zapping.c:465
 msgid "Activate Teletext mode"
 msgstr "Aktivera Teletextläge"
 
-#: src/zapping.c:377
+#: src/zapping.c:467
 msgid "Return to video mode"
 msgstr "Återgå till videoläge"
 
-#: src/zapping.c:378
+#: src/zapping.c:468
 msgid "_New Teletext View"
 msgstr "_Nytt teletextfönster"
 
-#: src/zapping.c:385
+#: src/zapping.c:475
 msgid "Switch subtitles on or off"
 msgstr "Undertexter på eller av"
 
-#: src/zapping.c:896
+#: src/zapping.c:1003
 msgid "Show menu and toolbar"
 msgstr "Visa Meny och Verktyg"
 
@@ -2073,7 +2081,7 @@ msgstr "Zapzilla kunde inte startas"
 msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Tyvärr, Zapping kan inte skapa konfigurationsträdet"
 
-#: src/zmisc.c:634
+#: src/zmisc.c:651
 #, c-format
 msgid ""
 "Cannot start video overlay.\n"
@@ -2082,7 +2090,11 @@ msgstr ""
 "Kan inte starta overlay.\n"
 "%s"
 
-#: src/zmisc.c:653
+#: src/zmisc.c:664
+msgid "VBI has been disabled, or it doesn't work."
+msgstr "VBI har blivit avstängd, eller fungerar inte."
+
+#: src/zmisc.c:698
 #, c-format
 msgid ""
 "Cannot start fullscreen overlay.\n"
@@ -2091,66 +2103,62 @@ msgstr ""
 "Kan inte starta fullskärmsoverlay.\n"
 "%s"
 
-#: src/zmisc.c:666
-msgid "VBI has been disabled, or it doesn't work."
-msgstr "VBI har blivit avstängd, eller fungerar inte."
-
-#: src/zmisc.c:945
+#: src/zmisc.c:975
 msgid "Hide the statusbar"
 msgstr "Göm statusraden"
 
-#: src/zmisc.c:1046
+#: src/zmisc.c:1076
 msgid "The path must start with /"
 msgstr "Katalognamnet måste börja med /"
 
-#: src/zmisc.c:1061
+#: src/zmisc.c:1091
 #, c-format
 msgid "Cannot create %s: %s"
 msgstr "Kan inte skapa %s: %s"
 
-#: src/zmisc.c:1074
+#: src/zmisc.c:1104
 #, c-format
 msgid "%s is not a directory"
 msgstr "%s är inte en katalog"
 
-#: src/zmisc.c:1769 src/zmisc.c:1773
+#: src/zmisc.c:1799 src/zmisc.c:1803
 msgid "Reset"
 msgstr "Återställ"
 
-#: src/zmisc.c:2053
+#: src/zmisc.c:2083
 msgid "Device:"
 msgstr "Enhetsfil:"
 
-#: src/zmisc.c:2054
+#: src/zmisc.c:2084
 msgid "Driver:"
 msgstr "Drivare:"
 
-#: src/zmisc.c:2055
+#: src/zmisc.c:2085
 msgid "Device file:"
 msgstr "Enhetsfil:"
 
-#: src/zmisc.c:2395
+#: src/zmisc.c:2425
 #, c-format
 msgid "%s exists."
 msgstr ""
 
-#: src/zmisc.c:2400
+#: src/zmisc.c:2430
 msgid "_Overwrite"
 msgstr ""
 
-#: src/zmisc.c:2405
+#: src/zmisc.c:2435
 #, fuzzy, c-format
 msgid "%s is a directory."
 msgstr "%s är inte en katalog"
 
 #. TRANSLATORS: device file, pipe,
 #. socket etc.
-#: src/zmisc.c:2418
+#: src/zmisc.c:2448
 #, c-format
 msgid "%s is a special file."
 msgstr ""
 
-#: src/zmisc.c:2422
+#: src/zmisc.c:2452
 msgid "Continue"
 msgstr ""
 
