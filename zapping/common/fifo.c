@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.20 2001-07-18 06:32:37 mschimek Exp $ */
+/* $Id: fifo.c,v 1.21 2001-07-24 20:02:55 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1332,8 +1332,12 @@ init_callback_fifo2(fifo2 *f, char *name,
 	if (!custom_send_full)
 		custom_send_full = send_full2;
 
-	if (!custom_send_empty)
-		custom_send_empty = send_empty_unbuffered;
+	if (!custom_send_empty) {
+		if (custom_wait_empty)
+			custom_send_empty = send_empty_unbuffered;
+		else
+			custom_send_empty = send_empty_buffered;
+	}
 
 	return init_fifo(f, name,
 		custom_wait_empty, custom_send_full,

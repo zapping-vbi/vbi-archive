@@ -18,13 +18,34 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.h,v 1.5 2001-07-17 02:09:59 mschimek Exp $ */
+/* $Id: decoder.h,v 1.6 2001-07-24 20:02:55 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
 
 /*
     Only device specific code includes this file.
  */
 
-#include "../src/tveng.h" /* tveng_frame_pixformat */
+#if NO_TVENG_H
+enum tveng_frame_pixformat {
+  TVENG_PIX_RGB555,
+  TVENG_PIX_RGB565,
+  TVENG_PIX_RGB24,
+  TVENG_PIX_BGR24,
+  TVENG_PIX_RGB32,
+  TVENG_PIX_BGR32,
+  TVENG_PIX_YVU420,
+  TVENG_PIX_YUV420,
+  TVENG_PIX_YUYV,
+  TVENG_PIX_UYVY,
+  TVENG_PIX_GREY
+};
+#else
+#  include "../src/tveng.h" /* tveng_frame_pixformat */
+#endif
+
 #include "../common/types.h"
 #include "sliced.h"
 

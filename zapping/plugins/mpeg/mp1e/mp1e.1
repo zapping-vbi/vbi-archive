@@ -1,11 +1,11 @@
-.TH MP1E 1 "$Date: 2001-07-18 06:32:37 $" "mp1e manual" \" -*- nroff -*-
+.TH MP1E 1 "$Date: 2001-07-24 20:02:55 $" "mp1e manual" \" -*- nroff -*-
 .SH NAME
 mp1e \- realtime MPEG-1 audio/video encoder
 .SH SYNOPSIS
 mp1e [options] [<Config File] >MPEG stream
 .SH DESCRIPTION
 .B mp1e
-reads images from a V4L or V4L2 compatible device, audio samples from
+reads images from a V4L2 compatible device, audio samples from
 a OSS, ALSA or ESD compatible device, encodes them as MPEG-1 a/v stream
 and writes the result to standard output.
 .P
@@ -73,10 +73,8 @@ inserted to stand for numbers zero and up. For example img%04u.ppm
 will read img0000.ppm, img0001.ppm and so forth until there is no
 image of that name.
 .P
-Note this program started as a V4L2 application, the contributed
-V4L interface is not regularly tested. The PPM interface may not
-work perfectly either. Feel free to report bugs, fixes are
-even more welcome.
+As of version 1.9 the V4L interface is out of order. Contributions
+welcome.
 .RE
 .TP
 .BI "\-f, \-\-frame_rate " float

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.3 2001-06-07 17:43:51 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.4 2001-07-24 20:02:55 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -26,7 +26,7 @@
 #include "../common/fifo.h"
 #include "v4lx.h"
 
-extern void		vbi_init(fifo *f);
+extern void		vbi_init(fifo2 *f);
 extern void *		vbi_thread(void *f); // XXX
 
 #endif /* libvbi.h */

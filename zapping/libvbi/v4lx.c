@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.23 2001-07-17 02:09:59 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.24 2001-07-24 20:02:55 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -271,8 +271,9 @@ start_read(fifo2 *f)
 	if (!add_consumer(f, &c))
 		return FALSE;
 
+/* XXX can block infinitely (?) */
 	if ((b = wait_full_buffer2(&c))) {
-		unget_full_buffer2(&c, b);
+		send_empty_buffer2(&c, b);
 		rem_consumer(&c);
 		return TRUE; /* access should be finally granted */
 	}
@@ -842,8 +843,9 @@ start_stream(fifo2 *f)
 	if (!add_consumer(f, &c))
 		return FALSE;
 
+/* XXX can block infinitely (?) destroy thread? */
 	if ((b = wait_full_buffer2(&c))) {
-		unget_full_buffer2(&c, b);
+		send_empty_buffer2(&c, b);
 		rem_consumer(&c);
 		return TRUE;
 	}

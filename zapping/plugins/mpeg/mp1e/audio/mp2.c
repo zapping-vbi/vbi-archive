@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.13 2001-05-09 22:33:21 garetxe Exp $ */
+/* $Id: mp2.c,v 1.14 2001-07-24 20:02:55 mschimek Exp $ */
 
 #include <limits.h>
 #include "../common/log.h"
@@ -313,7 +313,7 @@ audio_init(int sampling_freq, int stereo, int audio_mode, int bit_rate, int psyc
 	audio_fifo = mux_add_input_stream(
 		AUDIO_STREAM, "audio-mp2",
 		2048 * channels, aud_buffers,
-		sampling_freq / (double) SAMPLES_PER_FRAME, bit_rate, audio_cap_fifo);
+		sampling_freq / (double) SAMPLES_PER_FRAME, bit_rate);
 }
 
 /*
@@ -476,7 +476,7 @@ mpeg_audio_layer_ii_mono(void *unused)
 {
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
-	remote_sync(audio_cap_fifo, MOD_AUDIO, aseg.frame_period);
+	remote_sync(audio_cap_fifo, NULL, MOD_AUDIO, aseg.frame_period);
 
 	for (;;) {
 		buffer *ibuf, *obuf;
@@ -652,7 +652,7 @@ mpeg_audio_layer_ii_stereo(void *unused)
 {
 	// fpu_control(FPCW_PRECISION_SINGLE, FPCW_PRECISION_MASK);
 
-	remote_sync(audio_cap_fifo, MOD_AUDIO, aseg.frame_period);
+	remote_sync(audio_cap_fifo, NULL, MOD_AUDIO, aseg.frame_period);
 
 	for (;;) {
 		buffer *ibuf, *obuf;

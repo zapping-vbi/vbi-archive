@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.42 2001-07-18 06:32:38 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.43 2001-07-24 20:02:55 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -1482,7 +1482,7 @@ mpeg1_video_ipb(void *unused)
 
 	printv(3, "Video compression thread\n");
 
-	remote_sync(video_cap_fifo, MOD_VIDEO, time_per_frame);
+	remote_sync(video_cap_fifo, NULL, MOD_VIDEO, time_per_frame);
 
 	while (!done) {
 		int sp = 0;
@@ -2047,5 +2047,5 @@ video_init(void)
 	video_fifo = mux_add_input_stream(
 		VIDEO_STREAM, "video-mpeg1",
 		mb_num * 384 * 4, vid_buffers,
-		frames_per_sec, video_bit_rate, video_cap_fifo);
+		frames_per_sec, video_bit_rate);
 }

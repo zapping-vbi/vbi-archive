@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: stream.c,v 1.11 2001-03-31 11:10:26 garetxe Exp $ */
+/* $Id: stream.c,v 1.12 2001-07-24 20:02:55 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +59,7 @@ mux_cleanup(void)
 
 fifo *
 mux_add_input_stream(int stream_id, char *name, int max_size, int buffers,
-	double frame_rate, int bit_rate, fifo *cap_fifo)
+	double frame_rate, int bit_rate)
 {
 	stream *str;
 
@@ -69,7 +69,6 @@ mux_add_input_stream(int stream_id, char *name, int max_size, int buffers,
 	str->stream_id = stream_id;
 	str->frame_rate = frame_rate;
 	str->bit_rate = bit_rate;
-	str->cap_fifo = cap_fifo;
 
 	buffers = init_buffered_fifo(&str->fifo, name, buffers, max_size);
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: stream.h,v 1.3 2000-09-30 19:38:45 mschimek Exp $ */
+/* $Id: stream.h,v 1.4 2001-07-24 20:02:55 mschimek Exp $ */
 
 #include "../common/log.h"
 #include "../common/types.h"
@@ -55,6 +55,4 @@ typedef struct {
 
 	double			cap_t0;
 	int			frame_count;
-
-	fifo *			cap_fifo;
 } stream;

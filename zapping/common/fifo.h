@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.17 2001-07-16 07:06:01 mschimek Exp $ */
+/* $Id: fifo.h,v 1.18 2001-07-24 20:02:55 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -697,6 +697,7 @@ extern void			rem_consumer(consumer *c);
 extern consumer	*		add_consumer(fifo2 *f, consumer *c);
 
 /* XXX TBD */
+/* start only *after* adding a consumer? */
 static inline bool
 start_fifo2(fifo2 *f)
 {

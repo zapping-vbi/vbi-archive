@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.10 2001-07-12 01:22:06 mschimek Exp $ */
+/* $Id: vbi.c,v 1.11 2001-07-24 20:02:55 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -83,24 +83,28 @@ teletext_packet(unsigned char *p, unsigned char *buf, int line)
 				 | SLICED_CAPTION_525_F1 | SLICED_CAPTION_525)
 
 void *
-vbi_thread(void *f) // XXX
+vbi_thread(void *F)
 {
-	buffer *ibuf, *obuf = NULL;
+	consumer c;
+	buffer *obuf = NULL;
+	buffer2 *ibuf;
 	unsigned char *p = NULL, *p1 = NULL;
 	int vbi_frame_count = 0;
 	int items, parity = -1;
 	vbi_sliced *s;
 
+	ASSERT("add vbi cons", add_consumer((fifo2 *) F, &c));
+
 	if (do_subtitles)
-		remote_sync(f, MOD_SUBTITLES, 1 / 25.0);
+		remote_sync(0, &c, MOD_SUBTITLES, 1 / 25.0);
 
 	while (vbi_frame_count < video_num_frames) { // XXX video XXX pdc
-		if (!(ibuf = wait_full_buffer((fifo *) f)) || ibuf->used <= 0)
+		if (!(ibuf = wait_full_buffer2(&c)) || ibuf->used <= 0)
 			break; // EOF or error
 
 		if (do_subtitles) {
 			if (remote_break(ibuf->time, 1 / 25.0)) {
-				send_empty_buffer((fifo *) f, ibuf);
+				send_empty_buffer2(&c, ibuf);
 				break;
 			}
 
@@ -111,6 +115,7 @@ vbi_thread(void *f) // XXX
 		}
 
 		vbi_frame_count++;
+// XXX frame dropping not handled
 
 		s = (vbi_sliced *) ibuf->data;
 		items = ibuf->used / sizeof(vbi_sliced);
@@ -146,7 +151,7 @@ vbi_thread(void *f) // XXX
 			send_full_buffer(vbi_output_fifo, obuf);
 		}
 
-		send_empty_buffer(f, ibuf);
+		send_empty_buffer2(&c, ibuf);
 	}
 
 	printv(2, "VBI: End of file\n");
@@ -158,11 +163,13 @@ vbi_thread(void *f) // XXX
 			send_full_buffer(vbi_output_fifo, obuf);
 		}
 
+	rem_consumer(&c);
+
 	return NULL;
 }
 
 void
-vbi_init(fifo *f)
+vbi_init(fifo2 *f)
 {
 	do_pdc = DO_PDC;
 
@@ -175,7 +182,7 @@ vbi_init(fifo *f)
 
 		vbi_output_fifo = mux_add_input_stream(
 			PRIVATE_STREAM_1, "vbi-ps1",
-			32 * 46, 5, 25.0, 294400 /* peak */, f);
+			32 * 46, 5, 25.0, 294400 /* peak */);
 	}
 
 	if (!do_pdc && !do_subtitles)

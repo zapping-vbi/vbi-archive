@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.43 2001-07-18 06:32:37 mschimek Exp $ */
+/* $Id: main.c,v 1.44 2001-07-24 20:02:55 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,7 +65,7 @@ fifo *			video_cap_fifo;
 void			(* video_start)(void);
 
 static pthread_t	vbi_thread_id;
-static fifo *		vbi_cap_fifo;
+static fifo2 *		vbi_cap_fifo;
 
 pthread_t               output_thread_id;
 
@@ -226,7 +226,8 @@ main(int ac, char **av)
 	}
 
 	if (modules & MOD_SUBTITLES) {
-		vbi_cap_fifo = vbi_open_v4lx(vbi_dev, 0, FALSE, 30);
+		vbi_cap_fifo = vbi_open_v4lx(vbi_dev, -1, FALSE, 30);
+		ASSERT("open vbi device", vbi_cap_fifo != NULL);
 	}
 
 	/* Compression init */
