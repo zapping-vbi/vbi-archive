@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.36.2.14 2003-11-04 21:09:20 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.36.2.15 2003-11-13 05:19:45 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -89,6 +89,8 @@ static GtkWidget *		saving_dialog;
 static GtkWidget *		saving_popup;
 
 static volatile gboolean	active;
+static gint			capture_format_id;
+static tv_pixfmt		capture_pixfmt;
 
 /* XXX */
 static volatile gint		stopped;
@@ -135,44 +137,33 @@ video_callback			(rte_context *		context,
 				 rte_buffer *		rb)
 {
   zf_buffer *b;
-  struct tveng_frame_format *fmt;
+  zimage *zi;
 
-fprintf(stderr, "%s %s %d\n", __FILE__,__FUNCTION__,__LINE__);
-
-#if 1
   for (;;) {
-fprintf(stderr, "%s %s %d\n", __FILE__,__FUNCTION__,__LINE__);
+    capture_frame *cf;
+
+    /* Abort if a bug prevents normal termination. */
+    if (0 == stopped)
+      return FALSE;
+    else if (stopped > 0)
+      --stopped;
+
     b = zf_wait_full_buffer (&mpeg_consumer);
-fprintf(stderr, "%s %s %d\n", __FILE__,__FUNCTION__,__LINE__);
-    if (b->data)
-      break;
-fprintf(stderr, "%s %s %d\n", __FILE__,__FUNCTION__,__LINE__);
-    zf_send_empty_buffer (&mpeg_consumer, b);
-fprintf(stderr, "%s %s %d\n", __FILE__,__FUNCTION__,__LINE__);
-  }
-#else
-  for (;;) {
-    capture_buffer *cb = (capture_buffer *)
-      (b = zf_wait_full_buffer (&mpeg_consumer));
 
-    fmt = &cb->d.format;
+    cf = PARENT (b, capture_frame, b);
+    zi = retrieve_frame (cf, capture_pixfmt);
 
-    if (cb->d.image_type &&
-	fmt->height == video_params.video.height &&
-	fmt->width == video_params.video.width &&
-	/* fmt->sizeimage == context->video_bytes && */
-	b->time)
+    if (NULL != zi)
       break;
 
     zf_send_empty_buffer (&mpeg_consumer, b);
   }
-#endif
-fprintf(stderr, "%s %s %d\n", __FILE__,__FUNCTION__,__LINE__);
+
   rb->timestamp = b->time;
-  rb->data = b->data;
-  rb->size = 1; /* XXX don't care 4 now */
+  rb->data = zi->data.linear.data;
+  rb->size = 1; /* XXX don't care 4 now, should be zi->fmt.size */
   rb->user_data = b;
-fprintf(stderr, "%s %s %d\n", __FILE__,__FUNCTION__,__LINE__);
+
   return TRUE;
 }
 
@@ -368,12 +359,12 @@ do_stop				(void)
   if (!active)
     return;
 
+  stopped = 20;
+
   saving_dialog_status_disable ();
 
   rte_context_delete (context_enc);
   context_enc = NULL;
-
-  active = FALSE;
 
   zf_rem_consumer (&mpeg_consumer);
 
@@ -385,7 +376,11 @@ do_stop				(void)
     free (audio_buf);
   audio_buf = NULL;
 
-  //  capture_unlock ();
+  if (0 != capture_format_id)
+    release_capture_format (capture_format_id);
+  capture_format_id = 0;
+
+  active = FALSE;
 }
 
 static gboolean
@@ -399,6 +394,8 @@ do_start			(const gchar *		file_name)
 
   if (active)
     return FALSE;
+
+  stopped = -1;
 
   /* sync_warning (void); */
 
@@ -450,17 +447,27 @@ do_start			(const gchar *		file_name)
 	  return FALSE;
 	}
 
-      {
-	gint n;
+      /* preliminary hack */
+      pixfmt = native_capture_format ();
+      switch (pixfmt)
+	{
+	  gint n;
 
-	n = zconf_get_integer (NULL, "/zapping/options/main/yuv_format");
+	case TV_PIXFMT_YUV420:
+	case TV_PIXFMT_YVU420:
+	case TV_PIXFMT_YUYV:
+	  break;
 
-	if      (n == 6) pixfmt = TV_PIXFMT_YVU420;
-	else if (n == 7) pixfmt = TV_PIXFMT_YUV420;
-	else if (n == 8) pixfmt = TV_PIXFMT_YUYV;
-	else if (n == 9) pixfmt = TV_PIXFMT_UYVY;
-	else		 pixfmt = TV_PIXFMT_YVU420;
-      }
+	default:
+	  n = zconf_get_integer (NULL, "/zapping/options/main/yuv_format");
+	  switch (n)
+	    {
+	    case 6: pixfmt = TV_PIXFMT_YVU420; break;
+	    default:
+	    case 7: pixfmt = TV_PIXFMT_YUV420; break;
+	    case 8: pixfmt = TV_PIXFMT_YUYV; break;
+	    }
+	}
 
       for (retry = 0;; retry++)
         {
@@ -471,31 +478,40 @@ do_start			(const gchar *		file_name)
 	      return FALSE;
 	    }
 
-#if 0
-	  if (!request_bundle_format (tveng_pixformat, width, height))
-#else
-	  CLEAR (fmt);
+	  fmt.locked = TRUE;
 	  fmt.width = width;
 	  fmt.height = height;
 	  fmt.pixfmt = pixfmt;
 
-	  if (-1 == request_capture_format (&fmt))
-#endif
+	  if (0 != capture_format_id)
+	    release_capture_format (capture_format_id);
+
+	  capture_format_id = request_capture_format (&fmt);
+
+	  if (0 == capture_format_id)
 	    {
 	      rte_context_delete (context);
 	      context_enc = NULL;
 
 	      ShowBox ("Cannot switch to %s capture format",
-		       GTK_MESSAGE_ERROR,
-		       (pixfmt == TV_PIXFMT_YVU420) ?
-		       "YUV 4:2:0" : "YUV 4:2:2");
+		       GTK_MESSAGE_ERROR, tv_pixfmt_name (pixfmt));
 	      return FALSE;
 	    }
+
+	  capture_pixfmt = pixfmt;
 
 	  par->width = zapping_info->format.width;
 	  par->height = zapping_info->format.height;
 
 	  if (pixfmt == TV_PIXFMT_YVU420)
+	    {
+	      par->pixfmt = RTE_PIXFMT_YUV420;
+	      par->stride = par->width;
+	      par->uv_stride = par->stride >> 1;
+	      par->u_offset = par->stride * par->height;
+	      par->v_offset = par->u_offset * 5 / 4;
+	    }
+	  else if (pixfmt == TV_PIXFMT_YUV420)
 	    {
 	      par->pixfmt = RTE_PIXFMT_YUV420;
 	      par->stride = par->width;
@@ -521,6 +537,9 @@ do_start			(const gchar *		file_name)
 	      if (captured_frame_rate < 0.0)
 		{
 		  rte_context_delete (context);
+		  if (0 != capture_format_id)
+		    release_capture_format (capture_format_id);
+		  capture_format_id = 0;
 		  context_enc = NULL;
 		  return FALSE;
 		}
@@ -536,6 +555,9 @@ do_start			(const gchar *		file_name)
 	    {
 	      rte_context_delete (context);
 	      context_enc = NULL;
+	      if (0 != capture_format_id)
+		release_capture_format (capture_format_id);
+	      capture_format_id = 0;
 
 	      /* FIXME */
 
@@ -553,7 +575,7 @@ do_start			(const gchar *		file_name)
 	    }
 	  else if (par->pixfmt == RTE_PIXFMT_YUV420)
 	    {
-	      if (pixfmt != TV_PIXFMT_YVU420)
+	      if (pixfmt == TV_PIXFMT_YUYV)
 		{
 		  pixfmt = TV_PIXFMT_YVU420;
 		  continue;
@@ -681,6 +703,10 @@ do_start			(const gchar *		file_name)
   if (audio_handle)
     close_audio_device (audio_handle);
   audio_handle = NULL;
+
+  if (0 != capture_format_id)
+    release_capture_format (capture_format_id);
+  capture_format_id = 0;
 
   return FALSE;
 }
@@ -1757,6 +1783,9 @@ py_quickrec (PyObject *self, PyObject *args)
 static PyObject*
 py_record (PyObject *self, PyObject *args)
 {
+  if (saving_dialog || active)
+    py_return_false;
+
   saving_dialog_new (FALSE);
 
   py_return_true;
