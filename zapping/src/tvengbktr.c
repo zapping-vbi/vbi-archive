@@ -125,7 +125,7 @@ do_get_control		(struct private_tvengbktr_device_info * p_info,
 	case BT848_GUSAT: /* get U saturation */
 		/* Range varies, see below. */
 		if (-1 == device_ioctl (p_info->info.log_fp,
-					fprintf_ioctl_arg,
+					fprint_ioctl_arg,
 					p_info->info.fd,
 					/* cmd */ c->id, &value)) {
 			ioctl_failure (&p_info->info,
