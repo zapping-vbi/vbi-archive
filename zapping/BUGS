@@ -4,10 +4,6 @@ Known bugs in Zapping, don't report them
 * Chance hang in request_capture_format_real at some rwlock, probably
   a race condition.
 * Doesn't always reset hue on startup.
-* Mute button is on after unmute, quit, restart. Seems to be a driver effect.
-* Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
-* Wrong window stacking layer of overlay window when
-  Zapping restores no-xv fullscreen at startup.
 * "drose": Under mdk 9.1 the video capture stops for no reason.
   Start recording to a file -- come back in ten minutes, 1 - 3 minutes
   of video are stored and zapping wasn't running.
@@ -62,6 +58,10 @@ Needs more work later:
 * mpeg plugin doesn't link with libdivx-20030428.
   Undefined reference to __start_cp_handler, __eh_rtime_match.
   g++ doesn't help, no .a|.o|.so found. Where the fsck are they defined??
+* Edited channels, clicked ok, tc==NULL in tuned_channel_nth_name().
+  Not recently observed, perhaps fixed.
+* Mute button is on after unmute, quit, restart. Seems to be a driver
+  effect.
 
 tvengxv.c
 * Need to handle BadAtom errors resulting from Xv out
@@ -73,18 +73,9 @@ tvengxv.c
   if they are implemented by the driver.
 * configure.in must check for different versions of xv.
 
-Kernel
-* V4L2 (0.20 and 2.5) RGB pixel formats are incorrectly defined.
-  Docs corrected, workaround is in place.
-
-GTK
-* TTX to video mode switch: "(zapping:14644): Gtk-WARNING
-  **: Toolbar position 8 is not a space", separator not removed.
-  This is gtk 2.3 bug #127092, apparently fixed now.
-
 Debian
 * 168263 - feature added in 0.7.
-* 126641 - zapping_remote, see also sf.net. Feature to do.
+* 126641 - zapping_remote, see also sf.net. Without X to do.
 * 170380 - rewrote in 0.7, user can override automatic selection.
 * 169173 - rewrote in 0.7.
 * 226590 - still in 0.6.8 (never notified - ??), rewrote in 0.7.

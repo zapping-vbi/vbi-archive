@@ -1,3 +1,13 @@
+2004-05-23    <mschimek@users.sf.net>
+
+	* src/xawtv.c (xawtv_import_config): Channel names can contain
+	  all sorts of funny characters GScanner cannot easily handle,
+	  rewrote the parser.
+	* src/fullscreen.c (start_fullscreen): Keys didn't work if the main
+	  window didn't have focus when starting fullscreen.
+	* src/main.c (main): Startup sequence was backwards, we cannot
+	  restore overlay mode before the window is mapped.
+
 2004-05-22    <mschimek@users.sf.net>
 
 	* plugins/mpeg/mpeg.c (do_start): Corrected YUV/YVU pixfmt retries.

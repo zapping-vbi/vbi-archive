@@ -2271,6 +2271,9 @@ void
 zvbi_name_unknown(void)
 {
   station_name_known = FALSE;
+
+  if (vbi)
+    vbi_channel_switched(vbi, 0);
 }
 
 void

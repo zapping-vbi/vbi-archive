@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.40 2004-05-17 20:46:52 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.41 2004-05-24 01:58:51 mschimek Exp $ */
 
 /*
   TODO:
@@ -566,17 +566,18 @@ station_search_timeout		(gpointer		p)
   station_search *cs = ce->search;
   tveng_tuned_channel tc;
   gchar *station_name;
-  gint strength, afc;
 
   if (!(cs = ce->search))
     return FALSE;
 
   if (cs->iteration == 0)
     {
+      gdouble progress;
+
       /* New channel */
 
-      gtk_progress_bar_set_fraction (cs->progressbar,
-	 cs->channel / (gdouble) tv_rf_channel_table_size (&cs->ch));
+      progress = cs->channel / (gdouble) tv_rf_channel_table_size (&cs->ch);
+      gtk_progress_bar_set_fraction (cs->progressbar, progress);
 
       z_label_set_text_printf (cs->label,
 			       _("Channel: %s   Found: %u"),
@@ -587,15 +588,11 @@ station_search_timeout		(gpointer		p)
 
       if (!tv_set_tuner_frequency (main_info, cs->frequ))
 	goto next_channel;
-
-#ifdef HAVE_LIBZVBI
-      /* zvbi should store the station name if known from now */
-      zvbi_name_unknown();
-#endif
-      cs->iteration = 1;
     }
   else
     {
+      gint strength, afc;
+
       /* Probe */
 
       if (-1 == tveng_get_signal_strength (&strength, &afc, main_info))
@@ -621,23 +618,30 @@ station_search_timeout		(gpointer		p)
 	}
 
 #ifdef HAVE_LIBZVBI
-      /* if (zconf_get_boolean(NULL, "/zapping/options/vbi/use_vbi")) */
-      if (1)
+      if (cs->iteration >= 10)
 	{
-	  if ((station_name = zvbi_get_name ()))
-	    goto add_station;
+	  if (cs->iteration == 10)
+	    {
+	      /* zvbi should store the station name if known from now */
+	      zvbi_name_unknown();
+	    }
+	  else
+	    {
+	      if ((station_name = zvbi_get_name ()))
+		goto add_station;
 
-	  /* How long for XDS? */
-	  if (cs->iteration >= 25)
-	    goto add_default; /* no name after 2.5 sec */
+	      /* How long for XDS? */
+	      if (cs->iteration >= 25)
+		goto add_default; /* no name after 2.5 sec */
+	    }
 	}
-      else
+#else
+      if (cs->iteration >= 10)
+	goto add_default; /* after 1 sec afc */
 #endif
-	if (cs->iteration >= 10)
-	  goto add_default; /* after 1 sec afc */
-
-      cs->iteration++;
     }
+
+  ++cs->iteration;
 
   return TRUE; /* continue */
 
@@ -686,7 +690,7 @@ on_channel_search_clicked	(GtkButton *		search,
   /* XXX we cannot search in Xv mode because there's no signal strength.
      Or is there? tveng should also tell in advance if this call will
      fail, so we can disable the option. */
-  if (0 != zmisc_switch_mode (TVENG_CAPTURE_READ, main_info))
+  if (-1 == zmisc_switch_mode (TVENG_CAPTURE_READ, main_info))
     return;
 
   cs = g_malloc (sizeof (station_search));
