@@ -18,7 +18,7 @@
 
 /**
  * Fullscreen mode handling
- * $Id: fullscreen.c,v 1.24 2004-05-24 01:57:36 mschimek Exp $
+ * $Id: fullscreen.c,v 1.25 2004-06-06 12:54:00 mschimek Exp $
  */
 
 #ifdef HAVE_CONFIG_H
@@ -335,6 +335,12 @@ start_fullscreen		(tveng_device_info *	info)
       if (!tv_set_overlay_xwindow (info, info->overlay_window.win,
 				   info->overlay_window.gc))
 	goto failure;
+
+      /* For OSD. */
+      info->overlay_window.x = (gdk_screen_width () - width) >> 1;
+      info->overlay_window.y = (gdk_screen_height () - height) >> 1;
+      info->overlay_window.width = width;
+      info->overlay_window.height = height;
     }
   else
     {
@@ -389,7 +395,10 @@ start_fullscreen		(tveng_device_info *	info)
   else
     {
       /* wrong because Xv may pad to this size (DMA hw limit) */
-      osd_set_coords (da, 0, 0, info->overlay_window.width,
+      osd_set_coords (da,
+		      info->overlay_window.x,
+		      info->overlay_window.y,
+		      info->overlay_window.width,
 		      info->overlay_window.height);
     }
 
