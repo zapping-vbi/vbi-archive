@@ -1,16 +1,29 @@
 ## Process this file with automake to produce Makefile.in
 
-# XXX zapping_setup_fb.1 only needed w/V4L(2) but we cannot
-# but man_MANS in a conditional :-(
-man_MANS = zapping.1 zapping_setup_fb.1 zapping_remote.1
-
-EXTRA_DIST = $(man_MANS) $(man_MANS:.1=.xml)
-
-# Stolen from glib
+MANUALS = \
+	zapping.xml \
+	zapping_remote.xml \
+	zapping_setup_fb.xml
 
 if BUILD_MAN
+
+# XXX zapping_setup_fb.1 needs to be installed only if we NEED_ZSFB
+man_MANS = $(MANUALS:.xml=.1)
+
+EXTRA_DIST = $(man_MANS) $(MANUALS)
 
 %.1: %.xml
 	@XSLTPROC@ -nonet "http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl" $<
 
+else
+
+EXTRA_DIST = $(MANUALS)
+
 endif
+
+xmlcheck: $(MANUALS)
+	for file in $^; do \
+		SP_CHARSET_FIXED=YES \
+		SP_ENCODING=XML \
+		onsgmls -s -wxml $$file; \
+	done
