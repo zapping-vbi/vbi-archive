@@ -19,10 +19,9 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.4 2004-05-16 11:43:17 mschimek Exp $ */
+/* $Id: v4l.c,v 1.5 2004-09-10 04:47:05 mschimek Exp $ */
 
-#include "../config.h"
-
+#include "config.h"
 #include "zapping_setup_fb.h"
 
 #ifdef ENABLE_V4L
@@ -30,6 +29,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <assert.h>
 
 #include "../common/videodev.h"
 #include "../common/_videodev.h"
@@ -40,11 +40,13 @@
 
 int
 setup_v4l			(const char *		device_name,
-				 x11_dga_parameters *	dga)
+				 const tv_overlay_buffer *buffer)
 {
   int fd;
   struct video_capability caps;
   struct video_buffer fb;
+  tv_pixel_format pf;
+  tv_bool r;
 
   message (2, "Opening video device.\n");
 
@@ -66,7 +68,8 @@ setup_v4l			(const char *		device_name,
 
   if (!(caps.type & VID_TYPE_OVERLAY))
     {
-      message (1, "Device '%s' does not support video overlay.\n", device_name);
+      message (1, "Device '%s' does not support video overlay.\n",
+	       device_name);
       goto failure;
     }
 
@@ -78,23 +81,26 @@ setup_v4l			(const char *		device_name,
       goto failure;
     }
 
-  fb.base		= dga->base;
-  fb.width		= dga->width;
-  fb.height		= dga->height;
+  fb.base		= (void *) buffer->base;
+  fb.width		= buffer->format.width;
+  fb.height		= buffer->format.height;
 
-  if (dga->bits_per_pixel == 32)
+  r = tv_pixel_format_from_pixfmt (&pf,
+				   buffer->format.pixfmt,
+				   buffer->format._reserved);
+  assert (TRUE == r);
+
+  if (32 == pf.bits_per_pixel)
     fb.depth		= 32; /* depth 24 bpp 32 */
   else
-    fb.depth		= dga->depth; /* 15, 16, 24 */
+    fb.depth		= pf.color_depth; /* 15, 16, 24 */
 
-  fb.bytesperline	= dga->bytes_per_line;
+  fb.bytesperline	= buffer->format.bytes_per_line;
 
   message (2, "Setting new FB parameters.\n");
 
-  /*
-   *  This ioctl is privileged because it sets up
-   *  DMA to a random (video memory) address. 
-   */
+  /* This ioctl is privileged because it sets up
+     DMA to a random (video memory) address. */
   {
     int success;
     int saved_errno;
@@ -131,7 +137,7 @@ setup_v4l			(const char *		device_name,
 
 int
 setup_v4l			(const char *		device_name,
-				 x11_dga_parameters *	dga)
+				 const tv_overlay_buffer *buffer)
 {
   return -1;
 }

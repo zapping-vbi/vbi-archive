@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.4 2004-05-16 11:43:18 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.5 2004-09-10 04:46:45 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -31,8 +31,7 @@
 
 #ifdef ENABLE_V4L
 
-#include <fcntl.h>
-#include <sys/ioctl.h>
+#include <assert.h>
 
 #include <linux/types.h>		/* __u32 etc */
 #include <sys/time.h>			/* struct timeval */
@@ -45,11 +44,13 @@
 
 int
 setup_v4l25			(const char *		device_name,
-				 x11_dga_parameters *	dga)
+				 const tv_overlay_buffer *buffer)
 {
   int fd;
   struct v4l2_capability cap;
   struct v4l2_framebuffer fb;
+  tv_pixel_format pf;
+  tv_bool r;
 
   message (2, "Opening video device.\n");
 
@@ -60,18 +61,20 @@ setup_v4l25			(const char *		device_name,
 
   if (-1 == v4l25_ioctl (fd, VIDIOC_QUERYCAP, &cap))
     {
-      errmsg ("VIDIOC_QUERYCAP ioctl failed,\n  probably not a V4L2 2.5 device");
+      errmsg ("VIDIOC_QUERYCAP ioctl failed,\n"
+	      "  probably not a V4L2 2.6 device");
       close (fd);
       return -1;
     }
 
-  message (1, "Using V4L2 2.5 interface.\n");
+  message (1, "Using V4L2 2.6 interface.\n");
 
   message (2, "Checking overlay capability.\n");
 
   if (!(cap.capabilities & V4L2_CAP_VIDEO_OVERLAY))
     {
-      message (1, "Device '%s' does not support video overlay.\n", device_name);
+      message (1, "Device '%s' does not support video overlay.\n",
+	       device_name);
       goto failure;
     }
 
@@ -92,20 +95,26 @@ setup_v4l25			(const char *		device_name,
 
   memset (&fb, 0, sizeof (fb));
 
-  fb.base		= dga->base;
-  fb.fmt.width		= dga->width;
-  fb.fmt.height		= dga->height;
+  fb.base		= (void *) buffer->base;
 
-  switch (dga->depth)
+  fb.fmt.width		= buffer->format.width;
+  fb.fmt.height		= buffer->format.height;
+
+  r = tv_pixel_format_from_pixfmt (&pf,
+				   buffer->format.pixfmt,
+				   buffer->format._reserved);
+  assert (TRUE == r);
+
+  switch (pf.color_depth)
     {
     case  8:
       fb.fmt.pixelformat = V4L2_PIX_FMT_HI240; /* XXX bttv only */
       break;
 
-      /* Note defines and Spec (0.4) are wrong: r <-> b,
-	 RGB32 == A,R,G,B in bttv 0.9 unlike description in Spec */
+      /* Note defines and spec (0.4) are wrong: r <-> b,
+	 RGB32 == A,R,G,B in bttv 0.9 unlike description in spec */
 
-#if BYTE_ORDER == BIG_ENDIAN /* safe? */
+#if Z_BYTE_ORDER == Z_BIG_ENDIAN /* safe? */
     case 15:
       fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555X;
       break;
@@ -114,12 +123,12 @@ setup_v4l25			(const char *		device_name,
       break;
     case 24:
     case 32:
-      if (dga->bits_per_pixel == 24)
+      if (24 == pf.bits_per_pixel)
 	fb.fmt.pixelformat = V4L2_PIX_FMT_RGB24;
       else
 	fb.fmt.pixelformat = V4L2_PIX_FMT_RGB32;
       break;
-#else
+#elif Z_BYTE_ORDER == Z_LITTLE_ENDIAN
     case 15:
       fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555;
       break;
@@ -128,23 +137,23 @@ setup_v4l25			(const char *		device_name,
       break;
     case 24:
     case 32:
-      if (dga->bits_per_pixel == 24)
+      if (24 == pf.bits_per_pixel)
 	fb.fmt.pixelformat = V4L2_PIX_FMT_BGR24;
       else
 	fb.fmt.pixelformat = V4L2_PIX_FMT_BGR32;
       break;
+#else
+#  error Unknown or unsupported endianess.
 #endif
     }
 
-  fb.fmt.bytesperline	= dga->bytes_per_line;
-  fb.fmt.sizeimage	= dga->height * fb.fmt.bytesperline;
+  fb.fmt.bytesperline	= buffer->format.bytes_per_line;
+  fb.fmt.sizeimage	= buffer->format.height * fb.fmt.bytesperline;
 
   message (2, "Setting new frame buffer parameters.\n");
 
-  /*
-   *  This ioctl is privileged because it sets up
-   *  DMA to a random (video memory) address. 
-   */
+  /* This ioctl is privileged because it sets up
+     DMA to a random (video memory) address. */
   {
     int success;
     int saved_errno;
@@ -181,7 +190,7 @@ setup_v4l25			(const char *		device_name,
 
 int
 setup_v4l25			(const char *		device_name,
-				 x11_dga_parameters *	dga)
+				 const tv_overlay_buffer *buffer)
 {
   return -1;
 }

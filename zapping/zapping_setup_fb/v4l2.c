@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.5 2004-05-16 11:43:18 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.6 2004-09-10 04:46:55 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -31,8 +31,7 @@
 
 #ifdef ENABLE_V4L
 
-#include <fcntl.h>
-#include <sys/ioctl.h>
+#include <assert.h>
 
 #include "../common/videodev2.h" /* V4L2 header file */
 #include "../common/_videodev2.h"
@@ -43,11 +42,13 @@
 
 int
 setup_v4l2			(const char *		device_name,
-				 x11_dga_parameters *	dga)
+				 const tv_overlay_buffer *buffer)
 {
   int fd;
   struct v4l2_capability cap;
   struct v4l2_framebuffer fb;
+  tv_pixel_format pf;
+  tv_bool r;
 
   message (2, "Opening video device.\n");
 
@@ -70,7 +71,8 @@ setup_v4l2			(const char *		device_name,
   if (V4L2_TYPE_CAPTURE != cap.type
       || !(V4L2_FLAG_PREVIEW & cap.flags))
     {
-      message (1, "Device '%s' does not support video overlay.\n", device_name);
+      message (1, "Device '%s' does not support video overlay.\n",
+	       device_name);
       goto failure;
     }
 
@@ -89,23 +91,30 @@ setup_v4l2			(const char *		device_name,
       return 1;
     }
 
-  fb.base[0]		= dga->base;
-  fb.base[1]		= dga->base;
-  fb.base[2]		= dga->base;
-  fb.fmt.width		= dga->width;
-  fb.fmt.height		= dga->height;
-  fb.fmt.depth		= dga->bits_per_pixel;
+  fb.base[0]		= (void *) buffer->base;
+  fb.base[1]		= (void *) buffer->base;
+  fb.base[2]		= (void *) buffer->base;
 
-  switch (dga->depth)
+  fb.fmt.width		= buffer->format.width;
+  fb.fmt.height		= buffer->format.height;
+
+  r = tv_pixel_format_from_pixfmt (&pf,
+				   buffer->format.pixfmt,
+				   buffer->format._reserved);
+  assert (TRUE == r);
+
+  fb.fmt.depth		= pf.bits_per_pixel;
+
+  switch (pf.color_depth)
     {
     case  8:
       fb.fmt.pixelformat = V4L2_PIX_FMT_HI240; /* XXX bttv only */
       break;
 
-      /* Note 15/16 defines and Spec are wrong: r <-> b,
-	 RGB32 == A,R,G,B in bttv unlike description in Spec. */
+      /* Note 15/16 defines and spec are wrong: r <-> b,
+	 RGB32 == A,R,G,B in bttv unlike description in spec. */
 
-#if BYTE_ORDER == BIG_ENDIAN /* safe? */
+#if Z_BYTE_ORDER == Z_BIG_ENDIAN /* safe? */
     case 15:
       fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555X;
       break;
@@ -114,12 +123,12 @@ setup_v4l2			(const char *		device_name,
       break;
     case 24:
     case 32:
-      if (dga->bits_per_pixel == 24)
+      if (24 == pf.bits_per_pixel)
 	fb.fmt.pixelformat = V4L2_PIX_FMT_RGB24;
       else
 	fb.fmt.pixelformat = V4L2_PIX_FMT_RGB32;
       break;
-#else
+#elif Z_BYTE_ORDER == Z_LITTLE_ENDIAN
     case 15:
       fb.fmt.pixelformat = V4L2_PIX_FMT_RGB555;
       break;
@@ -128,24 +137,25 @@ setup_v4l2			(const char *		device_name,
       break;
     case 24:
     case 32:
-      if (dga->bits_per_pixel == 24)
+      if (24 == pf.bits_per_pixel)
 	fb.fmt.pixelformat = V4L2_PIX_FMT_BGR24;
       else
 	fb.fmt.pixelformat = V4L2_PIX_FMT_BGR32;
       break;
+#else
+#  error Unknown or unsupported endianess.
 #endif
     }
 
   fb.fmt.flags		= V4L2_FMT_FLAG_BYTESPERLINE; 
-  fb.fmt.bytesperline	= dga->bytes_per_line;
-  fb.fmt.sizeimage	= dga->height * fb.fmt.bytesperline;
+
+  fb.fmt.bytesperline	= buffer->format.bytes_per_line;
+  fb.fmt.sizeimage	= buffer->format.height * fb.fmt.bytesperline;
 
   message (2, "Setting new frame buffer parameters.\n");
 
-  /*
-   *  This ioctl is privileged because it sets up
-   *  DMA to a random (video memory) address. 
-   */
+  /* This ioctl is privileged because it sets up
+     DMA to a random (video memory) address. */
   {
     int success;
     int saved_errno;
@@ -182,7 +192,7 @@ setup_v4l2			(const char *		device_name,
 
 int
 setup_v4l2			(const char *		device_name,
-				 x11_dga_parameters *	dga)
+				 const tv_overlay_buffer *buffer)
 {
   return -1;
 }
