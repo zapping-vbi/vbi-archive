@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_Greedy.c,v 1.2 2005-02-05 22:20:03 mschimek Exp $
+// $Id: DI_Greedy.c,v 1.3 2005-03-30 21:27:58 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2005/02/05 22:20:03  mschimek
+// Completed l18n.
+//
 // Revision 1.1  2005/01/08 14:35:11  mschimek
 // TomsMoCompMethod, MoComp2Method, VideoWeaveMethod, VideoBobMethod,
 // TwoFrameMethod, OldGameMethod, Greedy2FrameMethod, GreedyMethod,
@@ -49,21 +52,153 @@
 
 #include "windows.h"
 #include "DS_Deinterlace.h"
-//Z #include "..\help\helpids.h"
+
+extern long GreedyMaxComb;
+
+SIMD_PROTOS (DeinterlaceGreedy);
+
+#ifdef SIMD
+
+// This is a simple lightweight DeInterlace method that uses little CPU time
+// but gives very good results for low or intermedite motion.
+// It defers frames by one field, but that does not seem to produce noticeable
+// lip sync problems.
+//
+// The method used is to take either the older or newer weave pixel depending
+// upon which give the smaller comb factor, and then clip to avoid large damage
+// when wrong.
+//
+// I'd intended this to be part of a larger more elaborate method added to 
+// Blended Clip but this give too good results for the CPU to ignore here.
+
+BOOL
+SIMD_NAME (DeinterlaceGreedy)	(TDeinterlaceInfo *	pInfo)
+{
+    vu8 MaxComb;
+    uint8_t *Dest;
+    const uint8_t *L1;		// ptr to Line1, of 3
+    const uint8_t *L2;		// ptr to Line2, the weave line
+    const uint8_t *L3;		// ptr to Line3
+    const uint8_t *LP2;		// ptr to prev Line2
+    unsigned int byte_width;
+    unsigned int height;
+    unsigned int dst_padding;
+    unsigned int src_padding;
+    unsigned int dst_bpl;
+    unsigned int src_bpl;
+
+    if (SIMD == SSE2) {
+	if (((unsigned int) pInfo->Overlay |
+	     (unsigned int) pInfo->PictureHistory[0]->pData |
+	     (unsigned int) pInfo->PictureHistory[1]->pData |
+	     (unsigned int) pInfo->PictureHistory[2]->pData |
+	     (unsigned int) pInfo->OverlayPitch |
+	     (unsigned int) pInfo->InputPitch |
+	     (unsigned int) pInfo->LineLength) & 15)
+	    return DeinterlaceGreedy__SSE (pInfo);
+    }
+
+    // How badly do we let it weave? 0-255
+    MaxComb = vsplatu8 (GreedyMaxComb);
+
+    byte_width = pInfo->LineLength;
+
+    dst_bpl = pInfo->OverlayPitch;
+    src_bpl = pInfo->InputPitch;
+
+    Dest = pInfo->Overlay; // DL1 if Odd or DL2 if Even
+
+    // copy first even line no matter what, and the first odd line if we're
+    // processing an EVEN field. (note diff from other deint rtns.)
+
+    L1 = pInfo->PictureHistory[1]->pData;
+    L2 = pInfo->PictureHistory[0]->pData;  
+    L3 = L1 + src_bpl;
+    LP2 = pInfo->PictureHistory[2]->pData;
+
+    if (!(pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD)) {
+	// copy first even line
+	copy_line (Dest, L2, byte_width);
+	Dest += dst_bpl;
+
+	L2 += src_bpl;
+	LP2 += src_bpl;
+    }
+
+    copy_line (Dest, L1, byte_width);
+    Dest += dst_bpl;
+
+    dst_padding = dst_bpl * 2 - byte_width;
+    src_padding = src_bpl - byte_width;
+
+    for (height = pInfo->FieldHeight; height > 0; --height) {
+	unsigned int count;
+
+	// For ease of reading, the comments below assume that we're
+	// operating on an odd field (i.e., that pInfo->IsOdd is true).
+	// Assume the obvious for even lines.
+
+	for (count = byte_width / sizeof (vu8); count > 0; --count) {
+	    vu8 l1, l2, l3, lp2, avg, mm4, mm5, best, min, max;
+
+	    l1 = * (const vu8 *) L1;
+	    L1 += sizeof (vu8);
+	    l3 = * (const vu8 *) L3;
+	    L3 += sizeof (vu8);
+
+	    vstorent ((vu8 *)(Dest + dst_bpl), l3);
+
+            // the average, for computing comb
+	    avg = fast_vavgu8 (l1, l3);
+
+	    l2 = * (const vu8 *) L2;
+	    L2 += sizeof (vu8);
+	    lp2 = * (const vu8 *) LP2;
+	    LP2 += sizeof (vu8);
+
+	    // get abs value of possible L2 and LP2 comb
+	    mm5 = vabsdiffu8 (l2, avg);
+	    mm4 = vabsdiffu8 (lp2, avg);
+
+	    // use L2 or LP2 depending upon which makes smaller comb
+	    best = vsel (l2, lp2, (vu8) vcmpleu8 (mm4, mm5));
+
+	    // Now lets clip our chosen value to be not outside of the range
+	    // of the high/low range L1-L3 by more than abs(L1-L3)
+	    // This allows some comb but limits the damages and also allows
+	    // more detail than a boring oversmoothed clip.
+
+	    vminmaxu8 (&min, &max, l1, l3);
+
+	    // allow the value to be above the high or below the low
+	    // by amt of MaxComb
+	    max = vaddsu8 (max, MaxComb);
+	    min = vsubsu8 (min, MaxComb);
+
+	    vstorent ((vu8 *) Dest, vsatu8 (best, min, max));
+	    Dest += sizeof (vu8);
+	}
+
+	L1 += src_padding;
+	L2 += src_padding;
+	L3 += src_padding;
+	LP2 += src_padding;
+	Dest += dst_padding;
+    }
+
+    // Copy last odd line if we're processing an Odd field.
+    if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD) {
+        copy_line (Dest, L2, byte_width);
+    }
+
+    vempty ();
+
+    return TRUE;
+}
+
+#else /* !SIMD */
 
 long GreedyMaxComb = 15;
-
-#define IS_SSE 1
-#include "DI_Greedy.asm"
-#undef IS_SSE
-
-#define IS_3DNOW 1
-#include "DI_Greedy.asm"
-#undef IS_3DNOW
-
-#define IS_MMX 1
-#include "DI_Greedy.asm"
-#undef IS_MMX
 
 ////////////////////////////////////////////////////////////////////////////
 // Start of Settings related code
@@ -86,7 +221,7 @@ DEINTERLACE_METHOD GreedyMethod =
     "Greedy",
     FALSE, 
     FALSE, 
-    DeinterlaceGreedy_MMX, 
+    /* pfnAlgorithm */ NULL,
     50, 
     60,
     DI_GREEDY_SETTING_LASTONE,
@@ -110,27 +245,14 @@ DEINTERLACE_METHOD GreedyMethod =
 
 DEINTERLACE_METHOD* DI_Greedy_GetDeinterlacePluginInfo(long CpuFeatureFlags)
 {
-    if (CpuFeatureFlags & FEATURE_SSE)
-    {
-        GreedyMethod.pfnAlgorithm = DeinterlaceGreedy_SSE;
-    }
-    else if (CpuFeatureFlags & FEATURE_3DNOW)
-    {
-        GreedyMethod.pfnAlgorithm = DeinterlaceGreedy_3DNOW;
-    }
-    else
-    {
-        GreedyMethod.pfnAlgorithm = DeinterlaceGreedy_MMX;
-    }
+    GreedyMethod.pfnAlgorithm = SIMD_SELECT (DeinterlaceGreedy);
     return &GreedyMethod;
 }
 
-#if 0
+#endif /* !SIMD */
 
-
-BOOL WINAPI _DllMainCRTStartup(HANDLE hInst, ULONG ul_reason_for_call, LPVOID lpReserved)
-{
-    return TRUE;
-}
-
-#endif /* 0 */
+/*
+Local Variables:
+c-basic-offset: 4
+End:
+ */
