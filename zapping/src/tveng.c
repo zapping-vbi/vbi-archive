@@ -705,8 +705,6 @@ tveng_set_capture_format(tveng_device_info * info)
 
   TVLOCK;
 
-  if (info->private->dword_align)
-    info->format.width = (info->format.width+3) & ~3;
   if (info->format.height < info->caps.minheight)
     info->format.height = info->caps.minheight;
   if (info->format.height > info->caps.maxheight)
@@ -715,6 +713,29 @@ tveng_set_capture_format(tveng_device_info * info)
     info->format.width = info->caps.minwidth;
   if (info->format.width > info->caps.maxwidth)
     info->format.width = info->caps.maxwidth;
+
+  /* force dword aligning of width if requested */
+  if (info->private->dword_align)
+    info->format.width = (info->format.width+3) & ~3;
+
+  /* force dword-aligning of data */
+  switch (info->format.pixformat)
+    {
+    case TVENG_PIX_RGB565:
+    case TVENG_PIX_RGB555:
+    case TVENG_PIX_YUYV:
+    case TVENG_PIX_UYVY:
+      info->format.width = (info->format.width+1) & ~1;
+      break;
+    case TVENG_PIX_YUV420:
+    case TVENG_PIX_YVU420:
+    case TVENG_PIX_RGB24:
+    case TVENG_PIX_BGR24:
+      info->format.width = (info->format.width+3) & ~3;
+      break;
+    default:
+      break;
+    }
 
   if (info->private->module.set_capture_format)
     RETURN_UNTVLOCK(info->private->module.set_capture_format(info));
