@@ -27,7 +27,6 @@
 #include "audio.h"
 #define ZCONF_DOMAIN "/zapping/options/audio/"
 #include "zconf.h"
-#include "properties.h"
 #include "interface.h"
 #include "zmisc.h"
 

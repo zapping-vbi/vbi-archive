@@ -84,6 +84,7 @@ struct zconf_key
 struct zconf_hook
 {
   ZConfHook	callback;
+  gchar		*key; /* Key this hook is attached to */
   gpointer	data;
 };
 
@@ -1358,7 +1359,11 @@ p_zconf_cut_branch(struct zconf_key * key)
     gtk_object_destroy(GTK_OBJECT(key->model));
 
   for (p = g_list_first(key->hooked); p; p = p->next)
-    g_free(p->data);
+    {
+      struct zconf_hook *hook = p->data;
+      g_free(hook->key);
+      g_free(hook);
+    }
 
   g_list_free(key->hooked);
   
@@ -1597,8 +1602,8 @@ void on_key_model_changed		(GtkObject	*model,
   hook->callback(key->full_path, key->contents, hook->data);
 }
 
-void
-zconf_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
+static struct zconf_hook*
+real_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
 {
   struct zconf_key *key;
   struct zconf_hook *hook;
@@ -1611,7 +1616,7 @@ zconf_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
   if (!key)
     {
       g_warning("\"%s\" not found while trying to add hook for it", key_name);
-      return;
+      return NULL;
     }
 
   if (!key->model)
@@ -1624,11 +1629,55 @@ zconf_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
 
   hook->callback = callback;
   hook->data = data;
+  hook->key = g_strdup(key_name);
 
   key->hooked = g_list_append(key->hooked, hook);
 
   gtk_signal_connect(GTK_OBJECT(key->model), "changed",
 		     GTK_SIGNAL_FUNC(on_key_model_changed),
+		     hook);
+
+  return hook;
+}
+
+void
+zconf_add_hook(const gchar * key_name, ZConfHook callback, gpointer data)
+{
+  real_add_hook(key_name, callback, data);
+}
+
+static void
+on_object_hook_destroyed	(GtkObject	*object,
+				 struct zconf_hook *hook)
+{
+  struct zconf_key *key;
+
+  key = p_zconf_resolve(hook->key, zconf_root);
+
+  if (!key)
+    {
+      g_warning("Destroying %p: Cannot find key for hook %p: [%s]",
+		object, hook, hook->key);
+      return;
+    }
+
+  zconf_remove_hook(hook->key, hook->callback, hook->data);
+}
+
+void
+zconf_add_hook_while_alive(GtkObject *object,
+			   const gchar * key_name,
+			   ZConfHook callback,
+			   gpointer data)
+{
+  struct zconf_hook *hook =
+    real_add_hook(key_name, callback, data);
+
+  if (!hook)
+    return;
+
+  gtk_signal_connect(GTK_OBJECT(object), "destroy",
+		     GTK_SIGNAL_FUNC(on_object_hook_destroyed),
 		     hook);
 }
 
@@ -1670,6 +1719,7 @@ zconf_remove_hook(const gchar * key_name, ZConfHook callback, gpointer data)
       return;
     }
 
+  g_free(hook->key);
   key->hooked = g_list_remove(key->hooked, hook);
 
   gtk_signal_disconnect_by_func(GTK_OBJECT(key->model),

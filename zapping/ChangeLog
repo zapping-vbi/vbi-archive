@@ -1,3 +1,9 @@
+6.11.2001	More properties work <garetxe@users.sf.net>
+
+	* audio: Ported to the new properties code.
+	* zconf: Added hook_while_alive
+	* properties-handler: Dynamic ITV sensitivity.
+
 5.11.2001	Properties almost done <garetxe@users.sf.net>
 
 	* properties.c: Finished the shell code.

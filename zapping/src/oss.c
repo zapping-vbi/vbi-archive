@@ -31,7 +31,6 @@
 #include "audio.h"
 #define ZCONF_DOMAIN "/zapping/options/audio/"
 #include "zconf.h"
-#include "properties.h"
 #include "interface.h"
 #include "zmisc.h"
 
@@ -170,7 +169,7 @@ oss_read (gpointer handle, gpointer dest, gint num_bytes,
 }
 
 static void
-oss_add_props (GtkBox *vbox, GnomePropertyBox *gpb)
+oss_add_props (GtkBox *vbox)
 {
   GtkWidget *label = gtk_label_new(_("Audio device:"));
   GtkWidget *hbox = gtk_hbox_new(TRUE, 3);
@@ -185,9 +184,6 @@ oss_add_props (GtkBox *vbox, GnomePropertyBox *gpb)
   gtk_entry_set_text(entry, zcg_char(NULL, "oss/device"));
   gtk_box_pack_start_defaults(GTK_BOX(hbox), fentry);
   gtk_object_set_data(GTK_OBJECT(vbox), "fentry", fentry);
-  gtk_signal_connect_object(GTK_OBJECT(entry), "changed",
-		     GTK_SIGNAL_FUNC(gnome_property_box_changed),
-		     (GtkObject*)gpb);
 
   gtk_widget_show_all(hbox);
   gtk_box_pack_start_defaults(vbox, hbox);

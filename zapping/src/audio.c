@@ -124,21 +124,21 @@ on_backend_activate	(GtkObject		*menuitem,
 
   gtk_widget_show(boxes[index]);
   gtk_widget_set_sensitive(boxes[index], TRUE);
-
-  gnome_property_box_changed(GNOME_PROPERTY_BOX(gtk_widget_get_toplevel(GTK_WIDGET(audio_backends))));
 }
 
-/* Properties handling */
-static void add_audio_properties (GnomePropertyBox *gpb)
+/* Audio */
+static void
+audio_setup		(GtkWidget	*page)
 {
-  gint i;
+  GtkWidget *widget;
   GtkWidget *audio_backends =
-    lookup_widget(GTK_WIDGET(gpb), "audio_backends");
+    lookup_widget(page, "audio_backends");
   GtkWidget **boxes = (GtkWidget**)g_malloc0(num_backends*sizeof(boxes[0]));
-  GtkWidget *vbox39 = lookup_widget(GTK_WIDGET(gpb), "vbox39");
+  GtkWidget *vbox39 = lookup_widget(page, "vbox39");
   GtkWidget *menuitem;
   GtkWidget *menu = gtk_menu_new();
   gint cur_backend = zcg_int(NULL, "backend");
+  gint i;
 
   /* Hook on dialog destruction so there's no mem leak */
   gtk_object_set_data_full(GTK_OBJECT (audio_backends), "boxes", boxes,
@@ -156,7 +156,7 @@ static void add_audio_properties (GnomePropertyBox *gpb)
 
       boxes[i] = gtk_vbox_new(FALSE, 3);
       if (backends[i]->add_props)
-	backends[i]->add_props(GTK_BOX(boxes[i]), gpb);
+	backends[i]->add_props(GTK_BOX(boxes[i]));
       gtk_box_pack_start(GTK_BOX(vbox39), boxes[i], FALSE, FALSE, 0);
       if (i == cur_backend)
 	gtk_widget_show(boxes[i]);
@@ -169,19 +169,36 @@ static void add_audio_properties (GnomePropertyBox *gpb)
 			      cur_backend);
   gtk_object_set_data(GTK_OBJECT (audio_backends), "cur_sel",
 		      GINT_TO_POINTER(cur_backend));
+
+  /* Avoid noise while changing channels */
+  widget = lookup_widget(page, "checkbutton1");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+    zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"));
+
+  /* Start zapping muted */
+  widget = lookup_widget(page, "checkbutton3");
+  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+    zconf_get_boolean(NULL, "/zapping/options/main/start_muted"));
 }
 
-static gboolean
-apply_audio_properties (GnomePropertyBox *gpb, gint page)
+static void
+audio_apply		(GtkWidget	*page)
 {
+  GtkWidget *widget;
   GtkWidget *audio_backends;
   gint selected;
   GtkWidget **boxes;
 
-  if (page != 1)
-    return FALSE;
+  widget = lookup_widget(page, "checkbutton1"); /* avoid noise */
+  zconf_set_boolean(gtk_toggle_button_get_active(
+	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/avoid_noise");
 
-  audio_backends = lookup_widget(GTK_WIDGET(gpb), "audio_backends");
+  widget = lookup_widget(page, "checkbutton3"); /* start muted */
+  zconf_set_boolean(gtk_toggle_button_get_active(
+	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/start_muted");  
+
+  /* Apply the properties */
+  audio_backends = lookup_widget(page, "audio_backends");
   selected = z_option_menu_get_active(audio_backends);
   boxes = (GtkWidget**)gtk_object_get_data(GTK_OBJECT(audio_backends),
 					   "boxes");
@@ -190,29 +207,89 @@ apply_audio_properties (GnomePropertyBox *gpb, gint page)
     backends[selected]->apply_props(GTK_BOX(boxes[selected]));
 
   zcs_int(selected, "backend");
-
-  return TRUE;
 }
 
-/* We do not provide help for the audio properties */
-static gboolean
-help_audio_properties (GnomePropertyBox *gpb, gint page)
+static void
+help		(GnomeDialog	*dialog,
+		 GtkWidget	*page)
 {
-  return FALSE;
+  void (*page_help)(GtkWidget *page) =
+    gtk_object_get_data(GTK_OBJECT(page), "help");
+
+  if (page_help)
+    page_help(page);
+
+  ShowBox("No help written yet",
+	  GNOME_MESSAGE_BOX_WARNING);
+}
+
+static void
+add				(GnomeDialog	*dialog)
+{
+  SidebarEntry general_options[] = {
+    { N_("Audio"), ICON_GNOME, "gnome-grecord.png", "vbox39",
+      audio_setup, audio_apply }
+  };
+  SidebarGroup groups[] = {
+    { N_("General Options"), general_options, acount(general_options) }
+  };
+  gint i, j;
+
+  for (i = 0; i<acount(groups); i++)
+    {
+      append_properties_group(dialog, _(groups[i].label));
+
+      for (j = 0; j<groups[i].num_items; j++)
+	{
+	  const gchar *icon_name = groups[i].items[j].icon_name;
+	  gchar *pixmap_path = (groups[i].items[j].icon_source ==
+				ICON_ZAPPING) ?
+	    g_strdup_printf("%s/%s", PACKAGE_PIXMAPS_DIR, icon_name) :
+	    g_strdup(gnome_pixmap_file(icon_name)); /* FIXME: leak?? */
+	  GtkWidget *pixmap = z_pixmap_new_from_file(pixmap_path);
+	  GtkWidget *page = build_widget(groups[i].items[j].widget,
+					 PACKAGE_DATA_DIR "/zapping.glade");
+
+	  groups[i].items[j].setup(page);
+
+	  gtk_object_set_data(GTK_OBJECT(page), "apply",
+			      groups[i].items[j].apply);
+
+	  append_properties_page(dialog, _(groups[i].label),
+				 _(groups[i].items[j].label),
+				 pixmap, page);
+
+	  g_free(pixmap_path);
+	}
+    }
+
+  open_properties_group(GTK_WIDGET(dialog), _("General Options"));  
+}
+
+static void
+apply		(GnomeDialog	*dialog,
+		 GtkWidget	*page)
+{
+  void (*page_apply)(GtkWidget *page) =
+    gtk_object_get_data(GTK_OBJECT(page), "apply");
+
+  g_assert(page_apply != NULL);
+
+  page_apply(page);
 }
 
 void startup_audio ( void )
 {
   gint i;
 
-  property_handler audio_handler =
+  property_handler2 audio_handler =
   {
-    add: add_audio_properties,
-    apply: apply_audio_properties,
-    help: help_audio_properties
+    add: add,
+    apply: apply,
+    help: help
   };
 
-  register_properties_handler(&audio_handler);
+  register_property_handler2(&audio_handler);
 
   zcc_int(0, "Default audio backend", "backend");
 

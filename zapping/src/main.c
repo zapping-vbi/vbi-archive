@@ -417,7 +417,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.142 2001-11-05 19:38:23 garetxe Exp $",
+	 "$Id: main.c,v 1.143 2001-11-06 22:46:21 garetxe Exp $",
 	 "Zapping", VERSION, __DATE__);
   printv("Checking for CPU... ");
   switch (cpu_detection())
@@ -667,6 +667,8 @@ int main(int argc, char * argv[])
       gtk_widget_hide(lookup_widget(main_window, "go_fullscreen1"));
     }
   D();
+  startup_properties_handler();
+  D();
   startup_teletext();
   D();
   startup_ttxview();
@@ -676,8 +678,6 @@ int main(int argc, char * argv[])
   startup_audio();
   D();
   startup_csconvert();
-  D();
-  startup_properties_handler();
   D();
   osd_set_window(tv_screen);
   gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM

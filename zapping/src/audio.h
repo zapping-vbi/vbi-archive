@@ -55,7 +55,7 @@ typedef struct {
 
   /* Backend properties handling */
   /* Connect to "destroy" to free resources */
-  void		(*add_props)(GtkBox *vbox, GnomePropertyBox *gpb);
+  void		(*add_props)(GtkBox *vbox);
   void		(*apply_props)(GtkBox *vbox);
 } audio_backend_info;
 

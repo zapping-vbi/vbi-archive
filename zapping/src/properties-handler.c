@@ -309,41 +309,6 @@ video_apply		(GtkWidget	*page)
 		    "/zapping/options/capture/xvsize");
 }
 
-/* Audio */
-static void
-audio_setup		(GtkWidget	*page)
-{
-  GtkWidget *widget;
-
-  /* Avoid noise while changing channels */
-  widget = lookup_widget(page, "checkbutton1");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/avoid_noise"));
-
-  /* Start zapping muted */
-  widget = lookup_widget(page, "checkbutton3");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-    zconf_get_boolean(NULL, "/zapping/options/main/start_muted"));
-
-  /* FIXME: Recording interfaces */
-}
-
-static void
-audio_apply		(GtkWidget	*page)
-{
-  GtkWidget *widget;
-
-  widget = lookup_widget(page, "checkbutton1"); /* avoid noise */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/avoid_noise");
-
-  widget = lookup_widget(page, "checkbutton3"); /* start muted */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-	GTK_TOGGLE_BUTTON(widget)), "/zapping/options/main/start_muted");  
-
-  
-}
-
 static void
 on_osd_type_changed	(GtkWidget	*widget,
 			 GtkWidget	*page)
@@ -441,8 +406,7 @@ on_enable_vbi_toggled	(GtkWidget	*widget,
   gboolean active =
     gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
   gtk_widget_set_sensitive(lookup_widget(widget,
-					 "vbox19"), active);      
-  /* FIXME: Dynamic ITV properties */
+					 "vbox19"), active);
 }
 
 /* VBI */
@@ -586,6 +550,14 @@ vbi_general_apply	(GtkWidget	*page)
     }
 }
 
+static void
+on_enable_vbi_changed	( const gchar	*key,
+			  gboolean	*new_value,
+			  GtkWidget	*page)
+{
+  gtk_widget_set_sensitive(page, *new_value);
+}
+
 /* Interactive TV */
 static void
 itv_setup		(GtkWidget	*page)
@@ -628,6 +600,13 @@ itv_setup		(GtkWidget	*page)
   gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
     zconf_get_integer(NULL,
 		      "/zapping/options/vbi/filter_level"));
+
+  /* Set sensitive/unsensitive on enable_vbi modifications */
+  zconf_add_hook_while_alive(GTK_OBJECT(page),
+			     "/zapping/options/vbi/enable_vbi",
+			     (ZConfHook)on_enable_vbi_changed,
+			     page);
+  zconf_touch("/zapping/options/vbi/enable_vbi");
 }
 
 static void
@@ -667,36 +646,6 @@ itv_apply		(GtkWidget	*page)
   zconf_set_integer(index, "/zapping/options/vbi/filter_level");
 }
 
-typedef struct {
-  /* Label for the entry */
-  const gchar	*label;
-  /* Source of the icon (we use both GNOME and Z icons for the moment) */
-  enum {
-    ICON_ZAPPING,
-    ICON_GNOME
-  } icon_source;
-  const gchar	*icon_name; /* relative to PACKAGE_PIXMAPS_DIR or
-			       gnome_pixmap_file */
-  const gchar	*widget; /* Notebook page to use (must be in zapping.glade) */
-  /* Apply the current config to the dialog */
-  void		(*setup)(GtkWidget *widget);
-  /* Apply the dialog settings to the config */
-  void		(*apply)(GtkWidget *widget);
-  /* Help about this page (or NULL) */
-  void		(*help)(GtkWidget *widget);
-} SidebarEntry;
-
-typedef struct {
-  /* Label */
-  const gchar	*label;
-  /* Contents of the group */
-  SidebarEntry	*items;
-  /* Number of entries in the group */
-  gint num_items;
-} SidebarGroup;
-
-#define acount(x) ((sizeof(x))/(sizeof(x[0])))
-
 static void
 add				(GnomeDialog	*dialog)
 {
@@ -707,12 +656,10 @@ add				(GnomeDialog	*dialog)
   SidebarEntry general_options[] = {
     { N_("Main Window"), ICON_GNOME, "gnome-session.png", "vbox35",
       mw_setup, mw_apply },
-    { N_("Video"), ICON_ZAPPING, "gnome-television.png", "vbox36",
-      video_setup, video_apply },
-    { N_("Audio"), ICON_GNOME, "gnome-grecord.png", "vbox39",
-      audio_setup, audio_apply },
     { N_("OSD"), ICON_GNOME, "gnome-oscilloscope.png", "vbox37",
-      osd_setup, osd_apply }
+      osd_setup, osd_apply },
+    { N_("Video"), ICON_ZAPPING, "gnome-television.png", "vbox36",
+      video_setup, video_apply }
   };
   SidebarEntry vbi_options[] = {
     { N_("General"), ICON_GNOME, "gnome-monitor.png", "vbox17",

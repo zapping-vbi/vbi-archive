@@ -15,12 +15,25 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-/*
-  This is just the properties "shell" code, that is, the code that
-  manages the dialog.
-  To see the code that manages the properties themselves, look at
-  properties-handler.c
-*/
+/**
+ * This is just the properties "shell" code, that is, the code that
+ * manages the dialog.
+ * To see the code that manages the properties themselves, look at
+ * properties-handler.c
+ *
+ * The overall scheme of things is as follows:
+ *	- Each module interested in adding something to the properties
+ *	dialog registers itself as a property_handler.
+ *	- When the dialog is being built, the 'add' method of the
+ *	handler is called, the handler should add groups and items as
+ *	necessary. The shell code takes care of detecting changes and
+ *	modifying the 'Apply' status as necessary, so
+ *	gnome_property_box_changed is gone to a better place.
+ *	- When apply is hit, the apply method of the handlers owning
+ *	the 'dirty' pages is called, passing the dirty page.
+ *	- Similarly for help.
+ *	- The rest of the housekeeping is left to the handlers.
+ */
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -69,6 +82,26 @@ modify_page			(GtkWidget	*widget,
 }
 
 static void
+on_option_menu_modify		(GtkWidget	*menu,
+				 gpointer	page_id_ptr)
+{
+  GtkWidget *omenu = GTK_WIDGET
+    (gtk_object_get_data(GTK_OBJECT(menu), "properties-menu-parent"));
+  gint last_status = GPOINTER_TO_INT
+    (gtk_object_get_data(GTK_OBJECT(menu), "properties-last-status"));
+  GnomeDialog *dialog = GNOME_DIALOG
+    (gtk_object_get_data(GTK_OBJECT(menu), "modify_page_dialog"));
+  gint page_id = GPOINTER_TO_INT(page_id_ptr);
+
+  if (z_option_menu_get_active(omenu) != last_status)
+    {
+      gtk_object_set_data(GTK_OBJECT(menu), "properties-last-status",
+			  GINT_TO_POINTER(z_option_menu_get_active(omenu)));
+      page_modified(dialog, page_id);
+    }
+}
+
+static void
 font_set_bridge	(GtkWidget	*widget,
 		 const gchar	*new_font,
 		 gpointer	page_id_ptr)
@@ -104,11 +137,9 @@ autoconnect_modify		(GnomeDialog	*dialog,
 				 GtkWidget	*widget,
 				 gint		page_id)
 {
-  GList *children;
-
   if (GTK_IS_CONTAINER(widget))
     {
-      children = gtk_container_children(GTK_CONTAINER(widget));
+      GList *children = gtk_container_children(GTK_CONTAINER(widget));
       while (children)
 	{
 	  autoconnect_modify(dialog, GTK_WIDGET(children->data),
@@ -141,11 +172,22 @@ autoconnect_modify		(GnomeDialog	*dialog,
     }
   else if (GTK_IS_OPTION_MENU(widget))
     {
+      GtkWidget *omenu = widget; /* option menu */
       widget = GTK_WIDGET(GTK_OPTION_MENU(widget)->menu);
+
+      /* Do not mark as dirty when we don't modify the option menu
+	 status */
+      gtk_object_set_data(GTK_OBJECT(widget), "properties-last-status",
+			  GINT_TO_POINTER
+			  (z_option_menu_get_active(omenu)));
+
+      /* Let the menu know it's parent */
+      gtk_object_set_data(GTK_OBJECT(widget), "properties-menu-parent",
+			  omenu);
 
       gtk_signal_connect(GTK_OBJECT(widget),
 			 "deactivate",
-			 GTK_SIGNAL_FUNC(modify_page),
+			 GTK_SIGNAL_FUNC(on_option_menu_modify),
 			 GINT_TO_POINTER(page_id));
     }
   else if (GNOME_IS_FONT_PICKER(widget))
@@ -223,6 +265,19 @@ get_cur_sel			(GtkWidget	*dialog,
 
   /* For some weird reason the group list is reversed ?!?!?! */
   *item = count - *item;
+}
+
+GtkWidget *
+get_properties_page		(GtkWidget	*sth,
+				 const gchar	*group,
+				 const gchar	*item)
+{
+  gchar *buf = g_strdup_printf("group-%s-item-%s", group, item);
+  GtkWidget *widget = find_widget(sth, buf);
+
+  g_free(buf);
+
+  return widget;
 }
 
 static void
@@ -515,7 +570,7 @@ append_properties_group		(GnomeDialog	*dialog,
 
   buf = g_strdup_printf("group-button-%s", group);
   if (find_widget(GTK_WIDGET(dialog), buf))
-    g_error("A group named %s already exists in this dialog", buf);
+    return; /* The given group already exists */
 
   button = gtk_button_new_with_label(group);
   gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, TRUE, 0);
@@ -579,6 +634,12 @@ append_properties_page		(GnomeDialog	*dialog,
   gtk_button_set_relief(GTK_BUTTON(radio), GTK_RELIEF_NONE);
 
   gtk_widget_show_all(radio);
+
+  g_free(buf);
+
+  buf = g_strdup_printf("group-%s-item-%s", group, label);
+  register_widget(page, buf);
+  g_free(buf);
 }
 
 static void

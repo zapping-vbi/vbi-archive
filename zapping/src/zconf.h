@@ -225,6 +225,18 @@ void
 zconf_add_hook(const gchar * key, ZConfHook hook, gpointer data);
 
 /*
+  Add a hook that will be automatically removed when object is destroyed.
+  object: Object to connect to.
+  key: The key we hook to.
+  hook: The routine to be called.
+  data: data to be passed to the hook.
+*/
+void
+zconf_add_hook_while_alive(GtkObject *object,
+			   const gchar * key, ZConfHook hook,
+			   gpointer data);
+
+/*
   Removes the given hook from the key.
   key: the key to remove the hook from.
   hook: The hook function to remove
