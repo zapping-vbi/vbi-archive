@@ -39,6 +39,7 @@
 #include <pthread.h>
 #include <math.h>
 #include "../common/ucs-2.h"
+#include "../common/errstr.h"
 
 #include "tveng.h"
 /* Manages config values for zconf (it saves me some typing) */
@@ -259,8 +260,19 @@ static void cc_event(vbi_event *ev, void *data)
 {
   int *pipe = data;
 
-  if (ev->pgno != zvbi_page)
-    return;
+  switch (ev->type)
+    {
+      case VBI_EVENT_TTX_PAGE:
+        if (ev->ev.ttx_page.pgno != zvbi_page)
+          return;
+	break;
+      case VBI_EVENT_CAPTION:
+        if (ev->pgno != zvbi_page)
+          return;
+	break;
+      default:
+        return;
+    }
 
   /* Shouldn't block when the pipe buffer is full... ? */
   write(pipe[1], "", 1);
@@ -500,9 +512,7 @@ zvbi_open_device(char *device)
 {
   gint index;
   int given_fd;
-  char *err_str;
-
-  int region_mapping[8] = {
+  static int region_mapping[8] = {
     0, /* WCE */
     8, /* EE */
     16, /* WET */
@@ -521,8 +531,7 @@ zvbi_open_device(char *device)
     given_fd = -1;
   D();
     vbi_source = vbi_open_v4lx(device, given_fd,
-			       1 /* buffered */, 50 /* fifo depth */,
-			       &err_str);
+			       1 /* buffered */, 50 /* fifo depth */);
   if (!vbi_source)
     {
       gchar *mknod_hint = _(
@@ -537,15 +546,13 @@ zvbi_open_device(char *device)
       D();
       if (errno != ENOENT)
         mknod_hint = "";
-      if (err_str)
+      if (errstr)
         ShowBox(_("Failed to access vbi device:\n%s\n%s"),
-	  GNOME_MESSAGE_BOX_ERROR, err_str, mknod_hint);
+	  GNOME_MESSAGE_BOX_ERROR, errstr, mknod_hint);
       else /* should not happen */
         ShowBox(_("Failed to access vbi device %s, cause unknown.\n"),
 	  GNOME_MESSAGE_BOX_ERROR, device);
       D();
-      if (err_str)
-        free(err_str);
       return FALSE;
     }
   D();
@@ -575,7 +582,7 @@ zvbi_open_device(char *device)
   D();
   /* Send OSD relevant events to our OSD event handler */
   g_assert(vbi_event_handler(vbi,
-			     VBI_EVENT_CAPTION | VBI_EVENT_PAGE,
+			     VBI_EVENT_CAPTION | VBI_EVENT_TTX_PAGE,
 			     cc_event, osd_pipe) != 0);
   D();
   if (trigger_client_id >= 0)
@@ -1186,6 +1193,7 @@ rolling_headers(struct ttx_client *client, struct fmt_page *pg)
 {
   gint col;
   attr_char *ac;
+  const gint first_col = 32; /* 8 needs more thoughts */
 
 /* To debug page formatting (site_def.h) */
 #if ZVBI_DISABLE_ROLLING
@@ -1197,19 +1205,15 @@ rolling_headers(struct ttx_client *client, struct fmt_page *pg)
 
   pthread_mutex_lock(&client->mutex);
 
-  /* Just the time field for the moment */
-
-  /* Hmm. for (col = pg->columns-8; col < pg->columns; col++) */
-
   if (pg->columns < 40)
     goto abort;
 
-  for (col = 32; col < 40; col++)
+  for (col = first_col; col < 40; col++)
     {
       ac = client->fp.text + col;
- 
+      
       if (ac->glyph != pg->text[col].glyph
-	  && ac->size <= DOUBLE_SIZE /*?*/)
+	  && ac->size <= DOUBLE_SIZE)
 	{
 	  ac->glyph = pg->text[col].glyph;
 	  vbi_draw_vt_page_region(&client->fp,
@@ -1250,18 +1254,21 @@ monitor_ttx_page(int id/*client*/, int page, int subpage)
       client->subpage = subpage;
 
       /* 0x900 is our TOP index page */
-      if ((page >= 0x100) && (page <= 0x900)) {
-        if (vbi_fetch_vt_page(vbi, &pg, page, subpage, 25, 1))
-	  {
-	    build_client_page(client, &pg);
-	    clear_message_queue(client);
-	    send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
-	  }
-      } else {
-	build_client_page(client, NULL);
-	clear_message_queue(client);
-	send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
-      }
+      if ((page >= 0x100) && (page <= 0x900))
+        {
+	  if (vbi_fetch_vt_page(vbi, &pg, page, subpage, 25, 1))
+	    {
+	      build_client_page(client, &pg);
+	      clear_message_queue(client);
+	      send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
+	    }
+	} 
+      else 
+	{
+	  build_client_page(client, NULL);
+	  clear_message_queue(client);
+	  send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
+	}
     }
   pthread_mutex_unlock(&clients_mutex);
 }
@@ -1390,7 +1397,9 @@ scan_header(struct fmt_page *pg)
 }
 
 static void
-notify_clients(int page, int subpage, gboolean rolling)
+notify_clients(int page, int subpage,
+	       gboolean roll_header,
+	       gboolean header_update)
 {
   GList *p;
   struct ttx_client *client;
@@ -1399,26 +1408,19 @@ notify_clients(int page, int subpage, gboolean rolling)
   if (!vbi)
     return;
 
-  if (!ttx_clients)
-    {
-      if (vbi_fetch_vt_page(vbi, &pg, page, subpage, 1, 0))
-	scan_header(&pg);
-      return;
-    }
-
-  pg.vbi = NULL;
+  pg.rows = 0;
 
   pthread_mutex_lock(&clients_mutex);
-  p = g_list_first(ttx_clients);
-  while (p)
+
+  for (p = g_list_first(ttx_clients); p; p = p->next)
     {
       client = (struct ttx_client*)p->data;
-
+      
       if ((client->page == page) && (!client->freezed) &&
 	  ((client->subpage == subpage) || (client->subpage == ANY_SUB)))
 	{
-	  if (!pg.vbi &&
-	      !vbi_fetch_vt_page(vbi, &pg, page, subpage, 25, 1))
+	  if (pg.rows < 25
+	      && !vbi_fetch_vt_page(vbi, &pg, page, subpage, 25, 1))
 	    {
 	      pthread_mutex_unlock(&clients_mutex);
 	      return;
@@ -1426,32 +1428,26 @@ notify_clients(int page, int subpage, gboolean rolling)
 	  build_client_page(client, &pg);
 	  send_ttx_message(client, TTX_PAGE_RECEIVED, NULL, 0);
 	}
-      
-      p = p->next;
-    }
-
-  if (!pg.vbi &&
-      !vbi_fetch_vt_page(vbi, &pg, page, subpage, 1, 0))
-    {
-      pthread_mutex_unlock(&clients_mutex);
-      return;
-    }
-
-  if (rolling)
-    {
-      p = g_list_first(ttx_clients);
-
-      while (p)
+      else if (roll_header)
 	{
-	  rolling_headers((struct ttx_client*)p->data, &pg);
-	  
-	  p=p->next;
+	  if (pg.rows < 1
+	      && !vbi_fetch_vt_page(vbi, &pg, page, subpage, 1, 0))
+	    {
+	      pthread_mutex_unlock(&clients_mutex);
+	      return;
+	    }
+	  rolling_headers(client, &pg);
 	}
     }
 
   pthread_mutex_unlock(&clients_mutex);
 
-  scan_header(&pg);
+  if (header_update)
+    {
+      if (pg.rows < 1
+	  && vbi_fetch_vt_page(vbi, &pg, page, subpage, 1, 0))
+	scan_header(&pg);
+    }
 }
 
 static void
@@ -1611,7 +1607,7 @@ static void
 event(vbi_event *ev, void *unused)
 {
     switch (ev->type) {
-    case VBI_EVENT_PAGE:
+    case VBI_EVENT_TTX_PAGE:
       {
 	static gboolean receiving_pages = FALSE;
 	if (!receiving_pages)
@@ -1623,11 +1619,12 @@ event(vbi_event *ev, void *unused)
       }
 
       /* Set the dirty flag on the page */
-      notify_clients(ev->pgno, ev->subno,
-		     ev->p != NULL /* rolling suitable */);
+      notify_clients(ev->ev.ttx_page.pgno, ev->ev.ttx_page.subno,
+		     ev->ev.ttx_page.roll_header,
+		     ev->ev.ttx_page.header_update);
 
 #ifdef BLACK_MOON_IS_ON
-      if (ev->pgno == 0x300)
+      if (ev->ev.ttx_page.pgno == 0x300)
 	{
 	  vbi_link link;
 	  snprintf(link.name, 256, "Programación T5");

@@ -1,3 +1,17 @@
+19.08.2001	<mschimek@users.sf.net>
+
+        * common/errstr.*: Added. libvbi/export and v4lx first victims.
+	* zvbi.c: page event change broke TTX subtitles, fixed.
+
+18.08.2001	<mschimek@users.sf.net>
+
+        * libvbi.h, packet.c: Modified & enhanced TTX page event.
+        * vbi_format_page bugs: Not pg->row = display_rows; Wrote
+	  glyph 0 instead of 0x20 in 41st column; Didn't write spacing
+	  attr double height lower row, probable cause of the
+	  vbi_fetch_vt_page segv.
+	* po: Added emacs coding hints. How's this coded btw?
+
 18.08.2001	pl translation <garetxe@users.sf.net>
 
 	* pl.po: Commited pl translation, contributed by Paweł Sakowski.
@@ -16,12 +30,15 @@
 16.08.2001	fixes <garetxe@users.sf.net>
 
 	* zvbi.c: Reduced the number of fetch_page calls. Better now?
+	  (mhs: Z still calls fetch for notify_clients/rolling_header
+	   even in pure capture mode. Purpose?)
 	* vbi_fetch_vt_page: Added memset(pg, 0, sizeof(*pg)), otherwise
 	segfault when drawing the page if pg is initially bogus data.
 	* capture.c: Fixes, but mc still breaks the mpeg plugin. Spent the
 	whole day tracking this down, nothing so far :-(
 
 16.08.2001	Zapzilla gui <mschimek@users.sf.net>
+
 	* ttxview.c: Removed export dir field, Zapzilla now
 	  remembers the path last entered. z_build_path is
 	  applied to the entered path, not exportdir. Made the
@@ -33,7 +50,6 @@
 
 	* exp-html.c: Added color option, fixed anchor insertion.
 	* ttxview.c: Didn't set vbi export from zconf, fixed.
-
 
 15.08.2001	add all channels <garetxe@users.sf.net>
 
@@ -49,7 +65,7 @@
 	* vbi.c: Restored test filter.
 	* teletext.c: Fixed SWR p570 DRCS bug. Added enhancement
 	  header-only shortcut as suggested by spec.
-	* zvbi.c: Fixed off-by-one error (column 41) updating RTC
+	* zvbi.c: Fixed off-by-one error (41st column) updating RTC
 	  in rolling_header(), and no RTC from a page not marked
 	  for rolling (was a problem on MTV ger; arguable, let's see).
 

@@ -1,4 +1,4 @@
-# Russian translation for Zapping.
+# Russian translation for Zapping. -*- coding: koi8-r -*-
 # Copyright (C) 2000 Sergey Nikulin sergey-nikulin@mail.ru.
 #
 msgid ""

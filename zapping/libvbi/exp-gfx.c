@@ -23,7 +23,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.38 2001-08-01 20:05:05 garetxe Exp $ */
+/* $Id: exp-gfx.c,v 1.39 2001-08-20 00:53:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -348,6 +348,18 @@ vbi_draw_vt_page_region(struct fmt_page *pg, uint32_t *canvas,
 	attr_char *ac;
 	int i;
 
+	if (0) {
+		int i, j;
+
+		for (i = 0; i < pg->rows; i++) {
+			fprintf(stderr, "%2d: ", i);
+			ac = &pg->text[i * pg->columns];
+			for (j = 0; j < pg->columns; j++)
+				fprintf(stderr, "%04x ", ac[j].glyph);
+			fprintf(stderr, "\n");
+		}
+	}
+
 	if (rowstride == -1)
 		rowstride = pg->columns * 12 * sizeof(*canvas);
 
@@ -474,7 +486,7 @@ ppm_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 	size = cw * pg->columns * ch * pg->rows;
 
 	if (!(image = malloc(size * sizeof(*image)))) {
-		vbi_export_error(e, _("Unable to allocate %d KB image buffer"),
+		set_errstr_printf(_("Unable to allocate %d KB image buffer"),
 			size * sizeof(*image) / 1024);
 		return FALSE;
 	}
@@ -486,7 +498,7 @@ ppm_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 			!e->reveal, 1 /* flash_on */);
 
 	if (name && !(fp = fopen(name, "wb"))) {
-		vbi_export_error(e, _("Cannot create file '%s': %s"), name, strerror(errno));
+		set_errstr_printf(_("Cannot create file '%s': %s"), name, strerror(errno));
 		free(image);
 		return FALSE;
 	}
@@ -643,7 +655,7 @@ png_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 	int i;
 
 	if (pg->columns < 40) {
-		vbi_export_error(e, "Oops - caption PNG not ready");
+		set_errstr_printf("Oops - caption PNG not ready");
 		return FALSE;
 	}
 
@@ -738,13 +750,13 @@ png_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 			}
 		}
 	} else {
-		vbi_export_error(e, _("Unable to allocate %d KB image buffer"),
+		set_errstr_printf(_("Unable to allocate %d KB image buffer"),
 			WH * WW * sizeof(*image) / 1024);
 		return FALSE;
 	}
 
 	if (name && !(fp = fopen(name, "wb"))) {
-		vbi_export_error(e, _("Cannot create file '%s': %s"), name, strerror(errno));
+		set_errstr_printf(_("Cannot create file '%s': %s"), name, strerror(errno));
 		free(image);
 		return FALSE;
 	}

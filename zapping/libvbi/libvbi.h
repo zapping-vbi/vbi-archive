@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: libvbi.h,v 1.47 2001-08-16 18:09:36 mschimek Exp $ */
+/* $Id: libvbi.h,v 1.48 2001-08-20 00:53:23 mschimek Exp $ */
 
 #ifndef __LIBVBI_H__
 #define __LIBVBI_H__
@@ -281,14 +281,29 @@ typedef struct {
 
 #define VBI_EVENT_NONE		0
 #define	VBI_EVENT_CLOSE		(1 << 0)
-#define	VBI_EVENT_PAGE		(1 << 1)
+#define	VBI_EVENT_TTX_PAGE	(1 << 1)
 /*
- *  Received (and cached) another Teletext page: pgno, subno.
- *  If the header is suitable for rolling, and actually changed
- *  including any clear text page number, vbi_event.p1 points
- *  to a volatile copy of the raw header. Resist the temptation
- *  to dereference the pointer without good reason (since only
- *  fetch_page should access raw data).
+ *  Received (and cached) another Teletext page designated by
+ *  ev.ttx_page.pgno and ev.ttx_page.subno.
+ * 
+ *  ev.ttx_page.roll_header flags the page header as suitable for
+ *  rolling page numbers (eg. excluding subtitle pages).
+ *
+ *  The ev.ttx_page.header_update flag is set when the header,
+ *  excluding the page number and real time clock, changed since the
+ *  last TTX_PAGE event. Note this may happen at midnight when the
+ *  date string changes. The ev.ttx_page.clock_update flag is set when
+ *  the real time clock changed since the last TTX_PAGE event (that is
+ *  at most once per second). They are both set at the first TTX_EVENT
+ *  and unset while the received header or clock field is corrupted.
+ *
+ *  If any of the roll_header, header_update or clock_update flags
+ *  are set ev.ttx_page.raw_header is a pointer to the raw header data
+ *  (40 bytes), which remains valid until the event handler returns,
+ *  and ev.ttx_page.pn_offset is the offset (0 ... n) of the three
+ *  digit page number in the raw or formatted header. Use the raw header
+ *  only to determine changes, but call vbi_fetch_vt_page for proper
+ *  translation of national characters and character attributes.
  */
 
 #define VBI_EVENT_CAPTION	(1 << 2)
@@ -334,9 +349,23 @@ typedef struct {
 
 typedef struct {
 	int			type;
+/* deprecated > */
 	int			pgno;
 	int			subno;
 	void *			p;
+/* < deprecated */
+
+	union {
+		struct {
+		        int			pgno;
+		        int			subno;
+			uint8_t *               raw_header;
+			int                     pn_offset;
+			unsigned int            roll_header : 1;
+		        unsigned int            header_update : 1;
+			unsigned int            clock_update : 1;
+	        }                       ttx_page;
+	}                       ev;
 } vbi_event;
 
 extern int		vbi_event_handler(struct vbi *vbi, int event_mask, void (* handler)(vbi_event *, void *), void *user_data); 
@@ -381,13 +410,11 @@ typedef struct {
 } vbi_export_option;
 
 extern vbi_export_module *vbi_export_enum(int index);
-extern vbi_export *	vbi_export_open(char *keyword, vbi_network *, char **errstr);
+extern vbi_export *	vbi_export_open(char *keyword, vbi_network *);
 extern void		vbi_export_close(vbi_export *e);
 extern vbi_export_module *vbi_export_info(vbi_export *e);
 extern vbi_export_option *vbi_export_query_option(vbi_export *exp, int index);
 extern int		vbi_export_set_option(vbi_export *exp, int index, ...);
-extern void             vbi_export_error(vbi_export *e, char *templ, ...);
-extern char *           vbi_export_errstr(vbi_export *e);
 extern char *		vbi_export_mkname(vbi_export *e, char *fmt, int pgno, int subno, char *usr);
 extern int		vbi_export_name(vbi_export *e, char *name, struct fmt_page *pg);
 extern int		vbi_export_file(vbi_export *e, FILE *fp, struct fmt_page *pg);

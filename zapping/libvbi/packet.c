@@ -1478,21 +1478,20 @@ parse_bsd(struct vbi *vbi, unsigned char *raw, int packet, int designation)
 
 static int
 same_header(int cur_pgno, unsigned char *cur,
-	    int ref_pgno, unsigned char *ref)
+	    int ref_pgno, unsigned char *ref,
+	    int *page_num_offsetp)
 {
 	unsigned char buf[3];
-	int i, j = 21, err = 0;
+	int i, j = 32 - 3, err = 0, neq = 0;
 
-	if ((buf[2] = (cur_pgno & 15) + '0') > '9'
-	    || (buf[1] = ((cur_pgno >> 4) & 15) + '0') > '9') {
-		return -1; /* system page, unreliable */
-	}
-
+	/* Assumes is_bcd(cur_pgno) */
+	buf[2] = (cur_pgno & 15) + '0';
+	buf[1] = ((cur_pgno >> 4) & 15) + '0';
 	buf[0] = (cur_pgno >> 8) + '0';
 
 	set_parity(buf, 3);
 
-	for (i = 0; i < 24; cur++, ref++, i++) {
+	for (i = 8; i < 32; cur++, ref++, i++) {
 		/* Skip page number */
 		if (i < j
 		    && cur[0] == buf[0]
@@ -1508,47 +1507,66 @@ same_header(int cur_pgno, unsigned char *cur,
 		err |= parity(*cur);
 		err |= parity(*ref);
 
-		if (*cur != *ref)
-			break;
+		neq |= *cur - *ref;
 	}
 
-	if (err < 0) /* parity error, rare */
-		return -1; /* inconclusive */
+	if (err < 0 || j >= 32 - 3) /* parity error, rare */
+		return -2; /* inconclusive, useless */
 
-	if (i >= 24)
+	*page_num_offsetp = j;
+
+	if (!neq)
 		return TRUE;
 
 	/* Test false negative due to date transition */
 
-	if (((ref[24] * 256 + ref[25]) & 0x7F7F) == 0x3233
-	    && ((cur[24] * 256 + cur[25]) & 0x7F7F) == 0x3030) {
+	if (((ref[32] * 256 + ref[33]) & 0x7F7F) == 0x3233
+	    && ((cur[32] * 256 + cur[33]) & 0x7F7F) == 0x3030) {
 		return -1; /* inconclusive */
 	}
 
 	/*
 	 *  The problem here is that individual pages or
 	 *  magazines from the same network can still differ.
-	 *  In fact I know examples, have no reasonable solution.
 	 */
 	return FALSE;
+}
+
+static inline bool
+same_clock(unsigned char *cur, unsigned char *ref)
+{
+	int i;
+
+	for (i = 32; i < 40; cur++, ref++, i++)
+	       	if (*cur != *ref && (parity(*cur) | parity(*ref)) >= 0)
+			return FALSE;
+	return TRUE;
 }
 
 static inline bool
 store_lop(struct vbi *vbi, struct vt_page *vtp)
 {
 	struct page_info *pi;
-	vbi_event ev;
-	bool roll_header;
-	int i;
+	vbi_event event;
 
-	roll_header =
-		((vtp->flags & (  C5_NEWSFLASH
-				| C6_SUBTITLE 
-				| C7_SUPPRESS_HEADER
-				| C9_INTERRUPTED
-			        | C10_INHIBIT_DISPLAY)) == 0)
-		&& (vtp->pgno <= 0x199
-		    || (vtp->flags & C11_MAGAZINE_SERIAL));
+	event.type = VBI_EVENT_TTX_PAGE;
+
+	event.ev.ttx_page.pgno = vtp->pgno;
+	event.ev.ttx_page.subno = vtp->subno;
+
+	event.ev.ttx_page.roll_header =
+		(((vtp->flags & (  C5_NEWSFLASH
+				 | C6_SUBTITLE 
+				 | C7_SUPPRESS_HEADER
+				 | C9_INTERRUPTED
+			         | C10_INHIBIT_DISPLAY)) == 0)
+		 && (vtp->pgno <= 0x199
+		     || (vtp->flags & C11_MAGAZINE_SERIAL))
+		 && is_bcd(vtp->pgno) /* no hex numbers */);
+
+	event.ev.ttx_page.header_update = FALSE;
+	event.ev.ttx_page.raw_header = NULL;
+	event.ev.ttx_page.pn_offset = -1;
 
 	/*
 	 *  We're not always notified about a channel switch,
@@ -1558,40 +1576,92 @@ store_lop(struct vbi *vbi, struct vt_page *vtp)
 	 *  slows down detection of some stations, but does help.
 	 *  A little. Maybe this should be optional.
 	 */
-	if (roll_header) {
-		switch ((vbi->vt.header_page.pgno == 0) ? TRUE :
-			same_header(vtp->pgno, vtp->data.lop.raw[0] + 8,
-				    vbi->vt.header_page.pgno, vbi->vt.header)) {
-		case FALSE:
-			pthread_mutex_lock(&vbi->chswcd_mutex);
-			if (vbi->chswcd == 0)
-				vbi->chswcd = 40;
-			pthread_mutex_unlock(&vbi->chswcd_mutex);
+	if (event.ev.ttx_page.roll_header) {
+		int r;
 
-			return TRUE;
-#if 0
-			vbi->vt.header_page.pgno = vtp->pgno;
-			memcpy(vbi->vt.header, vtp->data.lop.raw[0] + 8, 32);
-			
-			vbi_chsw_reset(vbi, 0);
-#endif			
-		
+		if (vbi->vt.header_page.pgno == 0) {
+			/* First page after channel switch */
+			r = same_header(vtp->pgno, vtp->data.lop.raw[0] + 8,
+					vtp->pgno, vtp->data.lop.raw[0] + 8,
+					&event.ev.ttx_page.pn_offset);
+			event.ev.ttx_page.header_update = TRUE;
+			event.ev.ttx_page.clock_update = TRUE;
+		} else {
+			r = same_header(vtp->pgno, vtp->data.lop.raw[0] + 8,
+					vbi->vt.header_page.pgno, vbi->vt.header + 8,
+					&event.ev.ttx_page.pn_offset);
+			event.ev.ttx_page.clock_update =
+				!same_clock(vtp->data.lop.raw[0], vbi->vt.header);
+		}
+
+		switch (r) {
 		case TRUE:
 			// fprintf(stderr, "+");
+
 			pthread_mutex_lock(&vbi->chswcd_mutex);
 			vbi->chswcd = 0;
 			pthread_mutex_unlock(&vbi->chswcd_mutex);
+
+			vbi->vt.header_page.pgno = vtp->pgno;
+			memcpy(vbi->vt.header + 8,
+			       vtp->data.lop.raw[0] + 8, 32);
+
+			event.ev.ttx_page.raw_header = vbi->vt.header;
+
 			break;
-			
+
+		case FALSE:
+			/*
+			 *  What can I do when every magazin has its own
+			 *  header? Ouch. Let's hope p100 repeats frequently.
+			 */
+			if (((vtp->pgno ^ vbi->vt.header_page.pgno) & 0xF00) == 0) {
+			     /* pthread_mutex_lock(&vbi->chswcd_mutex);
+				if (vbi->chswcd == 0)
+					vbi->chswcd = 40;
+				pthread_mutex_unlock(&vbi->chswcd_mutex); */
+
+				vbi_chsw_reset(vbi, 0);
+				return TRUE;
+			}
+
+			/* fall through */
+
 		default: /* inconclusive */
 			pthread_mutex_lock(&vbi->chswcd_mutex);
+
 			if (vbi->chswcd > 0) {
 				pthread_mutex_unlock(&vbi->chswcd_mutex);
 				return TRUE;
 			}
+
 			pthread_mutex_unlock(&vbi->chswcd_mutex);
-			// fprintf(stderr, "/");
+
+			if (r == -1) {
+				vbi->vt.header_page.pgno = vtp->pgno;
+				memcpy(vbi->vt.header + 8,
+				       vtp->data.lop.raw[0] + 8, 32);
+
+				event.ev.ttx_page.raw_header = vbi->vt.header;
+
+				// fprintf(stderr, "/");
+			} else /* broken header */ {
+				event.ev.ttx_page.roll_header = FALSE;
+				event.ev.ttx_page.clock_update = FALSE;
+
+				// fprintf(stderr, "X");
+			}
+
 			break;
+		}
+
+		if (0) {
+			int i;
+
+			for (i = 0; i < 40; i++)
+				putchar(printable(vtp->data.unknown.raw[0][i]));
+			putchar('\r');
+			fflush(stdout);
 		}
 	} else {
 		// fprintf(stderr, "-");
@@ -1612,49 +1682,16 @@ store_lop(struct vbi *vbi, struct vt_page *vtp)
 	if (pi->subcode >= 0xFFFE || vtp->subno > pi->subcode)
 		pi->subcode = vtp->subno;
 
-	ev.p = NULL;
-
 	/*
-	 *  Determine if the header is usable for
-	 *  rolling page numbers and RTC.
+	 *  Store the page and send event.
 	 */
-	if (roll_header
-	    && memcmp(vbi->vt.header, vtp->data.lop.raw[0] + 8, 32) != 0) {
-		pthread_mutex_lock(&vbi->chswcd_mutex);
-
-		/*
-		 *  Don't accidentally compare new against new,
-		 *  has nothing to do with header flag.
-		 */
-		if (vbi->chswcd == 0) {
-			vbi->vt.header_page.pgno = vtp->pgno;
-			memcpy(vbi->vt.header,
-			       vtp->data.lop.raw[0] + 8, 32);
-
-			ev.p = vbi->vt.header;
-		}
-
-		pthread_mutex_unlock(&vbi->chswcd_mutex);
-
-		if (0) {
-			for (i = 0; i < 40; i++)
-				putchar(printable(vtp->data.unknown.raw[0][i]));
-			putchar('\r');
-			fflush(stdout);
-		}
-	}
-
-	ev.type = VBI_EVENT_PAGE;
-	ev.pgno = vtp->pgno;
-	ev.subno = vtp->subno;
-
 	if (vbi_cache_put(vbi, vtp))
-		vbi_send_event(vbi, &ev);
+		vbi_send_event(vbi, &event);
 
 	return TRUE;
 }
 
-#define TTX_EVENTS (VBI_EVENT_PAGE)
+#define TTX_EVENTS (VBI_EVENT_TTX_PAGE)
 #define BSD_EVENTS (VBI_EVENT_NETWORK)
 
 /*

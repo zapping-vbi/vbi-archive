@@ -21,13 +21,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.28 2001-03-22 08:28:47 mschimek Exp $ */
+/* $Id: export.h,v 1.29 2001-08-20 00:53:23 mschimek Exp $ */
 
 #ifndef EXPORT_H
 #define EXPORT_H
 
 #include "libvbi.h"
 #include "../common/types.h"
+#include "../common/errstr.h"
 
 #ifdef ENABLE_NLS
 #    include <libintl.h>
@@ -53,7 +54,6 @@ typedef struct _vbi_export_module_priv vbi_export_module_priv;
 struct vbi_export {
 	vbi_export_module_priv *mod;
 	vbi_network		network;
-	char *			err_str;
 
     int	reveal;		// reveal hidden chars
     char *fmt_str;		// saved option string (splitted)

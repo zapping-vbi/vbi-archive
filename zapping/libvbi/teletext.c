@@ -1660,7 +1660,10 @@ vbi_format_page(struct vbi *vbi,
 	    vtp->function != PAGE_FUNCTION_TRIGGER)
 		return 0;
 
-	printv("\nFormatting page %03x/%04x\n", vtp->pgno, vtp->subno);
+	printv("\nFormatting page %03x/%04x pg=%p lev=%d rows=%d nav=%d\n",
+	       vtp->pgno, vtp->subno, pg, max_level, display_rows, navigation);
+
+	display_rows = saturate(display_rows, 1, ROWS);
 
 	pg->vbi = vbi;
 
@@ -1669,7 +1672,7 @@ vbi_format_page(struct vbi *vbi,
 	pg->pgno = vtp->pgno;
 	pg->subno = vtp->subno;
 
-	pg->rows = ROWS;
+	pg->rows = display_rows;
 	pg->columns = EXT_COLUMNS;
 
 	pg->dirty.y0 = 0;
@@ -1748,6 +1751,7 @@ vbi_format_page(struct vbi *vbi,
 
 		memset(&ac, 0, sizeof(ac));
 
+		ac.glyph        = GL_SPACE;
 		ac.foreground	= ext->foreground_clut + WHITE;
 		ac.background	= ext->background_clut + BLACK;
 		mosaic_glyphs	= GL_CONTIGUOUS_BLOCK_MOSAIC_G1;
@@ -1759,7 +1763,7 @@ vbi_format_page(struct vbi *vbi,
 		double_height	= FALSE;
 		wide_char	= FALSE;
 
-		acp[COLUMNS] = ac;
+		acp[COLUMNS] = ac; /* artificial column 41 */
 
 		for (column = 0; column < COLUMNS; ++column) {
 			int raw;
@@ -1889,7 +1893,7 @@ vbi_format_page(struct vbi *vbi,
 		}
 
 		if (double_height) {
-			for (column = 0; column < COLUMNS; column++) {
+			for (column = 0; column < EXT_COLUMNS; column++) {
 				ac = acp[column];
 
 				switch (ac.size) {
@@ -2005,7 +2009,7 @@ vbi_format_page(struct vbi *vbi,
  * Fetch a Teletext page designated by @pgno and @subno from the
  * cache, format and store in @pg. Formatting is limited to row
  * 0 ... @display_rows - 1 inclusive. The really useful values
- * are 1 (draw header only) or 25 (everything). Likewise
+ * are 1 (format header only) or 25 (everything). Likewise
  * @navigation can be used to save unnecessary formatting time.
  * 
  * Return value:
@@ -2021,7 +2025,7 @@ vbi_fetch_vt_page(struct vbi *vbi, struct fmt_page *pg,
 	struct vt_page *vtp;
 	int row;
 
-	memset(pg, 0, sizeof(*pg));
+//	memset(pg, 0, sizeof(*pg));
 
 	switch (pgno) {
 	case 0x900:

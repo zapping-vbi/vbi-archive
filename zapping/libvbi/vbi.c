@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.71 2001-08-15 23:15:38 mschimek Exp $ */
+/* $Id: vbi.c,v 1.72 2001-08-20 00:53:23 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -106,7 +106,7 @@ vbi_event_handler(struct vbi *vbi, int event_mask,
 
 	activate = mask & ~vbi->event_mask;
 
-	if (activate & VBI_EVENT_PAGE)
+	if (activate & VBI_EVENT_TTX_PAGE)
 		vbi_teletext_channel_switched(vbi);
 	if (activate & VBI_EVENT_CAPTION)
 		vbi_caption_channel_switched(vbi);
@@ -299,7 +299,9 @@ vbi_chsw_reset(struct vbi *vbi, nuid identified)
 	nuid old_nuid = vbi->network.nuid;
 	vbi_event ev;
 
-//	fprintf(stderr, "*** chsw identified=%d old nuid=%d\n", identified, old_nuid);
+	if (0)
+		fprintf(stderr, "*** chsw identified=%d old nuid=%d\n",
+			identified, old_nuid);
 
 	vbi_cache_flush(vbi);
 
@@ -388,10 +390,15 @@ mainloop(void *p)
 
 			pthread_mutex_unlock(&vbi->chswcd_mutex);
 
-			// fprintf(stderr, "vbi frame/s dropped at %f, D=%f\n", b->time, b->time - vbi->time);
-			if (vbi->event_mask & (VBI_EVENT_PAGE | VBI_EVENT_NETWORK))
+			if (0)
+				fprintf(stderr, "vbi frame/s dropped at %f, D=%f\n",
+					b->time, b->time - vbi->time);
+
+			if (vbi->event_mask &
+			    (VBI_EVENT_TTX_PAGE | VBI_EVENT_NETWORK))
 				vbi_teletext_desync(vbi);
-			if (vbi->event_mask & (VBI_EVENT_CAPTION | VBI_EVENT_NETWORK))
+			if (vbi->event_mask &
+			    (VBI_EVENT_CAPTION | VBI_EVENT_NETWORK))
 				vbi_caption_desync(vbi);
 		} else {
 			pthread_mutex_lock(&vbi->chswcd_mutex);
@@ -538,7 +545,7 @@ wait_full_filter(fifo *f)
 		filter.buf.time = b->time;
 		filter.buf.used = b->used;
 		filter.buf.error = -1;
-		filter.buf.errstr = NULL;
+		filter.buf.errorstr = NULL;
 
 		send_empty_buffer(&filter.old_consumer, b);
 		send_full_buffer(&filter.producer, &filter.buf);

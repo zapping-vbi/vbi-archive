@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.h,v 1.23 2001-08-08 05:23:27 mschimek Exp $ */
+/* $Id: fifo.h,v 1.24 2001-08-20 00:53:23 mschimek Exp $ */
 
 #ifndef FIFO_H
 #define FIFO_H
@@ -81,7 +81,7 @@ struct buffer {
 	ssize_t			used;
 
 	int			error;		/* copy of errno */
-	char *			errstr;		/* gettext()ized, may be NULL */
+	char *			errorstr;	/* gettext()ized, may be NULL */
 
 	/* Owner private */
 

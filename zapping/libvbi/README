@@ -7,7 +7,8 @@ Documentation to be done.
 ROADMAP
 =======
 
-libvbi.h		Public interface.
+libvbi.h
+	Public interface.
 
 Driver interface:
 
@@ -72,13 +73,16 @@ search.c
 	Functions to search the Teletext page cache, returns a
 	formatted page on success.
 export.c, export.h
-	Interface to formatted page export modules.
+	Interface to formatted page export modules. Note this can
+	write to a file or an open fp, eg. memory.
 exp_txt.c
 	Write formatted page as ASCII or ANSI text,
 exp_html.c
 	as HTML page,
 exp_vtx.c
-	in VideoteXt format.
+	in VideoteXt format. (This is an exception in that VTX stores
+	raw Level 1.0 pages which can be hardly reconstructed from a
+	fmt_page. So the corresponding source is fetched from cache.)
 exp_templ.c
 	Template for export modules.
 exp_gfx.c
@@ -94,14 +98,3 @@ samples
 vbi_decoder.c
 shaped_caption.c
 caption.c (-DTEST=1)
-
-
-
-
-
-
-
-
-
-
-

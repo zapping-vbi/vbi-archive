@@ -4,7 +4,7 @@
  *  Placed in the public domain.
  */
 
-/* $Id: exp-templ.c,v 1.2 2001-05-07 13:06:05 mschimek Exp $ */
+/* $Id: exp-templ.c,v 1.3 2001-08-20 00:53:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -127,7 +127,7 @@ tmpl_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pgp)
 	 *  they better post a description of the problem.
 	 *  Parameters like printf, no linefeeds '\n' please.
 	 */
-	vbi_export_error(e, _("Cannot export: %s."), strerror(errno));
+	set_errstr_printf(_("Cannot export: %s"), strerror(errno));
 
 	return FALSE; /* no success */
 }

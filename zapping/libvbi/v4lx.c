@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.c,v 1.32 2001-08-10 16:31:48 mschimek Exp $ */
+/* $Id: v4lx.c,v 1.33 2001-08-20 00:53:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -45,6 +45,7 @@
 #include "decoder.h"
 #include "../common/math.h"
 #include "../common/fifo.h"
+#include "../common/errstr.h"
 #include "../common/videodev2.h"
 
 #ifdef ENABLE_NLS
@@ -156,7 +157,7 @@ wait_full_read(fifo *f)
 
 		b->used = -1;
 		b->error = errno;
-		b->errstr = _("V4L/V4L2 VBI interface: Failed to read from the device");
+		b->errorstr = _("V4L/V4L2 VBI interface: Failed to read from the device");
 
 		send_full_buffer(&v4l->producer, b);
 
@@ -221,7 +222,7 @@ read_thread(void *p)
 
 			b->used = -1;
 			b->error = errno;
-			b->errstr = _("V4L/V4L2 VBI interface: Failed to read from the device");
+			b->errorstr = _("V4L/V4L2 VBI interface: Failed to read from the device");
 
 			send_full_buffer(&v4l->producer, b);
 
@@ -328,7 +329,7 @@ start_read(fifo *f)
 #include <sys/sysmacros.h>
 
 static void
-perm_check(char *name, char **err_str)
+perm_check(char *name)
 {
 	struct stat st;
 	int old_errno = errno;
@@ -429,7 +430,7 @@ probe_video_device(char *name, struct stat *vbi_stat, int *mode)
 
 	if (!(fd = open(name, O_RDONLY | O_TRUNC))) {
 		printv("Cannot open %s: %d, %s\n", name, errno, strerror(errno));
-		perm_check(name, NULL);
+		perm_check(name);
 		return FALSE;
 	}
 
@@ -445,7 +446,7 @@ probe_video_device(char *name, struct stat *vbi_stat, int *mode)
 }
 
 static bool
-guess_bttv_v4l(v4l_device *v4l, int *strict, int given_fd, char **err_str)
+guess_bttv_v4l(v4l_device *v4l, int *strict, int given_fd)
 {
 	static char *video_devices[] = {
 		"/dev/video",
@@ -512,7 +513,7 @@ guess_bttv_v4l(v4l_device *v4l, int *strict, int given_fd, char **err_str)
 
 	if (!(dir = opendir("/dev"))) {
 		printv("Cannot open /dev: %d, %s\n", errno, strerror(errno));
-		perm_check("/dev", NULL);
+		perm_check("/dev");
 		goto finish;
 	}
 
@@ -566,8 +567,7 @@ guess_bttv_v4l(v4l_device *v4l, int *strict, int given_fd, char **err_str)
 static open_result
 open_v4l(v4l_device **pvbi, char *dev_name,
 	 int fifo_depth, unsigned int services,
-	 int strict, int given_fd, int buffered,
-	 char **err_str)
+	 int strict, int given_fd, int buffered)
 {
 	struct vbi_format vfmt;
 	struct video_capability vcap;
@@ -578,15 +578,15 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 	printv("Try to open v4l vbi device\n");
 
 	if (!(v4l = calloc(1, sizeof(v4l_device)))) {
+		set_errstr(_("Virtual memory exhausted.\n"), NULL);
 		errno = ENOMEM;
-		asprintf(err_str, _("Virtual memory exhausted.\n"));
 		return OPEN_FAILURE;
 	}
 
 	if ((v4l->fd = open(dev_name, O_RDONLY)) == -1) {
-		asprintf(err_str, _("Cannot open '%s': %d, %s."),
+		set_errstr_printf(_("Cannot open '%s': %d, %s."),
 			dev_name, errno, strerror(errno));
-		perm_check(dev_name, err_str);
+		perm_check(dev_name);
 		free(v4l);
 		return OPEN_FAILURE;
 	}
@@ -600,7 +600,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 		 */
 		printv("Driver doesn't support VIDIOCGCAP\n");
 
-		if (!guess_bttv_v4l(v4l, &strict, given_fd, err_str)) {
+		if (!guess_bttv_v4l(v4l, &strict, given_fd)) {
 			close(v4l->fd);
 			free(v4l);
 			return OPEN_UNKNOWN_INTERFACE; /* Definately not V4L */
@@ -612,12 +612,12 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 		}
 
 		if (!(vcap.type & VID_TYPE_TELETEXT)) {
-			asprintf(err_str, _("%s (%s) is not a raw VBI device.\n"),
+			set_errstr_printf(_("%s (%s) is not a raw VBI device.\n"),
 				dev_name, driver_name);
 			goto failure;
 		}
 
-		guess_bttv_v4l(v4l, &strict, given_fd, err_str);
+		guess_bttv_v4l(v4l, &strict, given_fd);
 	}
 
 	printv("Guessed videostandard %d\n", v4l->dec.scanning);
@@ -643,7 +643,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 			printv("Attempt to set vbi capture parameters\n");
 
 			if (!(services = qualify_vbi_sampling(&v4l->dec, &max_rate, services))) {
-				asprintf(err_str, _("Sorry, %s (%s) cannot capture the requested data services.\n"),
+				set_errstr_printf(_("Sorry, %s (%s) cannot capture the requested data services.\n"),
 					dev_name, driver_name);
 				goto failure;
 			}
@@ -671,12 +671,12 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 			if (IOCTL(v4l->fd, VIDIOCSVBIFMT, &vfmt) == -1) {
 				switch (errno) {
 				case EBUSY:
-					asprintf(err_str, _("%s (%s) is already in use.\n"),
+					set_errstr_printf(_("%s (%s) is already in use.\n"),
 						dev_name, driver_name);
 					break;
 
 		    		default:
-					asprintf(err_str, _("Could not set the vbi capture parameters for %s (%s), "
+					set_errstr_printf(_("Could not set the vbi capture parameters for %s (%s), "
 							  "possibly a driver bug. %s\n"),
 						dev_name, driver_name, maintainer_address());
 					break;
@@ -690,7 +690,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 		printv("Accept current vbi parameters\n");
 
 		if (vfmt.sample_format != VIDEO_PALETTE_RAW) {
-			asprintf(err_str, _("%s (%s) offers unknown vbi sampling format #%d. %s"),
+			set_errstr_printf(_("%s (%s) offers unknown vbi sampling format #%d. %s"),
 				dev_name, driver_name, vfmt.sample_format, maintainer_address());
 			goto failure;
 		}
@@ -726,7 +726,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 		printv("Driver doesn't support VIDIOCGVBIFMT, will assume bttv interface.\n");
 
 		if (0 && !strstr(driver_name, "bttv") && !strstr(driver_name, "BTTV")) {
-			asprintf(err_str, _("Cannot capture with %s (%s), has no standard vbi interface.\n"),
+			set_errstr_printf(_("Cannot capture with %s (%s), has no standard vbi interface.\n"),
 				dev_name, driver_name);
 			goto failure;
 		}
@@ -734,7 +734,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 		switch (v4l->dec.scanning) {
 		default:
 			if (0) {
-				asprintf(err_str, _("Cannot set or determine current videostandard of %s (%s).\n"),
+				set_errstr_printf(_("Cannot set or determine current videostandard of %s (%s).\n"),
 					dev_name, driver_name);
 				goto failure;
 			}
@@ -771,7 +771,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 			v4l->dec.count[0] = 16;
 			v4l->dec.count[1] = 16;
 		} else if (size % 2048) {
-			asprintf(err_str, _("%s (%s) reports improbable vbi frame size. %s\n"),
+			set_errstr_printf(_("%s (%s) reports improbable vbi frame size. %s\n"),
 				dev_name, driver_name, maintainer_address());
 			goto failure;
 		} else {
@@ -784,7 +784,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 	}
 
 	if (!services) {
-		asprintf(err_str, _("Sorry, %s (%s) cannot capture any of the requested data services.\n"),
+		set_errstr_printf(_("Sorry, %s (%s) cannot capture any of the requested data services.\n"),
 			dev_name, driver_name);
 		goto failure;
 	}
@@ -800,7 +800,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 			 *  ourselves, but then we had guessed already.
 			 */
 			if (0) {
-				asprintf(err_str, _("Cannot set or determine current videostandard of %s (%s).\n"),
+				set_errstr_printf(_("Cannot set or determine current videostandard of %s (%s).\n"),
 					dev_name, driver_name);
 				goto failure;
 			}
@@ -823,7 +823,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 	/* Nyquist */
 
 	if (v4l->dec.sampling_rate < max_rate * 3 / 2) {
-		asprintf(err_str, _("Cannot capture the requested data services with "
+		set_errstr_printf(_("Cannot capture the requested data services with "
 			"%s (%s), the sampling frequency is too low.\n"),
 			dev_name, driver_name);
 		goto failure;
@@ -832,7 +832,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 	printv("Nyquist check passed\n");
 
 	if (!add_vbi_services(&v4l->dec, services, strict)) {
-		asprintf(err_str, _("Sorry, %s (%s) cannot capture any of the requested data services.\n"),
+		set_errstr_printf(_("Sorry, %s (%s) cannot capture any of the requested data services.\n"),
 			dev_name, driver_name);
 		goto failure;
 	}
@@ -849,7 +849,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 		if (!init_buffered_fifo(&v4l->fifo, "vbi-v4l-buffered",
 		     fifo_depth, sliced_buffer_size)) {
 			errno = ENOMEM;
-			asprintf(err_str, _("Not enough memory to allocate vbi data buffers (%d KB).\n"),
+			set_errstr_printf(_("Not enough memory to allocate vbi data buffers (%d KB).\n"),
 				(fifo_depth * sliced_buffer_size + 1023) >> 10);
 			goto failure;
 		}
@@ -857,7 +857,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 		if (!init_callback_fifo(&v4l->fifo, "vbi-v4l-callback",
 		    NULL, NULL, wait_full_read, NULL, fifo_depth, sliced_buffer_size)) {
 			errno = ENOMEM;
-			asprintf(err_str, _("Not enough memory to allocate vbi data buffers (%d KB).\n"),
+			set_errstr_printf(_("Not enough memory to allocate vbi data buffers (%d KB).\n"),
 				(fifo_depth * sliced_buffer_size + 1023) >> 10);
 			goto failure;
 		}
@@ -870,7 +870,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 	printv("Fifo initialized\n");
 
 	if (!(v4l->raw_buffer[0].data = malloc(raw_buffer_size))) {
-		asprintf(err_str, _("Not enough memory to allocate vbi capture buffer (%d KB).\n"),
+		set_errstr_printf(_("Not enough memory to allocate vbi capture buffer (%d KB).\n"),
 			(raw_buffer_size + 1023) >> 10);
 		destroy_fifo(&v4l->fifo);
 		goto failure;
@@ -884,7 +884,7 @@ open_v4l(v4l_device **pvbi, char *dev_name,
 
 	*pvbi = v4l;
 
-	*err_str = NULL;
+	reset_errstr();
 	errno = 0;
 
 	return OPEN_SUCCESS;
@@ -939,7 +939,7 @@ wait_full_stream(fifo *f)
 				/* timeout */
 				b->used = -1;
 				b->error = ETIME;
-				b->errstr = _("V4L2 VBI interface: Capture stalled, "
+				b->errorstr = _("V4L2 VBI interface: Capture stalled, "
 					      "no station tuned in?");
 
 				send_full_buffer(&v4l->producer, b);
@@ -951,7 +951,7 @@ wait_full_stream(fifo *f)
 			} else if (r < 0) {
 				b->used = -1;
 				b->error = errno;
-				b->errstr = _("V4L2 VBI interface: Failed to read from the device");
+				b->errorstr = _("V4L2 VBI interface: Failed to read from the device");
 
 				send_full_buffer(&v4l->producer, b);
 
@@ -967,7 +967,7 @@ wait_full_stream(fifo *f)
 		if (IOCTL(v4l->fd, VIDIOC_DQBUF, &vbuf) == -1) {
 			b->used = -1;
 			b->error = errno;
-			b->errstr = _("V4L2 VBI interface: Cannot dequeue "
+			b->errorstr = _("V4L2 VBI interface: Cannot dequeue "
 				      "buffer, driver or application bug?");
 
 			send_full_buffer(&v4l->producer, b);
@@ -988,7 +988,7 @@ wait_full_stream(fifo *f)
 		if (IOCTL(v4l->fd, VIDIOC_QBUF, &vbuf) == -1) {
 			b->used = -1;
 			b->error = errno;
-			b->errstr = _("V4L2 VBI interface: Cannot enqueue "
+			b->errorstr = _("V4L2 VBI interface: Cannot enqueue "
 				      "buffer, driver or application bug?");
 
 			send_full_buffer(&v4l->producer, b);
@@ -1068,7 +1068,7 @@ start_stream(fifo *f)
 static int
 open_v4l2(v4l_device **pvbi, char *dev_name,
 	int fifo_depth, unsigned int services, int strict,
-	int buffered, char **err_str)
+	int buffered)
 {
 	struct v4l2_capability vcap;
 	struct v4l2_format vfmt;
@@ -1084,15 +1084,15 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 	printv("Try to open v4l2 vbi device\n");
 
 	if (!(v4l = calloc(1, sizeof(v4l_device)))) {
+		set_errstr(_("Virtual memory exhausted.\n"), NULL);
 		errno = ENOMEM;
-		asprintf(err_str, _("Virtual memory exhausted.\n"));
 		return OPEN_FAILURE;
 	}
 
 	if ((v4l->fd = open(dev_name, O_RDONLY)) == -1) {
-		asprintf(err_str, _("Cannot open '%s': %d, %s."),
+		set_errstr_printf(_("Cannot open '%s': %d, %s."),
 			dev_name, errno, strerror(errno));
-		perm_check(dev_name, err_str);
+		perm_check(dev_name);
 		free(v4l);
 		return OPEN_FAILURE;
 	}
@@ -1107,7 +1107,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 	}
 
 	if (vcap.type != V4L2_TYPE_VBI) {
-		asprintf(err_str, _("%s (%s) is not a raw VBI device.\n"),
+		set_errstr_printf(_("%s (%s) is not a raw VBI device.\n"),
 			dev_name, vcap.name);
 		goto failure;
 	}
@@ -1116,7 +1116,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 
 	if (IOCTL(v4l->fd, VIDIOC_G_STD, &vstd) == -1) {
 		/* mandatory, http://www.thedirks.org/v4l2/v4l2dsi.htm */
-		asprintf(err_str, _("Cannot query current videostandard of %s (%s): %d, %s. "
+		set_errstr_printf(_("Cannot query current videostandard of %s (%s): %d, %s. "
 			"Probably a driver bug.\n"), dev_name, vcap.name, errno, strerror(errno));
 		goto failure;
 	}
@@ -1138,7 +1138,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 		printv("failed\n");
 		strict = MAX(0, strict);
 #if 0
-		asprintf(err_str, _("Cannot query current vbi parameters of %s (%s): %d, %s.\n"),
+		set_errstr_printf(_("Cannot query current vbi parameters of %s (%s): %d, %s.\n"),
 			dev_name, vcap.name, errno, strerror(errno));
 		goto failure;
 #endif
@@ -1149,7 +1149,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 		printv("Attempt to set vbi capture parameters\n");
 
 		if (!(services = qualify_vbi_sampling(&v4l->dec, &max_rate, services))) {
-			asprintf(err_str, _("Sorry, %s (%s) cannot capture the requested "
+			set_errstr_printf(_("Sorry, %s (%s) cannot capture the requested "
 				"data services.\n"), dev_name, vcap.name);
 			goto failure;
 		}
@@ -1176,7 +1176,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 		if (IOCTL(v4l->fd, VIDIOC_S_FMT, &vfmt) == -1) {
 			switch (errno) {
 			case EBUSY:
-				asprintf(err_str, _("%s (%s) is already in use.\n"),
+				set_errstr_printf(_("%s (%s) is already in use.\n"),
 					dev_name, vcap.name);
 				break;
 
@@ -1192,7 +1192,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 
 				if (IOCTL(v4l->fd, VIDIOC_S_FMT, &vfmt) == -1) {
 			default:
-					asprintf(err_str, _("Could not set the vbi capture parameters for %s (%s), "
+					set_errstr_printf(_("Could not set the vbi capture parameters for %s (%s), "
 							  "possibly a driver bug. %s\n"),
 						dev_name, vcap.name, maintainer_address());
 					goto failure;
@@ -1220,7 +1220,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 	v4l->time_per_frame 		= (v4l->dec.scanning == 625) ? 1.0 / 25 : 1001.0 / 30000;
 
 	if (vfmt.fmt.vbi.sample_format != V4L2_VBI_SF_UBYTE) {
-		asprintf(err_str, _("%s (%s) offers unknown vbi sampling format #%d. %s"),
+		set_errstr_printf(_("%s (%s) offers unknown vbi sampling format #%d. %s"),
 			dev_name, vcap.name, vfmt.fmt.vbi.sample_format, maintainer_address());
 		goto failure;
 	}
@@ -1228,7 +1228,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 	/* Nyquist */
 
 	if (v4l->dec.sampling_rate < max_rate * 3 / 2) {
-		asprintf(err_str, _("Cannot capture the requested data services with "
+		set_errstr_printf(_("Cannot capture the requested data services with "
 			"%s (%s), the sampling frequency is too low.\n"),
 			dev_name, vcap.name);
 		goto failure;
@@ -1237,7 +1237,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 	printv("Nyquist check passed\n");
 
 	if (!add_vbi_services(&v4l->dec, services, strict)) {
-		asprintf(err_str, _("Sorry, %s (%s) cannot capture any of the requested data services.\n"),
+		set_errstr_printf(_("Sorry, %s (%s) cannot capture any of the requested data services.\n"),
 			dev_name, vcap.name);
 		goto failure;
 	}
@@ -1254,7 +1254,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 		if ((v4l->buffered = buffered)) {
 			if (!init_buffered_fifo(&v4l->fifo, "v4l-v4l2-buffered-stream",
 			    fifo_depth, sliced_buffer_size)) {
-				asprintf(err_str, _("Not enough memory to allocate vbi data buffers (%d KB).\n"),
+				set_errstr_printf(_("Not enough memory to allocate vbi data buffers (%d KB).\n"),
 					(fifo_depth * sliced_buffer_size + 1023) >> 10);
 				goto failure;
 			}
@@ -1262,7 +1262,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 			if (!init_callback_fifo(&v4l->fifo, "v4l-v4l2-callback-stream",
 			    NULL, NULL, (void (*)(fifo *)) wait_full_stream, NULL,
 			    fifo_depth, sliced_buffer_size)) {
-				asprintf(err_str, _("Not enough memory to allocate vbi data buffers (%d KB).\n"),
+				set_errstr_printf(_("Not enough memory to allocate vbi data buffers (%d KB).\n"),
 					(fifo_depth * sliced_buffer_size + 1023) >> 10);
 				goto failure;
 			}
@@ -1278,13 +1278,13 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 		vrbuf.count = MAX_RAW_BUFFERS;
 
 		if (IOCTL(v4l->fd, VIDIOC_REQBUFS, &vrbuf) == -1) {
-			asprintf(err_str, _("Cannot request streaming i/o buffers from %s (%s): %d, %s. Driver bug?\n"),
+			set_errstr_printf(_("Cannot request streaming i/o buffers from %s (%s): %d, %s. Driver bug?\n"),
 				dev_name, vcap.name, errno, strerror(errno));
 			goto fifo_failure;
 		}
 
 		if (vrbuf.count == 0) {
-			asprintf(err_str, _("%s (%s) granted no streaming i/o buffers, "
+			set_errstr_printf(_("%s (%s) granted no streaming i/o buffers, "
 				"physical memory exhausted?\n"),
 				dev_name, vcap.name);
 			goto fifo_failure;
@@ -1301,7 +1301,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 			vbuf.index = v4l->num_raw_buffers;
 
 			if (IOCTL(v4l->fd, VIDIOC_QUERYBUF, &vbuf) == -1) {
-				asprintf(err_str, _("Querying streaming i/o buffer #%d "
+				set_errstr_printf(_("Querying streaming i/o buffer #%d "
 					"from %s (%s) failed: %d, %s.\n"),
 					v4l->num_raw_buffers, dev_name, vcap.name,
 					errno, strerror(errno));
@@ -1315,7 +1315,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 				if (errno == ENOMEM && v4l->num_raw_buffers >= 2)
 					break;
 
-				asprintf(err_str, _("Memory mapping streaming i/o buffer #%d "
+				set_errstr_printf(_("Memory mapping streaming i/o buffer #%d "
 					"from %s (%s) failed: %d, %s.\n"),
 					v4l->num_raw_buffers, dev_name, vcap.name,
 					errno, strerror(errno));
@@ -1339,7 +1339,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 			}
 
 			if (IOCTL(v4l->fd, VIDIOC_QBUF, &vbuf) == -1) {
-				asprintf(err_str, _("Cannot enqueue streaming i/o buffer #%d "
+				set_errstr_printf(_("Cannot enqueue streaming i/o buffer #%d "
 					"to %s (%s): %d, %s. Driver bug?\n"),
 					v4l->num_raw_buffers, dev_name, vcap.name,
 					errno, strerror(errno));
@@ -1359,7 +1359,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 		if (buffered) {
 			if (!init_buffered_fifo(&v4l->fifo, "v4l-v4l2-read",
 			    fifo_depth, sliced_buffer_size)) {
-				asprintf(err_str, _("Not enough memory to allocate vbi data buffers (%d KB).\n"),
+				set_errstr_printf(_("Not enough memory to allocate vbi data buffers (%d KB).\n"),
 					(fifo_depth * sliced_buffer_size + 1023) >> 10);
 				goto failure;
 			}
@@ -1367,7 +1367,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 			if (!init_callback_fifo(&v4l->fifo, "v4l-v4l2-read",
 			    NULL, NULL, wait_full_read, NULL,
 			    fifo_depth, sliced_buffer_size)) {
-				asprintf(err_str, _("Not enough memory to allocate vbi data buffers (%d KB).\n"),
+				set_errstr_printf(_("Not enough memory to allocate vbi data buffers (%d KB).\n"),
 					(fifo_depth * sliced_buffer_size + 1023) >> 10);
 				goto failure;
 			}
@@ -1382,7 +1382,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 		printv("Fifo initialized\n");
 
 		if (!(v4l->raw_buffer[0].data = malloc(raw_buffer_size))) {
-			asprintf(err_str, _("Not enough memory to allocate "
+			set_errstr_printf(_("Not enough memory to allocate "
 				"vbi capture buffer (%d KB).\n"), (raw_buffer_size + 1023) >> 10);
 			goto fifo_failure;
 		}
@@ -1392,7 +1392,7 @@ open_v4l2(v4l_device **pvbi, char *dev_name,
 
 		printv("Capture buffer allocated\n");
 	} else {
-		asprintf(err_str, _("%s (%s) lacks a vbi read interface, possibly an output only "
+		set_errstr_printf(_("%s (%s) lacks a vbi read interface, possibly an output only "
 			"device or a driver bug. %s\n"),
 			dev_name, vcap.name, maintainer_address());
 		goto failure;
@@ -1606,23 +1606,23 @@ vbi_close_v4lx(fifo *f)
 /* given_fd points to an opened video device, or -1, ignored for V4L2 */
 fifo *
 vbi_open_v4lx(char *dev_name, int given_fd, int buffered,
-	int fifo_depth, char **err_str)
+	int fifo_depth)
 {
 	v4l_device *v4l = NULL;
 	open_result r = OPEN_UNKNOWN_INTERFACE;
 
-	*err_str = NULL;
+	reset_errstr();
 
 	if (r == OPEN_UNKNOWN_INTERFACE)
 		if ((r = open_v4l2(&v4l, dev_name, buffered ? fifo_depth : 1,
 		    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION | SLICED_WSS, -1,
-		    buffered, err_str)) == OPEN_FAILURE)
+		    buffered)) == OPEN_FAILURE)
 			goto failure;
 
 	if (r == OPEN_UNKNOWN_INTERFACE)
 		if ((r = open_v4l(&v4l, dev_name, buffered ? fifo_depth : 1,
 		    SLICED_TELETEXT_B | SLICED_VPS | SLICED_CAPTION | SLICED_WSS,
-		    -1, given_fd, buffered, err_str)) == OPEN_FAILURE)
+		    -1, given_fd, buffered)) == OPEN_FAILURE)
 			goto failure;
 
 	if (r == OPEN_UNKNOWN_INTERFACE)
@@ -1641,8 +1641,8 @@ failure:
 	if (v4l)
 		vbi_close_v4lx(&v4l->fifo);
 
-	if (*err_str)
-		printv("Error message: %s\n", *err_str);
+	if (errstr)
+		printv("Error message: %s\n", errstr);
 
 	return NULL;
 }
@@ -1656,7 +1656,7 @@ failure:
 
 fifo *
 vbi_open_v4lx(char *dev_name, int given_fd, int buffered,
-	int fifo_depth, char **err_str)
+	int fifo_depth)
 {
 	printv("vbi_open_v4lx: not compiled with Video4Linux support\n");
 	return NULL;

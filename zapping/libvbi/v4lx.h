@@ -18,9 +18,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4lx.h,v 1.6 2001-08-08 05:23:27 mschimek Exp $ */
+/* $Id: v4lx.h,v 1.7 2001-08-20 00:53:23 mschimek Exp $ */
 
 #include "../common/fifo.h"
 
-extern fifo *		vbi_open_v4lx(char *dev_name, int given_fd, int buffered, int fifo_depth, char **err_str);
+extern fifo *		vbi_open_v4lx(char *dev_name, int given_fd, int buffered, int fifo_depth);
 extern void		vbi_close_v4lx(fifo *f);

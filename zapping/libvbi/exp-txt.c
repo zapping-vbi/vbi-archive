@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.15 2001-07-02 16:17:13 garetxe Exp $ */
+/* $Id: exp-txt.c,v 1.16 2001-08-20 00:53:23 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -309,7 +309,7 @@ txt_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
     if (!name)
 	d->fp = fp;
     else if (!(d->fp = fopen(name, "w"))) {
-	vbi_export_error(e, "Cannot create file");
+	set_errstr_printf("Cannot create file");
 	return FALSE;
     }
 
@@ -387,7 +387,7 @@ string_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
     if (!name)
 	d->fp = fp;
     else if (!(d->fp = fopen(name, "w"))) {
-	vbi_export_error(e, "Cannot create file");
+	set_errstr_printf("Cannot create file");
 	return FALSE;
     }
 

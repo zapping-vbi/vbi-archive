@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.21 2001-08-15 23:15:37 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.22 2001-08-20 00:53:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -292,12 +292,12 @@ header(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg, char *title)
 	}
 
 	if ((d->cd = iconv_open(charset, "UCS2")) == (iconv_t) -1) {
-		vbi_export_error(e, _("Character conversion Unicode -> %s not supported"), charset);
+		set_errstr_printf(_("Character conversion Unicode -> %s not supported"), charset);
 		return FALSE;
 	}
 
 	if (name && !(d->fp = fopen(name, "w"))) {
-		vbi_export_error(e, _("Cannot create file '%s': %s"), name, strerror(errno));
+		set_errstr_printf(_("Cannot create file '%s': %s"), name, strerror(errno));
 		iconv_close(d->cd);
 		return FALSE;
 	}

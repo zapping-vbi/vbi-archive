@@ -16,7 +16,8 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fifo.c,v 1.29 2001-08-17 20:59:08 garetxe Exp $ */
+/* $Id: fifo.c,v 1.30 2001-08-20 00:53:23 mschimek Exp $ */
+
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
@@ -37,8 +38,8 @@
 #endif
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
-extern const char* program_invocation_name;
-extern const char* program_invocation_short_name;
+extern char *program_invocation_name;
+extern char *program_invocation_short_name;
 #endif
 
 static char *
@@ -632,7 +633,7 @@ send_full_buffer(producer *p, buffer *b)
 			b->consumers = 0;
 			b->used = -1;
 			b->error = EINVAL;
-			b->errstr = NULL;
+			b->errorstr = NULL;
 
 			add_head(&f->empty, &b->node);
 

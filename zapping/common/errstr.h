@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 1999-2001 Michael H. Schimek
+ *  Copyright (C) 2001 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,32 +16,17 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: alloc.c,v 1.3 2001-08-20 00:53:23 mschimek Exp $ */
+/* $Id: errstr.h,v 1.1 2001-08-20 00:53:23 mschimek Exp $ */
 
-#include <string.h>
-#include "alloc.h"
+#ifndef ERRSTR_H
+#define ERRSTR_H
 
-#ifndef HAVE_MEMALIGN
+#define errstr (get_errstr())
 
-void *
-alloc_aligned(size_t size, int align, bool clear)
-{
-	void *p, *b;
+extern void		reset_errstr(void);
+extern void		set_errstr(char *, void (*)(void *));
+extern char *		get_errstr(void);
 
-	if (align < sizeof(void *))
-		align = sizeof(void *);
+extern void		set_errstr_printf(char *, ...);
 
-	if (!(b = malloc(size + align)))
-		return NULL;
-
-	p = (void *)(((long)((char *) b + align)) & -align);
-
-	((void **) p)[-1] = b;
-
-	if (clear)
-		memset(p, 0, size);
-
-	return p;
-}
-
-#endif /* !HAVE_MEMALIGN */
+#endif /* ERRSTR_H */

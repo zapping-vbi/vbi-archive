@@ -1,4 +1,4 @@
-# Zapping (a Gnome TV viewer) / Zapping (TV para Gnome)
+# Zapping (a Gnome TV viewer) / Zapping (TV para Gnome) -*- coding: latin-1 -*-
 # Copyright (C) 2000 Joseba García Etxebarria <josebag@mixmail.com>
 # Copyright (C) 2000-2001 Iñaki García Etxebarria <garetxe@users.sourceforge.net>
 #

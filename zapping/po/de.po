@@ -1,11 +1,11 @@
-# Zapping German translation
+# Zapping German translation -*- coding: latin-1 -*-
 # Copyright (C) 2000-2001 Michael H. Schimek <mschimek@users.sf.net>
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
 "POT-Creation-Date: 2001-08-17 23:54+0200\n"
-"PO-Revision-Date: 2001-08-16 20:06+02:00\n"
+"PO-Revision-Date: 2001-08-18 15:51+02:00\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -21,9 +21,8 @@ msgid "DEVICE"
 msgstr "DEVICE"
 
 #: src/main.c:274
-#, fuzzy
 msgid "Disable plugins support"
-msgstr "VBI Unterstützung deaktivieren"
+msgstr "Plugin Unterstützung deaktivieren"
 
 #: src/main.c:283
 msgid "Disable VBI support"
@@ -620,7 +619,7 @@ msgstr "plugin_get_info wurde nicht gefunden in %s"
 #, c-format
 msgid ""
 "\"%s\" seems to be a valid plugin, but it doesn't provide a canonical name."
-msgstr "\"%s\" gibt keinen kanonischen Namen an."
+msgstr "\"%s\" gibt keinen Programmnamen an."
 
 #: src/plugins.c:203
 #, c-format
@@ -937,7 +936,7 @@ msgid "Zapzilla"
 msgstr "Zapzilla"
 
 #: src/ttxview.c:2169
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Cannot create destination dir for Zapzilla export:\n"
 "%s\n"
@@ -1584,9 +1583,8 @@ msgid "Freq (kHz)"
 msgstr "Frequ. (kHz)"
 
 #: glade/glade_strings.c:150
-#, fuzzy
 msgid "Add all the channels in the current country to the channel list."
-msgstr " _Sendersuchlauf "
+msgstr "Alle Kanäle der Frequenztabelle in der Senderliste speichern."
 
 # src/v4l2interface.c:146
 #: glade/glade_strings.c:151
@@ -1767,7 +1765,7 @@ msgstr "Plugins"
 # src/interface.c:405
 #: glade/glade_strings.c:192
 msgid "Canonical name:"
-msgstr "Kanonischer Name:"
+msgstr "Programmname:"
 
 #: glade/glade_strings.c:193
 msgid "Author:"
@@ -2027,12 +2025,11 @@ msgstr "Lesezeichen entfernen"
 
 #: glade/glade_strings.c:271
 msgid "Search pattern:"
-msgstr ""
+msgstr "Suchtext:"
 
 #: glade/glade_strings.c:272
-#, fuzzy
 msgid "Regular expression"
-msgstr "Regulärer Ausdruck:"
+msgstr "Regulärer Ausdruck"
 
 #: glade/glade_strings.c:273
 msgid "Search case insensitive"

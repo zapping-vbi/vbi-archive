@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.39 2001-07-02 16:17:13 garetxe Exp $ */
+/* $Id: export.c,v 1.40 2001-08-20 00:53:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -80,19 +80,6 @@ vbi_register_export_module(vbi_export_module *new)
 #endif
 
 void
-vbi_export_error(vbi_export *e, char *templ, ...)
-{
-	va_list args;
-
-	if (e->err_str)
-		free(e->err_str);
-
-	va_start(args, templ);
-	vasprintf(&e->err_str, templ, args);
-	va_end(args);
-}
-
-void
 vbi_export_write_error(vbi_export *e, char *name)
 {
 	char *t;
@@ -103,25 +90,12 @@ vbi_export_write_error(vbi_export *e, char *name)
 		t = _("Error while writing file");
 
 	if (errno) {
-		vbi_export_error(e, "%s: %s", t, strerror(errno));
+		set_errstr_printf("%s: %s", t, strerror(errno));
+
 		if (name)
 			free(t);
-	} else {
-		if (e->err_str)
-			free(e->err_str);
-		e->err_str = t;
-	}
-}
-
-char *
-vbi_export_errstr(vbi_export *e)
-{
-        if (!e->err_str)
-    		fprintf(stderr, "Uncritical bug. Either vbi_export_errstr()\n"
-			"has been called without an error, or the export\n"
-			"module didn't set an error string.\n");
-
-	return e->err_str ? e->err_str : _("Unknown");
+	} else
+		set_errstr(t, name ? free : NULL);
 }
 
 vbi_export_module *
@@ -215,7 +189,7 @@ vbi_export_enum(int index)
 }
 
 vbi_export *
-vbi_export_open(char *fmt, vbi_network *network, char **errstr)
+vbi_export_open(char *fmt, vbi_network *network)
 {
 	vbi_export_module_priv **eem, *em;
 	vbi_export *e = NULL;
@@ -234,8 +208,7 @@ vbi_export_open(char *fmt, vbi_network *network, char **errstr)
 			break;
 
 	if (!em) {
-		if (errstr)
-			asprintf(errstr, _("Unknown export format '%s'"), fmt);
+		set_errstr_printf(_("Unknown export format '%s'"), fmt);
 		free(fmt);
 		return NULL;
 	}
@@ -271,8 +244,7 @@ vbi_export_open(char *fmt, vbi_network *network, char **errstr)
 					if (em->options[opti].type == VBI_EXPORT_BOOL)
 						n = TRUE;
 					else {
-						if (errstr)
-							asprintf(errstr, _("Option '%s' for export format '%s' requires an argument"), opt, fmt);
+						set_errstr_printf(_("Option '%s' for export format '%s' requires an argument"), opt, fmt);
 						break;
 					}
 				} else
@@ -286,8 +258,7 @@ vbi_export_open(char *fmt, vbi_network *network, char **errstr)
 				if (!em->set_option(e, opti, optarg, n))
 					break;
 			} else {
-				if (errstr)
-					asprintf(errstr, _("Unknown option '%s' for export format '%s'"), opt, fmt);
+				set_errstr_printf(_("Unknown option '%s' for export format '%s'"), opt, fmt);
 				break;
 			}
 		}
@@ -306,8 +277,7 @@ vbi_export_open(char *fmt, vbi_network *network, char **errstr)
 	return NULL;
 
 no_mem:
-	if (errstr)
-		*errstr = strdup(_("Out of memory"));
+	set_errstr(_("Out of memory"), NULL);
 
 	return NULL;
 }
@@ -317,9 +287,6 @@ vbi_export_close(vbi_export *e)
 {
 	if (e->mod->close)
 		e->mod->close(e);
-
-	if (e->err_str)
-		free(e->err_str);
 
         free(e->fmt_str);
 	free(e);
@@ -405,7 +372,7 @@ vbi_export_mkname(vbi_export *e, char *fmt,
 	}
     s = strdup(bbuf);
     if (! s)
-	vbi_export_error(e, "out of memory");
+	set_errstr_printf("out of memory");
     return s;
 }
 

@@ -1,4 +1,4 @@
-# French translation for Zapping.
+# French translation for Zapping. -*- coding: latin-1 -*-
 # Christian Marillat <marillat.christian@wanadoo.fr>, 2000, 2001.
 #
 msgid ""

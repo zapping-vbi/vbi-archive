@@ -25,7 +25,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.5 2001-08-09 15:12:20 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.6 2001-08-20 00:53:23 mschimek Exp $ */
 
 /*
  *  VTX is the file format used by VideoteXt. It stores Teletext pages in
@@ -77,7 +77,7 @@ vtx_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 	struct stat st;
 
 	if (pg->pgno < 0x100 || pg->pgno > 0x8FF) {
-		vbi_export_error(e, _("Can only export Teletext pages"));
+		set_errstr_printf(_("Can only export Teletext pages"));
 		return FALSE;
 	}
 
@@ -86,7 +86,7 @@ vtx_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 	vtp = vbi_cache_get(pg->vbi, pg->pgno, pg->subno, -1);
 
 	if (!vtp) {
-		vbi_export_error(e, _("Page is not cached, sorry"));
+		set_errstr_printf(_("Page is not cached, sorry"));
 		return FALSE;
 	}
 
@@ -96,7 +96,7 @@ vtx_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 
 	if (page.function != PAGE_FUNCTION_UNKNOWN
 	    && page.function != PAGE_FUNCTION_LOP) {
-		vbi_export_error(e, _("Cannot export this page"));
+		set_errstr_printf(_("Cannot export this page"));
 		return FALSE;
 	}
 
@@ -116,7 +116,7 @@ vtx_output(vbi_export *e, FILE *fp, char *name, struct fmt_page *pg)
 	/* notfound, pblf (?), hamming error, virtual, seven bits */
 
 	if (name && !(fp = fopen(name, "w"))) {
-		vbi_export_error(e, _("Cannot create file '%s': %s"), name, strerror(errno));
+		set_errstr_printf(_("Cannot create file '%s': %s"), name, strerror(errno));
 		return FALSE;
 	}
 

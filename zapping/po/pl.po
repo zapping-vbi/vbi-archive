@@ -1,4 +1,4 @@
-# Zapping Polish translation
+# Zapping Polish translation -*- coding: latin-2 -*-
 # Copyright (c)2000 Pawe³ Sakowski <pawel@sakowski.eu.org>
 # 
 #, fuzzy

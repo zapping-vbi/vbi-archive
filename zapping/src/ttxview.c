@@ -38,6 +38,7 @@
 #include "zmisc.h"
 #include "zmodel.h"
 #include "common/fifo.h"
+#include "common/errstr.h"
 #include "osd.h"
 #include "callbacks.h"
 
@@ -633,7 +634,6 @@ static void selection_handle		(GtkWidget	*widget,
       if (info == TARGET_STRING)
 	{
 	  vbi_export *e;
-	  char *errstr;
 	  gchar * buffer =
 	    g_strdup_printf("string,col1=%d,row1=%d,"
 			    "col2=%d,row2=%d,table=%d",
@@ -641,7 +641,7 @@ static void selection_handle		(GtkWidget	*widget,
 			    data->sel_col2, data->sel_row2,
 			    data->sel_table);
 
-	  if ((e = vbi_export_open(buffer, NULL, &errstr)))
+	  if ((e = vbi_export_open(buffer, NULL)))
 	    {
 	      char *str;
 	      size_t size;
@@ -659,7 +659,7 @@ static void selection_handle		(GtkWidget	*widget,
 	      else
 	        {
 	          fclose(fp);
-		  g_warning(_("Text export failed: %s"), vbi_export_errstr(e));
+		  g_warning(_("Text export failed: %s"), errstr);
 		}
 	      if (str)
 	        free(str);
@@ -668,7 +668,6 @@ static void selection_handle		(GtkWidget	*widget,
 	  else
 	    {
 	      g_warning(_("Selection failed: %s"), errstr);
-	      free(errstr);
 	    }
 	  g_free(buffer);
 	}
@@ -2104,7 +2103,6 @@ void export_ttx_page			(GtkWidget	*widget,
   extern vbi_network current_network; /* FIXME */
   vbi_network network;
   vbi_export *exp;
-  char *errstr;
 
   if (data->fmt_page->pgno < 0x100)
     {
@@ -2118,7 +2116,7 @@ void export_ttx_page			(GtkWidget	*widget,
   if (!network.label[0])
     strncpy(network.label, _("Zapzilla"), sizeof(network.label) - 1);
 
-  if ((exp = vbi_export_open(fmt, &network, &errstr)))
+  if ((exp = vbi_export_open(fmt, &network)))
     {
       GtkWidget *dialog;
       gchar *dirname, *name;
@@ -2166,14 +2164,14 @@ void export_ttx_page			(GtkWidget	*widget,
       dirname = g_dirname(name);
       if (strcmp(dirname, ".") != 0 || name[0] == '.')
 	{
-	  gchar *errstr;
+	  gchar *_errstr;
 
-	  if (!z_build_path(dirname, &errstr))
+	  if (!z_build_path(dirname, &_errstr))
 	    {
 	      ShowBox(_("Cannot create destination dir for Zapzilla "
 			"export:\n%s\n%s"),
-		      GNOME_MESSAGE_BOX_WARNING, dirname, errstr);
-	      g_free(errstr);
+		      GNOME_MESSAGE_BOX_WARNING, dirname, _errstr);
+	      g_free(_errstr);
 	      g_free(dirname);
 	      goto failure;
 	    }
@@ -2190,7 +2188,7 @@ void export_ttx_page			(GtkWidget	*widget,
       if (!vbi_export_name(exp, name, data->fmt_page))
 	{
 	  gchar *msg = g_strdup_printf(_("Export to %s failed: %s"),
-				       name, vbi_export_errstr(exp));
+				       name, errstr);
 	  g_warning(msg);
 	  if (data->appbar)
 	    gnome_appbar_set_status(GNOME_APPBAR(data->appbar), msg);
@@ -2211,7 +2209,6 @@ void export_ttx_page			(GtkWidget	*widget,
   else
     {
       gchar *msg = g_strdup_printf(_("Export failed: %s"), errstr);
-      free(errstr);
       g_warning(msg);
       if (data->appbar)
 	gnome_appbar_set_status(GNOME_APPBAR(data->appbar), msg);
