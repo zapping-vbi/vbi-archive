@@ -131,6 +131,13 @@ void
 tveng_tuned_channel_down (tveng_tuned_channel * channel);
 
 /**
+ * Swaps the two given channels.
+ */
+void
+tveng_tuned_channels_swap (tveng_tuned_channel * a,
+			   tveng_tuned_channel * b);
+
+/**
  *  Returns the number of items in the tuned_channel list
  */
 int

@@ -85,14 +85,17 @@ build_channel_list(GtkCList *clist, tveng_tuned_channel * list)
   gchar freq[256];
   gchar accel[256];
   gchar * buffer;
+  gfloat value;
 
   gchar *entry[] = {alias, channel, country, freq, accel};
 
   alias[255] = channel[255] = country[255] = freq[255] = accel[255] = 0;
 
-  gtk_clist_clear(clist);
+  value = gtk_clist_get_vadjustment(clist)->value;
 
   gtk_clist_freeze(clist);
+
+  gtk_clist_clear(clist);
 
   /* Setup the channel list */
   while ((tuned_channel = tveng_retrieve_tuned_channel_by_index(i++, list)))
@@ -119,6 +122,8 @@ build_channel_list(GtkCList *clist, tveng_tuned_channel * list)
     }
 
   gtk_clist_thaw(clist);
+
+  gtk_adjustment_set_value(gtk_clist_get_vadjustment(clist), value);
 
   update_edit_buttons_sensitivity(GTK_WIDGET(clist));
 }

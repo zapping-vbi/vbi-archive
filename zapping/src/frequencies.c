@@ -23,6 +23,8 @@
 #  include <config.h>
 #endif
 
+#include <common/math.h>
+
 #include <gnome.h>
 #include "strnatcmp.h"
 #include "frequencies.h"
@@ -1421,49 +1423,38 @@ tveng_append_tuned_channel (tveng_tuned_channel * new_channel,
 void
 tveng_tuned_channel_up (tveng_tuned_channel * channel)
 {
-  tveng_tuned_channel tmp;
-
   if (!channel || !channel->prev)
     return;
 
-  channel->prev->next = channel->next;
-  if (channel->next)
-    channel->next->prev = channel->prev;
-
-  tmp.next = channel->next;
-  tmp.prev = channel->prev;
-  channel->next = tmp.prev;
-  channel->prev = tmp.prev->prev;
-  if (channel->prev)
-    channel->prev->next = channel;
-  channel->next->prev = channel;
-
-  channel->index--;
-  tmp.prev->index++;
+  tveng_tuned_channels_swap(channel, channel->prev);
 }
 
 void
 tveng_tuned_channel_down (tveng_tuned_channel * channel)
 {
-  tveng_tuned_channel tmp;
-
   if (!channel || !channel->next)
     return;
 
-  if (channel->prev)
-    channel->prev->next = channel->next;
-  channel->next->prev = channel->prev;
+  tveng_tuned_channels_swap(channel, channel->next);
+}
 
-  tmp.next = channel->next;
-  tmp.prev = channel->prev;
-  channel->next = tmp.next->next;
-  channel->prev = tmp.next;
-  if (channel->next)
-    channel->next->prev = channel;
-  channel->prev->next = channel;
+void
+tveng_tuned_channels_swap (tveng_tuned_channel * a,
+			   tveng_tuned_channel * b)
+{
+  if (!a || !b)
+    return;
 
-  channel->index++;
-  tmp.next->index--;
+  swap(a->name, b->name);
+  swap(a->real_name, b->real_name);
+  swap(a->input, b->input);
+  swap(a->standard, b->standard);
+  swap(a->accel_key, b->accel_key);
+  swap(a->accel_mask, b->accel_mask);
+  swap(a->country, b->country);
+  swap(a->freq, b->freq);
+  swap(a->num_controls, b->num_controls);
+  swap(a->controls, b->controls);
 }
 
 /*
