@@ -29,6 +29,8 @@ typedef enum {
   REQ_SIZE		= (1 << 0),
   /* Must not change pixel format. */
   REQ_PIXFMT		= (1 << 1),
+  /* Must not interrupt capturing. */
+  REQ_CONTINUOUS	= (1 << 2),
 } req_flags;
 
 typedef guint
