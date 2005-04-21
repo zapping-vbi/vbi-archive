@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: TomsMoCompAll.inc,v 1.2 2005-02-05 22:21:18 mschimek Exp $
+// $Id: TomsMoCompAll.inc,v 1.3 2005-04-21 04:46:28 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2002 Tom Barry  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -24,6 +24,10 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2005/02/05 22:21:18  mschimek
+// UseStrangeBob disabled, functions use pavgb without capability check
+// and look buggy.
+//
 // Revision 1.1  2005/01/08 14:54:24  mschimek
 // *** empty log message ***
 //
@@ -130,58 +134,58 @@ BOOL FUNCT_NAME(TDeinterlaceInfo* pInfo)
 	// SearchEffort
 
     /* mhs XXX Search_Effort_n_SB uses pavgb, looks buggy. */
-    /* if(UseStrangeBob == FALSE) */
+    /* if(UseStrangeBob2 == FALSE) */
     if (1)
     {
-		if (SearchEffort == 0)
+		if (SearchEffort2 == 0)
 		{
 			Search_Effort_0();
 		}
 
-		else if (SearchEffort <= 1)
+		else if (SearchEffort2 <= 1)
 		{
 			Search_Effort_1();
 		}
 
-	/*	else if (SearchEffort <= 2)
+	/*	else if (SearchEffort2 <= 2)
 		{
 			Search_Effort_2();
 		}
 	*/
-		else if (SearchEffort <= 3)
+		else if (SearchEffort2 <= 3)
 		{
 			Search_Effort_3();
 		}
 
-		else if (SearchEffort <= 5)
+		else if (SearchEffort2 <= 5)
 		{
 			Search_Effort_5();
 		}
 
-		else if (SearchEffort <= 9)
+		else if (SearchEffort2 <= 9)
 		{
 			Search_Effort_9();
 		}
 
-		else if (SearchEffort <= 11)
+		else if (SearchEffort2 <= 11)
 		{
 			Search_Effort_11();
 		}
 
-		else if (SearchEffort <= 13)
+		else if (SearchEffort2 <= 13)
 		{
 			Search_Effort_13();
 		}
 
-		else if (SearchEffort <= 15)
+		else if (SearchEffort2 <= 15)
 		{
 			Search_Effort_15();
 		}
-		else if (SearchEffort <= 19)
+		else if (SearchEffort2 <= 19)
 		{
 			Search_Effort_19();
 		}
-		else if (SearchEffort <= 21)
+		else if (SearchEffort2 <= 21)
 		{
 			Search_Effort_21();
 		}
@@ -193,55 +197,55 @@ BOOL FUNCT_NAME(TDeinterlaceInfo* pInfo)
 	}
 	else
 	{
-		if (SearchEffort == 0)
+		if (SearchEffort2 == 0)
 		{
 			Search_Effort_0_SB();
 		}
 
-		else if (SearchEffort <= 1)
+		else if (SearchEffort2 <= 1)
 		{
 			Search_Effort_1_SB();
 		}
 
-	/*	else if (SearchEffort <= 2)
+	/*	else if (SearchEffort2 <= 2)
 		{
 			Search_Effort_2_SB();
 		}
 	*/
-		else if (SearchEffort <= 3)
+		else if (SearchEffort2 <= 3)
 		{
 			Search_Effort_3_SB();
 		}
 
-		else if (SearchEffort <= 5)
+		else if (SearchEffort2 <= 5)
 		{
 			Search_Effort_5_SB();
 		}
 
-		else if (SearchEffort <= 9)
+		else if (SearchEffort2 <= 9)
 		{
 			Search_Effort_9_SB();
 		}
 
-		else if (SearchEffort <= 11)
+		else if (SearchEffort2 <= 11)
 		{
 			Search_Effort_11_SB();
 		}
 
-		else if (SearchEffort <= 13)
+		else if (SearchEffort2 <= 13)
 		{
 			Search_Effort_13_SB();
 		}
 
-		else if (SearchEffort <= 15)
+		else if (SearchEffort2 <= 15)
 		{
 			Search_Effort_15_SB();
 		}
-		else if (SearchEffort <= 19)
+		else if (SearchEffort2 <= 19)
 		{
 			Search_Effort_19_SB();
 		}
-		else if (SearchEffort <= 21)
+		else if (SearchEffort2 <= 21)
 		{
 			Search_Effort_21_SB();
 		}
