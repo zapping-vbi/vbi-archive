@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_TomsMoComp.c,v 1.2 2005-02-05 22:18:17 mschimek Exp $
+// $Id: DI_TomsMoComp.c,v 1.3 2005-04-21 04:50:22 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2002 Tom Barry.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -31,6 +31,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2005/02/05 22:18:17  mschimek
+// Completed l18n.
+//
 // Revision 1.1  2005/01/08 14:33:23  mschimek
 // TomsMoCompMethod, MoComp2Method, VideoWeaveMethod, VideoBobMethod,
 // TwoFrameMethod, OldGameMethod, Greedy2FrameMethod, GreedyMethod,
@@ -67,8 +70,8 @@
 #include "TomsMoComp.h"
 //Z #include "..\help\helpids.h"
 
-long SearchEffort2 = 03;
-BOOL UseStrangeBob = FALSE;
+long SearchEffort2 = 3;
+BOOL UseStrangeBob2 = FALSE;
 
 /*
 #define IS_SSE 1
@@ -96,7 +99,7 @@ SETTING DI_TOMSMOCOMPSETTINGS[DI_TOMSMOCOMP_SETTING_LASTONE] =
         "Deinterlace", "SearchEffort", NULL,
     },
     {
-        N_("Use Strange Bob"), YESNO, 0, &UseStrangeBob,
+        N_("Use Strange Bob"), YESNO, 0, &UseStrangeBob2,
         0, 0, 1, 1, 1,
         NULL,
         "Deinterlace", "UseStrangeBob", NULL,

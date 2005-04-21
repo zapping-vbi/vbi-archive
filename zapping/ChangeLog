@@ -1,3 +1,30 @@
+2005-04-21    <mschimek@users.sf.net>
+
+	* Release 0.9.4.
+
+2005-04-21    <mschimek@users.sf.net>
+
+	* src/tveng1.c (get_video_standard_list): Did not list additional
+	  bttv video standards (zapping-misc 2005-04-15).
+	  (p_tveng1_open_device_file): snprintf no good to copy string,
+	  replaced by z_strlcpy.
+	* plugins/deinterlace/DI_TomsMoComp/TomsMoCompAll.inc,
+	  plugins/deinterlace/DI_TomsMoComp/TomsMoComp.h: Used SearchEffort
+	  value of MoComp2.  Renamed it to SearchEffort2.
+	* plugins/deinterlace/DI_Misc/Makefile.am (SIMD_CFLAGS): Add --param
+	  switches only if supported by gcc (compile bug reported by Christian).
+	* src/plugins.c (plugin_init),
+	  src/main.c (startup_zapping), plugins/teletext/main.c (plugin_init),
+	  plugins/screenshot/screenshot.c (plugin_init, plugin_load_config),
+	  plugins/mpeg/mpeg.c (plugin_init, plugin_load_config),
+	  plugins/deinterlace/main.c (plugin_init): Added plugin
+	  initialization tracing printfs.
+	* libtv/avec/cpu.c (sigill_handler): Suppress unused parameter warning.
+	* src/plugin_common.h (PLUGIN_PROTOCOL): Changed to 0x904 for tests.
+	* configure.in: Bumped version number to 0.9.4.  Quoted underquoted
+	  AC_DEFUN function names (automake 1.9 complaint).  Added check
+	  for gcc --param inline-unit-growth, used in DI_Misc/Makefile.am.
+
 2005-04-05    <mschimek@users.sf.net>
 
 	* Release 0.9.3.

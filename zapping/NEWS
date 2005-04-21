@@ -1,6 +1,16 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
+Zapping 0.9.4, 2004-04-21
+-------------------------
+This is a bugfix release.
+
+- PAL-Nc, PAL-M, PAL-N, NTSC-JP video standards were not offered when
+  using v4l bttv driver.
+- The TomsMoComp search effort option had no effect.
+- The deinterlace plugin did not compile with gcc 3.3 or older
+  (invalid parameter).
+
 Zapping 0.9.3, 2004-04-05
 -------------------------
 This is a bugfix release.

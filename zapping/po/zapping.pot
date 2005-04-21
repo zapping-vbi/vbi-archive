@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-04-05 21:50+0200\n"
+"POT-Creation-Date: 2005-04-21 06:44+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -594,8 +594,8 @@ msgstr ""
 #. hash collision code
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:375 plugins/mpeg/mpeg.c:2212
-#: plugins/screenshot/screenshot.c:1645
+#: plugins/alirc/alirc.c:375 plugins/mpeg/mpeg.c:2220
+#: plugins/screenshot/screenshot.c:1655
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
@@ -614,12 +614,12 @@ msgid "Deinterlace"
 msgstr ""
 
 #: plugins/deinterlace/main.c:449 plugins/mpeg/mpeg.c:1534
-#: plugins/mpeg/mpeg.c:2146 plugins/screenshot/screenshot.c:509
-#: plugins/screenshot/screenshot.c:1408 plugins/teletext/main.c:258
+#: plugins/mpeg/mpeg.c:2150 plugins/screenshot/screenshot.c:519
+#: plugins/screenshot/screenshot.c:1418 plugins/teletext/main.c:258
 msgid "Plugins"
 msgstr ""
 
-#: plugins/deinterlace/main.c:529
+#: plugins/deinterlace/main.c:533
 msgid "Deinterlace plugin"
 msgstr ""
 
@@ -833,8 +833,8 @@ msgstr ""
 msgid "Format name:"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1534 plugins/mpeg/mpeg.c:2003 plugins/mpeg/mpeg.c:2031
-#: plugins/mpeg/mpeg.c:2135 plugins/mpeg/mpeg_properties.glade2.h:6
+#: plugins/mpeg/mpeg.c:1534 plugins/mpeg/mpeg.c:2007 plugins/mpeg/mpeg.c:2035
+#: plugins/mpeg/mpeg.c:2139 plugins/mpeg/mpeg_properties.glade2.h:6
 msgid "Record"
 msgstr ""
 
@@ -842,19 +842,19 @@ msgstr ""
 msgid "Not implemented yet"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:1996
+#: plugins/mpeg/mpeg.c:2000
 msgid "Record a video stream"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:2081
+#: plugins/mpeg/mpeg.c:2085
 msgid "Audio/Video Recorder"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:2084
+#: plugins/mpeg/mpeg.c:2088
 msgid "This plugin records video and audio into a file"
 msgstr ""
 
-#: plugins/mpeg/mpeg.c:2087
+#: plugins/mpeg/mpeg.c:2091
 msgid "Record video and audio."
 msgstr ""
 
@@ -947,53 +947,53 @@ msgstr ""
 msgid "This plugin takes screenshots of the video capture."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:504 plugins/screenshot/screenshot.c:529
-#: plugins/screenshot/screenshot.c:1408
+#: plugins/screenshot/screenshot.c:514 plugins/screenshot/screenshot.c:539
+#: plugins/screenshot/screenshot.c:1418
 msgid "Screenshot"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:534
+#: plugins/screenshot/screenshot.c:544
 msgid "Take a screenshot"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:668 plugins/screenshot/screenshot.c:763
+#: plugins/screenshot/screenshot.c:678 plugins/screenshot/screenshot.c:773
 msgid "Error while writing screenshot\n"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:813
+#: plugins/screenshot/screenshot.c:823
 msgid "Saving..."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:840
+#: plugins/screenshot/screenshot.c:850
 #, c-format
 msgid ""
 "Sorry, but I cannot write %s\n"
 "%s"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:874
+#: plugins/screenshot/screenshot.c:884
 msgid "Sorry, not enough resources to create a new thread"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:879
+#: plugins/screenshot/screenshot.c:889
 msgid "There are too many threads"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:1055
+#: plugins/screenshot/screenshot.c:1065
 #, c-format
 msgid "appx %u KB"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:1058
+#: plugins/screenshot/screenshot.c:1068
 #, c-format
 msgid "appx %.2f MB"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:1123 plugins/screenshot/screenshot.c:1267
+#: plugins/screenshot/screenshot.c:1133 plugins/screenshot/screenshot.c:1277
 msgid "This format has no quality option"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:1303
+#: plugins/screenshot/screenshot.c:1313
 msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
 msgstr ""
 
@@ -1115,7 +1115,7 @@ msgstr ""
 msgid "Teletext"
 msgstr ""
 
-#: plugins/teletext/main.c:332
+#: plugins/teletext/main.c:348
 msgid "Teletext plugin"
 msgstr ""
 
