@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.5 2005-03-30 21:29:33 mschimek Exp $ */
+/* $Id: main.c,v 1.6 2005-04-21 04:49:05 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -466,6 +466,8 @@ plugin_init			(PluginBridge		bridge _unused_,
 
   append_property_handler (&ph);
 
+  D();
+
   cpu_feature_flags = 0;
 
   if (cpu_features & CPU_FEATURE_CMOV)
@@ -506,6 +508,8 @@ plugin_init			(PluginBridge		bridge _unused_,
      GET (OLD_GAME, OldGame); */
   GET (VIDEO_TOMSMOCOMP, TomsMoComp);
   GET (VIDEO_MOCOMP2, MoComp2);
+
+  D();
 
   z_gconf_notify_add (GCONF_DIR "/method", notify, NULL);
   z_gconf_notify_add (GCONF_DIR "/resolution", notify, NULL);

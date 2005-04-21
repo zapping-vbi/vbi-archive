@@ -378,6 +378,12 @@ gboolean plugin_init ( tveng_device_info * device_info,
 {
   g_assert(info != NULL);
 
+  printv("Initialize plugin %s %d.%d.%d\n",
+	 info->file_name,
+	 info->major,
+	 info->minor,
+	 info->micro);
+
   if (!info->plugin_init)
     return TRUE;
 

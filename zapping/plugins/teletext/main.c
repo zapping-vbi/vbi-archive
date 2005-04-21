@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.12 2005-01-27 04:16:55 mschimek Exp $ */
+/* $Id: main.c,v 1.13 2005-04-21 04:48:17 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -271,12 +271,16 @@ plugin_init			(PluginBridge		bridge _unused_,
   vbi3_cache *ca;
   gint value;
 
+  D();
+
   /* Preliminary. */
   _ttxview_popup_menu_new = ttxview_popup_menu_new;
   _ttxview_bookmarks_menu_new = ttxview_bookmarks_menu_new;
   _ttxview_hotlist_menu_insert = ttxview_hotlist_menu_insert;
 
   append_property_handler (&ph);
+
+  D();
 
   teletext_action_group = gtk_action_group_new ("TeletextActions");
 #ifdef ENABLE_NLS
@@ -286,6 +290,8 @@ plugin_init			(PluginBridge		bridge _unused_,
   gtk_action_group_add_actions (teletext_action_group,
 				actions, G_N_ELEMENTS (actions), NULL);
 
+  D();
+
   vbi3_network_init (&anonymous_network);
 
   bookmark_list_init (&bookmarks);
@@ -293,13 +299,19 @@ plugin_init			(PluginBridge		bridge _unused_,
 
   zcc_char (g_get_home_dir(), "Export directory", "exportdir");
 
+  D();
+
   cmd_register ("ttx_open_new", py_ttx_open_new, METH_VARARGS,
 		("Open new Teletext window"), "zapping.ttx_open_new()");
   cmd_register ("ttx_color", py_ttx_color, METH_VARARGS,
 		("Open Teletext color dialog"), "zapping.ttx_color()");
 
+  D();
+
   td = vbi3_teletext_decoder_new (NULL, NULL, VBI3_VIDEOSTD_SET_625_50);
   g_assert (NULL != td);
+
+  D();
 
   ca = vbi3_teletext_decoder_get_cache (td);
 
@@ -307,11 +319,15 @@ plugin_init			(PluginBridge		bridge _unused_,
   z_gconf_get_int (&value, GCONF_DIR "/cache_size");
   vbi3_cache_set_memory_limit (ca, (unsigned int) value);
 
+  D();
+
   value = 1;
   z_gconf_get_int (&value, GCONF_DIR "/cache_networks");
   vbi3_cache_set_network_limit (ca, (unsigned int) value);
 
   vbi3_cache_unref (ca);
+
+  D();
 
   zvbi_add_decoder (decoder, channel_switch);
 

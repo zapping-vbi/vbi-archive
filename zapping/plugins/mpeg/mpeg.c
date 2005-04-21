@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.58 2005-03-30 21:32:10 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.59 2005-04-21 04:48:51 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -1943,6 +1943,8 @@ plugin_load_config		(gchar *		root_key)
   gchar *default_filename;
   guint n = strlen (root_key);
 
+  D();
+
   g_assert (n > 0 && root_key[n - 1] == '/');
   zconf_root = g_strndup (root_key, n - 1);
   zconf_root_temp = g_strconcat (zconf_root, "/temp", NULL);
@@ -1951,6 +1953,8 @@ plugin_load_config		(gchar *		root_key)
   zconf_create_string ("", "Last config", buffer);
   zconf_get_string (&record_config_name, buffer);
   g_free (buffer);
+
+  D();
 
   default_filename = g_strconcat (getenv ("HOME"), "/clips/clip1", NULL);
   LOAD_CONFIG (string, default_filename, filename, "Last filename");
@@ -2161,9 +2165,13 @@ plugin_init			(PluginBridge		bridge _unused_,
     add: properties_add
   };
 
+  D();
+
   zapping_info = info;
 
   append_property_handler (&mpeg_handler);
+
+  D();
 
   cmd_register ("record", py_record, METH_VARARGS,
 		("Record dialog"), "zapping.record()");

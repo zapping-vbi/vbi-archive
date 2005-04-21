@@ -285,6 +285,8 @@ plugin_init ( PluginBridge bridge _unused_, tveng_device_info * info )
     add: properties_add
   };
 
+  D();
+
   append_property_handler(&screenshot_handler);
 
   ogb_timeout_id =
@@ -293,6 +295,8 @@ plugin_init ( PluginBridge bridge _unused_, tveng_device_info * info )
 		   &ogb_timeout_id);
 
   zapping_info = info;
+
+  D();
 
   cmd_register ("screenshot", py_screenshot, METH_VARARGS,
 		("Screenshot dialog"),	"zapping.screenshot()");
@@ -349,6 +353,8 @@ plugin_load_config (gchar *root_key)
   gchar *buffer;
   gchar *default_save_dir;
 
+  D();
+
   default_save_dir = g_strconcat (g_get_home_dir (), "/shots", NULL);
   LOAD_CONFIG (string, default_save_dir, save_dir, 
 	       "The directory where screenshot will be written to");
@@ -356,6 +362,8 @@ plugin_load_config (gchar *root_key)
 
   LOAD_CONFIG (string, "shot", save_base, 
 	       "Default filename of screenshots");
+
+  D();
 
   LOAD_CONFIG (string, "", command, "Command to run after taking the screenshot");
   if (!screenshot_option_command)
@@ -365,6 +373,8 @@ plugin_load_config (gchar *root_key)
   LOAD_CONFIG (int, 0, skip, "Skip pictures before grabbing");
 
   LOAD_CONFIG (string, "jpeg", format, "File format");
+
+  D();
 
   LOAD_CONFIG (int, 75, quality, "Quality of the compressed image");
   LOAD_CONFIG (int, 0, deint, "Deinterlace mode");
