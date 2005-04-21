@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.9\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-04-05 21:59+0200\n"
+"POT-Creation-Date: 2005-04-21 07:00+0200\n"
 "PO-Revision-Date: 2005-02-17 17:27+0100\n"
 "Last-Translator: Christian Marillat <marillat@free.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -610,8 +610,8 @@ msgstr "Vous permet de contrôler zapping avec lirc"
 #. hash collision code
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:375 plugins/mpeg/mpeg.c:2212
-#: plugins/screenshot/screenshot.c:1645
+#: plugins/alirc/alirc.c:375 plugins/mpeg/mpeg.c:2220
+#: plugins/screenshot/screenshot.c:1655
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Check erreur : \"%s\" du greffon %s has hash 0x%x vs. 0x%x"
@@ -630,12 +630,12 @@ msgid "Deinterlace"
 msgstr "Désentrelacement"
 
 #: plugins/deinterlace/main.c:449 plugins/mpeg/mpeg.c:1534
-#: plugins/mpeg/mpeg.c:2146 plugins/screenshot/screenshot.c:509
-#: plugins/screenshot/screenshot.c:1408 plugins/teletext/main.c:258
+#: plugins/mpeg/mpeg.c:2150 plugins/screenshot/screenshot.c:519
+#: plugins/screenshot/screenshot.c:1418 plugins/teletext/main.c:258
 msgid "Plugins"
 msgstr "Greffons"
 
-#: plugins/deinterlace/main.c:529
+#: plugins/deinterlace/main.c:533
 msgid "Deinterlace plugin"
 msgstr "Greffon deinterlacer"
 
@@ -815,7 +815,7 @@ msgid "Simple Weave"
 msgstr "Weave simple"
 
 #: plugins/deinterlace/DI_MoComp2/DI_MoComp2.c:82
-#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:96
+#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:99
 msgid "Search Effort"
 msgstr ""
 
@@ -823,11 +823,11 @@ msgstr ""
 msgid "Video (MoComp2)"
 msgstr "Vidéo (MoComp2)"
 
-#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:102
+#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:105
 msgid "Use Strange Bob"
 msgstr "Utiliser 'Strange Bob'"
 
-#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:113
+#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:116
 msgid "Video (TomsMoComp)"
 msgstr "Vidéo (TomsMoComp)"
 
@@ -849,8 +849,8 @@ msgstr "Nouveau format"
 msgid "Format name:"
 msgstr "Nom du format :"
 
-#: plugins/mpeg/mpeg.c:1534 plugins/mpeg/mpeg.c:2003 plugins/mpeg/mpeg.c:2031
-#: plugins/mpeg/mpeg.c:2135 plugins/mpeg/mpeg_properties.glade2.h:6
+#: plugins/mpeg/mpeg.c:1534 plugins/mpeg/mpeg.c:2007 plugins/mpeg/mpeg.c:2035
+#: plugins/mpeg/mpeg.c:2139 plugins/mpeg/mpeg_properties.glade2.h:6
 msgid "Record"
 msgstr "Enregistrement"
 
@@ -858,19 +858,19 @@ msgstr "Enregistrement"
 msgid "Not implemented yet"
 msgstr "Pas encore implémenté"
 
-#: plugins/mpeg/mpeg.c:1996
+#: plugins/mpeg/mpeg.c:2000
 msgid "Record a video stream"
 msgstr "Enregistrer le flux vidéo"
 
-#: plugins/mpeg/mpeg.c:2081
+#: plugins/mpeg/mpeg.c:2085
 msgid "Audio/Video Recorder"
 msgstr "Enregistrement Audio/Video"
 
-#: plugins/mpeg/mpeg.c:2084
+#: plugins/mpeg/mpeg.c:2088
 msgid "This plugin records video and audio into a file"
 msgstr "Ce greffon enregistre les flux image et audio dans un fichier"
 
-#: plugins/mpeg/mpeg.c:2087
+#: plugins/mpeg/mpeg.c:2091
 msgid "Record video and audio."
 msgstr "Enregistrer la vidéo et l'audio."
 
@@ -965,24 +965,24 @@ msgstr ""
 msgid "This plugin takes screenshots of the video capture."
 msgstr "Ce greffon fait des copies d'écran de la capture vidéo"
 
-#: plugins/screenshot/screenshot.c:504 plugins/screenshot/screenshot.c:529
-#: plugins/screenshot/screenshot.c:1408
+#: plugins/screenshot/screenshot.c:514 plugins/screenshot/screenshot.c:539
+#: plugins/screenshot/screenshot.c:1418
 msgid "Screenshot"
 msgstr "Copie d'écran"
 
-#: plugins/screenshot/screenshot.c:534
+#: plugins/screenshot/screenshot.c:544
 msgid "Take a screenshot"
 msgstr "Faire une copie d'écran"
 
-#: plugins/screenshot/screenshot.c:668 plugins/screenshot/screenshot.c:763
+#: plugins/screenshot/screenshot.c:678 plugins/screenshot/screenshot.c:773
 msgid "Error while writing screenshot\n"
 msgstr "Erreur lors de la sauvegarde de la copie d'écran\n"
 
-#: plugins/screenshot/screenshot.c:813
+#: plugins/screenshot/screenshot.c:823
 msgid "Saving..."
 msgstr "Sauvegarde..."
 
-#: plugins/screenshot/screenshot.c:840
+#: plugins/screenshot/screenshot.c:850
 #, c-format
 msgid ""
 "Sorry, but I cannot write %s\n"
@@ -991,29 +991,29 @@ msgstr ""
 "Désolé, mais je ne peut pas écrire %s\n"
 "%s"
 
-#: plugins/screenshot/screenshot.c:874
+#: plugins/screenshot/screenshot.c:884
 msgid "Sorry, not enough resources to create a new thread"
 msgstr "Désolé, plus de ressources pour créer un nouveau thread"
 
-#: plugins/screenshot/screenshot.c:879
+#: plugins/screenshot/screenshot.c:889
 msgid "There are too many threads"
 msgstr "Il y a trop de threads"
 
-#: plugins/screenshot/screenshot.c:1055
+#: plugins/screenshot/screenshot.c:1065
 #, c-format
 msgid "appx %u KB"
 msgstr "environ %u Ko"
 
-#: plugins/screenshot/screenshot.c:1058
+#: plugins/screenshot/screenshot.c:1068
 #, c-format
 msgid "appx %.2f MB"
 msgstr "environ %.2f Mo"
 
-#: plugins/screenshot/screenshot.c:1123 plugins/screenshot/screenshot.c:1267
+#: plugins/screenshot/screenshot.c:1133 plugins/screenshot/screenshot.c:1277
 msgid "This format has no quality option"
 msgstr "Ce format n'a pas d'option pour la qualité"
 
-#: plugins/screenshot/screenshot.c:1303
+#: plugins/screenshot/screenshot.c:1313
 msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
 msgstr "Seulement utilisable avec de grande résolution (480 ou 576 lignes)"
 
@@ -1135,7 +1135,7 @@ msgstr "_Couleurs"
 msgid "Teletext"
 msgstr "Télétexte"
 
-#: plugins/teletext/main.c:332
+#: plugins/teletext/main.c:348
 msgid "Teletext plugin"
 msgstr "Greffon télétexte"
 

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-04-21 06:44+0200\n"
+"POT-Creation-Date: 2005-04-21 07:00+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -799,7 +799,7 @@ msgid "Simple Weave"
 msgstr ""
 
 #: plugins/deinterlace/DI_MoComp2/DI_MoComp2.c:82
-#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:96
+#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:99
 msgid "Search Effort"
 msgstr ""
 
@@ -807,11 +807,11 @@ msgstr ""
 msgid "Video (MoComp2)"
 msgstr ""
 
-#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:102
+#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:105
 msgid "Use Strange Bob"
 msgstr ""
 
-#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:113
+#: plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c:116
 msgid "Video (TomsMoComp)"
 msgstr ""
 
