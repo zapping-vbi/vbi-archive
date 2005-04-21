@@ -1,15 +1,20 @@
 ## Process this file with automake to produce Makefile.in
 
-# We make extensive use of inline functions.  The --param switches here
-# increase various inlining limits.
+# Note these are defaults, user CFLAGS take precedence.
 SIMD_CFLAGS = \
 	-I$(top_srcdir) \
 	-I$(top_srcdir)/plugins/deinterlace \
-	-O3 -fomit-frame-pointer -D_REENTRANT \
+	-O3 -fomit-frame-pointer -D_REENTRANT
+
+# We make extensive use of inline functions.  The --param switches here
+# increase various inlining limits (gcc 3.4.x and later only).
+if HAVE_GCC_LIMITS
+SIMD_CFLAGS += \
 	--param max-inline-insns-single=30000 \
 	--param large-function-insns=30000 \
 	--param inline-unit-growth=3000 \
 	--param large-function-growth=3000
+endif
 
 # To do DI_OldGame.c
 SIMD_SOURCES = \
