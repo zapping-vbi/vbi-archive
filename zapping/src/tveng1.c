@@ -1552,16 +1552,23 @@ get_video_standard_list		(tveng_device_info *	info)
 	}
 
 	if (IS_TUNER_LINE (info->panel.cur_video_input)) {
-		struct video_tuner tuner;
+		/* For API compatibility bttv's VIDICGTUNER reports
+		   only PAL, NTSC, SECAM. */
+		if (P_INFO (info)->bttv_driver) {
+			/* XXX perhaps we can probe supported standards? */
+			flags = (unsigned int) ~0;
+		} else {
+			struct video_tuner tuner;
 
-		CLEAR (tuner);
+			CLEAR (tuner);
 
-		tuner.tuner = VI (info->panel.cur_video_input)->tuner;
+			tuner.tuner = VI (info->panel.cur_video_input)->tuner;
 
-		if (-1 == xioctl (info, VIDIOCGTUNER, &tuner))
-			return FALSE;
+			if (-1 == xioctl (info, VIDIOCGTUNER, &tuner))
+				return FALSE;
 
-		flags = tuner.flags;
+			flags = tuner.flags;
+		}
 	} else {
 		/* Supported video standards of baseband inputs are
 		   not reported. */
@@ -2820,7 +2827,12 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
 	info->node.version = NULL; /* unknown */
 
   /* Copy capability info*/
-  snprintf(info->caps.name, 32, caps.name);
+
+  z_strlcpy (info->caps.name, caps.name,
+	     MIN (sizeof (info->caps.name),
+		  sizeof (caps.name)));
+  info->caps.name [N_ELEMENTS (info->caps.name) - 1] = 0;
+
   info->caps.channels = caps.channels;
   info->caps.audios = caps.audios;
   info->caps.maxwidth = caps.maxwidth;
