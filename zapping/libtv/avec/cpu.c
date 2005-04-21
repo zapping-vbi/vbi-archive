@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.c,v 1.1 2005-02-25 18:13:24 mschimek Exp $ */
+/* $Id: cpu.c,v 1.2 2005-04-21 04:49:15 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -34,6 +34,8 @@ static sigjmp_buf		jmpbuf;
 static void
 sigill_handler			(int			sig)
 {
+	sig = sig; /* unused */
+
 	siglongjmp (jmpbuf, 1);
 }
 
