@@ -954,22 +954,43 @@ gboolean
 capture_start			(tveng_device_info *	info,
 				 GtkWidget *		window)
 {
-  guint i;
   GList *p;
-  gboolean cont;
+  gboolean use_queue;
+  unsigned int n_buffers;
+  unsigned int i;
+
+  use_queue = !!(tv_get_caps (info)->flags & TVENG_CAPS_QUEUE);
 
   for (i = 0; i < n_formats; ++i)
     if (formats[i].flags & REQ_CONTINUOUS)
-      break;
+      {
+	/* Recording doesn't work with a queue,
+	   see plugins/mpeg/mpeg.c for details. */
+	use_queue = FALSE;
+	break;
+      }
 
-  cont = (i < n_formats);
+  if (use_queue)
+    {
+      if (-1 == tv_set_buffers (info, N_BUNDLES))
+	goto failure;
+
+      if (-1 == tv_get_buffers (info, &n_buffers))
+	goto failure;
+
+      /* zapping-misc 2005-04-24 preliminary fix.
+	 XXX check for number of buffers actually needed by
+	 the deinterlace plugin. */
+      if (n_buffers < 4)
+	use_queue = FALSE;
+    }
+  else
+    {
+      n_buffers = N_BUNDLES;
+    }
 
   if (-1 == tveng_start_capturing (info))
-    {
-      ShowBox (_("Cannot start capturing: %s"),
-	       GTK_MESSAGE_ERROR, tv_get_errstr (info));
-      return FALSE;
-    }
+    goto failure;
 
   /* XXX */
   dest_window = window;
@@ -979,7 +1000,7 @@ capture_start			(tveng_device_info *	info,
   /* Immediately requeue capture buffers when all consumers are done. */
   capture_fifo.buffer_done = buffer_done;
 
-  for (i = 0; i < N_BUNDLES; ++i)
+  for (i = 0; i < n_buffers; ++i)
     {
       producer_buffer *pb;
 
@@ -990,9 +1011,7 @@ capture_start			(tveng_device_info *	info,
       zf_add_buffer (&capture_fifo, &pb->frame.b);
     }
 
-  /* Recording doesn't work with a queue,
-     see plugins/mpeg/mpeg.c for details. */
-  if (!cont && (tv_get_caps (info)->flags & TVENG_CAPS_QUEUE))
+  if (use_queue)
     {
       capture_source *cs;
 
@@ -1046,6 +1065,15 @@ capture_start			(tveng_device_info *	info,
   video_init (window, window->style->black_gc);
 
   return TRUE;
+
+ failure:
+  /* Unmap buffers early. Error ignored. */
+  tv_set_buffers (info, 0);
+
+  ShowBox (_("Cannot start capturing: %s"),
+	   GTK_MESSAGE_ERROR, tv_get_errstr (info));
+
+  return FALSE;
 }
 
 static tv_pixfmt
