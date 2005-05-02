@@ -198,11 +198,19 @@ struct capture_device {
 	/* Preliminary. If zero try set_format. */
 	tv_pixfmt_set		supported_pixfmt_set;
 
+	unsigned int		n_buffers;
+
 	tv_bool			(* set_format)
 					(tveng_device_info *	info,
 					 const tv_image_format *format);
 	tv_bool			(* get_format)
 					(tveng_device_info *	info);
+
+	tv_bool			(* set_buffers)
+					(tveng_device_info *	info,
+					 tv_capture_buffer *	buffers,
+					 unsigned int		n_buffers);
+
 	/**
 	 * @param buffer The image will be stored here. Can be @c NULL
 	 *   to read and discard the image. buffer->format crops the image
