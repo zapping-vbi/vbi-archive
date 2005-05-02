@@ -2658,6 +2658,36 @@ tveng_stop_capturing(tveng_device_info * info)
   return -1;
 }
 
+tv_bool
+tv_set_buffers			(tveng_device_info *	info,
+				 unsigned int 		n_buffers)
+{
+  assert (NULL != info);
+
+  if (TVENG_CONTROLLER_NONE == info->current_controller)
+    return FALSE;
+
+  REQUIRE_IO_MODE (FALSE);
+
+  TVLOCK;
+
+  if (info->capture.set_buffers)
+    RETURN_UNTVLOCK(info->capture.set_buffers (info, NULL, n_buffers));
+
+  TVUNSUPPORTED;
+  UNTVLOCK;
+
+  return FALSE;
+}
+
+tv_bool
+tv_get_buffers			(tveng_device_info *	info,
+				 unsigned int * 	n_buffers)
+{
+  *n_buffers = info->capture.n_buffers;
+  return TRUE;
+}
+
 int
 tv_read_frame			(tveng_device_info *	info,
 				 tv_capture_buffer *	buffer,

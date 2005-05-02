@@ -905,6 +905,12 @@ tveng_start_capturing(tveng_device_info * info);
 int
 tveng_stop_capturing(tveng_device_info * info);
 
+tv_bool
+tv_set_buffers			(tveng_device_info *	info,
+				 unsigned int 		n_buffers);
+tv_bool
+tv_get_buffers			(tveng_device_info *	info,
+				 unsigned int *		n_buffers);
 extern int
 tv_read_frame			(tveng_device_info *	info,
 				 tv_capture_buffer *	buffer,
