@@ -1,3 +1,15 @@
+2005-05-02    <mschimek@users.sf.net>
+
+	* src/tveng_private.h: New capture interface method set_buffers().
+	* src/tveng25.c: Modified to negotiate the number of capture
+	  buffers before enable_capture().
+	* src/tveng.c, src/tveng.h: Added tv_set_buffers(), tv_get_buffers()
+	  to negotiate the number of capture buffers.
+	* src/capture.c (capture_start): Changed to request N_BUNDLES,
+	  ie. eight buffers, accept four, and fall back to using the capture
+	  thread if less. See also zapping-misc 2005-04-24.
+	* configure.in: Bumped version number to 0.9.5.
+
 2005-04-21    <mschimek@users.sf.net>
 
 	* Release 0.9.4.
