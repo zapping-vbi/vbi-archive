@@ -138,7 +138,6 @@ struct private_tveng25_device_info
 	struct v4l2_capability	caps;
 
 	struct xbuffer *	buffers;
-	unsigned int		n_buffers;
 
 	tv_control *		mute;
 
@@ -161,6 +160,9 @@ struct private_tveng25_device_info
 
 static tv_bool
 queue_xbuffers			(tveng_device_info *	info);
+static tv_bool
+unmap_xbuffers			(tveng_device_info *	info,
+				 tv_bool		ignore_errors);
 
 /*
 	Audio matrix
@@ -874,7 +876,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 
 		/* Some drivers do not completely fill buffers when
 		   tuning to an empty channel. */
-		for (i = 0; i < p_info->n_buffers; ++i)
+		for (i = 0; i < info->capture.n_buffers; ++i)
 			p_info->buffers[i].clear = TRUE;
 
 		if (!queue_xbuffers (info)) {
@@ -1242,10 +1244,14 @@ get_overlay_buffer		(tveng_device_info *	info)
 static tv_bool
 get_overlay_window		(tveng_device_info *	info)
 {
+	struct private_tveng25_device_info * p_info = P_INFO (info);
 	struct v4l2_format format;
 
 	CLEAR (format);
 	format.type = V4L2_BUF_TYPE_VIDEO_OVERLAY;
+
+	if (p_info->buffers)
+		unmap_xbuffers (info, /* ignore_errors */ TRUE);
 
 	if (-1 == xioctl (info, VIDIOC_G_FMT, &format))
 		return FALSE;
@@ -1314,6 +1320,9 @@ set_overlay_window_clipvec	(tveng_device_info *	info,
 
 	format.fmt.win.chromakey	= p_info->chroma;
 
+	if (p_info->buffers)
+		unmap_xbuffers (info, /* ignore_errors */ TRUE);
+
 	if (-1 == xioctl (info, VIDIOC_S_FMT, &format)) {
 		free (clips);
 		return FALSE;
@@ -1335,7 +1344,11 @@ static tv_bool
 enable_overlay			(tveng_device_info *	info,
 				 tv_bool		on)
 {
+	struct private_tveng25_device_info * p_info = P_INFO (info);
 	int value = on;
+
+	if (on && p_info->buffers)
+		unmap_xbuffers (info, /* ignore_errors */ TRUE);
 
 	if (0 == xioctl (info, VIDIOC_OVERLAY, &value)) {
 		usleep (50000);
@@ -1481,6 +1494,9 @@ set_capture_format		(tveng_device_info *	info,
 		format.fmt.pix.field = V4L2_FIELD_INTERLACED;
 	else
 		format.fmt.pix.field = V4L2_FIELD_BOTTOM;
+
+	if (p_info->buffers)
+		unmap_xbuffers (info, /* ignore_errors */ TRUE);
 
 	if (-1 == xioctl (info, VIDIOC_S_FMT, &format))
 		return FALSE;
@@ -1638,7 +1654,7 @@ queue_xbuffers			(tveng_device_info *	info)
 	struct private_tveng25_device_info *p_info = P_INFO (info);
 	unsigned int i;
 
-	for (i = 0; i < p_info->n_buffers; ++i) {
+	for (i = 0; i < info->capture.n_buffers; ++i) {
 		if (p_info->buffers[i].dequeued)
 			continue;
 
@@ -1660,7 +1676,7 @@ queue_buffer			(tveng_device_info *	info,
 	b = PARENT (buffer, struct xbuffer, cb);
 
 	index = b - p_info->buffers;
-	assert ((unsigned int) index < p_info->n_buffers);
+	assert ((unsigned int) index < info->capture.n_buffers);
 	assert (b == &p_info->buffers[index]);
 
 	assert (b->dequeued);
@@ -1819,7 +1835,7 @@ dequeue_buffer			(tveng_device_info *	info,
 		}
 	}
 
-	assert (vbuf.index < p_info->n_buffers);
+	assert (vbuf.index < info->capture.n_buffers);
 
 	b = p_info->buffers + vbuf.index; 
 
@@ -1857,7 +1873,7 @@ flush_buffers			(tveng_device_info *	info)
 		return FALSE;
 	}
 
-	for (count = p_info->n_buffers; count-- > 0;) {
+	for (count = info->capture.n_buffers; count-- > 0;) {
 		struct v4l2_buffer buffer;
 
 		CLEAR (buffer);
@@ -1934,7 +1950,7 @@ unmap_xbuffers			(tveng_device_info *	info,
 
 	success = TRUE;
 
-	for (i = p_info->n_buffers; i-- > 0;) {
+	for (i = info->capture.n_buffers; i-- > 0;) {
 		if (-1 == device_munmap (info->log_fp,
 					 p_info->buffers[i].cb.data,
 					 p_info->buffers[i].vb.length)) {
@@ -1950,12 +1966,12 @@ unmap_xbuffers			(tveng_device_info *	info,
 	}
 
 	memset (p_info->buffers, 0,
-		p_info->n_buffers * sizeof (* p_info->buffers));
+		info->capture.n_buffers * sizeof (* p_info->buffers));
 
 	free (p_info->buffers);
 
 	p_info->buffers = NULL;
-	p_info->n_buffers = 0;
+	info->capture.n_buffers = 0;
 
 	return success;
 }
@@ -1970,7 +1986,7 @@ map_xbuffers			(tveng_device_info *	info,
 	unsigned int i;
 
 	p_info->buffers = NULL;
-	p_info->n_buffers = 0;
+	info->capture.n_buffers = 0;
 
 	CLEAR (rb);
 
@@ -1985,7 +2001,7 @@ map_xbuffers			(tveng_device_info *	info,
 		return FALSE;
 
 	p_info->buffers = calloc (rb.count, sizeof (* p_info->buffers));
-	p_info->n_buffers = 0;
+	info->capture.n_buffers = 0;
 
 	for (i = 0; i < rb.count; ++i) {
 		struct xbuffer *b;
@@ -2023,7 +2039,7 @@ map_xbuffers			(tveng_device_info *	info,
 		b->dequeued = FALSE;
 		b->clear = TRUE;
 
-		++p_info->n_buffers;
+		++info->capture.n_buffers;
 	}
 
 	if (queue_xbuffers (info))
@@ -2033,7 +2049,7 @@ map_xbuffers			(tveng_device_info *	info,
 	info->tveng_errno = errno;
 	t_error("mmap()", info);
 
-	if (p_info->n_buffers > 0) {
+	if (info->capture.n_buffers > 0) {
 		/* Driver bug, out of memory? May still work. */
 
 		if (queue_xbuffers (info))
@@ -2046,6 +2062,56 @@ map_xbuffers			(tveng_device_info *	info,
 }
 
 static tv_bool
+set_capture_buffers		(tveng_device_info *	info,
+				 tv_capture_buffer *	buffers,
+				 unsigned int		n_buffers)
+{
+	struct private_tveng25_device_info *p_info = P_INFO (info);
+
+	assert (NULL == buffers);
+
+	if (p_info->streaming
+	    || CAPTURE_MODE_NONE != info->capture_mode) {
+		info->tveng_errno = -1;
+		tv_error_msg (info, "Internal error (%s:%d)",
+			      __FUNCTION__, __LINE__);
+		return FALSE;
+	}
+
+	if (p_info->buffers)
+		unmap_xbuffers (info, /* ignore_errors */ TRUE);
+
+	if (0 == n_buffers) {
+		/* Mission accomplished. */
+		return TRUE;
+	}
+
+	assert (0 == info->capture.n_buffers);
+	assert (NULL == p_info->buffers);
+
+	/* sn9c102 1.0.8 bug: mmap fails for > 1 buffers, apparently
+	   because m.offset isn't page aligned. */
+	if (0 == strcmp (p_info->caps.driver, "sn9c102"))
+		n_buffers = 1;
+
+	if (!map_xbuffers (info,
+			   V4L2_BUF_TYPE_VIDEO_CAPTURE,
+			   n_buffers))
+		return FALSE;
+
+	if (info->capture.n_buffers < 1) {
+		unmap_xbuffers (info, /* ignore_errors */ TRUE);
+
+		info->tveng_errno = -1;
+		tv_error_msg(info, "Not enough buffers");
+
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static tv_bool
 enable_capture			(tveng_device_info *	info,
 				 tv_bool		enable)
 {
@@ -2053,34 +2119,13 @@ enable_capture			(tveng_device_info *	info,
 
 	if (enable) {
 		gboolean dummy;
-		unsigned int n_buffers;
 		int buf_type;
 
 		p_tveng_stop_everything(info,&dummy);
 
-		assert (info -> capture_mode == CAPTURE_MODE_NONE);
-		assert (0 == p_info->n_buffers);
-		assert (NULL == p_info->buffers);
-
-		/* sn9c102 1.0.8 bug: mmap fails for > 1 buffers, apparently
-		   because m.offset isn't page aligned. */
-		if (0 == strcmp (p_info->caps.driver, "sn9c102"))
-			n_buffers = 1;
-		else
-			n_buffers = N_BUFFERS;
-
-		if (!map_xbuffers (info,
-				   V4L2_BUF_TYPE_VIDEO_CAPTURE,
-				   n_buffers))
-			return FALSE;
-
-		if (p_info->n_buffers < 1
-		    /* FIXME must be >= capture.c/N_BUNDLES. */
-		    || ((info->caps.flags & TVENG_CAPS_QUEUE)
-			&& p_info->n_buffers < n_buffers)) {
-			info->tveng_errno = -1;
-			tv_error_msg(info, "Not enough buffers");
-			return FALSE;
+		if (!p_info->buffers) {
+			if (!set_capture_buffers (info, NULL, 8))
+				return FALSE;
 		}
 
 		buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -2121,9 +2166,13 @@ enable_capture			(tveng_device_info *	info,
 /* Closes a device opened with tveng_init_device */
 static void tveng25_close_device(tveng_device_info * info)
 {
+  struct private_tveng25_device_info *p_info = P_INFO (info);
   gboolean dummy;
  
   p_tveng_stop_everything(info,&dummy);
+
+  if (p_info->buffers)
+	  unmap_xbuffers (info, /* ignore_errors */ TRUE);
 
   device_close(info->log_fp, info->fd);
   info -> fd = -1;
@@ -2496,6 +2545,7 @@ int tveng25_attach_device(const char* device_file,
 	if (info->caps.flags & TVENG_CAPS_CAPTURE) {
 		info->capture.get_format = get_capture_format;
 		info->capture.set_format = set_capture_format;
+		info->capture.set_buffers = set_capture_buffers;
 		info->capture.read_frame = read_frame;
 		info->capture.queue_buffer = queue_buffer;
 	      	info->capture.dequeue_buffer = dequeue_buffer;
@@ -2510,7 +2560,7 @@ int tveng25_attach_device(const char* device_file,
 	}
 
   /* Init the private info struct */
-  p_info->n_buffers = 0;
+  info->capture.n_buffers = 0;
   p_info->buffers = NULL;
 
   return info -> fd;
