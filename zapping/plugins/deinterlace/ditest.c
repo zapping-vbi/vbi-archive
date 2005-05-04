@@ -18,96 +18,108 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ditest.c,v 1.3 2005-03-30 21:29:53 mschimek Exp $ */
+/* $Id: ditest.c,v 1.4 2005-05-04 03:31:49 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#ifdef HAVE_GETOPT_LONG
+#  include <getopt.h>
+#endif
 
 #include "windows.h"
 #include "DS_Deinterlace.h"
 #include "libtv/cpu.h"		/* cpu_features */
 
 /* See macros.h */
-const int64_t vsplat8_m1[2] = { -1, -1 };
-const int64_t vsplat8_1[2] = { 0x0101010101010101LL, 0x0101010101010101LL };
-const int64_t vsplat8_127[2] = { 0x7F7F7F7F7F7F7F7FLL, 0x7F7F7F7F7F7F7F7FLL };
-const int64_t vsplat16_255[2] = { 0x00FF00FF00FF00FFLL, 0x00FF00FF00FF00FFLL };
-const int64_t vsplat32_1[2] = { 0x0000000100000001LL, 0x0000000100000001LL };
-const int64_t vsplat32_2[2] = { 0x0000000200000002LL, 0x0000000200000002LL };
+#define s8(n) { n * 0x0101010101010101ULL, n * 0x0101010101010101ULL }
+#define s16(n) { n * 0x0001000100010001ULL, n * 0x0001000100010001ULL }
+#define s32(n) { n * 0x0000000100000001ULL, n * 0x0000000100000001ULL }
+const int64_t vsplat8_m1[2]	= s8 (0xFF);
+const int64_t vsplat8_1[2]	= s8 (1);
+const int64_t vsplat8_127[2]	= s8 (127);
+const int64_t vsplat8_15[2]	= s8 (15);
+const int64_t vsplat16_255[2]	= s16 (255);
+const int64_t vsplat16_256[2]	= s16 (256);
+const int64_t vsplat16_m256[2]	= s16 (0xFF00);
+const int64_t vsplat32_1[2]	= s32 (1);
+const int64_t vsplat32_2[2]	= s32 (2);
 
 cpu_feature_set			cpu_features;
-static long			cpu_feature_flags;
 
 static DEINTERLACE_METHOD *	method;
 
 static TDeinterlaceInfo		info;
 static TPicture			pictures[MAX_PICTURE_HISTORY];
 
+static int			quiet;
+
 static void
 deinterlace			(char *			buffer,
 				 unsigned int		width,
 				 unsigned int		field_parity)
 {
-  static unsigned int field_count = 0;
-  TPicture *p;
+	static unsigned int field_count = 0;
+	TPicture *p;
 
-  fputc ('.', stderr);
-  fflush (stderr);
+	if (!quiet) {
+		fputc ('.', stderr);
+		fflush (stderr);
+	}
 
-  p = info.PictureHistory[MAX_PICTURE_HISTORY - 1];
+	p = info.PictureHistory[MAX_PICTURE_HISTORY - 1];
 
-  memmove (info.PictureHistory + 1,
-	   info.PictureHistory + 0,
-	   (MAX_PICTURE_HISTORY - 1) * sizeof (TPicture *));
+	memmove (info.PictureHistory + 1,
+		 info.PictureHistory + 0,
+		 (MAX_PICTURE_HISTORY - 1) * sizeof (TPicture *));
 
-  info.PictureHistory[0] = p;
+	info.PictureHistory[0] = p;
 
-  if (0 == field_parity)
-    {
-      p->pData = buffer;
-      p->Flags = PICTURE_INTERLACED_EVEN;	/* sic, if PAL */
-      p->IsFirstInSeries = (0 == field_count);
-    }
-  else
-    {
-      p->pData = buffer + width * 2;
-      p->Flags = PICTURE_INTERLACED_ODD;
-      p->IsFirstInSeries = (0 == field_count);
-    }
+	if (0 == field_parity) {
+		p->pData = (void *) buffer;
+		p->Flags = PICTURE_INTERLACED_EVEN;	/* sic, if PAL */
+		p->IsFirstInSeries = (0 == field_count);
+	} else {
+		p->pData = (void *)(buffer + width * 2);
+		p->Flags = PICTURE_INTERLACED_ODD;
+		p->IsFirstInSeries = (0 == field_count);
+	}
 
-  ++field_count;
+	++field_count;
 
-  if (field_count < (unsigned int) method->nFieldsRequired)
-    return;
+	if (field_count < (unsigned int) method->nFieldsRequired)
+		return;
 
-  method->pfnAlgorithm (&info);
+	method->pfnAlgorithm (&info);
 
-  /* NOTE if method->bIsHalfHeight only the upper half of out_buffer
-     contains data, must be scaled. */
+	/* NOTE if method->bIsHalfHeight only the upper half of out_buffer
+	   contains data, must be scaled. */
 }
 
 static char *
 new_buffer			(unsigned int		width,
 				 unsigned int 		height)
 {
-  char *buffer;
-  unsigned int size;
-  unsigned int i;
+	char *buffer;
+	unsigned int size;
+	unsigned int i;
 
-  size = width * height * 2;
+	size = width * height * 2;
 
-  buffer = malloc (size);
-  assert (NULL != buffer);
+	buffer = malloc (size);
+	assert (NULL != buffer);
 
-  for (i = 0; i < size; i += 2)
-    {
-      buffer[i + 0] = 0x00;
-      buffer[i + 1] = 0x80;
-    }
+	for (i = 0; i < size; i += 2) {
+		buffer[i + 0] = 0x00;
+		buffer[i + 1] = 0x80;
+	}
 
-  return buffer;
+	return buffer;
 }
 
 static void
@@ -115,48 +127,46 @@ init_info			(char *			out_buffer,
 				 unsigned int		width,
 				 unsigned int		height)
 {
-  unsigned int i;
+	unsigned int i;
 
-  memset (&info, 0, sizeof (info));
+	memset (&info, 0, sizeof (info));
   
-  info.Version = DEINTERLACE_INFO_CURRENT_VERSION;
+	info.Version = DEINTERLACE_INFO_CURRENT_VERSION;
     
-  for (i = 0; i < MAX_PICTURE_HISTORY; ++i)
-    info.PictureHistory[i] = pictures + i;
+	for (i = 0; i < MAX_PICTURE_HISTORY; ++i)
+		info.PictureHistory[i] = pictures + i;
 
-  info.Overlay = out_buffer;
-  info.OverlayPitch = width * 2;
-  info.LineLength = width * 2;
-  info.FrameWidth = width;
-  info.FrameHeight = height;
-  info.FieldHeight = height / 2;
-  info.pMemcpy = (void *) memcpy;		/* XXX */
-  info.CpuFeatureFlags = cpu_feature_flags;
-  info.InputPitch = width * 2 * 2;
+	info.Overlay = (void *) out_buffer;
+	info.OverlayPitch = width * 2;
+	info.LineLength = width * 2;
+	info.FrameWidth = width;
+	info.FrameHeight = height;
+	info.FieldHeight = height / 2;
+	info.pMemcpy = (void *) memcpy;		/* XXX */
+	info.InputPitch = width * 2 * 2;
 
-  assert (!method->bNeedFieldDiff);
-  assert (!method->bNeedCombFactor);
+	assert (!method->bNeedFieldDiff);
+	assert (!method->bNeedCombFactor);
 }
 
 static void
 swab32				(char *			buffer,
 				 unsigned int		size)
 {
-  unsigned int i;
-  char c;
-  char d;
+	unsigned int i;
 
-  assert (0 == (size % 4));
+	assert (0 == (size % 4));
 
-  for (i = 0; i < size; i += 4)
-    {
-      c = buffer[i + 0];
-      d = buffer[i + 1];
-      buffer[i + 0] = buffer[i + 3];
-      buffer[i + 1] = buffer[i + 2];
-      buffer[i + 2] = d;
-      buffer[i + 3] = c;
-    }
+	for (i = 0; i < size; i += 4) {
+		char c, d;
+
+		c = buffer[i + 0];
+		d = buffer[i + 1];
+		buffer[i + 0] = buffer[i + 3];
+		buffer[i + 1] = buffer[i + 2];
+		buffer[i + 2] = d;
+		buffer[i + 3] = c;
+	}
 }
 
 static void
@@ -165,133 +175,306 @@ write_buffer			(const char *		name,
 				 unsigned int		width,
 				 unsigned int		height)
 {
-  unsigned int size;
-  size_t actual;
-  FILE *fp;
+	unsigned int size;
+	size_t actual;
+	FILE *fp;
 
-  size = width * height * 2;
+	size = width * height * 2;
 
-  fp = fopen (name, "wb");
-  assert (NULL != fp);
+	if (name) {
+		fp = fopen (name, "wb");
+		assert (NULL != fp);
+	} else {
+		fp = stdout;
+	}
 
-  actual = fwrite (buffer, 1, size, fp);
-  if (actual < size || ferror (fp))
-    {
-      perror ("fwrite");
-      exit (EXIT_FAILURE);
-    }
+	actual = fwrite (buffer, 1, size, fp);
+	if (actual < size || ferror (fp)) {
+		perror ("fwrite");
+		exit (EXIT_FAILURE);
+	}
 
-  fclose (fp);
+	if (name) {
+		fclose (fp);
+	}
+}
+
+static const char
+short_options [] = "c:h:m:n:p:qrsw:HV";
+
+#ifdef HAVE_GETOPT_LONG
+static const struct option
+long_options [] = {
+	{ "cpu",	required_argument,	NULL,		'c' },
+	{ "height",	required_argument,	NULL,		'h' },
+	{ "help",	required_argument,	NULL,		'H' },
+	{ "method",	required_argument,	NULL,		'm' },
+	{ "nframes",	required_argument,	NULL,		'n' },
+	{ "prefix",	required_argument,	NULL,		'p' },
+	{ "quiet",	no_argument,		NULL,		'q' },
+	{ "rand",	no_argument,		NULL,		'r' },
+	{ "swab32",	no_argument,		NULL,		's' },
+	{ "width",	required_argument,	NULL,		'w' },
+	{ "version",	required_argument,	NULL,		'V' },
+	{ 0, 0, 0, 0 }
+};
+#else
+#  define getopt_long(ac, av, s, l, i) getopt(ac, av, s)
+#endif
+
+static void
+usage				(FILE *			fp,
+				 char **		argv)
+{
+	fprintf (fp,
+		 "Zapping deinterlacer test version " VERSION "\n"
+		 "Copyright (C) 2004-2005 Michael H. Schimek\n"
+		 "This program is licensed under GPL 2. NO WARRANTIES.\n\n"
+		 "Usage: %s [options] <images >images\n\n"
+		 "Source images must be in raw YUYV format without headers.\n"
+		 "Options:\n"
+		 "-c | --cpu     CPU features:\n"
+		 "		 0x0001 x86 time stamp counter\n"
+		 "		 0x0002 x86 conditional moves\n"
+		 "		 0x0004 MMX\n"
+		 "		 0x0008 SSE\n"
+		 "		 0x0010 SSE2\n"
+		 "		 0x0020 AMD MMX extensions\n"
+		 "		 0x0040 3DNow!\n"
+		 "		 0x0080 3DNow! extensions\n"
+		 "		 0x0100 Cyrix MMX extensions\n"
+		 "		 0x0200 AltiVec\n"
+		 "-h | --height  Image height (288)\n"
+		 "-m | --method  Number or name of deinterlace method:\n"
+		 "               VideoBob, VideoWeave, TwoFrame, Weave,\n"
+		 "               Bob, ScalerBob, EvenOnly, OddOnly, Greedy,\n"
+		 "               Greedy2Frame, GreedyH, TomsMoComp, MoComp2\n"
+		 "-n | --nframes Number of frames to convert (5)\n"
+		 "-p | --prefix  Name of output images instead of writing to\n"
+		 "               stdout\n"
+		 "-q | --quiet   Quiet, no output\n"
+		 "-r | --rand    Convert pseudo-random images (for automated\n"
+		 "               tests), otherwise read from stdin\n"
+		 "-s | --swab32  Swap every four bytes ABCD -> DCBA\n"
+		 "-w | --width   Image width (352)\n"
+		 , argv[0]);
 }
 
 int
 main				(int			argc,
 				 char **		argv)
 {
-  char *out_buffer;
-  char *in_buffers[(MAX_PICTURE_HISTORY + 1) / 2];
-  unsigned int n_frames;
-  unsigned int width;
-  unsigned int height;
-  unsigned int size;
-  unsigned int i;
+	char *out_buffer;
+	char *in_buffers[(MAX_PICTURE_HISTORY + 1) / 2];
+	int random_source;
+	int swab_source;
+	unsigned int n_frames;
+	unsigned int width;
+	unsigned int height;
+	unsigned int size;
+	char *method_name;
+	char *prefix;
+	unsigned int i;
+	int index;
+	int c;
 
-  cpu_feature_flags = (FEATURE_MMX |		/* XXX */
-		       FEATURE_TSC);
+	cpu_features = CPU_FEATURE_MMX;
 
-  cpu_features = (CPU_FEATURE_MMX);		/* XXX */
+	n_frames = 5;
 
-  assert (5 == argc);
+	width = 352;
+	height = 288;
 
-  n_frames = strtoul (argv[1], NULL, 0);
+	method_name = strdup ("1");
 
-  assert (n_frames > 0);
+	prefix = NULL;
 
-  width = strtoul (argv[2], NULL, 0);
-  height = strtoul (argv[3], NULL, 0);
+	random_source = FALSE;
+	swab_source = FALSE;
+	quiet = FALSE;
 
-  assert (width > 0 && 0 == (width % 2));	/* YUYV */
-  assert (height > 0 && 0 == (height % 2));	/* interlaced */
+	while (-1 != (c = getopt_long (argc, argv, short_options,
+				       long_options, &index))) {
+		switch (c) {
+                case 'c':
+			cpu_features = strtol (optarg, NULL, 0);
+                        break;
 
-  size = width * height * 2;
+                case 'h':
+			height = strtol (optarg, NULL, 0);
+			if (0 == height || 0 != (height % 16)) {
+				fprintf (stderr,
+					 "Height must be a multiple of 16.\n");
+				exit (EXIT_FAILURE);
+			}
+                        break;
 
-  i = 0;
+                case 'm':
+			method_name = optarg;
+			break;
+
+                case 'n':
+			n_frames = strtol (optarg, NULL, 0);
+			if (0 == n_frames) {
+				fprintf (stderr,
+					 "Number of frames must be "
+					 "one or more.\n");
+				exit (EXIT_FAILURE);
+			}
+                        break;
+
+		case 'p':
+			prefix = optarg;
+			break;
+
+		case 'q':
+			quiet ^= TRUE;
+			break;
+
+		case 'r':
+			random_source ^= TRUE;
+			break;
+
+		case 's':
+			swab_source ^= TRUE;
+			break;
+
+                case 'w':
+			width = strtol (optarg, NULL, 0);
+			if (0 == width || 0 != (width % 16)) {
+				fprintf (stderr,
+					 "Width must be a multiple of 16.\n");
+				exit (EXIT_FAILURE);
+			}
+                        break;
+
+		case 'H':
+			usage (stdout, argv);
+			exit (EXIT_SUCCESS);
+
+		case 'V':
+			printf (VERSION "\n");
+			exit (EXIT_SUCCESS);
+
+		default:
+			usage (stderr, argv);
+			exit (EXIT_FAILURE);
+		}
+	}
+
+	size = width * height * 2;
+
+	i = 0;
 
 #undef ELSEIF
 #define ELSEIF(x)							\
-  else if (++i == strtoul (argv[4], NULL, 0)				\
-	   || 0 == strcmp (#x, argv[4]))				\
-    {									\
-      extern DEINTERLACE_METHOD *DI_##x##_GetDeinterlacePluginInfo (long); \
-      method = DI_##x##_GetDeinterlacePluginInfo (cpu_feature_flags);	\
-    }
+  else if (++i == strtoul (method_name, NULL, 0)			\
+	   || 0 == strcmp (#x, method_name))				\
+      method = DI_##x##_GetDeinterlacePluginInfo (0);
 
-  if (0)
-    {
-      exit (EXIT_FAILURE);    
-    }
-  ELSEIF (VideoBob)
-  ELSEIF (VideoWeave)
-  ELSEIF (TwoFrame)
-  ELSEIF (Weave)
-  ELSEIF (Bob)
-  ELSEIF (ScalerBob)
-  ELSEIF (EvenOnly)
-  ELSEIF (OddOnly)
- /* No longer supported. ELSEIF (BlendedClip) */
- /* ELSEIF (Adaptive) */
-  ELSEIF (Greedy)
-  ELSEIF (Greedy2Frame)
-  ELSEIF (GreedyH)
- /* ELSEIF (OldGame) */
-  ELSEIF (TomsMoComp)
-  ELSEIF (MoComp2)
-  else
-    {
-      assert (!"unknown method");
-    }
+	if (0) {
+		exit (EXIT_FAILURE);    
+	}
+	ELSEIF (VideoBob)
+	ELSEIF (VideoWeave)
+	ELSEIF (TwoFrame)
+	ELSEIF (Weave)
+	ELSEIF (Bob)
+	ELSEIF (ScalerBob)
+	ELSEIF (EvenOnly)
+	ELSEIF (OddOnly)
+	/* No longer supported. ELSEIF (BlendedClip) */
+	/* ELSEIF (Adaptive) */
+	ELSEIF (Greedy)
+	ELSEIF (Greedy2Frame)
+	ELSEIF (GreedyH)
+	/* ELSEIF (OldGame) */
+	ELSEIF (TomsMoComp)
+	ELSEIF (MoComp2)
+	else {
+		fprintf (stderr, "Unknown deinterlace method '%s'\n",
+			 method_name);
+		exit (EXIT_FAILURE);
+	}
 
-  out_buffer = new_buffer (width, height);
+	if (NULL == method->pfnAlgorithm) {
+		fprintf (stderr,
+			 "No version of %s supports CPU features 0x%x\n",
+			 method->szName, (unsigned int) cpu_features);
+		exit (EXIT_SUCCESS);
+	}
 
-  for (i = 0; i < (MAX_PICTURE_HISTORY + 1) / 2; ++i)
-    in_buffers[i] = new_buffer (width, height);
+	out_buffer = new_buffer (width, height);
 
-  init_info (out_buffer, width, height);
+	for (i = 0; i < (MAX_PICTURE_HISTORY + 1) / 2; ++i)
+		in_buffers[i] = new_buffer (width, height);
 
-  fprintf (stderr, "Using '%s' ShortName='%s' HalfHeight=%d FilmMode=%d\n"
-	   "FrameRate=%lu,%lu ModeChanges=%ld ModeTicks=%ld\n"
-	   "NeedFieldDiff=%d NeedCombFactor=%d\n",
-	   method->szName, method->szShortName,
-	   method->bIsHalfHeight, method->bIsFilmMode,
-	   method->FrameRate50Hz, method->FrameRate60Hz,
-	   method->ModeChanges, method->ModeTicks,
-	   method->bNeedFieldDiff, method->bNeedCombFactor);
+	init_info (out_buffer, width, height);
 
-  for (i = 0; i < n_frames; ++i) {
-    char name[40];
-    size_t actual;
+	if (!quiet)
+		fprintf (stderr,
+			 "Using '%s' ShortName='%s' "
+			 "HalfHeight=%d FilmMode=%d\n"
+			 "FrameRate=%lu,%lu ModeChanges=%ld ModeTicks=%ld\n"
+			 "NeedFieldDiff=%d NeedCombFactor=%d\n",
+			 method->szName, method->szShortName,
+			 (int) method->bIsHalfHeight,
+			 (int) method->bIsFilmMode,
+			 method->FrameRate50Hz, method->FrameRate60Hz,
+			 method->ModeChanges, method->ModeTicks,
+			 (int) method->bNeedFieldDiff,
+			 (int) method->bNeedCombFactor);
 
-    assert (!feof (stdin));
+	for (i = 0; i < n_frames; ++i) {
+		char name[40];
+		size_t actual;
 
-    actual = fread (in_buffers[i % 4], 1, size, stdin);
-    if (actual < size || ferror (stdin))
-      {
-	perror ("fread");
-	exit (EXIT_FAILURE);
-      }
+		if (random_source) {
+			unsigned int j;
 
-    swab32 (in_buffers[i % 4], size);
+			for (j = 0; j < size; ++j) {
+				in_buffers[i % 4][j] = rand ();
+			}
+		} else {
+			assert (!feof (stdin));
 
-    deinterlace (in_buffers[i % 4], width, 0);
-    snprintf (name, sizeof (name), "di%03u0.yuv", i);
-    write_buffer (name, out_buffer, width, height);
+			actual = fread (in_buffers[i % 4], 1, size, stdin);
+			if (actual < size || ferror (stdin)) {
+				perror ("Read error");
+				exit (EXIT_FAILURE);
+			}
 
-    deinterlace (in_buffers[i % 4], width, 1);
-    snprintf (name, sizeof (name), "di%03u1.yuv", i);
-    write_buffer (name, out_buffer, width, height);
-  }
+			if (swab_source)
+				swab32 (in_buffers[i % 4], size);
+		}
 
-  fprintf (stderr, "\n");
+		/* Top field */
 
-  return EXIT_SUCCESS;
+		deinterlace (in_buffers[i % 4], width, 0);
+
+		if (prefix) {
+			snprintf (name, sizeof (name),
+				  "%s%u-t.yuv", prefix, i);
+			write_buffer (name, out_buffer, width, height);
+		} else {
+			write_buffer (NULL, out_buffer, width, height);
+		}
+
+		/* Bottom field */
+
+		deinterlace (in_buffers[i % 4], width, 1);
+
+		if (prefix) {
+			snprintf (name, sizeof (name),
+				  "%s%u-b.yuv", prefix, i);
+			write_buffer (name, out_buffer, width, height);
+		} else {
+			write_buffer (NULL, out_buffer, width, height);
+		}
+	}
+
+	if (!quiet)
+		fprintf (stderr, "\n");
+
+	return EXIT_SUCCESS;
 }
