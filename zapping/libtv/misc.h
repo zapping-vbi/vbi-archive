@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.7 2005-01-31 07:21:33 mschimek Exp $ */
+/* $Id: misc.h,v 1.7.2.1 2005-05-05 09:46:00 mschimek Exp $ */
 
 #ifndef __ZTV_MISC_H__
 #define __ZTV_MISC_H__
@@ -31,6 +31,10 @@
 #include <assert.h>
 
 #define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
+
+/* Pointer size agnostic int cast (the result is a ptrdiff_t).
+   Should be a cast to intptr_t but not all systems have it. */
+#define INTPTR(ptr) ((char *)(ptr) - (char *) 0)
 
 #ifdef __GNUC__
 

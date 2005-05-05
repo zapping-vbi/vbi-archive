@@ -108,5 +108,18 @@ typedef struct _DEINTERLACE_METHOD
 // On exit pDeintMethod is a pointer to deinterlace properties
 typedef DEINTERLACE_METHOD* (__cdecl GETDEINTERLACEPLUGININFO)(long CpuFeatureFlags);
 
+DEINTERLACE_METHOD* DI_Bob_GetDeinterlacePluginInfo(long CpuFeatureFlags);
+DEINTERLACE_METHOD* DI_EvenOnly_GetDeinterlacePluginInfo(long CpuFeatureFlags);
+DEINTERLACE_METHOD* DI_Greedy_GetDeinterlacePluginInfo(long CpuFeatureFlags);
+DEINTERLACE_METHOD* DI_Greedy2Frame_GetDeinterlacePluginInfo(long CpuFeatureFlags);
+DEINTERLACE_METHOD* DI_GreedyH_GetDeinterlacePluginInfo(long CpuFeatureFlags);
+DEINTERLACE_METHOD* DI_MoComp2_GetDeinterlacePluginInfo(long CpuFeatureFlags);
+DEINTERLACE_METHOD* DI_OddOnly_GetDeinterlacePluginInfo(long CpuFeatureFlags);
+DEINTERLACE_METHOD* DI_ScalerBob_GetDeinterlacePluginInfo(long CpuFeatureFlags);
+DEINTERLACE_METHOD* DI_TomsMoComp_GetDeinterlacePluginInfo(long CpuFeatureFlags);
+DEINTERLACE_METHOD* DI_TwoFrame_GetDeinterlacePluginInfo(long CpuFeatureFlags);
+DEINTERLACE_METHOD* DI_VideoBob_GetDeinterlacePluginInfo(long CpuFeatureFlags);
+DEINTERLACE_METHOD* DI_VideoWeave_GetDeinterlacePluginInfo(long CpuFeatureFlags);
+DEINTERLACE_METHOD* DI_Weave_GetDeinterlacePluginInfo(long CpuFeatureFlags);
 
 #endif

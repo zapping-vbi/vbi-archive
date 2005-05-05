@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_VideoBob.c,v 1.3 2005-03-30 21:26:32 mschimek Exp $
+// $Id: DI_VideoBob.c,v 1.3.2.1 2005-05-05 09:46:01 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 // Based on code from Virtual Dub Plug-in by Gunnar Thalin
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2005/03/30 21:26:32  mschimek
+// Integrated and converted the MMX code to vector intrinsics.
+//
 // Revision 1.2  2005/02/05 22:19:04  mschimek
 // Completed l18n.
 //
@@ -60,9 +63,10 @@
 extern long EdgeDetect;
 extern long JaggieThreshold;
 
-SIMD_PROTOS (DeinterlaceFieldBob);
+SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceFieldBob);
 
-#ifdef SIMD
+#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
+	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
 ///////////////////////////////////////////////////////////////////////////////
 // DeinterlaceFieldBob
@@ -91,14 +95,14 @@ SIMD_NAME (DeinterlaceFieldBob)	(TDeinterlaceInfo *	pInfo)
     unsigned int dst_bpl;
     unsigned int src_bpl;
 
-    if (SIMD == SSE2) {
-	if (((unsigned int) pInfo->Overlay |
-	     (unsigned int) pInfo->PictureHistory[0]->pData |
-	     (unsigned int) pInfo->PictureHistory[1]->pData |
+    if (SIMD == CPU_FEATURE_SSE2) {
+	if ((INTPTR (pInfo->Overlay) |
+	     INTPTR (pInfo->PictureHistory[0]->pData) |
+	     INTPTR (pInfo->PictureHistory[1]->pData) |
 	     (unsigned int) pInfo->OverlayPitch |
 	     (unsigned int) pInfo->InputPitch |
 	     (unsigned int) pInfo->LineLength) & 15)
-	    return DeinterlaceFieldBob__SSE (pInfo);
+	    return DeinterlaceFieldBob_SSE (pInfo);
     }
 
     qwEdgeDetect = vsplat16 (EdgeDetect);
@@ -154,7 +158,7 @@ SIMD_NAME (DeinterlaceFieldBob)	(TDeinterlaceInfo *	pInfo)
 	    lum_O2 = yuyv2yy (O2);
 
 	    // Always use the most recent data verbatim.
-	    vstorent ((vu8 *)(Dest + dst_bpl), O2);
+	    vstorent (Dest, dst_bpl, O2);
 
 	    avg = fast_vavgu8 (O1, O2);
 
@@ -176,8 +180,8 @@ SIMD_NAME (DeinterlaceFieldBob)	(TDeinterlaceInfo *	pInfo)
 	    mm7 = (v16) vmullo16 (mm7, qwEdgeDetect);
 	    mm6 = vsub16 (mm6, mm7);
 
-	    vstorent ((vu8 *) Dest,
-		      vsel (E, avg, (vu8) vcmpgt16 (mm6, qwThreshold)));
+	    vstorent (Dest, 0,
+		      vsel ((vu8) vcmpgt16 (mm6, qwThreshold), avg, E));
 	    Dest += sizeof (vu8);
 	}
                         
@@ -197,7 +201,7 @@ SIMD_NAME (DeinterlaceFieldBob)	(TDeinterlaceInfo *	pInfo)
     return TRUE;
 }
 
-#else /* !SIMD */
+#elif !SIMD
 
 long EdgeDetect = 625;
 long JaggieThreshold = 73;
@@ -221,7 +225,7 @@ SETTING DI_VideoBobSettings[DI_VIDEOBOB_SETTING_LASTONE] =
     },
 };
 
-DEINTERLACE_METHOD VideoBobMethod =
+const DEINTERLACE_METHOD VideoBobMethod =
 {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
@@ -252,8 +256,20 @@ DEINTERLACE_METHOD VideoBobMethod =
 
 DEINTERLACE_METHOD* DI_VideoBob_GetDeinterlacePluginInfo(long CpuFeatureFlags)
 {
-    VideoBobMethod.pfnAlgorithm = SIMD_SELECT (DeinterlaceFieldBob);
-    return &VideoBobMethod;
+    DEINTERLACE_METHOD *m;
+
+    CpuFeatureFlags = CpuFeatureFlags;
+
+    m = malloc (sizeof (*m));
+    *m = VideoBobMethod;
+
+    m->pfnAlgorithm =
+	SIMD_FN_SELECT (DeinterlaceFieldBob,
+			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
+			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
+			CPU_FEATURE_ALTIVEC);
+
+    return m;
 }
 
 #endif /* !SIMD */

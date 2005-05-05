@@ -1,7 +1,8 @@
-/////////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHM_V.c,v 1.1 2005-01-08 14:54:23 mschimek Exp $
+/*///////////////////////////////////////////////////////////////////////////
+// $Id: DI_GreedyHM_V.c,v 1.1.2.1 2005-05-05 09:46:00 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
+// Copyright (C) 2005 Michael H. Schimek
 /////////////////////////////////////////////////////////////////////////////
 //
 //	This file is subject to the terms of the GNU General Public License as
@@ -20,12 +21,16 @@
 //
 // Date          Developer             Changes
 //
-// 01 Jul 2001   Tom Barry		       Break out Greedy (High Motion) Deinterlace, w/Vert Filter
+// 01 Jul 2001   Tom Barry	       Break out Greedy (High Motion)
+//					 Deinterlace, w/Vert Filter
 //
 /////////////////////////////////////////////////////////////////////////////
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2005/01/08 14:54:23  mschimek
+// *** empty log message ***
+//
 // Revision 1.5  2001/10/02 17:44:41  trbarry
 // Changes to be compatible with the Avisynth filter version
 //
@@ -42,179 +47,122 @@
 // Moved Control stuff into DS_Control.h
 // Added $Id and $Log to comment blocks as per standards
 //
-/////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////*/
 
-// This version handles Greedy High Motion with Vertical Filtering
+/* This version handles Greedy High Motion with/without Vertical Filtering */
 
 #include "windows.h"
-//>>>>>>>>>#include "DS_Deinterlace.h"
 #include "DI_GreedyHM.h"
 
-// debugging options
-#undef USE_JAGGIE_REDUCTION
-#undef USE_GREEDY_CHOICE
-#undef USE_CLIP
-#undef USE_BOB_BLEND
-
-#define USE_JAGGIE_REDUCTION
-#define USE_GREEDY_CHOICE
-#define USE_CLIP
-#define USE_BOB_BLEND
-
-
-#define FUNCT_NAME DI_GreedyHM_V
-
-BOOL FUNCT_NAME()
+static __inline__ BOOL
+DI_GreedyHM_V_template		(TDeinterlaceInfo *	pInfo,
+				 ghxc_mode		mode)
 {
-#include "DI_GreedyHM2.h"
-	int line;				// number of lines
-	int	LoopCtr;				// number of qwords in line - 1
-	int	LoopCtrW;				// number of qwords in line - 1
+    vu8 MaxCombW;
+    vu8 MotionThresholdW;
+    v16 MotionSenseW;
+    uint8_t *WeaveDest;	/* dest for weave pixel */
+    uint8_t *CopyDest;	/* other dest, copy or vertical filter */
+    const uint8_t *pL2; /* ptr into FieldStore[L2] */
+    const uint8_t *pFieldStoreEnd;
+    int L1;	/* offset to FieldStore elem holding top known pixels */
+    int L3;	/* offset to FieldStore elem holding bottom known pxl */
+    int L2;	/* offset to FieldStore elem holding newest weave pixels */
+    int CopySrc;
+    unsigned int height;
+    int dst_bpl;
+    unsigned int dst_padding;
+    unsigned int src_padding;
 
-	int L1;						// offset to FieldStore elem holding top known pixels
-	int L3;						// offset to FieldStore elem holding bottom known pxl
-	int L2;						// offset to FieldStore elem holding newest weave pixels
-	int L2P;					// offset to FieldStore elem holding prev weave pixels
-	__int64* pFieldStore;		// ptr into FieldStore qwords
-	__int64* pFieldStoreEnd;	// ptr to Last FieldStore qword
-	__int64* pL2;				// ptr into FieldStore[L2] 
-	BYTE* WeaveDest;					// dest for weave pixel
-	BYTE* CopyDest;				// other dest, copy or vertical filter
-	int CopySrc;
+    MaxCombW = vsplat8 (GreedyHMaxComb);
 
-	int DestIncr = 2 * OverlayPitch;  // we go throug overlay buffer 2 lines per
-	__int64 LastAvg=0;					//interp value from left qword
-	__int64 SaveQword1=0;				// Temp Save pixels
-	__int64 SaveQword2=0;				// Temp Save pixels
-	__int64 SaveQword3=0;				// Temp Save pixels
+    /* In a saturated subtraction UVMask clears the u, v bytes. */
+    MotionThresholdW =
+	(vu8) vor ((v16) vsplat8 (GreedyMotionThreshold), UVMask);
 
+    MotionSenseW = vsplat16 (GreedyMotionSense);
 
+    pFieldStoreEnd = (const uint8_t *) FieldStore
+	+ pInfo->FieldHeight * FSROWSIZE;
 
-	// set up pointers, offsets
-	SetFsPtrs(&L1, &L2, &L2P, &L3, &CopySrc, &CopyDest, &WeaveDest);
-	L2 = __min(L2, L2P);				// Subscript to 1st of 2 possible weave pixels, our base addr
-	L1 = (L1 - L2) * 8;					// now is signed offset from L2  
-	L3 = (L3 - L2) * 8;					// now is signed offset from L2  
-	pFieldStore = & FieldStore[0];		// starting ptr into FieldStore[L2]
-	pFieldStoreEnd = & FieldStore[FieldHeight * FSCOLCT];		// ending ptr into FieldStore[L2]
-	pL2 = & FieldStore[L2];				// starting ptr into FieldStore[L2]
-	LoopCtrW = LineLength / 32;		    // do 8 bytes at a time, adjusted
+    /* set up pointers, offsets */
+    SetFsPtrs (&L1, &L2, &L3, &CopySrc, &CopyDest, &WeaveDest, pInfo);
 
-	for (line = 0; line < (FieldHeight); ++line)
-	{
-		LoopCtr = LoopCtrW;				// actually qword counter
-		if (WeaveDest == lpCurOverlay)    // on first line may just copy first and last
-		{
-			FieldStoreCopy(lpCurOverlay, &FieldStore[CopySrc], LineLength);
-			WeaveDest += DestIncr;		// bump for next, CopyDest already OK
-			pL2 = & FieldStore[L2 + FSCOLCT];
-		}
-		else
-		{			
-_saved_regs;
+    L2 &= 1; /* subscript to 1st of 2 possible weave pixels, our base addr */
+    pL2 = (const uint8_t *) FieldStore + L2 * sizeof (vu8);
+    L1 = (L1 - L2) * sizeof (vu8); /* now is signed offset from L2 */  
+    L3 = (L3 - L2) * sizeof (vu8);
 
-_asm_begin
-_save(eax)
-_save(ecx)
-_save(edx)
-_save(esi)
-_save(edi)
-"		mov		edi, %[WeaveDest]				## get ptr to line ptrs	\n"
-"		mov		esi, %[pL2]		## addr of our 1st qword in FieldStore\n"
-"		mov		eax, %[L1]						## offset to top 	\n"
-"		mov		ebx, %[L3]						## offset to top comb 	\n"
-"		mov		ecx, %[OverlayPitch]			## overlay pitch\n"
-"		mov		%[LastAvg6], 0     ## init left avg lazy way\n"
-"		\n"
-"		lea     edx, [esi+eax]				## where L1 would point\n"
-"		cmp		edx, %[pFieldStore]			## before begin of fieldstore?\n"
-"		jnb		L1OK						## n, ok\n"
-"		mov		eax, ebx					## else use this for top pixel vals\n"
-"L1OK:\n"
-"		lea     edx, [esi+ebx]				## where L2 would point\n"
-"		cmp		edx, %[pFieldStoreEnd]			## after end of fieldstore?\n"
-"		jb		L3OK						## n, ok\n"
-"		mov		ebx, eax					## else use this bottom pixel vals\n"
-"\n"
-"L3OK:		\n"
-"		mov		edx, %[CopyDest]\n"
-"\n"
-"		.align 8\n"
-"QwordLoop:\n"
-"\n"
-"## 1st 4 qwords\n"
-#define FSOFFS 0 * FSCOLSIZE				// following include needs an offset
-#include "DI_GreedyDeLoop.asm"
-"		pavgb   mm1, mm4\n"
-"		movntq	qword ptr[edx], mm1         ## avg clipped best with above line\n"
-"		pavgb   mm3, mm4\n"
-"		movq	%[SaveQword1], mm3	            ## avg clipped best with below line, save for later\n"
-"\n"
-"## 2nd 4 qwords\n"
-#undef  FSOFFS
-#define FSOFFS 1 * FSCOLSIZE				// following include needs an offset
-#include "DI_GreedyDeLoop.asm"
-"		pavgb   mm1, mm4\n"
-"		movntq	qword ptr[edx+8], mm1       ## avg clipped best with above line\n"
-"		pavgb   mm3, mm4\n"
-"		movq	%[SaveQword2], mm3	            ## avg clipped best with below line, save for later\n"
-"## 3rd 4 qwords\n"
-#undef  FSOFFS
-#define FSOFFS 2 * FSCOLSIZE				// following include needs an offset
-#include "DI_GreedyDeLoop.asm"
-"		pavgb   mm1, mm4\n"
-"		movntq	qword ptr[edx+16], mm1      ## avg clipped best with above line\n"
-"		pavgb   mm3, mm4\n"
-"		movq	%[SaveQword3], mm3	            ## avg clipped best with below line, save for later\n"
-"\n"
-"## 4'th 4 qwords\n"
-#undef  FSOFFS
-#define FSOFFS 3 * FSCOLSIZE				// following include needs an offset
-#include "DI_GreedyDeLoop.asm"
-"        movq    mm5, %[SaveQword1]             ## get saved pixels\n"
-"        movq    mm6, %[SaveQword2]             ## get saved pixels\n"
-"        movq    mm7, %[SaveQword3]             ## get saved pixels\n"
-"        pavgb   mm1, mm4\n"
-"		movntq	qword ptr[edx+24], mm1      ## avg clipped best with above line\n"
-"		pavgb   mm3, mm4\n"
-"		movntq	qword ptr[edi], mm5	        ## store saved pixels\n"
-"		movntq	qword ptr[edi+8], mm6	    ## store saved pixels\n"
-"		movntq	qword ptr[edi+16], mm7	    ## store saved pixels\n"
-"		movntq	qword ptr[edi+24], mm3	        ## avg clipped best with below line\n"
-"\n"
-"		## bump ptrs and loop for next 4 qword\n"
-"		lea		edx,[edx+32]				## bump CopyDest\n"
-"		lea		edi,[edi+32]				## bump WeaveDest\n"
-"		lea		esi,[esi+4*" _strf(FSCOLSIZE) "]			\n"
-"		dec		%[LoopCtr]\n"
-"		jg		QwordLoop			\n"
-"\n"
-"## Ok, done with one line\n"
-"		mov		esi, %[pL2]				## addr of our 1st qword in FieldStore\n"
-"		lea     esi, [esi+" _strf(FSROWSIZE) "]    ## bump to next row\n"
-"		mov		%[pL2], esi				## addr of our 1st qword in FieldStore for line\n"
-"		mov     edi, %[WeaveDest]			## ptr to curr overlay buff line start\n"
-"		add     edi, %[DestIncr]			## but we want to skip 1\n"
-"		mov		%[WeaveDest], edi			## update for next loop\n"
-"		mov     edx, %[CopyDest]			## ptr to curr overlay buff line start\n"
-"		add     edx, %[DestIncr]			## but we want to skip 1\n"
-"		mov		%[CopyDest], edx			## update for next loop\n"
-"		sfence\n"
-"		emms\n"
-_restore(edi)
-_restore(esi)
-_restore(edx)
-_restore(ecx)
-_restore(eax)
-_asm_end,
-_m(WeaveDest), _m(pL2), _m(L1), _m(L3), _m(OverlayPitch), _m_nth(LastAvg, 6),
-_m(pFieldStore), _m(pFieldStoreEnd), _m(CopyDest), _m(SaveQword1),
-_m(SaveQword2), _m(SaveQword3), _m(LoopCtr), _m(DestIncr), _m(LastAvg),
-_m(MaxCombW), _m(MotionThresholdW), _m(MotionSenseW), _m(QW256), _m(YMaskW),
-_m(UVMask));
-		}		// should undent here but I can't read it
-	}
+    height = pInfo->FieldHeight;
 
-  return TRUE;
-}	
-		
+    if (WeaveDest == pInfo->Overlay) {
+	/* on first line may just copy first and last */
+	SIMD_NAME (FieldStoreCopy)(WeaveDest,
+				   (const uint8_t *) FieldStore
+				   + CopySrc * sizeof (vu8),
+				   pInfo->LineLength);
+	WeaveDest += pInfo->OverlayPitch * 2;
+	/* CopyDest already OK */
+	pL2 += FSROWSIZE;
+	--height;
+    }
+
+    dst_bpl = CopyDest - WeaveDest;
+
+    dst_padding = pInfo->OverlayPitch * 2 - pInfo->LineLength;
+    src_padding = FSROWSIZE - pInfo->LineLength;
+
+    for (; height > 0; --height) {
+	const uint8_t *pL1, *pL2P;
+	unsigned int l1o, l3o;
+
+	l1o = L1;
+	l3o = L3;
+
+	if (pL2 + l1o < FieldStore)
+	    l1o = l3o; /* first line */
+	else if (pL2 + l3o >= pFieldStoreEnd)
+	    l3o = l1o; /* last line */
+
+	pL1 = pL2 + l1o;
+	pL2P = pL2 + 2 * sizeof (vu8);
+
+	GreedyHXCore (&WeaveDest,
+		      &pL1, &pL2, &pL2P,
+		      pInfo->LineLength,
+		      dst_bpl,
+		      /* src_bpl */ l3o - l1o,
+		      /* src_incr */ FSCOLSIZE,
+		      MaxCombW,
+		      MotionThresholdW,
+		      MotionSenseW,
+		      mode);
+
+	WeaveDest += dst_padding;
+	pL2 += src_padding;
+    }
+   
+    vempty ();
+
+    return TRUE;
+}
+
+BOOL
+SIMD_NAME (DI_GreedyHM_NV)	(TDeinterlaceInfo *	pInfo)
+{
+    /* No vertical averaging. */
+    return DI_GreedyHM_V_template (pInfo, STORE_WEAVE_L1);
+}
+
+BOOL
+SIMD_NAME (DI_GreedyHM_V)	(TDeinterlaceInfo *	pInfo)
+{
+    /* With vertical averaging. */
+    return DI_GreedyHM_V_template (pInfo, STORE_L1WEAVE_L3WEAVE);
+}
+
+/*
+Local Variables:
+c-basic-offset: 4
+End:
+ */

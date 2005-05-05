@@ -1,7 +1,8 @@
-/////////////////////////////////////////////////////////////////////////////
-// $Id: DI_EvenOnly.c,v 1.2 2005-02-05 22:20:18 mschimek Exp $
+/*///////////////////////////////////////////////////////////////////////////
+// $Id: DI_EvenOnly.c,v 1.2.2.1 2005-05-05 09:46:01 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
+// Copyright (C) 2005 Michael H. Schimek
 /////////////////////////////////////////////////////////////////////////////
 //
 //  This file is subject to the terms of the GNU General Public License as
@@ -25,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2005/02/05 22:20:18  mschimek
+// Completed l18n.
+//
 // Revision 1.1  2005/01/08 14:54:23  mschimek
 // *** empty log message ***
 //
@@ -47,42 +51,52 @@
 // Revision 1.4  2001/07/13 16:13:33  adcockj
 // Added CVS tags and removed tabs
 //
-/////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////*/
 
 #include "windows.h"
 #include "DS_Deinterlace.h"
-//Z #include "..\help\helpids.h"
 
-BOOL DeinterlaceEvenOnly(TDeinterlaceInfo* pInfo)
+SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceEvenOnly);
+
+#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE |				\
+	    CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
+
+BOOL
+SIMD_NAME (DeinterlaceEvenOnly)	(TDeinterlaceInfo *	pInfo)
 {
-    int nLineTarget;
-    BYTE* CurrentLine = pInfo->PictureHistory[0]->pData;
+    uint8_t *Dest;
+    const uint8_t *Src;
+    unsigned int height;
 
-    if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_EVEN)
-    {
-        for (nLineTarget = 0; nLineTarget < pInfo->FieldHeight; nLineTarget++)
-        {
-            // copy latest field's rows to overlay, resulting in a half-height image.
-            pInfo->pMemcpy(pInfo->Overlay + nLineTarget * pInfo->OverlayPitch,
-                        CurrentLine,
-                        pInfo->LineLength);
-            CurrentLine += pInfo->InputPitch;
-        }
-        // need to clear up MMX registers
-        _asm
-        {
-            emms
-        }
-        return TRUE;
-    }
-    else
-    {
+    if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD)
         return FALSE;
+
+    if (SIMD == CPU_FEATURE_SSE2) {
+	if ((INTPTR (pInfo->Overlay) |
+	     INTPTR (pInfo->PictureHistory[0]->pData) |
+	     (unsigned int) pInfo->OverlayPitch |
+	     (unsigned int) pInfo->InputPitch |
+	     (unsigned int) pInfo->LineLength) & 15)
+	    return DeinterlaceEvenOnly_SSE (pInfo);
     }
+
+    Dest = pInfo->Overlay;
+    Src = pInfo->PictureHistory[0]->pData;
+
+    for (height = pInfo->FieldHeight; height > 0; --height) {
+	copy_line (Dest, Src, pInfo->LineLength);
+	Dest += pInfo->OverlayPitch;
+	Src += pInfo->InputPitch;
+    }
+
+    vempty ();
+
+    return TRUE;
 }
 
+#elif !SIMD
 
-DEINTERLACE_METHOD EvenOnlyMethod =
+const DEINTERLACE_METHOD EvenOnlyMethod =
 {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
@@ -90,7 +104,7 @@ DEINTERLACE_METHOD EvenOnlyMethod =
     "Even",
     TRUE, 
     FALSE, 
-    DeinterlaceEvenOnly, 
+    /* pfnAlgorithm */ NULL,
     25, 
     30,
     0,
@@ -111,20 +125,27 @@ DEINTERLACE_METHOD EvenOnlyMethod =
     IDH_EVEN,
 };
 
-
 DEINTERLACE_METHOD* DI_EvenOnly_GetDeinterlacePluginInfo(long CpuFeatureFlags)
 {
-    return &EvenOnlyMethod;
+    DEINTERLACE_METHOD *m;
+
+    CpuFeatureFlags = CpuFeatureFlags;
+
+    m = malloc (sizeof (*m));
+    *m = EvenOnlyMethod;
+
+    m->pfnAlgorithm =
+	SIMD_FN_SELECT (DeinterlaceEvenOnly,
+			CPU_FEATURE_MMX | CPU_FEATURE_SSE |
+			CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC);
+
+    return m;
 }
 
-#if 0
+#endif /* !SIMD */
 
-
-BOOL WINAPI _DllMainCRTStartup(HANDLE hInst, ULONG ul_reason_for_call, LPVOID lpReserved)
-{
-    return TRUE;
-}
-
-
-
-#endif /* 0 */
+/*
+Local Variables:
+c-basic-offset: 4
+End:
+ */

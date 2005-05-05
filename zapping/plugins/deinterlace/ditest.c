@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ditest.c,v 1.4 2005-05-04 03:31:49 mschimek Exp $ */
+/* $Id: ditest.c,v 1.4.2.1 2005-05-05 09:46:00 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -37,7 +37,7 @@
 #include "libtv/cpu.h"		/* cpu_features */
 
 /* See macros.h */
-#define s8(n) { n * 0x0101010101010101ULL, n * 0x0101010101010101ULL }
+#define s8(n)  { n * 0x0101010101010101ULL, n * 0x0101010101010101ULL }
 #define s16(n) { n * 0x0001000100010001ULL, n * 0x0001000100010001ULL }
 #define s32(n) { n * 0x0000000100000001ULL, n * 0x0000000100000001ULL }
 const int64_t vsplat8_m1[2]	= s8 (0xFF);
@@ -101,27 +101,6 @@ deinterlace			(char *			buffer,
 	   contains data, must be scaled. */
 }
 
-static char *
-new_buffer			(unsigned int		width,
-				 unsigned int 		height)
-{
-	char *buffer;
-	unsigned int size;
-	unsigned int i;
-
-	size = width * height * 2;
-
-	buffer = malloc (size);
-	assert (NULL != buffer);
-
-	for (i = 0; i < size; i += 2) {
-		buffer[i + 0] = 0x00;
-		buffer[i + 1] = 0x80;
-	}
-
-	return buffer;
-}
-
 static void
 init_info			(char *			out_buffer,
 				 unsigned int		width,
@@ -149,6 +128,33 @@ init_info			(char *			out_buffer,
 	assert (!method->bNeedCombFactor);
 }
 
+/* Make sure we produce predictable output on all platforms. */
+static unsigned int
+myrand				(void)
+{
+	static unsigned int seed = 1;
+
+	seed = seed * 1103515245 + 12345;
+	return (seed / 65536) % 32768;
+}
+
+static void
+swab16				(char *			buffer,
+				 unsigned int		size)
+{
+	unsigned int i;
+
+	assert (0 == (size % 4));
+
+	for (i = 0; i < size; i += 4) {
+		char c;
+
+		c = buffer[i + 0];
+		buffer[i + 0] = buffer[i + 1];
+		buffer[i + 1] = c;
+	}
+}
+
 static void
 swab32				(char *			buffer,
 				 unsigned int		size)
@@ -167,6 +173,27 @@ swab32				(char *			buffer,
 		buffer[i + 2] = d;
 		buffer[i + 3] = c;
 	}
+}
+
+static char *
+new_buffer			(unsigned int		width,
+				 unsigned int 		height)
+{
+	char *buffer;
+	unsigned int size;
+	unsigned int i;
+
+	size = width * height * 2;
+
+	buffer = malloc (size);
+	assert (NULL != buffer);
+
+	for (i = 0; i < size; i += 2) {
+		buffer[i + 0] = 0x00;
+		buffer[i + 1] = 0x80;
+	}
+
+	return buffer;
 }
 
 static void
@@ -200,22 +227,23 @@ write_buffer			(const char *		name,
 }
 
 static const char
-short_options [] = "c:h:m:n:p:qrsw:HV";
+short_options [] = "24c:h:m:n:p:qrw:HV";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
 long_options [] = {
+	{ "swab16",	no_argument,		NULL,		'2' },
+	{ "swab32",	no_argument,		NULL,		'4' },
 	{ "cpu",	required_argument,	NULL,		'c' },
 	{ "height",	required_argument,	NULL,		'h' },
-	{ "help",	required_argument,	NULL,		'H' },
+	{ "help",	no_argument,		NULL,		'H' },
 	{ "method",	required_argument,	NULL,		'm' },
 	{ "nframes",	required_argument,	NULL,		'n' },
 	{ "prefix",	required_argument,	NULL,		'p' },
 	{ "quiet",	no_argument,		NULL,		'q' },
 	{ "rand",	no_argument,		NULL,		'r' },
-	{ "swab32",	no_argument,		NULL,		's' },
 	{ "width",	required_argument,	NULL,		'w' },
-	{ "version",	required_argument,	NULL,		'V' },
+	{ "version",	no_argument,		NULL,		'V' },
 	{ 0, 0, 0, 0 }
 };
 #else
@@ -244,6 +272,7 @@ usage				(FILE *			fp,
 		 "		 0x0080 3DNow! extensions\n"
 		 "		 0x0100 Cyrix MMX extensions\n"
 		 "		 0x0200 AltiVec\n"
+		 "		 0x0400 SSE3\n"
 		 "-h | --height  Image height (288)\n"
 		 "-m | --method  Number or name of deinterlace method:\n"
 		 "               VideoBob, VideoWeave, TwoFrame, Weave,\n"
@@ -255,7 +284,8 @@ usage				(FILE *			fp,
 		 "-q | --quiet   Quiet, no output\n"
 		 "-r | --rand    Convert pseudo-random images (for automated\n"
 		 "               tests), otherwise read from stdin\n"
-		 "-s | --swab32  Swap every four bytes ABCD -> DCBA\n"
+		 "-2 | --swab16  Swap every two bytes AB -> BA of the source\n"
+		 "-4 | --swab32  Swap every four bytes ABCD -> DCBA\n"
 		 "-w | --width   Image width (352)\n"
 		 , argv[0]);
 }
@@ -267,7 +297,8 @@ main				(int			argc,
 	char *out_buffer;
 	char *in_buffers[(MAX_PICTURE_HISTORY + 1) / 2];
 	int random_source;
-	int swab_source;
+	int swab2;
+	int swab4;
 	unsigned int n_frames;
 	unsigned int width;
 	unsigned int height;
@@ -290,12 +321,21 @@ main				(int			argc,
 	prefix = NULL;
 
 	random_source = FALSE;
-	swab_source = FALSE;
+	swab2 = FALSE;
+	swab4 = FALSE;
 	quiet = FALSE;
 
 	while (-1 != (c = getopt_long (argc, argv, short_options,
 				       long_options, &index))) {
 		switch (c) {
+		case '2':
+			swab2 ^= TRUE;
+			break;
+
+		case '4':
+			swab4 ^= TRUE;
+			break;
+
                 case 'c':
 			cpu_features = strtol (optarg, NULL, 0);
                         break;
@@ -333,10 +373,6 @@ main				(int			argc,
 
 		case 'r':
 			random_source ^= TRUE;
-			break;
-
-		case 's':
-			swab_source ^= TRUE;
 			break;
 
                 case 'w':
@@ -433,7 +469,7 @@ main				(int			argc,
 			unsigned int j;
 
 			for (j = 0; j < size; ++j) {
-				in_buffers[i % 4][j] = rand ();
+				in_buffers[i % 4][j] = myrand ();
 			}
 		} else {
 			assert (!feof (stdin));
@@ -444,7 +480,9 @@ main				(int			argc,
 				exit (EXIT_FAILURE);
 			}
 
-			if (swab_source)
+			if (swab2)
+				swab16 (in_buffers[i % 4], size);
+			if (swab4)
 				swab32 (in_buffers[i % 4], size);
 		}
 

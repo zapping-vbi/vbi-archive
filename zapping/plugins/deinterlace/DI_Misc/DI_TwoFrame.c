@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// $Id: DI_TwoFrame.c,v 1.3 2005-03-30 21:26:54 mschimek Exp $
+// $Id: DI_TwoFrame.c,v 1.3.2.1 2005-05-05 09:46:01 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 Steven Grimm.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2005/03/30 21:26:54  mschimek
+// Integrated and converted the MMX code to vector intrinsics.
+//
 // Revision 1.2  2005/02/05 22:19:14  mschimek
 // Completed l18n.
 //
@@ -56,9 +59,10 @@
 extern long TwoFrameTemporalTolerance;
 extern long TwoFrameSpatialTolerance;
 
-SIMD_PROTOS (DeinterlaceFieldTwoFrame);
+SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceFieldTwoFrame);
 
-#ifdef SIMD
+#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
+	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Deinterlace the latest field, attempting to weave wherever it won't cause
@@ -108,10 +112,16 @@ cmpsqdiff			(v16			a,
 {
     v16 t;
 
-#if SIMD == AVEC
-    t = vsubs16 (a, b);
-    return (v16) vcmpgtu16 ((vu16) vmullo16 (t, t), (vu16) thresh);
+#if SIMD == CPU_FEATURE_ALTIVEC
+    {
+	vu16 u;
+
+	t = vsubs16 (a, b);
+	u = vmullo16 (t, t);
+	return (v16) vcmpgtu16 (u, (vu16) thresh);
+    }
 #else
+    /* MMX/SSE/SSE2 has no cmpgtu */
     t = vsr16 (vsubs16 (a, b), 1);
     return (v16) vcmpgt16 ((v16) vmullo16 (t, t), thresh);
 #endif
@@ -134,26 +144,26 @@ SIMD_NAME (DeinterlaceFieldTwoFrame) (TDeinterlaceInfo *pInfo)
     unsigned int dst_bpl;
     unsigned int src_bpl;
 
-    if (SIMD == SSE2) {
-	if (((unsigned int) pInfo->Overlay |
-	     (unsigned int) pInfo->PictureHistory[0]->pData |
-	     (unsigned int) pInfo->PictureHistory[1]->pData |
-	     (unsigned int) pInfo->PictureHistory[2]->pData |
-	     (unsigned int) pInfo->PictureHistory[3]->pData |
+    if (SIMD == CPU_FEATURE_SSE2) {
+	if ((INTPTR (pInfo->Overlay) |
+	     INTPTR (pInfo->PictureHistory[0]->pData) |
+	     INTPTR (pInfo->PictureHistory[1]->pData) |
+	     INTPTR (pInfo->PictureHistory[2]->pData) |
+	     INTPTR (pInfo->PictureHistory[3]->pData) |
 	     (unsigned int) pInfo->OverlayPitch |
 	     (unsigned int) pInfo->InputPitch |
 	     (unsigned int) pInfo->LineLength) & 15)
-	    return DeinterlaceFieldTwoFrame__SSE (pInfo);
+	    return DeinterlaceFieldTwoFrame_SSE (pInfo);
     }
 
-    if (SIMD == AVEC) {
-	qwSpatialTolerance = vsplat16 (TwoFrameSpatialTolerance);
-	qwTemporalTolerance = vsplat16 (TwoFrameTemporalTolerance);
-    } else {
-	// divide by 4 because of squaring behavior, see below
-	qwSpatialTolerance = vsplat16 (TwoFrameSpatialTolerance / 4);
-	qwTemporalTolerance = vsplat16 (TwoFrameTemporalTolerance / 4);
-    }
+#if SIMD == CPU_FEATURE_ALTIVEC
+    qwSpatialTolerance = vsplat16 (TwoFrameSpatialTolerance);
+    qwTemporalTolerance = vsplat16 (TwoFrameTemporalTolerance);
+#else
+    /* divide by 4 because of squaring behavior, see above */
+    qwSpatialTolerance = vsplat16 (TwoFrameSpatialTolerance / 4);
+    qwTemporalTolerance = vsplat16 (TwoFrameTemporalTolerance / 4);
+#endif
 
     byte_width = pInfo->LineLength;
 
@@ -188,17 +198,17 @@ SIMD_NAME (DeinterlaceFieldTwoFrame) (TDeinterlaceInfo *pInfo)
         unsigned int count;
 
 	for (count = byte_width / sizeof (vu8); count > 0; --count) {
-	    vu8 T1, B1, M1, avg;
+	    vu8 T1, B1, M1, avg, mm0;
 	    v16 lum_T0, lum_B0, lum_M0; 
 	    v16 lum_T1, lum_B1, lum_M1;
 	    v16 mm3, mm4, mm5, mm7;
 
-	    T1 = * (const vu8 *) &YVal0[0];
-	    B1 = * (const vu8 *) &YVal0[src_bpl];
+	    T1 = vload (YVal0, 0);
+	    B1 = vload (YVal0, src_bpl);
 	    YVal0 += sizeof (vu8);
 
 	    // Always use the most recent data verbatim.
-	    vstorent ((vu8 *)(Dest + dst_bpl), B1);
+	    vstorent (Dest, dst_bpl, B1);
 
 	    avg = fast_vavgu8 (T1, B1);
 
@@ -227,8 +237,8 @@ SIMD_NAME (DeinterlaceFieldTwoFrame) (TDeinterlaceInfo *pInfo)
 	    // the temporal tolerance.
 	    mm7 = cmpsqdiff (lum_M1, lum_M0, qwTemporalTolerance);
 
-	    lum_T0 = yuyv2yy (* (const vu8 *) &OVal0[0]);
-	    lum_B0 = yuyv2yy (* (const vu8 *) &OVal0[src_bpl]);
+	    lum_T0 = yuyv2yy (vload (OVal0, 0));
+	    lum_B0 = yuyv2yy (vload (OVal0, src_bpl));
 	    OVal0 += sizeof (vu8);
 
 	    // Find out whether T1 is new.
@@ -244,7 +254,9 @@ SIMD_NAME (DeinterlaceFieldTwoFrame) (TDeinterlaceInfo *pInfo)
 	    // Now figure out where we're going to weave (M1) and where
 	    // we're going to bob (avg).  We'll weave if all pixels are
 	    // old or M1 isn't different from both its neighbors.
-	    vstorent ((vu8 *) Dest, vsel (avg, M1, (vu8) vor (mm4, mm3)));
+	    mm0 = (vu8) vor (mm4, mm3);
+	    mm0 = vsel (mm0, M1, avg);
+	    vstorent (Dest, 0, mm0);
 	    Dest += sizeof (vu8);
 	}
 
@@ -265,7 +277,7 @@ SIMD_NAME (DeinterlaceFieldTwoFrame) (TDeinterlaceInfo *pInfo)
     return TRUE;
 }
 
-#else /* !SIMD */
+#elif !SIMD
 
 long TwoFrameTemporalTolerance = 300;
 long TwoFrameSpatialTolerance = 600;
@@ -289,7 +301,7 @@ SETTING DI_TwoFrameSettings[DI_TWOFRAME_SETTING_LASTONE] =
     },
 };
 
-DEINTERLACE_METHOD TwoFrameMethod =
+const DEINTERLACE_METHOD TwoFrameMethod =
 {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
@@ -320,8 +332,20 @@ DEINTERLACE_METHOD TwoFrameMethod =
 
 DEINTERLACE_METHOD* DI_TwoFrame_GetDeinterlacePluginInfo(long CpuFeatureFlags)
 {
-    TwoFrameMethod.pfnAlgorithm = SIMD_SELECT (DeinterlaceFieldTwoFrame);
-    return &TwoFrameMethod;
+    DEINTERLACE_METHOD *m;
+
+    CpuFeatureFlags = CpuFeatureFlags;
+
+    m = malloc (sizeof (*m));
+    *m = TwoFrameMethod;
+
+    m->pfnAlgorithm =
+	SIMD_FN_SELECT (DeinterlaceFieldTwoFrame,
+			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
+			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
+			CPU_FEATURE_ALTIVEC);
+
+    return m;
 }
 
 #endif /* !SIMD */

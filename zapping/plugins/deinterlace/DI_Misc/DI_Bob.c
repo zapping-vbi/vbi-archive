@@ -1,7 +1,8 @@
-/////////////////////////////////////////////////////////////////////////////
-// $Id: DI_Bob.c,v 1.2 2005-02-05 22:20:28 mschimek Exp $
+/*///////////////////////////////////////////////////////////////////////////
+// $Id: DI_Bob.c,v 1.2.2.1 2005-05-05 09:46:01 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
+// Copyright (C) 2005 Michael Schimek
 /////////////////////////////////////////////////////////////////////////////
 //
 //  This file is subject to the terms of the GNU General Public License as
@@ -25,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2005/02/05 22:20:28  mschimek
+// Completed l18n.
+//
 // Revision 1.1  2005/01/08 14:54:23  mschimek
 // *** empty log message ***
 //
@@ -50,218 +54,75 @@
 // Revision 1.4  2001/07/13 16:13:33  adcockj
 // Added CVS tags and removed tabs
 //
-/////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////*/
 
 #include "windows.h"
 #include "DS_Deinterlace.h"
-//Z #include "..\help\helpids.h"
 
-/////////////////////////////////////////////////////////////////////////////
-// Copies memory to two locations using MMX registers for speed.
-void memcpyBOBMMX(void *Dest1, void *Dest2, void *Src, size_t nBytes)
-{
- _saved_regs;
- _asm_begin
-"        mov     esi, %[Src]\n"
-"        mov     edi, %[Dest1]\n"
-"        mov     ebx, %[Dest2]\n"
-"        mov     ecx, %[nBytes]\n"
-"        shr     ecx, 6                      ## nBytes / 64\n"
-".align 8\n"
-"1: # CopyLoop:\n"
-"        movq    mm0, qword ptr[esi]\n"
-"        movq    mm1, qword ptr[esi+8*1]\n"
-"        movq    mm2, qword ptr[esi+8*2]\n"
-"        movq    mm3, qword ptr[esi+8*3]\n"
-"        movq    mm4, qword ptr[esi+8*4]\n"
-"        movq    mm5, qword ptr[esi+8*5]\n"
-"        movq    mm6, qword ptr[esi+8*6]\n"
-"        movq    mm7, qword ptr[esi+8*7]\n"
-"        movq    qword ptr[edi], mm0\n"
-"        movq    qword ptr[edi+8*1], mm1\n"
-"        movq    qword ptr[edi+8*2], mm2\n"
-"        movq    qword ptr[edi+8*3], mm3\n"
-"        movq    qword ptr[edi+8*4], mm4\n"
-"        movq    qword ptr[edi+8*5], mm5\n"
-"        movq    qword ptr[edi+8*6], mm6\n"
-"        movq    qword ptr[edi+8*7], mm7\n"
-"        movq    qword ptr[ebx], mm0\n"
-"        movq    qword ptr[ebx+8*1], mm1\n"
-"        movq    qword ptr[ebx+8*2], mm2\n"
-"        movq    qword ptr[ebx+8*3], mm3\n"
-"        movq    qword ptr[ebx+8*4], mm4\n"
-"        movq    qword ptr[ebx+8*5], mm5\n"
-"        movq    qword ptr[ebx+8*6], mm6\n"
-"        movq    qword ptr[ebx+8*7], mm7\n"
-"        add     esi, 64\n"
-"        add     edi, 64\n"
-"        add     ebx, 64\n"
-"        dec ecx\n"
-"        jne 1b # CopyLoop\n"
-"\n"
-"        mov     ecx, %[nBytes]\n"
-"        and     ecx, 63\n"
-"        cmp     ecx, 0\n"
-"        je 3f # EndCopyLoop\n"
-".align 8\n"
-"2: # CopyLoop2:\n"
-"        mov dl, byte ptr[esi] \n"
-"        mov byte ptr[edi], dl\n"
-"        mov byte ptr[ebx], dl\n"
-"        inc esi\n"
-"        inc edi\n"
-"        inc ebx\n"
-"        dec ecx\n"
-"        jne 2b # CopyLoop2\n"
-"3: # EndCopyLoop:\n"
-   _asm_end,
-   _m(Src), _m(Dest1), _m(Dest2), _m(nBytes)
-   : "ecx", "esi", "edi");
-}
+SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceBob);
 
-/////////////////////////////////////////////////////////////////////////////
-// Copies memory to two locations using MMX registers for speed.
-void memcpyBOBSSE(void *Dest1, void *Dest2, void *Src, size_t nBytes)
-{
-_saved_regs;
-_asm_begin
-"        mov     esi, %[Src]\n"
-"        mov     edi, %[Dest1]\n"
-"        mov     ebx, %[Dest2]\n"
-"        mov     ecx, %[nBytes]\n"
-"        shr     ecx, 7                      ## nBytes / 128\n"
-".align 8\n"
-"1: # CopyLoop:\n"
-//Z s/xmmword/qword b/c xmmword unknown
-"        movaps  xmm0, qword ptr[esi]\n"
-"        movaps  xmm1, qword ptr[esi+16*1]\n"
-"        movaps  xmm2, qword ptr[esi+16*2]\n"
-"        movaps  xmm3, qword ptr[esi+16*3]\n"
-"        movaps  xmm4, qword ptr[esi+16*4]\n"
-"        movaps  xmm5, qword ptr[esi+16*5]\n"
-"        movaps  xmm6, qword ptr[esi+16*6]\n"
-"        movaps  xmm7, qword ptr[esi+16*7]\n"
-"        movntps qword ptr[edi], xmm0\n"
-"        movntps qword ptr[edi+16*1], xmm1\n"
-"        movntps qword ptr[edi+16*2], xmm2\n"
-"        movntps qword ptr[edi+16*3], xmm3\n"
-"        movntps qword ptr[edi+16*4], xmm4\n"
-"        movntps qword ptr[edi+16*5], xmm5\n"
-"        movntps qword ptr[edi+16*6], xmm6\n"
-"        movntps qword ptr[edi+16*7], xmm7\n"
-"        movntps qword ptr[ebx], xmm0\n"
-"        movntps qword ptr[ebx+16*1], xmm1\n"
-"        movntps qword ptr[ebx+16*2], xmm2\n"
-"        movntps qword ptr[ebx+16*3], xmm3\n"
-"        movntps qword ptr[ebx+16*4], xmm4\n"
-"        movntps qword ptr[ebx+16*5], xmm5\n"
-"        movntps qword ptr[ebx+16*6], xmm6\n"
-"        movntps qword ptr[ebx+16*7], xmm7\n"
-"        add     esi, 128\n"
-"        add     edi, 128\n"
-"        add     ebx, 128\n"
-"        dec ecx\n"
-"        jne 1b # CopyLoop\n"
-"\n"
-"        mov     ecx, %[nBytes]\n"
-"        and     ecx, 127\n"
-"        cmp     ecx, 0\n"
-"        je 3f # EndCopyLoop\n"
-".align 8\n"
-"2: # CopyLoop2:\n"
-"        mov dl, byte ptr[esi] \n"
-"        mov byte ptr[edi], dl\n"
-"        mov byte ptr[ebx], dl\n"
-"        inc esi\n"
-"        inc edi\n"
-"        inc ebx\n"
-"        dec ecx\n"
-"        jne 2b # CopyLoop2\n"
-"3: # EndCopyLoop:\n"
-_asm_end,
-  _m(Src), _m(Dest1), _m(Dest2), _m(nBytes)
-    : "ecx", "esi", "edi");
-}
+#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
+	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
-/////////////////////////////////////////////////////////////////////////////
+/*///////////////////////////////////////////////////////////////////////////
 // Simple Bob.  Copies the most recent field to the overlay, with each scanline
 // copied twice.
-/////////////////////////////////////////////////////////////////////////////
-BOOL DeinterlaceBob(TDeinterlaceInfo* pInfo)
+///////////////////////////////////////////////////////////////////////////*/
+BOOL
+SIMD_NAME (DeinterlaceBob)	(TDeinterlaceInfo *	pInfo)
 {
     int i;
     BYTE* lpOverlay = pInfo->Overlay;
     BYTE* CurrentLine = pInfo->PictureHistory[0]->pData;
     DWORD Pitch = pInfo->InputPitch;
 
-    // No recent data?  We can't do anything.
-    if (CurrentLine == NULL)
-    {
+    /* No recent data?  We can't do anything. */
+    if (NULL == CurrentLine) {
         return FALSE;
     }
-    
-    // If field is odd we will offset it down 1 line to avoid jitter  TRB 1/21/01
-    if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD)
-    {
-        if (pInfo->CpuFeatureFlags & FEATURE_SSE)
-        {
-            pInfo->pMemcpy(lpOverlay, CurrentLine, pInfo->LineLength);   // extra copy of first line
-            lpOverlay += pInfo->OverlayPitch;                            // and offset out output ptr
-            for (i = 0; i < pInfo->FieldHeight - 1; i++)
-            {
-                memcpyBOBSSE(lpOverlay, lpOverlay + pInfo->OverlayPitch,
-                    CurrentLine, pInfo->LineLength);
-                lpOverlay += 2 * pInfo->OverlayPitch;
-                CurrentLine += Pitch;
-            }
-            pInfo->pMemcpy(lpOverlay, CurrentLine, pInfo->LineLength);   // only 1 copy of last line
-        }
-        else
-        {
-            pInfo->pMemcpy(lpOverlay, CurrentLine, pInfo->LineLength);   // extra copy of first line
-            lpOverlay += pInfo->OverlayPitch;                    // and offset out output ptr
-            for (i = 0; i < pInfo->FieldHeight - 1; i++)
-            {
-                memcpyBOBMMX(lpOverlay, lpOverlay + pInfo->OverlayPitch,
-                    CurrentLine, pInfo->LineLength);
-                lpOverlay += 2 * pInfo->OverlayPitch;
-                CurrentLine += Pitch;
-            }
-            pInfo->pMemcpy(lpOverlay, CurrentLine, pInfo->LineLength);   // only 1 copy of last line
-        }
-    }   
-    else
-    {
-        if (pInfo->CpuFeatureFlags & FEATURE_SSE)
-        {
-            for (i = 0; i < pInfo->FieldHeight; i++)
-            {
-                memcpyBOBSSE(lpOverlay, lpOverlay + pInfo->OverlayPitch,
-                    CurrentLine, pInfo->LineLength);
-                lpOverlay += 2 * pInfo->OverlayPitch;
-                CurrentLine += Pitch;
-            }
-        }
-        else
-        {
-            for (i = 0; i < pInfo->FieldHeight; i++)
-            {
-                memcpyBOBMMX(lpOverlay, lpOverlay + pInfo->OverlayPitch,
-                    CurrentLine, pInfo->LineLength);
-                lpOverlay += 2 * pInfo->OverlayPitch;
-                CurrentLine += Pitch;
-            }
-        }
+
+    if (SIMD == CPU_FEATURE_SSE2) {
+	if ((INTPTR (pInfo->Overlay) |
+	     INTPTR (pInfo->PictureHistory[0]->pData) |
+	     (unsigned int) pInfo->OverlayPitch |
+	     (unsigned int) pInfo->InputPitch |
+	     (unsigned int) pInfo->LineLength) & 15)
+	    return DeinterlaceBob_SSE (pInfo);
     }
-    // need to clear up MMX registers
-    _asm
-    {
-        emms
+
+    /* If field is odd we will offset it down
+       1 line to avoid jitter  TRB 1/21/01 */
+    if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD) {
+        /* extra copy of first line */
+        copy_line (lpOverlay, CurrentLine, pInfo->LineLength);
+	lpOverlay += pInfo->OverlayPitch; /* and offset out output ptr */
+
+	for (i = 0; i < pInfo->FieldHeight - 1; i++) {
+	  copy_line_pair (lpOverlay, CurrentLine,
+			  pInfo->LineLength, pInfo->OverlayPitch);
+	  lpOverlay += 2 * pInfo->OverlayPitch;
+	  CurrentLine += Pitch;
+	}
+
+	/* only 1 copy of last line */
+	copy_line (lpOverlay, CurrentLine, pInfo->LineLength);
+    } else {
+        for (i = 0; i < pInfo->FieldHeight; i++) {
+	    copy_line_pair (lpOverlay, CurrentLine,
+			    pInfo->LineLength, pInfo->OverlayPitch);
+	    lpOverlay += 2 * pInfo->OverlayPitch;
+	    CurrentLine += Pitch;
+	}
     }
+
+    vempty ();
+
     return TRUE;
 }
 
-DEINTERLACE_METHOD BobMethod =
+#elif !SIMD
+
+const DEINTERLACE_METHOD BobMethod =
 {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
@@ -269,7 +130,7 @@ DEINTERLACE_METHOD BobMethod =
     NULL,
     FALSE, 
     FALSE, 
-    DeinterlaceBob, 
+    /* pfnAlgorithm */ NULL,
     50, 
     60,
     0,
@@ -293,15 +154,26 @@ DEINTERLACE_METHOD BobMethod =
 
 DEINTERLACE_METHOD* DI_Bob_GetDeinterlacePluginInfo(long CpuFeatureFlags)
 {
-    return &BobMethod;
+    DEINTERLACE_METHOD *m;
+
+    CpuFeatureFlags = CpuFeatureFlags;
+
+    m = malloc (sizeof (*m));
+    *m = BobMethod;
+
+    m->pfnAlgorithm =
+        SIMD_FN_SELECT (DeinterlaceBob,
+			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
+			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
+			CPU_FEATURE_ALTIVEC);
+
+    return m;
 }
 
-#if 0
+#endif /* !SIMD */
 
-
-BOOL WINAPI _DllMainCRTStartup(HANDLE hInst, ULONG ul_reason_for_call, LPVOID lpReserved)
-{
-    return TRUE;
-}
-
-#endif /* 0 */
+/*
+Local Variables:
+c-basic-offset: 4
+End:
+ */

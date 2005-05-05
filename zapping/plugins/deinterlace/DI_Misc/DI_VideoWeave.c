@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_VideoWeave.c,v 1.3 2005-03-30 21:26:06 mschimek Exp $
+// $Id: DI_VideoWeave.c,v 1.3.2.1 2005-05-05 09:46:01 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2005/03/30 21:26:06  mschimek
+// Integrated and converted the MMX code to vector intrinsics.
+//
 // Revision 1.2  2005/02/05 22:18:54  mschimek
 // Completed l18n.
 //
@@ -57,15 +60,16 @@ extern long TemporalTolerance;
 extern long SpatialTolerance;
 extern long SimilarityThreshold;
 
-SIMD_PROTOS (DeinterlaceFieldWeave);
+SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceFieldWeave);
 
-#ifdef SIMD
+#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
+	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
 BOOL
 SIMD_NAME (DeinterlaceFieldWeave) (TDeinterlaceInfo *	pInfo)
 {
-    v16 qwSpatialTolerance;
-    v16 qwTemporalTolerance;
+    vu16 qwSpatialTolerance;
+    vu16 qwTemporalTolerance;
     vu16 qwThreshold;
     uint8_t *Dest;
     const uint8_t *YVal1;
@@ -79,19 +83,19 @@ SIMD_NAME (DeinterlaceFieldWeave) (TDeinterlaceInfo *	pInfo)
     unsigned int dst_bpl;
     unsigned int src_bpl;
 
-    if (SIMD == SSE2) {
-	if (((unsigned int) pInfo->Overlay |
-	     (unsigned int) pInfo->PictureHistory[0]->pData |
-	     (unsigned int) pInfo->PictureHistory[1]->pData |
-	     (unsigned int) pInfo->PictureHistory[2]->pData |
+    if (SIMD == CPU_FEATURE_SSE2) {
+	if ((INTPTR (pInfo->Overlay) |
+	     INTPTR (pInfo->PictureHistory[0]->pData) |
+	     INTPTR (pInfo->PictureHistory[1]->pData) |
+	     INTPTR (pInfo->PictureHistory[2]->pData) |
 	     (unsigned int) pInfo->OverlayPitch |
 	     (unsigned int) pInfo->InputPitch |
 	     (unsigned int) pInfo->LineLength) & 15)
-	    return DeinterlaceFieldBob__SSE (pInfo);
+	    return DeinterlaceFieldWeave_SSE (pInfo);
     }
 
-    qwSpatialTolerance = vsplat16 (SpatialTolerance);
-    qwTemporalTolerance = vsplat16 (TemporalTolerance);
+    qwSpatialTolerance = vsplatu16 (SpatialTolerance);
+    qwTemporalTolerance = vsplatu16 (TemporalTolerance);
     qwThreshold = vsplatu16 (SimilarityThreshold);
 
     byte_width = pInfo->LineLength;
@@ -133,7 +137,7 @@ SIMD_NAME (DeinterlaceFieldWeave) (TDeinterlaceInfo *	pInfo)
 	// will invert.
 
 	for (count = byte_width / sizeof (vu8); count > 0; --count) {
-	    vu8 E1, O, E2, avg;
+	    vu8 E1, O, E2, avg, mm0;
 	    v16 lum_E1, lum_O, lum_E2, mm5, lum_Oold;
 	    vu16 mm3, mm7;
 
@@ -148,7 +152,7 @@ SIMD_NAME (DeinterlaceFieldWeave) (TDeinterlaceInfo *	pInfo)
     	    // Copy the even scanline below this one to the overlay buffer,
 	    // since we'll be adapting the current scanline to the even
 	    // lines surrounding it.
-	    vstorent ((vu8 *)(Dest + dst_bpl), E2);
+	    vstorent (Dest, dst_bpl, E2);
 
 	    // Average E1 and E2 for interpolated bobbing.
 	    avg = fast_vavgu8 (E1, E2);
@@ -176,12 +180,15 @@ SIMD_NAME (DeinterlaceFieldWeave) (TDeinterlaceInfo *	pInfo)
 	    // want to be able to display 1-pixel-high horizontal lines.
 
 	    // ST - (E1 - O) ^ 2, or 0 if that's negative
+
 	    mm5 = vsr16 (vsubs16 (lum_E1, lum_O), 1);
-	    mm7 = vsubsu16 (qwSpatialTolerance, vmullo16 (mm5, mm5));
+	    mm7 = vmullo16 (mm5, mm5);
+	    mm7 = vsubsu16 (qwSpatialTolerance, mm7);
 
 	    // ST - (E2 - O) ^ 2, or 0 if that's negative
 	    mm5 = vsr16 (vsubs16 (lum_E2, lum_O), 1);
-	    mm3 = vsubsu16 (qwSpatialTolerance, vmullo16 (mm5, mm5));
+	    mm3 = vmullo16 (mm5, mm5);
+	    mm3 = vsubsu16 (qwSpatialTolerance, mm3);
 
 	    mm7 = vaddsu16 (mm7, mm3);
 
@@ -190,7 +197,8 @@ SIMD_NAME (DeinterlaceFieldWeave) (TDeinterlaceInfo *	pInfo)
 
 	    // TT - (Oold - O) ^ 2, or 0 if that's negative
 	    mm5 = vsr16 (vsubs16 (lum_Oold, lum_O), 1);
-	    mm3 = vsubsu16 (qwTemporalTolerance, vmullo16 (mm5, mm5));
+	    mm3 = vmullo16 (mm5, mm5);
+	    mm3 = vsubsu16 (qwTemporalTolerance, mm3);
 
 	    mm7 = vaddsu16 (mm7, mm3);
 
@@ -202,8 +210,9 @@ SIMD_NAME (DeinterlaceFieldWeave) (TDeinterlaceInfo *	pInfo)
 	    // values for pixels under the similarity threshold and weaved
 	    // ones for pixels over the threshold.
 
-	    vstorent ((vu8 *) Dest,
-		      vsel (avg, O, vcmpgt16 (mm7, qwThreshold)));
+	    mm0 = (vu8) vcmpgt16 (mm7, qwThreshold);
+	    mm0 = vsel (mm0, O, avg); 
+	    vstorent (Dest, 0, mm0);
 	    Dest += sizeof (vu8);
 	}
 
@@ -224,7 +233,7 @@ SIMD_NAME (DeinterlaceFieldWeave) (TDeinterlaceInfo *	pInfo)
     return TRUE;
 }
 
-#else /* !SIMD */
+#elif !SIMD
 
 long TemporalTolerance = 300;
 long SpatialTolerance = 600;
@@ -255,7 +264,7 @@ SETTING DI_VideoWeaveSettings[DI_VIDEOWEAVE_SETTING_LASTONE] =
     },
 };
 
-DEINTERLACE_METHOD VideoWeaveMethod =
+const DEINTERLACE_METHOD VideoWeaveMethod =
 {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
@@ -284,11 +293,22 @@ DEINTERLACE_METHOD VideoWeaveMethod =
     IDH_VIDEOWEAVE,
 };
 
-
 DEINTERLACE_METHOD* DI_VideoWeave_GetDeinterlacePluginInfo(long CpuFeatureFlags)
 {
-    VideoWeaveMethod.pfnAlgorithm = SIMD_SELECT (DeinterlaceFieldWeave);
-    return &VideoWeaveMethod;
+    DEINTERLACE_METHOD *m;
+
+    CpuFeatureFlags = CpuFeatureFlags;
+
+    m = malloc (sizeof (*m));
+    *m = VideoWeaveMethod;
+
+    m->pfnAlgorithm =
+	SIMD_FN_SELECT (DeinterlaceFieldWeave,
+			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
+			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
+			CPU_FEATURE_ALTIVEC);
+
+    return m;
 }
 
 #endif /* !SIMD */

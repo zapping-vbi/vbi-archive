@@ -1,7 +1,8 @@
-/////////////////////////////////////////////////////////////////////////////
-// $Id: DI_Weave.c,v 1.2 2005-02-05 22:18:36 mschimek Exp $
+/*///////////////////////////////////////////////////////////////////////////
+// $Id: DI_Weave.c,v 1.2.2.1 2005-05-05 09:46:01 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
+// Copyright (C) 2005 Michael Schimek
 /////////////////////////////////////////////////////////////////////////////
 //
 //  This file is subject to the terms of the GNU General Public License as
@@ -25,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2005/02/05 22:18:36  mschimek
+// Completed l18n.
+//
 // Revision 1.1  2005/01/08 14:54:23  mschimek
 // *** empty log message ***
 //
@@ -47,16 +51,21 @@
 // Revision 1.5  2001/07/13 16:13:33  adcockj
 // Added CVS tags and removed tabs
 //
-/////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////*/
 
 #include "windows.h"
 #include "DS_Deinterlace.h"
-//Z #include "..\help\helpids.h"
 
+SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceWeave);
 
-///////////////////////////////////////////////////////////////////////////////
+#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE |				\
+	    CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
+
+/*///////////////////////////////////////////////////////////////////////////
 // Simple Weave.  Copies alternating scanlines from the most recent fields.
-BOOL DeinterlaceWeave(TDeinterlaceInfo* pInfo)
+///////////////////////////////////////////////////////////////////////////*/
+BOOL
+SIMD_NAME (DeinterlaceWeave)	(TDeinterlaceInfo *	pInfo)
 {
     int i;
     BYTE *lpOverlay = pInfo->Overlay;
@@ -64,35 +73,42 @@ BOOL DeinterlaceWeave(TDeinterlaceInfo* pInfo)
     BYTE* CurrentEvenLine;
     DWORD Pitch = pInfo->InputPitch;
 
-    if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD)
-    {
+    if (SIMD == CPU_FEATURE_SSE2) {
+	if ((INTPTR (pInfo->Overlay) |
+	     INTPTR (pInfo->PictureHistory[0]->pData) |
+	     INTPTR (pInfo->PictureHistory[1]->pData) |
+	     (unsigned int) pInfo->OverlayPitch |
+	     (unsigned int) pInfo->InputPitch |
+	     (unsigned int) pInfo->LineLength) & 15)
+	    return DeinterlaceWeave_SSE (pInfo);
+    }
+
+    if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD) {
         CurrentOddLine = pInfo->PictureHistory[0]->pData;
         CurrentEvenLine = pInfo->PictureHistory[1]->pData;
-    }
-    else
-    {
+    } else {
         CurrentOddLine = pInfo->PictureHistory[1]->pData;
         CurrentEvenLine = pInfo->PictureHistory[0]->pData;
     }
     
-    for (i = 0; i < pInfo->FieldHeight; i++)
-    {
-        pInfo->pMemcpy(lpOverlay, CurrentEvenLine, pInfo->LineLength);
+    for (i = 0; i < pInfo->FieldHeight; i++) {
+        copy_line (lpOverlay, CurrentEvenLine, pInfo->LineLength);
         lpOverlay += pInfo->OverlayPitch;
         CurrentEvenLine += Pitch;
 
-        pInfo->pMemcpy(lpOverlay, CurrentOddLine, pInfo->LineLength);
+        copy_line (lpOverlay, CurrentOddLine, pInfo->LineLength);
         lpOverlay += pInfo->OverlayPitch;
         CurrentOddLine += Pitch;
     }
-    _asm
-    {
-        emms
-    }
+
+    vempty ();
+
     return TRUE;
 }
 
-DEINTERLACE_METHOD WeaveMethod =
+#elif !SIMD
+
+const DEINTERLACE_METHOD WeaveMethod =
 {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
@@ -100,7 +116,7 @@ DEINTERLACE_METHOD WeaveMethod =
     "Weave",
     FALSE, 
     FALSE, 
-    DeinterlaceWeave, 
+    /* pfnAlgorithm */ NULL,
     50, 
     60,
     0,
@@ -121,18 +137,27 @@ DEINTERLACE_METHOD WeaveMethod =
     IDH_WEAVE,
 };
 
-
 DEINTERLACE_METHOD* DI_Weave_GetDeinterlacePluginInfo(long CpuFeatureFlags)
 {
-    return &WeaveMethod;
+    DEINTERLACE_METHOD *m;
+
+    CpuFeatureFlags = CpuFeatureFlags;
+
+    m = malloc (sizeof (*m));
+    *m = WeaveMethod;
+
+    m->pfnAlgorithm =
+	SIMD_FN_SELECT (DeinterlaceWeave,
+			CPU_FEATURE_MMX | CPU_FEATURE_SSE |
+			CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC);
+
+    return m;
 }
 
-#if 0
+#endif /* !SIMD */
 
-
-BOOL WINAPI _DllMainCRTStartup(HANDLE hInst, ULONG ul_reason_for_call, LPVOID lpReserved)
-{
-    return TRUE;
-}
-
-#endif /* 0 */
+/*
+Local Variables:
+c-basic-offset: 4
+End:
+ */

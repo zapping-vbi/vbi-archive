@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_OldGame.c,v 1.3 2005-03-30 21:27:19 mschimek Exp $
+// $Id: DI_OldGame.c,v 1.3.2.1 2005-05-05 09:46:01 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Lindsey Dubb.  All rights reserved.
 // based on OddOnly and Temporal Noise DScaler Plugins
@@ -20,6 +20,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2005/03/30 21:27:19  mschimek
+// Integrated and converted the MMX code to vector intrinsics.
+//
 // Revision 1.2  2005/02/05 22:19:34  mschimek
 // Completed l18n.
 //
@@ -109,9 +112,10 @@ extern DEINTERLACEPLUGINSETSTATUS*  gPfnSetStatus;
 extern long                         gDisableMotionChecking;
 extern long                         gMaxComb;
 
-SIMD_PROTOS (OldGameFilter)
+SIMD_FN_PROTOS (DEINTERLACE_FUNC, OldGameFilter)
 
-#ifdef SIMD
+#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
+	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
 BOOL
 SIMD_NAME (OldGameFilter)	(TDeinterlaceInfo *	pInfo)
@@ -132,6 +136,16 @@ SIMD_NAME (OldGameFilter)	(TDeinterlaceInfo *	pInfo)
 
     if (!pInfo->PictureHistory[0]) {
         return FALSE;
+    }
+
+    if (SIMD == CPU_FEATURE_SSE2) {
+	if (((unsigned int) pInfo->Overlay |
+	     (unsigned int) pInfo->PictureHistory[0]->pData |
+	     (unsigned int) pInfo->PictureHistory[1]->pData |
+	     (unsigned int) pInfo->OverlayPitch |
+	     (unsigned int) pInfo->InputPitch |
+	     (unsigned int) pInfo->LineLength) & 15)
+	    return DeinterlaceOldGameFilter_SSE (pInfo);
     }
 
     if (!pInfo->PictureHistory[1]
@@ -178,8 +192,8 @@ SIMD_NAME (OldGameFilter)	(TDeinterlaceInfo *	pInfo)
 
 	    for (count = pInfo->LineLength / sizeof (*Dest);
 		 count > 0; --count) {
-		vstorent ((vu8 *) Dest, fast_vavgu8 (* (const vu8 *) New,
-						     * (const vu8 *) Old));
+		vstorent (Dest, 0, fast_vavgu8 (* (const vu8 *) New,
+						* (const vu8 *) Old));
 		New += sizeof (vu8);
 		Old += sizeof (vu8);
 		Dest += sizeof (vu8);
@@ -196,7 +210,7 @@ SIMD_NAME (OldGameFilter)	(TDeinterlaceInfo *	pInfo)
     return TRUE;
 }
 
-#else /* !SIMD */
+#elif !SIMD
 
 /////////////////////////////////////////////////////////////////////////////
 // Begin plugin globals
@@ -214,7 +228,7 @@ long                         gDisableMotionChecking = FALSE;
 // This is used to put up the comb factor for testing purposes.
 DEINTERLACEPLUGINSETSTATUS*  gPfnSetStatus = NULL;
 
-static DEINTERLACE_METHOD OldGameMethod;
+static const DEINTERLACE_METHOD OldGameMethod;
 
 
 static SETTING DI_OldGameSettings[DI_OLDGAME_SETTING_LASTONE] =
@@ -233,7 +247,7 @@ static SETTING DI_OldGameSettings[DI_OLDGAME_SETTING_LASTONE] =
     }
 };
 
-static DEINTERLACE_METHOD OldGameMethod =
+static const DEINTERLACE_METHOD OldGameMethod =
 {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
@@ -279,8 +293,20 @@ void __cdecl OldGameDebugStart(long NumPlugIns, DEINTERLACE_METHOD** OtherPlugin
 
 DEINTERLACE_METHOD* DI_OldGame_GetDeinterlacePluginInfo(long CpuFeatureFlags)
 {
-    OldGameMethod.pfnAlgorithm = SIMD_SELECT (OldGameFilter);
-    return &OldGameMethod;
+    DEINTERLACE_METHOD *m;
+
+    CpuFeatureFlags = CpuFeatureFlags;
+
+    m = malloc (sizeof (*m));
+    *m = OldGameMethod;
+
+    m->pfnAlgorithm =
+	SIMD_FN_SELECT (OldGameFilter,
+			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
+			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
+			CPU_FEATURE_ALTIVEC);
+
+    return m;
 }
 
 #endif /* !SIMD */
