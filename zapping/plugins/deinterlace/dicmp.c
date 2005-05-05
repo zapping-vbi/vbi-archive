@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dicmp.c,v 1.1 2005-05-04 04:15:27 mschimek Exp $ */
+/* $Id: dicmp.c,v 1.2 2005-05-05 09:45:22 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -44,13 +44,13 @@ short_options [] = "cd:h:qw:HV";
 #ifdef HAVE_GETOPT_LONG
 static const struct option
 long_options [] = {
-	{ "continue",	required_argument,	NULL,		'c' },
+	{ "continue",	no_argument,		NULL,		'c' },
 	{ "maxdiff",	required_argument,	NULL,		'd' },
 	{ "height",	required_argument,	NULL,		'h' },
-	{ "help",	required_argument,	NULL,		'H' },
+	{ "help",	no_argument,		NULL,		'H' },
 	{ "quiet",	no_argument,		NULL,		'q' },
 	{ "width",	required_argument,	NULL,		'w' },
-	{ "version",	required_argument,	NULL,		'V' },
+	{ "version",	no_argument,		NULL,		'V' },
 	{ 0, 0, 0, 0 }
 };
 #else

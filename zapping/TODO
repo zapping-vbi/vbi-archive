@@ -1,6 +1,7 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* libtv/cpu.c needs an SSE3 check.
 * Capture buffer negotiation (tv_set_buffers) is only implemented for
   interfaces with buffer queue (i.e. v4l2).
 * Fail if configure cannot find libzvbi, add --without-zvbi to override.
