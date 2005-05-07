@@ -1,7 +1,7 @@
 /*
  *  Zapping TV viewer
  *
- *  Copyright (C) 2004 Michael H. Schimek
+ *  Copyright (C) 2005 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ditest.c,v 1.4.2.1 2005-05-05 09:46:00 mschimek Exp $ */
+/* $Id: ditest.c,v 1.4.2.2 2005-05-07 03:31:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>		/* isatty() */
 #ifdef HAVE_GETOPT_LONG
 #  include <getopt.h>
 #endif
@@ -394,6 +395,13 @@ main				(int			argc,
 
 		default:
 			usage (stderr, argv);
+			exit (EXIT_FAILURE);
+		}
+	}
+
+	if (!random_source) {
+		if (isatty (STDIN_FILENO)) {
+			fprintf (stderr, "No image data on stdin\n");
 			exit (EXIT_FAILURE);
 		}
 	}

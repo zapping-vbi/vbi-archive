@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.h,v 1.2.2.1 2005-05-05 09:46:00 mschimek Exp $ */
+/* $Id: simd.h,v 1.2.2.2 2005-05-07 03:31:05 mschimek Exp $ */
 
 #ifndef SIMD_H
 #define SIMD_H
@@ -198,16 +198,33 @@ vsplat16			(int16_t		_i)
 	return vsplatu16 ((uint16_t) _i);
 }
 
+static __inline__ __m64
+vsplatu32			(uint32_t		_i)
+{
+	uint64_t t = _i;
+
+    	return (__m64)(t | (t << 32));
+}
+
+static __inline__ __m64
+vsplat32			(int32_t		_i)
+{
+	return vsplatu32 ((uint32_t) _i);
+}
+
 #else
    /* Set each element to _i. */
 #  define vsplat8(_i) _mm_set1_pi8 (_i)
-#  define vsplatu8(_i) _mm_set1_pi8 (_i)
 #  define vsplat16(_i) _mm_set1_pi16 (_i)
+#  define vsplat32(_i) _mm_set1_pi32 (_i)
+#  define vsplatu8(_i) _mm_set1_pi8 (_i)
 #  define vsplatu16(_i) _mm_set1_pi16 (_i)
+#  define vsplatu32(_i) _mm_set1_pi32 (_i)
 #endif
 
 #define vsplatu8i(_i) vsplatu8 (_i)
 #define vsplatu16i(_i) vsplatu16 (_i)
+#define vsplatu32i(_i) vsplatu32 (_i)
 
 /* Load and store from address + offset (in bytes). */
 #define vload(_p, _o) (* (const __m64 *)((const uint8_t *)(_p) + (_o)))
@@ -504,11 +521,14 @@ SIMD_CONST_PROTOS
 
 #define vsplat8(_i) _mm_set1_epi8 (_i)
 #define vsplat16(_i) _mm_set1_epi16 (_i)
+#define vsplat32(_i) _mm_set1_epi32 (_i)
 #define vsplatu8(_i) _mm_set1_epi8 (_i)
 #define vsplatu16(_i) _mm_set1_epi16 (_i)
+#define vsplatu32(_i) _mm_set1_epi32 (_i)
 
 #define vsplatu8i(_i) vsplatu8 (_i)
 #define vsplatu16i(_i) vsplatu16 (_i)
+#define vsplatu32i(_i) vsplatu32 (_i)
 
 /* movd to xmm */
 #define vload32(_p, _o)							\
@@ -724,14 +744,17 @@ SIMD_CONST_PROTOS
 
 #define vsplatu8i(_i) vec_splat_u8 (_i)
 #define vsplatu16i(_i) vec_splat_u16 (_i)
+#define vsplatu32i(_i) vec_splat_u32 (_i)
 
 /* FIXME these macros load a scalar variable into each element
    of the vector.  AltiVec has another instruction to load an
    immediate, but it's limited to -16 ... 15. */
 #define vsplat8(_i) vec_splat ((v8) vec_lde (0, &(_i)), 0);
 #define vsplat16(_i) vec_splat ((v16) vec_lde (0, &(_i)), 0);
+#define vsplat32(_i) vec_splat ((v32) vec_lde (0, &(_i)), 0);
 #define vsplatu8(_i) vec_splat ((vu8) vec_lde (0, &(_i)), 0);
 #define vsplatu16(_i) vec_splat ((vu16) vec_lde (0, &(_i)), 0);
+#define vsplatu32(_i) vec_splat ((vu32) vec_lde (0, &(_i)), 0);
 
 #define vload(_p, _o) vec_ld (_o, _p)
 #define vstore(_p, _o, _a) vec_st (_a, _o, _p)
@@ -959,57 +982,57 @@ extern fn_type name ## _SSE3;						\
 extern fn_type name ## _ALTIVEC;
 
 #if defined (HAVE_MMX)
-#  define SIMD_FN_SELECT_MMX(name)					\
-	(cpu_features & CPU_FEATURE_MMX) ? name ## _MMX
+#  define SIMD_FN_SELECT_MMX(name, avail)				\
+	(((avail) & CPU_FEATURE_MMX) & cpu_features) ? name ## _MMX
 #else
-#  define SIMD_FN_SELECT_MMX(name) 0 ? NULL
+#  define SIMD_FN_SELECT_MMX(name, avail) 0 ? NULL
 #endif
 
 #if defined (HAVE_3DNOW)
-#  define SIMD_FN_SELECT_3DNOW(name)					\
-	(cpu_features & CPU_FEATURE_3DNOW) ? name ## _3DNOW
+#  define SIMD_FN_SELECT_3DNOW(name, avail)				\
+	(((avail) & CPU_FEATURE_3DNOW) & cpu_features) ? name ## _3DNOW
 #else
-#  define SIMD_FN_SELECT_3DNOW(name) 0 ? NULL
+#  define SIMD_FN_SELECT_3DNOW(name, avail) 0 ? NULL
 #endif
 
 #if defined (HAVE_SSE)
-#  define SIMD_FN_SELECT_SSE(name)					\
-	(cpu_features & CPU_FEATURE_SSE) ? name ## _SSE
+#  define SIMD_FN_SELECT_SSE(name, avail)				\
+	(((avail) & CPU_FEATURE_SSE) & cpu_features) ? name ## _SSE
 #else
-#  define SIMD_FN_SELECT_SSE(name) 0 ? NULL
+#  define SIMD_FN_SELECT_SSE(name, avail) 0 ? NULL
 #endif
 
 #if defined (HAVE_SSE2)
-#  define SIMD_FN_SELECT_SSE2(name)					\
-	(cpu_features & CPU_FEATURE_SSE2) ? name ## _SSE2
+#  define SIMD_FN_SELECT_SSE2(name, avail)				\
+	(((avail) & CPU_FEATURE_SSE2) & cpu_features) ? name ## _SSE2
 #else
-#  define SIMD_FN_SELECT_SSE2(name) 0 ? NULL
+#  define SIMD_FN_SELECT_SSE2(name, avail) 0 ? NULL
 #endif
 
 #if defined (HAVE_SSE3)
-#  define SIMD_FN_SELECT_SSE3(name)					\
-	(cpu_features & CPU_FEATURE_SSE3) ? name ## _SSE3
+#  define SIMD_FN_SELECT_SSE3(name, avail)				\
+	(((avail) & CPU_FEATURE_SSE3) & cpu_features) ? name ## _SSE3
 #else
-#  define SIMD_FN_SELECT_SSE3(name) 0 ? NULL
+#  define SIMD_FN_SELECT_SSE3(name, avail) 0 ? NULL
 #endif
 
 #if defined (HAVE_ALTIVEC)
-#  define SIMD_FN_SELECT_ALTIVEC(name)					\
-	(cpu_features & CPU_FEATURE_ALTIVEC) ? name ## _ALTIVEC
+#  define SIMD_FN_SELECT_ALTIVEC(name, avail)				\
+	(((avail) & CPU_FEATURE_ALTIVEC) & cpu_features) ? name ## _ALTIVEC
 #else
-#  define SIMD_FN_SELECT_ALTIVEC(name) 0 ? NULL
+#  define SIMD_FN_SELECT_ALTIVEC(name, avail) 0 ? NULL
 #endif
 
 /* Selects a SIMD function depending on CPU features. */
 /* TODO: function automagically learning which of the executable
    versions works fastest on this machine. */
 #define SIMD_FN_SELECT(name, avail)					\
-	(((avail) & CPU_FEATURE_ALTIVEC) && SIMD_FN_SELECT_ALTIVEC (name) : \
-	 ((avail) & CPU_FEATURE_SSE3) && SIMD_FN_SELECT_SSE3 (name) :	\
-	 ((avail) & CPU_FEATURE_SSE2) && SIMD_FN_SELECT_SSE2 (name) :	\
-	 ((avail) & CPU_FEATURE_SSE) && SIMD_FN_SELECT_SSE (name) :	\
-	 ((avail) & CPU_FEATURE_3DNOW) && SIMD_FN_SELECT_3DNOW (name) :	\
-	 ((avail) & CPU_FEATURE_MMX) && SIMD_FN_SELECT_MMX (name) :	\
+	(SIMD_FN_SELECT_ALTIVEC (name, avail) :				\
+	 SIMD_FN_SELECT_SSE3 (name, avail) :				\
+	 SIMD_FN_SELECT_SSE2 (name, avail) :				\
+	 SIMD_FN_SELECT_SSE (name, avail) :				\
+	 SIMD_FN_SELECT_3DNOW (name, avail) :				\
+	 SIMD_FN_SELECT_MMX (name, avail) :				\
 	 NULL)
 
 #endif /* SIMD_H */

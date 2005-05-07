@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: memcpy.c,v 1.4 2005-02-25 18:10:42 mschimek Exp $ */
+/* $Id: memcpy.c,v 1.4.2.1 2005-05-07 03:31:12 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -59,32 +59,12 @@ test1				(uint8_t *		dst,
 		assert (0xAA == *p++);
 }
 
-static void
-test				(const char *		name)
-{
-	unsigned int i;
-
-	fprintf (stderr, "%s\n", name);
-
-	for (i = 0; i < 33; ++i) {
-		test1 (dbuffer, sbuffer, i);
-		test1 (dbuffer, sbuffer, i + 16384);
-		test1 (dbuffer_end - i, sbuffer_end - i, i);
-		test1 (dbuffer_end - i - 16384,
-		       sbuffer_end - i - 16384, i + 16384);
-		test1 (dbuffer + i, sbuffer + (i ^ 31), i * 3);
-	}
-}
-
 int
 main				(int			argc,
 				 char **		argv)
 {
 	unsigned int buffer_size;
-	cpu_feature_set features;
-
-	(void) argc;
-	(void) argv;
+	unsigned int i;
 
 	buffer_size = 64 << 10;
 
@@ -94,24 +74,21 @@ main				(int			argc,
 	dbuffer = guard_alloc (buffer_size);
 	dbuffer_end = dbuffer + buffer_size;
 
-	features = cpu_detection ();
+	/* Use generic version. */
+	cpu_features = (cpu_feature_set) 0;
 
-	cpu_features = 0;
-	test ("memcpy generic");
-
-	if (features & CPU_FEATURE_MMX) {
-		cpu_features = CPU_FEATURE_MMX;
-		test ("memcpy mmx");
+	if (argc > 1) {
+		/* Use optimized version, if available. */
+		cpu_features = (cpu_feature_set) strtol (argv[1], NULL, 0);
 	}
 
-	if (features & CPU_FEATURE_SSE) {
-		cpu_features = CPU_FEATURE_SSE;
-		test ("memcpy sse");
-	}
-
-	if (features & CPU_FEATURE_ALTIVEC) {
-		cpu_features = CPU_FEATURE_ALTIVEC;
-		test ("memcpy altivec");
+	for (i = 0; i < 33; ++i) {
+		test1 (dbuffer, sbuffer, i);
+		test1 (dbuffer, sbuffer, i + 16384);
+		test1 (dbuffer_end - i, sbuffer_end - i, i);
+		test1 (dbuffer_end - i - 16384,
+		       sbuffer_end - i - 16384, i + 16384);
+		test1 (dbuffer + i, sbuffer + (i ^ 31), i * 3);
 	}
 
 	return EXIT_SUCCESS;

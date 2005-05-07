@@ -10,10 +10,10 @@ SIMD_CFLAGS = \
 # increase various inlining limits (gcc 3.4.x and later only).
 if HAVE_GCC_LIMITS
 SIMD_CFLAGS += \
-	--param max-inline-insns-single=100000 \
-	--param large-function-insns=100000 \
-	--param inline-unit-growth=30000 \
-	--param large-function-growth=30000
+	--param max-inline-insns-single=50000 \
+	--param large-function-insns=50000 \
+	--param inline-unit-growth=10000 \
+	--param large-function-growth=10000
 endif
 
 # TODO DI_OldGame.c

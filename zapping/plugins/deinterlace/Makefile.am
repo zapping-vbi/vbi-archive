@@ -8,7 +8,7 @@ INCLUDES = \
 	@COMMON_INCLUDES@ \
 	@PLUGIN_DEFAULT_FLAGS@
 
-noinst_PROGRAMS = ditest dicmp
+noinst_PROGRAMS = ditest dicmp cpudt
 
 ditest_SOURCES = \
 	DS_ApiCommon.h \
@@ -23,6 +23,12 @@ ditest_LDADD = \
 
 dicmp_SOURCES = \
 	dicmp.c
+
+cpudt_SOURCES = \
+	cpudt.c
+
+cpudt_LDADD = \
+	$(top_builddir)/libtv/libtv.la
 
 plugindir = @PLUGIN_DEFAULT_DIR@
 plugin_LTLIBRARIES = libdeinterlace.zapping.la

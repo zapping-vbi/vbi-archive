@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clear_image.c,v 1.4 2005-02-25 18:10:52 mschimek Exp $ */
+/* $Id: clear_image.c,v 1.4.2.1 2005-05-07 03:31:12 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -161,10 +161,8 @@ test_planar1			(void)
 }
 
 static void
-test				(const char *		name)
+test				(void)
 {
-	fprintf (stderr, "%s ", name);
-
 	CLEAR (format);
 
 	test_packed1 ();
@@ -202,34 +200,20 @@ main				(int			argc,
 				 char **		argv)
 {
 	unsigned int buffer_size;
-	cpu_feature_set features;
-
-	(void) argc;
-	(void) argv;
 
 	buffer_size = 4 << 20;
 	buffer = guard_alloc (buffer_size);
 	buffer_end = buffer + buffer_size;
 
-	features = cpu_detection ();
+	/* Use generic version. */
+	cpu_features = (cpu_feature_set) 0;
 
-	cpu_features = 0;
-	test ("clear_image generic");
-
-	if (features & CPU_FEATURE_MMX) {
-		cpu_features = CPU_FEATURE_MMX;
-		test ("clear_image mmx");
+	if (argc > 1) {
+		/* Use optimized version, if available. */
+		cpu_features = (cpu_feature_set) strtol (argv[1], NULL, 0);
 	}
 
-	if (features & CPU_FEATURE_SSE) {
-		cpu_features = CPU_FEATURE_SSE;
-		test ("clear_image sse");
-	}
-
-	if (features & CPU_FEATURE_ALTIVEC) {
-		cpu_features = CPU_FEATURE_ALTIVEC;
-		test ("clear_image altivec");
-	}
+	test ();
 
 	return EXIT_SUCCESS;
 }

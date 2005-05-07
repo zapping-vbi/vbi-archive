@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.c,v 1.1.2.1 2005-05-05 09:46:01 mschimek Exp $ */
+/* $Id: simd.c,v 1.1.2.2 2005-05-07 03:31:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -27,10 +27,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "libtv/simd.h"
 
 typedef void
-test_fn				(const char *		name);
+test_fn				(void);
 
 SIMD_FN_PROTOS (test_fn, test);
 
@@ -66,26 +67,32 @@ do {									\
    An if-else-else yields different results when max < min. */
 #define SATURATE(n, min, max) MIN (MAX (n, min), max)
 
-#define SAT16(n) SATURATE (n, -32768, 32767)
-#define SATU16(n) SATURATE (n, 0, 65535)
+#define SAT8(n) SATURATE (n, -0x80, 0x7F)
+#define SATU8(n) SATURATE (n, 0, 0xFF)
+#define SAT16(n) SATURATE (n, -0x8000, 0x7FFF)
+#define SATU16(n) SATURATE (n, 0, 0xFFFF)
+#define SAT32(n) SATURATE (n, -0x8000000, 0x7FFFFFFF)
+#define SATU32(n) SATURATE (n, 0, 0xFFFFFFFFU)
 
 void
-SIMD_NAME (test)		(const char *		name)
+SIMD_NAME (test)		(void)
 {
 	unsigned int i;
-
-	fprintf (stderr, "simd %s\n", name);
 
 	for (i = 0; i < 1000; ++i) {
 		unsigned int a, b, c;
 		int8_t sa8, sb8, sc8;
-		int16_t sa16, sb16, sc16;
 		uint8_t sau8, sbu8, scu8;
+		int16_t sa16, sb16, sc16;
 		uint16_t sau16, sbu16, scu16;
+		int32_t sa32, sb32, sc32;
+		uint32_t sau32, sbu32, scu32;
 		v8 va8, vb8, vc8;
 		v16 va16, vb16, vc16;
+		v32 va32, vb32, vc32;
 		vu8 vau8, vbu8, vcu8;
 		vu16 vau16, vbu16, vcu16;
+		vu32 vau32, vbu32, vcu32;
 
 		a = rand ();
 		b = rand ();
@@ -107,21 +114,37 @@ SIMD_NAME (test)		(const char *		name)
 		sbu16 = (uint16_t) b;
 		scu16 = (uint16_t) c;
 
+		sa32 = (int32_t) a;
+		sb32 = (int32_t) b;
+		sc32 = (int32_t) c;
+
+		sau32 = (uint32_t) a;
+		sbu32 = (uint32_t) b;
+		scu32 = (uint32_t) c;
+
 		va8 = vsplat8 (a);
 		vb8 = vsplat8 (b);
 		vc8 = vsplat8 (c);
-
-		va16 = vsplat16 (a);
-		vb16 = vsplat16 (b);
-		vc16 = vsplat16 (c);
 
 		vau8 = vsplatu8 (a);
 		vbu8 = vsplatu8 (b);
 		vcu8 = vsplatu8 (c);
 
+		va16 = vsplat16 (a);
+		vb16 = vsplat16 (b);
+		vc16 = vsplat16 (c);
+
 		vau16 = vsplatu16 (a);
 		vbu16 = vsplatu16 (b);
 		vcu16 = vsplatu16 (c);
+
+		va32 = vsplat32 (a);
+		vb32 = vsplat32 (b);
+		vc32 = vsplat32 (c);
+
+		vau32 = vsplatu32 (a);
+		vbu32 = vsplatu32 (b);
+		vcu32 = vsplatu32 (c);
 
 		/* Make sure the simd macros do what I think they do. */
 
@@ -243,15 +266,14 @@ SIMD_NAME (test)		(const char *		name)
 			assert (0 == memcmp (&x, &max, sizeof (x)));
 		}
 
-#if SIMD == CPU_FEATURE_MMX
-			PASS (u16, (sau16 < 0) ? a : 0, vminu16i (va16, 0));
-			PASS (u16, (sau16 < 1234) ? a : 1234,
-			      vminu16i (va16, 1234));
-			PASS (u16, (sau16 < 65535) ? a : 65535,
-			      vminu16i (va16, 65535));
+#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW)
+		PASS (u16, 0, vminu16i (va16, 0));
+		PASS (u16, (sau16 < 1234) ? a : 1234, vminu16i (va16, 1234));
+		PASS (u16, (sau16 < 65535) ? a : 65535,
+		      vminu16i (va16, 65535));
 #else
-			PASS (16, (sa16 > sb16) ? a : b, vmax16 (va16, vb16));
-			PASS (16, (sa16 < sb16) ? a : b, vmin16 (va16, vb16));
+		PASS (16, (sa16 > sb16) ? a : b, vmax16 (va16, vb16));
+		PASS (16, (sa16 < sb16) ? a : b, vmin16 (va16, vb16));
 #endif
 
 		vempty ();
@@ -277,42 +299,20 @@ int
 main				(int			argc,
 				 char **		argv)
 {
-	cpu_feature_set features;
+	test_fn *testp;
 
-	(void) argc;
-	(void) argv;
+	assert (2 == argc);
 
-	features = cpu_detection ();
+	cpu_features = (cpu_feature_set) strtol (argv[1], NULL, 0);
 
-#ifdef HAVE_MMX
-	if (features & CPU_FEATURE_MMX) {
-		test_MMX ("mmx");
-	}
-#endif
+	testp = SIMD_FN_SELECT (test,
+				CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
+				CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
+				CPU_FEATURE_ALTIVEC);
 
-#ifdef HAVE_SSE 
-	if (features & CPU_FEATURE_SSE) {
-		test_SSE ("sse");
-	}
-#endif
+	assert (NULL != testp);
 
-#ifdef HAVE_3DNOW 
-	if (features & CPU_FEATURE_3DNOW) {
-		test_3DNOW ("3dnow");
-	}
-#endif
-
-#ifdef HAVE_SSE2 
-	if (features & CPU_FEATURE_SSE2) {
-		test_SSE2 ("sse2");
-	}
-#endif
-
-#ifdef HAVE_ALTIVEC 
-	if (features & CPU_FEATURE_ALTIVEC) {
-		test_ALTIVEC ("altivec");
-	}
-#endif
+	testp ();
 
 	return EXIT_SUCCESS;
 }

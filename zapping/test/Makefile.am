@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-TESTS = guard1 guard2 simd clear_image memcpy simd
+TESTS = guard1 guard2 clear_image memcpy
 XFAIL_TESTS = guard1 guard2
 
 EXTRA_DIST = \
@@ -9,55 +9,62 @@ EXTRA_DIST = \
 
 INCLUDES = -I$(top_srcdir)
 
-SIMD_CFLAGS =
+SIMD_CFLAGS = -O3 -fomit-frame-pointer
 SIMD_SOURCES = simd.c
 SIMD_LIBS =
 
 # x86 and x86-64 
 
 if HAVE_MMX
+TESTS += clear_image-mmx.sh memcpy-mmx.sh simd-mmx.sh
 SIMD_LIBS += libsimd_MMX.la
-libsimd_MMX_la_CFLAGS = $(SIMD_CFLAGS) -mmmx -DSIMD=MMX
+libsimd_MMX_la_CFLAGS = $(SIMD_CFLAGS) -mmmx -DSIMD=CPU_FEATURE_MMX
 libsimd_MMX_la_SOURCES = $(SIMD_SOURCES)
 endif
 
-# Untested
-#if HAVE_3DNOW
-#SIMD_LIBS += libsimd_3DNOW.la
-#libsimd_3DNOW_la_CFLAGS = $(SIMD_CFLAGS) -m3dnow -DSIMD=_3DNOW
-#libsimd_3DNOW_la_SOURCES = $(SIMD_SOURCES)
-#endif
+if HAVE_3DNOW
+TESTS += simd-3dnow.sh
+SIMD_LIBS += libsimd_3DNOW.la
+libsimd_3DNOW_la_CFLAGS = $(SIMD_CFLAGS) -m3dnow -DSIMD=CPU_FEATURE_3DNOW
+libsimd_3DNOW_la_SOURCES = $(SIMD_SOURCES)
+endif
 
 if HAVE_SSE
+TESTS += clear_image-sse.sh memcpy-sse.sh simd-sse.sh
 SIMD_LIBS += libsimd_SSE.la
-libsimd_SSE_la_CFLAGS = $(SIMD_CFLAGS) -msse -DSIMD=SSE
+libsimd_SSE_la_CFLAGS = $(SIMD_CFLAGS) -msse -DSIMD=CPU_FEATURE_SSE
 libsimd_SSE_la_SOURCES = $(SIMD_SOURCES)
 endif
 
-# Untested
-#if HAVE_SSE2
-#SIMD_LIBS += libsimd_SSE2.la
-#libsimd_SSE2_la_CFLAGS = $(SIMD_CFLAGS) -msse2 -DSIMD=SSE2
-#libsimd_SSE2_la_SOURCES = $(SIMD_SOURCES)
-#endif
+if HAVE_SSE2
+TESTS += simd-sse2.sh
+SIMD_LIBS += libsimd_SSE2.la
+libsimd_SSE2_la_CFLAGS = $(SIMD_CFLAGS) -msse2 -DSIMD=CPU_FEATURE_SSE2
+libsimd_SSE2_la_SOURCES = $(SIMD_SOURCES)
+endif
 
 # powerpc
 
-# Untested
-#if HAVE_ALTIVEC
-#SIMD_LIBS += libsimd_AVEC.la
-#libsimd_AVEC_la_CFLAGS = $(SIMD_CFLAGS) -maltivec -mabi=altivec -DSIMD=ALTIVEC
-#libsimd_AVEC_la_SOURCES = $(SIMD_SOURCES)
-#endif
+if HAVE_ALTIVEC
+TESTS += simd-altivec.sh
+SIMD_LIBS += libsimd_AVEC.la
+libsimd_AVEC_la_CFLAGS = $(SIMD_CFLAGS) \
+	-maltivec -mabi=altivec -DSIMD=CPU_FEATURE_ALTIVEC
+libsimd_AVEC_la_SOURCES = $(SIMD_SOURCES)
+endif
 
 noinst_LTLIBRARIES = $(SIMD_LIBS)
 
 check_PROGRAMS = \
+	cpudt \
 	clear_image \
 	guard1 \
 	guard2 \
 	memcpy \
 	simd
+
+check_SCRIPTS = \
+	simd-emu.sh
 
 simd_LDADD = \
 	$(SIMD_LIBS) \
@@ -65,3 +72,15 @@ simd_LDADD = \
 
 LDADD = \
 	$(top_builddir)/libtv/libtv.la
+
+simd-emu.sh:
+	$(MAKE) cpudt
+
+memcpy-mmx.sh memcpy-sse.sh memcpy-altivec.sh:
+	$(MAKE) memcpy
+
+clear_image-mmx.sh clear_image-sse.sh clear_image-altivec.sh:
+	$(MAKE) clear_image
+
+simd-mmx.sh simd-3dnow.sh simd-sse.sh simd-sse2.sh simd-altivec.sh:
+	$(MAKE) simd
