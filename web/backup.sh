@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: backup.sh,v 1.6 2005-05-02 11:50:47 mschimek Exp $
+# $Id: backup.sh,v 1.7 2005-05-09 21:13:51 mschimek Exp $
 #
 # Back up TWiki runtime data, supposed to be executed daily.
 
@@ -25,9 +25,6 @@ today=`date "+%Y%m%d-%H%M"`
 if test -d twiki.bak; then
   if test x`date +%d` = x27; then
     tar -ch twiki | bzip2 -c >$here/twiki-$today.tar.bz2
-# Crap! no metasend at sf.
-#  metasend -b -s "twiki-tar" -f $here/twiki-$today.tar.bz2 \
-#    -m application/x-bzip -S 500000 -t $send_backups_to -z
     cat $here/twiki-$today.tar.bz2 | \
       uuencode --base64 twiki-$today.tar.bz2 | \
       mail -s twiki-tar $send_backups_to
@@ -35,11 +32,10 @@ if test -d twiki.bak; then
     diff -Nadru twiki.bak twiki >$here/twiki-$today.diff
     if test -s $here/twiki-$today.diff ; then
       bzip2 $here/twiki-$today.diff
-#    metasend -b -s "twiki-diff" -f $here/twiki-$today.diff.bz2 \
-#      -m application/x-bzip -S 500000 -t $send_backups_to -z
       cat $here/twiki-$today.diff.bz2 | \
         uuencode --base64 twiki-$today.diff.bz2 | \
         mail -s twiki-diff $send_backups_to
+      rm $here/twiki-$today.diff
     fi
   fi
 
