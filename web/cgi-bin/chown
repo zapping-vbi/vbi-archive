@@ -1,0 +1,3 @@
+#!/bin/bash
+cd /home/groups/z/za/zapping
+chown -R `whoami` twoko
