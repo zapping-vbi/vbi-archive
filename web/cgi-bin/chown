@@ -2,18 +2,19 @@
 echo Content-type: text/plain
 echo
 
-umask 007
-
 cd /home/groups/z/za/zapping/twiki
 
 # Cannot chmod to `whoami`, so here we go.
 
-for fi in `find . -type f`; do
-  echo $fi
-  cp $fi $fi.tmp
-  rm -f $fi
-  mv $fi.tmp $fi
+umask 033
+
+for dir in data pub; do
+  echo $dir
+  cp -darp $dir $dir.tmp && rm -rf $dir && mv $dir.tmp $dir
 done
+
+# Need a+rX for cron'ed backups.
+chmod -R a+rX,ug+w,o-w .
 
 echo
 echo OK
