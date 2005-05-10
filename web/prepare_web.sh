@@ -1,5 +1,5 @@
 #!/bin/sh
-#$Id: prepare_web.sh,v 1.21 2004-07-12 17:40:03 mschimek Exp $
+#$Id: prepare_web.sh,v 1.22 2005-05-10 00:33:45 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
@@ -110,15 +110,17 @@ find lib -name "CVS" -prune -o -exec chmod a+rX '{}' ';'
 chmod a+rX templates
 chmod a+rX templates/*.tmpl
 
-# 'nobody' executes cgi scripts and needs write access
+# 'nfsnobody' executes cgi scripts and needs write access
 # to TWiki data (pages) and htdocs/pub (attachments).
 # Only root can do this, but for clarity this is what we want:
 
 if test `whoami` = "root"; then
-  chown nobody.nogroup twiki -R
+  chown nfsnobody.zapping twiki -R
   chmod u+w,go-w,a+rX twiki -R
 else
   chmod a+rwX twiki -R
 fi
+
+# See also cgi-bin/chown.
 
 ) 2>&1 | tee prepare_web.log

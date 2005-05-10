@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: backup.sh,v 1.7 2005-05-09 21:13:51 mschimek Exp $
+# $Id: backup.sh,v 1.8 2005-05-10 00:33:45 mschimek Exp $
 #
 # Back up TWiki runtime data, supposed to be executed daily.
 
@@ -13,7 +13,8 @@ umask 077 || exit 1
 
 here=`pwd`
 if test x$HOSTNAME != xlocalhost; then
-  cd /home/groups/z/za/zapping
+  # cd /home/groups/z/za/zapping
+  cd /tmp/persistent/zapping
 else
   # Testing.
   cd /usr/local/apache
