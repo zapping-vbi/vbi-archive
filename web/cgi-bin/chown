@@ -1,3 +1,17 @@
 #!/bin/bash
-cd /home/groups/z/za/zapping
-chown -R `whoami` twoko
+echo Content-type: text/plain
+echo
+
+umask 007
+
+cd /home/groups/z/za/zapping/twoko
+
+# Cannot chmod to `whoami`, so here we go.
+
+for fi in `find . -type f`; do
+  cp $fi $fi.tmp
+  rm -f $fi
+  mv $fi.tmp $fi
+done
+
+echo OK
