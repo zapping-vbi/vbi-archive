@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: backup.sh,v 1.8 2005-05-10 00:33:45 mschimek Exp $
+# $Id: backup.sh,v 1.9 2005-05-10 01:03:35 mschimek Exp $
 #
 # Back up TWiki runtime data, supposed to be executed daily.
 
@@ -36,7 +36,7 @@ if test -d twiki.bak; then
       cat $here/twiki-$today.diff.bz2 | \
         uuencode --base64 twiki-$today.diff.bz2 | \
         mail -s twiki-diff $send_backups_to
-      rm $here/twiki-$today.diff
+      rm $here/twiki-$today.diff.bz2
     fi
   fi
 
