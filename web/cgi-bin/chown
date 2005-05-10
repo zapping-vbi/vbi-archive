@@ -4,14 +4,16 @@ echo
 
 umask 007
 
-cd /home/groups/z/za/zapping/twoko
+cd /home/groups/z/za/zapping/twiki
 
 # Cannot chmod to `whoami`, so here we go.
 
 for fi in `find . -type f`; do
+  echo $fi
   cp $fi $fi.tmp
   rm -f $fi
   mv $fi.tmp $fi
 done
 
+echo
 echo OK
