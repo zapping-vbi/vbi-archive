@@ -1,2 +1,2 @@
 #!/bin/sh
-./simd-emu.sh ./clear_image qemu-i386 0x8
+./simd-emu.sh ./clear_image qemu-i386 sse

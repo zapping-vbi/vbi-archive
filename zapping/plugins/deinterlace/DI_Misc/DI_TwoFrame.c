@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// $Id: DI_TwoFrame.c,v 1.3.2.1 2005-05-05 09:46:01 mschimek Exp $
+// $Id: DI_TwoFrame.c,v 1.3.2.2 2005-05-17 19:58:32 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 Steven Grimm.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.1  2005/05/05 09:46:01  mschimek
+// *** empty log message ***
+//
 // Revision 1.3  2005/03/30 21:26:54  mschimek
 // Integrated and converted the MMX code to vector intrinsics.
 //
@@ -105,7 +108,7 @@ SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceFieldTwoFrame);
 // squaring them; this results in an effective maximum luminance
 // difference of 127, whose square (16129) is safely comparable.
 
-static __inline__ v16
+static always_inline v16
 cmpsqdiff			(v16			a,
 				 v16			b,
 				 v16			thresh)

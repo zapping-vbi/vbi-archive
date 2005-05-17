@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: windows.h,v 1.6.2.1 2005-05-05 09:46:00 mschimek Exp $ */
+/* $Id: windows.h,v 1.6.2.2 2005-05-17 19:58:32 mschimek Exp $ */
 
 #ifndef WINDOWS_H
 #define WINDOWS_H
@@ -27,6 +27,7 @@
 #  include "config.h"
 #endif
 
+#include <stdlib.h>		/* malloc() */
 #include <stddef.h>		/* size_t */
 #include <inttypes.h>		/* int64_t */
 #include <assert.h>
@@ -109,7 +110,7 @@ copy_line_pair			(uint8_t *		dst,
 /* Do an aligned load from s, and two unaligned loads from
     s + offs - dist and s + offs + dist.  Offs and dist are given
     in bytes, offs must be a multiple of sizeof (vu8). */
-static __inline__ void
+static always_inline void
 uloadxt				(vu8 *			left,
 				 vu8 *			center,
 				 vu8 *			right,
@@ -130,7 +131,7 @@ uloadxt				(vu8 *			left,
 	*right = vec_perm (t2, t3, vec_lvsl (+dist, src));
 }
 
-static __inline__ void
+static always_inline void
 uload24t			(vu8 *			m4,
 				 vu8 *			m2,
 				 vu8 *			center,
@@ -254,111 +255,78 @@ copy_line_pair			(uint8_t *		dst,
 	}
 }
 
-#if SIMD == CPU_FEATURE_SSE3
-
-static __inline__ void
-uloadxt				(vu8 *			left,
-				 vu8 *			center,
-				 vu8 *			right,
-				 const uint8_t *	src,
-				 unsigned int		offs,
-				 unsigned int		dist)
-{
-	src += offs;
-
-	/* XXX is this faster? */
-	*left   = _mm_lddqu_si128 ((const vu8 *)(src - dist));
-	*center = * (const vu8 *) src; /* movdqu */
-	*right  = _mm_lddqu_si128 ((const vu8 *)(src + dist));
-}
-
-#elif SIMD == CPU_FEATURE_SSE2
+#if SIMD == CPU_FEATURE_SSE2
 
 #if 1
 
-static __inline__ void
-uloadxt				(vu8 *			left,
-				 vu8 *			center,
-				 vu8 *			right,
-				 const uint8_t *	src,
-				 unsigned int		offs,
-				 unsigned int		dist)
-{
-	const uint16_t *w;
-	vu8 t2, t3;
+/* _mm_sxli_si128 is misdefined under gcc -O0.  Arg 2 must be an immediate,
+   not a variable which evaluates to one, not even a const variable. */
 
-	src += offs;
+#define uloadxt(_left, _center, _right, _src, _offs, _dist)		      \
+({									      \
+	vu8 *left = _left;						      \
+	vu8 *center = _center;						      \
+	vu8 *right = _right;						      \
+	const uint8_t *src = _src;					      \
+	const uint16_t *w;						      \
+									      \
+	src += _offs;							      \
+									      \
+	*center = vload (src, 0); /* ponmlkji */			      \
+									      \
+	switch (_dist) {						      \
+	case 2:								      \
+		w = (const uint16_t *) src;				      \
+		*left = _mm_insert_epi16				      \
+			(_mm_slli_si128 (*center, 2), w[-1], 0);	      \
+		*right = _mm_insert_epi16				      \
+			(_mm_srli_si128 (*center, 2), w[8], 7);		      \
+		break;							      \
+									      \
+	default:							      \
+		*left = vor (_mm_slli_si128 (*center, _dist),		      \
+			     _mm_srli_si128 (vload (src, -16), 16 - (_dist)));\
+		*right = vor (_mm_srli_si128 (*center, _dist),		      \
+			      _mm_slli_si128 (vload (src, 16), 16 - (_dist)));\
+		break;							      \
+	}								      \
+})
 
-	*center = vload (src, 0); /* ponmlkji */
-
-	switch (dist) {
-	case 2:
-		w = (const uint16_t *) src;
-		*left = _mm_insert_epi16
-			(_mm_slli_si128 (*center, 2), w[-1], 0);
-		*right = _mm_insert_epi16
-			(_mm_srli_si128 (*center, 2), w[8], 7);
-		break;
-
-	case 4:
-		*left = vor (_mm_slli_si128 (*center, 4), vload32 (src, -4));
-		*right = vor (_mm_srli_si128 (*center, 4),
-			      _mm_slli_si128 (vload32 (src, 16), 12));
-		break;
-
-	case 8:
-		t2 = vload64 (src, -8); /* 0000hgfe */
-		t3 = vload64 (src, 16); /* 0000tsrq */
-		t2 = _mm_unpacklo_epi32 (t2, t3); /* tsrqhgfe */
-		*left = _mm_unpacklo_epi32 (t2, *center);  /* lkjihgfe */
-		*right = _mm_unpackhi_epi32 (*center, t2); /* tsrqponm */
-		break;
-
-	default:
-		*left = vor (_mm_slli_si128 (*center, dist),
-			     _mm_srli_si128 (vload (src, -16), 16 - dist));
-		*right = vor (_mm_srli_si128 (*center, dist),
-			      _mm_slli_si128 (vload (src, 16), 16 - dist));
-		break;
-	}
-}
-
-static __inline__ void
-uload24t			(vu8 *			m4,
-				 vu8 *			m2,
-				 vu8 *			center,
-				 vu8 *			p2,
-				 vu8 *			p4,
-				 const uint8_t *	src,
-				 unsigned int		offs)
-{
-	const uint16_t *w;
-	vu8 t1;
-
-	src += offs;
-
-	w = (const uint16_t *) src;
-
-	*center = vload (src, 0);
-
-	/* XXX we don't use *center because these instructions mix
-	   with calculations, x86 has not enough registers to save
-	   the center value for later and gcc can't easily avoid
-	   register spilling.  XXX May not apply to x86-64. */
-	t1 = _mm_slli_si128 (vload (src, 0), 2);
-	*m2 = _mm_insert_epi16 (t1, w[-1], 0);
-	t1 = _mm_slli_si128 (t1, 2);
-	*m4 = _mm_insert_epi16 (t1, w[-2], 0);
-
-	t1 = _mm_srli_si128 (vload (src, 0), 2);
-	*p2 = _mm_insert_epi16 (t1, w[8], 7);
-	t1 = _mm_srli_si128 (t1, 2);
-	*p4 = _mm_insert_epi16 (t1, w[9], 7);
-}
+#define uload24t(_m4, _m2, _center, _p2, _p4, _src, _offs)		\
+({									\
+	vu8 *m4 = _m4;							\
+	vu8 *m2 = _m2;							\
+	vu8 *center = _center;						\
+	vu8 *p2 = _p2;							\
+	vu8 *p4 = _p4;							\
+	const uint8_t *src = _src;					\
+	const uint16_t *w;						\
+	vu8 t1;								\
+									\
+	src += _offs;							\
+									\
+	w = (const uint16_t *) src;					\
+									\
+	*center = vload (src, 0);					\
+									\
+	/* XXX we don't use *center because these instructions mix	\
+	   with calculations, x86 has not enough registers to save	\
+	   the center value for later and gcc can't easily avoid	\
+	   register spilling.  XXX May not apply to x86-64. */		\
+	t1 = _mm_slli_si128 (vload (src, 0), 2);			\
+	*m2 = _mm_insert_epi16 (t1, w[-1], 0);				\
+	t1 = _mm_slli_si128 (t1, 2);					\
+	*m4 = _mm_insert_epi16 (t1, w[-2], 0);				\
+									\
+	t1 = _mm_srli_si128 (vload (src, 0), 2);			\
+	*p2 = _mm_insert_epi16 (t1, w[8], 7);				\
+	t1 = _mm_srli_si128 (t1, 2);					\
+	*p4 = _mm_insert_epi16 (t1, w[9], 7);				\
+})
 
 #else /* XXX is this faster? */
 
-static __inline__ void
+static always_inline void
 uloadxt				(vu8 *			left,
 				 vu8 *			center,
 				 vu8 *			right,
@@ -377,7 +345,7 @@ uloadxt				(vu8 *			left,
 
 #elif SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW | CPU_FEATURE_SSE)
 
-static __inline__ void
+static always_inline void
 uloadxt				(vu8 *			left,
 				 vu8 *			center,
 				 vu8 *			right,
@@ -396,7 +364,7 @@ uloadxt				(vu8 *			left,
 	*right  = vload (src, +dist);
 }
 
-static __inline__ void
+static always_inline void
 uload24t			(vu8 *			m4,
 				 vu8 *			m2,
 				 vu8 *			center,

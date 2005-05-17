@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// $Id: DI_Greedy2Frame.c,v 1.3.2.1 2005-05-05 09:46:01 mschimek Exp $
+// $Id: DI_Greedy2Frame.c,v 1.3.2.2 2005-05-17 19:58:32 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.1  2005/05/05 09:46:01  mschimek
+// *** empty log message ***
+//
 // Revision 1.3  2005/03/30 21:27:32  mschimek
 // Integrated and converted the MMX code to vector intrinsics.
 //
@@ -74,6 +77,24 @@ SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceGreedy2Frame);
 // output the value of mm4 at this point which is pink where we will weave
 // and green were we are going to bob
 #define CHECK_BOBWEAVE 0
+
+static always_inline v32
+thresh_cmp			(vu8			a,
+				 vu8			b,
+				 v8			thresh,
+				 v32			c)
+{
+    vu8 t;
+
+    // XXX emulates vcmpgtu8, AVEC has this instruction
+    t = vsr1u8 (vabsdiffu8 (a, b));
+    t = (vu8) vcmpgt8 ((v8) t, thresh);
+
+    t = vand (t, vsplatu8_127); // get rid of any sign bit
+ 
+    // XXX can be replaced by logic ops.
+    return vand ((v32) vcmpgt32 ((v32) t, vsplat32_1), c);
+}
 
 BOOL
 SIMD_NAME (DeinterlaceGreedy2Frame) (TDeinterlaceInfo *pInfo)
@@ -133,7 +154,7 @@ SIMD_NAME (DeinterlaceGreedy2Frame) (TDeinterlaceInfo *pInfo)
 
 	for (count = byte_width / sizeof (vu8); count > 0; --count) {
 	    vu8 m0, m1, t0, t1, b0, b1, avg, mm4;
-	    v32 mm5, sum;
+	    v32 sum;
 
 	    t1 = vload (T1, 0);
 	    b1 = vload (T1, src_bpl);
@@ -146,9 +167,9 @@ SIMD_NAME (DeinterlaceGreedy2Frame) (TDeinterlaceInfo *pInfo)
 
 	    avg = fast_vavgu8 (t1, b1);
 
-	    m0 = * (const vu8 *) M0;
+	    m0 = vload (M0, 0);
 	    M0 += sizeof (vu8);
-	    m1 = * (const vu8 *) M1;
+	    m1 = vload (M1, 0);
 	    M1 += sizeof (vu8);
 
 	    // if we have a good processor then make mm0 the average of M1
@@ -158,30 +179,18 @@ SIMD_NAME (DeinterlaceGreedy2Frame) (TDeinterlaceInfo *pInfo)
 		m1 = vavgu8 (m1, m0);
 
 	    // if |M1-M0| > Threshold we want dword worth of twos
-	    // XXX emulates vcmpgtu8, AVEC has this instruction
-	    mm4 = vsr1u8 (vabsdiffu8 (m1, m0));
-	    mm4 = (vu8) vcmpgt8 ((v8) mm4, qwGreedyTwoFrameThreshold);
-	    mm4 = vand (mm4, vsplat8_127); // get rid of any sign bit
-	    // XXX can be replaced by logic ops.
-	    sum = (v32) vandnot (vcmpgt32 ((v32) mm4, vsplat32_1), vsplat32_2);
+	    sum = thresh_cmp (m1, m0, qwGreedyTwoFrameThreshold, vsplat32_2);
 
 	    // if |T1-T0| > Threshold we want dword worth of ones
 	    t0 = vload (T0, 0);
-	    mm4 = vsr1u8 (vabsdiffu8 (t1, t0));
-	    mm4 = (vu8) vcmpgt8 ((v8) mm4, qwGreedyTwoFrameThreshold);
-	    mm4 = vand (mm4, vsplat8_127);
-	    mm5 = (v32) vandnot (vcmpgt32 ((v32) mm4, vsplat32_1), vsplat32_1);
-	    sum = vadd32 (sum, mm5);
-
-	    b0 = vload (T0, src_bpl);
-	    T0 += sizeof (vu8);
+	    sum = vadd32 (sum, thresh_cmp (t1, t0, qwGreedyTwoFrameThreshold,
+					   vsplat32_1));
 
 	    // if |B1-B0| > Threshold we want dword worth of ones
-	    mm4 = vsr1u8 (vabsdiffu8 (b1, b0));
-	    mm4 = (vu8) vcmpgt8 ((v8) mm4, qwGreedyTwoFrameThreshold);
-	    mm4 = vand (mm4, vsplat8_127);
-	    mm5 = (v32) vandnot (vcmpgt32 ((v32) mm4, vsplat32_1), vsplat32_1);
-	    sum = vadd32 (sum, mm5);
+	    b0 = vload (T0, src_bpl);
+	    T0 += sizeof (vu8);
+	    sum = vadd32 (sum, thresh_cmp (b1, b0, qwGreedyTwoFrameThreshold,
+					   vsplat32_1));
 
 	    mm4 = (vu8) vcmpgt32 (sum, vsplat32_2);
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.h,v 1.2.2.2 2005-05-07 03:31:05 mschimek Exp $ */
+/* $Id: simd.h,v 1.2.2.3 2005-05-17 19:58:31 mschimek Exp $ */
 
 #ifndef SIMD_H
 #define SIMD_H
@@ -81,6 +81,8 @@
 #  define SIMD 0
 #endif
 
+#define always_inline __attribute__ ((always_inline, unused))
+
 /* ------------------------------------------------------------------------- */
 
 #if SIMD
@@ -103,12 +105,26 @@
 extern const v8 vsplat8_1;	/* vsplat8(1) */			\
 extern const v8 vsplat8_m1;	/* vsplat8(-1) */			\
 extern const v8 vsplat8_15;	/* vsplat8(15) */			\
-extern const v8 vsplat8_127;	/* vsplat8(127) */			\
-extern const v16 vsplat16_255;	/* vsplat16(255) */			\
-extern const v16 vsplat16_256;	/* vsplat16(256) */			\
-extern const v16 vsplat16_m256;	/* vsplat16(-256) */			\
+extern const v8 vsplat8_127;	/* vsplat8(127 = 0x7F) */		\
+extern const v16 vsplat16_255;	/* vsplat16(255 = 0x00FF) */		\
+extern const v16 vsplat16_256;	/* vsplat16(256 = 0x0100) */		\
+extern const v16 vsplat16_m256;	/* vsplat16(-256 = 0xFF00) */		\
 extern const v32 vsplat32_1;	/* vsplat32(1) */			\
 extern const v32 vsplat32_2;	/* vsplat32(2) */
+
+#define vsplatu8_1 ((vu8) vsplat8_1)
+#define vsplat16_m1 ((v16) vsplat8_1)
+#define vsplat32_m1 ((v32) vsplat8_1)
+#define vsplatu8_m1 ((vu8) vsplat8_m1)
+#define vsplatu16_m1 ((vu16) vsplat8_1)
+#define vsplatu32_m1 ((vu32) vsplat8_1)
+#define vsplatu8_15 ((vu8) vsplat8_15)
+#define vsplatu8_127 ((vu8) vsplat8_127)
+#define vsplatu16_255 ((vu16) vsplat16_255)
+#define vsplatu16_256 ((vu16) vsplat16_256)
+#define vsplatu16_m256 ((vu16) vsplat16_m256)
+#define vsplatu32_1 ((vu32) vsplat32_1)
+#define vsplatu32_2 ((vu32) vsplat32_2)
 
 /* Neither MMX nor AltiVec have cmplt instructions. */
 
@@ -163,7 +179,7 @@ SIMD_CONST_PROTOS
 #if (SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW))			\
     && GCC_VERSION >= 40000 && GCC_VERSION < 40200
 
-static __inline__ __m64
+static always_inline __m64
 vsplatu8			(uint8_t		_i)
 {
 	uint64_t t = _i;
@@ -175,13 +191,13 @@ vsplatu8			(uint8_t		_i)
     	return (__m64) t;
 }
 
-static __inline__ __m64
+static always_inline __m64
 vsplat8				(int8_t			_i)
 {
 	return vsplatu8 ((uint8_t) _i);
 }
 
-static __inline__ __m64
+static always_inline __m64
 vsplatu16			(uint16_t		_i)
 {
 	uint64_t t = _i;
@@ -192,13 +208,13 @@ vsplatu16			(uint16_t		_i)
     	return (__m64) t;
 }
 
-static __inline__ __m64
+static always_inline __m64
 vsplat16			(int16_t		_i)
 {
 	return vsplatu16 ((uint16_t) _i);
 }
 
-static __inline__ __m64
+static always_inline __m64
 vsplatu32			(uint32_t		_i)
 {
 	uint64_t t = _i;
@@ -206,7 +222,7 @@ vsplatu32			(uint32_t		_i)
     	return (__m64)(t | (t << 32));
 }
 
-static __inline__ __m64
+static always_inline __m64
 vsplat32			(int32_t		_i)
 {
 	return vsplatu32 ((uint32_t) _i);
@@ -254,7 +270,7 @@ vsplat32			(int32_t		_i)
 /* For each bit: (1 == _mask) ? _a : _b.  One AltiVec instruction
    but expensive with MMX/SSE/SSE2.  Note AltiVec's vec_sel() has
    the parameters reversed. */
-static __inline__ __m64
+static always_inline __m64
 vsel				(__m64			_mask,
 				 __m64			_a,
 				 __m64			_b)
@@ -276,7 +292,7 @@ vsel				(__m64			_mask,
 #define vsru16(_a, _i) _mm_srli_pi16 (_a, _i)
 
 /* Long shift right, e.g. (0x0123, 0x4567, 3) -> 0x1234 */
-static __inline__ __m64
+static always_inline __m64
 vlsr				(__m64			_h,
 				 __m64			_l,
 				 unsigned int		_i)
@@ -290,9 +306,27 @@ vlsr				(__m64			_h,
 	} else if (64 == _i) {
 		return _h;
 	} else {
-		assert (0 == (_i % 8));
 		return vor (vsru (_l, _i), vsl (_h, 64 - _i));
 	}
+}
+
+/* Given am = * (const vu8 *) &src[-sizeof (vu8)],
+         a0 = * (const vu8 *) src,
+         a1 = * (const vu8 *) &src[+sizeof (vu8)],
+   where src is uint8_t* and dist is given in bytes
+   this emulates an unaligned load from src - dist and src + dist */
+static always_inline void
+vshiftu2x			(__m64 *		_l,
+				 __m64 *		_r,
+				 __m64			_am,
+				 __m64			_a0,
+				 __m64			_a1,
+				 const unsigned int	_dist)
+{
+	/* 7654 3210 -> 6543 */
+	*_l = vlsr (_a0, _am, (sizeof (vu8) - _dist) * 8);
+	/* BA98 7654 -> 8765 */
+	*_r = vlsr (_a1, _a0, _dist * 8);
 }
 
 #define vunpacklo8(_a, _b) _mm_unpacklo_pi8 (_a, _b)
@@ -355,7 +389,7 @@ vlsr				(__m64			_h,
 #define vempty() _mm_empty ()
 
 /* abs (_a - _b). */
-static __inline__ vu8
+static always_inline vu8
 vabsdiffu8			(vu8			_a,
 				 vu8			_b)
 {
@@ -363,7 +397,7 @@ vabsdiffu8			(vu8			_a,
 }
 
 /* (_a + _b + 1) / 2 (single instruction on all but MMX). */
-static __inline__ vu8
+static always_inline vu8
 vavgu8				(vu8			_a,
 				 vu8			_b)
 {
@@ -380,7 +414,7 @@ vavgu8				(vu8			_a,
 	return vadd8 (vadd8 (_a, _b), carry);
 }
 
-static __inline__ vu8
+static always_inline vu8
 fast_vavgu8			(vu8			_a,
 				 vu8			_b)
 {
@@ -389,7 +423,7 @@ fast_vavgu8			(vu8			_a,
 }
 
 /* min (_a, _b) (single instruction on all but MMX, 3DNow). */
-static __inline__ vu8
+static always_inline vu8
 vminu8				(vu8			_a,
 				 vu8			_b)
 {
@@ -402,7 +436,7 @@ vminu8				(vu8			_a,
 }
 
 /* max (_a, _b) (single instruction on all but MMX, 3DNow). */
-static __inline__ vu8
+static always_inline vu8
 vmaxu8				(vu8			_a,
 				 vu8			_b)
 {
@@ -413,7 +447,7 @@ vmaxu8				(vu8			_a,
 
 /* min (_a, _b), max (_a, _b).
    With MMX this is faster than vmin(), vmax(). */
-static __inline__ void
+static always_inline void
 vminmaxu8			(vu8 *			_min,
 				 vu8 *			_max,
 				 vu8			_a,
@@ -428,7 +462,7 @@ vminmaxu8			(vu8 *			_min,
 	*_min = vxor (_a, t);	/* b       a */
 }
 
-static __inline__ vu8
+static always_inline vu8
 vminu16i			(vu8			_a,
 				 unsigned int		_i)
 {
@@ -486,7 +520,7 @@ vminu16i			(vu8			_a,
 /* Override MMX inline function vminmaxu8. */
 #define vminmaxu8(_minp, _maxp, _a, _b) sse_vminmaxu8 (_minp, _maxp, _a, _b)
 
-static __inline__ void
+static always_inline void
 sse_vminmaxu8			(vu8 *			_min,
 				 vu8 *			_max,
 				 vu8			_a,
@@ -569,28 +603,12 @@ SIMD_CONST_PROTOS
 /* For each bit: (1 == _mask) ? _a : _b.  One AltiVec instruction
    but expensive with MMX/SSE/SSE2.  Note AltiVec's vec_sel() has
    the parameters reversed. */
-static __inline__ __m128i
+static always_inline __m128i
 vsel				(__m128i		_mask,
 				 __m128i		_a,
 				 __m128i		_b)
 {
 	return vor (vand (_a, _mask), vandnot (_b, _mask));
-}
-
-static __inline__ __m128i
-vsl				(__m128i		_a,
-				 unsigned int		_i)
-{
-	assert (0 == (_i % 8));
-	return _mm_slli_si128 (_a, _i / 8); /* sic */
-}
-
-static __inline__ __m128i
-vsru				(__m128i		_a,
-				 unsigned int		_i)
-{
-	assert (0 == (_i % 8));
-	return _mm_srli_si128 (_a, _i / 8); /* sic */
 }
 
 #define vsl18(_a) _mm_slli_epi16 (vand (_a, vsplat8_127), 1)
@@ -600,11 +618,32 @@ vsru				(__m128i		_a,
 #define vsr16(_a, _i) _mm_srai_epi16 (_a, _i)
 #define vsru16(_a, _i) _mm_srli_epi16 (_a, _i)
 
+/* _mm_sxli_si128 is misdefined under gcc -O0.  Arg 2 must be an immediate,
+   not a variable which evaluates to one, not even a const variable. */
+
+#if 0
+
+static always_inline __m128i
+vsl				(__m128i		_a,
+				 const unsigned int	_i)
+{
+	assert (0 == (_i % 8));
+	return _mm_slli_si128 (_a, _i / 8); /* sic */
+}
+
+static always_inline __m128i
+vsru				(__m128i		_a,
+				 const unsigned int	_i)
+{
+	assert (0 == (_i % 8));
+	return _mm_srli_si128 (_a, _i / 8); /* sic */
+}
+
 /* Long shift right, e.g. (0x0123, 0x4567, 3) -> 0x1234 */
-static __inline__ __m128i
+static always_inline __m128i
 vlsr				(__m128i		_h,
 				 __m128i		_l,
-				 unsigned int		_i)
+				 const unsigned int	_i)
 {
 	assert (_i <= 128);
 
@@ -615,10 +654,50 @@ vlsr				(__m128i		_h,
 	} else if (128 == _i) {
 		return _h;
 	} else {
-		assert (0 == (_i % 8));
 		return vor (vsru (_l, _i), vsl (_h, 128 - _i));
 	}
 }
+
+static always_inline void
+vshiftu2x			(__m128i *		_l,
+				 __m128i *		_r,
+				 __m128i		_am,
+				 __m128i		_a0,
+				 __m128i		_a1,
+				 const unsigned int	_dist)
+{
+	/* 7654 3210 -> 6543 */
+	*_l = vlsr (_a0, _am, (sizeof (vu8) - _dist) * 8);
+	/* BA98 7654 -> 8765 */
+	*_r = vlsr (_a1, _a0, _dist * 8);
+}
+
+#else
+
+#  define vsl(_a, _i)							\
+	(assert (0 == ((_i) % 8)), _mm_slli_si128 ((_a), (_i) / 8))
+#  define vsru(_a, _i)							\
+	(assert (0 == ((_i) % 8)), _mm_srli_si128 ((_a), (_i) / 8))
+
+#define vlsr(_h, _l, _i)						\
+({									\
+	__m128i h = _h;							\
+	__m128i l = _l;							\
+									\
+	assert (_i <= 128);						\
+	(0 == (_i)) ? l :						\
+	 (64 == (_i)) ? _mm_unpackhi_epi64 (l, vsl (h, 64)) :		\
+	 (128 == (_i)) ? h :						\
+	  vor (vsru (l, _i), vsl (h, 128 - (_i)));			\
+})
+
+#define vshiftu2x(_l, _r, _am, _a0, _a1, _dist)				\
+({									\
+    *_l = vlsr (_a0, _am, (sizeof (vu8) - _dist) * 8);			\
+    *_r = vlsr (_a1, _a0, _dist * 8);					\
+})
+
+#endif
 
 #define vunpacklo8(_a, _b) _mm_unpacklo_epi8 (_a, _b)
 #define vunpackhi8(_a, _b) _mm_unpackhi_epi8 (_a, _b)
@@ -675,7 +754,7 @@ vlsr				(__m128i		_h,
 #define vmax16(_a, _b) _mm_max_epi16 (_a, _b)
 
 /* abs (_a - _b). */
-static __inline__ vu8
+static always_inline vu8
 vabsdiffu8			(vu8			_a,
 				 vu8			_b)
 {
@@ -683,7 +762,7 @@ vabsdiffu8			(vu8			_a,
 }
 
 /* min (_a, _b), max (_a, _b). */
-static __inline__ void
+static always_inline void
 vminmaxu8			(vu8 *			_min,
 				 vu8 *			_max,
 				 vu8			_a,
@@ -721,7 +800,7 @@ vminmaxu8			(vu8 *			_min,
 
 #elif SIMD == CPU_FEATURE_ALTIVEC
 
-#define SUFFIX _AVEC
+#define SUFFIX _ALTIVEC
 
 /* AltiVec equivalent of the MMX/SSE macros. */
 /* Please avoid macro nesting, that compiles much slower. */
@@ -749,12 +828,12 @@ SIMD_CONST_PROTOS
 /* FIXME these macros load a scalar variable into each element
    of the vector.  AltiVec has another instruction to load an
    immediate, but it's limited to -16 ... 15. */
-#define vsplat8(_i) vec_splat ((v8) vec_lde (0, &(_i)), 0);
-#define vsplat16(_i) vec_splat ((v16) vec_lde (0, &(_i)), 0);
-#define vsplat32(_i) vec_splat ((v32) vec_lde (0, &(_i)), 0);
-#define vsplatu8(_i) vec_splat ((vu8) vec_lde (0, &(_i)), 0);
-#define vsplatu16(_i) vec_splat ((vu16) vec_lde (0, &(_i)), 0);
-#define vsplatu32(_i) vec_splat ((vu32) vec_lde (0, &(_i)), 0);
+#define vsplat8(_i) vec_splat ((v8) vec_lde (0, &(_i)), 0)
+#define vsplat16(_i) vec_splat ((v16) vec_lde (0, &(_i)), 0)
+#define vsplat32(_i) vec_splat ((v32) vec_lde (0, &(_i)), 0)
+#define vsplatu8(_i) vec_splat ((vu8) vec_lde (0, &(_i)), 0)
+#define vsplatu16(_i) vec_splat ((vu16) vec_lde (0, &(_i)), 0)
+#define vsplatu32(_i) vec_splat ((vu32) vec_lde (0, &(_i)), 0)
 
 #define vload(_p, _o) vec_ld (_o, _p)
 #define vstore(_p, _o, _a) vec_st (_a, _o, _p)
@@ -786,7 +865,7 @@ SIMD_CONST_PROTOS
 #define vsubsu8(_a, _b) vec_subs (_a, _b)
 #define vsubsu16(_a, _b) vec_subs (_a, _b)
 
-static __inline__ vu8
+static always_inline vu8
 vsatu8				(vu8			_a,
 				 vu8			_min,
 				 vu8			_max)
@@ -795,56 +874,56 @@ vsatu8				(vu8			_a,
 	return vec_min (m, _max);
 }
 
-static __inline__ v8
+static always_inline v8
 vsl18				(v8			_a)
 {
 	vu8 one = vec_splat_u8 (1);
 	return vec_sl (_a, one);
 }
 
-static __inline__ v8
+static always_inline v8
 vsr18				(v8			_a)
 {
 	vu8 one = vec_splat_u8 (1);
 	return vec_sra (_a, one);
 }
 
-static __inline__ vu8
+static always_inline vu8
 vsr1u8				(vu8			_a)
 {
 	vu8 one = vec_splat_u8 (1);
 	return vec_sr (_a, one);
 }
 
-static __inline__ v16
+static always_inline v16
 vsl16				(v16			_a,
-				 unsigned int		_i)
+				 const unsigned int	_i)
 {
 	vu16 i = vec_splat_u16 (_i);
 	return vec_sl (_a, i);
 }
 
-static __inline__ v16
+static always_inline v16
 vsr16				(v16			_a,
-				 unsigned int		_i)
+				 const unsigned int	_i)
 {
 	vu16 i = vec_splat_u16 (_i);
 	return vec_sra (_a, i);
 }
 
-static __inline__ vu16
+static always_inline vu16
 vsru16				(vu16			_a,
-				 unsigned int		_i)
+				 const unsigned int	_i)
 {
 	vu16 i = vec_splat_u16 (_i);
 	return vec_sr (_a, i);
 }
 
 /* Long shift right, e.g. (0x0123, 0x4567, 3) -> 0x1234 */
-static __inline__ vu8
+static always_inline vu8
 vlsr				(vu8			_h,
 				 vu8			_l,
-				 unsigned int		_i)
+				 const unsigned int	_i)
 {
 	assert (_i <= 128);
 
@@ -865,46 +944,60 @@ vlsr				(vu8			_h,
 	}
 }
 
+static always_inline void
+vshiftu2x			(vu8 *			_l,
+				 vu8 *			_r,
+				 vu8			_am,
+				 vu8			_a0,
+				 vu8			_a1,
+				 const unsigned int	_dist)
+{
+	/* 0123 4567 -> 3456 */
+	*_l = vlsr (_am, _a0, _dist * 8);
+	/* 4567 89AB -> 5678 */
+	*_r = vlsr (_a0, _a1, (sizeof (vu8) - _dist) * 8);
+}
+
 #define vcmpeq8(_a, _b) vec_cmpeq (_a, _b)
 #define vcmpeq16(_a, _b) vec_cmpeq (_a, _b)
 #define vcmpeq32(_a, _b) vec_cmpeq (_a, _b)
 
-static __inline__ vector bool char
+static always_inline vector bool char
 vcmpz8				(v8			_a)
 {
 	v8 z = vzero8 ();
 	return vec_cmpeq (_a, z);
 }
 
-static __inline__ vector bool short
+static always_inline vector bool short
 vcmpz16				(v16			_a)
 {
 	v16 z = vzero16 ();
 	return vec_cmpeq (_a, z);
 }
 
-static __inline__ vector bool int
+static always_inline vector bool int
 vcmpz32				(v32			_a)
 {
 	v32 z = vzero32 ();
 	return vec_cmpeq (_a, z);
 }
 
-static __inline__ vector bool char
+static always_inline vector bool char
 vcmpnz8				(v8			_a)
 {
 	vector bool char b = vcmpz8 (_a);
 	return vnot (b);
 }
 
-static __inline__ vector bool short
+static always_inline vector bool short
 vcmpnz16			(v16			_a)
 {
 	vector bool short b = vcmpz16 (_a);
 	return vnot (b);
 }
 
-static __inline__ vector bool int
+static always_inline vector bool int
 vcmpnz32			(v32			_a)
 {
 	vector bool b = vcmpz32 (_a);
@@ -920,7 +1013,7 @@ vcmpnz32			(v32			_a)
 #define vcmpgtu32(_a, _b) vec_cmpgt (_a, _b)
 
 /* Has no integer cmpge. */
-static __inline__ vector bool char
+static always_inline vector bool char
 vcmpgeu8			(vu8			_a,
 				 vu8			_b)
 {
@@ -928,7 +1021,7 @@ vcmpgeu8			(vu8			_a,
 	return vcmpz8 (d);
 }
 
-static __inline__ vu16
+static always_inline vu16
 vmullo16			(v16			_a,
 				 v16			_b)
 {
@@ -944,7 +1037,7 @@ vmullo16			(v16			_a,
 #define vmin16(_a, _b) vec_min (_a, _b)
 #define vmax16(_a, _b) vec_max (_a, _b)
 
-static __inline__ vu8
+static always_inline vu8
 vabsdiffu8			(vu8			_a,
 				 vu8			_b)
 {
@@ -952,7 +1045,7 @@ vabsdiffu8			(vu8			_a,
 	return vec_sub (vec_max (_a, _b), vec_min (_a, _b));
 }
 
-static __inline__ void
+static always_inline void
 vminmaxu8			(vu8 *			_min,
 				 vu8 *			_max,
 				 vu8			_a,

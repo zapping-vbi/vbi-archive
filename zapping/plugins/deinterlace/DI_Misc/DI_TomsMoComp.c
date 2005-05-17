@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_TomsMoComp.c,v 1.1.2.1 2005-05-05 09:46:01 mschimek Exp $
+// $Id: DI_TomsMoComp.c,v 1.1.2.2 2005-05-17 19:58:32 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2002 Tom Barry.  All rights reserved.
 // Copyright (c) 2005 Michael H. Schimek
@@ -32,6 +32,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.1  2005/05/05 09:46:01  mschimek
+// *** empty log message ***
+//
 // Revision 1.2  2005/04/08 15:18:57  michael
 // *** empty log message ***
 //
@@ -85,9 +88,9 @@ SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceTomsMoComp);
 #define USE_VERTICAL_FILTER 0
 #define DONT_USE_STRANGE_BOB 0
 
-#define DiffThres vsplat8_15
+#define DiffThres vsplatu8_15
 
-static __inline__ void
+static always_inline void
 simple_bob			(uint8_t *		pDest,
 				 const uint8_t *	pBob,
 				 unsigned int		dst_bpl,
@@ -114,7 +117,7 @@ simple_bob			(uint8_t *		pDest,
     }
 }
 
-static __inline__ void
+static always_inline void
 best_bob			(vu8 *			set,
 				 vu8 *			pixels,
 				 vu8 *			weight,
@@ -142,7 +145,7 @@ best_bob			(vu8 *			set,
     }
 }
 
-static __inline__ void
+static always_inline void
 MERGE4PIXavg			(vu8 *			pixels,
 				 vu8 *			weight,
 				 int			cont,
@@ -170,7 +173,7 @@ MERGE4PIXavg			(vu8 *			pixels,
     }
 }
 
-static __inline__ void
+static always_inline void
 MERGE4PIXavgH			(vu8 *			pixels,
 				 vu8 *			weight,
 				 int			cont,
@@ -188,7 +191,7 @@ MERGE4PIXavgH			(vu8 *			pixels,
    Two pair calls and unpair are faster than four regular calls
    and throwing away chroma results. */
 
-static __inline__ void
+static always_inline void
 MERGE4PIXavgPair		(vu8 *			pixels,
 				 vu8 *			weight,
 				 int			cont,
@@ -211,7 +214,7 @@ MERGE4PIXavgPair		(vu8 *			pixels,
     MERGE4PIXavg (pixels, weight, cont, a, b);
 }
 
-static __inline__ void
+static always_inline void
 MERGE4PIXavgHPair		(vu8 *			pixels,
 				 vu8 *			weight,
 				 int			cont,
@@ -244,7 +247,7 @@ MERGE4PIXavgHPair		(vu8 *			pixels,
     MERGE4PIXavgH (pixels, weight, cont, a, b, c, d);
 }
 
-static __inline__ void
+static always_inline void
 Unpair				(vu8 *			pixels,
 				 vu8 *			weight)
 {
@@ -252,13 +255,13 @@ Unpair				(vu8 *			pixels,
 
 #if SIMD == CPU_FEATURE_ALTIVEC
     /* 0xY0YaY1Yb */
-    t = (vu8) vsl16 ((vu16) *weight, 8);
+    t = (vu8) vsl16 ((v16) *weight, 8);
     /* Saves one instruction over vcmpleu because AltiVec
        has no integer cmple. */
     *weight = vminu8 (*weight, t);
-    mask = vcmpeq8 (*weight, t);
+    mask = (vu8) vcmpeq8 (*weight, t);
     *weight = vor (*weight, (vu8) vsplat16_255);
-    *pixels = vselr (mask, (vu8) vsl16 ((vu16) *pixels, 8), *pixels);
+    *pixels = vsel (mask, (vu8) vsl16 ((v16) *pixels, 8), *pixels);
 #elif SIMD & (CPU_FEATURE_SSE | CPU_FEATURE_SSE2)
     /* 0xYbY1YaY0 */
     t = (vu8) vsru16 ((vu16) *weight, 8);
@@ -338,7 +341,7 @@ Unpair				(vu8 *			pixels,
     dc2 = vload (pSrc, src_bpl * 2);					\
     MERGE4PIXavg (&weave, &weave_d, 1, uc1, dc2);
 
-static __inline__ BOOL
+static always_inline BOOL
 Search_Effort_template		(TDeinterlaceInfo *	pInfo,
 				 const int		effort,
 				 const int		use_strange_bob)
@@ -758,7 +761,7 @@ Search_Effort_template		(TDeinterlaceInfo *	pInfo,
 		    /* SearchLoop0A.inc - center in old and new */
 
 		    /* bias toward no motion */
-		    weave_d = vaddsu8 (weave_d, vsplat8_1);
+		    weave_d = vaddsu8 (weave_d, vsplatu8_1);
 		    MERGE4PIXavg (&weave, &weave_d, /* cont */ TRUE, cc1, cc2);
 		}
 

@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyH.c,v 1.2.2.1 2005-05-05 09:46:00 mschimek Exp $
+// $Id: DI_GreedyH.c,v 1.2.2.2 2005-05-17 19:58:32 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -37,6 +37,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2.2.1  2005/05/05 09:46:00  mschimek
+// *** empty log message ***
+//
 // Revision 1.2  2005/02/05 22:21:06  mschimek
 // Completed l18n.
 //
@@ -125,7 +128,7 @@
 static BOOL
 DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
 {
-#if 0 && defined (HAVE_ALTIVEC)
+#if defined (HAVE_ALTIVEC)
     if (cpu_features & CPU_FEATURE_ALTIVEC) {
 	if (GreedyUseMedianFilter |
 	    GreedyUsePulldown |
@@ -137,7 +140,7 @@ DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
 	}
     } else
 #endif
-#if 0 && defined (HAVE_SSE2)
+#if defined (HAVE_SSE2)
     if (cpu_features & CPU_FEATURE_SSE2) {
 	if (GreedyUseMedianFilter |
 	    GreedyUsePulldown |
@@ -161,9 +164,9 @@ DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
 	}
     } else
 #endif
-#if 0 && defined (HAVE_3DNOW)
+#if defined (HAVE_3DNOW)
     if (cpu_features & CPU_FEATURE_3DNOW) {
-	return DI_GreedyHF__3DNOW (pInfo);
+	return DI_GreedyHF_3DNOW (pInfo);
     } else
 #endif
 #if defined (HAVE_MMX)

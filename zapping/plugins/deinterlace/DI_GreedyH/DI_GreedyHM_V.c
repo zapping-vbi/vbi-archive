@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHM_V.c,v 1.1.2.1 2005-05-05 09:46:00 mschimek Exp $
+// $Id: DI_GreedyHM_V.c,v 1.1.2.2 2005-05-17 19:58:32 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -28,6 +28,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.1  2005/05/05 09:46:00  mschimek
+// *** empty log message ***
+//
 // Revision 1.1  2005/01/08 14:54:23  mschimek
 // *** empty log message ***
 //
@@ -54,7 +57,7 @@
 #include "windows.h"
 #include "DI_GreedyHM.h"
 
-static __inline__ BOOL
+static always_inline BOOL
 DI_GreedyHM_V_template		(TDeinterlaceInfo *	pInfo,
 				 ghxc_mode		mode)
 {
@@ -74,7 +77,7 @@ DI_GreedyHM_V_template		(TDeinterlaceInfo *	pInfo,
     unsigned int dst_padding;
     unsigned int src_padding;
 
-    MaxCombW = vsplat8 (GreedyHMaxComb);
+    MaxCombW = vsplatu8 (GreedyHMaxComb);
 
     /* In a saturated subtraction UVMask clears the u, v bytes. */
     MotionThresholdW =

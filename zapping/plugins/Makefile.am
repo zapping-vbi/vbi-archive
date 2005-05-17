@@ -10,13 +10,11 @@ if HAVE_LIBZVBI
 SUBDIRS += teletext
 endif
 
-# Cannot build for target x86_64, code is 32 bit (being worked on).
-if HAVE_X86
-# Need gcc and as support for MMX, SSE, SSE2 to build this module.
-# HAVE_SSE2 implies working SSE2 intrinsics, which is not necessary.
-if HAVE_SSE2_ASM
+if HAVE_MMX
 SUBDIRS += deinterlace
 endif
+if HAVE_ALTIVEC
+SUBDIRS += deinterlace
 endif
 
 # Not built this time:

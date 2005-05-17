@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHMPulldown.c,v 1.2.2.1 2005-05-05 09:46:00 mschimek Exp $
+// $Id: DI_GreedyHMPulldown.c,v 1.2.2.2 2005-05-17 19:58:32 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -27,6 +27,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2.2.1  2005/05/05 09:46:00  mschimek
+// *** empty log message ***
+//
 // Revision 1.2  2005/01/20 01:38:33  mschimek
 // *** empty log message ***
 //
@@ -375,7 +378,7 @@ PullDown_V			(TDeinterlaceInfo *	pInfo,
     return TRUE;
 }
 
-static __inline__ vu16
+static always_inline vu16
 min255_sru6_u16			(vu16			mm0)
 {
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW)
@@ -383,9 +386,9 @@ min255_sru6_u16			(vu16			mm0)
     return vminu16i (vsru16 (mm0, 6), 255);
 #elif SIMD & (CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_SSE3)
     /* Has no vminu16 but vmin16 is safe here. */
-    return (vu16) vmin16 (vsru16 (mm0, 6), (vu16) vsplat16_255);
+    return (vu16) vmin16 (vsru16 (mm0, 6), vsplatu16_255);
 #elif SIMD == CPU_FEATURE_ALTIVEC
-    return vminu16 (vsru16 (mm0, 6), (vu16) vsplat16_255);
+    return vec_min (vsru16 (mm0, 6), vsplatu16_255);
 #else
 #  error Unknown SIMD ISA.
     return vzerou8 ();
@@ -429,12 +432,12 @@ PullDown_VSharp2		(uint8_t *		dst,
 	for (count = n_bytes / sizeof (vu8); count > 0; --count) {
 	    Zj = vload (src2, 0);
 	    Zk = vload (src1, 0);
+	    Zl = vload (src2, +FSROWSIZE);
 	    src1 += FSCOLSIZE;
 	    src2 += FSCOLSIZE;
 
-	    mm1 = fast_vavgu8 (Zj, Zk);
-	    mm0 = vmullo16 (yuyv2yy (Zk), QA);
-	    mm1 = vmullo16 (yuyv2yy (Zj), QB);
+	    mm0 = (vu16) vmullo16 (yuyv2yy (Zk), QA);
+	    mm1 = (vu16) vmullo16 (yuyv2yy (fast_vavgu8 (Zj, Zl)), QB);
 	    mm0 = min255_sru6_u16 (vsubsu16 (mm0, mm1));
 	    vstorent (dst, 0, recombine_yuyv (mm0, Zk));
 	    dst += sizeof (vu8);
@@ -456,7 +459,7 @@ PullDown_VSoft2			(uint8_t *		dst,
 				 int			C)
 {
     vu8 Zi, Zj, Zk, Zl, Zm;
-    vu8 mm0, mm1, mm2;
+    vu16 mm0, mm1, mm2;
     unsigned int count;
 
     if (0 != C) {
@@ -481,13 +484,14 @@ PullDown_VSoft2			(uint8_t *		dst,
 	for (count = n_bytes / sizeof (vu8); count > 0; --count) {
 	    Zj = vload (src2, 0);
 	    Zk = vload (src1, 0);
+	    Zl = vload (src2, +FSROWSIZE);
 	    src1 += FSCOLSIZE;
 	    src2 += FSCOLSIZE;
 
-	    mm1 = fast_vavgu8 (Zj, Zk);
 	    mm0 = vmullo16 (yuyv2yy (Zk), QA);
-	    mm1 = vmullo16 (yuyv2yy (Zj), QB);
-	    mm0 = min255_sru6_u16 (vaddsu16 (mm0, mm1));
+	    mm1 = vmullo16 (yuyv2yy (fast_vavgu8 (Zj, Zl)), QB);
+	    mm0 = vaddsu16 (mm0, mm1);
+	    mm0 = min255_sru6_u16 (mm0);
 	    vstorent (dst, 0, recombine_yuyv (mm0, Zk));
 	    dst += sizeof (vu8);
 	}
@@ -669,7 +673,9 @@ PullDown_VSharp			(TDeinterlaceInfo *	pInfo,
     QC = vsplat16 (C);
 
     if (B < 0) {
-	QB = vsplat16 (-B);
+	int MB = -B;
+
+	QB = vsplat16 (MB);
 
         for (height = pInfo->FieldHeight - 2; height > 0; --height) {
             PullDown_VSoft2 (CopyDest, Src1, Src2, pInfo->LineLength,
@@ -708,7 +714,7 @@ static const int Pd32Pattern = 0x05 * 0x108421;	/* 0b00101 x 5 */
 static const int PdMask2b = 0x1B * 0x21;	/* 0b11011 x 2 */
 static const int PdMerge2b = 0x09 * 0x21;	/* 0b01001 x 2 */
 
-static __inline__ int
+static always_inline int
 is_3_2_pattern			(int			flags)
 {
     return (((Pd32Pattern >> 0) == (flags & (PdMask32 >> 0))) |
@@ -718,7 +724,7 @@ is_3_2_pattern			(int			flags)
 	    ((Pd32Pattern >> 4) == (flags & (PdMask32 >> 4))));
 }
 
-static __inline__ int
+static always_inline int
 is_2_2_pattern			(int			flags)
 {
     flags &= 0xFFFFF;

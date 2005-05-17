@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ditest.c,v 1.4.2.2 2005-05-07 03:31:12 mschimek Exp $ */
+/* $Id: ditest.c,v 1.4.2.3 2005-05-17 19:58:32 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -262,21 +262,21 @@ usage				(FILE *			fp,
 		 "Usage: %s [options] <images >images\n\n"
 		 "Source images must be in raw YUYV format without headers.\n"
 		 "Options:\n"
-		 "-c | --cpu     CPU features:\n"
-		 "		 0x0001 x86 time stamp counter\n"
-		 "		 0x0002 x86 conditional moves\n"
-		 "		 0x0004 MMX\n"
-		 "		 0x0008 SSE\n"
-		 "		 0x0010 SSE2\n"
-		 "		 0x0020 AMD MMX extensions\n"
-		 "		 0x0040 3DNow!\n"
-		 "		 0x0080 3DNow! extensions\n"
-		 "		 0x0100 Cyrix MMX extensions\n"
-		 "		 0x0200 AltiVec\n"
-		 "		 0x0400 SSE3\n"
+		 "-c | --cpu     Expect CPU features (also mmx|sse|sse2):\n"
+		 "		 tsc       x86 time stamp counter\n"
+		 "		 cmov      x86 conditional moves\n"
+		 "		 mmx\n"
+		 "		 sse\n"
+		 "		 sse2\n"
+		 "		 amd-mmx   AMD MMX extensions\n"
+		 "		 3dnow     3DNow!\n"
+		 "		 3dnow-ext 3DNow! extensions\n"
+		 "		 cyrix-mmc Cyrix MMX extensions\n"
+		 "		 altivec\n"
+		 "		 sse3\n"
 		 "-h | --height  Image height (288)\n"
 		 "-m | --method  Number or name of deinterlace method:\n"
-		 "               VideoBob, VideoWeave, TwoFrame, Weave,\n"
+		 "               VideoBob = 1, VideoWeave, TwoFrame, Weave,\n"
 		 "               Bob, ScalerBob, EvenOnly, OddOnly, Greedy,\n"
 		 "               Greedy2Frame, GreedyH, TomsMoComp, MoComp2\n"
 		 "-n | --nframes Number of frames to convert (5)\n"
@@ -338,7 +338,7 @@ main				(int			argc,
 			break;
 
                 case 'c':
-			cpu_features = strtol (optarg, NULL, 0);
+			cpu_features = cpu_feature_set_from_string (optarg);
                         break;
 
                 case 'h':

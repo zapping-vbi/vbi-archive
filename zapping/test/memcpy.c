@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: memcpy.c,v 1.4.2.1 2005-05-07 03:31:12 mschimek Exp $ */
+/* $Id: memcpy.c,v 1.4.2.2 2005-05-17 19:58:33 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -79,7 +79,7 @@ main				(int			argc,
 
 	if (argc > 1) {
 		/* Use optimized version, if available. */
-		cpu_features = (cpu_feature_set) strtol (argv[1], NULL, 0);
+		cpu_features = cpu_feature_set_from_string (argv[1]);
 	}
 
 	for (i = 0; i < 33; ++i) {

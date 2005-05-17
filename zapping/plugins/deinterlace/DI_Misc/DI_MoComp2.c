@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_MoComp2.c,v 1.1.2.1 2005-05-05 09:46:01 mschimek Exp $
+// $Id: DI_MoComp2.c,v 1.1.2.2 2005-05-17 19:58:32 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2003 Tom Barry & John Adcock.  All rights reserved.
 // Copyright (c) 2005 Michael H. Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.1  2005/05/05 09:46:01  mschimek
+// *** empty log message ***
+//
 // Revision 1.3  2005/02/05 22:18:27  mschimek
 // Completed l18n.
 //
@@ -75,7 +78,7 @@ SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceMoComp2);
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
 	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
-static __inline__ void
+static always_inline void
 simple_bob			(uint8_t *		pDest,
 				 const uint8_t *	pBob,
 				 unsigned int		dst_bpl,
@@ -249,7 +252,7 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
 	    mm2 = (vu8) vcmpleu8 (be, best);
 	    /* we only want luma from diagonals */
 	    mm2 = vor (mm2, (vu8) UVMask);
-	    mm1 = (vu8) vcmpleu8 (be, (vu8) vsplat8_15);
+	    mm1 = (vu8) vcmpleu8 (be, vsplatu8_15);
 	    /* we let bob through always if diff is small */
 	    mm1 = vor (mm1, mm2);
 
@@ -276,9 +279,9 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
 	    bm = (v32) yuyv2yy (vabsdiffu8 (e, mm2));
 
 	    /* 0xff where movement (xm > 15) in either of *two* pixels */
-	    tm = (v32) vcmpnz32 ((v32) vsubsu8 ((vu8) tm, (vu8) vsplat8_15));
-	    cm = (v32) vcmpnz32 ((v32) vsubsu8 ((vu8) cm, (vu8) vsplat8_15));
-	    bm = (v32) vcmpnz32 ((v32) vsubsu8 ((vu8) bm, (vu8) vsplat8_15));
+	    tm = (v32) vcmpnz32 ((v32) vsubsu8 ((vu8) tm, vsplatu8_15));
+	    cm = (v32) vcmpnz32 ((v32) vsubsu8 ((vu8) cm, vsplatu8_15));
+	    bm = (v32) vcmpnz32 ((v32) vsubsu8 ((vu8) bm, vsplatu8_15));
 
 	    mm2 = (vu8) vand (tm, bm); /* top and bottom moving */
 	    mm1 = vor ((vu8) cm, mm2); /* where we should bob */

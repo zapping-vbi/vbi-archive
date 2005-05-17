@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHM.h,v 1.1.2.1 2005-05-05 09:46:00 mschimek Exp $
+// $Id: DI_GreedyHM.h,v 1.1.2.2 2005-05-17 19:58:32 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (c) 2005 Michael H. Schimek
@@ -137,8 +137,8 @@ SetFsPtrs			(int *			L1,
 
 /* Some common routines. */
 
-static __inline__ vu8
-recombine_yuyv			(v16			yy,
+static always_inline vu8
+recombine_yuyv			(vu16			yy,
 				 vu8			yuyv)
 {
 #if SIMD == CPU_FEATURE_ALTIVEC
@@ -150,29 +150,6 @@ recombine_yuyv			(v16			yy,
     /* 0xVaY1UaY0 */
     return vor (yy, vand (yuyv, UVMask));
 #endif
-}
-
-/* MHS: Given am = * (const vu8 *) &src[-sizeof (vu8)],
-              a0 = * (const vu8 *) src,
-              a1 = * (const vu8 *) &src[+sizeof (vu8)],
-   where src is uint8_t* and dist is given in bytes
-   this emulates an unaligned load from src - dist and src + dist */
-static __inline__ void
-shiftxt				(vu8 *			l,
-				 vu8 *			r,
-				 vu8			am,
-				 vu8			a0,
-				 vu8			a1,
-				 unsigned int		dist)
-{
-    if (Z_BYTE_ORDER == Z_LITTLE_ENDIAN) {
-        /* long shift-right */
-	*l = vlsr (a0, am, (sizeof (vu8) - dist) * 8); /* 7654 3210 -> 6543 */
-	*r = vlsr (a1, a0, dist * 8);		       /* BA98 7654 -> 8765 */
-    } else {
-	*l = vlsr (am, a0, dist * 8); 		       /* 0123 4567 -> 3456 */
-	*r = vlsr (a0, a1, (sizeof (vu8) - dist) * 8); /* 4567 89AB -> 5678 */
-    }
 }
 
 /* For debugging. */
@@ -191,7 +168,7 @@ typedef enum {
    (hence src_incr) and the GreedyHF.c loop core which reads from
    PictureHistory.  *Dest stores in DI_GreedyHM_V() and DI_GreedyHM_NV()
    have been integrated. */
-static __inline__ void
+static always_inline void
 GreedyHXCore			(uint8_t **		Dest,
 				 const uint8_t **	L1,
 				 const uint8_t **	L2,
@@ -234,7 +211,7 @@ GreedyHXCore			(uint8_t **		Dest,
 	if (USE_JAGGIE_REDUCTION) {
 	    vu8 l, c, r;
 
-	    shiftxt (&l, &r, am, a0, a1, 2);
+	    vshiftu2x (&l, &r, am, a0, a1, 2);
 
 	    l = fast_vavgu8 (l, r);  /* avg of next and prev. pixel */
 	    c = fast_vavgu8 (a0, l); /* avg of center with adjacent */
@@ -330,7 +307,8 @@ GreedyHXCore			(uint8_t **		Dest,
 		/* 0xVaY1UaY0 */
 		/* Div by 256 to get weighted avg and merge in
 		   chroma from weave pixels. */
-		weave = vor ((vu8) vsru16 (sum, 8), vand (weave, (vu8) UVMask));
+		weave = vor ((vu8) vsru16 (sum, 8),
+			     vand (weave, (vu8) UVMask));
 	    } else {
 		/* 0xY0UaY1Va */
 		weave = vsel ((vu8) YMask, (vu8) sum, weave);

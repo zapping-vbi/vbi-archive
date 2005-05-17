@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.c,v 1.1.2.2 2005-05-07 03:31:12 mschimek Exp $ */
+/* $Id: simd.c,v 1.1.2.3 2005-05-17 19:58:33 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -198,6 +198,7 @@ SIMD_NAME (test)		(void)
 		PASS (u16, sau16 >> (sb8 & 15), vsru16 (vau16, (sb8 & 15)));
 
 		// vlsr
+		// vshiftu2x
 
 #if SIMD & (CPU_FEATURE_SSE |CPU_FEATURE_SSE2 | CPU_FEATURE_SSE3)
 		// unpack
@@ -303,7 +304,7 @@ main				(int			argc,
 
 	assert (2 == argc);
 
-	cpu_features = (cpu_feature_set) strtol (argv[1], NULL, 0);
+	cpu_features = cpu_feature_set_from_string (argv[1]);
 
 	testp = SIMD_FN_SELECT (test,
 				CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |

@@ -10,10 +10,10 @@ SIMD_CFLAGS = \
 # increase various inlining limits (gcc 3.4.x and later only).
 if HAVE_GCC_LIMITS
 SIMD_CFLAGS += \
-	--param max-inline-insns-single=30000 \
-	--param large-function-insns=30000 \
-	--param inline-unit-growth=3000 \
-	--param large-function-growth=3000
+	--param max-inline-insns-single=50000 \
+	--param large-function-insns=150000 \
+	--param inline-unit-growth=30000 \
+	--param large-function-growth=30000
 endif
 
 SIMD_SOURCES = \

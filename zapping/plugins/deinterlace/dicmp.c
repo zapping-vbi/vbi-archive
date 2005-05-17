@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dicmp.c,v 1.1.2.1 2005-05-05 09:46:00 mschimek Exp $ */
+/* $Id: dicmp.c,v 1.1.2.2 2005-05-17 19:58:32 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -65,6 +65,8 @@ usage				(FILE *			fp,
 		 "Zapping deinterlacer test version " VERSION "\n"
 		 "Copyright (C) 2004-2005 Michael H. Schimek\n"
 		 "This program is licensed under GPL 2. NO WARRANTIES.\n\n"
+		 "This program compares images for bytewise equality to\n"
+		 "find differences between deinterlacer implementations.\n\n"
 		 "Usage: %s [options]  image file  image file\n\n"
 		 "Source images must be in raw YUYV format without headers.\n"
 		 "Options:\n"

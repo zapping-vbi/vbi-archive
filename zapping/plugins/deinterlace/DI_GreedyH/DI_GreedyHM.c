@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHM.c,v 1.1.2.1 2005-05-05 09:46:00 mschimek Exp $
+// $Id: DI_GreedyHM.c,v 1.1.2.2 2005-05-17 19:58:32 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -27,6 +27,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.1  2005/05/05 09:46:00  mschimek
+// *** empty log message ***
+//
 // Revision 1.1  2005/01/08 14:54:23  mschimek
 // *** empty log message ***
 //
@@ -212,11 +215,11 @@ SetFsPtrs			(int *			L1,
 #else /* SIMD */
 
 typedef union {
-    v32			v[2];
-    int32_t		a[sizeof (v32) * 2 / 4];
+    vu32		v[2];
+    uint32_t		a[2 * sizeof (vu32) / sizeof (uint32_t)];
 } pd_sum_union;
 
-static __inline__ void
+static always_inline void
 pulldown_sum			(pd_sum_union *		sum,
 				 vu8			prev,
 				 vu8			new,
@@ -309,13 +312,13 @@ pulldown_sum			(pd_sum_union *		sum,
     sum->v[0] = vec_sum4s (t1, sum->v[0]);
 
     t1 = vabsdiffu8 (new, prev2);
-    t1 = (vu8) vsru16 ((v16) t1, 8); /* throw away uv */
+    t1 = (vu8) vsru16 ((vu16) t1, 8); /* throw away uv */
     /* Sums to { motion, motion, motion, motion }. */
     sum->v[1] = vec_sum4s (t1, sum->v[1]);
 #endif
 }
 
-static __inline__ vu8
+static always_inline vu8
 median_filter			(vu8			prev,
 				 vu8			old,
 				 vu8			new)
@@ -329,11 +332,11 @@ median_filter			(vu8			prev,
 	   depending upon how much effect it has:
 	   absdiff (prev, flt) <= GMFA ? flt : prev */
 	diff = vabsdiffu8 (prev, flt);
-	return vsel (vcmpleu8 (diff, vsplat16 (GreedyMedianFilterAmt)),
+	return vsel (vcmpleu8 (diff, (vu8) vsplat16 (GreedyMedianFilterAmt)),
 		     flt, prev);
 }
 
-static __inline__ void
+static always_inline void
 loop_kernel			(uint8_t **		fs,
 				 const uint8_t **	src,
 				 pd_sum_union *		pd_sum,
@@ -353,38 +356,42 @@ loop_kernel			(uint8_t **		fs,
 	int count;
 	vu8 am, a0, a1;
 
-	am = vzero8 ();
+	am = vzerou8 ();
 	a0 = ((const vu8 *) *src)[0];
 
 	for (count = byte_width / sizeof (vu8) - 1; count > 0; --count) {
-	    vu8 old, new, prev2, l, r, avg2, avg4;
+	    vu8 old, new, prev2, l, r;
+	    vu16 avg2, avg4, newy;
 
 	    a1 = ((const vu8 *) *src)[1];
 
 	last_column:
 	    /* get avg of -2 & +2 pixels */
-	    shiftxt (&l, &r, am, a0, a1, 2);
+	    vshiftu2x (&l, &r, am, a0, a1, 2);
 	    avg2 = vmullo16 (yuyv2yy (fast_vavgu8 (l, r)), QHB);
 
 	    /* get avg of -4 & +4 pixels */
-	    shiftxt (&l, &r, am, a0, a1, 4);
+	    vshiftu2x (&l, &r, am, a0, a1, 4);
 	    avg4 = vmullo16 (yuyv2yy (fast_vavgu8 (l, r)), QHC);
 
 	    /* get ratio of center pixel and combine */
-	    new = vmullo16 (yuyv2yy (a0), QHA);
+	    newy = vmullo16 (yuyv2yy (a0), QHA);
 
 	    /* add in weighted average of Zj,Zl */
 	    if (use_softness)
-		new = vaddsu16 (new, vaddsu16 (avg2, avg4));
+		newy = vaddsu16 (newy, vaddsu16 (avg2, avg4));
 	    else
-		new = vsubsu16 (new, vsubsu16 (avg2, avg4));
+		newy = vsubsu16 (newy, vsubsu16 (avg2, avg4));
 
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW)
-	    new = vminu16i (vsru16 (new, 6), 255);
+	    newy = vminu16i (vsru16 (newy, 6), 255);
+#elif SIMD == CPU_FEATURE_ALTIVEC
+	    newy = vec_min (vsru16 (newy, 6), vsplatu16_255);
 #else
-	    new = vmin16 (vsru16 (new, 6), vsplat16_255);
+	    /* Should be vminu but vmin is ok. */
+	    newy = vmin16 (vsru16 (newy, 6), vsplat16_255);
 #endif
-	    new = recombine_yuyv (new, a0);
+	    new = recombine_yuyv (newy, a0);
 
 	    am = a0;
 	    a0 = a1;
@@ -406,7 +413,7 @@ loop_kernel			(uint8_t **		fs,
 	    *src += sizeof (vu8);
 	}
 
-	a1 = vzero8 ();
+	a1 = vzerou8 ();
 
 	if (count >= 0)
 	    goto last_column;
@@ -437,7 +444,7 @@ loop_kernel			(uint8_t **		fs,
     }
 }
 
-static __inline__ BOOL
+static always_inline BOOL
 DI_GrUpdtFS_template		(TDeinterlaceInfo *	pInfo,
 				 int			use_sharpness,
 				 int			use_softness,
@@ -484,12 +491,17 @@ DI_GrUpdtFS_template		(TDeinterlaceInfo *	pInfo,
 	QHA = vsplat16 (A); /* A as 0 - 64 */
 
 	B = 128 * Q / denom; /* B as 0 - 64 */
-	if (use_softness)
-	    QHB = vsplat16 (-B);
-	else
+	if (use_softness) {
+	    int MB = -B;
+	    QHB = vsplat16 (MB);
+	} else {
 	    QHB = vsplat16 (B);
+	}
 
-	QHC = vsplat16 (64 - A + B); /* so A-B+C=64, unbiased weight */
+	{
+	    int C = 64 - A + B; /* so A-B+C=64, unbiased weight */
+	    QHC = vsplat16 (C);
+	}
     }
 
     fs = FieldStore;
@@ -539,8 +551,8 @@ DI_GrUpdtFS_template		(TDeinterlaceInfo *	pInfo,
 	if (0 == height)
 	    break;
 
-	pd_sum.v[0] = vzero32 ();
-	pd_sum.v[1] = vzero32 ();
+	pd_sum.v[0] = vzerou32 ();
+	pd_sum.v[1] = vzerou32 ();
 
 	for (; height > skip; --height) {
 	    loop_kernel (&fs, &src,
@@ -575,7 +587,7 @@ DI_GrUpdtFS_template		(TDeinterlaceInfo *	pInfo,
 			/* motion */   pd_sum.a[2] / scale);
 #elif SIMD == CPU_FEATURE_ALTIVEC
 	/* motion + motion + motion + motion */
-	pd_sum.v[1] = vec_sums (pd_sum.v[1], vzero32 ());
+	pd_sum.v[1] = (vu32) vec_sums ((v32) pd_sum.v[1], vzero32 ());
 	UpdatePulldown (pInfo,
 			/* comb */     (pd_sum.a[0] + pd_sum.a[2]) / scale,
 			/* contrast */ (pd_sum.a[1] + pd_sum.a[3]) / scale,

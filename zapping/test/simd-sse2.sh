@@ -1,2 +1,2 @@
 #!/bin/sh
-./simd-emu.sh ./simd qemu-i386 0x10
+./simd-emu.sh ./simd qemu-i386 sse2

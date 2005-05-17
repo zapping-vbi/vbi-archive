@@ -18,6 +18,7 @@ ditest_SOURCES = \
 	windows.h
 
 ditest_LDADD = \
+	$(top_builddir)/libtv/libtv.la \
 	DI_GreedyH/libDI_GreedyH.la \
 	DI_Misc/libDI_Misc.la
 

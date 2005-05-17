@@ -11,9 +11,9 @@ SIMD_CFLAGS = \
 if HAVE_GCC_LIMITS
 SIMD_CFLAGS += \
 	--param max-inline-insns-single=50000 \
-	--param large-function-insns=50000 \
-	--param inline-unit-growth=10000 \
-	--param large-function-growth=10000
+	--param large-function-insns=150000 \
+	--param inline-unit-growth=30000 \
+	--param large-function-growth=30000
 endif
 
 # TODO DI_OldGame.c

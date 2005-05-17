@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.h,v 1.1.2.1 2005-05-05 09:46:00 mschimek Exp $ */
+/* $Id: cpu.h,v 1.1.2.2 2005-05-17 19:58:31 mschimek Exp $ */
 
 #ifndef CPU_H
 #define CPU_H
@@ -42,5 +42,7 @@ extern cpu_feature_set		cpu_features;
 
 extern cpu_feature_set
 cpu_detection			(void);
+extern cpu_feature_set
+cpu_feature_set_from_string	(const char *		s);
 
 #endif /* CPU_H */
