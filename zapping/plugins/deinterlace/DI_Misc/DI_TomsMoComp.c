@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_TomsMoComp.c,v 1.1.2.2 2005-05-17 19:58:32 mschimek Exp $
+// $Id: DI_TomsMoComp.c,v 1.1.2.3 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2002 Tom Barry.  All rights reserved.
 // Copyright (c) 2005 Michael H. Schimek
@@ -32,6 +32,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.2  2005/05/17 19:58:32  mschimek
+// *** empty log message ***
+//
 // Revision 1.1.2.1  2005/05/05 09:46:01  mschimek
 // *** empty log message ***
 //
@@ -77,8 +80,8 @@
 #include "windows.h"
 #include "DS_Deinterlace.h"
 
-extern long SearchEffort2;
-extern long UseStrangeBob2;
+extern int SearchEffort2;
+extern int UseStrangeBob2;
 
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceTomsMoComp);
 
@@ -917,12 +920,12 @@ SIMD_NAME (DeinterlaceTomsMoComp) (TDeinterlaceInfo *pInfo)
 
 #elif !SIMD
 
-long SearchEffort2 = 3;
-long UseStrangeBob2 = FALSE;
+int SearchEffort2 = 3;
+int UseStrangeBob2 = FALSE;
 
-////////////////////////////////////////////////////////////////////////////
+/*//////////////////////////////////////////////////////////////////////////
 // Start of Settings related code
-/////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////*/
 SETTING DI_TOMSMOCOMPSETTINGS[DI_TOMSMOCOMP_SETTING_LASTONE] =
 {
     {
@@ -968,11 +971,10 @@ const DEINTERLACE_METHOD TomsMoCompMethod =
     IDH_TOMSMOCOMP,
 };
 
-DEINTERLACE_METHOD* DI_TomsMoComp_GetDeinterlacePluginInfo(long CpuFeatureFlags)
+DEINTERLACE_METHOD *
+DI_TomsMoComp_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
-
-    CpuFeatureFlags = CpuFeatureFlags;
 
     m = malloc (sizeof (*m));
     *m = TomsMoCompMethod;

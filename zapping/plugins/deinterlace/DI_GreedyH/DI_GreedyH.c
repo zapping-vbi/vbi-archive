@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyH.c,v 1.2.2.2 2005-05-17 19:58:32 mschimek Exp $
+// $Id: DI_GreedyH.c,v 1.2.2.3 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -37,6 +37,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2.2.2  2005/05/17 19:58:32  mschimek
+// *** empty log message ***
+//
 // Revision 1.2.2.1  2005/05/05 09:46:00  mschimek
 // *** empty log message ***
 //
@@ -140,6 +143,7 @@ DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
 	}
     } else
 #endif
+
 #if defined (HAVE_SSE2)
     if (cpu_features & CPU_FEATURE_SSE2) {
 	if (GreedyUseMedianFilter |
@@ -152,6 +156,7 @@ DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
 	}
     } else
 #endif
+
 #if defined (HAVE_SSE)
     if (cpu_features & CPU_FEATURE_SSE) {
 	if (GreedyUseMedianFilter |
@@ -164,20 +169,40 @@ DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
 	}
     } else
 #endif
+
+    /* Test mode: enable expensive features for tests. */
+
 #if defined (HAVE_3DNOW)
     if (cpu_features & CPU_FEATURE_3DNOW) {
-	return DI_GreedyHF_3DNOW (pInfo);
+	if (GreedyTestMode
+	    && (GreedyUseMedianFilter |
+		GreedyUsePulldown |
+		GreedyUseVSharpness |
+		GreedyUseHSharpness)) {
+	    return DI_GreedyHM_3DNOW (pInfo);
+	} else {
+	    return DI_GreedyHF_3DNOW (pInfo);
+	}
     } else
 #endif
+
 #if defined (HAVE_MMX)
     if (cpu_features & CPU_FEATURE_MMX) {
-	return DI_GreedyHF_MMX (pInfo);
+	if (GreedyTestMode
+	    && (GreedyUseMedianFilter |
+		GreedyUsePulldown |
+		GreedyUseVSharpness |
+		GreedyUseHSharpness)) {
+	    return DI_GreedyHM_MMX (pInfo);
+	} else {
+	    return DI_GreedyHF_MMX (pInfo);
+	}
     } else
 #endif
 	return FALSE;
 }
 
-SETTING DI_GreedyHSettings[DI_GREEDYH_SETTING_LASTONE] =
+SETTING DI_GreedyHSettings [] =
 {
     {
 	N_("Max Comb"), SLIDER, 0, /* szDisplayName, TYPE, orig val */
@@ -263,6 +288,12 @@ SETTING DI_GreedyHSettings[DI_GREEDYH_SETTING_LASTONE] =
 	1, 1, 1,
 	NULL, "Deinterlace",
 	"GreedyUseHSharpness", NULL,
+    }, {
+	NULL, ONOFF, 0,
+	&GreedyTestMode, FALSE, 0,
+	1, 1, 1,
+	NULL, "Deinterlace",
+	"GreedyTestMode", NULL,
     },
 };
 
@@ -277,7 +308,7 @@ const DEINTERLACE_METHOD GreedyHMethod =
     DeinterlaceGreedyH,			/* Pointer to Algorithm function */
     50,					/* flip frequency in 50Hz mode */
     60,					/* flip frequency in 60Hz mode */
-    DI_GREEDYH_SETTING_LASTONE,		/* number of settings */
+    N_ELEMENTS (DI_GreedyHSettings),	/* number of settings */
     DI_GreedyHSettings,		/* ptr to start of Settings[nSettings] */
     INDEX_VIDEO_GREEDYH,	/* Index Number (pos. in menu) should map*/ 
     NULL,			/* to old enum value and d should be unique */
@@ -294,15 +325,19 @@ const DEINTERLACE_METHOD GreedyHMethod =
     IDH_GREEDYHM,
 };
 
-DEINTERLACE_METHOD*
-DI_GreedyH_GetDeinterlacePluginInfo(long CpuFeatureFlags)
+DEINTERLACE_METHOD *
+DI_GreedyH_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
-
-    CpuFeatureFlags = CpuFeatureFlags;
 
     m = malloc (sizeof (*m));
     *m = GreedyHMethod;
 
     return m;
 }
+
+/*
+Local Variables:
+c-basic-offset: 4
+End:
+ */

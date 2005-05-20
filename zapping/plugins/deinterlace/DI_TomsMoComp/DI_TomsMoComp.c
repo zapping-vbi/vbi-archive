@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_TomsMoComp.c,v 1.3 2005-04-21 04:50:22 mschimek Exp $
+// $Id: DI_TomsMoComp.c,v 1.3.2.1 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2002 Tom Barry.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -31,6 +31,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2005/04/21 04:50:22  mschimek
+// *** empty log message ***
+//
 // Revision 1.2  2005/02/05 22:18:17  mschimek
 // Completed l18n.
 //
@@ -70,7 +73,7 @@
 #include "TomsMoComp.h"
 //Z #include "..\help\helpids.h"
 
-long SearchEffort2 = 3;
+int SearchEffort2 = 3;
 BOOL UseStrangeBob2 = FALSE;
 
 /*
@@ -136,7 +139,7 @@ DEINTERLACE_METHOD TomsMoCompMethod =
 };
 
 
-DEINTERLACE_METHOD* DI_TomsMoComp_GetDeinterlacePluginInfo(long CpuFeatureFlags)
+DEINTERLACE_METHOD* DI_TomsMoComp_GetDeinterlacePluginInfo(int CpuFeatureFlags)
 {
     if (CpuFeatureFlags & FEATURE_SSE2)
     {

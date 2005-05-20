@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_MoComp2.c,v 1.1.2.2 2005-05-17 19:58:32 mschimek Exp $
+// $Id: DI_MoComp2.c,v 1.1.2.3 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2003 Tom Barry & John Adcock.  All rights reserved.
 // Copyright (c) 2005 Michael H. Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.2  2005/05/17 19:58:32  mschimek
+// *** empty log message ***
+//
 // Revision 1.1.2.1  2005/05/05 09:46:01  mschimek
 // *** empty log message ***
 //
@@ -124,7 +127,6 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
     }
 
     byte_width = pInfo->LineLength;
-    height = pInfo->FieldHeight;
 
     dst_bpl = pInfo->OverlayPitch;
     src_bpl = pInfo->InputPitch;
@@ -189,7 +191,7 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
 
     /* All but first and last field line where we cannot read the
        line above and below. */
-    for (height -= 2; height > 0; --height) {
+    for (height = pInfo->FieldHeight - 2; height > 0; --height) {
 	vu8 a, b, c, d, e, f;
 	unsigned int count;
 
@@ -260,8 +262,9 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
 
 	    /* SimpleWeave */
 
-	    mm1 = * (const vu8 *) pSrcP;
-	    mm2 = * (const vu8 *) pSrc;
+	    mm1 = vload (pSrcP, 0);
+	    mm2 = vload (pSrc, 0);
+
 	    /* "movement" in the centre */
 	    cm = (v32) vabsdiffu8 (mm1, mm2);
 	    weave = fast_vavgu8 (mm1, mm2);
@@ -355,11 +358,10 @@ const DEINTERLACE_METHOD MoComp2Method =
     IDH_MOCOMP2,
 };
 
-DEINTERLACE_METHOD* DI_MoComp2_GetDeinterlacePluginInfo(long CpuFeatureFlags)
+DEINTERLACE_METHOD *
+DI_MoComp2_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
-
-    CpuFeatureFlags = CpuFeatureFlags;
 
     m = malloc (sizeof (*m));
     *m = MoComp2Method;

@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHM.c,v 1.1.2.2 2005-05-17 19:58:32 mschimek Exp $
+// $Id: DI_GreedyHM.c,v 1.1.2.3 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -27,6 +27,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.2  2005/05/17 19:58:32  mschimek
+// *** empty log message ***
+//
 // Revision 1.1.2.1  2005/05/05 09:46:00  mschimek
 // *** empty log message ***
 //
@@ -78,22 +81,23 @@
 #if !SIMD
 
 /* Note - actual default values below may be set in DI_GreedyHSETTINGS */
-long GreedyHMaxComb = 5;	 /* max comb we allow past clip */
-long GreedyMotionThreshold = 25; /* ignore changes < this */
-long GreedyMotionSense = 30;	 /* how rapidly to bob when > Threshold */
-long GreedyGoodPullDownLvl = 83; /* Best Comb avg / Comb Avg must be < thes */
+int GreedyHMaxComb = 5;	 /* max comb we allow past clip */
+int GreedyMotionThreshold = 25; /* ignore changes < this */
+int GreedyMotionSense = 30;	 /* how rapidly to bob when > Threshold */
+int GreedyGoodPullDownLvl = 83; /* Best Comb avg / Comb Avg must be < thes */
 /* No Pulldown if field comb / Best avg comb > this */
-long GreedyBadPullDownLvl = 88;
-long GreedyHSharpnessAmt = 50;	 /* % H. sharpness to add or filter */
-long GreedyVSharpnessAmt = 23;	 /* % V. sharpness to add or filter */
-long GreedyMedianFilterAmt = 3;	 /* Don't filter if > this */
-long GreedyLowMotionPdLvl = 9;	 /* Do PullDown on if motion < this */
+int GreedyBadPullDownLvl = 88;
+int GreedyHSharpnessAmt = 50;	 /* % H. sharpness to add or filter */
+int GreedyVSharpnessAmt = 23;	 /* % V. sharpness to add or filter */
+int GreedyMedianFilterAmt = 3;	 /* Don't filter if > this */
+int GreedyLowMotionPdLvl = 9;	 /* Do PullDown on if motion < this */
 
-BOOL GreedyUsePulldown = FALSE;			
+BOOL GreedyUsePulldown = FALSE;
 BOOL GreedyUseInBetween = FALSE;
 BOOL GreedyUseMedianFilter = FALSE;
 BOOL GreedyUseVSharpness = FALSE;
 BOOL GreedyUseHSharpness = FALSE;
+BOOL GreedyTestMode = FALSE;
 
 /*  Input video data is first copied to the FieldStore array, possibly doing
     edge enhancement and median filtering. Field store is layed out to

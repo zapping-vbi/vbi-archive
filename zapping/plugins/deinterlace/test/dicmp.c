@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dicmp.c,v 1.1.2.2 2005-05-17 19:58:32 mschimek Exp $ */
+/* $Id: dicmp.c,v 1.1.2.1 2005-05-20 05:45:14 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -39,7 +39,7 @@ static unsigned int height;
 static unsigned int size;
 
 static const char
-short_options [] = "cd:h:qw:HV";
+short_options [] = "cd:h:lqvw:HV";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
@@ -47,10 +47,12 @@ long_options [] = {
 	{ "continue",	no_argument,		NULL,		'c' },
 	{ "maxdiff",	required_argument,	NULL,		'd' },
 	{ "height",	required_argument,	NULL,		'h' },
-	{ "help",	no_argument,		NULL,		'H' },
+	{ "clip",	no_argument,		NULL,		'l' },
 	{ "quiet",	no_argument,		NULL,		'q' },
+	{ "verbose",	no_argument,		NULL,		'v' },
 	{ "width",	required_argument,	NULL,		'w' },
 	{ "version",	no_argument,		NULL,		'V' },
+	{ "help",	no_argument,		NULL,		'H' },
 	{ 0, 0, 0, 0 }
 };
 #else
@@ -93,8 +95,9 @@ dump				(unsigned long		counter,
 	row = (pixel / width) % height;
 	frame = pixel / size;
 
-	printf ("%9lu (%2lu:%3lu:%3lu): %02x != %02x\n",
-		counter, frame, row, col, c1, c2);
+	printf ("%9lu (%2lu:%3lu:%3lu): %02x %s %02x\n",
+		counter, frame, row, col, c1,
+		(c1 == c2) ? "==" : "!=", c2);
 }
 
 int
@@ -105,8 +108,10 @@ main				(int			argc,
 	FILE *fp1, *fp2;
 	unsigned int maxdiff;
 	unsigned long counter;
+	int verbose;
 	int quiet;
 	int cont;
+	int clip;
 	int index;
 	int c;
 
@@ -115,8 +120,10 @@ main				(int			argc,
 
 	maxdiff = 0;
 
+	verbose = 0;
 	quiet = FALSE;
 	cont = FALSE;
+	clip = FALSE;
 
 	while (-1 != (c = getopt_long (argc, argv, short_options,
 				       long_options, &index))) {
@@ -143,8 +150,16 @@ main				(int			argc,
 			}
                         break;
 
+		case 'l':
+			clip ^= TRUE;
+			break;
+
 		case 'q':
 			quiet ^= TRUE;
+			break;
+
+		case 'v':
+			++verbose;
 			break;
 
                 case 'w':
@@ -172,6 +187,9 @@ main				(int			argc,
 
 	size = width * height;
 
+	if (verbose > 1)
+		quiet = TRUE;
+
 	if ((argc - optind) < 2) {
 		usage (stderr, argv);
 		exit (EXIT_FAILURE);
@@ -194,6 +212,7 @@ main				(int			argc,
 
 	for (counter = 0;; ++counter) {
 		int c1, c2;
+		int error;
 
 		c1 = fgetc (fp1);
 		c2 = fgetc (fp2);
@@ -207,9 +226,22 @@ main				(int			argc,
 			exit (EXIT_SUCCESS);
 		}
 
+		if (verbose > 1)
+			dump (counter, c1, c2);
+
 		if (abs (c1 - c2) > maxdiff) {
+			if (clip) {
+				unsigned int col = (counter % width) & ~7;
+
+				/* sse <-> sse2 first and last column
+				   mismatch due to different vector size. */
+				if (8 == col || (width - 16) == col)
+					continue;
+			}
+
 			if (!quiet)
 				dump (counter, c1, c2);
+
 			if (!cont)
 				exit (EXIT_FAILURE);
 		}

@@ -1,5 +1,5 @@
-/////////////////////////////////////////////////////////////////////////////
-// $Id: DI_VideoBob.c,v 1.3.2.1 2005-05-05 09:46:01 mschimek Exp $
+/*///////////////////////////////////////////////////////////////////////////
+// $Id: DI_VideoBob.c,v 1.3.2.2 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 // Based on code from Virtual Dub Plug-in by Gunnar Thalin
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.1  2005/05/05 09:46:01  mschimek
+// *** empty log message ***
+//
 // Revision 1.3  2005/03/30 21:26:32  mschimek
 // Integrated and converted the MMX code to vector intrinsics.
 //
@@ -55,20 +58,20 @@
 // Revision 1.4  2001/07/13 16:13:33  adcockj
 // Added CVS tags and removed tabs
 //
-/////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////*/
 
 #include "windows.h"
 #include "DS_Deinterlace.h"
 
-extern long EdgeDetect;
-extern long JaggieThreshold;
+extern int EdgeDetect;
+extern int JaggieThreshold;
 
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceFieldBob);
 
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
 	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
-///////////////////////////////////////////////////////////////////////////////
+/*/////////////////////////////////////////////////////////////////////////////
 // DeinterlaceFieldBob
 //
 // Deinterlaces a field with a tendency to bob rather than weave.  Best for
@@ -77,7 +80,7 @@ SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceFieldBob);
 // The algorithm for this was taken from the 
 // Deinterlace - area based Vitual Dub Plug-in by
 // Gunnar Thalin
-///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////*/
 
 BOOL
 SIMD_NAME (DeinterlaceFieldBob)	(TDeinterlaceInfo *	pInfo)
@@ -131,10 +134,10 @@ SIMD_NAME (DeinterlaceFieldBob)	(TDeinterlaceInfo *	pInfo)
     dst_padding = dst_bpl * 2 - byte_width;
     src_padding = src_bpl - byte_width;
 
-    for (height = pInfo->FieldHeight; height > 0; --height) {
+    for (height = pInfo->FieldHeight - 1; height > 0; --height) {
         unsigned int count;
 
-        // For ease of reading, the comments below assume that we're
+        /* For ease of reading, the comments below assume that we're
 	// operating on an odd field (i.e., that bIsOdd is true).  The
 	// exact same processing is done when we operate on an even
 	// field, but the roles of the odd and even fields are reversed.
@@ -144,34 +147,36 @@ SIMD_NAME (DeinterlaceFieldBob)	(TDeinterlaceInfo *	pInfo)
 	// wherever you see "odd" or "even" below, keep in mind that
         // half the time this function is called, those words' meanings
 	// will invert.
+	*/
 
 	for (count = byte_width / sizeof (vu8); count > 0; --count) {
 	    vu8 O1, E, O2, avg;
 	    v16 lum_O1, lum_E, lum_O2, mm6, mm7;
 
-	    O1 = * (const vu8 *) YVal1;
+	    O1 = vload (YVal1, 0);
 	    YVal1 += sizeof (vu8);
 	    lum_O1 = yuyv2yy (O1);
 
-	    O2 = * (const vu8 *) YVal3;
+	    O2 = vload (YVal3, 0);
 	    YVal3 += sizeof (vu8);
 	    lum_O2 = yuyv2yy (O2);
 
-	    // Always use the most recent data verbatim.
+	    /* Always use the most recent data verbatim. */
 	    vstorent (Dest, dst_bpl, O2);
 
 	    avg = fast_vavgu8 (O1, O2);
 
-	    E = * (const vu8 *) YVal2;
+	    E = vload (YVal2, 0);
 	    YVal2 += sizeof (vu8);
 	    lum_E = yuyv2yy (E);
 
-	    // work out (O1 - E) * (O2 - E) / 2
-	    // - EdgeDetect * ((O1 - O2) ^ 2 >> 12)
+	    /* work out (O1 - E) * (O2 - E) / 2
+	    //   - EdgeDetect * (((O1 - O2) / 2) ^ 2 >> 12)
 	    // (the shifts prevent overflow)
+	    */
 
 	    lum_O1 = vsr16 (lum_O1, 1);
-	    lum_E = vsr16 (lum_E, 1);
+	    lum_E  = vsr16 (lum_E, 1);
 	    lum_O2 = vsr16 (lum_O2, 1);
 	    mm6 = (v16) vmullo16 (vsub16 (lum_O1, lum_E),
 				  vsub16 (lum_O2, lum_E));
@@ -184,14 +189,14 @@ SIMD_NAME (DeinterlaceFieldBob)	(TDeinterlaceInfo *	pInfo)
 		      vsel ((vu8) vcmpgt16 (mm6, qwThreshold), avg, E));
 	    Dest += sizeof (vu8);
 	}
-                        
+
 	YVal1 += src_padding;
         YVal2 += src_padding;
         YVal3 += src_padding;
         Dest += dst_padding;
     }
 
-    // Copy last odd line if we're processing an even field.
+    /* Copy last odd line if we're processing an even field. */
     if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_EVEN) {
         copy_line (Dest, YVal2, byte_width);
     }
@@ -203,12 +208,12 @@ SIMD_NAME (DeinterlaceFieldBob)	(TDeinterlaceInfo *	pInfo)
 
 #elif !SIMD
 
-long EdgeDetect = 625;
-long JaggieThreshold = 73;
+int EdgeDetect = 625;
+int JaggieThreshold = 73;
 
-////////////////////////////////////////////////////////////////////////////
+/*///////////////////////////////////////////////////////////////////////////
 // Start of Settings related code
-/////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////*/
 SETTING DI_VideoBobSettings[DI_VIDEOBOB_SETTING_LASTONE] =
 {
     {
@@ -254,11 +259,10 @@ const DEINTERLACE_METHOD VideoBobMethod =
     IDH_VIDEOBOB,
 };
 
-DEINTERLACE_METHOD* DI_VideoBob_GetDeinterlacePluginInfo(long CpuFeatureFlags)
+DEINTERLACE_METHOD *
+DI_VideoBob_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
-
-    CpuFeatureFlags = CpuFeatureFlags;
 
     m = malloc (sizeof (*m));
     *m = VideoBobMethod;

@@ -1,5 +1,5 @@
-///////////////////////////////////////////////////////////////////////////////
-// $Id: DI_TwoFrame.c,v 1.3.2.2 2005-05-17 19:58:32 mschimek Exp $
+/*///////////////////////////////////////////////////////////////////////////
+// $Id: DI_TwoFrame.c,v 1.3.2.3 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 Steven Grimm.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.2  2005/05/17 19:58:32  mschimek
+// *** empty log message ***
+//
 // Revision 1.3.2.1  2005/05/05 09:46:01  mschimek
 // *** empty log message ***
 //
@@ -54,20 +57,20 @@
 // Revision 1.4  2001/07/13 16:13:33  adcockj
 // Added CVS tags and removed tabs
 //
-/////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////*/
 
 #include "windows.h"
 #include "DS_Deinterlace.h"
 
-extern long TwoFrameTemporalTolerance;
-extern long TwoFrameSpatialTolerance;
+extern int TwoFrameTemporalTolerance;
+extern int TwoFrameSpatialTolerance;
 
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceFieldTwoFrame);
 
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
 	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
-///////////////////////////////////////////////////////////////////////////////
+/*/////////////////////////////////////////////////////////////////////////////
 // Deinterlace the latest field, attempting to weave wherever it won't cause
 // visible artifacts.
 //
@@ -107,6 +110,7 @@ SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceFieldTwoFrame);
 // We get around this by dividing all the luminance values by two before
 // squaring them; this results in an effective maximum luminance
 // difference of 127, whose square (16129) is safely comparable.
+*/
 
 static always_inline v16
 cmpsqdiff			(v16			a,
@@ -114,19 +118,17 @@ cmpsqdiff			(v16			a,
 				 v16			thresh)
 {
     v16 t;
+    vu16 u;
 
 #if SIMD == CPU_FEATURE_ALTIVEC
-    {
-	vu16 u;
-
-	t = vsubs16 (a, b);
-	u = vmullo16 (t, t);
-	return (v16) vcmpgtu16 (u, (vu16) thresh);
-    }
+    t = vsubs16 (a, b);
+    u = vmullo16 (t, t);
+    return (v16) vcmpgtu16 (u, (vu16) thresh);
 #else
     /* MMX/SSE/SSE2 has no cmpgtu */
     t = vsr16 (vsubs16 (a, b), 1);
-    return (v16) vcmpgt16 ((v16) vmullo16 (t, t), thresh);
+    u = vmullo16 (t, t);
+    return (v16) vcmpgt16 ((v16) u, thresh);
 #endif
 }
 
@@ -180,8 +182,8 @@ SIMD_NAME (DeinterlaceFieldTwoFrame) (TDeinterlaceInfo *pInfo)
     OVal0 = pInfo->PictureHistory[2]->pData;
     OVal1 = pInfo->PictureHistory[3]->pData;
 
-    // copy first even line no matter what, and the first odd line if we're
-    // processing an odd field.
+    /* copy first even line no matter what, and the first odd line if we're
+       processing an odd field. */
 
     if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD) {
         copy_line (Dest, YVal1, byte_width);
@@ -197,7 +199,7 @@ SIMD_NAME (DeinterlaceFieldTwoFrame) (TDeinterlaceInfo *pInfo)
     dst_padding = dst_bpl * 2 - byte_width;
     src_padding = src_bpl - byte_width;
 
-    for (height = pInfo->FieldHeight; height > 0; --height) {
+    for (height = pInfo->FieldHeight - 1; height > 0; --height) {
         unsigned int count;
 
 	for (count = byte_width / sizeof (vu8); count > 0; --count) {
@@ -210,53 +212,55 @@ SIMD_NAME (DeinterlaceFieldTwoFrame) (TDeinterlaceInfo *pInfo)
 	    B1 = vload (YVal0, src_bpl);
 	    YVal0 += sizeof (vu8);
 
-	    // Always use the most recent data verbatim.
+	    /* Always use the most recent data verbatim. */
 	    vstorent (Dest, dst_bpl, B1);
 
 	    avg = fast_vavgu8 (T1, B1);
 
-	    M1 = * (const vu8 *) YVal1;
+	    M1 = vload (YVal1, 0);
 	    YVal1 += sizeof (vu8);
 
 	    lum_T1 = yuyv2yy (T1);
 	    lum_B1 = yuyv2yy (B1);
 	    lum_M1 = yuyv2yy (M1);
 
-	    // Find out how different T1 and M1 are.
+	    /* Find out how different T1 and M1 are. */
 	    mm3 = cmpsqdiff (lum_T1, lum_M1, qwSpatialTolerance);
 
-    	    // Find out how different B1 and M1 are.
+    	    /* Find out how different B1 and M1 are. */
 	    mm4 = cmpsqdiff (lum_B1, lum_M1, qwSpatialTolerance);
 
-	    // We care about cases where M1 isn't different from its
-	    // neighbors T1 and B1.
+	    /* We care about cases where M1 isn't different from its
+	       neighbors T1 and B1. */
 	    mm3 = vnand (mm3, mm4);
 
-	    lum_M0 = yuyv2yy (* (const vu8 *) OVal1);
+	    lum_M0 = yuyv2yy (vload (OVal1, 0));
 	    OVal1 += sizeof (vu8);
 
-	    // Find out whether M1 is new.  "New" means the square of
+	    /* Find out whether M1 is new.  "New" means the square of
 	    // the luminance difference between M1 and M0 is less than
 	    // the temporal tolerance.
+	    */
 	    mm7 = cmpsqdiff (lum_M1, lum_M0, qwTemporalTolerance);
 
 	    lum_T0 = yuyv2yy (vload (OVal0, 0));
 	    lum_B0 = yuyv2yy (vload (OVal0, src_bpl));
 	    OVal0 += sizeof (vu8);
 
-	    // Find out whether T1 is new.
+	    /* Find out whether T1 is new. */
 	    mm4 = cmpsqdiff (lum_T1, lum_T0, qwTemporalTolerance);
 
-	    // Find out whether B1 is new.
+	    /* Find out whether B1 is new. */
 	    mm5 = cmpsqdiff (lum_B1, lum_B0, qwTemporalTolerance);
 
-	    // We care about cases where M1 is old
-	    // and either T1 or B1 is old.
+	    /* We care about cases where M1 is old
+	       and either T1 or B1 is old. */
 	    mm4 = vnor (mm7, vor (mm4, mm5));
 
-	    // Now figure out where we're going to weave (M1) and where
+	    /* Now figure out where we're going to weave (M1) and where
 	    // we're going to bob (avg).  We'll weave if all pixels are
 	    // old or M1 isn't different from both its neighbors.
+	    */
 	    mm0 = (vu8) vor (mm4, mm3);
 	    mm0 = vsel (mm0, M1, avg);
 	    vstorent (Dest, 0, mm0);
@@ -270,7 +274,7 @@ SIMD_NAME (DeinterlaceFieldTwoFrame) (TDeinterlaceInfo *pInfo)
         Dest += dst_padding;
     }
 
-    // Copy last odd line if we're processing an even field.
+    /* Copy last odd line if we're processing an even field. */
     if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_EVEN) {
         copy_line (Dest, YVal1, byte_width);
     }
@@ -282,12 +286,12 @@ SIMD_NAME (DeinterlaceFieldTwoFrame) (TDeinterlaceInfo *pInfo)
 
 #elif !SIMD
 
-long TwoFrameTemporalTolerance = 300;
-long TwoFrameSpatialTolerance = 600;
+int TwoFrameTemporalTolerance = 300;
+int TwoFrameSpatialTolerance = 600;
 
-////////////////////////////////////////////////////////////////////////////
+/*//////////////////////////////////////////////////////////////////////////
 // Start of Settings related code
-/////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////*/
 SETTING DI_TwoFrameSettings[DI_TWOFRAME_SETTING_LASTONE] =
 {
     {
@@ -333,11 +337,10 @@ const DEINTERLACE_METHOD TwoFrameMethod =
     IDH_2FRAME,
 };
 
-DEINTERLACE_METHOD* DI_TwoFrame_GetDeinterlacePluginInfo(long CpuFeatureFlags)
+DEINTERLACE_METHOD *
+DI_TwoFrame_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
-
-    CpuFeatureFlags = CpuFeatureFlags;
 
     m = malloc (sizeof (*m));
     *m = TwoFrameMethod;

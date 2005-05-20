@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_Greedy.c,v 1.3.2.1 2005-05-05 09:46:01 mschimek Exp $
+// $Id: DI_Greedy.c,v 1.3.2.2 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.1  2005/05/05 09:46:01  mschimek
+// *** empty log message ***
+//
 // Revision 1.3  2005/03/30 21:27:58  mschimek
 // Integrated and converted the MMX code to vector intrinsics.
 //
@@ -57,7 +60,7 @@
 #include "windows.h"
 #include "DS_Deinterlace.h"
 
-extern long GreedyMaxComb;
+extern int GreedyMaxComb;
 
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceGreedy);
 
@@ -137,7 +140,7 @@ SIMD_NAME (DeinterlaceGreedy)	(TDeinterlaceInfo *	pInfo)
     dst_padding = dst_bpl * 2 - byte_width;
     src_padding = src_bpl - byte_width;
 
-    for (height = pInfo->FieldHeight; height > 0; --height) {
+    for (height = pInfo->FieldHeight - 1; height > 0; --height) {
 	unsigned int count;
 
 	/* For ease of reading, the comments below assume that we're
@@ -147,19 +150,19 @@ SIMD_NAME (DeinterlaceGreedy)	(TDeinterlaceInfo *	pInfo)
 	for (count = byte_width / sizeof (vu8); count > 0; --count) {
 	    vu8 l1, l2, l3, lp2, avg, mm4, mm5, best, min, max, sel;
 
-	    l1 = * (const vu8 *) L1;
+	    l1 = vload (L1, 0);
 	    L1 += sizeof (vu8);
-	    l3 = * (const vu8 *) L3;
+	    l3 = vload (L3, 0);
 	    L3 += sizeof (vu8);
 
 	    vstorent (Dest, dst_bpl, l3);
 
             /* the average, for computing comb */
-	    avg = fast_vavgu8 (l1, l3);
+	    avg = vavgu8 (l1, l3);
 
-	    l2 = * (const vu8 *) L2;
+	    l2 = vload (L2, 0);
 	    L2 += sizeof (vu8);
-	    lp2 = * (const vu8 *) LP2;
+	    lp2 = vload (LP2, 0);
 	    LP2 += sizeof (vu8);
 
 	    /* get abs value of possible L2 and LP2 comb */
@@ -206,7 +209,7 @@ SIMD_NAME (DeinterlaceGreedy)	(TDeinterlaceInfo *	pInfo)
 
 #elif !SIMD
 
-long GreedyMaxComb = 15;
+int GreedyMaxComb = 15;
 
 /*//////////////////////////////////////////////////////////////////////////
 // Start of Settings related code
@@ -250,12 +253,10 @@ const DEINTERLACE_METHOD GreedyMethod =
     IDH_GREEDY,
 };
 
-
-DEINTERLACE_METHOD* DI_Greedy_GetDeinterlacePluginInfo(long CpuFeatureFlags)
+DEINTERLACE_METHOD *
+DI_Greedy_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
-
-    CpuFeatureFlags = CpuFeatureFlags;
 
     m = malloc (sizeof (*m));
     *m = GreedyMethod;

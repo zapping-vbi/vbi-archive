@@ -1,5 +1,5 @@
-///////////////////////////////////////////////////////////////////////////////
-// $Id: DI_Greedy2Frame.c,v 1.3.2.2 2005-05-17 19:58:32 mschimek Exp $
+/*////////////////////////////////////////////////////////////////////////////
+// $Id: DI_Greedy2Frame.c,v 1.3.2.3 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.2  2005/05/17 19:58:32  mschimek
+// *** empty log message ***
+//
 // Revision 1.3.2.1  2005/05/05 09:46:01  mschimek
 // *** empty log message ***
 //
@@ -54,28 +57,28 @@
 // Revision 1.6  2001/07/13 16:13:33  adcockj
 // Added CVS tags and removed tabs
 //
-/////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////*/
 
 #include "windows.h"
 #include "DS_Deinterlace.h"
 
-extern long GreedyTwoFrameThreshold;
+extern int GreedyTwoFrameThreshold;
 
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceGreedy2Frame);
 
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
 	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
-///////////////////////////////////////////////////////////////////////////////
+/*/////////////////////////////////////////////////////////////////////////////
 // Field 1 | Field 2 | Field 3 | Field 4 |
 //   T0    |         |    T1   |         | 
 //         |   M0    |         |    M1   | 
 //   B0    |         |    B1   |         | 
-//
+*/
 
-// debugging feature
-// output the value of mm4 at this point which is pink where we will weave
-// and green were we are going to bob
+/* debugging feature
+   output the value of mm4 at this point which is pink where we will weave
+   and green were we are going to bob */
 #define CHECK_BOBWEAVE 0
 
 static always_inline v32
@@ -149,7 +152,7 @@ SIMD_NAME (DeinterlaceGreedy2Frame) (TDeinterlaceInfo *pInfo)
     dst_padding = dst_bpl * 2 - byte_width;
     src_padding = src_bpl - byte_width;
 
-    for (height = pInfo->FieldHeight; height > 0; --height) {
+    for (height = pInfo->FieldHeight - 1; height > 0; --height) {
         unsigned int count;
 
 	for (count = byte_width / sizeof (vu8); count > 0; --count) {
@@ -160,9 +163,9 @@ SIMD_NAME (DeinterlaceGreedy2Frame) (TDeinterlaceInfo *pInfo)
 	    b1 = vload (T1, src_bpl);
 	    T1 += sizeof (vu8);
 
-	    // Always use the most recent data verbatim.  By definition it's
-	    // correct (it'd be shown on an interlaced display) and our job is
-	    // to fill in the spaces between the new lines.
+	    /* Always use the most recent data verbatim.  By definition it's
+	       correct (it'd be shown on an interlaced display) and our job is
+	       to fill in the spaces between the new lines. */
 	    vstorent (Dest, 0, t1);
 
 	    avg = fast_vavgu8 (t1, b1);
@@ -172,21 +175,21 @@ SIMD_NAME (DeinterlaceGreedy2Frame) (TDeinterlaceInfo *pInfo)
 	    m1 = vload (M1, 0);
 	    M1 += sizeof (vu8);
 
-	    // if we have a good processor then make mm0 the average of M1
-	    // and M0 which should make weave look better when there is
-	    // small amounts of movement
+	    /* if we have a good processor then make mm0 the average of M1
+	       and M0 which should make weave look better when there is
+	       small amounts of movement */
 	    if (SIMD != CPU_FEATURE_MMX)
 		m1 = vavgu8 (m1, m0);
 
-	    // if |M1-M0| > Threshold we want dword worth of twos
+	    /* if |M1-M0| > Threshold we want dword worth of twos */
 	    sum = thresh_cmp (m1, m0, qwGreedyTwoFrameThreshold, vsplat32_2);
 
-	    // if |T1-T0| > Threshold we want dword worth of ones
+	    /* if |T1-T0| > Threshold we want dword worth of ones */
 	    t0 = vload (T0, 0);
 	    sum = vadd32 (sum, thresh_cmp (t1, t0, qwGreedyTwoFrameThreshold,
 					   vsplat32_1));
 
-	    // if |B1-B0| > Threshold we want dword worth of ones
+	    /* if |B1-B0| > Threshold we want dword worth of ones */
 	    b0 = vload (T0, src_bpl);
 	    T0 += sizeof (vu8);
 	    sum = vadd32 (sum, thresh_cmp (b1, b0, qwGreedyTwoFrameThreshold,
@@ -194,9 +197,9 @@ SIMD_NAME (DeinterlaceGreedy2Frame) (TDeinterlaceInfo *pInfo)
 
 	    mm4 = (vu8) vcmpgt32 (sum, vsplat32_2);
 
-	    // debugging feature
-	    // output the value of mm4 at this point which is pink
-	    // where we will weave and green were we are going to bob
+	    /* debugging feature
+	       output the value of mm4 at this point which is pink
+	       where we will weave and green were we are going to bob */
 	    if (CHECK_BOBWEAVE)
 		vstorent (Dest, dst_bpl, mm4);
 	    else
@@ -227,18 +230,18 @@ SIMD_NAME (DeinterlaceGreedy2Frame) (TDeinterlaceInfo *pInfo)
 
 #elif !SIMD
 
-long GreedyTwoFrameThreshold = 4;
+int GreedyTwoFrameThreshold = 4;
 
 
-////////////////////////////////////////////////////////////////////////////
+/*//////////////////////////////////////////////////////////////////////////
 // Start of Settings related code
-/////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////*/
 SETTING DI_Greedy2FrameSettings[DI_GREEDY2FRAME_SETTING_LASTONE] =
 {
     {
         N_("Greedy 2 Frame Luma Threshold"), SLIDER, 0,
 	&GreedyTwoFrameThreshold,
-        4, 0, 128, 1, 1,
+        4, 0, 127, 1, 1,
         NULL,
         "Deinterlace", "GreedyTwoFrameThreshold", NULL,
     },
@@ -273,11 +276,10 @@ const DEINTERLACE_METHOD Greedy2FrameMethod =
     IDH_GREEDY2
 };
 
-DEINTERLACE_METHOD* DI_Greedy2Frame_GetDeinterlacePluginInfo(long CpuFeatureFlags)
+DEINTERLACE_METHOD *
+DI_Greedy2Frame_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
-
-    CpuFeatureFlags = CpuFeatureFlags;
 
     m = malloc (sizeof (*m));
     *m = Greedy2FrameMethod;

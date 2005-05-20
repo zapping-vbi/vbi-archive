@@ -1,0 +1,56 @@
+This directory contains tools, scripts and other files to test the
+deinterlace plugin.
+
+File overview
+-------------
+
+cpudt/cpudt.c
+	CPU feature detection.  Use like "if cpudt mmx; then ..."
+	Possible features are mmx, 3dnow, sse, sse2, altivec and
+	others.  Used by emulator.sh.
+
+dicmp/dicmp.c
+	Compares YUYV images, kind of a specialized version of cmp.  Type
+	dicmp --help for options.  Used by ditest-x86.sh.
+
+ditest/ditest.c/guard.h
+	Runs a deinterlace method with test data.  guard.h adds a miniature
+	version of efence, testing for image buffer overflows.  Type ditest
+	--help for options.  Used by ditest scripts.
+
+ditest-all.sh
+	A shell function wrapping ditest, which runs through all
+	deinterlace methods using pseudo random input and storing
+	results in a subdirectory.  May use an emulator if we
+	cross-compile or the CPU lacks the required feature.  Used by
+	other ditest scripts.
+
+ditest-mmx|3dnow|sse|sse2|altivec.sh
+	make check runs these scripts to check if each implementation
+	of each deinterlace method we compiled produces the output
+	recorded in md5sums-*.  Supposed to reveal compiler bugs.
+
+ditest-x86.sh
+	Uses ditest-all.sh to run all x86 implementations of all
+	deinterlace methods which are executable on this machine and
+	compare the output with dicmp.  Supposed to prove all x86
+	implementations (mmx, sse, ...) produce the same output, but
+	due to subtle differences and shortcuts for performance reasons
+	we cannot compare all implementations.  Something like this
+	should also be used to compare sse2 and altivec output.
+
+emulator.sh
+	A shell function to determine if our CPU supports the required
+	feature or if we can emulate it, currently using qemu.  Sets $emu
+	to the name of the emulator.  Used by ditest-all.sh.
+
+gen-md5sums.sh
+	This script uses ditest-all.sh to generate reference output
+	for a make check.  It runs through all implementations (mmx,
+	sse, ...) of all deinterlace methods which are executable on
+	this machine.  Since reference output is too large to ship we
+	compute md5 checksums.  Supposed to be run after deinterlace
+	sources changed.
+
+md5sums-mmx|3dnow|sse|sse2|altivec
+	Checksums for make check.

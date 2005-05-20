@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ditest.c,v 1.4.2.3 2005-05-17 19:58:32 mschimek Exp $ */
+/* $Id: ditest.c,v 1.1.2.1 2005-05-20 05:45:15 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <assert.h>
 #include <unistd.h>		/* isatty() */
 #ifdef HAVE_GETOPT_LONG
@@ -35,6 +36,7 @@
 
 #include "windows.h"
 #include "DS_Deinterlace.h"
+#include "guard.h"
 #include "libtv/cpu.h"		/* cpu_features */
 
 /* See macros.h */
@@ -182,12 +184,17 @@ new_buffer			(unsigned int		width,
 {
 	char *buffer;
 	unsigned int size;
+	unsigned int padding;
 	unsigned int i;
 
 	size = width * height * 2;
+	padding = size % getpagesize ();
 
-	buffer = malloc (size);
+	buffer = guard_alloc (size + padding);
 	assert (NULL != buffer);
+
+	buffer += padding;
+	assert (0 == (INTPTR (buffer) % 16));
 
 	for (i = 0; i < size; i += 2) {
 		buffer[i + 0] = 0x00;
@@ -228,7 +235,7 @@ write_buffer			(const char *		name,
 }
 
 static const char
-short_options [] = "24c:h:m:n:p:qrw:HV";
+short_options [] = "24c:h:m:n:o:p:qrw:HV";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
@@ -240,6 +247,7 @@ long_options [] = {
 	{ "help",	no_argument,		NULL,		'H' },
 	{ "method",	required_argument,	NULL,		'm' },
 	{ "nframes",	required_argument,	NULL,		'n' },
+	{ "option",	required_argument,	NULL,		'o' },
 	{ "prefix",	required_argument,	NULL,		'p' },
 	{ "quiet",	no_argument,		NULL,		'q' },
 	{ "rand",	no_argument,		NULL,		'r' },
@@ -291,6 +299,62 @@ usage				(FILE *			fp,
 		 , argv[0]);
 }
 
+static void
+set_method_options		(DEINTERLACE_METHOD *	method,
+				 unsigned int		n_options,
+				 char **		options)
+{
+	unsigned int i;
+
+	if (0 == method->nSettings && n_options > 0) {
+		fprintf (stderr, "This method has no options.\n");
+		exit (EXIT_FAILURE);
+	}
+
+	for (i = 0; i < n_options; ++i) {
+		const char *s;
+		char *key;
+		unsigned int length;
+		unsigned int j;
+
+		s = options[i];
+
+		while (isalnum (*s))
+			++s;
+
+		length = s - options[i];
+		key = malloc (length + 1);
+		key[length] = 0;
+		assert (NULL != key);
+		strncpy (key, options[i], length);
+
+		for (j = 0; j < method->nSettings; ++j)
+			if (0 == strcmp (method->pSettings[j].szIniEntry, key))
+				break;
+
+		if (j >= method->nSettings) {
+			fprintf (stderr, "Unknown method option '%s'. "
+				 "Valid options are: ", key);
+
+			for (j = 0; j < method->nSettings; ++j)
+				fprintf (stderr, "%s%s",
+					 method->pSettings[j].szIniEntry,
+					 (j + 1 == method->nSettings) ?
+					 "\n" : ", ");
+
+			exit (EXIT_FAILURE);
+		}
+
+		free (key);
+		key = NULL;
+
+		while (0 != *s && !isalnum (*s))
+			++s;
+
+		*method->pSettings[j].pValue = strtol (s, NULL, 0);
+	}
+}
+
 int
 main				(int			argc,
 				 char **		argv)
@@ -305,6 +369,8 @@ main				(int			argc,
 	unsigned int height;
 	unsigned int size;
 	char *method_name;
+	char **method_options;
+	unsigned int n_options;
 	char *prefix;
 	unsigned int i;
 	int index;
@@ -318,6 +384,9 @@ main				(int			argc,
 	height = 288;
 
 	method_name = strdup ("1");
+
+	method_options = NULL;
+	n_options = 0;
 
 	prefix = NULL;
 
@@ -363,6 +432,21 @@ main				(int			argc,
 				exit (EXIT_FAILURE);
 			}
                         break;
+
+		case 'o':
+		{
+			unsigned int new_size;
+
+			new_size = (n_options + 1)
+				* sizeof (method_options[0]);
+
+			method_options = realloc (method_options, new_size);
+			assert (NULL != method_options);
+
+			method_options[n_options++] = optarg;
+
+			break;
+		}
 
 		case 'p':
 			prefix = optarg;
@@ -414,7 +498,7 @@ main				(int			argc,
 #define ELSEIF(x)							\
   else if (++i == strtoul (method_name, NULL, 0)			\
 	   || 0 == strcmp (#x, method_name))				\
-      method = DI_##x##_GetDeinterlacePluginInfo (0);
+      method = DI_##x##_GetDeinterlacePluginInfo ();
 
 	if (0) {
 		exit (EXIT_FAILURE);    
@@ -445,8 +529,10 @@ main				(int			argc,
 		fprintf (stderr,
 			 "No version of %s supports CPU features 0x%x\n",
 			 method->szName, (unsigned int) cpu_features);
-		exit (EXIT_SUCCESS);
+		exit (55);
 	}
+
+	set_method_options (method, n_options, method_options);
 
 	out_buffer = new_buffer (width, height);
 

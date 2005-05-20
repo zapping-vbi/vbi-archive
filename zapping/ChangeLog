@@ -29,7 +29,8 @@
 	  plugins/deinterlace/DI_TomsMoComp/TomsMoComp.h: Used SearchEffort
 	  value of MoComp2.  Renamed it to SearchEffort2.
 	* plugins/deinterlace/DI_Misc/Makefile.am (SIMD_CFLAGS): Add --param
-	  switches only if supported by gcc (compile bug reported by Christian).
+	  switches only if supported by gcc (compile bug reported by
+	  Christian).
 	* src/plugins.c (plugin_init),
 	  src/main.c (startup_zapping), plugins/teletext/main.c (plugin_init),
 	  plugins/screenshot/screenshot.c (plugin_init, plugin_load_config),

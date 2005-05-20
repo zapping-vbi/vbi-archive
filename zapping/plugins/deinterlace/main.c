@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.6.2.1 2005-05-05 09:46:00 mschimek Exp $ */
+/* $Id: main.c,v 1.6.2.2 2005-05-20 05:45:13 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -78,7 +78,8 @@ static TDeinterlaceInfo		info;
 static guint			queue_len2;
 static guint			field_count;
 
-static long			cpu_feature_flags;
+static guint			capture_width;
+static guint			capture_height;
 
 static DEINTERLACE_METHOD *	method;
 
@@ -184,6 +185,10 @@ deinterlace			(zimage *		dst0,
       tp->Flags = PICTURE_INTERLACED_EVEN; /* sic */
     }
 
+  tp->pData = ((uint8_t *) tp->pData)
+    + (info.FrameWidth * capture_height * 2
+       * (DI_MAIN_HEIGHT_DIV - 1) / DI_MAIN_HEIGHT_DIV);
+
   tp->IsFirstInSeries = (0 == field_count);
 
   ++field_count;
@@ -218,6 +223,10 @@ deinterlace			(zimage *		dst0,
       tp->pData = ((uint8_t *) src->img) + info.FrameWidth * 2;
       tp->Flags = PICTURE_INTERLACED_ODD; /* sic */
     }
+
+  tp->pData = ((uint8_t *) tp->pData)
+    + (info.FrameWidth * capture_height * 2
+       * (DI_MAIN_HEIGHT_DIV - 1) / DI_MAIN_HEIGHT_DIV);
 
   tp->IsFirstInSeries = FALSE;
 
@@ -272,8 +281,6 @@ start_thread1			(void)
   guint resolution;
   const tv_video_standard *std;
   guint display_height;
-  guint capture_width;
-  guint capture_height;
   guint i;
 
   if (0)
@@ -376,7 +383,7 @@ start_thread1			(void)
   info.FrameWidth = capture_width;
   info.FrameHeight = capture_height / DI_MAIN_HEIGHT_DIV;
   info.FieldHeight = capture_height / 2 / DI_MAIN_HEIGHT_DIV;
-  info.CpuFeatureFlags = cpu_feature_flags;
+  info.CpuFeatureFlags = 0;
   info.InputPitch = capture_width * 2 * 2;
   info.pMemcpy = (void *) tv_memcpy;
 
@@ -468,7 +475,6 @@ plugin_init			(PluginBridge		bridge _unused_,
   static const property_handler ph = {
     .add = properties_add,
   };
-  long cpu_feature_flags;
 
   if (!(cpu_features & CPU_FEATURE_MMX))
     return FALSE;
@@ -477,25 +483,10 @@ plugin_init			(PluginBridge		bridge _unused_,
 
   D();
 
-  cpu_feature_flags = 0;
-
-  if (cpu_features & CPU_FEATURE_CMOV)
-    cpu_feature_flags |= FEATURE_CMOV;
-  if (cpu_features & CPU_FEATURE_MMX)
-    cpu_feature_flags |= FEATURE_MMX;
-  if (cpu_features & CPU_FEATURE_SSE)
-    cpu_feature_flags |= FEATURE_SSE;
-  if (cpu_features & CPU_FEATURE_SSE2)
-    cpu_feature_flags |= FEATURE_SSE2;
-  if (cpu_features & CPU_FEATURE_3DNOW)
-    cpu_feature_flags |= FEATURE_3DNOW;
-  if (cpu_features & CPU_FEATURE_3DNOW_EXT)
-    cpu_feature_flags |= FEATURE_3DNOWEXT;
-
 #undef GET
 #define GET(x, y)							\
     deinterlace_methods[INDEX_##x] =					\
-      DI_##y##_GetDeinterlacePluginInfo (cpu_feature_flags);
+      DI_##y##_GetDeinterlacePluginInfo ();
 
   GET (VIDEO_BOB, VideoBob);
   GET (VIDEO_WEAVE, VideoWeave);

@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_EvenOnly.c,v 1.2.2.1 2005-05-05 09:46:01 mschimek Exp $
+// $Id: DI_EvenOnly.c,v 1.2.2.2 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2.2.1  2005/05/05 09:46:01  mschimek
+// *** empty log message ***
+//
 // Revision 1.2  2005/02/05 22:20:18  mschimek
 // Completed l18n.
 //
@@ -125,11 +128,10 @@ const DEINTERLACE_METHOD EvenOnlyMethod =
     IDH_EVEN,
 };
 
-DEINTERLACE_METHOD* DI_EvenOnly_GetDeinterlacePluginInfo(long CpuFeatureFlags)
+DEINTERLACE_METHOD *
+DI_EvenOnly_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
-
-    CpuFeatureFlags = CpuFeatureFlags;
 
     m = malloc (sizeof (*m));
     *m = EvenOnlyMethod;

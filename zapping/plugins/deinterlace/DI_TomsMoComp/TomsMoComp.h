@@ -15,7 +15,7 @@ BOOL DeinterlaceTomsMoComp_SSE(TDeinterlaceInfo* pInfo);
 BOOL DeinterlaceTomsMoComp_MMX(TDeinterlaceInfo* pInfo);
 BOOL DeinterlaceTomsMoComp_3DNOW(TDeinterlaceInfo* pInfo);
 #define MyMemCopy pMyMemcpy
-extern long SearchEffort2;
+extern int SearchEffort2;
 extern BOOL UseStrangeBob2;
 
 #else

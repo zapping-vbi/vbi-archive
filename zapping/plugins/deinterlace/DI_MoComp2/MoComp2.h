@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: MoComp2.h,v 1.2 2005-01-20 01:38:34 mschimek Exp $
+// $Id: MoComp2.h,v 1.2.2.1 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2003 Tom Barry & John Adcock.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2005/01/20 01:38:34  mschimek
+// *** empty log message ***
+//
 // Revision 1.1  2005/01/08 14:54:24  mschimek
 // *** empty log message ***
 //
@@ -53,7 +56,7 @@ BOOL DeinterlaceMoComp2_SSE(TDeinterlaceInfo* pInfo);
 BOOL DeinterlaceMoComp2_MMX(TDeinterlaceInfo* pInfo);
 BOOL DeinterlaceMoComp2_3DNOW(TDeinterlaceInfo* pInfo);
 #define MyMemCopy pMyMemcpy
-extern long SearchEffort;
+extern int SearchEffort;
 
 static int  Fieldcopy(void *dest, const void *src, size_t count, 
 			int rows, int dst_pitch, int src_pitch);

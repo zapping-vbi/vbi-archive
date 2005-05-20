@@ -684,5 +684,17 @@ you can reduce the horizontal resolution. Valid values: low, medium,
 high.</long>
    </locale>
   </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/deinterlace/options/Deinterlace/GreedyTestMode</key>
+   <applyto>/apps/zapping/plugins/deinterlace/options/Deinterlace/GreedyTestMode</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>0</default>
+   <locale name="C">
+    <short>Greedy (high motion) deinterlace test mode.</short>
+    <long>Enables slow MMX and 3DNow! optimized functions for
+tests.</long>
+   </locale>
+  </schema>
  </schemalist>
 </gconfschemafile>

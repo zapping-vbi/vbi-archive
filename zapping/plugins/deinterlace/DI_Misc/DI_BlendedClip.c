@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_BlendedClip.c,v 1.2 2005-02-05 22:20:41 mschimek Exp $
+// $Id: DI_BlendedClip.c,v 1.2.2.1 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 Tom Barry.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -30,6 +30,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2005/02/05 22:20:41  mschimek
+// Completed l18n.
+//
 // Revision 1.1  2005/01/08 14:54:23  mschimek
 // *** empty log message ***
 //
@@ -125,7 +128,7 @@ HINSTANCE hInst = NULL;
 // still see too many Weave artifacts ("venetion blinds").  It's best to try everything
 // else first.
 
-long        BlcMinimumClip = -15;               // currently -100 .. 100
+int        BlcMinimumClip = -15;               // currently -100 .. 100
 
 // "Pixel Motion Sensitivity" slider:  This determines how sensitive we are to motion.
 // Motion is calculated as the maximum absolute change in luma from the previous field
@@ -134,7 +137,7 @@ long        BlcMinimumClip = -15;               // currently -100 .. 100
 // of venetiaon blinds that can occur with sudden scene changes.  This value is
 // calculated separately for each pixel.
 
-long    BlcPixelMotionSense = 17;
+int    BlcPixelMotionSense = 17;
 
 // "Recent Motion Sensitivity" slider:  This increases the tendency to use Clip based
 // upon an n-period Exponential Moving Average of the recent motion.  Recent motion
@@ -143,7 +146,7 @@ long    BlcPixelMotionSense = 17;
 // does not attempt to do 3:2 pulldown I believe the motion values could be of assistance
 // in the routines that do.  
 
-long        BlcRecentMotionSense = 0;       // current -100 .. 100)     
+int        BlcRecentMotionSense = 0;       // current -100 .. 100)     
 
 // "Motion Average Period" slider:  This sets the period of the moving average for Recent
 // Motion Sensitivity.  
@@ -156,26 +159,26 @@ long        BlcRecentMotionSense = 0;       // current -100 .. 100)
 
 //          X_new_avg = ( X_old_avg * (n-1) + 2 * X) / (n+1)
 
-long    BlcMotionAvgPeriod = 20;        // currently 1..200
+int    BlcMotionAvgPeriod = 20;        // currently 1..200
 
 // "Pixel Comb Sensitivity" slider:  This determines how sensitive we are to the current
 // comb factor of each pixel.  I used a simplified comb factor C = abs(2*W - H - L)/2,
 // which is just the distance of the Weave pixel's luma from its interpolated value.
-// This value is calculated separately for each pixel.  This value along with the Pixel
+// This value is calculated separately for each pixel.  This value aint with the Pixel
 // Motion Sense seem to be the two main things to play with to get good results.  Generally,
 // increase one of these if you get Weave artifacts and decrease one if you get BOB artifacts.
   
-long    BlcPixelCombSense = 27;
+int    BlcPixelCombSense = 27;
 
 // "Recent Comb Senseitivity" slider:  Operates like the Recent Motion slider but operates
 // on the average Comb Factor.
 
-long    BlcRecentCombSense = 0;
+int    BlcRecentCombSense = 0;
 
 // "Comb Average Period" slider: Sets the period of the Comb exponential moving average.
 // See the comments on "Motion Average Period".
 
-long    BlcCombAvgPeriod = 20;          // currently 1.200
+int    BlcCombAvgPeriod = 20;          // currently 1.200
 
 // "Skip High Comb Frames" slider:  I added this one in the hopes that it could help to
 // skip a frame in the event of a sudden flash attack on a rapid scene change or maybe
@@ -183,7 +186,7 @@ long    BlcCombAvgPeriod = 20;          // currently 1.200
 // a chance to experiment with it yet.  It will give very ugly results if you set it 
 // too high.
 
-long    BlcHighCombSkip = 10;           // larger values skip more
+int    BlcHighCombSkip = 10;           // larger values skip more
 
 // "Skip Low Motion Frames" slider:  This also is just experimental an probably of low
 // value.  The idea here is that any frame with sufficiently low change from the previous
@@ -191,12 +194,12 @@ long    BlcHighCombSkip = 10;           // larger values skip more
 // normal use.  NOTE - This slider (but not parm) will soon be replaced by the
 // Vertical Smoothing slider.
 
-long    BlcLowMotionSkip = 0;           // larger values skip more
+int    BlcLowMotionSkip = 0;           // larger values skip more
 
 // "Vertical Smoothing" slider: Sets a smoothing constant to smooth between the even
 // and odd lines.  Not yet implemented, but the INI parm is there.
 
-long    BlcVerticalSmoothing = 0;
+int    BlcVerticalSmoothing = 0;
 
 // "Use Interpolated BOB instead of Clip" check box.  For those who don't like the
 // Clipped Weave, this will change it to an Interpolated Bob.  All other blending and
@@ -222,10 +225,10 @@ BOOL    BlcShowControls = TRUE;
 
 // Other global values, not user parms:
 
-long    BlcAverageMotions[5][2] = {0};  // reserved
-long    BlcTotalAverageMotion = 0;
-long    BlcAverageCombs[5][2] = {0};    // reserved
-long    BlcTotalAverageComb = 0;
+int    BlcAverageMotions[5][2] = {0};  // reserved
+int    BlcTotalAverageMotion = 0;
+int    BlcAverageCombs[5][2] = {0};    // reserved
+int    BlcTotalAverageComb = 0;
 BOOL    BlcWantsToFlip;
 
 HWND ghDlg = NULL;
@@ -235,7 +238,7 @@ BOOL DeinterlaceBlendedClip(TDeinterlaceInfo* pInfo)
     int Line;
     int LoopCtr;
     int OddPtr;
-    long X;
+    int X;
     BYTE* L1;                  // ptr to Line1, of 3
     BYTE* L2;                  // ptr to Line2, the weave line
     BYTE* L3;                  // ptr to Line3
@@ -990,7 +993,8 @@ DEINTERLACE_METHOD BlendedClipMethod =
 };
 
 
-DEINTERLACE_METHOD* DI_BlendedClip_GetDeinterlacePluginInfo(long CpuFeatureFlags)
+DEINTERLACE_METHOD *
+DI_BlendedClip_GetDeinterlacePluginInfo (void)
 {
     return &BlendedClipMethod;
 }

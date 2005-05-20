@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHM.h,v 1.1.2.2 2005-05-17 19:58:32 mschimek Exp $
+// $Id: DI_GreedyHM.h,v 1.1.2.3 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (c) 2005 Michael H. Schimek
@@ -47,21 +47,22 @@
 
 #include "DS_Deinterlace.h"
 
-extern long GreedyHMaxComb;
-extern long GreedyMotionThreshold;
-extern long GreedyMotionSense;
-extern long GreedyGoodPullDownLvl;
-extern long GreedyBadPullDownLvl;
-extern long GreedyHSharpnessAmt;
-extern long GreedyVSharpnessAmt;
-extern long GreedyMedianFilterAmt;
-extern long GreedyLowMotionPdLvl;
+extern int GreedyHMaxComb;
+extern int GreedyMotionThreshold;
+extern int GreedyMotionSense;
+extern int GreedyGoodPullDownLvl;
+extern int GreedyBadPullDownLvl;
+extern int GreedyHSharpnessAmt;
+extern int GreedyVSharpnessAmt;
+extern int GreedyMedianFilterAmt;
+extern int GreedyLowMotionPdLvl;
 
 extern BOOL GreedyUsePulldown;			
 extern BOOL GreedyUseInBetween;
 extern BOOL GreedyUseMedianFilter;
 extern BOOL GreedyUseVSharpness;
 extern BOOL GreedyUseHSharpness;
+extern BOOL GreedyTestMode;
 
 typedef struct {
     int Comb;		/* combs */

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.h,v 1.2.2.3 2005-05-17 19:58:31 mschimek Exp $ */
+/* $Id: simd.h,v 1.2.2.4 2005-05-20 05:45:13 mschimek Exp $ */
 
 #ifndef SIMD_H
 #define SIMD_H
@@ -147,6 +147,18 @@ extern const v32 vsplat32_2;	/* vsplat32(2) */
 #define vcmpleu8(_a, _b) vcmpgeu8 (_b, _a)
 #define vcmpleu16(_a, _b) vcmpgeu16 (_b, _a)
 #define vcmpleu32(_a, _b) vcmpgeu32 (_b, _a)
+
+#define vdump(_a)							\
+{									\
+	union { vu8 v; uint8_t s[sizeof (vu8)]; } u;			\
+	unsigned int i;							\
+									\
+	u.v = (vu8)(_a);						\
+	fprintf (stderr, "%s:%u: %s = ", __FILE__, __LINE__, #_a);	\
+	for (i = 0; i < sizeof (u.s); ++i)				\
+		fprintf (stderr, "%02x", u.s[i]);			\
+	fputc ('\n', stderr);						\
+}
 
 #endif /* SIMD */
 

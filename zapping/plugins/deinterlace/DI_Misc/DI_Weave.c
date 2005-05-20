@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_Weave.c,v 1.2.2.1 2005-05-05 09:46:01 mschimek Exp $
+// $Id: DI_Weave.c,v 1.2.2.2 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 // Copyright (C) 2005 Michael Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2.2.1  2005/05/05 09:46:01  mschimek
+// *** empty log message ***
+//
 // Revision 1.2  2005/02/05 22:18:36  mschimek
 // Completed l18n.
 //
@@ -137,11 +140,10 @@ const DEINTERLACE_METHOD WeaveMethod =
     IDH_WEAVE,
 };
 
-DEINTERLACE_METHOD* DI_Weave_GetDeinterlacePluginInfo(long CpuFeatureFlags)
+DEINTERLACE_METHOD *
+DI_Weave_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
-
-    CpuFeatureFlags = CpuFeatureFlags;
 
     m = malloc (sizeof (*m));
     *m = WeaveMethod;

@@ -33,7 +33,7 @@ struct _DEINTERLACE_METHOD;
 typedef BOOL (__cdecl DEINTERLACE_FUNC)(TDeinterlaceInfo *Info);
 typedef void (__cdecl DEINTERLACEPLUGINSETSTATUS)(LPCSTR StatusText);
 typedef void (__cdecl DEINTERLACEPLUGININIT)(void);
-typedef void (__cdecl DEINTERLACEPLUGINSTART)(long NumPlugIns, struct _DEINTERLACE_METHOD** OtherPlugins, DEINTERLACEPLUGINSETSTATUS* SetStatus);
+typedef void (__cdecl DEINTERLACEPLUGINSTART)(int NumPlugIns, struct _DEINTERLACE_METHOD** OtherPlugins, DEINTERLACEPLUGINSETSTATUS* SetStatus);
 typedef void (__cdecl DEINTERLACEPLUGINSHOWUI)(HWND hwndMain);
 typedef void (__cdecl DEINTERLACEPLUGINEXIT)(void);
 
@@ -52,7 +52,7 @@ typedef struct _DEINTERLACE_METHOD
     // may be used in the future when backwards combatability may
     // be required
     // set to DEINTERLACE_CURRENT_VERSION
-    long DeinterlaceStructureVersion;
+    int DeinterlaceStructureVersion;
     // What to display when selected
     const char* szName;
     // Short Name
@@ -65,16 +65,16 @@ typedef struct _DEINTERLACE_METHOD
     // Pointer to Algorithm function (cannot be NULL)
     DEINTERLACE_FUNC* pfnAlgorithm;
     // flip frequency in 50Hz Mode
-    unsigned long FrameRate50Hz;
+    unsigned int FrameRate50Hz;
     // flip frequency in 60Hz Mode
-    unsigned long FrameRate60Hz;
+    unsigned int FrameRate60Hz;
     // number of settings
-    long nSettings;
+    int nSettings;
     // pointer to start of Settings[nSettings]
     SETTING* pSettings;
     // Index Number (position in menu) should map to old enum Value
     // and should be unique
-    long nMethodIndex;
+    int nMethodIndex;
     // call this if plugin needs to do anything on load up
     DEINTERLACEPLUGININIT* pfnPluginInit;
     // call this if plugin needs to do anything before it is used
@@ -84,13 +84,13 @@ typedef struct _DEINTERLACE_METHOD
     // call this if plugin needs to deallocate anything
     DEINTERLACEPLUGINEXIT* pfnPluginExit;
     // how many fields are required to run this plug-in
-    long nFieldsRequired;
+    int nFieldsRequired;
     // Track number of Mode Changes
-    long ModeChanges;
+    int ModeChanges;
     // Track Time in Mode
-    long ModeTicks;
+    int ModeTicks;
     // the offset used by the external settings API
-    long nSettingsOffset;
+    int nSettingsOffset;
     // Dll module so that we can unload the dll cleanly at the end
     HMODULE hModule;
     // Menu Id used for this plug-in, use 0 to automatically allocate one
@@ -106,20 +106,20 @@ typedef struct _DEINTERLACE_METHOD
 
 // Call this function to init a plug-in
 // On exit pDeintMethod is a pointer to deinterlace properties
-typedef DEINTERLACE_METHOD* (__cdecl GETDEINTERLACEPLUGININFO)(long CpuFeatureFlags);
+typedef DEINTERLACE_METHOD* (__cdecl GETDEINTERLACEPLUGININFO)(int CpuFeatureFlags);
 
-DEINTERLACE_METHOD* DI_Bob_GetDeinterlacePluginInfo(long CpuFeatureFlags);
-DEINTERLACE_METHOD* DI_EvenOnly_GetDeinterlacePluginInfo(long CpuFeatureFlags);
-DEINTERLACE_METHOD* DI_Greedy_GetDeinterlacePluginInfo(long CpuFeatureFlags);
-DEINTERLACE_METHOD* DI_Greedy2Frame_GetDeinterlacePluginInfo(long CpuFeatureFlags);
-DEINTERLACE_METHOD* DI_GreedyH_GetDeinterlacePluginInfo(long CpuFeatureFlags);
-DEINTERLACE_METHOD* DI_MoComp2_GetDeinterlacePluginInfo(long CpuFeatureFlags);
-DEINTERLACE_METHOD* DI_OddOnly_GetDeinterlacePluginInfo(long CpuFeatureFlags);
-DEINTERLACE_METHOD* DI_ScalerBob_GetDeinterlacePluginInfo(long CpuFeatureFlags);
-DEINTERLACE_METHOD* DI_TomsMoComp_GetDeinterlacePluginInfo(long CpuFeatureFlags);
-DEINTERLACE_METHOD* DI_TwoFrame_GetDeinterlacePluginInfo(long CpuFeatureFlags);
-DEINTERLACE_METHOD* DI_VideoBob_GetDeinterlacePluginInfo(long CpuFeatureFlags);
-DEINTERLACE_METHOD* DI_VideoWeave_GetDeinterlacePluginInfo(long CpuFeatureFlags);
-DEINTERLACE_METHOD* DI_Weave_GetDeinterlacePluginInfo(long CpuFeatureFlags);
+DEINTERLACE_METHOD* DI_Bob_GetDeinterlacePluginInfo(void);
+DEINTERLACE_METHOD* DI_EvenOnly_GetDeinterlacePluginInfo(void);
+DEINTERLACE_METHOD* DI_Greedy_GetDeinterlacePluginInfo(void);
+DEINTERLACE_METHOD* DI_Greedy2Frame_GetDeinterlacePluginInfo(void);
+DEINTERLACE_METHOD* DI_GreedyH_GetDeinterlacePluginInfo(void);
+DEINTERLACE_METHOD* DI_MoComp2_GetDeinterlacePluginInfo(void);
+DEINTERLACE_METHOD* DI_OddOnly_GetDeinterlacePluginInfo(void);
+DEINTERLACE_METHOD* DI_ScalerBob_GetDeinterlacePluginInfo(void);
+DEINTERLACE_METHOD* DI_TomsMoComp_GetDeinterlacePluginInfo(void);
+DEINTERLACE_METHOD* DI_TwoFrame_GetDeinterlacePluginInfo(void);
+DEINTERLACE_METHOD* DI_VideoBob_GetDeinterlacePluginInfo(void);
+DEINTERLACE_METHOD* DI_VideoWeave_GetDeinterlacePluginInfo(void);
+DEINTERLACE_METHOD* DI_Weave_GetDeinterlacePluginInfo(void);
 
 #endif

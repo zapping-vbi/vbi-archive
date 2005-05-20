@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_OldGame.c,v 1.3.2.1 2005-05-05 09:46:01 mschimek Exp $
+// $Id: DI_OldGame.c,v 1.3.2.2 2005-05-20 05:45:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Lindsey Dubb.  All rights reserved.
 // based on OddOnly and Temporal Noise DScaler Plugins
@@ -20,6 +20,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.1  2005/05/05 09:46:01  mschimek
+// *** empty log message ***
+//
 // Revision 1.3  2005/03/30 21:27:19  mschimek
 // Integrated and converted the MMX code to vector intrinsics.
 //
@@ -109,8 +112,8 @@ Ways this filter could be improved:
 /////////////////////////////////////////////////////////////////////////////
 
 extern DEINTERLACEPLUGINSETSTATUS*  gPfnSetStatus;
-extern long                         gDisableMotionChecking;
-extern long                         gMaxComb;
+extern int                         gDisableMotionChecking;
+extern int                         gMaxComb;
 
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, OldGameFilter)
 
@@ -219,11 +222,11 @@ SIMD_NAME (OldGameFilter)	(TDeinterlaceInfo *	pInfo)
 // gMaxComb is compared to the comb factor to determine if the image has
 // enough motion to force us to send the image to the screen unaltered
 // instead of averaging witht he previous image.
-long                         gMaxComb = 300;
+int                         gMaxComb = 300;
 
 // When using a composite connector, crosstalk is bad enough that it's
 // (almost) always worth averaging.
-long                         gDisableMotionChecking = FALSE;
+int                         gDisableMotionChecking = FALSE;
 
 // This is used to put up the comb factor for testing purposes.
 DEINTERLACEPLUGINSETSTATUS*  gPfnSetStatus = NULL;
@@ -285,17 +288,16 @@ static const DEINTERLACE_METHOD OldGameMethod =
 /////////////////////////////////////////////////////////////////////////////
 
 #if OLDGAME_DEBUG
-void __cdecl OldGameDebugStart(long NumPlugIns, DEINTERLACE_METHOD** OtherPlugins, DEINTERLACEPLUGINSETSTATUS* SetStatus)
+void __cdecl OldGameDebugStart(int NumPlugIns, DEINTERLACE_METHOD** OtherPlugins, DEINTERLACEPLUGINSETSTATUS* SetStatus)
 {
     gPfnSetStatus = SetStatus;
 }
 #endif  // OLDGAME_DEBUG
 
-DEINTERLACE_METHOD* DI_OldGame_GetDeinterlacePluginInfo(long CpuFeatureFlags)
+DEINTERLACE_METHOD *
+DI_OldGame_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
-
-    CpuFeatureFlags = CpuFeatureFlags;
 
     m = malloc (sizeof (*m));
     *m = OldGameMethod;

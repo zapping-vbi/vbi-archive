@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: windows.h,v 1.6.2.2 2005-05-17 19:58:32 mschimek Exp $ */
+/* $Id: windows.h,v 1.6.2.3 2005-05-20 05:45:13 mschimek Exp $ */
 
 #ifndef WINDOWS_H
 #define WINDOWS_H
@@ -314,12 +314,14 @@ copy_line_pair			(uint8_t *		dst,
 	   the center value for later and gcc can't easily avoid	\
 	   register spilling.  XXX May not apply to x86-64. */		\
 	t1 = _mm_slli_si128 (vload (src, 0), 2);			\
-	*m2 = _mm_insert_epi16 (t1, w[-1], 0);				\
+	t1 = _mm_insert_epi16 (t1, w[-1], 0);				\
+	*m2 = t1;							\
 	t1 = _mm_slli_si128 (t1, 2);					\
 	*m4 = _mm_insert_epi16 (t1, w[-2], 0);				\
 									\
 	t1 = _mm_srli_si128 (vload (src, 0), 2);			\
-	*p2 = _mm_insert_epi16 (t1, w[8], 7);				\
+	t1 = _mm_insert_epi16 (t1, w[8], 7);				\
+	*p2 = t1;							\
 	t1 = _mm_srli_si128 (t1, 2);					\
 	*p4 = _mm_insert_epi16 (t1, w[9], 7);				\
 })
@@ -416,13 +418,13 @@ uload24t			(vu8 *			m4,
 #define WINAPI
 #define APIENTRY
 
-typedef long BOOL; /* for SETTINGS value pointer compatibility. */
+typedef int BOOL; /* for SETTINGS value pointer compatibility. */
 typedef unsigned char BYTE;
 typedef unsigned short WORD;
 typedef unsigned int UINT;
-typedef long LONG;
-typedef long DWORD;
-typedef unsigned long ULONG;
+typedef int LONG;
+typedef int DWORD;
+typedef unsigned int ULONG;
 typedef int32_t __int32;
 typedef int64_t __int64;
 typedef void *LPVOID;
