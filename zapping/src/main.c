@@ -292,6 +292,7 @@ int main(int argc, char * argv[])
   char *command = NULL;
   char *yuv_format = NULL;
   char *norm = NULL;
+  char *cpu_feature_str = NULL;
   gboolean mutable = TRUE;
   const gchar *display_name;
   tveng_device_info *info;
@@ -502,6 +503,15 @@ int main(int argc, char * argv[])
       NULL
     },
     {
+      "cpu-features",
+      0,
+      POPT_ARG_STRING,
+      &cpu_feature_str,
+      0,
+      N_("Override CPU detection"),
+      NULL
+    },
+    {
       NULL,
       0,
       0,
@@ -553,11 +563,25 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.201 2005-04-21 04:47:54 mschimek Exp $",
+	 "$Id: main.c,v 1.201.2.1 2005-05-26 04:07:06 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
-  printv ("CPU features 0x%x\n", cpu_features);
+
+  if (cpu_feature_str)
+    {
+      cpu_feature_set actual_features;
+
+      actual_features = cpu_features;
+      cpu_features &= cpu_feature_set_from_string (cpu_feature_str);
+
+      printv ("CPU features 0x%x (actual 0x%x)\n",
+    	      cpu_features, actual_features);
+    }
+  else
+    {
+      printv ("CPU features 0x%x\n", cpu_features);
+    }
 
   D();
   glade_gnome_init();

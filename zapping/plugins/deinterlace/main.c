@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.6.2.2 2005-05-20 05:45:13 mschimek Exp $ */
+/* $Id: main.c,v 1.6.2.3 2005-05-26 04:07:06 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -468,6 +468,8 @@ properties_add			(GtkDialog *		dialog)
   standard_properties_add (dialog, &sg, 1, /* glade */ NULL);
 }
 
+extern int GreedyTestMode;
+
 static gboolean
 plugin_init			(PluginBridge		bridge _unused_,
 				 tveng_device_info *	info _unused_)
@@ -512,6 +514,8 @@ plugin_init			(PluginBridge		bridge _unused_,
   z_gconf_notify_add (GCONF_DIR "/resolution", notify, NULL);
 
   z_gconf_auto_update_bool (&reverse_fields, GCONF_DIR "/reverse_fields");
+  z_gconf_auto_update_bool (&GreedyTestMode,
+			    GCONF_DIR "/options/Deinterlace/GreedyTestMode");
 
   return TRUE;
 }

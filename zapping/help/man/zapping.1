@@ -24,7 +24,7 @@ zapping \- a TV viewer for the Gnome environment
 .ad l
 .hy 0
 .HP 8
-\fBzapping\fR [\-b,\ \-\-bpp\ \fINUMBER\fR] [\-c,\ \-\-command\ \fISTRING\fR] [\-\-console\-errors] [\-d,\ \-\-debug] [\-\-device\ \fIFILENAME\fR] [\-\-dword\-align] [\-n,\ \-\-tunerless\-norm\ \fISTRING\fR] [\-\-no\-overlay,\ \-\-remote] [\-\-no\-plugins] [\-\-no\-vbi] [\-\-no\-xv\-image] [\-\-no\-xv\-video] [\-v,\ \-\-no\-xv] [\-\-xv\-image\-port\ \fINUMBER\fR] [\-\-xv\-port\ \fINUMBER\fR,\ \-\-xv\-video\-port\ \fINUMBER\fR] [\-y,\ \-\-yuv\-format\ \fISTRING\fR] [\-z,\ \-\-no\-zsfb]
+\fBzapping\fR [\-b,\ \-\-bpp\ \fINUMBER\fR] [\-c,\ \-\-command\ \fISTRING\fR] [\-\-console\-errors] [\-\-cpu\-features\ \fIFEATURES\fR] [\-d,\ \-\-debug] [\-\-device\ \fIFILENAME\fR] [\-\-dword\-align] [\-n,\ \-\-tunerless\-norm\ \fISTRING\fR] [\-\-no\-overlay,\ \-\-remote] [\-\-no\-plugins] [\-\-no\-vbi] [\-\-no\-xv\-image] [\-\-no\-xv\-video] [\-v,\ \-\-no\-xv] [\-\-xv\-image\-port\ \fINUMBER\fR] [\-\-xv\-port\ \fINUMBER\fR,\ \-\-xv\-video\-port\ \fINUMBER\fR] [\-y,\ \-\-yuv\-format\ \fISTRING\fR] [\-z,\ \-\-no\-zsfb]
 .ad
 .hy
 
@@ -52,6 +52,10 @@ zapping \-c "set_channel BBC"
 .TP
 \fB\-\-console\-errors\fR
 Redirect the error messages to the console, useful for bug reports\&.
+
+.TP
+\fB\-\-cpu\-features\fR
+Override the CPU detection for tests\&. Possible features are: mmx, 3dnow, sse, sse2, altivec\&.
 
 .TP
 \fB\-d, \-\-debug\fR

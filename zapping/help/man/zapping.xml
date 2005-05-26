@@ -20,6 +20,7 @@
       <arg>-b, --bpp <replaceable>NUMBER</replaceable></arg>
       <arg>-c, --command <replaceable>STRING</replaceable></arg>
       <arg>--console-errors</arg>
+      <arg>--cpu-features <replaceable>FEATURES</replaceable></arg>
       <arg>-d, --debug</arg>
       <arg>--device <replaceable>FILENAME</replaceable></arg>
       <arg>--dword-align</arg>
@@ -69,6 +70,13 @@ zapping -c "set_channel BBC"
 	<term><option>--console-errors</option></term>
 	<listitem>
 	  <para>Redirect the error messages to the console, useful for bug reports.</para>
+	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+	<term><option>--cpu-features</option></term>
+	<listitem>
+	  <para>Override the CPU detection for tests. Possible features are: mmx, 3dnow, sse, sse2, altivec.</para>
 	</listitem>
       </varlistentry>
 
