@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHM_V.c,v 1.1.2.2 2005-05-17 19:58:32 mschimek Exp $
+// $Id: DI_GreedyHM_V.c,v 1.1.2.3 2005-05-31 02:40:34 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -28,6 +28,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.2  2005/05/17 19:58:32  mschimek
+// *** empty log message ***
+//
 // Revision 1.1.2.1  2005/05/05 09:46:00  mschimek
 // *** empty log message ***
 //
@@ -67,15 +70,16 @@ DI_GreedyHM_V_template		(TDeinterlaceInfo *	pInfo,
     uint8_t *WeaveDest;	/* dest for weave pixel */
     uint8_t *CopyDest;	/* other dest, copy or vertical filter */
     const uint8_t *pL2; /* ptr into FieldStore[L2] */
+    const uint8_t *pFieldStoreBegin;
     const uint8_t *pFieldStoreEnd;
-    int L1;	/* offset to FieldStore elem holding top known pixels */
-    int L3;	/* offset to FieldStore elem holding bottom known pxl */
-    int L2;	/* offset to FieldStore elem holding newest weave pixels */
-    int CopySrc;
+    long dL1;	/* offset to FieldStore elem holding top known pixels */
+    long dL3;	/* offset to FieldStore elem holding bottom known pxl */
+    long dL2;	/* offset to FieldStore elem holding newest weave pixels */
+    long dCopySrc;
     unsigned int height;
-    int dst_bpl;
-    unsigned int dst_padding;
-    unsigned int src_padding;
+    long dst_bpl;
+    unsigned long dst_padding;
+    unsigned long src_padding;
 
     MaxCombW = vsplatu8 (GreedyHMaxComb);
 
@@ -85,57 +89,58 @@ DI_GreedyHM_V_template		(TDeinterlaceInfo *	pInfo,
 
     MotionSenseW = vsplat16 (GreedyMotionSense);
 
-    pFieldStoreEnd = (const uint8_t *) FieldStore
-	+ pInfo->FieldHeight * FSROWSIZE;
+    pFieldStoreBegin = FieldStore;
+    pFieldStoreEnd = FieldStore	+ pInfo->FieldHeight * FS_BYTES_PER_ROW;
 
     /* set up pointers, offsets */
-    SetFsPtrs (&L1, &L2, &L3, &CopySrc, &CopyDest, &WeaveDest, pInfo);
+    SIMD_NAME (SetFsPtrs)(&dL1, &dL2, &dL3, &dCopySrc,
+			  &CopyDest, &WeaveDest, pInfo);
 
-    L2 &= 1; /* subscript to 1st of 2 possible weave pixels, our base addr */
-    pL2 = (const uint8_t *) FieldStore + L2 * sizeof (vu8);
-    L1 = (L1 - L2) * sizeof (vu8); /* now is signed offset from L2 */  
-    L3 = (L3 - L2) * sizeof (vu8);
+    /* Subscript to 1st of 2 possible weave pixels, our base addr */
+    dL2 &= 1 * sizeof (vu8);
+
+    pL2 = pFieldStoreBegin + dL2;
+    dL1 = dL1 - dL2; /* now is signed offset from pL2 */  
+    dL3 = dL3 - dL2;
 
     height = pInfo->FieldHeight;
 
     if (WeaveDest == pInfo->Overlay) {
 	/* on first line may just copy first and last */
-	SIMD_NAME (FieldStoreCopy)(WeaveDest,
-				   (const uint8_t *) FieldStore
-				   + CopySrc * sizeof (vu8),
+	SIMD_NAME (FieldStoreCopy)(WeaveDest, pFieldStoreBegin + dCopySrc,
 				   pInfo->LineLength);
-	WeaveDest += pInfo->OverlayPitch * 2;
+	WeaveDest += 2 * pInfo->OverlayPitch;
 	/* CopyDest already OK */
-	pL2 += FSROWSIZE;
+	pL2 += FS_BYTES_PER_ROW;
 	--height;
     }
 
     dst_bpl = CopyDest - WeaveDest;
 
-    dst_padding = pInfo->OverlayPitch * 2 - pInfo->LineLength;
-    src_padding = FSROWSIZE - pInfo->LineLength;
+    dst_padding = 2 * pInfo->OverlayPitch - pInfo->LineLength;
+    src_padding = FS_BYTES_PER_ROW - pInfo->LineLength * FS_FIELDS;
 
     for (; height > 0; --height) {
 	const uint8_t *pL1, *pL2P;
-	unsigned int l1o, l3o;
+	long l1o, l3o;
 
-	l1o = L1;
-	l3o = L3;
+	l1o = dL1;
+	l3o = dL3;
 
-	if (pL2 + l1o < FieldStore)
+	if (pL2 + l1o < pFieldStoreBegin)
 	    l1o = l3o; /* first line */
-	else if (pL2 + l3o >= pFieldStoreEnd)
+	if (pL2 + l3o >= pFieldStoreEnd)
 	    l3o = l1o; /* last line */
 
 	pL1 = pL2 + l1o;
-	pL2P = pL2 + 2 * sizeof (vu8);
+	pL2P = pL2 + FsPrevFrame (l1o);
 
 	GreedyHXCore (&WeaveDest,
 		      &pL1, &pL2, &pL2P,
 		      pInfo->LineLength,
 		      dst_bpl,
-		      /* src_bpl */ l3o - l1o,
-		      /* src_incr */ FSCOLSIZE,
+		      /* src_bpl = FS_BYTES_PER_ROW or 0 */ l3o - l1o,
+		      /* src_incr */ FS_FIELDS * sizeof (vu8),
 		      MaxCombW,
 		      MotionThresholdW,
 		      MotionSenseW,

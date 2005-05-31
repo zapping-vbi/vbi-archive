@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.c,v 1.14 2005-01-31 07:10:14 mschimek Exp $ */
+/* $Id: hamm.c,v 1.14.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #include <limits.h>		/* CHAR_BIT */
 #include "hamm.h"
@@ -80,7 +80,7 @@ _vbi3_bit_reverse [256] = {
  */
 void
 vbi3_par				(uint8_t *		p,
-				 unsigned int		n)
+				 unsigned long		n)
 {
 	while (n-- > 0) {
 		uint8_t c = *p;
@@ -104,7 +104,7 @@ vbi3_par				(uint8_t *		p,
  */
 int
 vbi3_unpar			(uint8_t *		p,
-				 unsigned int		n)
+				 unsigned long		n)
 {
 	int r = 0;
 

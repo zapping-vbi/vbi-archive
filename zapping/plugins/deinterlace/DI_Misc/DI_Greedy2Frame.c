@@ -1,5 +1,5 @@
 /*////////////////////////////////////////////////////////////////////////////
-// $Id: DI_Greedy2Frame.c,v 1.3.2.3 2005-05-20 05:45:14 mschimek Exp $
+// $Id: DI_Greedy2Frame.c,v 1.3.2.4 2005-05-31 02:40:34 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.3  2005/05/20 05:45:14  mschimek
+// *** empty log message ***
+//
 // Revision 1.3.2.2  2005/05/17 19:58:32  mschimek
 // *** empty log message ***
 //
@@ -110,10 +113,10 @@ SIMD_NAME (DeinterlaceGreedy2Frame) (TDeinterlaceInfo *pInfo)
     const uint8_t *M1;
     unsigned int byte_width;
     unsigned int height;
-    unsigned int dst_padding;
-    unsigned int src_padding;
-    unsigned int dst_bpl;
-    unsigned int src_bpl;
+    unsigned long dst_padding;
+    unsigned long src_padding;
+    unsigned long dst_bpl;
+    unsigned long src_bpl;
 
     if (SIMD == CPU_FEATURE_SSE2) {
 	if ((INTPTR (pInfo->Overlay) |
@@ -121,9 +124,9 @@ SIMD_NAME (DeinterlaceGreedy2Frame) (TDeinterlaceInfo *pInfo)
 	     INTPTR (pInfo->PictureHistory[1]->pData) |
 	     INTPTR (pInfo->PictureHistory[2]->pData) |
 	     INTPTR (pInfo->PictureHistory[3]->pData) |
-	     (unsigned int) pInfo->OverlayPitch |
-	     (unsigned int) pInfo->InputPitch |
-	     (unsigned int) pInfo->LineLength) & 15)
+	     (unsigned long) pInfo->OverlayPitch |
+	     (unsigned long) pInfo->InputPitch |
+	     (unsigned long) pInfo->LineLength) & 15)
 	    return DeinterlaceGreedy2Frame_SSE (pInfo);
     }
 

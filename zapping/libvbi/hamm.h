@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.h,v 1.15 2005-01-31 07:16:15 mschimek Exp $ */
+/* $Id: hamm.h,v 1.15.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifndef __ZVBI3_HAMM_H__
 #define __ZVBI3_HAMM_H__
@@ -139,10 +139,10 @@ vbi3_unpar8			(unsigned int		c)
 
 extern void
 vbi3_par				(uint8_t *		p,
-				 unsigned int		n);
+				 unsigned long		n);
 extern int
 vbi3_unpar			(uint8_t *		p,
-				 unsigned int		n);
+				 unsigned long		n);
 
 /**
  * @param c Integer between 0 ... 15.

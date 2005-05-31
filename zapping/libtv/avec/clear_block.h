@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clear_block.h,v 1.3 2005-02-18 07:56:10 mschimek Exp $ */
+/* $Id: clear_block.h,v 1.3.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #include <inttypes.h>
 #include <altivec.h>
@@ -43,13 +43,13 @@ NAME				(void *			d,
 				 unsigned int		value,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned int		bytes_per_line)
+				 unsigned long		bytes_per_line)
 {
 	const vector char sel0 = { 1,2,3,1, 2,3,1,2, 3,1,2,3, 1,2,3,1 };
 	const vector char sel1 = { 2,3,1,2, 3,1,2,3, 1,2,3,1, 2,3,1,2 };
 	const vector char sel2 = { 3,1,2,3, 1,2,3,1, 2,3,1,2, 3,1,2,3 };
 	vector char v0, v1, v2, v3;
-	unsigned int padding;
+	unsigned long padding;
 
 	v3 = (vector char)((vector int){ value, value, value, value });
 
@@ -112,10 +112,10 @@ NAME				(void *			d,
 				 unsigned int		value,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned int		bytes_per_line)
+				 unsigned long		bytes_per_line)
 {
 	vector char v0;
-	unsigned int padding;
+	unsigned long padding;
 
 	switch (BPP) {
 	case 1:

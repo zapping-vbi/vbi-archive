@@ -15,7 +15,8 @@ Zapping 0.9:
 * Teletext in main window does not display URLs in the status bar.
 * Recording hangs if the (v4l2) driver grants only one buffer, despite
   copying in the capture thread.  Requires at least double buffering?
-* Deinterlace plugin test ditest-x86.sh fails.
+* Deinterlace plugin test ditest-x86.sh fails.  make check does not execute
+  all code in GreedyH (pulldown stuff in particular).
 
 Zapping 0.7.2:
 * Fullscreen DMA overlay clips subtitles but not context menu and windows.

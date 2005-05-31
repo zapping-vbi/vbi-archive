@@ -66,8 +66,8 @@ struct _vbi3_cache {
 	 * deadlock if all pages are referenced and the caller releases
 	 * only when receiving new pages.)
 	 */
-	unsigned int		memory_used;
-	unsigned int		memory_limit;
+	unsigned long		memory_used;
+	unsigned long		memory_limit;
 
 	/** Cached networks, most recently used at head of list. */
 	list			networks;
@@ -608,7 +608,7 @@ vbi3_cache_get_networks		(vbi3_cache *		ca,
 {
 	vbi3_network *nk;
 	cache_network *cn, *cn1;
-	unsigned int size;
+	unsigned long size;
 	unsigned int i;
 
 	assert (NULL != ca);
@@ -997,7 +997,7 @@ delete_surplus_pages		(vbi3_cache *		ca)
  */
 void
 vbi3_cache_set_memory_limit	(vbi3_cache *		ca,
-				 unsigned int		limit)
+				 unsigned long		limit)
 {
 	assert (NULL != ca);
 
@@ -1622,7 +1622,7 @@ vbi3_cache_remove_event_handler	(vbi3_cache *		ca,
  */
 vbi3_bool
 vbi3_cache_add_event_handler	(vbi3_cache *		ca,
-				 unsigned int		event_mask,
+				 vbi3_event_mask	event_mask,
 				 vbi3_event_cb *	callback,
 				 void *			user_data)
 {

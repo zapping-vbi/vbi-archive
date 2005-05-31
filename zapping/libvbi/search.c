@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.26 2005-01-31 07:09:38 mschimek Exp $ */
+/* $Id: search.c,v 1.26.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -650,7 +650,7 @@ vbi3_search_ucs2_new		(vbi3_cache *		ca,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
 				 const uint16_t *	pattern,
-				 unsigned int		pattern_size,
+				 unsigned long		pattern_size,
 				 vbi3_bool		casefold,
 				 vbi3_bool		regexp,
 				 vbi3_search_progress_cb *progress,
@@ -688,7 +688,7 @@ vbi3_search_ucs2_new		(vbi3_cache *		ca,
 	s->user_data = user_data;
 
 	if (!regexp) {
-		unsigned int size;
+		unsigned long size;
 		unsigned int i;
 		unsigned int j;
 
@@ -817,7 +817,7 @@ vbi3_search_ucs2_new		(vbi3_cache *		ca,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
 				 const uint16_t *	pattern,
-				 unsigned int		pattern_size,
+				 unsigned long		pattern_size,
 				 vbi3_bool		casefold,
 				 vbi3_bool		regexp,
 				 vbi3_search_progress_cb *progress,

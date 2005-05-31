@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_Greedy.c,v 1.3.2.2 2005-05-20 05:45:14 mschimek Exp $
+// $Id: DI_Greedy.c,v 1.3.2.3 2005-05-31 02:40:34 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.2  2005/05/20 05:45:14  mschimek
+// *** empty log message ***
+//
 // Revision 1.3.2.1  2005/05/05 09:46:01  mschimek
 // *** empty log message ***
 //
@@ -91,19 +94,19 @@ SIMD_NAME (DeinterlaceGreedy)	(TDeinterlaceInfo *	pInfo)
     const uint8_t *LP2;		/* ptr to prev Line2 */
     unsigned int byte_width;
     unsigned int height;
-    unsigned int dst_padding;
-    unsigned int src_padding;
-    unsigned int dst_bpl;
-    unsigned int src_bpl;
+    unsigned long dst_padding;
+    unsigned long src_padding;
+    unsigned long dst_bpl;
+    unsigned long src_bpl;
 
     if (SIMD == CPU_FEATURE_SSE2) {
 	if ((INTPTR (pInfo->Overlay) |
 	     INTPTR (pInfo->PictureHistory[0]->pData) |
 	     INTPTR (pInfo->PictureHistory[1]->pData) |
 	     INTPTR (pInfo->PictureHistory[2]->pData) |
-	     (unsigned int) pInfo->OverlayPitch |
-	     (unsigned int) pInfo->InputPitch |
-	     (unsigned int) pInfo->LineLength) & 15)
+	     (unsigned long) pInfo->OverlayPitch |
+	     (unsigned long) pInfo->InputPitch |
+	     (unsigned long) pInfo->LineLength) & 15)
 	    return DeinterlaceGreedy_SSE (pInfo);
     }
 

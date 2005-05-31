@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.c,v 1.3 2005-01-31 07:03:28 mschimek Exp $ */
+/* $Id: event.c,v 1.3.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>		/* malloc() */
@@ -48,7 +48,7 @@
 
 /** @internal */
 const char *
-_vbi3_event_name			(unsigned int		event)
+_vbi3_event_name			(vbi3_event_mask	event)
 {
 	switch (event) {
 
@@ -141,10 +141,10 @@ __vbi3_event_handler_list_send	(_vbi3_event_handler_list *es,
 void
 _vbi3_event_handler_list_remove_by_event
 			    	(_vbi3_event_handler_list *es,
-				 unsigned int		event_mask)
+				 vbi3_event_mask	event_mask)
 {
 	vbi3_event_handler *eh, **ehp;
-	unsigned int clear_mask;
+	vbi3_event_mask clear_mask;
 
 	assert (NULL != es);
 
@@ -201,7 +201,7 @@ _vbi3_event_handler_list_remove	(_vbi3_event_handler_list *es,
 				 vbi3_event_handler *	eh)
 {
 	vbi3_event_handler *eh1, **ehp;
-	unsigned int event_union;
+	vbi3_event_mask event_union;
 
 	assert (NULL != es);
 	assert (NULL != eh);
@@ -252,12 +252,12 @@ _vbi3_event_handler_list_remove	(_vbi3_event_handler_list *es,
  */
 vbi3_event_handler *
 _vbi3_event_handler_list_add	(_vbi3_event_handler_list *es,
-				 unsigned int		event_mask,
+				 vbi3_event_mask	event_mask,
 				 vbi3_event_cb *		callback,
 				 void *			user_data)
 {
 	vbi3_event_handler *eh, **ehp;
-	unsigned int event_union;
+	vbi3_event_mask event_union;
 	vbi3_bool found;
 
 	assert (NULL != es);
@@ -324,7 +324,7 @@ _vbi3_event_handler_list_destroy	(_vbi3_event_handler_list *es)
 {
 	assert (NULL != es);
 
-	_vbi3_event_handler_list_remove_by_event (es, (unsigned int) -1);
+	_vbi3_event_handler_list_remove_by_event (es, (vbi3_event_mask) -1);
 
 	CLEAR (*es);
 }

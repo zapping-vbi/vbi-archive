@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.16 2005-01-31 07:17:52 mschimek Exp $ */
+/* $Id: cache.h,v 1.16.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifndef __ZVBI3_CACHE_H__
 #define __ZVBI3_CACHE_H__
@@ -270,13 +270,13 @@ vbi3_cache_remove_event_handler	(vbi3_cache *		ca,
   __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_cache_add_event_handler	(vbi3_cache *		ca,
-				 unsigned int		event_mask,
+				 vbi3_event_mask	event_mask,
 				 vbi3_event_cb *	callback,
 				 void *			user_data)
   __attribute__ ((_vbi3_nonnull (1)));
 extern void
 vbi3_cache_set_memory_limit	(vbi3_cache *		ca,
-				 unsigned int		limit)
+				 unsigned long		limit)
   __attribute__ ((_vbi3_nonnull (1)));
 extern void
 vbi3_cache_set_network_limit	(vbi3_cache *		ca,

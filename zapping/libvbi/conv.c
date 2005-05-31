@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.c,v 1.5 2005-01-31 07:11:31 mschimek Exp $ */
+/* $Id: conv.c,v 1.5.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -96,7 +96,7 @@ xiconv_open			(const char *		dst_format,
 iconv_t
 vbi3_iconv_ucs2_open		(const char *		dst_format,
 				 char **		dst,
-				 unsigned int		dst_size)
+				 unsigned long		dst_size)
 {
 	assert (NULL != dst);
 
@@ -181,9 +181,9 @@ xiconv				(iconv_t		cd,
 vbi3_bool
 vbi3_iconv_ucs2			(iconv_t		cd,
 				 char **		dst,
-				 unsigned int		dst_size,
+				 unsigned long		dst_size,
 				 const uint16_t *	src,
-				 unsigned int		src_size)
+				 unsigned long		src_size)
 {
 	const char *s;
 	size_t sleft;
@@ -231,7 +231,7 @@ vbi3_iconv_ucs2			(iconv_t		cd,
 vbi3_bool
 vbi3_iconv_unicode		(iconv_t		cd,
 				 char **		dst,
-				 unsigned int		dst_size,
+				 unsigned long		dst_size,
 				 unsigned int		unicode)
 {
 	uint16_t t[1];
@@ -265,12 +265,12 @@ static char *
 strdup_iconv			(const char *		dst_format,
 				 const char *		src_format,
 				 const char *		src,
-				 unsigned int		src_size,
+				 unsigned long		src_size,
 				 unsigned int		csize)
 {
 	char *buf;
 	char *buf2;
-	unsigned int buf_size;
+	unsigned long buf_size;
 	iconv_t cd;
 	const char *s;
 	char *d;
@@ -354,7 +354,7 @@ strdup_iconv			(const char *		dst_format,
 char *
 vbi3_strdup_iconv_ucs2		(const char *		dst_format,
 				 const uint16_t *	src,
-				 unsigned int		src_size)
+				 unsigned long		src_size)
 {
 	return strdup_iconv (dst_format, NULL,
 			     (const char *) src, src_size * 2, 2);
@@ -378,7 +378,7 @@ vbi3_strdup_iconv_ucs2		(const char *		dst_format,
  */
 char *
 _vbi3_strdup_locale_ucs2		(const uint16_t *	src,
-				 unsigned int		src_size)
+				 unsigned long		src_size)
 {
 	const char *dst_format;
 
@@ -415,7 +415,7 @@ char *
 _vbi3_strdup_locale_utf8		(const char *		src)
 {
 	const char *dst_format;
-	unsigned int src_size;
+	unsigned long src_size;
 
 	if (!src)
 		return NULL;
@@ -440,13 +440,13 @@ _vbi3_strdup_locale_utf8		(const char *		src)
  */
 char *
 _vbi3_strdup_locale_teletext	(const uint8_t *	src,
-				 unsigned int		src_size,
+				 unsigned long		src_size,
 				 const vbi3_character_set *cs)
 {
 	uint16_t buffer[64];
-	unsigned int begin;
-	unsigned int end;
-	unsigned int i;
+	unsigned long begin;
+	unsigned long end;
+	unsigned long i;
 
 	if (!src)
 		return NULL;
@@ -487,7 +487,7 @@ _vbi3_strdup_locale_teletext	(const uint8_t *	src,
 uint16_t *
 _vbi3_strdup_ucs2_utf8		(const char *		src)
 {
-	unsigned int src_size;
+	unsigned long src_size;
 
 	if (!src)
 		return NULL;
@@ -515,7 +515,7 @@ vbi3_bool
 vbi3_stdio_cd_ucs2		(FILE *			fp,
 				 iconv_t		cd,
 				 const uint16_t *	src,
-				 unsigned int		src_size)
+				 unsigned long		src_size)
 {
 	char buffer[4096];
 	const char *s;
@@ -569,7 +569,7 @@ vbi3_bool
 vbi3_stdio_iconv_ucs2		(FILE *			fp,
 				 const char *		dst_format,
 				 const uint16_t *	src,
-				 unsigned int		src_size)
+				 unsigned long		src_size)
 {
 	char buffer[4096];
 	iconv_t cd;

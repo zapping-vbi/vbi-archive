@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_OddOnly.c,v 1.2.2.2 2005-05-20 05:45:14 mschimek Exp $
+// $Id: DI_OddOnly.c,v 1.2.2.3 2005-05-31 02:40:34 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 // Copyright (C) 2005 Michael Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2.2.2  2005/05/20 05:45:14  mschimek
+// *** empty log message ***
+//
 // Revision 1.2.2.1  2005/05/05 09:46:01  mschimek
 // *** empty log message ***
 //
@@ -77,9 +80,9 @@ SIMD_NAME (DeinterlaceOddOnly)	(TDeinterlaceInfo *	pInfo)
     if (SIMD == CPU_FEATURE_SSE2) {
 	if ((INTPTR (pInfo->Overlay) |
 	     INTPTR (pInfo->PictureHistory[0]->pData) |
-	     (unsigned int) pInfo->OverlayPitch |
-	     (unsigned int) pInfo->InputPitch |
-	     (unsigned int) pInfo->LineLength) & 15)
+	     (unsigned long) pInfo->OverlayPitch |
+	     (unsigned long) pInfo->InputPitch |
+	     (unsigned long) pInfo->LineLength) & 15)
 	    return DeinterlaceOddOnly_SSE (pInfo);
     }
 

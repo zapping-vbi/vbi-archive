@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.h,v 1.2.2.4 2005-05-20 05:45:13 mschimek Exp $ */
+/* $Id: simd.h,v 1.2.2.5 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifndef SIMD_H
 #define SIMD_H
@@ -335,6 +335,7 @@ vshiftu2x			(__m64 *		_l,
 				 __m64			_a1,
 				 const unsigned int	_dist)
 {
+	assert (_dist <= sizeof (vu8));
 	/* 7654 3210 -> 6543 */
 	*_l = vlsr (_a0, _am, (sizeof (vu8) - _dist) * 8);
 	/* BA98 7654 -> 8765 */
@@ -678,6 +679,7 @@ vshiftu2x			(__m128i *		_l,
 				 __m128i		_a1,
 				 const unsigned int	_dist)
 {
+	assert (_dist <= sizeof (vu8));
 	/* 7654 3210 -> 6543 */
 	*_l = vlsr (_a0, _am, (sizeof (vu8) - _dist) * 8);
 	/* BA98 7654 -> 8765 */
@@ -964,6 +966,7 @@ vshiftu2x			(vu8 *			_l,
 				 vu8			_a1,
 				 const unsigned int	_dist)
 {
+	assert (_dist <= sizeof (vu8));
 	/* 0123 4567 -> 3456 */
 	*_l = vlsr (_am, _a0, _dist * 8);
 	/* 4567 89AB -> 5678 */

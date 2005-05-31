@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.22 2005-01-31 07:21:34 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.22.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -292,7 +292,7 @@ extend				(text_instance *	text,
 				 vec *			v)
 {
 	uint16_t *buffer;
-	unsigned int n;
+	unsigned long n;
 
 	n = v->end - v->buffer + 2048;
 
@@ -513,13 +513,13 @@ putw_attr			(text_instance *	text,
 /**
  * Like vbi3_print_page_region(), but takes export options as va_list.
  */
-unsigned int
+unsigned long
 vbi3_print_page_region_va_list	(vbi3_page *		pg,
 				 char *			buffer,
-				 unsigned int		buffer_size,
+				 unsigned long		buffer_size,
 				 const char *		format,
 				 const char *		separator,
-				 unsigned int		separator_size,
+				 unsigned long		separator_size,
 				 unsigned int		column,
 				 unsigned int		row,
 				 unsigned int		width,
@@ -720,13 +720,13 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 				; /* discard trailing spaces */
 
 				if (separator) {
-					unsigned int size;
+					unsigned long size;
 
 					size = text.text.bp - text.text.buffer;
 
 					if (!vbi3_iconv_ucs2
 					    (cd, &p,
-					     (unsigned int)(buffer_end - p),
+					     (unsigned long)(buffer_end - p),
 					     text.text.buffer,
 					     size))
 						goto failure;
@@ -734,7 +734,7 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 					text.text.bp = text.text.buffer;
 
 					if (separator_size
-					    > (unsigned int)(buffer_end - p))
+					    > (unsigned long)(buffer_end - p))
 						goto failure;
 
 					memcpy (p, separator, separator_size);
@@ -760,9 +760,9 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 	}
 
 	if (!vbi3_iconv_ucs2 (cd, &p,
-			     (unsigned int)(buffer_end - p),
+			     (unsigned long)(buffer_end - p),
 			     text.text.buffer,
-			     (unsigned int)(text.text.bp - text.text.buffer)))
+			     (unsigned long)(text.text.bp - text.text.buffer)))
 		goto failure;
 
 	vbi3_iconv_ucs2_close (cd);
@@ -824,13 +824,13 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
  * data. Note this function does not append a terminating zero
  * character.
  */
-unsigned int
+unsigned long
 vbi3_print_page_region		(vbi3_page *		pg,
 				 char *			buffer,
-				 unsigned int		buffer_size,
+				 unsigned long		buffer_size,
 				 const char *		format,
 				 const char *		separator,
-				 unsigned int		separator_size,
+				 unsigned long		separator_size,
 				 unsigned int		column,
 				 unsigned int		row,
 				 unsigned int		width,
@@ -854,10 +854,10 @@ vbi3_print_page_region		(vbi3_page *		pg,
 /**
  * Like vbi3_print_page(), but takes export options as va_list.
  */
-unsigned int
+unsigned long
 vbi3_print_page_va_list		(vbi3_page *		pg,
 				 char *			buffer,
-				 unsigned int		buffer_size,
+				 unsigned long		buffer_size,
 				 const char *		format,
 				 va_list		export_options)
 {
@@ -909,10 +909,10 @@ vbi3_print_page_va_list		(vbi3_page *		pg,
  * data. Note this function does not append a terminating zero
  * character.
  */
-unsigned int
+unsigned long
 vbi3_print_page			(vbi3_page *		pg,
 				 char *			buffer,
-				 unsigned int		buffer_size,
+				 unsigned long		buffer_size,
 				 const char *		format,
 				 ...)
 {
@@ -961,7 +961,7 @@ export				(vbi3_export *		e,
 	vbi3_char last;
 	unsigned int row;
 	unsigned int column;
-	unsigned int size;
+	unsigned long size;
 
 	create_palette (text, pg);
 

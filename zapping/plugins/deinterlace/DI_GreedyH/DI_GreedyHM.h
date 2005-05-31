@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHM.h,v 1.1.2.3 2005-05-20 05:45:14 mschimek Exp $
+// $Id: DI_GreedyHM.h,v 1.1.2.4 2005-05-31 02:40:34 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (c) 2005 Michael H. Schimek
@@ -85,20 +85,22 @@ typedef struct {
 #define PD_ODD		(1 << 7) /* is Odd Field */
 
 /* Allow space for max 288 rows/field, plus a spare, and
-   max 896 sceen cols (should be a multiple of the cache line size). */
-#define FSMAXROWS 289
-#define FSMAXCOLS 896
+   max 896 sceen cols (FS_MAX_WIDTH * FS_BYTES_PER_PIXEL should be a
+   multiple of the cache line size). */
+#define FS_MAX_WIDTH 896
+#define FS_MAX_HEIGHT 289
 /* Number of fields to buffer.
-   Attention! this is hardcoded (grep FsPtr % 4). */
-#define FSFIELDS 4
-/* Bytes to skip for info for next col. */
-#define FSCOLSIZE (FSFIELDS * sizeof (vu8))
-/* Bytes to skip to get to info for 2nd row. */
-#define FSROWSIZE (FSMAXCOLS * FSFIELDS)
+   Attention! this is hardcoded (grep FsPtr % 2, FsPtr % 4). */
+#define FS_FIELDS 4
+/* FieldStore is organized as rows * (columns / gran)
+   * fields * gran pixels, where gran = sizeof (vu8) / 2 bpp. */
+#define FS_BYTES_PER_PIXEL (FS_FIELDS * 2) /* YUYV */
+/* Bytes to skip to get to next row. */
+#define FS_BYTES_PER_ROW (FS_MAX_WIDTH * FS_BYTES_PER_PIXEL)
 /* Bytes in FieldStore array. */
-#define FSSIZE (FSMAXROWS * FSROWSIZE)
+#define FS_SIZE (FS_MAX_HEIGHT * FS_BYTES_PER_ROW)
 
-extern uint8_t FieldStore[FSSIZE];
+extern uint8_t FieldStore[FS_SIZE];
 
 /* Current subscript (field) in FieldStore. */
 extern unsigned int FsPtr;
@@ -112,6 +114,14 @@ typedef void
 LINE_COPY_FUNC			(uint8_t *		dst,
 				 const uint8_t *	src,
 				 unsigned int		n_bytes);
+typedef BOOL
+SETFSPTRS_FUNC			(long *			dL1,
+				 long *			dL2,
+				 long *			dL3,
+				 long *			dCopySrc,
+				 uint8_t **		CopyDest,
+				 uint8_t **		WeaveDest,
+				 TDeinterlaceInfo *	pInfo);
 
 extern int
 UpdatePulldown(TDeinterlaceInfo *	pInfo,
@@ -125,16 +135,11 @@ SIMD_FN_PROTOS (DEINTERLACE_FUNC, DI_GreedyHM_V);
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DI_GreedyHM_NV);
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, CanDoPulldown);
 
-extern BOOL
-SetFsPtrs			(int *			L1,
-				 int *			L2,
-				 int *			L3,
-				 int *			CopySrc,
-				 uint8_t **		CopyDest,
-				 uint8_t **		WeaveDest,
-				 TDeinterlaceInfo *	pInfo);
+SIMD_FN_PROTOS (SETFSPTRS_FUNC, SetFsPtrs);
 
 #if SIMD
+
+#define FsPrevFrame(dL2) ((dL2) ^ (2 * sizeof (vu8)))
 
 /* Some common routines. */
 
@@ -169,15 +174,15 @@ typedef enum {
    (hence src_incr) and the GreedyHF.c loop core which reads from
    PictureHistory.  *Dest stores in DI_GreedyHM_V() and DI_GreedyHM_NV()
    have been integrated. */
-static always_inline void
+static __inline__ void
 GreedyHXCore			(uint8_t **		Dest,
 				 const uint8_t **	L1,
 				 const uint8_t **	L2,
 				 const uint8_t **	L2P,
 				 unsigned int		byte_width,
-				 unsigned int		dst_bpl,
-				 unsigned int		src_bpl,
-				 unsigned int		src_incr,
+				 unsigned long		dst_bpl,
+				 unsigned long		src_bpl,
+				 unsigned long		src_incr,
 				 vu8			MaxCombW,
 				 vu8			MotionThresholdW,
 				 v16			MotionSenseW,
@@ -191,15 +196,15 @@ GreedyHXCore			(uint8_t **		Dest,
        is true).  Assume the obvious for even lines. */
 
     am = vzerou8 (); /* no data left hand of first column */
-    a0 = fast_vavgu8 (((const vu8 *) *L1)[0],
-		      ((const vu8 *)(*L1 + src_bpl))[0]);
+    a0 = fast_vavgu8 (vload (*L1, 0),
+                      vload (*L1, src_bpl));
 
     for (count = byte_width / sizeof (vu8) - 1; count > 0; --count) {
 	vu8 l1, l3, l2, l2p;
 	vu8 weave, bob, motion;
 
-	a1 = fast_vavgu8 (((const vu8 *) *L1)[1],
-			  ((const vu8 *)(*L1 + src_bpl))[1]);
+	a1 = fast_vavgu8 (vload (*L1, sizeof (vu8)),
+			  vload (*L1, src_bpl + sizeof (vu8)));
 
     last_column:
 	/* DJR - Diagonal Jaggie Reduction
@@ -232,10 +237,10 @@ GreedyHXCore			(uint8_t **		Dest,
 	am = a0;
 	a0 = a1;
 
-	l2 = * (const vu8 *) *L2; /* L2 - the newest weave pixel value */
+	l2 = vload (*L2, 0); /* L2 - the newest weave pixel value */
 	*L2 += src_incr;
 	
-	l2p = * (const vu8 *) *L2P; /* L2P - the prev weave pixel */
+	l2p = vload (*L2P, 0); /* L2P - the prev weave pixel */
 	*L2P += src_incr;
 
 	/* Greedy Choice
@@ -258,8 +263,8 @@ GreedyHXCore			(uint8_t **		Dest,
 
 	/* MHS: We already had l1, l3 in the previous iteration, but
 	   with few registers to save values reloading is faster. */
-	l1 = * (const vu8 *) *L1;
-	l3 = * (const vu8 *)(*L1 + src_bpl);
+	l1 = vload (*L1, 0);
+	l3 = vload (*L1, src_bpl);
 
 	/* Now lets clip our chosen value to be not outside of the range
 	   of the high/low range L1-L3 by more than MaxComb.

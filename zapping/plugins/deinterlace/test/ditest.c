@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ditest.c,v 1.1.2.1 2005-05-20 05:45:15 mschimek Exp $ */
+/* $Id: ditest.c,v 1.1.2.2 2005-05-31 02:40:35 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -102,6 +102,19 @@ deinterlace			(char *			buffer,
 
 	/* NOTE if method->bIsHalfHeight only the upper half of out_buffer
 	   contains data, must be scaled. */
+
+	{
+		struct timeval tv;
+		long l;
+		double d;
+
+		gettimeofday (&tv, NULL);
+		l = tv.tv_usec + field_count;
+		d = tv.tv_usec + (double) field_count;
+		/* vempty() check. XXX did we compile
+		   for scalar SSE2 or x87? */
+		assert (l == (long) d);
+	}
 }
 
 static void
@@ -135,7 +148,7 @@ init_info			(char *			out_buffer,
 static unsigned int
 myrand				(void)
 {
-	static unsigned int seed = 1;
+	static uint32_t seed = 1;
 
 	seed = seed * 1103515245 + 12345;
 	return (seed / 65536) % 32768;
@@ -235,7 +248,7 @@ write_buffer			(const char *		name,
 }
 
 static const char
-short_options [] = "24c:h:m:n:o:p:qrw:HV";
+short_options [] = "24c:h:m:n:o:p:qrw:zHV";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
@@ -252,6 +265,7 @@ long_options [] = {
 	{ "quiet",	no_argument,		NULL,		'q' },
 	{ "rand",	no_argument,		NULL,		'r' },
 	{ "width",	required_argument,	NULL,		'w' },
+	{ "zero",	required_argument,	NULL,		'z' },
 	{ "version",	no_argument,		NULL,		'V' },
 	{ 0, 0, 0, 0 }
 };
@@ -296,6 +310,7 @@ usage				(FILE *			fp,
 		 "-2 | --swab16  Swap every two bytes AB -> BA of the source\n"
 		 "-4 | --swab32  Swap every four bytes ABCD -> DCBA\n"
 		 "-w | --width   Image width (352)\n"
+		 "-z | --zero    Convert blank images (for automated tests)\n"
 		 , argv[0]);
 }
 
@@ -362,6 +377,7 @@ main				(int			argc,
 	char *out_buffer;
 	char *in_buffers[(MAX_PICTURE_HISTORY + 1) / 2];
 	int random_source;
+	int zero_source;
 	int swab2;
 	int swab4;
 	unsigned int n_frames;
@@ -391,6 +407,7 @@ main				(int			argc,
 	prefix = NULL;
 
 	random_source = FALSE;
+	zero_source = FALSE;
 	swab2 = FALSE;
 	swab4 = FALSE;
 	quiet = FALSE;
@@ -469,6 +486,10 @@ main				(int			argc,
 			}
                         break;
 
+		case 'z':
+			zero_source ^= TRUE;
+			break;
+
 		case 'H':
 			usage (stdout, argv);
 			exit (EXIT_SUCCESS);
@@ -483,7 +504,7 @@ main				(int			argc,
 		}
 	}
 
-	if (!random_source) {
+	if (!random_source && !zero_source) {
 		if (isatty (STDIN_FILENO)) {
 			fprintf (stderr, "No image data on stdin\n");
 			exit (EXIT_FAILURE);
@@ -559,7 +580,9 @@ main				(int			argc,
 		char name[40];
 		size_t actual;
 
-		if (random_source) {
+		if (zero_source) {
+			/* Nothing to do. */
+		} else if (random_source) {
 			unsigned int j;
 
 			for (j = 0; j < size; ++j) {

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: windows.h,v 1.6.2.3 2005-05-20 05:45:13 mschimek Exp $ */
+/* $Id: windows.h,v 1.6.2.4 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifndef WINDOWS_H
 #define WINDOWS_H
@@ -122,9 +122,9 @@ uloadxt				(vu8 *			left,
 
 	src += offs;
 
-	t1 = vload (src, -1 * sizeof (vu8));
-	t2 = vload (src,  0 * sizeof (vu8));
-	t3 = vload (src, +1 * sizeof (vu8));
+	t1 = vload (src, -1 * (long) sizeof (vu8));
+	t2 = vload (src,  0 * (long) sizeof (vu8));
+	t3 = vload (src, +1 * (long) sizeof (vu8));
 
 	*left = vec_perm (t1, t2, vec_lvsl (-dist, src));
 	*center = t2;
@@ -144,9 +144,9 @@ uload24t			(vu8 *			m4,
 
 	src += offs;
 
-	t1 = vload (src, -1 * sizeof (vu8));
-	t2 = vload (src,  0 * sizeof (vu8));
-	t3 = vload (src, +1 * sizeof (vu8));
+	t1 = vload (src, -1 * (long) sizeof (vu8));
+	t2 = vload (src,  0 * (long) sizeof (vu8));
+	t3 = vload (src, +1 * (long) sizeof (vu8));
 
 	*m4 = vec_perm (t1, t2, vec_lvsl (-4, src));
 	*m2 = vec_perm (t1, t2, vec_lvsl (-2, src));
@@ -361,9 +361,9 @@ uloadxt				(vu8 *			left,
 	   when the load crosses a cache line boundary, but given 32 or 64
 	   byte cache lines a shift-load probably doesn't pay.  That aside
 	   we reduce register pressure. */
-	*left   = vload (src, -dist);
-	*center = vload (src, 0);
-	*right  = vload (src, +dist);
+	*left   = vload (src, - (long) dist);
+	*center = vload (src,   (long) 0);
+	*right  = vload (src, + (long) dist);
 }
 
 static always_inline void

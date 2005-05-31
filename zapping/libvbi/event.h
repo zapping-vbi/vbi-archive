@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.h,v 1.3 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: event.h,v 1.3.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifndef EVENT_H
 #define EVENT_H
@@ -43,6 +43,8 @@
 #include "pdc.h"		/* vbi3_program_id */
 
 VBI3_BEGIN_DECLS
+
+typedef unsigned int vbi3_event_mask;
 
 /**
  * @ingroup Event
@@ -186,7 +188,7 @@ typedef enum {
  */
 typedef struct vbi3_event {
 	/** Event type, one of the VBI3_EVENT_ symbols. */
-	unsigned int		type;
+	vbi3_event_mask		type;
 
 	/** The network this event refers to. */
 	const vbi3_network *	network;

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.49 2005-02-05 22:25:20 mschimek Exp $ */
+/* $Id: export.c,v 1.49.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1096,7 +1096,7 @@ vbi3_export_info_enum		(unsigned int		indx)
 const vbi3_export_info *
 vbi3_export_info_by_keyword	(const char *		keyword)
 {
-	unsigned int keylen;
+	unsigned long keylen;
 	unsigned int i;
 
 	if (!keyword)
@@ -1186,7 +1186,7 @@ localize_option_info		(const vbi3_option_info *oi,
 				 unsigned int		oi_size)
 {
 	vbi3_option_info *loi;
-	unsigned int size;
+	unsigned long size;
 	unsigned int i;
 
 	size = (N_ELEMENTS (generic_options) + oi_size) * sizeof (*loi);
@@ -1397,7 +1397,7 @@ vbi3_export_new			(const char *		keyword,
 	char key[256];
 	const _vbi3_export_module *xc;
 	vbi3_export *e;
-	unsigned int keylen;
+	unsigned long keylen;
 	unsigned int i;
 
 	if (errstr)

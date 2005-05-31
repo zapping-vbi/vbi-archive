@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHF.c,v 1.1.2.1 2005-05-05 09:46:00 mschimek Exp $
+// $Id: DI_GreedyHF.c,v 1.1.2.2 2005-05-31 02:40:34 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -31,6 +31,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.1  2005/05/05 09:46:00  mschimek
+// *** empty log message ***
+//
 // Revision 1.1  2005/01/08 14:54:23  mschimek
 // *** empty log message ***
 //
@@ -84,10 +87,10 @@ SIMD_NAME (DI_GreedyHF)		(TDeinterlaceInfo *	pInfo)
     const uint8_t *L2P;
     unsigned int byte_width;
     unsigned int height;
-    unsigned int dst_bpl;
-    unsigned int src_bpl;
-    unsigned int dst_padding;
-    unsigned int src_padding;
+    unsigned long dst_bpl;
+    unsigned long src_bpl;
+    unsigned long dst_padding;
+    unsigned long src_padding;
 
     MaxCombW = vsplatu8 (GreedyHMaxComb);
 
@@ -140,7 +143,7 @@ SIMD_NAME (DI_GreedyHF)		(TDeinterlaceInfo *	pInfo)
 		      MotionSenseW,
 		      STORE_WEAVE_L3);
 
-        Dest += dst_padding;
+	Dest += dst_padding;
         L1 += src_padding;
         L2 += src_padding;
         L2P += src_padding;

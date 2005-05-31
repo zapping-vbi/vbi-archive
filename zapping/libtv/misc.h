@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.7.2.1 2005-05-05 09:46:00 mschimek Exp $ */
+/* $Id: misc.h,v 1.7.2.2 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifndef __ZTV_MISC_H__
 #define __ZTV_MISC_H__
@@ -143,11 +143,11 @@ do {									\
 #define __attribute__(args...)
 
 static char *
-PARENT_HELPER (char *p, unsigned int offset)
+PARENT_HELPER (char *p, unsigned long offset)
 { return (p == 0) ? 0 : p - offset; }
 
 static const char *
-CONST_PARENT_HELPER (const char *p, unsigned int offset)
+CONST_PARENT_HELPER (const char *p, unsigned long offset)
 { return (p == 0) ? 0 : p - offset; }
 
 #undef PARENT
@@ -241,14 +241,14 @@ clear_block_fn                  (void *                 dst,
                                  unsigned int           value,
                                  unsigned int           width,
                                  unsigned int           height,
-                                 unsigned int           bytes_per_line);
+                                 unsigned long          bytes_per_line);
 
 typedef void
 copy_block_fn                   (void *                 dst,
                                  const void *           src,
                                  unsigned int           width,
                                  unsigned int           height,
-                                 unsigned int           dst_bytes_per_line,
-                                 unsigned int           src_bytes_per_line);
+                                 unsigned long          dst_bytes_per_line,
+                                 unsigned long          src_bytes_per_line);
 
 #endif /* MISC_H */

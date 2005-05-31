@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling_par.h,v 1.3 2005-01-31 07:14:01 mschimek Exp $ */
+/* $Id: sampling_par.h,v 1.3.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifndef __ZVBI3_SAMPLING_PAR_H__
 #define __ZVBI3_SAMPLING_PAR_H__
@@ -151,7 +151,7 @@ typedef struct {
 	 * in memory, in bytes. Must be greater or equal @a
 	 * samples_per_line times bytes per sample.
 	 */
-	unsigned int		bytes_per_line;
+	unsigned long		bytes_per_line;
 	/**
 	 * The distance between 0H (leading edge of horizontal sync pulse,
 	 * half amplitude point) and the first sample (pixel) captured,

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.50 2005-02-18 07:56:22 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.50.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -209,7 +209,7 @@ line_doubler			(void *			buffer,
 {
 	uint8_t *canvas;
 	unsigned int byte_width;
-	unsigned int bytes_per_line;
+	unsigned long bytes_per_line;
 	unsigned int height;
 
 	assert (VBI3_PIXFMT_IS_PACKED (format->pixfmt));
@@ -755,9 +755,9 @@ vbi3_page_draw_caption_region_va_list
 	uint8_t *canvas;
 	unsigned int scaled_height;
 	unsigned int bytes_per_pixel;
-	unsigned int bytes_per_line;
-	unsigned int size;
-	unsigned int row_adv;
+	unsigned long bytes_per_line;
+	unsigned long size;
+	unsigned long row_adv;
 
 	assert (NULL != pg);
 	assert (NULL != buffer);
@@ -1117,9 +1117,9 @@ vbi3_page_draw_teletext_region_va_list
 	uint8_t *canvas;
 	unsigned int scaled_height;
 	unsigned int bytes_per_pixel;
-	unsigned int bytes_per_line;
-	unsigned int size;
-	unsigned int row_adv;
+	unsigned long bytes_per_line;
+	unsigned long size;
+	unsigned long row_adv;
 
 	assert (NULL != pg);
 	assert (NULL != buffer);
@@ -1655,7 +1655,7 @@ _vbi3_export_module_ppm = {
 
 static void
 png_draw_char			(uint8_t *		canvas,
-				 unsigned int		bytes_per_line,
+				 unsigned long		bytes_per_line,
 				 const vbi3_page *       pg,
 				 const vbi3_char *	ac,
 				 unsigned int		conceal,
@@ -1760,7 +1760,7 @@ export_png			(vbi3_export *		e,
 	unsigned int cw, ch;
 	png_bytep *row_pointer;
 	png_bytep image;
-	unsigned int row_adv;
+	unsigned long row_adv;
 	png_byte pen[128];
 	png_bytep canvas;
 	unsigned int row;
@@ -1915,7 +1915,7 @@ export_png			(vbi3_export *		e,
 	png_set_gAMA (png_ptr, info_ptr, 1.0 / 2.2);
 
 	{
-		unsigned int size = 0;
+		unsigned long size = 0;
 
 		if (e->network)
 			size = snprintf (title, sizeof (title),

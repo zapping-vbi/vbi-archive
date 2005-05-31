@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHMPulldown.c,v 1.2.2.2 2005-05-17 19:58:32 mschimek Exp $
+// $Id: DI_GreedyHMPulldown.c,v 1.2.2.3 2005-05-31 02:40:34 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -27,6 +27,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2.2.2  2005/05/17 19:58:32  mschimek
+// *** empty log message ***
+//
 // Revision 1.2.2.1  2005/05/05 09:46:00  mschimek
 // *** empty log message ***
 //
@@ -125,11 +128,11 @@ SIMD_NAME (FieldStoreCopy)	(uint8_t *		dst,
     vu8 m0, m1, m2, m3;
 
     for (; n_bytes & -(sizeof (vu8) * 4); n_bytes -= sizeof (vu8) * 4) {
-	m0 = vload (src, FSCOLSIZE * 0);
-	m1 = vload (src, FSCOLSIZE * 1);
-	m2 = vload (src, FSCOLSIZE * 2);
-	m3 = vload (src, FSCOLSIZE * 3);
-	src += FSCOLSIZE * 4;
+	m0 = vload (src, FS_FIELDS * sizeof (vu8) * 0);
+	m1 = vload (src, FS_FIELDS * sizeof (vu8) * 1);
+	m2 = vload (src, FS_FIELDS * sizeof (vu8) * 2);
+	m3 = vload (src, FS_FIELDS * sizeof (vu8) * 3);
+	src += FS_FIELDS * sizeof (vu8) * 4;
 
 	vstorent (dst, 0 * sizeof (vu8), m0);
 	vstorent (dst, 1 * sizeof (vu8), m1);
@@ -141,7 +144,7 @@ SIMD_NAME (FieldStoreCopy)	(uint8_t *		dst,
     /* Remaining bytes, usually not needed. */
     for (; n_bytes > 0; n_bytes -= sizeof (vu8)) {
 	vstorent (dst, 0, vload (src, 0));
-	src += FSCOLSIZE;
+	src += FS_FIELDS * sizeof (vu8);
 	dst += sizeof (vu8);
     }
 }
@@ -157,17 +160,17 @@ FieldStoreMerge			(uint8_t *		dst,
     vu8 m0, m1, m2, m3;
 
     for (; n_bytes & -(sizeof (vu8) * 4); n_bytes -= sizeof (vu8) * 4) {
-	m0 = vload (src1, FSCOLSIZE * 0);
-	m1 = vload (src1, FSCOLSIZE * 1);
-	m2 = vload (src1, FSCOLSIZE * 2);
-	m3 = vload (src1, FSCOLSIZE * 3);
-	src1 += FSCOLSIZE * 4;
+	m0 = vload (src1, FS_FIELDS * sizeof (vu8) * 0);
+	m1 = vload (src1, FS_FIELDS * sizeof (vu8) * 1);
+	m2 = vload (src1, FS_FIELDS * sizeof (vu8) * 2);
+	m3 = vload (src1, FS_FIELDS * sizeof (vu8) * 3);
+	src1 += FS_FIELDS * sizeof (vu8) * 4;
 
-	m0 = fast_vavgu8 (m0, vload (src2, FSCOLSIZE * 0));
-	m1 = fast_vavgu8 (m1, vload (src2, FSCOLSIZE * 1));
-	m2 = fast_vavgu8 (m2, vload (src2, FSCOLSIZE * 2));
-	m3 = fast_vavgu8 (m3, vload (src2, FSCOLSIZE * 3));
-	src2 += FSCOLSIZE * 4;
+	m0 = fast_vavgu8 (m0, vload (src2, FS_FIELDS * sizeof (vu8) * 0));
+	m1 = fast_vavgu8 (m1, vload (src2, FS_FIELDS * sizeof (vu8) * 1));
+	m2 = fast_vavgu8 (m2, vload (src2, FS_FIELDS * sizeof (vu8) * 2));
+	m3 = fast_vavgu8 (m3, vload (src2, FS_FIELDS * sizeof (vu8) * 3));
+	src2 += FS_FIELDS * sizeof (vu8) * 4;
 
 	vstorent (dst, 0 * sizeof (vu8), m0);
 	vstorent (dst, 1 * sizeof (vu8), m1);
@@ -179,8 +182,8 @@ FieldStoreMerge			(uint8_t *		dst,
     /* Remaining bytes, usually not needed. */
     for (; n_bytes > 0; n_bytes -= sizeof (vu8)) {
 	m0 = fast_vavgu8 (vload (src1, 0), vload (src2, 0));
-	src1 += FSCOLSIZE;
-	src2 += FSCOLSIZE;
+	src1 += FS_FIELDS * sizeof (vu8);
+	src2 += FS_FIELDS * sizeof (vu8);
 
 	vstorent (dst, 0, m0);
 	dst += sizeof (vu8);
@@ -200,27 +203,27 @@ FieldStoreMerge_V		(uint8_t *		dst,
     vu8 m0, m1, m2, m3, m4, m5, m6, m7;
 
     for (; n_bytes & -(sizeof (vu8) * 4); n_bytes -= sizeof (vu8) * 4) {
-	m0 = vload (src1, FSCOLSIZE * 0);
-	m1 = vload (src1, FSCOLSIZE * 1);
-	m2 = vload (src1, FSCOLSIZE * 2);
-	m3 = vload (src1, FSCOLSIZE * 3);
+	m0 = vload (src1, FS_FIELDS * sizeof (vu8) * 0);
+	m1 = vload (src1, FS_FIELDS * sizeof (vu8) * 1);
+	m2 = vload (src1, FS_FIELDS * sizeof (vu8) * 2);
+	m3 = vload (src1, FS_FIELDS * sizeof (vu8) * 3);
 
-	m4 = vload (src2, FSCOLSIZE * 0);
-	m5 = vload (src2, FSCOLSIZE * 1);
-	m6 = vload (src2, FSCOLSIZE * 2);
-	m7 = vload (src2, FSCOLSIZE * 3);
+	m4 = vload (src2, FS_FIELDS * sizeof (vu8) * 0);
+	m5 = vload (src2, FS_FIELDS * sizeof (vu8) * 1);
+	m6 = vload (src2, FS_FIELDS * sizeof (vu8) * 2);
+	m7 = vload (src2, FS_FIELDS * sizeof (vu8) * 3);
 
-	m0 = fast_vavgu8 (m0, vload (src1, FSCOLSIZE * 0 + np));
-	m1 = fast_vavgu8 (m1, vload (src1, FSCOLSIZE * 1 + np));
-	m2 = fast_vavgu8 (m2, vload (src1, FSCOLSIZE * 2 + np));
-	m3 = fast_vavgu8 (m3, vload (src1, FSCOLSIZE * 3 + np));
-	src1 += FSCOLSIZE * 4;
+	m0 = fast_vavgu8 (m0, vload (src1, FS_FIELDS * sizeof (vu8) * 0 + np));
+	m1 = fast_vavgu8 (m1, vload (src1, FS_FIELDS * sizeof (vu8) * 1 + np));
+	m2 = fast_vavgu8 (m2, vload (src1, FS_FIELDS * sizeof (vu8) * 2 + np));
+	m3 = fast_vavgu8 (m3, vload (src1, FS_FIELDS * sizeof (vu8) * 3 + np));
+	src1 += FS_FIELDS * sizeof (vu8) * 4;
 
-	m4 = fast_vavgu8 (m4, vload (src2, FSCOLSIZE * 0 + np));
-	m5 = fast_vavgu8 (m5, vload (src2, FSCOLSIZE * 1 + np));
-	m6 = fast_vavgu8 (m6, vload (src2, FSCOLSIZE * 2 + np));
-	m7 = fast_vavgu8 (m7, vload (src2, FSCOLSIZE * 3 + np));
-	src2 += FSCOLSIZE * 4;
+	m4 = fast_vavgu8 (m4, vload (src2, FS_FIELDS * sizeof (vu8) * 0 + np));
+	m5 = fast_vavgu8 (m5, vload (src2, FS_FIELDS * sizeof (vu8) * 1 + np));
+	m6 = fast_vavgu8 (m6, vload (src2, FS_FIELDS * sizeof (vu8) * 2 + np));
+	m7 = fast_vavgu8 (m7, vload (src2, FS_FIELDS * sizeof (vu8) * 3 + np));
+	src2 += FS_FIELDS * sizeof (vu8) * 4;
 
 	vstorent (dst, 0 * sizeof (vu8), fast_vavgu8 (m0, m4));
 	vstorent (dst, 1 * sizeof (vu8), fast_vavgu8 (m1, m5));
@@ -233,10 +236,10 @@ FieldStoreMerge_V		(uint8_t *		dst,
     for (; n_bytes > 0; n_bytes -= sizeof (vu8)) {
 	m0 = fast_vavgu8 (vload (src1, 0),
 			  vload (src1, np));
-	src1 += FSCOLSIZE;
+	src1 += FS_FIELDS * sizeof (vu8);
 	m4 = fast_vavgu8 (vload (src2, 0),
 			  vload (src2, np));
-	src2 += FSCOLSIZE;
+	src2 += FS_FIELDS * sizeof (vu8);
 	vstorent (dst, 0, fast_vavgu8 (m0, m4));
 	dst += sizeof (vu8);
     }
@@ -248,7 +251,7 @@ PullDown_InBetween		(TDeinterlaceInfo *	pInfo)
     uint8_t *Dest;
     const uint8_t *pE;
     const uint8_t *pO;
-    unsigned int EvenL;
+    unsigned long EvenL;
     unsigned int height;
 
     Dest = pInfo->Overlay;
@@ -257,7 +260,7 @@ PullDown_InBetween		(TDeinterlaceInfo *	pInfo)
     /* OddL = __min(FsPtrP = (FsPtr - 1) % 4, FsPtrP3 = (FsPtr - 3) % 4); */
     EvenL = (FsPtr & 1) * sizeof (vu8);
     pE = (uint8_t *) FieldStore + EvenL;
-    pO = (uint8_t *) FieldStore + (EvenL ^ sizeof (vu8));
+    pO = (uint8_t *) FieldStore + (EvenL ^ (1 * sizeof (vu8)));
 
     if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD)
 	SWAP (pE, pO);
@@ -266,11 +269,11 @@ PullDown_InBetween		(TDeinterlaceInfo *	pInfo)
 	for (height = pInfo->FieldHeight - 1; height > 0; --height) {
 	    FieldStoreMerge_V (Dest, pE, pO, pInfo->LineLength);
 	    Dest += pInfo->OverlayPitch;
-	    pE += FSROWSIZE;
+	    pE += FS_BYTES_PER_ROW;
 
 	    FieldStoreMerge_V (Dest, pO, pE, pInfo->LineLength);
 	    Dest += pInfo->OverlayPitch;
-	    pO += FSROWSIZE;
+	    pO += FS_BYTES_PER_ROW;
 	}
 
 	/* one more time but dup last line */
@@ -283,14 +286,16 @@ PullDown_InBetween		(TDeinterlaceInfo *	pInfo)
 	    FieldStoreMerge (Dest, pE, pE + 2 * sizeof (vu8),
 			     pInfo->LineLength);
 	    Dest += pInfo->OverlayPitch;
-	    pE += FSROWSIZE;
+	    pE += FS_BYTES_PER_ROW;
 
 	    FieldStoreMerge (Dest, pO, pO + 2 * sizeof (vu8),
 			     pInfo->LineLength);
 	    Dest += pInfo->OverlayPitch;
-	    pO += FSROWSIZE;
+	    pO += FS_BYTES_PER_ROW;
 	}
     }
+
+    vempty ();
 
     return TRUE;
 }
@@ -303,69 +308,72 @@ PullDown_V			(TDeinterlaceInfo *	pInfo,
     uint8_t *WeaveDest;	/* dest for weave pixel */
     uint8_t *CopyDest;	/* other dest, copy or vertical filter */
     const uint8_t *pL2; /* ptr into FieldStore[L2] */
+    const uint8_t *pFieldStoreBegin;
     const uint8_t *pFieldStoreEnd;
-    int L1;	/* offset to FieldStore elem holding top known pixels */
-    int L3;	/* offset to FieldStore elem holding bottom known pxl */
-    int L2;	/* offset to FieldStore elem holding newest weave pixels */
-    int CopySrc;
+    long dL1;	/* offset to FieldStore elem holding top known pixels */
+    long dL3;	/* offset to FieldStore elem holding bottom known pxl */
+    long dL2;	/* offset to FieldStore elem holding newest weave pixels */
+    long dCopySrc;
     unsigned int height;
-    unsigned int dst_padding;
-    unsigned int src_padding;
+    unsigned long dst_padding;
+    unsigned long src_padding;
 
-    pFieldStoreEnd = (const uint8_t *) FieldStore
-	+ pInfo->FieldHeight * FSROWSIZE;
+    pFieldStoreBegin = FieldStore;
+    pFieldStoreEnd = pFieldStoreBegin + pInfo->FieldHeight * FS_BYTES_PER_ROW;
 
     /* set up pointers, offsets */
-    SetFsPtrs (&L1, &L2, &L3, &CopySrc, &CopyDest, &WeaveDest, pInfo);
+    SIMD_NAME (SetFsPtrs)(&dL1, &dL2, &dL3, &dCopySrc,
+			  &CopyDest, &WeaveDest, pInfo);
 
     if (!SelectL2) {
-	L2 ^= 2; /* = L2P */
+	dL2 = FsPrevFrame (dL2);
     }
 
-    pL2 = (const uint8_t *) FieldStore + L2 * sizeof (vu8);
-    L1 = (L1 - L2) * sizeof (vu8); /* now is signed offset from L2 */  
-    L3 = (L3 - L2) * sizeof (vu8);
+    pL2 = (const uint8_t *) FieldStore + dL2;
+    dL1 -= dL2; /* now is signed offset from pL2 */  
+    dL3 -= dL2;
 
     height = pInfo->FieldHeight;
 
     if (WeaveDest == pInfo->Overlay) {
 	/* on first line may just copy first and last */
 	SIMD_NAME (FieldStoreCopy)(pInfo->Overlay,
-				   (const uint8_t *) FieldStore
-				   + CopySrc * sizeof (vu8),
+				   pFieldStoreBegin + dCopySrc,
 				   pInfo->LineLength);
 	WeaveDest += pInfo->OverlayPitch * 2;
 	/* CopyDest already OK */
-	pL2 += FSROWSIZE;
+	pL2 += FS_BYTES_PER_ROW;
 	--height;
     }
 
     dst_padding = pInfo->OverlayPitch * 2 - pInfo->LineLength;
-    src_padding = FSROWSIZE - pInfo->LineLength;
+    src_padding = FS_BYTES_PER_ROW - pInfo->LineLength * FS_FIELDS;
 
     for (; height > 0; --height) {
 	unsigned int count;
 	unsigned int l1o, l3o;
 
-	l1o = L1;
-	l3o = L3;
+	l1o = dL1;
+	l3o = dL3;
 
-	if (pL2 + l1o < FieldStore)
+	if (pL2 + l1o < pFieldStoreBegin)
 	    l1o = l3o; /* first line */
-	else if (pL2 + l3o >= pFieldStoreEnd)
+	if (pL2 + l3o >= pFieldStoreEnd)
 	    l3o = l1o; /* last line */
 
 	for (count = pInfo->LineLength / sizeof (vu8); count > 0; --count) {
 	    vu8 l1, l2, l3;
 
-	    l1 = * (const vu8 *)(pL2 + l1o);
-	    l2 = * (const vu8 *) pL2;
-	    l3 = * (const vu8 *)(pL2 + l3o);
+	    l1 = vload (pL2, l1o);
+	    l2 = vload (pL2, 0);
+	    l3 = vload (pL2, l3o);
+
 	    vstorent (CopyDest, 0, fast_vavgu8 (l1, l2));
 	    vstorent (WeaveDest, 0, fast_vavgu8 (l2, l3));
+
 	    CopyDest += sizeof (vu8);
 	    WeaveDest += sizeof (vu8);
-	    pL2 += FSCOLSIZE;
+	    pL2 += FS_FIELDS * sizeof (vu8);
 	}
 
 	WeaveDest += dst_padding;
@@ -412,13 +420,13 @@ PullDown_VSharp2		(uint8_t *		dst,
 
     if (0 != C) {
 	for (count = n_bytes / sizeof (vu8); count > 0; --count) {
-	    Zi = vload (src1, -FSROWSIZE);
+	    Zi = vload (src1, -FS_BYTES_PER_ROW);
 	    Zj = vload (src2, 0);
 	    Zk = vload (src1, 0);
-	    Zl = vload (src2, +FSROWSIZE);
-	    Zm = vload (src1, +FSROWSIZE);
-	    src1 += FSCOLSIZE;
-	    src2 += FSCOLSIZE;
+	    Zl = vload (src2, +FS_BYTES_PER_ROW);
+	    Zm = vload (src1, +FS_BYTES_PER_ROW);
+	    src1 += FS_FIELDS * sizeof (vu8);
+	    src2 += FS_FIELDS * sizeof (vu8);
 
 	    mm0 = (vu16) vmullo16 (yuyv2yy (Zk), QA);
 	    mm1 = (vu16) vmullo16 (yuyv2yy (fast_vavgu8 (Zj, Zl)), QB);
@@ -432,9 +440,9 @@ PullDown_VSharp2		(uint8_t *		dst,
 	for (count = n_bytes / sizeof (vu8); count > 0; --count) {
 	    Zj = vload (src2, 0);
 	    Zk = vload (src1, 0);
-	    Zl = vload (src2, +FSROWSIZE);
-	    src1 += FSCOLSIZE;
-	    src2 += FSCOLSIZE;
+	    Zl = vload (src2, +FS_BYTES_PER_ROW);
+	    src1 += FS_FIELDS * sizeof (vu8);
+	    src2 += FS_FIELDS * sizeof (vu8);
 
 	    mm0 = (vu16) vmullo16 (yuyv2yy (Zk), QA);
 	    mm1 = (vu16) vmullo16 (yuyv2yy (fast_vavgu8 (Zj, Zl)), QB);
@@ -464,13 +472,13 @@ PullDown_VSoft2			(uint8_t *		dst,
 
     if (0 != C) {
 	for (count = n_bytes / sizeof (vu8); count > 0; --count) {
-	    Zi = vload (src1, -FSROWSIZE);
+	    Zi = vload (src1, -FS_BYTES_PER_ROW);
 	    Zj = vload (src2, 0);
 	    Zk = vload (src1, 0);
-	    Zl = vload (src2, +FSROWSIZE);
-	    Zm = vload (src1, +FSROWSIZE);
-	    src1 += FSCOLSIZE;
-	    src2 += FSCOLSIZE;
+	    Zl = vload (src2, +FS_BYTES_PER_ROW);
+	    Zm = vload (src1, +FS_BYTES_PER_ROW);
+	    src1 += FS_FIELDS * sizeof (vu8);
+	    src2 += FS_FIELDS * sizeof (vu8);
 
 	    mm0 = vmullo16 (yuyv2yy (Zk), QA);
 	    mm1 = vmullo16 (yuyv2yy (fast_vavgu8 (Zj, Zl)), QB);
@@ -484,9 +492,9 @@ PullDown_VSoft2			(uint8_t *		dst,
 	for (count = n_bytes / sizeof (vu8); count > 0; --count) {
 	    Zj = vload (src2, 0);
 	    Zk = vload (src1, 0);
-	    Zl = vload (src2, +FSROWSIZE);
-	    src1 += FSCOLSIZE;
-	    src2 += FSCOLSIZE;
+	    Zl = vload (src2, +FS_BYTES_PER_ROW);
+	    src1 += FS_FIELDS * sizeof (vu8);
+	    src2 += FS_FIELDS * sizeof (vu8);
 
 	    mm0 = vmullo16 (yuyv2yy (Zk), QA);
 	    mm1 = vmullo16 (yuyv2yy (fast_vavgu8 (Zj, Zl)), QB);
@@ -602,15 +610,16 @@ PullDown_VSharp			(TDeinterlaceInfo *	pInfo,
     v16 QC;
     uint8_t *WeaveDest;	/* dest for weave pixel */
     uint8_t *CopyDest;	/* other dest, copy or vertical filter */
+    const uint8_t *pFieldStore;
     const uint8_t *Src1;
     const uint8_t *Src2;
-    int L1; /* offset to FieldStore elem holding top known pixels */
-    int L3; /* offset to FieldStore elem holding bottom known pxl */
-    int L2; /* offset to FieldStore elem holding newest weave pixels */
-    int CopySrc;
+    long dL1; /* offset to FieldStore elem holding top known pixels */
+    long dL3; /* offset to FieldStore elem holding bottom known pxl */
+    long dL2; /* offset to FieldStore elem holding newest weave pixels */
+    long dCopySrc;
     unsigned int height;
-    unsigned int dst2_offs;
-    unsigned int src2_offs;
+    unsigned long dst2_offs;
+    unsigned long src2_offs;
     int w = (GreedyVSharpnessAmt > 0) /* note-adj down for overflow */
 	/* overflow, use 38%, 0<w<1000  */
 	? 1000 - (GreedyVSharpnessAmt * 38 / 10)
@@ -625,47 +634,48 @@ PullDown_VSharp			(TDeinterlaceInfo *	pInfo,
 
     C = 64 - A + B;
 
+    pFieldStore = FieldStore;
+
     /* set up pointers, offsets */
-    SetFsPtrs (&L1, &L2, &L3, &CopySrc, &CopyDest, &WeaveDest, pInfo);
+    SIMD_NAME (SetFsPtrs)(&dL1, &dL2, &dL3, &dCopySrc,
+			  &CopyDest, &WeaveDest, pInfo);
 
     /* chk forward/backward Greedy Choice Flag for this field */
     if (!SelectL2) {
-	L2 ^= 2; /* = L2P */
+	dL2 = FsPrevFrame (dL2);
     }
-
-    CopySrc *= sizeof (vu8);
-    L2 *= sizeof (vu8);
 
     /* Pick up first 2 and last 2 lines */
 
-    SIMD_NAME (FieldStoreCopy)(CopyDest,
-			       (const uint8_t *) FieldStore + CopySrc,
+    SIMD_NAME (FieldStoreCopy)(CopyDest, pFieldStore + dCopySrc,
 			       pInfo->LineLength);
-    SIMD_NAME (FieldStoreCopy)(WeaveDest,
-			       (const uint8_t *) FieldStore + L2,
+    SIMD_NAME (FieldStoreCopy)(WeaveDest, pFieldStore + dL2,
 			       pInfo->LineLength);
 
-    dst2_offs = 2 * (pInfo->FieldHeight - 1) * pInfo->OverlayPitch;
-    src2_offs = (pInfo->FieldHeight - 1) * FSROWSIZE;
+    {
+	unsigned int last_row;
+
+	last_row = pInfo->FieldHeight - 1;
+	dst2_offs = 2 * last_row * pInfo->OverlayPitch;
+	src2_offs = last_row * FS_BYTES_PER_ROW;
+    }
 
     SIMD_NAME (FieldStoreCopy)(CopyDest + dst2_offs,
-			       (const uint8_t *) FieldStore
-			       + CopySrc + src2_offs,
+			       pFieldStore + dCopySrc + src2_offs,
 			       pInfo->LineLength);
     SIMD_NAME (FieldStoreCopy)(WeaveDest + dst2_offs,
-			       (const uint8_t *) FieldStore
-			       + L2 + src2_offs,
+			       pFieldStore + dL2 + src2_offs,
 			       pInfo->LineLength);
 
     CopyDest += 2 * pInfo->OverlayPitch;
     WeaveDest += 2 * pInfo->OverlayPitch;
 
     if (CopyDest < WeaveDest) {
-        Src2 = (const uint8_t *) FieldStore + CopySrc + FSROWSIZE;
-        Src1 = (const uint8_t *) FieldStore + L2;
+        Src2 = pFieldStore + dCopySrc + FS_BYTES_PER_ROW;
+        Src1 = pFieldStore + dL2;
     } else {
-        Src2 = (const uint8_t *) FieldStore + L2 + FSROWSIZE;
-        Src1 = (const uint8_t *) FieldStore + CopySrc;
+        Src2 = pFieldStore + dL2 + FS_BYTES_PER_ROW;
+        Src1 = pFieldStore + dCopySrc;
         CopyDest = WeaveDest;
     }
 
@@ -681,12 +691,12 @@ PullDown_VSharp			(TDeinterlaceInfo *	pInfo,
             PullDown_VSoft2 (CopyDest, Src1, Src2, pInfo->LineLength,
 			     QA, QB, QC, C);
 	    CopyDest += pInfo->OverlayPitch;
-	    Src1 += FSROWSIZE;
+	    Src1 += FS_BYTES_PER_ROW;
     
             PullDown_VSoft2 (CopyDest, Src2, Src1, pInfo->LineLength,
 			     QA, QB, QC, C);
 	    CopyDest += pInfo->OverlayPitch;
-	    Src2 += FSROWSIZE;
+	    Src2 += FS_BYTES_PER_ROW;
 	}
     } else {
 	QB = vsplat16 (B);
@@ -695,14 +705,16 @@ PullDown_VSharp			(TDeinterlaceInfo *	pInfo,
             PullDown_VSharp2 (CopyDest, Src1, Src2, pInfo->LineLength,
 			      QA, QB, QC, C);
 	    CopyDest += pInfo->OverlayPitch;
-	    Src1 += FSROWSIZE;
+	    Src1 += FS_BYTES_PER_ROW;
     
             PullDown_VSharp2 (CopyDest, Src2, Src1, pInfo->LineLength,
 			      QA, QB, QC, C);
 	    CopyDest += pInfo->OverlayPitch;
-	    Src2 += FSROWSIZE;
+	    Src2 += FS_BYTES_PER_ROW;
 	}
     }
+
+    vempty ();
 
     return TRUE;
 }
@@ -814,27 +826,28 @@ SIMD_NAME (CanDoPulldown)	(TDeinterlaceInfo *	pInfo)
 	uint8_t *CopyDest;	/* other dest, copy or vertical filter */
 	const uint8_t *pL2;	/* ptr into FieldStore[L2] */
 	const uint8_t *pCS;	/* ptr into FieldStore[CopySrc] */
-	int L1;	/* offset to FieldStore elem holding top known pixels */
-	int L3;	/* offset to FieldStore elem holding bottom known pxl */
-	int L2;	/* offset to FieldStore elem holding newest weave pixels */
-	int CopySrc;
+	long dL1; /* offset to FieldStore elem holding top known pixels */
+	long dL3; /* offset to FieldStore elem holding bottom known pxl */
+	long dL2; /* offset to FieldStore elem holding newest weave pixels */
+	long dCopySrc;
 	unsigned int height;
-	unsigned int dst_padding;
-	unsigned int src_padding;
+	unsigned long dst_padding;
+	unsigned long src_padding;
 
 	/* set up pointers, offsets */
-	SetFsPtrs (&L1, &L2, &L3, &CopySrc, &CopyDest, &WeaveDest, pInfo);
+	SIMD_NAME (SetFsPtrs)(&dL1, &dL2, &dL3, &dCopySrc,
+			      &CopyDest, &WeaveDest, pInfo);
 
 	/* chk forward/backward Greedy Choice Flag for this field */
 	if (!(Hist[hPtr].Flags & 1)) {
-	    L2 = L2 ^ 2; /* = L2P */
+	    dL2 = FsPrevFrame (dL2);
 	}
 
-	pL2 = (const uint8_t *) FieldStore + L2 * sizeof (vu8);
-	pCS = (const uint8_t *) FieldStore + CopySrc * sizeof (vu8);
+	pL2 = (const uint8_t *) FieldStore + dL2;
+	pCS = (const uint8_t *) FieldStore + dCopySrc;
 
 	dst_padding = 2 * pInfo->OverlayPitch;
-	src_padding = FSROWSIZE;
+	src_padding = FS_BYTES_PER_ROW;
 
 	for (height = pInfo->FieldHeight; height > 0; --height) {
 	    SIMD_NAME (FieldStoreCopy)(CopyDest, pCS, pInfo->LineLength);
@@ -846,6 +859,8 @@ SIMD_NAME (CanDoPulldown)	(TDeinterlaceInfo *	pInfo)
 	    pL2 += src_padding;
 	}
     }
+
+    vempty ();
 
     return TRUE;
 }

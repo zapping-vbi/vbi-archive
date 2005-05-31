@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_block.c,v 1.2 2005-01-08 14:40:35 mschimek Exp $ */
+/* $Id: copy_block.c,v 1.2.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #include <inttypes.h>		/* uint8_t */
 #include <xmmintrin.h>
@@ -71,12 +71,12 @@ copy_block1_sse_nt		(void *			dst,
 				 const void *		src,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned int		dst_bytes_per_line,
-				 unsigned int		src_bytes_per_line)
+				 unsigned long		dst_bytes_per_line,
+				 unsigned long		src_bytes_per_line)
 {
 	unsigned long align;
-	unsigned int dst_padding;
-	unsigned int src_padding;
+	unsigned long dst_padding;
+	unsigned long src_padding;
 
 	align = ((unsigned long) dst |
 		 (unsigned long) src |

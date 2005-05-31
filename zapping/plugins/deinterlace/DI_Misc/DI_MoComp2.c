@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_MoComp2.c,v 1.1.2.3 2005-05-20 05:45:14 mschimek Exp $
+// $Id: DI_MoComp2.c,v 1.1.2.4 2005-05-31 02:40:34 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2003 Tom Barry & John Adcock.  All rights reserved.
 // Copyright (c) 2005 Michael H. Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.3  2005/05/20 05:45:14  mschimek
+// *** empty log message ***
+//
 // Revision 1.1.2.2  2005/05/17 19:58:32  mschimek
 // *** empty log message ***
 //
@@ -84,8 +87,8 @@ SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceMoComp2);
 static always_inline void
 simple_bob			(uint8_t *		pDest,
 				 const uint8_t *	pBob,
-				 unsigned int		dst_bpl,
-				 unsigned int		src_bpl)
+				 unsigned long		dst_bpl,
+				 unsigned long		src_bpl)
 {
     vu8 b, e;
 
@@ -108,11 +111,11 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
     const uint8_t *pBobP;
     unsigned int byte_width;
     unsigned int height;
-    unsigned int dst_bpl;
-    unsigned int src_bpl;
-    unsigned int dst_padding;
-    unsigned int src_padding1;
-    unsigned int src_padding2;
+    unsigned long dst_bpl;
+    unsigned long src_bpl;
+    unsigned long dst_padding;
+    unsigned long src_padding1;
+    unsigned long src_padding2;
 
     if (SIMD == CPU_FEATURE_SSE2) {
 	if ((INTPTR (pInfo->Overlay) |
@@ -120,9 +123,9 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
 	     INTPTR (pInfo->PictureHistory[1]->pData) |
 	     INTPTR (pInfo->PictureHistory[2]->pData) |
 	     INTPTR (pInfo->PictureHistory[3]->pData) |
-	     (unsigned int) pInfo->OverlayPitch |
-	     (unsigned int) pInfo->InputPitch |
-	     (unsigned int) pInfo->LineLength) & 15)
+	     (unsigned long) pInfo->OverlayPitch |
+	     (unsigned long)  pInfo->InputPitch |
+	     (unsigned long) pInfo->LineLength) & 15)
 	    return DeinterlaceMoComp2_SSE (pInfo);
     }
 

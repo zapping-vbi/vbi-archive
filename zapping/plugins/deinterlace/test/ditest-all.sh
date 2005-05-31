@@ -36,10 +36,10 @@ ditest_wrapper () {
       fi
       ;;
     55)
-      # Have no $feature implementation of $method.
+      # Have no $2 implementation of $1.
       ;;
     *)
-      echo "Test of $feature implementation of $method failed."
+      echo "Test of $2 implementation of $1 failed."
       exit 1
       ;;
   esac

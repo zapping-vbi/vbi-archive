@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.9 2005-02-18 07:55:50 mschimek Exp $ */
+/* $Id: misc.h,v 1.9.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -153,11 +153,11 @@ vbi3_log_printf			(vbi3_log_level		level,
 #define __attribute__(args...)
 
 static char *
-PARENT_HELPER (char *p, unsigned int offset)
+PARENT_HELPER (char *p, unsigned long offset)
 { return (p == 0) ? 0 : p - offset; }
 
 static const char *
-CONST_PARENT_HELPER (const char *p, unsigned int offset)
+CONST_PARENT_HELPER (const char *p, unsigned long offset)
 { return (p == 0) ? 0 : p - offset; }
 
 #define PARENT(_ptr, _type, _member)					\

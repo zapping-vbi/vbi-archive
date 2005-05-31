@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.7 2005-03-30 21:34:34 mschimek Exp $ */
+/* $Id: image_format.h,v 1.7.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifndef __ZTV_IMAGE_FORMAT_H__
 #define __ZTV_IMAGE_FORMAT_H__
@@ -40,17 +40,17 @@ typedef struct {
 
 	/* Offset in bytes from the buffer start to the top left pixel
 	   of the first, second, third and fourth plane. */
-	unsigned int		offset[4];
+	unsigned long		offset[4];
 
 	/* Bytes per line of the first, second, third and fourth plane.
 	   Must be bytes_per_line[i] >= (plane width
 	   * bits per pixel + 7) / 8. */
-	unsigned int		bytes_per_line[4];
+	unsigned long		bytes_per_line[4];
 
 	/* Buffer size. All planes must fit within this size:
 	   offset[i] + (plane height - 1) * bytes_per_line[i]
 	   + (plane width * bits per pixel + 7) / 8 <= size. */
-	unsigned int		size;
+	unsigned long		size;
 
 	const tv_pixel_format *	pixel_format;
 	tv_colspc		colspc;
@@ -63,7 +63,7 @@ extern tv_bool
 tv_image_format_init		(tv_image_format *	format,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned int		bytes_per_line,
+				 unsigned long		bytes_per_line,
 				 tv_pixfmt		pixfmt,
 				 tv_colspc		colspc)
   __attribute__ ((_tv_nonnull (1)));

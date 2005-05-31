@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.8 2005-01-31 07:09:21 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.8.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -4455,13 +4455,13 @@ vbi3_teletext_decoder_remove_event_handler
 vbi3_bool
 vbi3_teletext_decoder_add_event_handler
 				(vbi3_teletext_decoder *	td,
-				 unsigned int		event_mask,
+				 vbi3_event_mask	event_mask,
 				 vbi3_event_cb *		callback,
 				 void *			user_data)
 {
-	unsigned int ttx_mask;
-	unsigned int add_mask;
-	unsigned int rem_mask;
+	vbi3_event_mask ttx_mask;
+	vbi3_event_mask add_mask;
+	vbi3_event_mask rem_mask;
 
 	if (!vbi3_cache_add_event_handler (td->cache,
 					   event_mask,

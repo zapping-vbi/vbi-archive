@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHM.c,v 1.1.2.3 2005-05-20 05:45:14 mschimek Exp $
+// $Id: DI_GreedyHM.c,v 1.1.2.4 2005-05-31 02:40:34 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -27,6 +27,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.3  2005/05/20 05:45:14  mschimek
+// *** empty log message ***
+//
 // Revision 1.1.2.2  2005/05/17 19:58:32  mschimek
 // *** empty log message ***
 //
@@ -108,23 +111,25 @@ BOOL GreedyTestMode = FALSE;
     filling it in column order. Note array transposed (1000 cols, 240 rows,
     1000 cols) */
 
-uint8_t FieldStore[FSSIZE];
+uint8_t FieldStore[FS_SIZE];
 
 unsigned int FsPtr = 0;
 unsigned int FsDelay = 1;
 
+#else /* SIMD */
+
 /* return FS subscripts depending on delay
    (L2P not returned as that is always L2 ^ 2). */
 BOOL
-SetFsPtrs			(int *			L1,
-				 int *			L2,
-				 int *			L3,
-				 int *			CopySrc,
+SIMD_NAME (SetFsPtrs)		(long *			dL1,
+				 long *			dL2,
+				 long *			dL3,
+				 long *			dCopySrc,
 				 uint8_t **		CopyDest,
 				 uint8_t **		WeaveDest,
 				 TDeinterlaceInfo *	pInfo)
 {
-    if (FsDelay == 2) {
+    if (2 == FsDelay) {
 	if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD) {
 /* Assume here we are doing median filtering so we are delaying
    by 2 fields.  When we are doing Median filter we have to
@@ -137,15 +142,17 @@ SetFsPtrs			(int *			L1,
    Row  Fields (at Time=1..5)  Just got odd field 5, display odd frame 3
    ---  --------------------
          1  2  3  4  5
-   -1    .  .  L1 .  x	Not really any -1 row but we pretend at first			
+   -1    .  .  L1 .  x	Not really any -1 row but we pretend at first
     0    . L2P W  L2 .	We create the W pixel somehow, FsPtrP will point L2
     1    .  .  L3 .  x	Odd Rows directly copied, FsPtrP2 will point to L3 */
-	    *L2 = (FsPtr - 1) % 4;	/* the newest weave pixel */
+	    /* The newest weave pixel */
+	    *dL2 = ((FsPtr - 1) % 4) * sizeof (vu8);
 	    /* Bottom curr pixel offset is prev odd pixel */
-	    *L3 = FsPtr ^ 2;
-	    *CopySrc = *L3;		/* Always copy from prev pixels */
-	    /* top curr pixel offset, tricked on 1st line */
-	    *L1 = *L3 - FSMAXCOLS;
+	    *dL3 = *dL2 ^ (2 * sizeof (vu8));
+	    /* Always copy from prev pixels */
+	    *dCopySrc = *dL3;
+	    /* Top curr pixel offset, tricked on 1st line */
+	    *dL1 = *dL3 - FS_BYTES_PER_ROW;
 	    *WeaveDest = pInfo->Overlay; /* where the weave pixel goes */
 	    /* Dest for copy or vert filter pixel pixel */
 	    *CopyDest = (uint8_t *) pInfo->Overlay + pInfo->OverlayPitch;
@@ -156,11 +163,14 @@ SetFsPtrs			(int *			L1,
     0     .  L1	.  x  .	 Even Rows are directly copied, FsPtrP2 will point L1
     1	 L2P W  L2 .  .	 We create the W pixel somehow, FsPtrP will point L2
     2     .  L3 .  x  .	 Even Rows directly copied for Even fields */
-	    *L2 = (FsPtr - 1) % 4;	/* the newest weave pixel */
-	    *L1 = FsPtr ^ 2;		/* top curr pixel subscript */
-	    *CopySrc = *L1;		/* Always copy from prev pixels */
-	    /* bottom curr pixel subscript, tricked on last line */
-	    *L3 = *L1 + FSMAXCOLS;
+	    /* The newest weave pixel */
+	    *dL2 = ((FsPtr - 1) % 4) * sizeof (vu8);
+	    /* Top curr pixel subscript */
+	    *dL1 = *dL2 ^ (2 * sizeof (vu8));
+	    /* Always copy from prev pixels */
+	    *dCopySrc = *dL1;
+	    /* Bottom curr pixel subscript, tricked on last line */
+	    *dL3 = *dL1 + FS_BYTES_PER_ROW;
 	    /* Dest for weave pixel */
 	    *WeaveDest = (uint8_t *) pInfo->Overlay + pInfo->OverlayPitch;
 	    /* Dest for copy or vert filter pixel pixel */
@@ -185,11 +195,14 @@ SetFsPtrs			(int *			L1,
     1           L2P W  L2  We create the W pixel somehow, PsPtr will point L2
     2         x  .  L3 .   Even Rows directly copied for Odd fields
     			   Note L3 not on last line, L1 used twice there */
-	    *L2 = FsPtr;		/* the newest weave pixel */
-	    *L1 = (FsPtr - 1) % 4;	/* top curr pixel subscript */
-	    *CopySrc = *L1;		/* Always copy from prev pixels */
-	    /* bottom curr pixel subscript, tricked on last line */
-	    *L3 = *L1 + FSMAXCOLS;
+	    /* The newest weave pixel */
+	    *dL2 = FsPtr * sizeof (vu8);
+	    /* Top curr pixel subscript */
+	    *dL1 = ((FsPtr - 1) % 4) * sizeof (vu8);
+	    /* Always copy from prev pixels */
+	    *dCopySrc = *dL1;
+	    /* Bottom curr pixel subscript, tricked on last line */
+	    *dL3 = *dL1 + FS_BYTES_PER_ROW;
 	    /* Dest for weave pixel */
 	    *WeaveDest = (uint8_t *) pInfo->Overlay + pInfo->OverlayPitch;
 	    /* Dest for copy or vert filter pixel pixel */
@@ -201,12 +214,14 @@ SetFsPtrs			(int *			L1,
    -1		 L1	Not really any -1 row but we pretend at first
     0        L2P W  L2	We create the W pixel somehow, PsPtr will point to L2
     1            L3	Odd Rows directly copied, FsPtrP will point to L3 */
-	    *L2 = FsPtr;		/* the newest weave pixel */
+	    /* The newest weave pixel */
+	    *dL2 = FsPtr * sizeof (vu8);
 	    /* Bottom curr pixel offset is prev odd pixel */
-	    *L3 = (FsPtr - 1) % 4;
-	    *CopySrc = *L3;		/* Always copy from prev pixels */
-	    /* top curr pixel offset, tricked on 1st line */
-	    *L1 = *L3 - FSMAXCOLS;
+	    *dL3 = ((FsPtr - 1) % 4) * sizeof (vu8);
+	    /* Always copy from prev pixels */
+	    *dCopySrc = *dL3;
+	    /* Top curr pixel offset, tricked on 1st line */
+	    *dL1 = *dL3 - FS_BYTES_PER_ROW;
 	    *WeaveDest = pInfo->Overlay;
 	    /* Dest for copy or vert filter pixel pixel */
 	    *CopyDest = (uint8_t *) pInfo->Overlay + pInfo->OverlayPitch;
@@ -215,8 +230,6 @@ SetFsPtrs			(int *			L1,
 
     return TRUE;
 }
-
-#else /* SIMD */
 
 typedef union {
     vu32		v[2];
@@ -344,9 +357,9 @@ static always_inline void
 loop_kernel			(uint8_t **		fs,
 				 const uint8_t **	src,
 				 pd_sum_union *		pd_sum,
-				 unsigned int		FsPrev2,
-				 unsigned int		FsPrev,
-				 unsigned int		FsNewOld,
+				 unsigned long		FsPrev2,
+				 unsigned long		FsPrev,
+				 unsigned long		FsNewOld,
 				 unsigned int		byte_width,
 				 v16			QHA,
 				 v16			QHB,
@@ -361,13 +374,13 @@ loop_kernel			(uint8_t **		fs,
 	vu8 am, a0, a1;
 
 	am = vzerou8 ();
-	a0 = ((const vu8 *) *src)[0];
+	a0 = vload (*src, 0);
 
 	for (count = byte_width / sizeof (vu8) - 1; count > 0; --count) {
 	    vu8 old, new, prev2, l, r;
 	    vu16 avg2, avg4, newy;
 
-	    a1 = ((const vu8 *) *src)[1];
+	    a1 = vload (*src, sizeof (vu8));
 
 	last_column:
 	    /* get avg of -2 & +2 pixels */
@@ -400,20 +413,20 @@ loop_kernel			(uint8_t **		fs,
 	    am = a0;
 	    a0 = a1;
 
-	    old = * (vu8 *)(*fs + FsNewOld);
+	    old = vload (*fs, FsNewOld);
 	    /* save our sharp new value for next time */
-	    * (vu8 *)(*fs + FsNewOld) = new;
-	    prev2 = * (vu8 *)(*fs + FsPrev2);
+	    vstore (*fs, FsNewOld, new);
+	    prev2 = vload (*fs, FsPrev2);
 
 	    if (use_pulldown)
 		pulldown_sum (pd_sum,
-			      * (vu8 *)(*fs + FsPrev), new,
-			      * (vu8 *)(*fs + FsPrev + FSROWSIZE), prev2);
+			      vload (*fs, FsPrev), new,
+			      vload (*fs, FsPrev + FS_BYTES_PER_ROW), prev2);
 
 	    if (use_median_filter)
-		* (vu8 *)(*fs + FsPrev2) = median_filter (prev2, old, new);
+		vstore (*fs, FsPrev2, median_filter (prev2, old, new));
 
-	    *fs += FSCOLSIZE;
+	    *fs += FS_FIELDS * sizeof (vu8);
 	    *src += sizeof (vu8);
 	}
 
@@ -428,21 +441,21 @@ loop_kernel			(uint8_t **		fs,
 	    vu8 old, new, prev2;
 
 	    /* no sharpness, just get curr value */
-	    new = * (const vu8 *) *src;
-	    old = * (vu8 *)(*fs + FsNewOld);
+	    new = vload (*src, 0);
+	    old = vload (*fs, FsNewOld);
 	    /* save our sharp new value for next time */
-	    * (vu8 *)(*fs + FsNewOld) = new;
-	    prev2 = * (vu8 *)(*fs + FsPrev2);
+	    vstore (*fs, FsNewOld, new);
+	    prev2 = vload (*fs, FsPrev2);
 
 	    if (use_pulldown)
 		pulldown_sum (pd_sum,
-			      * (vu8 *)(*fs + FsPrev), new,
-			      * (vu8 *)(*fs + FsPrev + FSROWSIZE), prev2);
+			      vload (*fs, FsPrev), new,
+			      vload (*fs, FsPrev + FS_BYTES_PER_ROW), prev2);
 
 	    if (use_median_filter)
-		* (vu8 *)(*fs + FsPrev2) = median_filter (prev2, old, new);
+		vstore (*fs, FsPrev2, median_filter (prev2, old, new));
 
-	    *fs += FSCOLSIZE;
+	    *fs += FS_FIELDS * sizeof (vu8);
 	    *src += sizeof (vu8);
 	}
     }
@@ -459,11 +472,11 @@ DI_GrUpdtFS_template		(TDeinterlaceInfo *	pInfo,
     v16 QHA, QHB, QHC; 
     uint8_t *fs;
     const uint8_t *src;
-    unsigned int FsPrev2;
-    unsigned int FsPrev;
-    unsigned int FsNewOld;
-    unsigned int fs_padding;
-    unsigned int src_padding;
+    unsigned long FsPrev2;
+    unsigned long FsPrev;
+    unsigned long FsNewOld;
+    unsigned long fs_padding;
+    unsigned long src_padding;
     unsigned int byte_width;
     unsigned int height;
     unsigned int skip;
@@ -515,7 +528,7 @@ DI_GrUpdtFS_template		(TDeinterlaceInfo *	pInfo,
        * fields * gran pixels, where gran = sizeof (vu8) / 2. */
 
     /* Offset to prev pixel (this line) to be median filtered */
-    FsPrev2 = (FsPtr - 1) % 4 * sizeof (vu8);
+    FsPrev2 = ((FsPtr - 1) % 4) * sizeof (vu8);
     /* FieldStore elem holding pixels from prev field line */
     FsPrev = FsPtr * sizeof (vu8);
     FsPtr = (FsPtr + 1) % 4; /* NB this is a global */
@@ -524,7 +537,7 @@ DI_GrUpdtFS_template		(TDeinterlaceInfo *	pInfo,
 
     byte_width = pInfo->LineLength;
 
-    fs_padding = FSROWSIZE - byte_width * (FSCOLSIZE / sizeof (vu8));
+    fs_padding = FS_BYTES_PER_ROW - byte_width * FS_FIELDS;
     src_padding = pInfo->InputPitch - byte_width;
 
     height = pInfo->FieldHeight;

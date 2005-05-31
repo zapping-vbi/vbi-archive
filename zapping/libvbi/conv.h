@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.h,v 1.3 2005-01-31 07:17:30 mschimek Exp $ */
+/* $Id: conv.h,v 1.3.2.1 2005-05-31 02:40:33 mschimek Exp $ */
 
 #ifndef __ZVBI3_CONV_H__
 #define __ZVBI3_CONV_H__
@@ -34,37 +34,37 @@ VBI3_BEGIN_DECLS
 extern iconv_t
 vbi3_iconv_ucs2_open		(const char *		dst_format,
 				 char **		dst,
-				 unsigned int		dst_size)
+				 unsigned long		dst_size)
   __attribute__ ((_vbi3_nonnull (2)));
 extern void
 vbi3_iconv_ucs2_close		(iconv_t		cd);
 extern vbi3_bool
 vbi3_iconv_ucs2			(iconv_t		cd,
 				 char **		dst,
-				 unsigned int		dst_size,
+				 unsigned long		dst_size,
 				 const uint16_t *	src,
-				 unsigned int		src_size)
+				 unsigned long		src_size)
   __attribute__ ((_vbi3_nonnull (2)));
 extern vbi3_bool
 vbi3_iconv_unicode		(iconv_t		cd,
 				 char **		dst,
-				 unsigned int		dst_size,
+				 unsigned long		dst_size,
 				 unsigned int		unicode)
   __attribute__ ((_vbi3_nonnull (2)));
 extern char *
 vbi3_strdup_iconv_ucs2		(const char *		dst_format,
 				 const uint16_t *	src,
-				 unsigned int		src_size);
+				 unsigned long		src_size);
 extern vbi3_bool
 vbi3_stdio_cd_ucs2		(FILE *			fp,
 				 iconv_t		cd,
 				 const uint16_t *	src,
-				 unsigned int		src_size);
+				 unsigned long		src_size);
 extern vbi3_bool
 vbi3_stdio_iconv_ucs2		(FILE *			fp,
 				 const char *		dst_format,
 				 const uint16_t *	src,
-				 unsigned int		src_size);
+				 unsigned long		src_size);
 
 /* Private */
 
@@ -72,15 +72,15 @@ extern char *
 _vbi3_strdup_locale		(const char *		src);
 extern char *
 _vbi3_strdup_locale_ucs2		(const uint16_t *	src,
-				 unsigned int		src_size);
+				 unsigned long		src_size);
 extern char *
 _vbi3_strdup_locale_utf8		(const char *		src);
 extern char *
 _vbi3_strndup_locale_utf8	(const char *		src,
-				 unsigned int		src_size);
+				 unsigned long		src_size);
 extern char *
 _vbi3_strdup_locale_teletext	(const uint8_t *	src,
-				 unsigned int		src_size,
+				 unsigned long		src_size,
 				 const vbi3_character_set *cs);
 extern uint16_t *
 _vbi3_strdup_ucs2_utf8		(const char *		src);
