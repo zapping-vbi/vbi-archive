@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_TwoFrame.c,v 1.3.2.4 2005-05-31 02:40:34 mschimek Exp $
+// $Id: DI_TwoFrame.c,v 1.3.2.5 2005-06-17 02:54:20 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 Steven Grimm.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.4  2005/05/31 02:40:34  mschimek
+// *** empty log message ***
+//
 // Revision 1.3.2.3  2005/05/20 05:45:14  mschimek
 // *** empty log message ***
 //
@@ -121,17 +124,17 @@ cmpsqdiff			(v16			a,
 				 v16			thresh)
 {
     v16 t;
-    vu16 u;
+    vu16 m;
 
 #if SIMD == CPU_FEATURE_ALTIVEC
     t = vsubs16 (a, b);
-    u = vmullo16 (t, t);
-    return (v16) vcmpgtu16 (u, (vu16) thresh);
+    m = vmullo16 (t, t);
+    return (v16) vcmpgtu16 (m, (vu16) thresh);
 #else
     /* MMX/SSE/SSE2 has no cmpgtu */
     t = vsr16 (vsubs16 (a, b), 1);
-    u = vmullo16 (t, t);
-    return (v16) vcmpgt16 ((v16) u, thresh);
+    m = vmullo16 (t, t);
+    return (v16) vcmpgt16 ((v16) m, thresh);
 #endif
 }
 
@@ -266,6 +269,7 @@ SIMD_NAME (DeinterlaceFieldTwoFrame) (TDeinterlaceInfo *pInfo)
 	    */
 	    mm0 = (vu8) vor (mm4, mm3);
 	    mm0 = vsel (mm0, M1, avg);
+
 	    vstorent (Dest, 0, mm0);
 	    Dest += sizeof (vu8);
 	}
@@ -295,8 +299,8 @@ int TwoFrameSpatialTolerance = 600;
 /*//////////////////////////////////////////////////////////////////////////
 // Start of Settings related code
 //////////////////////////////////////////////////////////////////////////*/
-SETTING DI_TwoFrameSettings[DI_TWOFRAME_SETTING_LASTONE] =
-{
+static const SETTING
+DI_TwoFrameSettings [] = {
     {
         N_("2 Frame Spatial Tolerance"), SLIDER, 0, &TwoFrameSpatialTolerance,
         600, 0, 5000, 10, 1,
@@ -311,9 +315,9 @@ SETTING DI_TwoFrameSettings[DI_TWOFRAME_SETTING_LASTONE] =
     },
 };
 
-const DEINTERLACE_METHOD TwoFrameMethod =
-{
-    sizeof(DEINTERLACE_METHOD),
+static const DEINTERLACE_METHOD
+TwoFrameMethod = {
+    sizeof (DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
     N_("Video Deinterlace (2-Frame)"), 
     "2-Frame", 
@@ -322,7 +326,7 @@ const DEINTERLACE_METHOD TwoFrameMethod =
     /* pfnAlgorithm */ NULL,
     50, 
     60,
-    DI_TWOFRAME_SETTING_LASTONE,
+    N_ELEMENTS (DI_TwoFrameSettings),
     DI_TwoFrameSettings,
     INDEX_VIDEO_2FRAME,
     NULL,
@@ -332,7 +336,7 @@ const DEINTERLACE_METHOD TwoFrameMethod =
     4,
     0,
     0,
-    WM_DI_TWOFRAME_GETVALUE - WM_APP,
+    0,
     NULL,
     0,
     FALSE,
@@ -343,16 +347,22 @@ const DEINTERLACE_METHOD TwoFrameMethod =
 DEINTERLACE_METHOD *
 DI_TwoFrame_GetDeinterlacePluginInfo (void)
 {
+    DEINTERLACE_FUNC *f;
     DEINTERLACE_METHOD *m;
 
-    m = malloc (sizeof (*m));
-    *m = TwoFrameMethod;
+    m = NULL;
 
-    m->pfnAlgorithm =
-	SIMD_FN_SELECT (DeinterlaceFieldTwoFrame,
+    f = SIMD_FN_SELECT (DeinterlaceFieldTwoFrame,
 			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
 			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
 			CPU_FEATURE_ALTIVEC);
+
+    if (f) {
+	m = malloc (sizeof (*m));
+	*m = TwoFrameMethod;
+
+	m->pfnAlgorithm = f;
+    }
 
     return m;
 }

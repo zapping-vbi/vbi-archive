@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: windows.h,v 1.6.2.4 2005-05-31 02:40:33 mschimek Exp $ */
+/* $Id: windows.h,v 1.6.2.5 2005-06-17 02:54:20 mschimek Exp $ */
 
 #ifndef WINDOWS_H
 #define WINDOWS_H
@@ -39,6 +39,19 @@
 
 #if SIMD
 
+static void
+copy_line			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		n_bytes)
+__attribute__ ((unused));
+
+static void
+copy_line_pair			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		n_bytes,
+				 unsigned int		dst_bpl)
+__attribute__ ((unused));
+
 #  if Z_BYTE_ORDER == Z_LITTLE_ENDIAN
 
 #    define YMask vsplat16_255
@@ -55,14 +68,7 @@
 
 #  endif /* Z_BYTE_ORDER */
 
-
 #if SIMD == CPU_FEATURE_ALTIVEC
-
-static void
-copy_line			(uint8_t *		dst,
-				 const uint8_t *	src,
-				 unsigned int		n_bytes)
-__attribute__ ((unused));
 
 /* Defined here to enable parameter passing in registers.
    NOTE n_bytes must be a multiple of sizeof (vu8). */
@@ -78,13 +84,6 @@ copy_line			(uint8_t *		dst,
 		i += sizeof (vu8);
 	}
 }
-
-static void
-copy_line_pair			(uint8_t *		dst,
-				 const uint8_t *	src,
-				 unsigned int		n_bytes,
-				 unsigned int		dst_bpl)
-__attribute__ ((unused));
 
 /* Copies src to dst and dst + dst_bpl.  Defined here to enable parameter
    passing in registers.  NOTE dst_bpl and n_bytes must be a multiple of
@@ -157,12 +156,6 @@ uload24t			(vu8 *			m4,
 
 #else /* SIMD != CPU_FEATURE_ALTIVEC */
 
-static void
-copy_line			(uint8_t *		dst,
-				 const uint8_t *	src,
-				 unsigned int		n_bytes)
-__attribute__ ((unused));
-
 /* Defined here to enable parameter passing in registers.
    NOTE n_bytes must be a multiple of sizeof (vu8). */
 static void
@@ -204,13 +197,6 @@ copy_line			(uint8_t *		dst,
 		dst += sizeof (vu8);
 	}
 }
-
-static void
-copy_line_pair			(uint8_t *		dst,
-				 const uint8_t *	src,
-				 unsigned int		n_bytes,
-				 unsigned int		dst_bpl)
-__attribute__ ((unused));
 
 /* Copies src to dst and dst + dst_bpl.  Defined here to enable parameter
    passing in registers.  NOTE dst_bpl and n_bytes must be a multiple of
@@ -262,34 +248,45 @@ copy_line_pair			(uint8_t *		dst,
 /* _mm_sxli_si128 is misdefined under gcc -O0.  Arg 2 must be an immediate,
    not a variable which evaluates to one, not even a const variable. */
 
-#define uloadxt(_left, _center, _right, _src, _offs, _dist)		      \
-({									      \
-	vu8 *left = _left;						      \
-	vu8 *center = _center;						      \
-	vu8 *right = _right;						      \
-	const uint8_t *src = _src;					      \
-	const uint16_t *w;						      \
-									      \
-	src += _offs;							      \
-									      \
-	*center = vload (src, 0); /* ponmlkji */			      \
-									      \
-	switch (_dist) {						      \
-	case 2:								      \
-		w = (const uint16_t *) src;				      \
-		*left = _mm_insert_epi16				      \
-			(_mm_slli_si128 (*center, 2), w[-1], 0);	      \
-		*right = _mm_insert_epi16				      \
-			(_mm_srli_si128 (*center, 2), w[8], 7);		      \
-		break;							      \
-									      \
-	default:							      \
-		*left = vor (_mm_slli_si128 (*center, _dist),		      \
-			     _mm_srli_si128 (vload (src, -16), 16 - (_dist)));\
-		*right = vor (_mm_srli_si128 (*center, _dist),		      \
-			      _mm_slli_si128 (vload (src, 16), 16 - (_dist)));\
-		break;							      \
-	}								      \
+#define uloadxt(_left, _center, _right, _src, _offs, _dist)		\
+({									\
+	vu8 *left = _left;						\
+	vu8 *center = _center;						\
+	vu8 *right = _right;						\
+	const uint8_t *src = _src;					\
+	const uint16_t *w;						\
+	vu8 c;								\
+	src += _offs;							\
+									\
+	c = vload (src, 0); /* ponmlkji */				\
+	*center = c;							\
+									\
+	switch (_dist) {						\
+	case 2:								\
+		w = (const uint16_t *) src;				\
+		*left = _mm_insert_epi16				\
+			(_mm_slli_si128 (c, 2), w[-1], 0);		\
+		*right = _mm_insert_epi16				\
+			(_mm_srli_si128 (c, 2), w[8], 7);		\
+		break;							\
+									\
+	case 8:								\
+		c = _mm_shuffle_epi32 (c, _MM_SHUFFLE (1, 0, 3, 2));	\
+		/* lkjihgfe = (hgfedcba, lkjiponm) */			\
+		*left = _mm_unpackhi_epi64 (vload (src, -16), c);	\
+		/* tsrqponm = (lkjiponm, xwvutsrq) */			\
+		*right = _mm_unpacklo_epi64 (c, vload (src, +16));	\
+		break;							\
+									\
+	default:							\
+		*left = vor (_mm_slli_si128 (*center, _dist),		\
+			     _mm_srli_si128 (vload (src, -16),		\
+					     16 - (_dist)));		\
+		*right = vor (_mm_srli_si128 (*center, _dist),		\
+			      _mm_slli_si128 (vload (src, 16),		\
+					      16 - (_dist)));		\
+		break;							\
+	}								\
 })
 
 #define uload24t(_m4, _m2, _center, _p2, _p4, _src, _offs)		\
@@ -338,9 +335,27 @@ uloadxt				(vu8 *			left,
 {
 	src += offs;
 
-	*left   = _mm_loadu_ps ((const vu8 *)(src - dist));
-	*center = * (const vu8 *) src; /* movdqu */
-	*right  = _mm_loadu_ps ((const vu8 *)(src + dist));
+	*left   = vloadu (src, - (long) dist); /* movdqu */
+	*center = vload  (src,   (long) 0);    /* movdqa */
+	*right  = vloadu (src, + (long) dist);
+}
+
+static always_inline void
+uload24t			(vu8 *			m4,
+				 vu8 *			m2,
+				 vu8 *			center,
+				 vu8 *			p2,
+				 vu8 *			p4,
+				 const uint8_t *	src,
+				 unsigned int		offs)
+{
+	src += offs;
+
+	*m4     = vloadu (src, -4);
+	*m2     = vloadu (src, -2);
+	*center = vload  (src,  0);
+	*p2     = vloadu (src, +2);
+	*p4     = vloadu (src, +4);
 }
 
 #endif /* 0 */
@@ -379,7 +394,7 @@ uload24t			(vu8 *			m4,
 
 	*m4     = vload (src, -4);
 	*m2     = vload (src, -2);
-	*center = vload (src, 0);
+	*center = vload (src,  0);
 	*p2     = vload (src, +2);
 	*p4     = vload (src, +4);
 }
@@ -393,7 +408,40 @@ uload24t			(vu8 *			m4,
 #define uload6t(_l, _c, _r, _s, _o) uloadxt (_l, _c, _r, _s, _o, 6)
 #define uload8t(_l, _c, _r, _s, _o) uloadxt (_l, _c, _r, _s, _o, 8)
 
-#endif /* SIMD */
+#else /* !SIMD */
+
+static __inline__ void
+copy_line			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		n_bytes)
+__attribute__ ((unused));
+
+static __inline__ void
+copy_line_pair			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		n_bytes,
+				 unsigned int		dst_bpl)
+__attribute__ ((unused));
+
+static __inline__ void
+copy_line			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		n_bytes)
+{
+	memcpy (dst, src, n_bytes);
+}
+
+static __inline__ void
+copy_line_pair			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		n_bytes,
+				 unsigned int		dst_bpl)
+{
+	memcpy (dst, src, n_bytes);
+	memcpy (dst + dst_bpl, src, n_bytes);
+}
+
+#endif /* !SIMD */
 
 /* MSVC compatibility (will be removed after all the DScaler routines
    have been converted to vector intrinsics). */
@@ -471,6 +519,8 @@ enum {
   IDH_WEAVE,
 };
 
+#if 0
+
 /* For _save(), _restore() below. */
 #define _saved_regs unsigned int saved_regs[6]
 
@@ -515,5 +565,7 @@ enum {
 /* Stringify _strf(FOO) -> "FOO" */
 #define _strf1(x) #x
 #define _strf(x) _strf1(x)
+
+#endif
 
 #endif /* WINDOWS_H */

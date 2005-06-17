@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ditest.c,v 1.1.2.2 2005-05-31 02:40:35 mschimek Exp $ */
+/* $Id: ditest.c,v 1.1.2.3 2005-06-17 02:54:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -30,6 +30,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <unistd.h>		/* isatty() */
+#include <sys/time.h>		/* gettimeofday() */
 #ifdef HAVE_GETOPT_LONG
 #  include <getopt.h>
 #endif
@@ -97,6 +98,8 @@ deinterlace			(char *			buffer,
 
 	if (field_count < (unsigned int) method->nFieldsRequired)
 		return;
+
+	assert (NULL != method->pfnAlgorithm);
 
 	method->pfnAlgorithm (&info);
 
@@ -343,18 +346,19 @@ set_method_options		(DEINTERLACE_METHOD *	method,
 		assert (NULL != key);
 		strncpy (key, options[i], length);
 
-		for (j = 0; j < method->nSettings; ++j)
+		for (j = 0; j < (unsigned int) method->nSettings; ++j)
 			if (0 == strcmp (method->pSettings[j].szIniEntry, key))
 				break;
 
-		if (j >= method->nSettings) {
+		if (j >= (unsigned int) method->nSettings) {
 			fprintf (stderr, "Unknown method option '%s'. "
 				 "Valid options are: ", key);
 
-			for (j = 0; j < method->nSettings; ++j)
+			for (j = 0; j < (unsigned int) method->nSettings; ++j)
 				fprintf (stderr, "%s%s",
 					 method->pSettings[j].szIniEntry,
-					 (j + 1 == method->nSettings) ?
+					 (j + 1 ==
+					  (unsigned int) method->nSettings) ?
 					 "\n" : ", ");
 
 			exit (EXIT_FAILURE);
@@ -392,7 +396,7 @@ main				(int			argc,
 	int index;
 	int c;
 
-	cpu_features = CPU_FEATURE_MMX;
+	cpu_features = 0;
 
 	n_frames = 5;
 
@@ -546,10 +550,16 @@ main				(int			argc,
 		exit (EXIT_FAILURE);
 	}
 
-	if (NULL == method->pfnAlgorithm) {
-		fprintf (stderr,
-			 "No version of %s supports CPU features 0x%x\n",
-			 method->szName, (unsigned int) cpu_features);
+	if (NULL == method) {
+		if (!cpu_features) {
+			fprintf (stderr, "Have no scalar version of %s\n",
+				 method_name);
+		} else {
+			fprintf (stderr, "Have no version of %s optimized "
+				 "for feature 0x%x\n", method_name,
+				 (unsigned int) cpu_features);
+		}
+
 		exit (55);
 	}
 
@@ -566,13 +576,15 @@ main				(int			argc,
 		fprintf (stderr,
 			 "Using '%s' ShortName='%s' "
 			 "HalfHeight=%d FilmMode=%d\n"
-			 "FrameRate=%lu,%lu ModeChanges=%ld ModeTicks=%ld\n"
+			 "FrameRate=%d,%d ModeChanges=%d ModeTicks=%d\n"
 			 "NeedFieldDiff=%d NeedCombFactor=%d\n",
 			 method->szName, method->szShortName,
 			 (int) method->bIsHalfHeight,
 			 (int) method->bIsFilmMode,
-			 method->FrameRate50Hz, method->FrameRate60Hz,
-			 method->ModeChanges, method->ModeTicks,
+			 (int) method->FrameRate50Hz,
+			 (int) method->FrameRate60Hz,
+			 (int) method->ModeChanges,
+			 (int) method->ModeTicks,
 			 (int) method->bNeedFieldDiff,
 			 (int) method->bNeedCombFactor);
 

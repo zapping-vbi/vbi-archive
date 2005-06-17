@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.8.2.1 2005-05-31 02:40:33 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.8.2.2 2005-06-17 02:54:20 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -476,7 +476,7 @@ decode_pop_packet		(cache_page *		cp,
 	}
 
 	default:
-		assert (!"reached");
+		assert (0);
 	}
 
 	return FALSE;
@@ -1728,7 +1728,7 @@ _vbi3_convert_cached_page	(cache_page *		cp,
 
 	default:
 		/* Needs no conversion. */
-		assert (!"reached");
+		assert (0);
 	}
 
 	if (!(cp1 = _vbi3_cache_put_page (cp->network->cache,
@@ -2573,7 +2573,7 @@ decode_packet_0			(vbi3_teletext_decoder *	td,
 				}
 
 				default:
-					assert (!"reached");
+					assert (0);
 					break;
 				}
 			} else {
@@ -3168,7 +3168,7 @@ decode_packet_28_29		(vbi3_teletext_decoder *	td,
 				case PAGE_FUNCTION_DISCARD:
 				case PAGE_FUNCTION_UNKNOWN:
 					/* libzvbi private */
-					assert (!"reached");
+					assert (0);
 
 				case PAGE_FUNCTION_LOP:
 					/* ZDF and BR3 transmit GPOP 1EE/..
@@ -3950,7 +3950,7 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 	}
 
 	default:
-		assert (!"reached");
+		assert (0);
 	}
 
 	return TRUE;

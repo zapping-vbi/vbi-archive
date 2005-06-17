@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.6.2.3 2005-05-26 04:07:06 mschimek Exp $ */
+/* $Id: main.c,v 1.6.2.4 2005-06-17 02:54:20 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -478,17 +478,17 @@ plugin_init			(PluginBridge		bridge _unused_,
     .add = properties_add,
   };
 
-  if (!(cpu_features & CPU_FEATURE_MMX))
-    return FALSE;
-
   append_property_handler (&ph);
 
   D();
 
 #undef GET
 #define GET(x, y)							\
-    deinterlace_methods[INDEX_##x] =					\
-      DI_##y##_GetDeinterlacePluginInfo ();
+do {									\
+  DEINTERLACE_METHOD *method = DI_##y##_GetDeinterlacePluginInfo ();	\
+  /* NULL if we have no scalar of cpu_features optimized implem. */	\
+  deinterlace_methods[INDEX_##x] = method;				\
+} while (0)
 
   GET (VIDEO_BOB, VideoBob);
   GET (VIDEO_WEAVE, VideoWeave);

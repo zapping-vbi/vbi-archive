@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dlist.h,v 1.3 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: dlist.h,v 1.3.2.1 2005-06-17 02:54:20 mschimek Exp $ */
 
 #ifndef DLIST_H
 #define DLIST_H
@@ -31,7 +31,7 @@
 #include "misc.h"
 
 #ifndef DLIST_CONSISTENCY
-#define DLIST_CONSISTENCY 1
+#  define DLIST_CONSISTENCY 0
 #endif
 
 typedef struct node node;

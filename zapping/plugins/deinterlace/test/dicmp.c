@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dicmp.c,v 1.1.2.1 2005-05-20 05:45:14 mschimek Exp $ */
+/* $Id: dicmp.c,v 1.1.2.2 2005-06-17 02:54:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -212,7 +212,6 @@ main				(int			argc,
 
 	for (counter = 0;; ++counter) {
 		int c1, c2;
-		int error;
 
 		c1 = fgetc (fp1);
 		c2 = fgetc (fp2);

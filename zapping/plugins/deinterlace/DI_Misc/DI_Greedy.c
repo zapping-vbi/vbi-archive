@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_Greedy.c,v 1.3.2.3 2005-05-31 02:40:34 mschimek Exp $
+// $Id: DI_Greedy.c,v 1.3.2.4 2005-06-17 02:54:20 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.3  2005/05/31 02:40:34  mschimek
+// *** empty log message ***
+//
 // Revision 1.3.2.2  2005/05/20 05:45:14  mschimek
 // *** empty log message ***
 //
@@ -217,8 +220,8 @@ int GreedyMaxComb = 15;
 /*//////////////////////////////////////////////////////////////////////////
 // Start of Settings related code
 //////////////////////////////////////////////////////////////////////////*/
-SETTING DI_GreedySettings[DI_GREEDY_SETTING_LASTONE] =
-{
+static const SETTING
+DI_GreedySettings [] = {
     {
         N_("Greedy Max Comb"), SLIDER, 0, &GreedyMaxComb,
         15, 0, 255, 1, 1,
@@ -227,9 +230,9 @@ SETTING DI_GreedySettings[DI_GREEDY_SETTING_LASTONE] =
     },
 };
 
-const DEINTERLACE_METHOD GreedyMethod =
-{
-    sizeof(DEINTERLACE_METHOD),
+static const DEINTERLACE_METHOD
+GreedyMethod = {
+    sizeof (DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
     N_("Video (Greedy, Low Motion)"), 
     "Greedy",
@@ -238,7 +241,7 @@ const DEINTERLACE_METHOD GreedyMethod =
     /* pfnAlgorithm */ NULL,
     50, 
     60,
-    DI_GREEDY_SETTING_LASTONE,
+    N_ELEMENTS (DI_GreedySettings),
     DI_GreedySettings,
     INDEX_VIDEO_GREEDY,
     NULL,
@@ -248,7 +251,7 @@ const DEINTERLACE_METHOD GreedyMethod =
     3,
     0,
     0,
-    WM_DI_GREEDY_GETVALUE - WM_APP,
+    0,
     NULL,
     0,
     FALSE,
@@ -260,15 +263,21 @@ DEINTERLACE_METHOD *
 DI_Greedy_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
+    DEINTERLACE_FUNC *f;
 
-    m = malloc (sizeof (*m));
-    *m = GreedyMethod;
+    m = NULL;
 
-    m->pfnAlgorithm =
-	SIMD_FN_SELECT (DeinterlaceGreedy,
+    f = SIMD_FN_SELECT (DeinterlaceGreedy,
 			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
 			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
 			CPU_FEATURE_ALTIVEC);
+
+    if (f) {
+	m = malloc (sizeof (*m));
+	*m = GreedyMethod;
+
+	m->pfnAlgorithm = f;
+    }
 
     return m;
 }

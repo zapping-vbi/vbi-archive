@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_VideoBob.c,v 1.3.2.3 2005-05-31 02:40:34 mschimek Exp $
+// $Id: DI_VideoBob.c,v 1.3.2.4 2005-06-17 02:54:20 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 // Based on code from Virtual Dub Plug-in by Gunnar Thalin
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.3  2005/05/31 02:40:34  mschimek
+// *** empty log message ***
+//
 // Revision 1.3.2.2  2005/05/20 05:45:14  mschimek
 // *** empty log message ***
 //
@@ -217,8 +220,8 @@ int JaggieThreshold = 73;
 /*///////////////////////////////////////////////////////////////////////////
 // Start of Settings related code
 ///////////////////////////////////////////////////////////////////////////*/
-SETTING DI_VideoBobSettings[DI_VIDEOBOB_SETTING_LASTONE] =
-{
+static const SETTING
+DI_VideoBobSettings [] = {
     {
         N_("Weave Edge Detect"), SLIDER, 0, &EdgeDetect,
         625, 0, 10000, 5, 1,
@@ -233,9 +236,9 @@ SETTING DI_VideoBobSettings[DI_VIDEOBOB_SETTING_LASTONE] =
     },
 };
 
-const DEINTERLACE_METHOD VideoBobMethod =
-{
-    sizeof(DEINTERLACE_METHOD),
+static const DEINTERLACE_METHOD
+VideoBobMethod = {
+    sizeof (DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
     N_("Video Deinterlace (Bob)"), 
     "Bob",
@@ -244,7 +247,7 @@ const DEINTERLACE_METHOD VideoBobMethod =
     /* pfnAlgorithm */ NULL,
     50, 
     60,
-    DI_VIDEOBOB_SETTING_LASTONE,
+    N_ELEMENTS (DI_VideoBobSettings),
     DI_VideoBobSettings,
     INDEX_VIDEO_BOB,
     NULL,
@@ -254,7 +257,7 @@ const DEINTERLACE_METHOD VideoBobMethod =
     2,
     0,
     0,
-    WM_DI_VIDEOBOB_GETVALUE - WM_APP,
+    0,
     NULL,
     0,
     FALSE,
@@ -266,15 +269,21 @@ DEINTERLACE_METHOD *
 DI_VideoBob_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
+    DEINTERLACE_FUNC *f;
 
-    m = malloc (sizeof (*m));
-    *m = VideoBobMethod;
+    m = NULL;
 
-    m->pfnAlgorithm =
-	SIMD_FN_SELECT (DeinterlaceFieldBob,
+    f =	SIMD_FN_SELECT (DeinterlaceFieldBob,
 			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
 			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
 			CPU_FEATURE_ALTIVEC);
+
+    if (f) {
+	m = malloc (sizeof (*m));
+	*m = VideoBobMethod;
+
+	m->pfnAlgorithm = f;
+    }
 
     return m;
 }

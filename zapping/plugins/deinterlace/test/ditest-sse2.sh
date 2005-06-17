@@ -1,12 +1,12 @@
 #!/bin/sh
 
-source ditest-all.sh
+srcdir=`cd $(dirname $0); pwd; cd -`
+builddir=`pwd`
 
-here=`pwd`
-here=`cd $here; pwd; cd -`
-trap "rm -rf $here/results-$$-*" EXIT
+source $srcdir/ditest-all.sh
+
+trap "rm -rf $builddir/results-$$-*" EXIT
 feature=sse2
-
-ditest_all $feature 2>/dev/null || exit $?
-cd $here/results-$$-$feature
-md5sum -c $here/md5sums-$feature >/dev/null
+ditest_all $feature || exit $?
+cd $builddir/results-$$-$feature
+md5sum -c $srcdir/md5sums-$feature >/dev/null

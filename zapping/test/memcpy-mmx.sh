@@ -1,2 +1,10 @@
 #!/bin/sh
-./simd-emu.sh ./memcpy qemu-i386 mmx
+
+source `dirname $0`/simd-emu.sh
+
+if ! find_emulator mmx; then
+  exit 77
+else
+  LD_PRELOAD=$pre $emu ./memcpy mmx
+  exit $?
+fi

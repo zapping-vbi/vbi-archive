@@ -96,7 +96,7 @@ cache_priority_name		(cache_priority		pri)
 	CASE (SPECIAL)
 
 	default:
-		assert (!"reached");
+		assert (0);
 		return NULL;
 	}
 }
@@ -203,8 +203,6 @@ static void
 delete_network			(vbi3_cache *		ca,
 				 cache_network *	cn)
 {
-	vbi3_pid_channel ch;
-
 	if (CACHE_CONSISTENCY) {
 		assert (ca == cn->cache);
 		assert (is_member (&ca->networks, &cn->node));
@@ -249,8 +247,12 @@ delete_network			(vbi3_cache *		ca,
 	vbi3_program_info_destroy (&cn->program_info);
 	vbi3_aspect_ratio_destroy (&cn->aspect_ratio);
 
-	for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
-		vbi3_program_id_destroy (&cn->program_id[ch]);
+	{
+		vbi3_pid_channel ch;
+
+		for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
+			vbi3_program_id_destroy (&cn->program_id[ch]);
+	}
 
 	cache_network_destroy_caption (cn);
 #endif
@@ -402,7 +404,10 @@ add_network			(vbi3_cache *		ca,
 				 vbi3_videostd_set	videostd_set)
 {
 	cache_network *cn, *cn1;
-	vbi3_pid_channel ch;
+
+#ifdef ZAPPING8
+	videostd_set = videostd_set; /* unused, no warning */
+#endif
 
 	if (nk && (cn = network_by_id (ca, nk))) {
 		/* Note does not merge nk. */
@@ -447,8 +452,12 @@ add_network			(vbi3_cache *		ca,
 		vbi3_program_info_destroy (&cn->program_info);
 		vbi3_aspect_ratio_destroy (&cn->aspect_ratio);
 
-		for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
-			vbi3_program_id_destroy (&cn->program_id[ch]);
+		{
+			vbi3_pid_channel ch;
+
+			for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
+				vbi3_program_id_destroy (&cn->program_id[ch]);
+		}
 #endif
 
 		cn->n_pages = 0;
@@ -624,7 +633,7 @@ vbi3_cache_get_networks		(vbi3_cache *		ca,
 
 	if (!(nk = vbi3_malloc (size))) {
 		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Out of memory (%u)", size);
+				"Out of memory (%lu)", size);
 		return NULL;
 	}
 
@@ -1568,7 +1577,7 @@ void
 _vbi3_cache_dump		(const vbi3_cache *	ca,
 				 FILE *			fp)
 {
-	fprintf (fp, "cache ref=%u pages=%u mem=%u/%u KiB networks=%u/%u",
+	fprintf (fp, "cache ref=%u pages=%u mem=%lu/%lu KiB networks=%u/%u",
 		 ca->ref_count,
 		 ca->n_pages,
 		 (ca->memory_used + 1023) >> 10,

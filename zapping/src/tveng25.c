@@ -183,7 +183,7 @@ tv_audio_mode_to_audmode	(tv_audio_mode		mode)
 		return V4L2_TUNER_MODE_LANG2;
 	}
 
-	assert (!"reached");
+	assert (0);
 
 	return 0;
 }
@@ -205,7 +205,7 @@ tv_audio_mode_to_v4l_mode	(tv_audio_mode		mode)
 		return VIDEO_SOUND_LANG2;
 	}
 
-	assert (!"reached");
+	assert (0);
 
 	return 0;
 }

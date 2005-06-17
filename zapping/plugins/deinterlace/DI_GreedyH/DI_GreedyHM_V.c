@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHM_V.c,v 1.1.2.3 2005-05-31 02:40:34 mschimek Exp $
+// $Id: DI_GreedyHM_V.c,v 1.1.2.4 2005-06-17 02:54:20 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -28,6 +28,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.3  2005/05/31 02:40:34  mschimek
+// *** empty log message ***
+//
 // Revision 1.1.2.2  2005/05/17 19:58:32  mschimek
 // *** empty log message ***
 //
@@ -60,6 +63,10 @@
 #include "windows.h"
 #include "DI_GreedyHM.h"
 
+#ifndef DI_GREEDYHM_V_ASSERT
+#  define DI_GREEDYHM_V_ASSERT 0
+#endif
+
 static always_inline BOOL
 DI_GreedyHM_V_template		(TDeinterlaceInfo *	pInfo,
 				 ghxc_mode		mode)
@@ -78,8 +85,6 @@ DI_GreedyHM_V_template		(TDeinterlaceInfo *	pInfo,
     long dCopySrc;
     unsigned int height;
     long dst_bpl;
-    unsigned long dst_padding;
-    unsigned long src_padding;
 
     MaxCombW = vsplatu8 (GreedyHMaxComb);
 
@@ -117,9 +122,6 @@ DI_GreedyHM_V_template		(TDeinterlaceInfo *	pInfo,
 
     dst_bpl = CopyDest - WeaveDest;
 
-    dst_padding = 2 * pInfo->OverlayPitch - pInfo->LineLength;
-    src_padding = FS_BYTES_PER_ROW - pInfo->LineLength * FS_FIELDS;
-
     for (; height > 0; --height) {
 	const uint8_t *pL1, *pL2P;
 	long l1o, l3o;
@@ -133,10 +135,16 @@ DI_GreedyHM_V_template		(TDeinterlaceInfo *	pInfo,
 	    l3o = l1o; /* last line */
 
 	pL1 = pL2 + l1o;
-	pL2P = pL2 + FsPrevFrame (l1o);
+	pL2P = pL2 + FsPrevFrame (0); /* Field 0/1 -> 2/3 */
 
-	GreedyHXCore (&WeaveDest,
-		      &pL1, &pL2, &pL2P,
+	if (DI_GREEDYHM_V_ASSERT) {
+		assert (pL1 >= pFieldStoreBegin && pL1 < pFieldStoreEnd);
+		assert (pL2 >= pFieldStoreBegin && pL2 < pFieldStoreEnd);
+		assert (pL2P >= pFieldStoreBegin && pL2P < pFieldStoreEnd);
+		assert ((l3o - l1o) >= 0);
+	}
+
+	GreedyHXCore (WeaveDest, pL2, pL1, pL2P,
 		      pInfo->LineLength,
 		      dst_bpl,
 		      /* src_bpl = FS_BYTES_PER_ROW or 0 */ l3o - l1o,
@@ -146,8 +154,8 @@ DI_GreedyHM_V_template		(TDeinterlaceInfo *	pInfo,
 		      MotionSenseW,
 		      mode);
 
-	WeaveDest += dst_padding;
-	pL2 += src_padding;
+	WeaveDest += 2 * pInfo->OverlayPitch;
+	pL2 += FS_BYTES_PER_ROW;
     }
    
     vempty ();
@@ -159,7 +167,7 @@ BOOL
 SIMD_NAME (DI_GreedyHM_NV)	(TDeinterlaceInfo *	pInfo)
 {
     /* No vertical averaging. */
-    return DI_GreedyHM_V_template (pInfo, STORE_WEAVE_L1);
+    return DI_GreedyHM_V_template (pInfo, STORE_WEAVE_ABOVE);
 }
 
 BOOL

@@ -4,8 +4,18 @@ TESTS = guard1 guard2 clear_image memcpy
 XFAIL_TESTS = guard1 guard2
 
 EXTRA_DIST = \
+	clear_image-mmx.sh \
+	clear_image-sse.sh \
 	guard.h \
-	pixel.h
+	memcpy-mmx.sh \
+	memcpy-sse.sh \
+	pixel.h \
+	simd-3dnow.sh \
+	simd-altivec.sh \
+	simd-emu.sh \
+	simd-mmx.sh \
+	simd-sse.sh \
+	simd-sse2.sh
 
 INCLUDES = -I$(top_srcdir)
 
@@ -76,11 +86,19 @@ LDADD = \
 simd-emu.sh:
 	$(MAKE) cpudt
 
-memcpy-mmx.sh memcpy-sse.sh memcpy-altivec.sh:
+memcpy-mmx.sh \
+memcpy-sse.sh \
+memcpy-altivec.sh:
 	$(MAKE) memcpy
 
-clear_image-mmx.sh clear_image-sse.sh clear_image-altivec.sh:
+clear_image-mmx.sh \
+clear_image-sse.sh \
+clear_image-altivec.sh:
 	$(MAKE) clear_image
 
-simd-mmx.sh simd-3dnow.sh simd-sse.sh simd-sse2.sh simd-altivec.sh:
+simd-mmx.sh \
+simd-3dnow.sh \
+simd-sse.sh \
+simd-sse2.sh \
+simd-altivec.sh:
 	$(MAKE) simd

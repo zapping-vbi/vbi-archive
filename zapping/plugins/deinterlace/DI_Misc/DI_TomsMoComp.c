@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_TomsMoComp.c,v 1.1.2.4 2005-05-31 02:40:34 mschimek Exp $
+// $Id: DI_TomsMoComp.c,v 1.1.2.5 2005-06-17 02:54:20 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2002 Tom Barry.  All rights reserved.
 // Copyright (c) 2005 Michael H. Schimek
@@ -32,6 +32,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.4  2005/05/31 02:40:34  mschimek
+// *** empty log message ***
+//
 // Revision 1.1.2.3  2005/05/20 05:45:14  mschimek
 // *** empty log message ***
 //
@@ -929,8 +932,8 @@ int UseStrangeBob2 = FALSE;
 /*//////////////////////////////////////////////////////////////////////////
 // Start of Settings related code
 //////////////////////////////////////////////////////////////////////////*/
-SETTING DI_TOMSMOCOMPSETTINGS[DI_TOMSMOCOMP_SETTING_LASTONE] =
-{
+static const SETTING
+DI_TOMSMOCOMPSETTINGS [] = {
     {
         N_("Search Effort"), SLIDER, 0, &SearchEffort2,
         5, 0, 255, 1, 1,
@@ -945,9 +948,9 @@ SETTING DI_TOMSMOCOMPSETTINGS[DI_TOMSMOCOMP_SETTING_LASTONE] =
     },
 };
 
-const DEINTERLACE_METHOD TomsMoCompMethod =
-{
-    sizeof(DEINTERLACE_METHOD),
+static const DEINTERLACE_METHOD
+TomsMoCompMethod = {
+    sizeof (DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
     N_("Video (TomsMoComp)"), 
     "TomsMoComp",
@@ -956,7 +959,7 @@ const DEINTERLACE_METHOD TomsMoCompMethod =
     /* pfnAlgorithm */ NULL,
     50, 
     60,
-    DI_TOMSMOCOMP_SETTING_LASTONE,
+    N_ELEMENTS (DI_TOMSMOCOMPSETTINGS),
     DI_TOMSMOCOMPSETTINGS,
     INDEX_VIDEO_TOMSMOCOMP,
     NULL,
@@ -966,7 +969,7 @@ const DEINTERLACE_METHOD TomsMoCompMethod =
     4,	/* number fields needed */
     0,
     0,
-    WM_DI_TOMSMOCOMP_GETVALUE - WM_APP,
+    0,
     NULL,
     0,
     FALSE,
@@ -978,15 +981,21 @@ DEINTERLACE_METHOD *
 DI_TomsMoComp_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
+    DEINTERLACE_FUNC *f;
 
-    m = malloc (sizeof (*m));
-    *m = TomsMoCompMethod;
+    m = NULL;
 
-    m->pfnAlgorithm =
-	SIMD_FN_SELECT (DeinterlaceTomsMoComp,
+    f = SIMD_FN_SELECT (DeinterlaceTomsMoComp,
 			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
 			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
 			CPU_FEATURE_ALTIVEC);
+
+    if (f) {
+	m = malloc (sizeof (*m));
+	*m = TomsMoCompMethod;
+
+	m->pfnAlgorithm = f;
+    }
 
     return m;
 }

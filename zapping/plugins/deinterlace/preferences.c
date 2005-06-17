@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preferences.c,v 1.2.2.1 2005-05-20 05:45:13 mschimek Exp $ */
+/* $Id: preferences.c,v 1.2.2.2 2005-06-17 02:54:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -669,7 +669,7 @@ create_change_set		(void)
 			   "   <type>%u</type>\n"
 			   "   <default>%ld</default>\n"
 			   "  </schema>\n",
-			   key, key, setting->Type, setting->Default);
+			   key, key, setting->Type, (long) setting->Default);
 
 		if (keys_size + 1 >= keys_capacity)
 		  {

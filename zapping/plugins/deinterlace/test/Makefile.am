@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-TESTS =
+TESTS = ditest-scalar.sh
 
 if HAVE_MMX
 TESTS += ditest-mmx.sh
@@ -23,9 +23,20 @@ TESTS += ditest-altivec.sh
 endif
 
 EXTRA_DIST = \
+	ditest-3dnow.sh \
+	ditest-all.sh \
+	ditest-altivec.sh \
+	ditest-mmx.sh \
+	ditest-scalar.sh \
+	ditest-sse.sh \
+	ditest-sse2.sh \
+	ditest-x86.sh \
+	emulator.sh \
+	gen-md5sums.sh \
 	md5sums-3dnow \
 	md5sums-altivec \
 	md5sums-mmx \
+	md5sums-scalar \
 	md5sums-sse \
 	md5sums-sse2
 
@@ -57,16 +68,18 @@ emulator.sh:
 	$(MAKE) cpudt
 
 ditest-all.sh:
-	$(MAKE) ditest emulator.sh
+	$(MAKE) ditest
+	$(MAKE) emulator.sh
 
 ditest-3dnow.sh \
 ditest-altivec.sh \
 ditest-mmx.sh \
+ditest-scalar.sh \
 ditest-sse.sh \
 ditest-sse2.sh \
 gen-md5sums.sh:
 	$(MAKE) ditest-all.sh
 
 ditest-x86.sh:
-	$(MAKE) ditest-all.sh dicmp
-
+	$(MAKE) ditest-all.sh
+	$(MAKE) dicmp

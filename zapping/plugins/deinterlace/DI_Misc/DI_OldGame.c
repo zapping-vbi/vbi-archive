@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_OldGame.c,v 1.3.2.3 2005-05-31 02:40:34 mschimek Exp $
+// $Id: DI_OldGame.c,v 1.3.2.4 2005-06-17 02:54:20 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Lindsey Dubb.  All rights reserved.
 // based on OddOnly and Temporal Noise DScaler Plugins
@@ -20,6 +20,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.3  2005/05/31 02:40:34  mschimek
+// *** empty log message ***
+//
 // Revision 1.3.2.2  2005/05/20 05:45:14  mschimek
 // *** empty log message ***
 //
@@ -237,8 +240,8 @@ DEINTERLACEPLUGINSETSTATUS*  gPfnSetStatus = NULL;
 static const DEINTERLACE_METHOD OldGameMethod;
 
 
-static SETTING DI_OldGameSettings[DI_OLDGAME_SETTING_LASTONE] =
-{
+static const SETTING
+DI_OldGameSettings [] = {
     {
         N_("Maximum motion"), SLIDER, 0, &gMaxComb,
         300, 1, 5000, 1, 1,
@@ -253,9 +256,9 @@ static SETTING DI_OldGameSettings[DI_OLDGAME_SETTING_LASTONE] =
     }
 };
 
-static const DEINTERLACE_METHOD OldGameMethod =
-{
-    sizeof(DEINTERLACE_METHOD),
+static const DEINTERLACE_METHOD
+OldGameMethod = {
+    sizeof (DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
     N_("Old Game"), 
     NULL,     // It could make sense to use this with a resolution sensing adaptive filter
@@ -264,7 +267,7 @@ static const DEINTERLACE_METHOD OldGameMethod =
     NULL, 
     50, 
     60,
-    DI_OLDGAME_SETTING_LASTONE,
+    N_ELEMENTS (DI_OldGameSettings),
     DI_OldGameSettings,
     INDEX_OLD_GAME,
     NULL,
@@ -301,15 +304,21 @@ DEINTERLACE_METHOD *
 DI_OldGame_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
+    DEINTERLACE_FUNC *f;
 
-    m = malloc (sizeof (*m));
-    *m = OldGameMethod;
+    m = NULL;
 
-    m->pfnAlgorithm =
-	SIMD_FN_SELECT (OldGameFilter,
+    f = SIMD_FN_SELECT (OldGameFilter,
 			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
 			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
 			CPU_FEATURE_ALTIVEC);
+
+    if (f) {
+	m = malloc (sizeof (*m));
+	*m = OldGameMethod;
+
+	m->pfnAlgorithm = f;
+    }
 
     return m;
 }

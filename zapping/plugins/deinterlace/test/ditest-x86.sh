@@ -1,10 +1,11 @@
 #!/bin/sh
 
-source ditest-all.sh
+srcdir=`cd $(dirname $0); pwd; cd -`
+builddir=`pwd`
 
-here=`pwd`
-here=`cd $here; pwd; cd -`
-trap "rm -rf $here/results-$$-*" EXIT
+source $srcdir/ditest-all.sh
+
+trap "rm -rf $builddir/results-$$-*" EXIT
 
 compare () {
   local method=$1
@@ -61,12 +62,18 @@ compare_tomsmocomp () {
   # TODO each $se should produce different results.
 }
 
-for feature in mmx 3dnow sse sse2; do
+for feature in scalar mmx 3dnow sse sse2; do
   echo "Testing $feature implementations"
   ditest_all $feature
 done
 
 if test -d results-$$-sse; then
+  if test -d results-$$-scalar; then
+    for method in Weave Bob ScalerBob EvenOnly OddOnly; do
+      compare $method scalar
+    done
+  fi
+
   if test -d results-$$-mmx; then
     for method in Weave Bob ScalerBob EvenOnly OddOnly; do
       compare $method mmx
@@ -89,9 +96,11 @@ if test -d results-$$-sse; then
       compare $method 3dnow
     done
 
-#   compare MoComp2 3dnow
-#   compare_greedyh 3dnow
-#   compare_tomsmocomp 3dnow
+    compare MoComp2 3dnow
+    compare_greedyh 3dnow
+
+    # TODO if possible
+    # compare_tomsmocomp 3dnow
 
     # Weave ScalerBob EvenOnly OddOnly not implemented in 3dnow.
   else
@@ -104,9 +113,11 @@ if test -d results-$$-sse; then
       compare $method sse2
     done
 
-    compare_greedyh sse2
+    # TODO if possible
+    # compare_greedyh sse2
 
-    # Ignore error in first and last column due to vector size.
+    # Ignore error in first and last column (bytes 8 ... 15 and
+    # n-16 ... n-9 of each line) due to vector size.
     compare MoComp2 sse2 -l
     compare_tomsmocomp sse2 -l
   else

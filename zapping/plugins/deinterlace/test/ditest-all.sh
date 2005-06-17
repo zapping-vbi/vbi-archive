@@ -1,6 +1,6 @@
 #!/bin/sh
 
-source emulator.sh
+source `dirname $0`/emulator.sh
 
 methods="\
   VideoBob \
@@ -24,10 +24,16 @@ ditest_wrapper () {
   # -q quiet
   # -r use pseudo random source
   # -m method  deinterlace method
-  # -c feature  test the version optimized for feature
+  # -c feature  test the version optimized for feature (mmx, sse, ...)
   # -w -h source and dest image size (adjusted to be a multiple of the
   #   system page size for a built-in efence test).
-  LD_PRELOAD=$pre $emu ./ditest -q -r -m $1 -c $2 $size $4 >$tmpd/$3.yuv
+  if test x$2 = xscalar; then
+    LD_PRELOAD=$pre $emu ./ditest -q -r -m $1 \
+      $size $4 >$tmpd/$3.yuv 2>/dev/null
+  else
+    LD_PRELOAD=$pre $emu ./ditest -q -r -m $1 \
+      -c $2 $size $4 >$tmpd/$3.yuv 2>/dev/null
+  fi
 
   case "$?" in
     0)
@@ -37,9 +43,11 @@ ditest_wrapper () {
       ;;
     55)
       # Have no $2 implementation of $1.
+      test -e $tmpd/$3.yuv && rm $tmpd/$3.yuv
       ;;
     *)
       echo "Test of $2 implementation of $1 failed."
+      echo LD_PRELOAD=$pre $emu ./ditest -q -r -m $1 -c $2 $size $4
       exit 1
       ;;
   esac

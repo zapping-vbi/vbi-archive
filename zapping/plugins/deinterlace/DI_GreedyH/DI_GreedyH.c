@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyH.c,v 1.2.2.3 2005-05-20 05:45:14 mschimek Exp $
+// $Id: DI_GreedyH.c,v 1.2.2.4 2005-06-17 02:54:20 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -37,6 +37,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2.2.3  2005/05/20 05:45:14  mschimek
+// *** empty log message ***
+//
 // Revision 1.2.2.2  2005/05/17 19:58:32  mschimek
 // *** empty log message ***
 //
@@ -131,6 +134,8 @@
 static BOOL
 DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
 {
+    pInfo = pInfo;
+
 #if defined (HAVE_ALTIVEC)
     if (cpu_features & CPU_FEATURE_ALTIVEC) {
 	if (GreedyUseMedianFilter |
@@ -202,8 +207,8 @@ DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
 	return FALSE;
 }
 
-SETTING DI_GreedyHSettings [] =
-{
+static const SETTING
+DI_GreedyHSettings [] = {
     {
 	N_("Max Comb"), SLIDER, 0, /* szDisplayName, TYPE, orig val */
 	&GreedyHMaxComb, 5, 0,	   /* *pValue, Default, Min */
@@ -297,9 +302,9 @@ SETTING DI_GreedyHSettings [] =
     },
 };
 
-const DEINTERLACE_METHOD GreedyHMethod =
-{
-    sizeof(DEINTERLACE_METHOD),	/* size of this struct */
+static const DEINTERLACE_METHOD
+GreedyHMethod = {
+    sizeof (DEINTERLACE_METHOD),	/* size of this struct */
     DEINTERLACE_CURRENT_VERSION,	/* curr version compiled */
     N_("Video (Greedy, High Motion)"),  /* What to display when selected */
     "GreedyH",				/* Short name */
@@ -316,8 +321,7 @@ const DEINTERLACE_METHOD GreedyHMethod =
     3,		/* how many fields are required to run this plug-in */
     0,		/* Track number of mode Changes */
     0,		/* Track Time in mode */
-    WM_DI_GREEDYH_GETVALUE - WM_APP,
-    /* the offset used by the external settings API */
+    0,    /* the offset used by the external settings API */
     NULL, /* Dll module so that we can unload the dll cleanly at the end */
     0,    /* Menu Id used for this plug-in, 0 to auto allocate one */
     FALSE,	/* do we need FieldDiff filled in in info */
@@ -329,9 +333,38 @@ DEINTERLACE_METHOD *
 DI_GreedyH_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
+    DEINTERLACE_FUNC *f;
 
-    m = malloc (sizeof (*m));
-    *m = GreedyHMethod;
+    m = NULL;
+    f = NULL;
+
+#if defined (HAVE_ALTIVEC)
+    if (cpu_features & CPU_FEATURE_ALTIVEC)
+	f = DeinterlaceGreedyH;
+#endif
+#if defined (HAVE_SSE2)
+    if (cpu_features & CPU_FEATURE_SSE2)
+	f = DeinterlaceGreedyH;
+#endif
+#if defined (HAVE_SSE)
+    if (cpu_features & CPU_FEATURE_SSE)
+	f = DeinterlaceGreedyH;
+#endif
+#if defined (HAVE_3DNOW)
+    if (cpu_features & CPU_FEATURE_3DNOW)
+	f = DeinterlaceGreedyH;
+#endif
+#if defined (HAVE_MMX)
+    if (cpu_features & CPU_FEATURE_MMX)
+       	f = DeinterlaceGreedyH;
+#endif
+
+    if (f) {
+	m = malloc (sizeof (*m));
+	*m = GreedyHMethod;
+
+	m->pfnAlgorithm = f;
+    }
 
     return m;
 }

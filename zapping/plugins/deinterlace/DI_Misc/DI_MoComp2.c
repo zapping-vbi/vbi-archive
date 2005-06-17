@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_MoComp2.c,v 1.1.2.4 2005-05-31 02:40:34 mschimek Exp $
+// $Id: DI_MoComp2.c,v 1.1.2.5 2005-06-17 02:54:20 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2003 Tom Barry & John Adcock.  All rights reserved.
 // Copyright (c) 2005 Michael H. Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.4  2005/05/31 02:40:34  mschimek
+// *** empty log message ***
+//
 // Revision 1.1.2.3  2005/05/20 05:45:14  mschimek
 // *** empty log message ***
 //
@@ -84,7 +87,14 @@ SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceMoComp2);
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
 	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
-static always_inline void
+static void
+simple_bob			(uint8_t *		pDest,
+				 const uint8_t *	pBob,
+				 unsigned long		dst_bpl,
+				 unsigned long		src_bpl)
+__attribute__ ((noinline));
+
+static void
 simple_bob			(uint8_t *		pDest,
 				 const uint8_t *	pBob,
 				 unsigned long		dst_bpl,
@@ -104,11 +114,11 @@ simple_bob			(uint8_t *		pDest,
 BOOL
 SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
 {
-    uint8_t *pDest;
-    const uint8_t *pSrc;
-    const uint8_t *pSrcP;
-    const uint8_t *pBob;
-    const uint8_t *pBobP;
+    uint8_t *Dest;
+    const uint8_t *F4;
+    const uint8_t *F3;
+    const uint8_t *F2;
+    const uint8_t *F1;
     unsigned int byte_width;
     unsigned int height;
     unsigned long dst_bpl;
@@ -135,48 +145,49 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
     src_bpl = pInfo->InputPitch;
 
     /*
-      dest  src odd                          src even
-      0     F3-0   copy F3-0                 F4-0  wcopy F3-0
-      1	    F4-0  wcopy F3-0                 F3-0   copy F3-0      
-      2     F3-1   copy F3-1                 F4-1  weave F1/3-0/1,F2/4-0/1/2
-      3     F4-1  weave F1/3-1/2,F2/4-0/1/2  F3-1   copy F3-1
-      4     F3-2   copy F3-2                 F4-2  weave F1/3-1/2,F2/4-1/2/3
-      5     F4-2  weave F1/3-2/3,F2/4-1/2/3  F3-2   copy F3-2
-      n-2   F3     copy F3-(n/2-1)           F4    wcopy F3-(n/2-1)
-      n-1   F4    wcopy F3-(n/2-1)           F3     copy F3-(n/2-1)
+	dest	src (F3) odd				src (F3) even
+	0	F2.0 (F3.0*)				F3.0
+	1     { F3.0					F2.0 (F3.0*)
+	2     { weave.0 (F1|3.n|n+1 + F2.n+1 + F4.n+1)	F3.1		}
+	3       F3.1		weave.1 (F1|3.n|n+1 + F2.n + F4.n)	}
+	4	weave.1					F3.2
+	h-3	F3.h/2-2				weave.h/2-2	
+	h-2	F2.h/2-1 (F3.h/2-1*)			F3.h/2-1
+	h-1	F3.h/2-1				F2.h/2-1 (F3.h/2-1*)
 
-      pDest  2     1     
-      pSrc   F4-0  F4-0  this field (-1, 0, +1)
-      pBob   F3-1  F3-0  previous field, opposite parity (0, +1)
-      pSrcP  F2-0  F2-0  previous field, same parity (-1, 0, +1)
-      pBobP  F1-1  F1-0  previous field, opposite parity (0, +1)
+	F4	next field, opposite parity
+	F3	this field
+	F2	previous field, opposite parity
+	F1	previous field, same parity
+	h	frame height
+
+	(*)	Actual data stored here. Why? Ask Tom. :-) 
     */
 
-    pDest = (uint8_t *) pInfo->Overlay;
+    Dest = (uint8_t *) pInfo->Overlay;
 
-    pSrc  = (const uint8_t *) pInfo->PictureHistory[0]->pData;
-    pSrcP = (const uint8_t *) pInfo->PictureHistory[2]->pData;
+    F4 = (const uint8_t *) pInfo->PictureHistory[0]->pData;
+    F3 = (const uint8_t *) pInfo->PictureHistory[1]->pData;
+    F2 = (const uint8_t *) pInfo->PictureHistory[2]->pData;
+    F1 = (const uint8_t *) pInfo->PictureHistory[3]->pData;
 
-    pBob  = (const uint8_t *) pInfo->PictureHistory[1]->pData;
-    pBobP = (const uint8_t *) pInfo->PictureHistory[3]->pData;
-
-    if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD) {
-	/* Copy first even and odd lines from first line of previous field.
-	   The loop copies the second and following pairs. */
-	copy_line_pair (pDest, pBob, byte_width, dst_bpl);
-
-	pDest += dst_bpl * 2;
-
-	pBob  += src_bpl;
-	pBobP += src_bpl;
+    if (pInfo->PictureHistory[1]->Flags & PICTURE_INTERLACED_ODD) {
+	copy_line (Dest, F3, byte_width);
+	Dest += dst_bpl;
     } else {
-	/* Copy first even line, the loop starts in first odd line. */
-	copy_line (pDest, pBob, byte_width);
+	copy_line_pair (Dest, F3, byte_width, dst_bpl);
+	Dest += dst_bpl * 2;
 
-	pDest += dst_bpl;
+	F3 += src_bpl;
+	F1 += src_bpl;
     }
 
-     /* We write two frame lines in parallel, incrementing pDest
+    /* We start in field row 1, no access in first column. */
+    F4 += src_bpl + sizeof (vu8);
+    F2 += src_bpl + sizeof (vu8);
+    F1 += sizeof (vu8);
+
+    /* We write two frame lines in parallel, incrementing Dest
        except after the last column. */
     dst_padding = dst_bpl * 2 - byte_width + sizeof (vu8);
 
@@ -187,11 +198,6 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
     /* We read one field line and skip over first and last column. */
     src_padding2 = src_padding1 + sizeof (vu8);
 
-    pSrc  += src_bpl + sizeof (vu8);
-    pSrcP += src_bpl + sizeof (vu8);
-
-    pBobP += sizeof (vu8); /* no access in first column */
-
     /* All but first and last field line where we cannot read the
        line above and below. */
     for (height = pInfo->FieldHeight - 2; height > 0; --height) {
@@ -199,18 +205,18 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
 	unsigned int count;
 
 	/* Simple bob first column. */
-	simple_bob (pDest, pBob, dst_bpl, src_bpl);
+	simple_bob (Dest, F3, dst_bpl, src_bpl);
 
-	pBob += sizeof (vu8);
-	pDest += sizeof (vu8);
+	F3 += sizeof (vu8);
+	Dest += sizeof (vu8);
 
 	/* All but first and last column where we cannot read the
 	   pixels left and right. */
 	for (count = byte_width / sizeof (vu8) - 2; count > 0; --count) {
-	    vu8 af, cd, be;
+	    vu8 diff_af, diff_cd, diff_be;
 	    vu8 avg_af, avg_cd, avg_be;
 	    vu8 best, diag, bob, weave;
-	    vu8 mm1, mm2, mm4, mm6;
+	    vu8 mm1, mm2, mm4, mm6, next, prev, above, below;
 	    v32 tm, cm, bm;
 
 	    /* StrangeBob */
@@ -227,37 +233,38 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
 	       Assume our pixels are layed out as follows with x the
 	       calc'd bob value and the other pixels are from the
 	       current field.
-	       a b c 	current field
-	         x	calculated line
-	       d e f 	current field
+	       a b c 	current field   (F3.n)
+	         x	calculated line (F2.n)
+	       d e f 	current field   (F3.n+1)
 	    */
 	    /* XXX could calculate a, d from b, e of previous loop
 	       and integrate first 8/16 bytes into the loop. */
-	    uload2t (&a, &b, &c, pBob, 0);
-	    uload2t (&d, &e, &f, pBob, src_bpl);
+	    uload2t (&a, &b, &c, F3, 0);
+	    uload2t (&d, &e, &f, F3, src_bpl);
+	    F3 += sizeof (vu8);
 
-	    af = vabsdiffu8 (a, f);
+	    diff_af = vabsdiffu8 (a, f);
 	    avg_af = fast_vavgu8 (a, f);
 
-	    cd = vabsdiffu8 (c, d);
+	    diff_cd = vabsdiffu8 (c, d);
 	    avg_cd = fast_vavgu8 (c, d);
 
 	    /* Copy line of previous field. */
-	    vstorent (pDest, 0, b);
+	    vstorent (Dest, 0, b);
 
 	    mm4 = fast_vavgu8 (vabsdiffu8 (b, d), vabsdiffu8 (c, e));
 	    mm6 = fast_vavgu8 (vabsdiffu8 (a, e), vabsdiffu8 (b, f));
 	    mm1 = (vu8) vcmpleu8 (mm6, mm4);
-	    best = vsel (mm1, af, cd);
+	    best = vsel (mm1, diff_af, diff_cd);
 	    diag = vsel (mm1, avg_af, avg_cd);
 
-	    be = vabsdiffu8 (b, e);
+	    diff_be = vabsdiffu8 (b, e);
 	    avg_be = fast_vavgu8 (b, e);
 
-	    mm2 = (vu8) vcmpleu8 (be, best);
+	    mm2 = (vu8) vcmpleu8 (diff_be, best);
 	    /* we only want luma from diagonals */
 	    mm2 = vor (mm2, (vu8) UVMask);
-	    mm1 = (vu8) vcmpleu8 (be, vsplatu8_15);
+	    mm1 = (vu8) vcmpleu8 (diff_be, vsplatu8_15);
 	    /* we let bob through always if diff is small */
 	    mm1 = vor (mm1, mm2);
 
@@ -265,24 +272,26 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
 
 	    /* SimpleWeave */
 
-	    mm1 = vload (pSrcP, 0);
-	    mm2 = vload (pSrc, 0);
+	    next = vload (F4, 0);
+	    F4 += sizeof (vu8);
+
+	    prev = vload (F2, 0);
+	    F2 += sizeof (vu8);
 
 	    /* "movement" in the centre */
-	    cm = (v32) vabsdiffu8 (mm1, mm2);
-	    weave = fast_vavgu8 (mm1, mm2);
+	    cm = (v32) vabsdiffu8 (prev, next);
+	    weave = fast_vavgu8 (prev, next);
 
 	    /* operate only on luma as we will always bob the chroma */
 	    cm = (v32) yuyv2yy ((vu8) cm);
 
-	    mm1 = vload (pBobP, 0);
-	    mm2 = vload (pBobP, src_bpl);
+	    above = vload (F1, 0);
+	    below = vload (F1, src_bpl);
+	    F1 += sizeof (vu8);
 
-	    /* "movement" in the top */
-	    tm = (v32) yuyv2yy (vabsdiffu8 (b, mm1));
-
-	    /* "movement" in the bottom */
-	    bm = (v32) yuyv2yy (vabsdiffu8 (e, mm2));
+	    /* "movement" in the top and bottom btw curr and prev frame */
+	    tm = (v32) yuyv2yy (vabsdiffu8 (b, above));
+	    bm = (v32) yuyv2yy (vabsdiffu8 (e, below));
 
 	    /* 0xff where movement (xm > 15) in either of *two* pixels */
 	    tm = (v32) vcmpnz32 ((v32) vsubsu8 ((vu8) tm, vsplatu8_15));
@@ -294,36 +303,30 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
 	    mm1 = vor (mm1, (vu8) UVMask);
 
 	    /* Our value for the line of this field. */
-	    vstorent (pDest, dst_bpl, vsel (mm1, bob, weave));
+	    vstorent (Dest, dst_bpl, vsel (mm1, bob, weave));
 
-	    pSrc  += sizeof (vu8);
-	    pSrcP += sizeof (vu8);
-	    pBob  += sizeof (vu8);
-	    pBobP += sizeof (vu8);
-	    pDest += sizeof (vu8);
+	    Dest += sizeof (vu8);
 	}
 
 	/* Simple bob last column. */
-	simple_bob (pDest, pBob, dst_bpl, src_bpl);
+	simple_bob (Dest, F3, dst_bpl, src_bpl);
 
-	pSrc  += src_padding2;
-	pSrcP += src_padding2;
-	pBob  += src_padding1;
-	pBobP += src_padding2;
-	pDest += dst_padding;
+	F4 += src_padding2;
+	F3 += src_padding1;
+	F2 += src_padding2;
+	F1 += src_padding2;
+	Dest += dst_padding;
     }
 
-    if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_EVEN) {
-	/* Copy but-last odd dest line which isn't covered by the loop. */
-	copy_line (pDest, pBob, byte_width);
+    /* Remaining lines. */
 
-	pBob  += src_bpl;
-	pDest += dst_bpl;
+    if (pInfo->PictureHistory[1]->Flags & PICTURE_INTERLACED_ODD) {
+	copy_line (Dest, F3, byte_width);
+	Dest += dst_bpl;
+	F3 += src_bpl;
     }
 
-    /* Copy the last even and odd line from
-       the last line of the previous field. */
-    copy_line_pair (pDest, pBob, byte_width, dst_bpl);
+    copy_line_pair (Dest, F3, byte_width, dst_bpl);
 
     vempty ();
 
@@ -332,8 +335,8 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
 
 #elif !SIMD
 
-const DEINTERLACE_METHOD MoComp2Method =
-{
+static const DEINTERLACE_METHOD
+MoComp2Method = {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
     N_("Video (MoComp2)"), 
@@ -353,7 +356,7 @@ const DEINTERLACE_METHOD MoComp2Method =
     4, /* number fields needed */
     0,
     0,
-    WM_DI_MOCOMP2_GETVALUE - WM_APP,
+    0,
     NULL,
     0,
     FALSE,
@@ -365,15 +368,21 @@ DEINTERLACE_METHOD *
 DI_MoComp2_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
+    DEINTERLACE_FUNC *f;
 
-    m = malloc (sizeof (*m));
-    *m = MoComp2Method;
+    m = NULL;
 
-    m->pfnAlgorithm =
-	SIMD_FN_SELECT (DeinterlaceMoComp2,
+    f = SIMD_FN_SELECT (DeinterlaceMoComp2,
 			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
 			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
 			CPU_FEATURE_ALTIVEC);
+
+    if (f) {
+	m = malloc (sizeof (*m));
+	*m = MoComp2Method;
+
+	m->pfnAlgorithm = f;
+    }
 
     return m;
 }

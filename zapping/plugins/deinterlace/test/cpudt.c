@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpudt.c,v 1.1.2.1 2005-05-20 05:45:14 mschimek Exp $ */
+/* $Id: cpudt.c,v 1.1.2.2 2005-06-17 02:54:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -44,7 +44,7 @@ main				(int			argc,
 	actual_features = cpu_detection ();
 
 	if (required_features == (actual_features & required_features))
-		return EXIT_SUCCESS;
+		exit (EXIT_SUCCESS);
 	else
-		return EXIT_FAILURE;
+		exit (EXIT_FAILURE);
 }

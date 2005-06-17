@@ -71,7 +71,7 @@ typedef struct _DEINTERLACE_METHOD
     // number of settings
     int nSettings;
     // pointer to start of Settings[nSettings]
-    SETTING* pSettings;
+    const SETTING* pSettings;
     // Index Number (position in menu) should map to old enum Value
     // and should be unique
     int nMethodIndex;

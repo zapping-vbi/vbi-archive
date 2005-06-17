@@ -1,5 +1,5 @@
 /*////////////////////////////////////////////////////////////////////////////
-// $Id: DI_Greedy2Frame.c,v 1.3.2.4 2005-05-31 02:40:34 mschimek Exp $
+// $Id: DI_Greedy2Frame.c,v 1.3.2.5 2005-06-17 02:54:20 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.4  2005/05/31 02:40:34  mschimek
+// *** empty log message ***
+//
 // Revision 1.3.2.3  2005/05/20 05:45:14  mschimek
 // *** empty log message ***
 //
@@ -239,8 +242,8 @@ int GreedyTwoFrameThreshold = 4;
 /*//////////////////////////////////////////////////////////////////////////
 // Start of Settings related code
 //////////////////////////////////////////////////////////////////////////*/
-SETTING DI_Greedy2FrameSettings[DI_GREEDY2FRAME_SETTING_LASTONE] =
-{
+static const SETTING
+DI_Greedy2FrameSettings [] = {
     {
         N_("Greedy 2 Frame Luma Threshold"), SLIDER, 0,
 	&GreedyTwoFrameThreshold,
@@ -250,9 +253,9 @@ SETTING DI_Greedy2FrameSettings[DI_GREEDY2FRAME_SETTING_LASTONE] =
     },
 };
 
-const DEINTERLACE_METHOD Greedy2FrameMethod =
-{
-    sizeof(DEINTERLACE_METHOD),
+static const DEINTERLACE_METHOD
+Greedy2FrameMethod = {
+    sizeof (DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
     N_("Greedy 2 Frame"), 
     "Greedy2", 
@@ -261,7 +264,7 @@ const DEINTERLACE_METHOD Greedy2FrameMethod =
     /* pfnAlgorithm */ NULL,
     50, 
     60,
-    DI_GREEDY2FRAME_SETTING_LASTONE,
+    N_ELEMENTS (DI_Greedy2FrameSettings),
     DI_Greedy2FrameSettings,
     INDEX_VIDEO_GREEDY2FRAME,
     NULL,
@@ -271,7 +274,7 @@ const DEINTERLACE_METHOD Greedy2FrameMethod =
     4,
     0,
     0,
-    WM_DI_GREEDY2FRAME_GETVALUE - WM_APP,
+    0,
     NULL,
     0,
     FALSE,
@@ -283,15 +286,21 @@ DEINTERLACE_METHOD *
 DI_Greedy2Frame_GetDeinterlacePluginInfo (void)
 {
     DEINTERLACE_METHOD *m;
+    DEINTERLACE_FUNC *f;
 
-    m = malloc (sizeof (*m));
-    *m = Greedy2FrameMethod;
+    m = NULL;
 
-    m->pfnAlgorithm =
-	SIMD_FN_SELECT (DeinterlaceGreedy2Frame,
+    f = SIMD_FN_SELECT (DeinterlaceGreedy2Frame,
 			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
 			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
 			CPU_FEATURE_ALTIVEC);
+
+    if (f) {
+	m = malloc (sizeof (*m));
+	*m = Greedy2FrameMethod;
+
+	m->pfnAlgorithm = f;
+    }
 
     return m;
 }

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clear_block.h,v 1.3.2.1 2005-05-31 02:40:33 mschimek Exp $ */
+/* $Id: clear_block.h,v 1.3.2.2 2005-06-17 02:54:19 mschimek Exp $ */
 
 #include <inttypes.h>
 #include <altivec.h>
@@ -130,7 +130,7 @@ NAME				(void *			d,
 		break;
 
 	default:
-		assert (!"reached");
+		assert (0);
 	}
 
 	v0 = (vector char)((vector int){ value, value, value, value });
@@ -209,7 +209,7 @@ NAME				(void *			d,
 		}
 
 		default:
-			assert (!"reached");
+			assert (0);
 		}
 
 		d = ((uint8_t *) p) + padding;

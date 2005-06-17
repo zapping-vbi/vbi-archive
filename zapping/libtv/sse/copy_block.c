@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_block.c,v 1.2.2.1 2005-05-31 02:40:33 mschimek Exp $ */
+/* $Id: copy_block.c,v 1.2.2.2 2005-06-17 02:54:20 mschimek Exp $ */
 
 #include <inttypes.h>		/* uint8_t */
 #include <xmmintrin.h>
@@ -84,10 +84,17 @@ copy_block1_sse_nt		(void *			dst,
 		 src_bytes_per_line);
 
 	if (__builtin_expect (0 != align % 16, FALSE)) {
+#ifdef HAVE_MMX
 		copy_block1_mmx (dst, src,
 				 width, height,
 				 dst_bytes_per_line,
 				 src_bytes_per_line);
+#else
+		copy_block1_generic (dst, src,
+				     width, height,
+				     dst_bytes_per_line,
+				     src_bytes_per_line);
+#endif
 		return;
 	}
 

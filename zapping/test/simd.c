@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.c,v 1.1.2.3 2005-05-17 19:58:33 mschimek Exp $ */
+/* $Id: simd.c,v 1.1.2.4 2005-06-17 02:54:21 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -37,12 +37,25 @@ SIMD_FN_PROTOS (test_fn, test);
 
 #if SIMD
 
+union va {
+	uint8_t		a8[sizeof (vu8) / 1];
+	uint8_t		au8[sizeof (vu8) / 1];
+	uint16_t	a16[sizeof (vu8) / 2];
+	uint16_t	au16[sizeof (vu8) / 2];
+	uint32_t	a32[sizeof (vu8) / 4];
+	uint32_t	au32[sizeof (vu8) / 4];
+};
+
 #define PASS(type, scalar, vector)					\
 do {									\
-	v ## type x, y;							\
-	x = vsplat ## type (scalar);					\
-	y = vector;							\
-	assert (((void) #vector, 0 == memcmp (&x, &y, sizeof (x))));	\
+	union va x;							\
+	v ## type y;							\
+	unsigned int i;							\
+	for (i = 0; i < sizeof (vu8) / sizeof (x.a ## type [0]); ++i)	\
+		x.a ## type [i] = (scalar);				\
+	y = (vector);							\
+	assert (((void) #vector,					\
+		 0 == memcmp (x.a ## type, &y, sizeof (y))));		\
 } while (0)
 
 #define PASS3(scalar, vector)						\
@@ -54,10 +67,14 @@ do {									\
 
 #define FAIL(type, scalar, vector)					\
 do {									\
-	v ## type x, y;							\
-	x = vsplat ## type (scalar);					\
+	union va x;							\
+	v ## type y;							\
+	unsigned int i;							\
+	for (i = 0; i < sizeof (vu8) / sizeof (x.a ## type [0]); ++i)	\
+		x.a ## type [i] = scalar;				\
 	y = vector;							\
-	assert (((void) #vector, 0 != memcmp (&x, &y, sizeof (x))));	\
+	assert (((void) #vector,					\
+		 0 != memcmp (x.a ## type, &y, sizeof (y))));		\
 } while (0)
 
 #define MIN(n, max) (((n) < (max)) ? (n) : (max))
@@ -159,6 +176,7 @@ SIMD_NAME (test)		(void)
 		PASS (u16, 0, vzerou16 ());
 		PASS (u32, 0, vzerou32 ());
 
+#if 1
 		PASS (8, -1, vminus18 ());
 		PASS (16, -1, vminus116 ());
 		PASS (32, -1, vminus132 ());
@@ -189,14 +207,19 @@ SIMD_NAME (test)		(void)
 
 		// vsl, vsru
 
-		PASS (u8, sau8 << 1, vsl18 (vau8));
-		PASS (8, sa8 >> 1, vsr18 (vau8));
+		PASS (8, sa8 << 1, vsl18 (va8));
+		PASS (8, sa8 >> 1, vsr18 (va8));
 		PASS (u8, sau8 >> 1, vsr1u8 (vau8));
 
+		PASS (16, sa16 << 7, vsl16 (va16, 7));
+		PASS (16, sa16 >> 7, vsr16 (va16, 7));
+		PASS (u16, sau16 >> 7, vsru16 (vau16, 7));
+
+#if !(SIMD & CPU_FEATURE_ALTIVEC)
 		PASS (16, sa16 << (sb8 & 15), vsl16 (va16, (sb8 & 15)));
 		PASS (16, sa16 >> (sb8 & 15), vsr16 (va16, (sb8 & 15)));
 		PASS (u16, sau16 >> (sb8 & 15), vsru16 (vau16, (sb8 & 15)));
-
+#endif
 		// vlsr
 		// vshiftu2x
 
@@ -210,35 +233,35 @@ SIMD_NAME (test)		(void)
 		PASS (16, SAT16 (sa16 + sb16), vadds16 (va16, vb16));
 		PASS (16, SAT16 (sa16 - sb16), vsubs16 (va16, vb16));
 
-		PASS (8, SATU8 (sau8 + sbu8), vaddsu8 (vau8, vbu8));
-		PASS (8, SATU8 (sau8 - sbu8), vsubsu8 (vau8, vbu8));
-		PASS (16, SATU16 (sau16 + sbu16), vaddsu16 (vau16, vbu16));
-		PASS (16, SATU16 (sau16 - sbu16), vsubsu16 (vau16, vbu16));
+		PASS (u8, SATU8 (sau8 + sbu8), vaddsu8 (vau8, vbu8));
+		PASS (u8, SATU8 (sau8 - sbu8), vsubsu8 (vau8, vbu8));
+		PASS (u16, SATU16 (sau16 + sbu16), vaddsu16 (vau16, vbu16));
+		PASS (u16, SATU16 (sau16 - sbu16), vsubsu16 (vau16, vbu16));
 
 		PASS (u8, SATURATE (sau8, sbu8, scu8),
 		      vsatu8 (vau8, vbu8, vcu8));
 
-		PASS (8, 0 - (sa8 == sb8), vcmpeq8 (va8, vb8));
-		PASS (16, 0 - (sa16 == sb16), vcmpeq16 (va16, vb16));
-		PASS (32, 0 - (sa32 == sb32), vcmpeq32 (va32, vb32));
+		PASS (8, 0 - (sa8 == sb8), (v8) vcmpeq8 (va8, vb8));
+		PASS (16, 0 - (sa16 == sb16), (v16) vcmpeq16 (va16, vb16));
+		PASS (32, 0 - (sa32 == sb32), (v32) vcmpeq32 (va32, vb32));
 
-		PASS (8, 0 - (0 == sb8), vcmpz8 (vb8));
-		PASS (16, 0 - (0 == sb16), vcmpz16 (vb16));
-		PASS (32, 0 - (0 == sb32), vcmpz32 (vb32));
+		PASS (8, 0 - (0 == sb8), (v8) vcmpz8 (vb8));
+		PASS (16, 0 - (0 == sb16), (v16) vcmpz16 (vb16));
+		PASS (32, 0 - (0 == sb32), (v32) vcmpz32 (vb32));
 
-		PASS (8, 0 - (0 != sb8), vcmpnz8 (vb8));
-		PASS (16, 0 - (0 != sb16), vcmpnz16 (vb16));
-		PASS (32, 0 - (0 != sb32), vcmpnz32 (vb32));
+		PASS (8, 0 - (0 != sb8), (v8) vcmpnz8 (vb8));
+		PASS (16, 0 - (0 != sb16), (v16) vcmpnz16 (vb16));
+		PASS (32, 0 - (0 != sb32), (v32) vcmpnz32 (vb32));
 
-		PASS (8, 0 - (sa8 > sb8), vcmpgt8 (va8, vb8));
-		PASS (16, 0 - (sa16 > sb16), vcmpgt16 (va16, vb16));
-		PASS (32, 0 - (sa32 > sb32), vcmpgt32 (va32, vb32));
-		PASS (8, 0 - (sa8 < sb8), vcmplt8 (va8, vb8));
-		PASS (16, 0 - (sa16 < sb16), vcmplt16 (va16, vb16));
-		PASS (32, 0 - (sa32 < sb32), vcmplt32 (va32, vb32));
+		PASS (8, 0 - (sa8 > sb8), (v8) vcmpgt8 (va8, vb8));
+		PASS (16, 0 - (sa16 > sb16), (v16) vcmpgt16 (va16, vb16));
+		PASS (32, 0 - (sa32 > sb32), (v32) vcmpgt32 (va32, vb32));
+		PASS (8, 0 - (sa8 < sb8), (v8) vcmplt8 (va8, vb8));
+		PASS (16, 0 - (sa16 < sb16), (v16) vcmplt16 (va16, vb16));
+		PASS (32, 0 - (sa32 < sb32), (v32) vcmplt32 (va32, vb32));
 
-		PASS (u8, 0 - (sau8 >= sbu8), vcmpgeu8 (vau8, vbu8));
-		PASS (u8, 0 - (sau8 <= sbu8), vcmpleu8 (vau8, vbu8));
+		PASS (8, 0 - (sau8 >= sbu8), (v8) vcmpgeu8 (vau8, vbu8));
+		PASS (8, 0 - (sau8 <= sbu8), (v8) vcmpleu8 (vau8, vbu8));
 
 		PASS (u16, (a * b) & 0xFFFF, vmullo16 (va16, vb16));
 
@@ -254,16 +277,20 @@ SIMD_NAME (test)		(void)
 			      fast_vavgu8 (vau8, vbu8));
 #endif
 
+#endif
 		PASS (u8, (sau8 > sbu8) ? a : b, vmaxu8 (vau8, vbu8));
 		PASS (u8, (sau8 < sbu8) ? a : b, vminu8 (vau8, vbu8));
 
 		{
 			vu8 min, max, x;
+			unsigned int i;
 
 			vminmaxu8 (&min, &max, vau8, vbu8);
-			x = vsplatu8 ((sau8 < sbu8) ? a : b);
+			i = (sau8 < sbu8) ? a : b;
+			x = vsplatu8 (i);
 			assert (0 == memcmp (&x, &min, sizeof (x)));
-			x = vsplatu8 ((sau8 > sbu8) ? a : b);
+			i = (sau8 > sbu8) ? a : b;
+			x = vsplatu8 (i);
 			assert (0 == memcmp (&x, &max, sizeof (x)));
 		}
 

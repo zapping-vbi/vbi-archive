@@ -6,6 +6,7 @@
 
 extern clear_block_fn *		clear_block_mmx [4];
 extern copy_block_fn 		copy_block1_mmx;
+extern copy_block_fn 		copy_block1_generic;
 
 extern cpu_feature_set
 cpu_detection_mmx		(void);

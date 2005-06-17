@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.c,v 1.1 2005-02-25 18:12:37 mschimek Exp $ */
+/* $Id: cpu.c,v 1.1.2.1 2005-06-17 02:54:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -87,8 +87,6 @@ cpuid				(cpuid_t *		buf,
 {
 	unsigned int eax;
 
-	/* Push and pop for older versions of gcc. */
-
 	__asm__ __volatile__ (
 		" pushl		%%ebx\n"
 		" pushl		%%ecx\n"
@@ -119,22 +117,30 @@ toggle_eflags_id		(void)
 	return 1; /* they all have cpuid */
 }
 
-static unsigned int
+static unsigned long
 cpuid				(cpuid_t *		buf,
-				 unsigned int		level)
+				 unsigned long		level)
 {
-	unsigned int eax;
+	unsigned long eax;
 
 	__asm__ __volatile__ (
-		" cpuid		\n"
-	: "=a" (eax),
-	  "=b" (buf->r.ebx),
-	  "=c" (buf->r.ecx),
-	  "=d" (buf->r.edx)
-	: "0" (level)
-	: "cc", "memory");
+		" pushq		%%rbx\n"
+		" pushq		%%rcx\n"
+		" pushq		%%rdx\n"
 
-	buf->r.eax = eax;
+		" cpuid		\n"
+
+		" movl		%%eax,(%%rdi)\n"
+		" movl		%%ebx,4(%%rdi)\n"
+		" movl		%%edx,8(%%rdi)\n"
+		" movl		%%ecx,12(%%rdi)\n"
+
+		" popq		%%rdx\n"
+		" popq		%%rcx\n"
+		" popq		%%rbx\n"
+	: "=a" (eax)
+	: "D" (buf), "a" (level)
+	: "cc", "memory");
 
 	return eax;
 }

@@ -1,20 +1,20 @@
 #!/bin/sh
 
-source ditest-all.sh
+srcdir=`cd $(dirname $0); pwd; cd -`
+builddir=`pwd`
 
-here=`pwd`
-here=`cd $here; pwd; cd -`
-trap "rm -rf $here/results-$$-*" EXIT
+source $srcdir/ditest-all.sh
 
-for feature in mmx 3dnow sse sse2 altivec; do
+trap "rm -rf $builddir/results-$$-*" EXIT
+
+for feature in scalar mmx 3dnow sse sse2 altivec; do
   ditest_all $feature
-  dir="$here/results-$$-$feature"
+  dir="$builddir/results-$$-$feature"
   if test -d $dir; then
     cd $dir
     echo "Generating md5sums-$feature for $implemented."
-    md5sum -b $implemented >$here/md5sums-$feature || exit 1
+    md5sum -b $implemented >$builddir/md5sums-$feature || exit 1
     cd -
-    rm -rf $dir
   fi
 done
 

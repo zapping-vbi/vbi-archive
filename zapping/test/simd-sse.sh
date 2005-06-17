@@ -1,2 +1,10 @@
 #!/bin/sh
-./simd-emu.sh ./simd qemu-i386 sse
+
+source `dirname $0`/simd-emu.sh
+
+if ! find_emulator sse; then
+  exit 77
+else
+  LD_PRELOAD=$pre $emu ./simd sse
+  exit $?
+fi

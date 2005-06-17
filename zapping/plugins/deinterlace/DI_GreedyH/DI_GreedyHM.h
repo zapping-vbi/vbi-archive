@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHM.h,v 1.1.2.4 2005-05-31 02:40:34 mschimek Exp $
+// $Id: DI_GreedyHM.h,v 1.1.2.5 2005-06-17 02:54:20 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (c) 2005 Michael H. Schimek
@@ -165,20 +165,35 @@ recombine_yuyv			(vu16			yy,
 #define USE_BOB_BLEND 1
 
 typedef enum {
-    STORE_WEAVE_L1,
-    STORE_WEAVE_L3,
+    STORE_WEAVE_ABOVE,
+    STORE_WEAVE_BELOW,
     STORE_L1WEAVE_L3WEAVE
 } ghxc_mode;
 
-/* MHS: This is a merge of GreedyDeLoop.asm which reads from FieldStore
-   (hence src_incr) and the GreedyHF.c loop core which reads from
-   PictureHistory.  *Dest stores in DI_GreedyHM_V() and DI_GreedyHM_NV()
-   have been integrated. */
-static __inline__ void
-GreedyHXCore			(uint8_t **		Dest,
-				 const uint8_t **	L1,
-				 const uint8_t **	L2,
-				 const uint8_t **	L2P,
+/**
+ * @param Curr Line of the current field.
+ * @param Above Line above Curr (prev. field of opposite parity)
+ * @param Prev Line of the previous frame (prev. field of same parity)
+ *
+ * This is a merge of GreedyDeLoop.asm which reads from FieldStore
+ * (hence src_incr) and the GreedyHF.c loop core which reads from
+ * PictureHistory.  Dest stores in DI_GreedyHM_V() and DI_GreedyHM_NV()
+ * have been integrated.
+ *
+ * Operation:
+ *
+ * 			WEAVE_ABOVE	WEAVE_BELOW	L1WEAVE_L3WEAVE
+ * Dest			weave		weave		weave + Below
+ * Dest + dst_bpl	Above		Below		weave + Above
+ *
+ * Below = Above + src_bpl.
+ * weave = Curr + Prev + Above + Below.
+ */
+static always_inline void
+GreedyHXCore			(uint8_t *		Dest,
+				 const uint8_t *	Curr,
+				 const uint8_t *	Above,
+				 const uint8_t *	Prev,
 				 unsigned int		byte_width,
 				 unsigned long		dst_bpl,
 				 unsigned long		src_bpl,
@@ -189,22 +204,23 @@ GreedyHXCore			(uint8_t **		Dest,
 				 ghxc_mode		mode)
 {
     int count;
-    vu8 am, a0, a1; /* previous, current, next column */
+    vu8 am, a0, a1; /* previous, current, next column of Above + Below */
 
     /* For ease of reading, the comments below assume that
        we're operating on an odd field (i.e., that InfoIsOdd
        is true).  Assume the obvious for even lines. */
 
     am = vzerou8 (); /* no data left hand of first column */
-    a0 = fast_vavgu8 (vload (*L1, 0),
-                      vload (*L1, src_bpl));
+    a0 = fast_vavgu8 (vload (Above, 0),
+                      vload (Above, src_bpl));
 
     for (count = byte_width / sizeof (vu8) - 1; count > 0; --count) {
-	vu8 l1, l3, l2, l2p;
+	vu8 above, below, curr, prev;
 	vu8 weave, bob, motion;
 
-	a1 = fast_vavgu8 (vload (*L1, sizeof (vu8)),
-			  vload (*L1, src_bpl + sizeof (vu8)));
+	/* Merge line above and below. */
+	a1 = fast_vavgu8 (vload (Above, sizeof (vu8)),
+			  vload (Above, src_bpl + sizeof (vu8)));
 
     last_column:
 	/* DJR - Diagonal Jaggie Reduction
@@ -225,8 +241,8 @@ GreedyHXCore			(uint8_t **		Dest,
 	    /* Don't do any more averaging than needed for MMX.
 	       It hurts performance and causes rounding errors. */
 	    if (SIMD != CPU_FEATURE_MMX) {
-		l = fast_vavgu8 (l, c); /* 1/4 center, 3/4 adjacent */
-		c = fast_vavgu8 (c, l); /* 3/8 center, 5/8 adjacent */
+		l = vavgu8 (l, c); /* 1/4 center, 3/4 adjacent */
+		c = vavgu8 (c, l); /* 3/8 center, 5/8 adjacent */
 	    }
 
 	    bob = c;
@@ -237,11 +253,11 @@ GreedyHXCore			(uint8_t **		Dest,
 	am = a0;
 	a0 = a1;
 
-	l2 = vload (*L2, 0); /* L2 - the newest weave pixel value */
-	*L2 += src_incr;
+	curr = vload (Curr, 0);
+	Curr += src_incr;
 	
-	l2p = vload (*L2P, 0); /* L2P - the prev weave pixel */
-	*L2P += src_incr;
+	prev = vload (Prev, 0);
+	Prev += src_incr;
 
 	/* Greedy Choice
 	   For a weave pixel candidate we choose whichever (preceding
@@ -249,31 +265,32 @@ GreedyHXCore			(uint8_t **		Dest,
 	   This allows the possibilty of selecting choice pixels from 2
 	   different field. */
 	if (USE_GREEDY_CHOICE) {
-	    /* use L2 or L2P depending upon which makes smaller comb:
-	       absdiff (l2p, bob) <= absdiff (l2, bob) ? l2p : l2. */
-	    weave = vsel ((vu8) vcmpleu8 (vabsdiffu8 (l2p, bob),
-					  vabsdiffu8 (l2, bob)),
-			  l2p, l2);
+	    /* use Curr or Prev depending upon which makes smaller comb:
+	       absdiff (prev, bob) <= absdiff (curr, bob) ? prev : curr. */
+	    weave = vsel ((vu8) vcmpleu8 (vabsdiffu8 (prev, bob),
+					  vabsdiffu8 (curr, bob)),
+			  prev, curr);
 	} else {
-	    weave = l2;
+	    weave = curr;
 	}
 
 	/* Let's measure movement, as how much the weave pixel has changed */
-	motion = vabsdiffu8 (l2, l2p);
+	motion = vabsdiffu8 (curr, prev);
 
-	/* MHS: We already had l1, l3 in the previous iteration, but
+	/* MHS: We already had above, below in the previous iteration, but
 	   with few registers to save values reloading is faster. */
-	l1 = vload (*L1, 0);
-	l3 = vload (*L1, src_bpl);
+	above = vload (Above, 0);
+	below = vload (Above, src_bpl);
+	Above += src_incr;
 
 	/* Now lets clip our chosen value to be not outside of the range
-	   of the high/low range L1-L3 by more than MaxComb.
+	   of the high/low range Above-BELOW by more than MaxComb.
 	   This allows some comb but limits the damages and also allows more
 	   detail than a boring oversmoothed clip. */
 	if (USE_CLIP) {
 	    vu8 min, max;
 
-	    vminmaxu8 (&min, &max, l1, l3);
+	    vminmaxu8 (&min, &max, above, below);
 
 	    /* Allow the value to be above the high or below the low
 	       by amt of MaxComb. */
@@ -282,8 +299,6 @@ GreedyHXCore			(uint8_t **		Dest,
 
 	    weave = vsatu8 (weave, min, max); 
 	}
-
-	*L1 += src_incr;
 
 	/* Blend weave pixel with bob pixel, depending on motion value.
 	   The ratio of bob/weave will be dependend upon apparent damage
@@ -322,23 +337,23 @@ GreedyHXCore			(uint8_t **		Dest,
 	}
 
 	switch (mode) {
-	case STORE_WEAVE_L1:
-	    vstorent (*Dest, dst_bpl, l1);
-	    vstorent (*Dest, 0, weave);
+	case STORE_WEAVE_ABOVE:
+	    vstorent (Dest, dst_bpl, above);
+	    vstorent (Dest, 0, weave);
 	    break;
 
-	case STORE_WEAVE_L3:
-	    vstorent (*Dest, dst_bpl, l3);
-	    vstorent (*Dest, 0, weave);
+	case STORE_WEAVE_BELOW:
+	    vstorent (Dest, dst_bpl, below);
+	    vstorent (Dest, 0, weave);
 	    break;
 
 	case STORE_L1WEAVE_L3WEAVE:
-	    vstorent (*Dest, dst_bpl, fast_vavgu8 (l1, weave));
-	    vstorent (*Dest, 0, fast_vavgu8 (l3, weave));
+	    vstorent (Dest, dst_bpl, fast_vavgu8 (above, weave));
+	    vstorent (Dest, 0, fast_vavgu8 (below, weave));
 	    break;
 	}
 
-	*Dest += sizeof (vu8);
+	Dest += sizeof (vu8);
     }
 
     a1 = vzerou8 (); /* no data right of last column */

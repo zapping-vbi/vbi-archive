@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.7.2.1 2005-05-31 02:40:33 mschimek Exp $ */
+/* $Id: image_format.h,v 1.7.2.2 2005-06-17 02:54:19 mschimek Exp $ */
 
 #ifndef __ZTV_IMAGE_FORMAT_H__
 #define __ZTV_IMAGE_FORMAT_H__
@@ -50,6 +50,7 @@ typedef struct {
 	/* Buffer size. All planes must fit within this size:
 	   offset[i] + (plane height - 1) * bytes_per_line[i]
 	   + (plane width * bits per pixel + 7) / 8 <= size. */
+  /* XXX does this really belong here? Or rather in a buffer structure. */
 	unsigned long		size;
 
 	const tv_pixel_format *	pixel_format;

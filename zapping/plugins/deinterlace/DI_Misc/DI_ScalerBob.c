@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_ScalerBob.c,v 1.2.2.3 2005-05-31 02:40:34 mschimek Exp $
+// $Id: DI_ScalerBob.c,v 1.2.2.4 2005-06-17 02:54:20 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 // Copyright (C) 2005 Michael Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2.2.3  2005/05/31 02:40:34  mschimek
+// *** empty log message ***
+//
 // Revision 1.2.2.2  2005/05/20 05:45:14  mschimek
 // *** empty log message ***
 //
@@ -61,8 +64,8 @@
 
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceScalerBob);
 
-#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE |				\
-	    CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
+#if !SIMD || (SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE |		\
+		      CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC))
 
 BOOL
 SIMD_NAME (DeinterlaceScalerBob)(TDeinterlaceInfo *	pInfo)
@@ -94,10 +97,12 @@ SIMD_NAME (DeinterlaceScalerBob)(TDeinterlaceInfo *	pInfo)
     return TRUE;
 }
 
-#elif !SIMD
+#endif
 
-const DEINTERLACE_METHOD ScalerBobMethod =
-{
+#if !SIMD
+
+static const DEINTERLACE_METHOD
+ScalerBobMethod = {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
     N_("Scaler Bob"), 
@@ -133,10 +138,12 @@ DI_ScalerBob_GetDeinterlacePluginInfo (void)
     m = malloc (sizeof (*m));
     *m = ScalerBobMethod;
 
-    m->pfnAlgorithm =
-	SIMD_FN_SELECT (DeinterlaceScalerBob,
-			CPU_FEATURE_MMX | CPU_FEATURE_SSE |
-			CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC);
+    m->pfnAlgorithm = SIMD_FN_SELECT (DeinterlaceScalerBob,
+				      SCALAR |
+				      CPU_FEATURE_MMX |
+				      CPU_FEATURE_SSE |
+				      CPU_FEATURE_SSE2 |
+				      CPU_FEATURE_ALTIVEC);
 
     return m;
 }

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.26.2.1 2005-05-31 02:40:33 mschimek Exp $ */
+/* $Id: search.c,v 1.26.2.2 2005-06-17 02:54:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -695,7 +695,7 @@ vbi3_search_ucs2_new		(vbi3_cache *		ca,
 		size = pattern_size * 2 * sizeof (*esc_pattern);
 		if (!(esc_pattern = vbi3_malloc (size))) {
 			vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-					 "Out of memory (%u)", size);
+					 "Out of memory (%lu)", size);
 			goto failure;
 		}
 

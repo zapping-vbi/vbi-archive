@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHF.c,v 1.1.2.2 2005-05-31 02:40:34 mschimek Exp $
+// $Id: DI_GreedyHF.c,v 1.1.2.3 2005-06-17 02:54:20 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -31,6 +31,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.2  2005/05/31 02:40:34  mschimek
+// *** empty log message ***
+//
 // Revision 1.1.2.1  2005/05/05 09:46:00  mschimek
 // *** empty log message ***
 //
@@ -82,19 +85,17 @@ SIMD_NAME (DI_GreedyHF)		(TDeinterlaceInfo *	pInfo)
     vu8 MotionThresholdW;
     v16 MotionSenseW;
     uint8_t *Dest;
-    const uint8_t *L1;
-    const uint8_t *L2;
-    const uint8_t *L2P;
+    const uint8_t *F2;
+    const uint8_t *F3;
+    const uint8_t *F4;
     unsigned int byte_width;
     unsigned int height;
     unsigned long dst_bpl;
     unsigned long src_bpl;
-    unsigned long dst_padding;
-    unsigned long src_padding;
 
     MaxCombW = vsplatu8 (GreedyHMaxComb);
 
-    /* In a saturated subtraction UVMask clears the u, v bytes. */
+    /* In a saturated subtraction UVMask (255) clears the u, v bytes. */
     MotionThresholdW =
 	(vu8) vor ((v16) vsplat8 (GreedyMotionThreshold), UVMask);
 
@@ -106,51 +107,63 @@ SIMD_NAME (DI_GreedyHF)		(TDeinterlaceInfo *	pInfo)
     dst_bpl = pInfo->OverlayPitch;
     src_bpl = pInfo->InputPitch;
 
+    /*
+	dest	src odd					src even
+	0	F3.0					F4.0
+	1     {	weave.0 (F4.n + F2.n + F3.n + F3.n+1)	F3.0
+	2     {	F3.1		weave.1 (F4.n + F2.n + F3.n-1 + F3.n)	}
+	3	weave.1					F3.1		}
+	4	F3.2					weave.2
+	h-3	weave.h/2-2				F3.h/2-2
+	h-2	F3.h/2-1				weave.h/2-1
+	h-1	F4.h/2-1				F3.h/2-1
+
+	F4	this field
+	F3	previous field, opposite parity
+	F2	previous field, same parity
+	F1	previous field, opposite parity
+	h	frame height
+    */
+
     Dest = (uint8_t *) pInfo->Overlay;
 
-    /* copy first even line no matter what, and the first odd line if we're
-       processing an EVEN field. (note diff from other deint rtns.) */
+    F4 = (const uint8_t *) pInfo->PictureHistory[0]->pData;  
+    F3 = (const uint8_t *) pInfo->PictureHistory[1]->pData;
+    F2 = (const uint8_t *) pInfo->PictureHistory[2]->pData;
 
-    L1 = (const uint8_t *) pInfo->PictureHistory[1]->pData;
-    L2 = (const uint8_t *) pInfo->PictureHistory[0]->pData;  
-    L2P = (const uint8_t *) pInfo->PictureHistory[2]->pData;
-
-    if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD) {
-        /* copy first even line */
-        copy_line (Dest, L1, byte_width);
-        Dest += dst_bpl;
-    } else {
-        /* copy first even line */
-        copy_line (Dest, L2, byte_width);
-        Dest += dst_bpl;
-        /* then first odd line */
-        copy_line (Dest, L1, byte_width);
+    if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_EVEN) {
+        copy_line (Dest, F4, byte_width);
         Dest += dst_bpl;
 
-        L2 += src_bpl;
-        L2P += src_bpl;
+        F4 += src_bpl;
+        F2 += src_bpl;
     }
 
-    dst_padding = dst_bpl * 2 - byte_width;
-    src_padding = src_bpl - byte_width;
+    copy_line (Dest, F3, byte_width);
+    Dest += dst_bpl;
 
     for (height = pInfo->FieldHeight - 1; height > 0; --height) {
-	GreedyHXCore (&Dest, &L1, &L2, &L2P,
-		      byte_width, dst_bpl, src_bpl,
+	GreedyHXCore (Dest,
+		      /* Curr */ F4,
+		      /* Above */ F3,
+		      /* Prev */ F2,
+		      byte_width,
+		      dst_bpl,
+		      src_bpl,
 		      /* src_incr */ sizeof (vu8),
 		      MaxCombW,
 		      MotionThresholdW,
 		      MotionSenseW,
-		      STORE_WEAVE_L3);
+		      STORE_WEAVE_BELOW);
 
-	Dest += dst_padding;
-        L1 += src_padding;
-        L2 += src_padding;
-        L2P += src_padding;
+	Dest += dst_bpl * 2;
+        F4 += src_bpl;
+        F3 += src_bpl;
+        F2 += src_bpl;
     }
 
     if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD) {
-        copy_line (Dest, L2, byte_width);
+        copy_line (Dest, F4, byte_width);
     }
 
     vempty ();

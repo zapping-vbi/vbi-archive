@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.50.2.1 2005-05-31 02:40:33 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.50.2.2 2005-06-17 02:54:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1215,7 +1215,7 @@ vbi3_page_draw_teletext_region_va_list
 		bytes_per_line = pg->columns * TCW * bytes_per_pixel;
 	} else if ((format->width * bytes_per_pixel) > bytes_per_line) {
 		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Image width %u (%s) > bytes_per_line %u",
+				"Image width %u (%s) > bytes_per_line %lu",
 				format->width,
 				vbi3_pixfmt_name (format->pixfmt),
 				bytes_per_line);
@@ -1226,11 +1226,15 @@ vbi3_page_draw_teletext_region_va_list
 
 	if (size > format->size) {
 		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Image %u x %u, offset %u, bytes_per_line %u "
-				"> buffer size %u = 0x%08x",
-				format->width, format->height,
-				format->offset, bytes_per_line,
-				format->size, format->size);
+				 "Image %u x %u, offset %lu, "
+				 "bytes_per_line %lu "
+				 "> buffer size %lu = 0x%l08x",
+				 format->width,
+				 format->height,
+				 format->offset,
+				 bytes_per_line,
+				 format->size,
+				 format->size);
 		return FALSE;
 	}
 

@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_Weave.c,v 1.2.2.3 2005-05-31 02:40:34 mschimek Exp $
+// $Id: DI_Weave.c,v 1.2.2.4 2005-06-17 02:54:20 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 // Copyright (C) 2005 Michael Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2.2.3  2005/05/31 02:40:34  mschimek
+// *** empty log message ***
+//
 // Revision 1.2.2.2  2005/05/20 05:45:14  mschimek
 // *** empty log message ***
 //
@@ -64,8 +67,8 @@
 
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceWeave);
 
-#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE |				\
-	    CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
+#if !SIMD || (SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE |		\
+		      CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC))
 
 /*///////////////////////////////////////////////////////////////////////////
 // Simple Weave.  Copies alternating scanlines from the most recent fields.
@@ -73,11 +76,13 @@ SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceWeave);
 BOOL
 SIMD_NAME (DeinterlaceWeave)	(TDeinterlaceInfo *	pInfo)
 {
-    int i;
-    BYTE *lpOverlay = pInfo->Overlay;
-    BYTE* CurrentOddLine;
-    BYTE* CurrentEvenLine;
-    DWORD Pitch = pInfo->InputPitch;
+    uint8_t *Dest;
+    const uint8_t *F4;
+    const uint8_t *F3;
+    unsigned int byte_width;
+    unsigned int height;
+    unsigned long dst_bpl;
+    unsigned long src_bpl;
 
     if (SIMD == CPU_FEATURE_SSE2) {
 	if ((INTPTR (pInfo->Overlay) |
@@ -89,22 +94,40 @@ SIMD_NAME (DeinterlaceWeave)	(TDeinterlaceInfo *	pInfo)
 	    return DeinterlaceWeave_SSE (pInfo);
     }
 
-    if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD) {
-        CurrentOddLine = pInfo->PictureHistory[0]->pData;
-        CurrentEvenLine = pInfo->PictureHistory[1]->pData;
-    } else {
-        CurrentOddLine = pInfo->PictureHistory[1]->pData;
-        CurrentEvenLine = pInfo->PictureHistory[0]->pData;
-    }
-    
-    for (i = 0; i < pInfo->FieldHeight; i++) {
-        copy_line (lpOverlay, CurrentEvenLine, pInfo->LineLength);
-        lpOverlay += pInfo->OverlayPitch;
-        CurrentEvenLine += Pitch;
+    byte_width = pInfo->LineLength;
 
-        copy_line (lpOverlay, CurrentOddLine, pInfo->LineLength);
-        lpOverlay += pInfo->OverlayPitch;
-        CurrentOddLine += Pitch;
+    dst_bpl = pInfo->OverlayPitch;
+    src_bpl = pInfo->InputPitch;
+
+    /*
+	dest	src odd		src even
+	0	F3.0		F4.0
+	1	F4.0		F3.0
+	h-2	F3.h/2-1	F4.h/2-1
+	h-1	F4.h/2-1	F3.h/2-1
+
+	F4	this field
+	F3	previous field, opposite parity
+	h	frame height
+    */
+
+    Dest = (uint8_t *) pInfo->Overlay;
+
+    F4 = (const uint8_t *) pInfo->PictureHistory[0]->pData;
+    F3 = (const uint8_t *) pInfo->PictureHistory[1]->pData;
+
+    if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD) {
+	SWAP (F3, F4);
+    }
+
+    for (height = pInfo->FieldHeight; height > 0; --height) {
+        copy_line (Dest, F4, byte_width);
+        Dest += dst_bpl;
+	F4 += src_bpl;
+
+        copy_line (Dest, F3, byte_width);
+        Dest += dst_bpl;
+	F3 += src_bpl;
     }
 
     vempty ();
@@ -112,10 +135,12 @@ SIMD_NAME (DeinterlaceWeave)	(TDeinterlaceInfo *	pInfo)
     return TRUE;
 }
 
-#elif !SIMD
+#endif
 
-const DEINTERLACE_METHOD WeaveMethod =
-{
+#if !SIMD
+
+static const DEINTERLACE_METHOD
+WeaveMethod = {
     sizeof(DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
     N_("Simple Weave"), 
@@ -153,7 +178,7 @@ DI_Weave_GetDeinterlacePluginInfo (void)
 
     m->pfnAlgorithm =
 	SIMD_FN_SELECT (DeinterlaceWeave,
-			CPU_FEATURE_MMX | CPU_FEATURE_SSE |
+			SCALAR | CPU_FEATURE_MMX | CPU_FEATURE_SSE |
 			CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC);
 
     return m;

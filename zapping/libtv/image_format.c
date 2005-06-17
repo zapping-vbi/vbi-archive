@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.11.2.1 2005-05-31 02:40:33 mschimek Exp $ */
+/* $Id: image_format.c,v 1.11.2.2 2005-06-17 02:54:19 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -35,8 +35,8 @@ _tv_image_format_dump		(const tv_image_format *format,
 	assert (NULL != format);
 
 	fprintf (fp, "width=%u height=%u "
-		 "offset=%u,%u,%u,%u bpl=%u,%u,%u,%u "
-		 "size=%u pixfmt=%s",
+		 "offset=%lu,%lu,%lu,%lu bpl=%lu,%lu,%lu,%lu "
+		 "size=%lu pixfmt=%s",
 		 format->width,
 		 format->height,
 		 format->offset[0],
@@ -515,7 +515,7 @@ tv_clear_image			(void *			image,
 	case TV_PIXFMT_BGRA8:
 	case TV_PIXFMT_ARGB8:
 	case TV_PIXFMT_ABGR8:
-		assert (!"reached");
+		assert (0);
 
 	case TV_PIXFMT_SBGGR:
 		clear_block[0] (data + format->offset[0], 0,
@@ -558,7 +558,7 @@ tv_memcpy			(void *			dst,
 	memcpy (dst, src, n_bytes);
 }
 
-static void
+void
 copy_block1_generic		(void *			dst,
 				 const void *		src,
 				 unsigned int		width,

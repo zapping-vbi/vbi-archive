@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.h,v 1.2.2.5 2005-05-31 02:40:33 mschimek Exp $ */
+/* $Id: simd.h,v 1.2.2.6 2005-06-17 02:54:19 mschimek Exp $ */
 
 #ifndef SIMD_H
 #define SIMD_H
@@ -81,7 +81,10 @@
 #  define SIMD 0
 #endif
 
+#define SCALAR (1 << 30)
+
 #define always_inline __attribute__ ((always_inline, unused))
+#define never_inline __attribute__ ((noinline, unused))
 
 /* ------------------------------------------------------------------------- */
 
@@ -150,17 +153,23 @@ extern const v32 vsplat32_2;	/* vsplat32(2) */
 
 #define vdump(_a)							\
 {									\
-	union { vu8 v; uint8_t s[sizeof (vu8)]; } u;			\
-	unsigned int i;							\
+	union { vu8 v; uint8_t s[sizeof (vu8)]; } _u;			\
+	unsigned int _i;						\
 									\
-	u.v = (vu8)(_a);						\
+	_u.v = (vu8)(_a);						\
 	fprintf (stderr, "%s:%u: %s = ", __FILE__, __LINE__, #_a);	\
-	for (i = 0; i < sizeof (u.s); ++i)				\
-		fprintf (stderr, "%02x", u.s[i]);			\
+	for (_i = 0; _i < sizeof (_u.s); ++_i)				\
+		fprintf (stderr, "%02x", _u.s[_i]);			\
 	fputc ('\n', stderr);						\
 }
 
-#endif /* SIMD */
+#else /* !SIMD */
+
+#define SUFFIX _SCALAR
+
+#define vempty() do {} while (0)
+
+#endif /* !SIMD */
 
 /* ------------------------------------------------------------------------- */
 
@@ -187,37 +196,35 @@ typedef __m64 vu32;		/* vector of 2 or 4 uint32_t */
 
 SIMD_CONST_PROTOS
 
-/* gcc bug: would compile to SSE instruction pshufw. */
+/* gcc 3.2 bug: _mm_set1_pi16 (_i) produces { _i, _i, 0, 0 } */
+/* gcc 4.0 / 4.1 (experimental) bug: uses SSE instruction pshufw
+   without -msse. */
+/* gcc 4.1 (experimental) bug: simd.c:290: error: unrecognizable insn:
+  (insn 743 265 268 17 (set (reg:V2SI 0 ax) (const_vector:V2SI [
+   (const_int -1 [0xffffffffffffffff]) (const_int -1 [0xffffffffffffffff])
+    ])) -1 (nil) (nil))
+  simd.c:290: internal compiler error: in extract_insn, at recog.c:2082
+  (That's mmx vsplat8 (-1). Should be pcmpeq I guess, other values work.) */
 #if (SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW))			\
-    && GCC_VERSION >= 40000 && GCC_VERSION < 40200
+    && ((GCC_VERSION >= 30200 && GCC_VERSION < 30300)			\
+	|| (GCC_VERSION >= 40000 && GCC_VERSION < 40200))
 
 static always_inline __m64
-vsplatu8			(uint8_t		_i)
+vsplatu32			(uint32_t		_i)
 {
-	uint64_t t = _i;
-
-	t |= t << 8;
-	t |= t << 16;
-	t |= t << 32;
-
-    	return (__m64) t;
+	return (__m64)(_i * 0x0000000100000001ULL);
 }
 
 static always_inline __m64
-vsplat8				(int8_t			_i)
+vsplat32			(int32_t		_i)
 {
-	return vsplatu8 ((uint8_t) _i);
+	return vsplatu32 ((uint32_t) _i);
 }
 
 static always_inline __m64
 vsplatu16			(uint16_t		_i)
 {
-	uint64_t t = _i;
-
-	t |= t << 16;
-	t |= t << 32;
-
-    	return (__m64) t;
+	return (__m64)(_i * 0x0001000100010001ULL);
 }
 
 static always_inline __m64
@@ -227,17 +234,15 @@ vsplat16			(int16_t		_i)
 }
 
 static always_inline __m64
-vsplatu32			(uint32_t		_i)
+vsplatu8			(uint8_t		_i)
 {
-	uint64_t t = _i;
-
-    	return (__m64)(t | (t << 32));
+	return (__m64)(_i * 0x0101010101010101ULL);
 }
 
 static always_inline __m64
-vsplat32			(int32_t		_i)
+vsplat8				(int8_t			_i)
 {
-	return vsplatu32 ((uint32_t) _i);
+	return vsplatu8 ((uint8_t) _i);
 }
 
 #else
@@ -336,10 +341,20 @@ vshiftu2x			(__m64 *		_l,
 				 const unsigned int	_dist)
 {
 	assert (_dist <= sizeof (vu8));
-	/* 7654 3210 -> 6543 */
-	*_l = vlsr (_a0, _am, (sizeof (vu8) - _dist) * 8);
-	/* BA98 7654 -> 8765 */
-	*_r = vlsr (_a1, _a0, _dist * 8);
+
+#if 0
+	if (4 == _dist) {
+		_a0 = _mm_shuffle_pi16 (_a0, _MM_SHUFFLE (1, 0, 3, 2));
+		*_l = _mm_unpackhi_pi32 (_am, _a0);
+		*_r = _mm_unpacklo_pi32 (_a0, _a1);
+	} else
+#endif
+	{
+		/* 7654 3210 -> 6543 */
+		*_l = vlsr (_a0, _am, (sizeof (vu8) - _dist) * 8);
+		/* BA98 7654 -> 8765 */
+		*_r = vlsr (_a1, _a0, _dist * 8);
+	}
 }
 
 #define vunpacklo8(_a, _b) _mm_unpacklo_pi8 (_a, _b)
@@ -587,7 +602,7 @@ SIMD_CONST_PROTOS
 	_mm_set_epi64 ((__m64) 0LL,					\
 		       * (const __m64 *)((const uint8_t *)(_p) + (_o)))
 
-/* Aligned load and store (movdqu). */
+/* Aligned load and store (movdqa). */
 #define vload(_p, _o)							\
 	_mm_load_si128 ((const __m128i *)((const uint8_t *)(_p) + (_o)))
 #define vstore(_p, _o, _a)						\
@@ -680,10 +695,17 @@ vshiftu2x			(__m128i *		_l,
 				 const unsigned int	_dist)
 {
 	assert (_dist <= sizeof (vu8));
-	/* 7654 3210 -> 6543 */
-	*_l = vlsr (_a0, _am, (sizeof (vu8) - _dist) * 8);
-	/* BA98 7654 -> 8765 */
-	*_r = vlsr (_a1, _a0, _dist * 8);
+
+	if (8 == _dist) {
+		_a0 = _mm_shuffle_epi32 (_a0, _MM_SHUFFLE (1, 0, 3, 2));
+		*_l = _mm_unpackhi_epi64 (_am, _a0);
+		*_r = _mm_unpacklo_epi64 (_a0, _a1);
+	} else {
+		/* 7654 3210 -> 6543 */
+		*_l = vlsr (_a0, _am, (sizeof (vu8) - _dist) * 8);
+		/* BA98 7654 -> 8765 */
+		*_r = vlsr (_a1, _a0, _dist * 8);
+	}
 }
 
 #else
@@ -1072,7 +1094,7 @@ vminmaxu8			(vu8 *			_min,
 
 #endif /* SIMD == CPU_FEATURE_ALTIVEC */
 
-/* ------------------------------------------------------------------------- */
+/* ========================================================================= */
 
 #define SIMD_NAME2(name, suffix) name ## suffix
 #define SIMD_NAME1(name, suffix) SIMD_NAME2 (name, suffix)
@@ -1082,6 +1104,7 @@ vminmaxu8			(vu8 *			_min,
 #define SIMD_NAME(name) SIMD_NAME1 (name, SUFFIX)
 
 #define SIMD_FN_PROTOS(fn_type, name)					\
+extern fn_type name ## _SCALAR;						\
 extern fn_type name ## _MMX;						\
 extern fn_type name ## _3DNOW;						\
 extern fn_type name ## _SSE;						\
@@ -1141,6 +1164,6 @@ extern fn_type name ## _ALTIVEC;
 	 SIMD_FN_SELECT_SSE (name, avail) :				\
 	 SIMD_FN_SELECT_3DNOW (name, avail) :				\
 	 SIMD_FN_SELECT_MMX (name, avail) :				\
-	 NULL)
+	 ((avail) & SCALAR) ? name ## _SCALAR : NULL)
 
 #endif /* SIMD_H */

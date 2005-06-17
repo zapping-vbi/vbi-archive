@@ -25,7 +25,7 @@ ditest-all.sh
 	cross-compile or the CPU lacks the required feature.  Used by
 	other ditest scripts.
 
-ditest-mmx|3dnow|sse|sse2|altivec.sh
+ditest-scalar|mmx|3dnow|sse|sse2|altivec.sh
 	make check runs these scripts to check if each implementation
 	of each deinterlace method we compiled produces the output
 	recorded in md5sums-*.  Supposed to reveal compiler bugs.
@@ -38,6 +38,11 @@ ditest-x86.sh
 	due to subtle differences and shortcuts for performance reasons
 	we cannot compare all implementations.  Something like this
 	should also be used to compare sse2 and altivec output.
+
+	Differences can be traced to the offending instruction by
+	strategically placing fprintf-stderr's and vdump()'s in the
+	source, then diff'ing the stderr output of the failed ditest
+	runs.
 
 emulator.sh
 	A shell function to determine if our CPU supports the required
@@ -52,5 +57,5 @@ gen-md5sums.sh
 	compute md5 checksums.  Supposed to be run after deinterlace
 	sources changed.
 
-md5sums-mmx|3dnow|sse|sse2|altivec
+md5sums-scalar|mmx|3dnow|sse|sse2|altivec
 	Checksums for make check.
