@@ -1,6 +1,6 @@
 #!/bin/sh
 
-srcdir=`cd $(dirname $0); pwd; cd -`
+srcdir=`cd $(dirname $0) >/dev/null; pwd; cd - >/dev/null`
 builddir=`pwd`
 
 source $srcdir/ditest-all.sh
