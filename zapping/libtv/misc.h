@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.7 2005-01-31 07:21:33 mschimek Exp $ */
+/* $Id: misc.h,v 1.8 2005-06-28 01:02:37 mschimek Exp $ */
 
 #ifndef __ZTV_MISC_H__
 #define __ZTV_MISC_H__
@@ -34,9 +34,15 @@
 
 #ifdef __GNUC__
 
+#undef likely
+#undef unlikely
 #if __GNUC__ < 3
 /* Expect expression usually true/false, schedule accordingly. */
-#  define __builtin_expect(expr, c) (expr)
+#  define likely(expr) (expr)
+#  define unlikely(expr) (expr)
+#else
+#  define likely(expr) __builtin_expect(expr, 1)
+#  define unlikely(expr) __builtin_expect(expr, 0)
 #endif
 
 #undef __i386__
@@ -133,7 +139,8 @@ do {									\
 
 #else /* !__GNUC__ */
 
-#define __builtin_expect(expr, c) (expr)
+#define likely(expr) (expr)
+#define unlikely(expr) (expr)
 #undef __i386__
 #undef __i686__
 #define __attribute__(args...)
@@ -237,14 +244,14 @@ clear_block_fn                  (void *                 dst,
                                  unsigned int           value,
                                  unsigned int           width,
                                  unsigned int           height,
-                                 unsigned int           bytes_per_line);
+                                 unsigned long          bytes_per_line);
 
 typedef void
 copy_block_fn                   (void *                 dst,
                                  const void *           src,
                                  unsigned int           width,
                                  unsigned int           height,
-                                 unsigned int           dst_bytes_per_line,
-                                 unsigned int           src_bytes_per_line);
+                                 unsigned long          dst_bytes_per_line,
+                                 unsigned long          src_bytes_per_line);
 
 #endif /* MISC_H */

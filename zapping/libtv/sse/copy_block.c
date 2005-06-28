@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_block.c,v 1.2 2005-01-08 14:40:35 mschimek Exp $ */
+/* $Id: copy_block.c,v 1.3 2005-06-28 01:01:30 mschimek Exp $ */
 
 #include <inttypes.h>		/* uint8_t */
 #include <xmmintrin.h>
@@ -71,30 +71,37 @@ copy_block1_sse_nt		(void *			dst,
 				 const void *		src,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned int		dst_bytes_per_line,
-				 unsigned int		src_bytes_per_line)
+				 unsigned long		dst_bytes_per_line,
+				 unsigned long		src_bytes_per_line)
 {
 	unsigned long align;
-	unsigned int dst_padding;
-	unsigned int src_padding;
+	unsigned long dst_padding;
+	unsigned long src_padding;
 
 	align = ((unsigned long) dst |
 		 (unsigned long) src |
 		 dst_bytes_per_line |
 		 src_bytes_per_line);
 
-	if (__builtin_expect (0 != align % 16, FALSE)) {
+	if (unlikely (0 != align % 16)) {
+#ifdef HAVE_MMX
 		copy_block1_mmx (dst, src,
 				 width, height,
 				 dst_bytes_per_line,
 				 src_bytes_per_line);
+#else
+		copy_block1_generic (dst, src,
+				     width, height,
+				     dst_bytes_per_line,
+				     src_bytes_per_line);
+#endif
 		return;
 	}
 
 	dst_padding = dst_bytes_per_line - width * 1;
 	src_padding = src_bytes_per_line - width * 1;
 
-	if (__builtin_expect (0 == (dst_padding | src_padding), TRUE)) {
+	if (likely (0 == (dst_padding | src_padding))) {
 		width *= height;
 		height = 1;
 	}

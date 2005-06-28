@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clear_block.h,v 1.3 2005-02-18 07:56:10 mschimek Exp $ */
+/* $Id: clear_block.h,v 1.4 2005-06-28 01:02:12 mschimek Exp $ */
 
 #include <inttypes.h>
 #include <altivec.h>
@@ -43,13 +43,13 @@ NAME				(void *			d,
 				 unsigned int		value,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned int		bytes_per_line)
+				 unsigned long		bytes_per_line)
 {
 	const vector char sel0 = { 1,2,3,1, 2,3,1,2, 3,1,2,3, 1,2,3,1 };
 	const vector char sel1 = { 2,3,1,2, 3,1,2,3, 1,2,3,1, 2,3,1,2 };
 	const vector char sel2 = { 3,1,2,3, 1,2,3,1, 2,3,1,2, 3,1,2,3 };
 	vector char v0, v1, v2, v3;
-	unsigned int padding;
+	unsigned long padding;
 
 	v3 = (vector char)((vector int){ value, value, value, value });
 
@@ -59,11 +59,11 @@ NAME				(void *			d,
 
 	padding = bytes_per_line - width * 3;
 
-	if (__builtin_expect (0 == padding, TRUE)) {
+	if (likely (0 == padding)) {
 		width *= height;
 		height = 1;
 
-		if (__builtin_expect (0 == width % 16, TRUE)) {
+		if (likely (0 == width % 16)) {
 			vector char *p = d;
 			unsigned int count;
 
@@ -112,10 +112,10 @@ NAME				(void *			d,
 				 unsigned int		value,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned int		bytes_per_line)
+				 unsigned long		bytes_per_line)
 {
 	vector char v0;
-	unsigned int padding;
+	unsigned long padding;
 
 	switch (BPP) {
 	case 1:
@@ -130,18 +130,18 @@ NAME				(void *			d,
 		break;
 
 	default:
-		assert (!"reached");
+		assert (0);
 	}
 
 	v0 = (vector char)((vector int){ value, value, value, value });
 
 	padding = bytes_per_line - width * BPP;
 
-	if (__builtin_expect (0 == padding, TRUE)) {
+	if (likely (0 == padding)) {
 		width *= height;
 		height = 1;
 
-		if (__builtin_expect (0 == width % (64 / BPP), TRUE)) {
+		if (likely (0 == width % (64 / BPP))) {
 			vector char *p = d;
 			unsigned int count;
 
@@ -209,7 +209,7 @@ NAME				(void *			d,
 		}
 
 		default:
-			assert (!"reached");
+			assert (0);
 		}
 
 		d = ((uint8_t *) p) + padding;

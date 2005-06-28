@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.11 2005-02-25 18:14:36 mschimek Exp $ */
+/* $Id: image_format.c,v 1.12 2005-06-28 01:02:51 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -35,8 +35,8 @@ _tv_image_format_dump		(const tv_image_format *format,
 	assert (NULL != format);
 
 	fprintf (fp, "width=%u height=%u "
-		 "offset=%u,%u,%u,%u bpl=%u,%u,%u,%u "
-		 "size=%u pixfmt=%s",
+		 "offset=%lu,%lu,%lu,%lu bpl=%lu,%lu,%lu,%lu "
+		 "size=%lu pixfmt=%s",
 		 format->width,
 		 format->height,
 		 format->offset[0],
@@ -55,12 +55,12 @@ tv_bool
 tv_image_format_init		(tv_image_format *	format,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned int		bytes_per_line,
+				 unsigned long		bytes_per_line,
 				 tv_pixfmt		pixfmt,
 				 tv_colspc		colspc)
 {
 	const tv_pixel_format *pf;
-	unsigned int min_bpl;
+	unsigned long min_bpl;
 
 	assert (NULL != format);
 
@@ -93,9 +93,9 @@ tv_image_format_init		(tv_image_format *	format,
 	format->offset[0] = 0;
 
 	if (pf->planar) {
-		unsigned int uv_bpl;
-		unsigned int y_size;
-		unsigned int uv_size;
+		unsigned long uv_bpl;
+		unsigned long y_size;
+		unsigned long uv_size;
 
 		/* No padding. */
 		uv_bpl = format->bytes_per_line[0] >> pf->uv_hshift;
@@ -139,8 +139,8 @@ tv_bool
 tv_image_format_is_valid	(const tv_image_format *format)
 {
 	const tv_pixel_format *pf;
-	unsigned int min_bpl;
-	unsigned int min_size;
+	unsigned long min_bpl;
+	unsigned long min_size;
 
 	assert (NULL != format);
 
@@ -161,11 +161,11 @@ tv_image_format_is_valid	(const tv_image_format *format)
 	min_size = format->bytes_per_line[0] * (format->height - 1) + min_bpl;
 
 	if (pf->planar) {
-		unsigned int min_uv_bytes_per_line;
-		unsigned int min_u_size;
-		unsigned int min_v_size;
-		unsigned int p1_offset;
-		unsigned int p2_offset;
+		unsigned long min_uv_bytes_per_line;
+		unsigned long min_u_size;
+		unsigned long min_v_size;
+		unsigned long p1_offset;
+		unsigned long p2_offset;
 		unsigned int hres;
 		unsigned int vres;
 
@@ -231,7 +231,7 @@ clear_block1			(void *			d,
 				 unsigned int		value,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned int		bytes_per_line)
+				 unsigned long		bytes_per_line)
 {
 	if (width == bytes_per_line) {
 		memset (d, (int) value, width * height);
@@ -248,10 +248,10 @@ clear_block3			(void *			d,
 				 unsigned int		value,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned int		bytes_per_line)
+				 unsigned long		bytes_per_line)
 {
 	uint8_t *p;
-	unsigned int padding;
+	unsigned long padding;
 
 	padding = bytes_per_line - width * 3;
 
@@ -296,10 +296,10 @@ clear_block4			(void *			d,
 				 unsigned int		value,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned int		bytes_per_line)
+				 unsigned long		bytes_per_line)
 {
 	uint32_t *p;
-	unsigned int padding;
+	unsigned long padding;
 
 	padding = bytes_per_line - width * 4;
 
@@ -515,7 +515,7 @@ tv_clear_image			(void *			image,
 	case TV_PIXFMT_BGRA8:
 	case TV_PIXFMT_ARGB8:
 	case TV_PIXFMT_ABGR8:
-		assert (!"reached");
+		assert (0);
 
 	case TV_PIXFMT_SBGGR:
 		clear_block[0] (data + format->offset[0], 0,
@@ -541,7 +541,7 @@ tv_memcpy			(void *			dst,
 				 const void *		src,
 				 size_t			n_bytes)
 {
-	if (__builtin_expect (dst == src, FALSE))
+	if (unlikely (dst == src))
 		return;
 
 #ifdef HAVE_SSE
@@ -558,23 +558,23 @@ tv_memcpy			(void *			dst,
 	memcpy (dst, src, n_bytes);
 }
 
-static void
+void
 copy_block1_generic		(void *			dst,
 				 const void *		src,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned int		dst_bytes_per_line,
-				 unsigned int		src_bytes_per_line)
+				 unsigned long		dst_bytes_per_line,
+				 unsigned long		src_bytes_per_line)
 {
-	unsigned int dst_padding;
-	unsigned int src_padding;
+	unsigned long dst_padding;
+	unsigned long src_padding;
 	uint8_t *d;
 	const uint8_t *s;
 
 	dst_padding = dst_bytes_per_line - width * 1;
 	src_padding = src_bytes_per_line - width * 1;
 
-	if (__builtin_expect (0 == (dst_padding | src_padding), TRUE)) {
+	if (likely (0 == (dst_padding | src_padding))) {
 		memcpy (dst, src, width * height);
 		return;
 	}
