@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dlist.h,v 1.3 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: dlist.h,v 1.4 2005-06-28 01:11:31 mschimek Exp $ */
 
 #ifndef DLIST_H
 #define DLIST_H
@@ -31,7 +31,7 @@
 #include "misc.h"
 
 #ifndef DLIST_CONSISTENCY
-#define DLIST_CONSISTENCY 1
+#  define DLIST_CONSISTENCY 0
 #endif
 
 typedef struct node node;
@@ -216,7 +216,7 @@ is_member			(const list *		l,
 	list_verify (l);
 
 	for (q = l->head; q->succ; q = q->succ)
-		if (__builtin_expect (n == q, 0))
+		if (unlikely (n == q))
 			return TRUE;
 
 	return FALSE;
@@ -233,7 +233,7 @@ rem_head			(list *			l)
 
 	list_verify (l);
 
-	if (__builtin_expect (s != NULL, 1)) {
+	if (likely (s != NULL)) {
 		s->pred = (node *) &l->head;
 		l->head = s;
 	} else {
@@ -254,7 +254,7 @@ rem_tail			(list *			l)
 
 	list_verify (l);
 
-	if (__builtin_expect (p != NULL, 1)) {
+	if (likely (p != NULL)) {
 		p->succ = (node *) &l->null;
 		l->tail = p;
 	} else {

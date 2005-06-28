@@ -18,9 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.c,v 1.2 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: bcd.c,v 1.3 2005-06-28 01:11:54 mschimek Exp $ */
 
 #include "bcd.h"
+#include "misc.h"		/* unlikely() */
 
 /**
  * @addtogroup BCD BCD arithmetic for Teletext page numbers
@@ -56,10 +57,10 @@ vbi3_dec2bcd			(int			dec)
 {
 	int t = 0;
 
-	/* XXX should try x87 bcd for large values. */
+	/* XXX might try x87 bcd for large values. */
 
-	/* Unlikely, Teletext page numbers are unsigned. */
-	if (__builtin_expect (dec < 0, 0)) {
+	/* Teletext page numbers are unsigned. */
+	if (unlikely (dec < 0)) {
 		t |= VBI3_BCD_MIN;
 		dec += -VBI3_BCD_DEC_MIN;
 	}
@@ -72,7 +73,7 @@ vbi3_dec2bcd			(int			dec)
 	t += (dec % 10) << 8; dec /= 10;
 	t += (dec % 10) << 12;
 
-	if (__builtin_expect (dec >= 10, 0)) {
+	if (unlikely (dec >= 10)) {
 		unsigned int i;
 
 		for (i = 16; i < sizeof (int) * 8; i += 4) {
@@ -102,10 +103,10 @@ vbi3_bcd2dec			(int			bcd)
 
 	s = bcd;
 
-	/* Unlikely, Teletext page numbers are unsigned. */
-	if (__builtin_expect (bcd < 0, 0)) {
+	/* Teletext page numbers are unsigned. */
+	if (unlikely (bcd < 0)) {
 		/* Cannot negate minimum. */
-		if (__builtin_expect (VBI3_BCD_MIN == bcd, 0))
+		if (unlikely (VBI3_BCD_MIN == bcd))
 			return VBI3_BCD_DEC_MIN;
 
 		bcd = vbi3_neg_bcd (bcd);
@@ -119,7 +120,7 @@ vbi3_bcd2dec			(int			bcd)
 	t += (bcd & 15) * 100; bcd >>= 4;
 	t += (bcd & 15) * 1000;
 
-	if (__builtin_expect (bcd & -16, 0)) {
+	if (unlikely (bcd & -16)) {
 		unsigned int u;
 		unsigned int i;
 
@@ -131,8 +132,8 @@ vbi3_bcd2dec			(int			bcd)
 		t += u * 10000;
 	}
 
-	/* Unlikely, Teletext page numbers are unsigned. */
-	if (__builtin_expect (s < 0, 0))
+	/* Teletext page numbers are unsigned. */
+	if (unlikely (s < 0))
 		t = -t;
 
 	return t;

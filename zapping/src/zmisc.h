@@ -51,8 +51,14 @@
 
 #ifdef __GNUC__
 
+#undef likely
+#undef unlikely
 #if __GNUC__ < 3
-#define __builtin_expect(exp, c) (exp)
+#  define likely(expr) (expr)
+#  define unlikely(expr) (expr)
+#else
+#  define likely(expr) __builtin_expect(exp, 1)
+#  define unlikely(expr) __builtin_expect(exp, 0)
 #endif
 
 #undef PARENT
@@ -136,7 +142,8 @@ do {									\
 #else /* !__GNUC__ */
 
 #define __inline__
-#define __builtin_expect(exp, c) (exp)
+#define likely(expr) (expr)
+#define unlikely(expr) (expr)
 #define _unused_
 
 static char *
