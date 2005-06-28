@@ -18,20 +18,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.9 2005-02-18 07:55:50 mschimek Exp $ */
+/* $Id: misc.h,v 1.10 2005-06-28 00:56:20 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
 
-#undef ZAPPING8
-#define ZAPPING8 1
-
 #include <stddef.h>
 #include <string.h>
 #include <assert.h>
-#ifndef ZAPPING8
-#include "vbi.h"		/* vbi3_log_level */
-#endif
 
 #include "macros.h"
 
@@ -41,7 +35,11 @@
 
 #if __GNUC__ < 3
 /* Expect expression usually true/false, schedule accordingly. */
-#  define __builtin_expect(expr, c) (expr)
+#  define likely(expr) (expr)
+#  define unlikely(expr) (expr)
+#else
+#  define likely(expr) __builtin_expect(expr, 1)
+#  define unlikely(expr) __builtin_expect(expr, 0)
 #endif
 
 #undef __i386__
@@ -136,18 +134,10 @@ do {									\
 })
 #endif
 
-#ifndef ZAPPING8
-extern void
-vbi3_log_printf			(vbi3_log_level		level,
-				 const char *		function,
-				 const char *		template,
-				 ...)
-     __attribute__ ((format (__printf__, 3, 4)));
-#endif
-
 #else /* !__GNUC__ */
 
-#define __builtin_expect(expr, c) (expr)
+#define likely(expr) (expr)
+#define unlikely(expr) (expr)
 #undef __i386__
 #undef __i686__
 #define __attribute__(args...)
@@ -275,5 +265,17 @@ do {									\
 } while (0)
 
 #endif
+
+#define debug(templ, args...)						\
+do {									\
+	fprintf (stderr, "%s:%u: %s: " templ ".\n",			\
+		 __FILE__, __LINE__, __PRETTY_FUNCTION__ , ##args);	\
+} while (0)
+
+#define error(templ, args...)						\
+do {									\
+	fprintf (stderr, "%s:%u: %s: " templ ".\n",			\
+		 __FILE__, __LINE__, __PRETTY_FUNCTION__ , ##args);	\
+} while (0)
 
 #endif /* MISC_H */
