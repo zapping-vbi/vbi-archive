@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.5 2005-06-28 00:54:31 mschimek Exp $ */
+/* $Id: network.c,v 1.6 2005-06-28 19:15:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -131,8 +131,7 @@ cni_vps_to_pdc_a		(unsigned int		cni)
 
 static const struct network *
 cni_lookup			(vbi3_cni_type		type,
-				 unsigned int		cni,
-				 const char *		caller)
+				 unsigned int		cni)
 {
 	const struct network *p;
 	const struct network *network_table_end =
@@ -220,7 +219,7 @@ vbi3_convert_cni			(vbi3_cni_type		to_type,
 {
 	const struct network *p;
 
-	if (!(p = cni_lookup (from_type, cni, __FUNCTION__)))
+	if (!(p = cni_lookup (from_type, cni)))
 		return 0;
 
 	switch (to_type) {
@@ -419,7 +418,7 @@ vbi3_network_set_cni		(vbi3_network *		nk,
 		debug ("Unknown CNI type %u", type);
 	}
 
-	if (!(p = cni_lookup (type, cni, __FUNCTION__)))
+	if (!(p = cni_lookup (type, cni)))
 		return FALSE;
 
 	/* Keep in mind our table may be wrong. */

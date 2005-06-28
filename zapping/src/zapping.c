@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.c,v 1.11 2005-01-19 04:16:24 mschimek Exp $ */
+/* $Id: zapping.c,v 1.12 2005-06-28 19:14:54 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -815,10 +815,11 @@ map				(GtkWidget *		widget)
     }
 }
 
+extern void shutdown_zapping(void); /* main.c */
+
 static void
 instance_finalize		(GObject *		object)
 {
-  extern void shutdown_zapping(void); /* main.c */
   /* Zapping *z = ZAPPING (object); */
 
   /* preliminary */

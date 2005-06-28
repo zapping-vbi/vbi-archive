@@ -185,13 +185,13 @@ void video_blit_frame (capture_frame *frame)
    }
 }
 
+extern void add_backend_xv (void);
+extern void add_backend_x11 (void);
+extern void add_backend_gdkrgb (void);
+extern void add_backend_mem (void);
+
 void startup_zimage (void)
 {
-  extern void add_backend_xv (void);
-  extern void add_backend_x11 (void);
-  extern void add_backend_gdkrgb (void);
-  extern void add_backend_mem (void);
-
   /* The order is important, fast backends should be added first */
   add_backend_xv ();
   add_backend_x11 ();

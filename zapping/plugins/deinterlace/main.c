@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.7 2005-06-28 00:52:25 mschimek Exp $ */
+/* $Id: main.c,v 1.8 2005-06-28 19:15:46 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -309,9 +309,11 @@ start_thread1			(void)
 
   if (s)
     {
+      gint i;
+
       /* Error ignored. */
-      gconf_string_to_enum (resolution_enum, s, &resolution);
-      resolution = SATURATE (resolution, 1, 4);
+      gconf_string_to_enum (resolution_enum, s, &i);
+      resolution = SATURATE (i, 1, 4);
     }
 
   if (0)

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.14 2005-06-28 00:53:35 mschimek Exp $ */
+/* $Id: view.c,v 1.15 2005-06-28 19:15:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -2395,11 +2395,12 @@ select_start			(TeletextView *		view,
 	Export
 */
 
+extern gchar *zvbi_get_current_network_name (void); /* XXX */
+
 static void
 export_action			(GtkAction *		action _unused_,
 				 TeletextView *		view)
 {
-  extern gchar *zvbi_get_current_network_name (void); /* XXX */
   GtkWidget *dialog;
   gchar *name;
 
