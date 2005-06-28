@@ -556,7 +556,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.202 2005-06-28 01:10:31 mschimek Exp $",
+	 "$Id: main.c,v 1.203 2005-06-28 19:14:15 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
@@ -656,8 +656,8 @@ int main(int argc, char * argv[])
 	  fprintf (stderr, "Screen %d:\n"
 		   "  position               %u, %u - %u, %u\n"
 		   "  frame buffer address   0x%lx\n"
-		   "  frame buffer size      %ux%u pixels, 0x%x bytes\n"
-		   "  bytes per line         %u bytes\n"
+		   "  frame buffer size      %ux%u pixels, 0x%lx bytes\n"
+		   "  bytes per line         %lu bytes\n"
 		   "  pixfmt                 %s\n",
 		   xs->screen_number,
 		   xs->x,
