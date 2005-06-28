@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preferences.c,v 1.3 2005-06-28 00:52:13 mschimek Exp $ */
+/* $Id: preferences.c,v 1.4 2005-06-28 19:15:57 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -96,38 +96,6 @@ attach_combo_box		(GtkTable *		table,
                     (GtkAttachOptions)(0),
 		    /* padding */ 0, 0);
 }
-
-static void
-attach_field_balance		(GtkTable *		table,
-				 guint			row,
-				 const gchar *		gconf_key,
-				 const gchar *		tooltip)
-{
-  GtkWidget *widget;
-
-  widget = z_gconf_float_spinslider_new (/* default */ 0.45,
-					 /* min */ 0.0,
-					 /* max */ 1.0,
-					 /* step */ 0.05,
-					 /* page_incr */ 0.1,
-					 /* page_size */ 0.1,
-					 /* digits */ 3,
-					 gconf_key,
-					 /* var */ NULL);
-  gtk_widget_show (widget);
-
-  if (tooltip)
-    z_tooltip_set (widget, tooltip);
-
-  gtk_table_attach (table, widget,
-		    INDENT_COL + 1, N_COLUMNS,
-		    row, row + 1,
-                    (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions)(0),
-		    /* padding */ 0, 0);
-}
-
-
 
 static gchar *
 key_from_setting		(const SETTING *	setting)
