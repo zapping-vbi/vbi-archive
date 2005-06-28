@@ -1,5 +1,5 @@
 /*////////////////////////////////////////////////////////////////////////////
-// $Id: DI_Greedy2Frame.c,v 1.4 2005-06-28 00:50:03 mschimek Exp $
+// $Id: DI_Greedy2Frame.c,v 1.5 2005-06-28 19:17:10 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,10 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.4  2005/06/28 00:50:03  mschimek
+// Cleaned up.
+// Upper limit of GreedyTwoFrameThreshold is 127, not 128.
+//
 // Revision 1.3.2.5  2005/06/17 02:54:20  mschimek
 // *** empty log message ***
 //
@@ -125,11 +129,11 @@ SIMD_NAME (DeinterlaceGreedy2Frame) (TDeinterlaceInfo *pInfo)
     unsigned long src_bpl;
 
     if (SIMD == CPU_FEATURE_SSE2) {
-	if ((INTPTR (pInfo->Overlay) |
-	     INTPTR (pInfo->PictureHistory[0]->pData) |
-	     INTPTR (pInfo->PictureHistory[1]->pData) |
-	     INTPTR (pInfo->PictureHistory[2]->pData) |
-	     INTPTR (pInfo->PictureHistory[3]->pData) |
+	if (((unsigned long) pInfo->Overlay |
+	     (unsigned long) pInfo->PictureHistory[0]->pData |
+	     (unsigned long) pInfo->PictureHistory[1]->pData |
+	     (unsigned long) pInfo->PictureHistory[2]->pData |
+	     (unsigned long) pInfo->PictureHistory[3]->pData |
 	     (unsigned long) pInfo->OverlayPitch |
 	     (unsigned long) pInfo->InputPitch |
 	     (unsigned long) pInfo->LineLength) & 15)

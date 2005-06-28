@@ -632,7 +632,7 @@ vbi3_cache_get_networks		(vbi3_cache *		ca,
 	size = (list_length (&ca->networks) + 1) * sizeof (*nk);
 
 	if (!(nk = vbi3_malloc (size))) {
-		error ("Out of memory (%u bytes)", size);
+		error ("Out of memory (%lu bytes)", size);
 		return NULL;
 	}
 

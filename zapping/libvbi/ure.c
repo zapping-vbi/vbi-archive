@@ -28,7 +28,7 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ure.c,v 1.3 2005-01-19 04:17:54 mschimek Exp $ */
+/* $Id: ure.c,v 1.4 2005-06-28 19:17:10 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1006,11 +1006,12 @@ _ure_probe_ls(ucs2_t *ls, unsigned long limit, ucs4_t *c)
 
 static unsigned long
 #ifdef __STDC__
-_ure_compile_symbol(ucs2_t *sym, unsigned long limit, _ure_symtab_t *symp,
+_ure_compile_symbol(const ucs2_t *sym, unsigned long limit,
+		    _ure_symtab_t *symp,
                     _ure_buffer_t *b)
 #else
      _ure_compile_symbol(sym, limit, symp, b)
-     ucs2_t *sym;
+     const ucs2_t *sym;
      unsigned long limit;
      _ure_symtab_t *symp;
      _ure_buffer_t *b;
@@ -1185,11 +1186,12 @@ _ure_sym_neq(_ure_symtab_t *a, _ure_symtab_t *b)
  */
 static ucs2_t
 #ifdef __stdc__
-_ure_make_symbol(ucs2_t *sym, unsigned long limit, unsigned long *consumed,
+_ure_make_symbol(const ucs2_t *sym, unsigned long limit,
+		 unsigned long *consumed,
                  _ure_buffer_t *b)
 #else
      _ure_make_symbol(sym, limit, consumed, b)
-     ucs2_t *sym;
+     const ucs2_t *sym;
      unsigned long limit, *consumed;
      _ure_buffer_t *b;
 #endif

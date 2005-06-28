@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_TomsMoComp.c,v 1.2 2005-06-28 00:47:55 mschimek Exp $
+// $Id: DI_TomsMoComp.c,v 1.3 2005-06-28 19:17:10 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2002 Tom Barry.  All rights reserved.
 // Copyright (c) 2005 Michael H. Schimek
@@ -32,6 +32,12 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2005/06/28 00:47:55  mschimek
+// New file integrating all the code formerly in
+// plugins/deinterlace/DI_TomsMoComp. Converted the MMX inline asm to
+// vector intrinsics. Added support for 3DNow, SSE2, x86-64 and AltiVec.
+// Cleaned up. All options work now.
+//
 // Revision 1.1.2.5  2005/06/17 02:54:20  mschimek
 // *** empty log message ***
 //
@@ -911,11 +917,11 @@ SIMD_NAME (DeinterlaceTomsMoComp) (TDeinterlaceInfo *pInfo)
     unsigned int effort;
 
     if (SIMD == CPU_FEATURE_SSE2) {
-	if ((INTPTR (pInfo->Overlay) |
-	     INTPTR (pInfo->PictureHistory[0]->pData) |
-	     INTPTR (pInfo->PictureHistory[1]->pData) |
-	     INTPTR (pInfo->PictureHistory[2]->pData) |
-	     INTPTR (pInfo->PictureHistory[3]->pData) |
+	if (((unsigned long) pInfo->Overlay |
+	     (unsigned long) pInfo->PictureHistory[0]->pData |
+	     (unsigned long) pInfo->PictureHistory[1]->pData |
+	     (unsigned long) pInfo->PictureHistory[2]->pData |
+	     (unsigned long) pInfo->PictureHistory[3]->pData |
 	     (unsigned long) pInfo->OverlayPitch |
 	     (unsigned long) pInfo->InputPitch |
 	     (unsigned long) pInfo->LineLength) & 15)

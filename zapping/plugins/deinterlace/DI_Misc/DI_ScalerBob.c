@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_ScalerBob.c,v 1.3 2005-06-28 00:50:44 mschimek Exp $
+// $Id: DI_ScalerBob.c,v 1.4 2005-06-28 19:17:10 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 // Copyright (C) 2005 Michael Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2005/06/28 00:50:44  mschimek
+// Added support for x86-64, AltiVec and a scalar version. Cleaned up.
+//
 // Revision 1.2.2.4  2005/06/17 02:54:20  mschimek
 // *** empty log message ***
 //
@@ -78,8 +81,8 @@ SIMD_NAME (DeinterlaceScalerBob)(TDeinterlaceInfo *	pInfo)
     unsigned int height;
 
     if (SIMD == CPU_FEATURE_SSE2) {
-	if ((INTPTR (pInfo->Overlay) |
-	     INTPTR (pInfo->PictureHistory[0]->pData) |
+	if (((unsigned long) pInfo->Overlay |
+	     (unsigned long) pInfo->PictureHistory[0]->pData |
 	     (unsigned long) pInfo->OverlayPitch |
 	     (unsigned long) pInfo->InputPitch |
 	     (unsigned long) pInfo->LineLength) & 15)

@@ -1,3 +1,26 @@
+2005-06-28    <mschimek@users.sf.net>
+
+	* src/tveng.c (mixer_line_destroy_cb): Dereferenced uninitialized
+	  tv_control pointer.
+	* src/properties-handler.c: set_toggle() unused, removed.
+	* src/tveng.c (tveng_attach_device), src/video_xv.c (image_new),
+	  zapping_setup_fb/zapping_setup_fb.c (main), src/main.c (main):
+	  Fixed printf %d/%u format mismatch with long int argument.
+	* src/zimage.c (startup_zimage),
+	  src/zapping.c (instance_finalize), plugins/teletext/view.c, 
+	  src/main.c (main), libvbi/network.c (cni_lookup),
+	  plugins/deinterlace/main.c (start_thread1): 
+	  Tweaked to avoid compiler warnings.
+	* plugins/deinterlace/preferences.c: attach_field_balance() unused,
+	  removed.
+	* libtv/misc.h (printv): Moved extern declaration to avoid a
+	  pointless compiler warning.
+	* libvbi/exp-gfx.c (export_png): Isolated the nested do_write
+	  function. png_destroy_write_struct() wasn't called on error.
+	  Fixed transparent background color of caption pages (not used yet).
+	(vbi3_page_draw_teletext_region_va_list): Replaced ints referring
+	  to memory sizes to longs for proper operation on LP64 systems.
+
 2005-06-27    <mschimek@users.sf.net>
 
 	* zapping/plugins/deinterlace/test/ditest-x86.sh: New script to
@@ -134,7 +157,7 @@
 
 	* libvbi/export.c (vbi3_export_new): Cleared pointer, without NULL
 	  check, instead of vbi3_export struct after allocation. No
-	  asprintf when errstr is NULL. Patch #1188283 by makomk.
+	  asprintf when errstr is NULL. Patch #1188283 by Mako the Goldfish.
 
 	* plugins/teletext/view.c: s/VBI3_41_COLUMNS/VBI3_PADDING. 
 	* libvbi/export.h (vbi3_export_stdio): vbi3_page* may be NULL.

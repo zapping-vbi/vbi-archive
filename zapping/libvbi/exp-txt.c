@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.23 2005-06-28 00:56:40 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.24 2005-06-28 19:17:09 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -349,6 +349,9 @@ create_palette			(text_instance *	text,
 		imin = 0;
 		dmin = INT_MAX;
 
+		/* VT.100 defines only 8 pure colors. Try to find one
+		   close to the color_map entry (yeah, that's probably
+		   too simple). */
 		for (i = 0; i < 8; ++i) {
 			d  = ABS(       (i & 1) * 0xFF - VBI3_R (color));
 			d += ABS(((i >> 1) & 1) * 0xFF - VBI3_G (color));

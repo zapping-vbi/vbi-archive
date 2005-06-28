@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_TwoFrame.c,v 1.4 2005-06-28 00:47:43 mschimek Exp $
+// $Id: DI_TwoFrame.c,v 1.5 2005-06-28 19:17:10 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 Steven Grimm.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,12 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.4  2005/06/28 00:47:43  mschimek
+// Cleaned up.
+// Replaced longs by ints for proper operation on LP64 machines. Code
+// assumes option values cast to int.
+// AltiVec compile fixes.
+//
 // Revision 1.3.2.5  2005/06/17 02:54:20  mschimek
 // *** empty log message ***
 //
@@ -159,11 +165,11 @@ SIMD_NAME (DeinterlaceFieldTwoFrame) (TDeinterlaceInfo *pInfo)
     unsigned long src_bpl;
 
     if (SIMD == CPU_FEATURE_SSE2) {
-	if ((INTPTR (pInfo->Overlay) |
-	     INTPTR (pInfo->PictureHistory[0]->pData) |
-	     INTPTR (pInfo->PictureHistory[1]->pData) |
-	     INTPTR (pInfo->PictureHistory[2]->pData) |
-	     INTPTR (pInfo->PictureHistory[3]->pData) |
+	if (((unsigned long) pInfo->Overlay |
+	     (unsigned long) pInfo->PictureHistory[0]->pData |
+	     (unsigned long) pInfo->PictureHistory[1]->pData |
+	     (unsigned long) pInfo->PictureHistory[2]->pData |
+	     (unsigned long) pInfo->PictureHistory[3]->pData |
 	     (unsigned long) pInfo->OverlayPitch |
 	     (unsigned long) pInfo->InputPitch |
 	     (unsigned long) pInfo->LineLength) & 15)

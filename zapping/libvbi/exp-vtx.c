@@ -26,15 +26,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.13 2005-06-28 00:56:29 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.14 2005-06-28 19:17:09 mschimek Exp $ */
 
 /* VTX is the file format used by the VideoteXt application. It stores
    Teletext pages in raw level 1.0 format. Level 1.5 additional characters
    (e.g. accents), the FLOF and TOP navigation bars and the level 2.5
    chrome will be lost.
  
-   Since restoring the raw page from a fmt_page is complicated we violate
-   encapsulation by fetching a raw copy from the cache. :-( */
+   Since restoring the raw page from a fmt_page is complicated if not
+   impossible, we violate encapsulation by fetching a raw copy from
+   the cache. :-( */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
