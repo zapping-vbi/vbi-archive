@@ -1,7 +1,8 @@
-/////////////////////////////////////////////////////////////////////////////
-// $Id: DI_Greedy.c,v 1.3 2005-03-30 21:27:58 mschimek Exp $
+/*///////////////////////////////////////////////////////////////////////////
+// $Id: DI_Greedy.c,v 1.4 2005-06-28 00:51:14 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
+// Copyright (C) 2005 Michael Schimek
 /////////////////////////////////////////////////////////////////////////////
 //
 //  This file is subject to the terms of the GNU General Public License as
@@ -25,6 +26,21 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3.2.4  2005/06/17 02:54:20  mschimek
+// *** empty log message ***
+//
+// Revision 1.3.2.3  2005/05/31 02:40:34  mschimek
+// *** empty log message ***
+//
+// Revision 1.3.2.2  2005/05/20 05:45:14  mschimek
+// *** empty log message ***
+//
+// Revision 1.3.2.1  2005/05/05 09:46:01  mschimek
+// *** empty log message ***
+//
+// Revision 1.3  2005/03/30 21:27:58  mschimek
+// Integrated and converted the MMX code to vector intrinsics.
+//
 // Revision 1.2  2005/02/05 22:20:03  mschimek
 // Completed l18n.
 //
@@ -48,18 +64,19 @@
 // Revision 1.4  2001/07/13 16:13:33  adcockj
 // Added CVS tags and removed tabs
 //
-/////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////*/
 
 #include "windows.h"
 #include "DS_Deinterlace.h"
 
-extern long GreedyMaxComb;
+extern int GreedyMaxComb;
 
-SIMD_PROTOS (DeinterlaceGreedy);
+SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceGreedy);
 
-#ifdef SIMD
+#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
+	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
-// This is a simple lightweight DeInterlace method that uses little CPU time
+/* This is a simple lightweight DeInterlace method that uses little CPU time
 // but gives very good results for low or intermedite motion.
 // It defers frames by one field, but that does not seem to produce noticeable
 // lip sync problems.
@@ -70,35 +87,36 @@ SIMD_PROTOS (DeinterlaceGreedy);
 //
 // I'd intended this to be part of a larger more elaborate method added to 
 // Blended Clip but this give too good results for the CPU to ignore here.
+*/
 
 BOOL
 SIMD_NAME (DeinterlaceGreedy)	(TDeinterlaceInfo *	pInfo)
 {
     vu8 MaxComb;
     uint8_t *Dest;
-    const uint8_t *L1;		// ptr to Line1, of 3
-    const uint8_t *L2;		// ptr to Line2, the weave line
-    const uint8_t *L3;		// ptr to Line3
-    const uint8_t *LP2;		// ptr to prev Line2
+    const uint8_t *L1;		/* ptr to Line1, of 3 */
+    const uint8_t *L2;		/* ptr to Line2, the weave line */
+    const uint8_t *L3;		/* ptr to Line3 */
+    const uint8_t *LP2;		/* ptr to prev Line2 */
     unsigned int byte_width;
     unsigned int height;
-    unsigned int dst_padding;
-    unsigned int src_padding;
-    unsigned int dst_bpl;
-    unsigned int src_bpl;
+    unsigned long dst_padding;
+    unsigned long src_padding;
+    unsigned long dst_bpl;
+    unsigned long src_bpl;
 
-    if (SIMD == SSE2) {
-	if (((unsigned int) pInfo->Overlay |
-	     (unsigned int) pInfo->PictureHistory[0]->pData |
-	     (unsigned int) pInfo->PictureHistory[1]->pData |
-	     (unsigned int) pInfo->PictureHistory[2]->pData |
-	     (unsigned int) pInfo->OverlayPitch |
-	     (unsigned int) pInfo->InputPitch |
-	     (unsigned int) pInfo->LineLength) & 15)
-	    return DeinterlaceGreedy__SSE (pInfo);
+    if (SIMD == CPU_FEATURE_SSE2) {
+	if ((INTPTR (pInfo->Overlay) |
+	     INTPTR (pInfo->PictureHistory[0]->pData) |
+	     INTPTR (pInfo->PictureHistory[1]->pData) |
+	     INTPTR (pInfo->PictureHistory[2]->pData) |
+	     (unsigned long) pInfo->OverlayPitch |
+	     (unsigned long) pInfo->InputPitch |
+	     (unsigned long) pInfo->LineLength) & 15)
+	    return DeinterlaceGreedy_SSE (pInfo);
     }
 
-    // How badly do we let it weave? 0-255
+    /* How badly do we let it weave? 0-255 */
     MaxComb = vsplatu8 (GreedyMaxComb);
 
     byte_width = pInfo->LineLength;
@@ -106,10 +124,10 @@ SIMD_NAME (DeinterlaceGreedy)	(TDeinterlaceInfo *	pInfo)
     dst_bpl = pInfo->OverlayPitch;
     src_bpl = pInfo->InputPitch;
 
-    Dest = pInfo->Overlay; // DL1 if Odd or DL2 if Even
+    Dest = pInfo->Overlay; /* DL1 if Odd or DL2 if Even */
 
-    // copy first even line no matter what, and the first odd line if we're
-    // processing an EVEN field. (note diff from other deint rtns.)
+    /* copy first even line no matter what, and the first odd line if we're
+       processing an EVEN field. (note diff from other deint rtns.) */
 
     L1 = pInfo->PictureHistory[1]->pData;
     L2 = pInfo->PictureHistory[0]->pData;  
@@ -117,7 +135,7 @@ SIMD_NAME (DeinterlaceGreedy)	(TDeinterlaceInfo *	pInfo)
     LP2 = pInfo->PictureHistory[2]->pData;
 
     if (!(pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD)) {
-	// copy first even line
+	/* copy first even line */
 	copy_line (Dest, L2, byte_width);
 	Dest += dst_bpl;
 
@@ -131,51 +149,53 @@ SIMD_NAME (DeinterlaceGreedy)	(TDeinterlaceInfo *	pInfo)
     dst_padding = dst_bpl * 2 - byte_width;
     src_padding = src_bpl - byte_width;
 
-    for (height = pInfo->FieldHeight; height > 0; --height) {
+    for (height = pInfo->FieldHeight - 1; height > 0; --height) {
 	unsigned int count;
 
-	// For ease of reading, the comments below assume that we're
-	// operating on an odd field (i.e., that pInfo->IsOdd is true).
-	// Assume the obvious for even lines.
+	/* For ease of reading, the comments below assume that we're
+	   operating on an odd field (i.e., that pInfo->IsOdd is true).
+	   Assume the obvious for even lines. */
 
 	for (count = byte_width / sizeof (vu8); count > 0; --count) {
-	    vu8 l1, l2, l3, lp2, avg, mm4, mm5, best, min, max;
+	    vu8 l1, l2, l3, lp2, avg, mm4, mm5, best, min, max, sel;
 
-	    l1 = * (const vu8 *) L1;
+	    l1 = vload (L1, 0);
 	    L1 += sizeof (vu8);
-	    l3 = * (const vu8 *) L3;
+	    l3 = vload (L3, 0);
 	    L3 += sizeof (vu8);
 
-	    vstorent ((vu8 *)(Dest + dst_bpl), l3);
+	    vstorent (Dest, dst_bpl, l3);
 
-            // the average, for computing comb
-	    avg = fast_vavgu8 (l1, l3);
+            /* the average, for computing comb */
+	    avg = vavgu8 (l1, l3);
 
-	    l2 = * (const vu8 *) L2;
+	    l2 = vload (L2, 0);
 	    L2 += sizeof (vu8);
-	    lp2 = * (const vu8 *) LP2;
+	    lp2 = vload (LP2, 0);
 	    LP2 += sizeof (vu8);
 
-	    // get abs value of possible L2 and LP2 comb
+	    /* get abs value of possible L2 and LP2 comb */
 	    mm5 = vabsdiffu8 (l2, avg);
 	    mm4 = vabsdiffu8 (lp2, avg);
 
-	    // use L2 or LP2 depending upon which makes smaller comb
-	    best = vsel (l2, lp2, (vu8) vcmpleu8 (mm4, mm5));
+	    /* use L2 or LP2 depending upon which makes smaller comb */
+	    sel = (vu8) vcmpleu8 (mm4, mm5);
+	    best = vsel (sel, lp2, l2);
 
-	    // Now lets clip our chosen value to be not outside of the range
-	    // of the high/low range L1-L3 by more than abs(L1-L3)
-	    // This allows some comb but limits the damages and also allows
-	    // more detail than a boring oversmoothed clip.
+	    /* Now lets clip our chosen value to be not outside of the range
+	       of the high/low range L1-L3 by more than abs(L1-L3)
+	       This allows some comb but limits the damages and also allows
+	       more detail than a boring oversmoothed clip. */
 
 	    vminmaxu8 (&min, &max, l1, l3);
 
-	    // allow the value to be above the high or below the low
-	    // by amt of MaxComb
+	    /* allow the value to be above the high or below the low
+	       by amt of MaxComb */
 	    max = vaddsu8 (max, MaxComb);
 	    min = vsubsu8 (min, MaxComb);
 
-	    vstorent ((vu8 *) Dest, vsatu8 (best, min, max));
+	    best = vsatu8 (best, min, max);
+	    vstorent (Dest, 0, best);
 	    Dest += sizeof (vu8);
 	}
 
@@ -186,7 +206,7 @@ SIMD_NAME (DeinterlaceGreedy)	(TDeinterlaceInfo *	pInfo)
 	Dest += dst_padding;
     }
 
-    // Copy last odd line if we're processing an Odd field.
+    /* Copy last odd line if we're processing an Odd field. */
     if (pInfo->PictureHistory[0]->Flags & PICTURE_INTERLACED_ODD) {
         copy_line (Dest, L2, byte_width);
     }
@@ -196,15 +216,15 @@ SIMD_NAME (DeinterlaceGreedy)	(TDeinterlaceInfo *	pInfo)
     return TRUE;
 }
 
-#else /* !SIMD */
+#elif !SIMD
 
-long GreedyMaxComb = 15;
+int GreedyMaxComb = 15;
 
-////////////////////////////////////////////////////////////////////////////
+/*//////////////////////////////////////////////////////////////////////////
 // Start of Settings related code
-/////////////////////////////////////////////////////////////////////////////
-SETTING DI_GreedySettings[DI_GREEDY_SETTING_LASTONE] =
-{
+//////////////////////////////////////////////////////////////////////////*/
+static const SETTING
+DI_GreedySettings [] = {
     {
         N_("Greedy Max Comb"), SLIDER, 0, &GreedyMaxComb,
         15, 0, 255, 1, 1,
@@ -213,9 +233,9 @@ SETTING DI_GreedySettings[DI_GREEDY_SETTING_LASTONE] =
     },
 };
 
-DEINTERLACE_METHOD GreedyMethod =
-{
-    sizeof(DEINTERLACE_METHOD),
+static const DEINTERLACE_METHOD
+GreedyMethod = {
+    sizeof (DEINTERLACE_METHOD),
     DEINTERLACE_CURRENT_VERSION,
     N_("Video (Greedy, Low Motion)"), 
     "Greedy",
@@ -224,7 +244,7 @@ DEINTERLACE_METHOD GreedyMethod =
     /* pfnAlgorithm */ NULL,
     50, 
     60,
-    DI_GREEDY_SETTING_LASTONE,
+    N_ELEMENTS (DI_GreedySettings),
     DI_GreedySettings,
     INDEX_VIDEO_GREEDY,
     NULL,
@@ -234,7 +254,7 @@ DEINTERLACE_METHOD GreedyMethod =
     3,
     0,
     0,
-    WM_DI_GREEDY_GETVALUE - WM_APP,
+    0,
     NULL,
     0,
     FALSE,
@@ -242,11 +262,27 @@ DEINTERLACE_METHOD GreedyMethod =
     IDH_GREEDY,
 };
 
-
-DEINTERLACE_METHOD* DI_Greedy_GetDeinterlacePluginInfo(long CpuFeatureFlags)
+DEINTERLACE_METHOD *
+DI_Greedy_GetDeinterlacePluginInfo (void)
 {
-    GreedyMethod.pfnAlgorithm = SIMD_SELECT (DeinterlaceGreedy);
-    return &GreedyMethod;
+    DEINTERLACE_METHOD *m;
+    DEINTERLACE_FUNC *f;
+
+    m = NULL;
+
+    f = SIMD_FN_SELECT (DeinterlaceGreedy,
+			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
+			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
+			CPU_FEATURE_ALTIVEC);
+
+    if (f) {
+	m = malloc (sizeof (*m));
+	*m = GreedyMethod;
+
+	m->pfnAlgorithm = f;
+    }
+
+    return m;
 }
 
 #endif /* !SIMD */
