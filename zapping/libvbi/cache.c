@@ -66,8 +66,8 @@ struct _vbi3_cache {
 	 * deadlock if all pages are referenced and the caller releases
 	 * only when receiving new pages.)
 	 */
-	unsigned int		memory_used;
-	unsigned int		memory_limit;
+	unsigned long		memory_used;
+	unsigned long		memory_limit;
 
 	/** Cached networks, most recently used at head of list. */
 	list			networks;
@@ -96,7 +96,7 @@ cache_priority_name		(cache_priority		pri)
 	CASE (SPECIAL)
 
 	default:
-		assert (!"reached");
+		assert (0);
 		return NULL;
 	}
 }
@@ -203,8 +203,6 @@ static void
 delete_network			(vbi3_cache *		ca,
 				 cache_network *	cn)
 {
-	vbi3_pid_channel ch;
-
 	if (CACHE_CONSISTENCY) {
 		assert (ca == cn->cache);
 		assert (is_member (&ca->networks, &cn->node));
@@ -249,8 +247,12 @@ delete_network			(vbi3_cache *		ca,
 	vbi3_program_info_destroy (&cn->program_info);
 	vbi3_aspect_ratio_destroy (&cn->aspect_ratio);
 
-	for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
-		vbi3_program_id_destroy (&cn->program_id[ch]);
+	{
+		vbi3_pid_channel ch;
+
+		for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
+			vbi3_program_id_destroy (&cn->program_id[ch]);
+	}
 
 	cache_network_destroy_caption (cn);
 #endif
@@ -402,7 +404,10 @@ add_network			(vbi3_cache *		ca,
 				 vbi3_videostd_set	videostd_set)
 {
 	cache_network *cn, *cn1;
-	vbi3_pid_channel ch;
+
+#ifdef ZAPPING8
+	videostd_set = videostd_set; /* unused, no warning */
+#endif
 
 	if (nk && (cn = network_by_id (ca, nk))) {
 		/* Note does not merge nk. */
@@ -447,8 +452,12 @@ add_network			(vbi3_cache *		ca,
 		vbi3_program_info_destroy (&cn->program_info);
 		vbi3_aspect_ratio_destroy (&cn->aspect_ratio);
 
-		for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
-			vbi3_program_id_destroy (&cn->program_id[ch]);
+		{
+			vbi3_pid_channel ch;
+
+			for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
+				vbi3_program_id_destroy (&cn->program_id[ch]);
+		}
 #endif
 
 		cn->n_pages = 0;
@@ -608,7 +617,7 @@ vbi3_cache_get_networks		(vbi3_cache *		ca,
 {
 	vbi3_network *nk;
 	cache_network *cn, *cn1;
-	unsigned int size;
+	unsigned long size;
 	unsigned int i;
 
 	assert (NULL != ca);
@@ -623,8 +632,7 @@ vbi3_cache_get_networks		(vbi3_cache *		ca,
 	size = (list_length (&ca->networks) + 1) * sizeof (*nk);
 
 	if (!(nk = vbi3_malloc (size))) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Out of memory (%u)", size);
+		error ("Out of memory (%u bytes)", size);
 		return NULL;
 	}
 
@@ -672,9 +680,7 @@ cache_network_unref		(cache_network *	cn)
 		assert (is_member (&ca->networks, &cn->node));
 
 	if (0 == cn->ref_count) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				 "Unreferenced network %p",
-				 (void *) cn);
+		debug ("Unreferenced network %p", (void *) cn);
 		return;
 	} else if (1 == cn->ref_count) {
 		cn->ref_count = 0;
@@ -997,7 +1003,7 @@ delete_surplus_pages		(vbi3_cache *		ca)
  */
 void
 vbi3_cache_set_memory_limit	(vbi3_cache *		ca,
-				 unsigned int		limit)
+				 unsigned long		limit)
 {
 	assert (NULL != ca);
 
@@ -1067,9 +1073,7 @@ cache_page_unref		(cache_page *		cp)
 		assert (page_in_cache (ca, cp));
 
 	if (0 == cp->ref_count) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				 "Unreferenced page %p",
-				 (void *) cp);
+		debug ("Unreferenced page %p", (void *) cp);
 		return;
 	}
 
@@ -1203,9 +1207,7 @@ _vbi3_cache_get_page		(vbi3_cache *		ca,
 		assert (is_member (&ca->networks, &cn->node));
 
 	if (pgno < 0x100 || pgno > 0x8FF) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"pgno 0x%x out of bounds",
-				pgno);
+		debug ("pgno 0x%x out of bounds", pgno);
 		return NULL;
 	}
 
@@ -1568,7 +1570,7 @@ void
 _vbi3_cache_dump		(const vbi3_cache *	ca,
 				 FILE *			fp)
 {
-	fprintf (fp, "cache ref=%u pages=%u mem=%u/%u KiB networks=%u/%u",
+	fprintf (fp, "cache ref=%u pages=%u mem=%lu/%lu KiB networks=%u/%u",
 		 ca->ref_count,
 		 ca->n_pages,
 		 (ca->memory_used + 1023) >> 10,
@@ -1622,7 +1624,7 @@ vbi3_cache_remove_event_handler	(vbi3_cache *		ca,
  */
 vbi3_bool
 vbi3_cache_add_event_handler	(vbi3_cache *		ca,
-				 unsigned int		event_mask,
+				 vbi3_event_mask	event_mask,
 				 vbi3_event_cb *	callback,
 				 void *			user_data)
 {
@@ -1654,15 +1656,11 @@ vbi3_cache_delete		(vbi3_cache *		ca)
 	vbi3_cache_purge (ca);
 
 	if (!empty_list (&ca->referenced)) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Some cached pages still "
-				"referenced, memory leaks.\n");
+		debug ("Some cached pages still referenced, memory leaks");
 	}
 
 	if (!empty_list (&ca->networks)) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Some cached networks still "
-				"referenced, memory leaks.\n");
+		debug ("Some cached networks still referenced, memory leaks");
 	}
 
 	_vbi3_event_handler_list_destroy (&ca->handlers);
@@ -1735,8 +1733,7 @@ vbi3_cache_new			(void)
 	unsigned int i;
 
 	if (!(ca = vbi3_malloc (sizeof (*ca)))) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Out of memory (%u)", sizeof (*ca));
+		error ("Out of memory (%u bytes)", sizeof (*ca));
 		return NULL;
 	}
 
