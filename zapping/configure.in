@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.175 2005-05-02 11:20:48 mschimek Exp $
+dnl $Id: configure.in,v 1.176 2005-06-28 01:11:08 mschimek Exp $
 
 AC_INIT(zapping, 0.9.5,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
@@ -34,6 +34,7 @@ test -e site_def.h || cat <<EOF >site_def.h
 #define SITE_DEF_H
 /* #define AUDIO_MIXER_LOG_FP stderr */
 /* #define DI_MAIN_HEIGHT_DIV 1 */
+/* #define DI_GREEDYHM_V_ASSERT 1 */
 /* #define KEYBOARD_KEY_LOG 1 */
 /* #define OSD_TEST 1 */
 /* #define OSS_LOG_FP stderr */
@@ -58,11 +59,23 @@ test -e site_def.h || cat <<EOF >site_def.h
 EOF
 
 dnl These are the plugins we can build, depending on the libs we find.
-PLUGINS_TO_BUILD="screenshot" dnl "template lirc"
+dnl Screenshot and (parts of) deinterlace can compile unconditional.
+PLUGINS_TO_BUILD="deinterlace screenshot" dnl "template lirc"
 
 dnl ===========================================================================
 dnl Compile checks
 dnl ===========================================================================
+
+dnl GCC_VERSION(min_version, max_version, action_if_true, action_if_false)
+AC_DEFUN([GCC_VERSION], [
+  AC_EGREP_CPP([6177459036], [
+    #define GCC_VERSION \
+      (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+    #if $1 <= GCC_VERSION && GCC_VERSION < $2
+      6177459036
+    #endif
+    ], [$3], [$4])
+  ])
 
 dnl ---------------------------------------------------------------------------
 dnl Endianess
@@ -84,23 +97,33 @@ AC_DEFUN([CHECK_SIMD], [
   AC_MSG_CHECKING(for $1 support)
   SAVE_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $2"
-  HAVE_$1="no"
-  AC_COMPILE_IFELSE(
-    AC_LANG_PROGRAM([#include <$3>], [$4]),
-      [HAVE_$1="yes"
-       SIMD_SUPPORT="${SIMD_SUPPORT}$1 "])
-  if test $1 = SSE2; then
-    dnl Intrinsics might be broken but asm() works.
-    AM_CONDITIONAL(HAVE_SSE2_ASM, test $HAVE_$1 = yes)
-    AC_EGREP_CPP([broken], [
-#define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100)
-#if GCC_VERSION < 40100
-  broken
-#endif
-      ], [HAVE_$1="broken"])
+  HAVE_$1="yes"
+  AC_COMPILE_IFELSE(AC_LANG_PROGRAM([#include <$3>], [$4]),, HAVE_$1="no")
+  if test x$HAVE_$1 = xyes; then
+    dnl Older versions of GCC have not been tested.
+    GCC_VERSION(0, 30200, HAVE_$1="disabled")
   fi
-  test $HAVE_$1 = yes &&
+  if test x$HAVE_$1 = xyes; then
+    dnl GCC 3.2.3
+    dnl DI_TomsMoComp.c: In function `Search_Effort_1':
+    dnl DI_TomsMoComp.c:876: Internal compiler error
+    dnl   in find_reloads_toplev, at reload.c:4438
+    GCC_VERSION(30200, 30300, HAVE_$1="broken")
+  fi
+  if test x$HAVE_$1 = xyes -a x$1 = xSSE2; then
+    dnl GCC 3.3.5:
+    dnl DI_GreedyHF.c: In function `DI_GreedyHF_SSE2':
+    dnl DI_GreedyHF.c:172: internal compiler error:
+    dnl   in push_reload, at reload.c:1315
+    dnl GCC 3.4.1 (x86_64), GCC 4.0.0 (i686):
+    dnl DI_GreedyHM.c:1281: internal compiler error:
+    dnl   in extract_insn, at recog.c:2083
+    GCC_VERSION(30300, 40100, HAVE_$1="broken")
+  fi
+  if test x$HAVE_$1 = xyes; then
+    SIMD_SUPPORT="${SIMD_SUPPORT}$1 "
     AC_DEFINE(HAVE_$1, 1, [Define if GCC supports $1 extensions])
+  fi
   AM_CONDITIONAL(HAVE_$1, test $HAVE_$1 = yes)
   CFLAGS="$SAVE_CFLAGS"]
   AC_MSG_RESULT($HAVE_$1))
@@ -110,7 +133,7 @@ CHECK_SIMD(MMX, [-mmmx], [mmintrin.h], [_mm_setzero_si64 ()])
 CHECK_SIMD(3DNOW, [-mmmx], [mm3dnow.h], [_m_femms ()])
 CHECK_SIMD(SSE, [-msse], [xmmintrin.h], [_mm_setzero_ps ()])
 CHECK_SIMD(SSE2, [-msse2], [emmintrin.h], [_mm_setzero_pd ()])
-dnl CHECK_SIMD(SSE3, [-msse3], [pmmintrin.h], [_mm_lddqu_si128 (0)])
+dnl CHECK_SIMD(SSE3, [-msse3], [pmmintrin.h], [_mm_lddqu_si128 (0x1000)])
 
 dnl powerpc
 CHECK_SIMD(ALTIVEC, [-maltivec -mabi=altivec], [altivec.h], [vec_dssall ()])
@@ -526,11 +549,22 @@ dnl ---------------------------------------------------------------------------
 
 HAVE_ZVBI="no"
 
-PKG_CHECK_MODULES(ZVBI, [zvbi-0.2 >= 0.2.9],
-  AC_DEFINE(HAVE_LIBZVBI, 1, [Define if ZVBI lib is present])
-  HAVE_ZVBI="yes", HAVE_ZVBI="no")
-AC_SUBST(ZVBI_CFLAGS)
-AC_SUBST(ZVBI_LIBS)
+AC_ARG_WITH([zvbi], 
+  AS_HELP_STRING([--with-zvbi], [Use libzvbi (yes).]),
+  [with_zvbi="$withval"], [with_zvbi=yes])
+
+if test "x$with_zvbi" = "xyes"; then
+  PKG_CHECK_MODULES(ZVBI, [zvbi-0.2 >= 0.2.9],
+    [AC_DEFINE(HAVE_LIBZVBI, 1, [Define if ZVBI lib is present])
+     HAVE_ZVBI="yes"
+     AC_SUBST(ZVBI_CFLAGS)
+     AC_SUBST(ZVBI_LIBS)],
+    [echo "*** Could not find libzvbi >= 0.2.9.  The library is required"
+     echo "*** for Teletext, caption/subtitles and OSD.  The latest version"  
+     echo "*** is available from http://zapping.sourceforge.net.  To compile"
+     echo "*** Zapping without libzvbi run ./configure --without-zvbi"
+     exit 1])
+fi
 
 AM_CONDITIONAL(HAVE_LIBZVBI, test "x$HAVE_ZVBI" = "xyes")
 
@@ -726,7 +760,7 @@ AM_CONDITIONAL(BUILD_MAN, test "x$BUILD_MAN" = "xyes")
 
 dnl ---------------------------------------------------------------------------
 
-dnl Setup the compilation flags
+dnl Compilation flags
 
 # Warnings are not enabled by default, they must be added to CFLAGS
 # at configure or autogen.sh time by the maintainer.
@@ -796,8 +830,7 @@ plugins/alirc/Makefile
 plugins/deinterlace/Makefile
 plugins/deinterlace/DI_GreedyH/Makefile
 plugins/deinterlace/DI_Misc/Makefile
-plugins/deinterlace/DI_MoComp2/Makefile
-plugins/deinterlace/DI_TomsMoComp/Makefile
+plugins/deinterlace/test/Makefile
 plugins/mpeg/Makefile
 plugins/screenshot/Makefile
 plugins/teletext/Makefile
