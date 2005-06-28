@@ -2,6 +2,9 @@
 
 noinst_LTLIBRARIES = libvbi.la
 
+# This is only a subset of libvbi 0.3, compile accordingly.
+AM_CFLAGS = -DZAPPING8
+
 BUILT_SOURCES = \
 	wstfont2.xbm
 
@@ -14,8 +17,10 @@ CLEANFILES = \
 	$(BUILT_SOURCES) \
 	fontgen
 
+# $(top_srcdir)/common has intl-priv.h.
 INCLUDES = \
 	-I$(top_srcdir) \
+	-I$(top_srcdir)/common \
 	-D_GNU_SOURCE \
 	-D_REENTRANT \
 	$(UNICODE_CFLAGS)
