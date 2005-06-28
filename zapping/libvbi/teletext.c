@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.34 2005-01-31 07:03:11 mschimek Exp $ */
+/* $Id: teletext.c,v 1.35 2005-06-28 00:54:15 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -32,7 +32,7 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include "common/intl-priv.h"
+#include "intl-priv.h"
 #include "cache-priv.h"
 #include "teletext_decoder-priv.h"
 #ifndef ZAPPING8
@@ -164,6 +164,7 @@ _vbi3_character_set_init		(const vbi3_character_set *charset[2],
  *
  * @returns
  * The default character set associated with a Teletext page.
+ * @c NULL if @a pg is no Teletext page.
  */
 const vbi3_character_set *
 vbi3_page_get_character_set	(const vbi3_page *	pg,
@@ -172,6 +173,9 @@ vbi3_page_get_character_set	(const vbi3_page *	pg,
 	const vbi3_page_priv *pgp;
 
 	PGP_CHECK (NULL);
+
+	if (pgp->pg.pgno < 0x100)
+		return NULL;
 
 	return pgp->char_set[level & 1];
 }
@@ -411,7 +415,7 @@ level_one_extend_row		(vbi3_page_priv *	pgp,
 			break;
 
 		default:
-			assert (!"reached");
+			assert (0);
 		}
 	}
 }
@@ -789,7 +793,7 @@ object_invocation		(vbi3_page_priv *	pgp,
 	}
 
 	default:
-		assert (!"reached");
+		assert (0);
 	}
 
 	success = enhance (pgp, new_type, trip, n_triplets, row, column);
@@ -1035,8 +1039,8 @@ reference_drcs_page		(vbi3_page_priv *	pgp,
  * see the description of vbi3_page for details.
  *
  * @returns
- * Pointer to character data, NULL if @a pg is invalid, @a unicode
- * is not a DRCS code, or no DRCS data is available.
+ * Pointer to character data, NULL if @a pg is invalid, not a Teletext
+ * page, @a unicode is not a DRCS code, or no DRCS data is available.
  */
 const uint8_t *
 vbi3_page_get_drcs_data		(const vbi3_page *	pg,
@@ -1081,7 +1085,7 @@ typedef struct {
 	unsigned int		n_triplets;
 
 	/** Current text row. */
-	vbi3_char *		acp;
+	vbi3_char *		curr_line;
 
 	/** Cursor position at object invocation. */
 	unsigned int		inv_row;
@@ -1173,7 +1177,7 @@ enhance_flush			(enhance_state *	st,
 		vbi3_char c;
 		int raw;
 
-		c = st->acp[column];
+		c = st->curr_line[column];
 
 		if (st->mac.attr & VBI3_UNDERLINE) {
 			unsigned int attr = st->ac.attr;
@@ -1226,7 +1230,7 @@ enhance_flush			(enhance_state *	st,
 				c.size = VBI3_NORMAL_SIZE;
 		}
 
-		st->acp[column++] = c;
+		st->curr_line[column++] = c;
 
 		if (OBJECT_TYPE_PASSIVE == st->type)
 			break;
@@ -1434,7 +1438,7 @@ enhance_row_triplet		(enhance_state *	st)
 		st->active_column = column;
 
 		pos = (st->inv_row + st->active_row) * st->pgp->pg.columns;
-		st->acp = &st->pgp->pg.text[pos];
+		st->curr_line = &st->pgp->pg.text[pos];
 
 		break;
 
@@ -1895,7 +1899,7 @@ enhance_column_triplet		(enhance_state *	st)
 
 		if (st->trip->data & 2) {
 			if (st->pgp->cp->flags & (C5_NEWSFLASH | C6_SUBTITLE))
-				st->ac.opacity = VBI3_SEMI_TRANSPARENT;
+				st->ac.opacity = VBI3_TRANSLUCENT;
 			else
 				st->ac.opacity = VBI3_TRANSPARENT_SPACE;
 		} else {
@@ -2089,7 +2093,7 @@ enhance				(vbi3_page_priv *	pgp,
 	st.active_row		= 0;
 	st.active_column	= 0;
 
-	st.acp			= pgp->pg.text + inv_row * pgp->pg.columns;
+	st.curr_line		= pgp->pg.text + inv_row * pgp->pg.columns;
 
 	st.offset_row		= 0;
 	st.offset_column	= 0;
@@ -2217,7 +2221,7 @@ post_enhance			(vbi3_page_priv *	pgp)
 				acp->opacity = VBI3_TRANSPARENT_SPACE;
 				acp->unicode = 0x0020;
 			} else if (acp->background == VBI3_TRANSPARENT_BLACK) {
-				acp->opacity = VBI3_SEMI_TRANSPARENT;
+				acp->opacity = VBI3_TRANSLUCENT;
 			} else {
 				/* transparent foreground not implemented */
 			}
@@ -3381,7 +3385,7 @@ navigation			(vbi3_page_priv *	pgp,
  * DONT vbi3_link_destroy().
  * @param indx Number 0 ... 5 of the link.
  * 
- * When a vbi3_page has been formatted with TOP or FLOF
+ * When a Teletext vbi3_page has been formatted with TOP or FLOF
  * navigation enabled the last row may contain four links
  * to other pages. Apart of being hyperlinks (see
  * vbi3_page_hyperlink()) you can also query the links by
@@ -3503,7 +3507,7 @@ _vbi3_page_priv_from_cache_page_va_list
 				va_arg (format_options, vbi3_bool) ? 1 : 25;
 			break;
 
-		case VBI3_41_COLUMNS:
+		case VBI3_PADDING:
 			pgp->pg.columns =
 				va_arg (format_options, vbi3_bool) ? 41 : 40;
 			break;
@@ -3599,7 +3603,7 @@ _vbi3_page_priv_from_cache_page_va_list
 	/* Opacity */
 
 	pgp->page_opacity[1] = VBI3_OPAQUE;
-	pgp->boxed_opacity[1] = VBI3_SEMI_TRANSPARENT;
+	pgp->boxed_opacity[1] = VBI3_TRANSLUCENT;
 
 	if (cp->flags & (C5_NEWSFLASH | C6_SUBTITLE | C10_INHIBIT_DISPLAY))
 		pgp->page_opacity[1] = VBI3_TRANSPARENT_SPACE;
@@ -3912,7 +3916,7 @@ vbi3_page_dup			(const vbi3_page *	pg)
 	PGP_CHECK (NULL);
 
 	if (!(new_pgp = vbi3_malloc (sizeof (*new_pgp)))) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__, "Out of memory");
+		error ("Out of memory (%u bytes)", sizeof (*new_pgp));
 		return NULL;
 	}
 
@@ -4030,8 +4034,7 @@ vbi3_page_delete			(vbi3_page *		pg)
 	pgp = PARENT (pg, vbi3_page_priv, pg);
 
 	if (pg->priv != pgp) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"vbi3_page %p not allocated by libzvbi", pg);
+		debug ("vbi3_page %p not allocated by libzvbi", pg);
 		return;
 	}
 
@@ -4095,7 +4098,7 @@ vbi3_page_new			(void)
 	vbi3_page_priv *pgp;
 
 	if (!(pgp = vbi3_malloc (sizeof (*pgp)))) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__, "Out of memory");
+		error ("Out of memory (%u bytes)", sizeof (pgp));
 		return NULL;
 	}
 
