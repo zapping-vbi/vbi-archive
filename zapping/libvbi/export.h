@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.35 2005-01-31 07:16:26 mschimek Exp $ */
+/* $Id: export.h,v 1.36 2005-06-28 00:53:49 mschimek Exp $ */
 
 #ifndef __ZVBI3_EXPORT_H__
 #define __ZVBI3_EXPORT_H__
@@ -33,7 +33,11 @@
 #include "link.h"		/* vbi3_link */
 #include "pdc.h"		/* vbi3_preselection */
 #include "page.h"		/* vbi3_page */
-/* #include "vbi3_decoder.h" */	/* vbi3_decoder */
+#ifdef ZAPPING8
+typedef struct vbi3_decoder vbi3_decoder;
+#else
+#  include "vbi_decoder.h"	/* vbi3_decoder */
+#endif
 
 VBI3_BEGIN_DECLS
 
@@ -294,7 +298,7 @@ extern vbi3_bool
 vbi3_export_stdio		(vbi3_export *		e,
 				 FILE *			fp,
 				 const vbi3_page *	pg)
-  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+  __attribute__ ((_vbi3_nonnull (1, 2))); /* sic */
 extern vbi3_bool
 vbi3_export_file			(vbi3_export *		e,
 				 const char *		name,
