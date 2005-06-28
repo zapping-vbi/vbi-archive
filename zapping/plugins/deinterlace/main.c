@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.6 2005-04-21 04:49:05 mschimek Exp $ */
+/* $Id: main.c,v 1.7 2005-06-28 00:52:25 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -44,12 +44,19 @@
 #endif
 
 /* See windows.h */
-const int64_t vsplat8_m1[2] = { -1, -1 };
-const int64_t vsplat8_1[2] = { 0x0101010101010101LL, 0x0101010101010101LL };
-const int64_t vsplat8_127[2] = { 0x7F7F7F7F7F7F7F7FLL, 0x7F7F7F7F7F7F7F7FLL };
-const int64_t vsplat16_255[2] = { 0x00FF00FF00FF00FFLL, 0x00FF00FF00FF00FFLL };
-const int64_t vsplat32_1[2] = { 0x0000000100000001LL, 0x0000000100000001LL };
-const int64_t vsplat32_2[2] = { 0x0000000200000002LL, 0x0000000200000002LL };
+#define s8(n) { n * 0x0101010101010101ULL, n * 0x0101010101010101ULL }
+#define s16(n) { n * 0x0001000100010001ULL, n * 0x0001000100010001ULL }
+#define s32(n) { n * 0x0000000100000001ULL, n * 0x0000000100000001ULL }
+const int64_t vsplat8_m1[2]	= s8 (0xFF);
+const int64_t vsplat8_1[2]	= s8 (1);
+const int64_t vsplat8_127[2]	= s8 (127);
+const int64_t vsplat8_15[2]	= s8 (15);
+const int64_t vsplat16_255[2]	= s16 (255);
+const int64_t vsplat16_256[2]	= s16 (256);
+const int64_t vsplat16_m256[2]	= s16 (0xFF00);
+const int64_t vsplat32_1[2]	= s32 (1);
+const int64_t vsplat32_2[2]	= s32 (2);
+
 
 DEINTERLACE_METHOD *		deinterlace_methods[30];
 
@@ -71,7 +78,8 @@ static TDeinterlaceInfo		info;
 static guint			queue_len2;
 static guint			field_count;
 
-static long			cpu_feature_flags;
+static guint			capture_width;
+static guint			capture_height;
 
 static DEINTERLACE_METHOD *	method;
 
@@ -177,6 +185,10 @@ deinterlace			(zimage *		dst0,
       tp->Flags = PICTURE_INTERLACED_EVEN; /* sic */
     }
 
+  tp->pData = ((uint8_t *) tp->pData)
+    + (info.FrameWidth * capture_height * 2
+       * (DI_MAIN_HEIGHT_DIV - 1) / DI_MAIN_HEIGHT_DIV);
+
   tp->IsFirstInSeries = (0 == field_count);
 
   ++field_count;
@@ -211,6 +223,10 @@ deinterlace			(zimage *		dst0,
       tp->pData = ((uint8_t *) src->img) + info.FrameWidth * 2;
       tp->Flags = PICTURE_INTERLACED_ODD; /* sic */
     }
+
+  tp->pData = ((uint8_t *) tp->pData)
+    + (info.FrameWidth * capture_height * 2
+       * (DI_MAIN_HEIGHT_DIV - 1) / DI_MAIN_HEIGHT_DIV);
 
   tp->IsFirstInSeries = FALSE;
 
@@ -265,8 +281,6 @@ start_thread1			(void)
   guint resolution;
   const tv_video_standard *std;
   guint display_height;
-  guint capture_width;
-  guint capture_height;
   guint i;
 
   if (0)
@@ -285,6 +299,8 @@ start_thread1			(void)
 
   if (!method)
     return FALSE;
+
+  assert (NULL != method->pfnAlgorithm);
 
   s = NULL;
   z_gconf_get_string (&s, GCONF_DIR "/resolution");
@@ -367,7 +383,7 @@ start_thread1			(void)
   info.FrameWidth = capture_width;
   info.FrameHeight = capture_height / DI_MAIN_HEIGHT_DIV;
   info.FieldHeight = capture_height / 2 / DI_MAIN_HEIGHT_DIV;
-  info.CpuFeatureFlags = cpu_feature_flags;
+  info.CpuFeatureFlags = 0;
   info.InputPitch = capture_width * 2 * 2;
   info.pMemcpy = (void *) tv_memcpy;
 
@@ -452,6 +468,8 @@ properties_add			(GtkDialog *		dialog)
   standard_properties_add (dialog, &sg, 1, /* glade */ NULL);
 }
 
+extern int GreedyTestMode;
+
 static gboolean
 plugin_init			(PluginBridge		bridge _unused_,
 				 tveng_device_info *	info _unused_)
@@ -459,37 +477,18 @@ plugin_init			(PluginBridge		bridge _unused_,
   static const property_handler ph = {
     .add = properties_add,
   };
-  long cpu_feature_flags;
-
-  if (!(cpu_features & CPU_FEATURE_MMX))
-    return FALSE;
 
   append_property_handler (&ph);
 
   D();
 
-  cpu_feature_flags = 0;
-
-  if (cpu_features & CPU_FEATURE_CMOV)
-    cpu_feature_flags |= FEATURE_CMOV;
-  if (cpu_features & CPU_FEATURE_MMX)
-    cpu_feature_flags |= FEATURE_MMX;
-  if (cpu_features & CPU_FEATURE_SSE)
-    cpu_feature_flags |= FEATURE_SSE;
-  if (cpu_features & CPU_FEATURE_SSE2)
-    cpu_feature_flags |= FEATURE_SSE2;
-  if (cpu_features & CPU_FEATURE_3DNOW)
-    cpu_feature_flags |= FEATURE_3DNOW;
-  if (cpu_features & CPU_FEATURE_3DNOW_EXT)
-    cpu_feature_flags |= FEATURE_3DNOWEXT;
-
 #undef GET
 #define GET(x, y)							\
-  {									\
-    extern DEINTERLACE_METHOD *DI_##y##_GetDeinterlacePluginInfo (long); \
-    deinterlace_methods[INDEX_##x] =					\
-      DI_##y##_GetDeinterlacePluginInfo (cpu_feature_flags);		\
-  }
+do {									\
+  DEINTERLACE_METHOD *method = DI_##y##_GetDeinterlacePluginInfo ();	\
+  /* NULL if we have no scalar of cpu_features optimized implem. */	\
+  deinterlace_methods[INDEX_##x] = method;				\
+} while (0)
 
   GET (VIDEO_BOB, VideoBob);
   GET (VIDEO_WEAVE, VideoWeave);
@@ -515,6 +514,8 @@ plugin_init			(PluginBridge		bridge _unused_,
   z_gconf_notify_add (GCONF_DIR "/resolution", notify, NULL);
 
   z_gconf_auto_update_bool (&reverse_fields, GCONF_DIR "/reverse_fields");
+  z_gconf_auto_update_bool (&GreedyTestMode,
+			    GCONF_DIR "/options/Deinterlace/GreedyTestMode");
 
   return TRUE;
 }
