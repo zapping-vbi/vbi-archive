@@ -12,6 +12,7 @@ INCLUDES = \
 libtv_la_SOURCES = \
 	callback.c callback.h \
 	clip_vector.c clip_vector.h \
+	control.c control.h \
 	cpu.c cpu.h \
 	image_format.c image_format.h \
 	macros.h \
