@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: page.h,v 1.3 2005-01-31 07:14:59 mschimek Exp $ */
+/* $Id: page.h,v 1.4 2005-06-28 00:56:07 mschimek Exp $ */
 
 #ifndef PAGE_H
 #define PAGE_H
@@ -101,12 +101,12 @@ typedef enum {
 	 * video, with video displayed in place of this character (or the page
 	 * border). In other words the character is a space (vbi3_char->unicode =
 	 * U+0020) and the glyph background is transparent. If desired the
-	 * renderer may also fall back to VBI3_SEMI_TRANSPARENT or VBI3_OPAQUE
+	 * renderer may also fall back to VBI3_TRANSLUCENT or VBI3_OPAQUE
 	 * mode. For this case vbi3_char->background names the color to use as
-	 * the semi-transparent or opaque background.
+	 * the translucent or opaque background.
 	 *
 	 * VBI3_TRANSPARENT_SPACE is the opacity of subtitle pages (both border and
-	 * characters, while the 'boxed' words are marked as VBI3_SEMI_TRANSPARENT),
+	 * characters, while the 'boxed' words are marked as VBI3_TRANSLUCENT),
 	 * but can also occur on a mainly VBI3_OPAQUE page to create a 'window'
 	 * effect.
  	 */
@@ -116,7 +116,7 @@ typedef enum {
 	 * Here the character is <em>not</em> a space and shall be displayed
 	 * in vbi3_char->foreground color. Only in the background of the character
 	 * video shall look through. Again the renderer may fall back to
-	 * VBI3_SEMI_TRANSPARENT or VBI3_OPAQUE.
+	 * VBI3_TRANSLUCENT or VBI3_OPAQUE.
 	 */
 	VBI3_TRANSPARENT_FULL,
 	/**
@@ -126,7 +126,7 @@ typedef enum {
 	 * a subtitle or Teletext newsflash page. The renderer may fall back
 	 * to VBI3_OPAQUE.
 	 */
-	VBI3_SEMI_TRANSPARENT,
+	VBI3_TRANSLUCENT,
 	/**
 	 * Display foreground and background color. Showing
 	 * foreground or background transparent instead is not recommended because
@@ -353,11 +353,11 @@ typedef struct {
 	 * Ordinary characters are bi-level colored, with pixels assuming
 	 * vbi3_char->foreground or vbi3_char->background color.
 	 *
-	 * The pixels of DRCS (Dynamically Redefinable Characters) can
-	 * assume one color of a set of 2, 4 or 16.
+	 * The pixels of Teletext DRCS (Dynamically Redefinable Characters)
+	 * can assume one color of a set of 2, 4 or 16.
 	 *
-	 * For bi-level DRCS vbi3_char->drcs_clut_offs is 0. Zero pixels
-	 * shall be painted in vbi3_char->background color, one pixels in
+	 * For bi-level DRCS vbi3_char->drcs_clut_offs is 0. '0' pixels
+	 * shall be painted in vbi3_char->background color, '1' pixels in
 	 * vbi3_char->foreground color.
 	 *
 	 * For 4- and 16-level DRCS the color is determined by one of
@@ -374,12 +374,12 @@ typedef struct {
 	 * vbi3_char and elsewhere, with colors defined as vbi3_rgba.
 	 *
 	 * Note the palette may not correspond to the vbi3_color
-	 * enumeration since Teletext allows editors to redefine
+	 * enumeration names since Teletext allows editors to redefine
 	 * the entire palette, depending on the Teletext level.
 	 *
 	 * Closed Caption and Teletext Level 1.0 / 1.5 pages use
 	 * entries 0 ... 7. Teletext Level 2.5 / 3.5 pages use entries
-	 * 0 ... 31. Navigation text (TOP, FLOF) added by libzvbi
+	 * 0 ... 31. Teletext navigation (TOP, FLOF) added by libzvbi
 	 * in row 25 uses entries 32 ... 39.
 	 */
 	vbi3_rgba 		color_map[40];

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.16 2005-01-31 07:17:52 mschimek Exp $ */
+/* $Id: cache.h,v 1.17 2005-06-28 00:58:43 mschimek Exp $ */
 
 #ifndef __ZVBI3_CACHE_H__
 #define __ZVBI3_CACHE_H__
@@ -161,7 +161,7 @@ typedef enum {
  * of an option number and value. The last option number must be @c VBI3_END.
  *
  * function (foo, bar,
- *           VBI3_41_COLUMNS, TRUE,
+ *           VBI3_PADDING, TRUE,
  *           VBI3_DEFAULT_CHARSET_0, 15,
  *           VBI3_HEADER_ONLY, FALSE,
  *           VBI3_END);
@@ -169,7 +169,7 @@ typedef enum {
 /* We use random numbering assuming the variadic functions using these
    values stop reading when they encounter an unknown number (VBI3_END is
    zero). Parameters shall be only int or pointer (vbi3_bool is an int,
-   enum is an int) for proper automatic conversion. */
+   enum is an int) for proper automatic casts. */
 typedef enum {
 	/**
 	 * Format only the first row.
@@ -182,7 +182,7 @@ typedef enum {
 	 * a more balanced view.
 	 * Parameter: vbi3_bool, default FALSE.
 	 */
-	VBI3_41_COLUMNS,
+	VBI3_PADDING,
 	/**
 	 * Not implemented yet.
 	 * Format the page with side panels if it has any. This
@@ -239,6 +239,9 @@ typedef enum {
 	 * Same as VBI3_OVERRIDE_CHARSET_0, for secondary character set.
 	 */
 	VBI3_OVERRIDE_CHARSET_1,
+	VBI3_DEFAULT_FOREGROUND, /* XXX document me */
+	VBI3_DEFAULT_BACKGROUND,
+	VBI3_ROW_CHANGE,
 } vbi3_format_option;
 
 /* in teletext.c */
@@ -270,13 +273,13 @@ vbi3_cache_remove_event_handler	(vbi3_cache *		ca,
   __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_cache_add_event_handler	(vbi3_cache *		ca,
-				 unsigned int		event_mask,
+				 vbi3_event_mask	event_mask,
 				 vbi3_event_cb *	callback,
 				 void *			user_data)
   __attribute__ ((_vbi3_nonnull (1)));
 extern void
 vbi3_cache_set_memory_limit	(vbi3_cache *		ca,
-				 unsigned int		limit)
+				 unsigned long		limit)
   __attribute__ ((_vbi3_nonnull (1)));
 extern void
 vbi3_cache_set_network_limit	(vbi3_cache *		ca,

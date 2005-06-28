@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.22 2005-01-31 07:21:34 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.23 2005-06-28 00:56:40 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -37,7 +37,7 @@
 #include "page.h"		/* vbi3_page */
 #include "conv.h"
 #include "lang.h"		/* vbi3_is_print() */
-#include "common/intl-priv.h"
+#include "intl-priv.h"
 #include "export-priv.h"	/* vbi3_export */
 #include "exp-txt.h"
 

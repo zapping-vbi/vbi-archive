@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Events
  *
- *  Copyright (C) 2000, 2001, 2002, 2003, 2004 Michael H. Schimek
+ *  Copyright (C) 2000-2004 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998,1999 Edgar Toernig (froese@gmx.de)
@@ -21,25 +21,22 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.h,v 1.3 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: event.h,v 1.4 2005-06-28 00:58:21 mschimek Exp $ */
 
 #ifndef EVENT_H
 #define EVENT_H
 
 /* TO DO */
 
-#undef ZAPPING8
-#define ZAPPING8 1
-
 #include <time.h>		/* time_t */
 #include "bcd.h"		/* vbi3_pgno, vbi3_subno */
 #include "network.h"		/* vbi3_network */
 #include "link.h"		/* vbi3_link */
-#include "misc.h"
 #ifndef ZAPPING8
 #include "aspect_ratio.h"	/* vbi3_aspect_ratio */
 #include "program_info.h"	/* vbi3_program_info */
 #endif
+#include "page.h"		/* vbi3_char */
 #include "pdc.h"		/* vbi3_program_id */
 
 VBI3_BEGIN_DECLS
@@ -49,6 +46,8 @@ VBI3_BEGIN_DECLS
  * @name Event types.
  * @{
  */
+
+typedef unsigned int vbi3_event_mask;
 
 /**
  * @anchor VBI3_EVENT_
@@ -75,7 +74,7 @@ VBI3_BEGIN_DECLS
  * The "page", actually CC channel, is designated by ev.caption.pgno,
  * see vbi3_pgno for details.
  */
-#define VBI3_EVENT_CAPTION 0x0008
+#define VBI3_EVENT_CC_PAGE 0x0008
 /**
  * XXX which other events may follow? TOP_CHANGE, ...?
  */
@@ -146,6 +145,10 @@ VBI3_BEGIN_DECLS
  */
 #define VBI3_EVENT_REMOVE_NETWORK 0x1000
 
+/* TODO */
+#define VBI3_EVENT_CC_ROLL_UP 0x200000
+#define VBI3_EVENT_CC_RAW 0x400000
+
 /** @} */
 
 /**
@@ -180,6 +183,13 @@ typedef enum {
 	VBI3_SERIAL		= 0x100000,
 } vbi3_ttx_page_flags; 
 
+typedef enum {
+	VBI3_CHAR_UPDATE	= (1 << 0),
+	VBI3_WORD_UPDATE	= (1 << 1), /* XXX not implemented yet */
+	VBI3_ROW_UPDATE		= (1 << 2),
+	VBI3_PAGE_UPDATE	= (1 << 3), /* XXX not implemented yet */
+} vbi3_cc_page_flags;
+
 /**
  * @ingroup Event
  * @brief Event union.
@@ -202,7 +212,14 @@ typedef struct vbi3_event {
 	        }			ttx_page;
 		struct {
 			vbi3_pgno		channel;
+			vbi3_cc_page_flags	flags;
 		}			caption;
+		struct {
+			vbi3_pgno		channel;
+			unsigned int		row;
+			const vbi3_char *	text;
+			unsigned int		length;
+		}			cc_raw;
 		const vbi3_link *	trigger;
 #ifndef ZAPPING8
 		const vbi3_aspect_ratio *aspect;

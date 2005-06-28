@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.33 2005-01-31 07:21:34 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.34 2005-06-28 00:57:08 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -29,7 +29,7 @@
 #include <unistd.h>		/* ssize_t */
 #include <setjmp.h>
 #include "misc.h"
-#include "common/intl-priv.h"
+#include "intl-priv.h"
 #include "export-priv.h"	/* vbi3_export */
 #include "page.h"		/* vbi3_page */
 #include "lang.h"		/* vbi3_character_set, ... */

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.4 2005-01-31 07:21:34 mschimek Exp $ */
+/* $Id: network.c,v 1.5 2005-06-28 00:54:31 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -196,8 +196,7 @@ cni_lookup			(vbi3_cni_type		type,
 		break;
 
 	default:
-		vbi3_log_printf (VBI3_DEBUG, caller,
-				"Unknown CNI type %u\n", type);
+		debug ("Unknown CNI type %u", type);
 		break;
 	}
 
@@ -241,8 +240,7 @@ vbi3_convert_cni			(vbi3_cni_type		to_type,
 		return p->cni_pdc_b;
 
 	default:
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Unknown CNI type %u\n", to_type);
+		debug ("Unknown CNI to_type %u", to_type);
 		break;
 	}
 
@@ -418,8 +416,7 @@ vbi3_network_set_cni		(vbi3_network *		nk,
 		break;
 
 	default:
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Unknown CNI type %u\n", type);
+		debug ("Unknown CNI type %u", type);
 	}
 
 	if (!(p = cni_lookup (type, cni, __FUNCTION__)))

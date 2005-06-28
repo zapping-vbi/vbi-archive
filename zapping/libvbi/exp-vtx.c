@@ -26,7 +26,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.12 2005-01-19 04:17:54 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.13 2005-06-28 00:56:29 mschimek Exp $ */
 
 /* VTX is the file format used by the VideoteXt application. It stores
    Teletext pages in raw level 1.0 format. Level 1.5 additional characters
@@ -46,7 +46,7 @@
 #include "hamm.h"		/* vbi3_rev8() */
 #include "cache-priv.h"		/* cache_page */
 #include "page-priv.h"		/* vbi3_page_priv */
-#include "common/intl-priv.h"
+#include "intl-priv.h"
 #include "export-priv.h"
 
 struct header {

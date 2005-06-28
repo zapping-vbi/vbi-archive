@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event-priv.h,v 1.2 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: event-priv.h,v 1.3 2005-06-28 00:58:12 mschimek Exp $ */
 
 #ifndef EVENT_PRIV_H
 #define EVENT_PRIV_H
@@ -40,7 +40,7 @@ struct _vbi3_event_handler {
 	vbi3_event_handler *	next;
 	vbi3_event_cb *		callback;
 	void *			user_data;
-	unsigned int		event_mask;
+	vbi3_event_mask		event_mask;
 	unsigned int		blocked;
 };
 
@@ -48,11 +48,11 @@ struct _vbi3_event_handler {
 typedef struct {
 	vbi3_event_handler *	first;
 	vbi3_event_handler *	current;
-	unsigned int		event_mask;
+	vbi3_event_mask		event_mask;
 } _vbi3_event_handler_list;
 
 extern const char *
-_vbi3_event_name			(unsigned int		event);
+_vbi3_event_name			(vbi3_event_mask	event);
 
 #if EVENT_PRIV_LOG
 #define _vbi3_event_handler_list_send(es, ev)				\
@@ -72,7 +72,7 @@ __vbi3_event_handler_list_send	(_vbi3_event_handler_list *es,
 extern void
 _vbi3_event_handler_list_remove_by_event
 			    	(_vbi3_event_handler_list *es,
-				 unsigned int		event_mask);
+				 vbi3_event_mask	event_mask);
 extern void
 _vbi3_event_handler_list_remove_by_callback
 				(_vbi3_event_handler_list *es,
@@ -83,7 +83,7 @@ _vbi3_event_handler_list_remove	(_vbi3_event_handler_list *es,
 				 vbi3_event_handler *	eh);
 extern vbi3_event_handler *
 _vbi3_event_handler_list_add	(_vbi3_event_handler_list *es,
-				 unsigned int		event_mask,
+				 vbi3_event_mask	event_mask,
 				 vbi3_event_cb *		callback,
 				 void *			user_data);
 extern void

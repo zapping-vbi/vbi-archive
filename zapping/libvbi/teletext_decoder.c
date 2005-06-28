@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.8 2005-01-31 07:09:21 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.9 2005-06-28 00:54:48 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -476,7 +476,7 @@ decode_pop_packet		(cache_page *		cp,
 	}
 
 	default:
-		assert (!"reached");
+		assert (0);
 	}
 
 	return FALSE;
@@ -973,7 +973,7 @@ decode_btt_page			(vbi3_teletext_decoder *	td,
 
 		e.type		= VBI3_EVENT_PAGE_TYPE;
 		e.network	= &td->network->network;
-		e.timestamp	= td->time;
+		e.timestamp	= td->timestamp;
 
 		_vbi3_event_handler_list_send (&td->handlers, &e);
 	}
@@ -1461,7 +1461,7 @@ decode_mip_page			(vbi3_teletext_decoder *	td,
 
 		e.type		= VBI3_EVENT_PAGE_TYPE;
 		e.network	= &td->network->network;
-		e.timestamp	= td->time;
+		e.timestamp	= td->timestamp;
 
 		_vbi3_event_handler_list_send (&td->handlers, &e);
 	}
@@ -1728,7 +1728,7 @@ _vbi3_convert_cached_page	(cache_page *		cp,
 
 	default:
 		/* Needs no conversion. */
-		assert (!"reached");
+		assert (0);
 	}
 
 	if (!(cp1 = _vbi3_cache_put_page (cp->network->cache,
@@ -1931,7 +1931,7 @@ network_event			(vbi3_teletext_decoder *	td)
 
 	e.type = VBI3_EVENT_NETWORK;
 	e.network = &td->network->network;
-	e.timestamp = td->time;
+	e.timestamp = td->timestamp;
 
 	_vbi3_event_handler_list_send (&td->handlers, &e);
 
@@ -2009,7 +2009,7 @@ detect_channel_change		(vbi3_teletext_decoder *	td,
 		COPY (td->header, cp->data.lop.raw[0]);
 
 		/* Reset at next vbi3_teletext_decoder_decode() call. */
-		td->virtual_reset (td, NULL, td->time + 0.0);
+		td->virtual_reset (td, NULL, td->timestamp + 0.0);
 
 		break;
 
@@ -2025,7 +2025,7 @@ detect_channel_change		(vbi3_teletext_decoder *	td,
 			COPY (td->header, cp->data.lop.raw[0]);
 		} else if (td->reset_time <= 0) {
 			/* Suspect a channel change. */
-			td->virtual_reset (td, NULL, td->time
+			td->virtual_reset (td, NULL, td->timestamp
 					   + td->cni_830_timeout);
 		}
 
@@ -2158,7 +2158,7 @@ store_page			(vbi3_teletext_decoder *	td,
 
 				e.type		= VBI3_EVENT_TTX_PAGE;
 				e.network	= &td->network->network;
-				e.timestamp	= td->time;
+				e.timestamp	= td->timestamp;
 
 				e.ev.ttx_page.pgno = cp->pgno;
 				e.ev.ttx_page.subno = cp->subno;
@@ -2250,7 +2250,7 @@ store_page			(vbi3_teletext_decoder *	td,
 
 				e.type		= VBI3_EVENT_TOP_CHANGE;
 				e.network	= &td->network->network;
-				e.timestamp	= td->time;
+				e.timestamp	= td->timestamp;
 
 				_vbi3_event_handler_list_send
 					(&td->handlers, &e);
@@ -2573,7 +2573,7 @@ decode_packet_0			(vbi3_teletext_decoder *	td,
 				}
 
 				default:
-					assert (!"reached");
+					assert (0);
 					break;
 				}
 			} else {
@@ -3168,7 +3168,7 @@ decode_packet_28_29		(vbi3_teletext_decoder *	td,
 				case PAGE_FUNCTION_DISCARD:
 				case PAGE_FUNCTION_UNKNOWN:
 					/* libzvbi private */
-					assert (!"reached");
+					assert (0);
 
 				case PAGE_FUNCTION_LOP:
 					/* ZDF and BR3 transmit GPOP 1EE/..
@@ -3477,7 +3477,7 @@ cni_change			(vbi3_teletext_decoder *	td,
 
 	if (timeout > 0.0) {
 		td->virtual_reset (td, NULL,
-				   td->time + MAX (timeout, timeout_min));
+				   td->timestamp + MAX (timeout, timeout_min));
 	}
 }
 
@@ -3504,7 +3504,7 @@ status_change			(vbi3_teletext_decoder *	td,
 
 	e.type = VBI3_EVENT_PROG_INFO;
 	e.network = &cn->network;
-	e.timestamp = td->time;
+	e.timestamp = td->timestamp;
 	e.ev.prog_info = &cn->program_info;
 
 	_vbi3_event_handler_list_send (&td->handlers, &e);
@@ -3651,7 +3651,7 @@ decode_packet_8_30		(vbi3_teletext_decoder *	td,
 				/* Assume a channel change with unknown CNI
 				   if we cannot confirm the new CNI or receive
 				   the old CNI again within n seconds. */
-				td->virtual_reset (td, NULL, td->time
+				td->virtual_reset (td, NULL, td->timestamp
 						   + td->cni_830_timeout);
 			}
 		}
@@ -3667,7 +3667,7 @@ decode_packet_8_30		(vbi3_teletext_decoder *	td,
 
 			e.type		= VBI3_EVENT_LOCAL_TIME;
 			e.network	= &td->network->network;
-			e.timestamp	= td->time;
+			e.timestamp	= td->timestamp;
 
 			_vbi3_event_handler_list_send (&td->handlers, &e);
 		}
@@ -3757,7 +3757,7 @@ decode_packet_8_30		(vbi3_teletext_decoder *	td,
 
 				e.type		= VBI3_EVENT_PROG_ID;
 				e.network	= &td->network->network;
-				e.timestamp	= td->time;
+				e.timestamp	= td->timestamp;
 				e.ev.prog_id	= p;
 
 				_vbi3_event_handler_list_send
@@ -3792,7 +3792,7 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 	int mag0;
 	int packet;
 
-	td->time = timestamp;
+	td->timestamp = timestamp;
 
 	if (td->reset_time > 0
 	    && timestamp >= td->reset_time) {
@@ -3950,7 +3950,7 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 	}
 
 	default:
-		assert (!"reached");
+		assert (0);
 	}
 
 	return TRUE;
@@ -4377,7 +4377,7 @@ reset				(vbi3_teletext_decoder *	td,
 
 	if (0)
 		fprintf (stderr, "reset %f: %f -> %f\n",
-			 td->time, td->reset_time, time);
+			 td->timestamp, td->reset_time, time);
 
 	if (time <= 0.0 || time > td->reset_time)
 		td->reset_time = time;
@@ -4402,7 +4402,7 @@ reset				(vbi3_teletext_decoder *	td,
 
 	e.type		= VBI3_EVENT_RESET;
 	e.network	= &td->network->network;
-	e.timestamp	= td->time;
+	e.timestamp	= td->timestamp;
 
 	_vbi3_event_handler_list_send (&td->handlers, &e);
 }
@@ -4455,13 +4455,13 @@ vbi3_teletext_decoder_remove_event_handler
 vbi3_bool
 vbi3_teletext_decoder_add_event_handler
 				(vbi3_teletext_decoder *	td,
-				 unsigned int		event_mask,
+				 vbi3_event_mask	event_mask,
 				 vbi3_event_cb *		callback,
 				 void *			user_data)
 {
-	unsigned int ttx_mask;
-	unsigned int add_mask;
-	unsigned int rem_mask;
+	vbi3_event_mask ttx_mask;
+	vbi3_event_mask add_mask;
+	vbi3_event_mask rem_mask;
 
 	if (!vbi3_cache_add_event_handler (td->cache,
 					   event_mask,
@@ -4586,7 +4586,7 @@ _vbi3_teletext_decoder_destroy	(vbi3_teletext_decoder *	td)
 
 	e.type		= VBI3_EVENT_CLOSE;
 	e.network	= &td->network->network;
-	e.timestamp	= td->time;
+	e.timestamp	= td->timestamp;
 
 	_vbi3_event_handler_list_send (&td->handlers, &e);
 
@@ -4673,9 +4673,10 @@ vbi3_teletext_decoder_delete	(vbi3_teletext_decoder *	td)
 }
 
 /**
- * @param ca Cache to be used by this Teletext decoder, can be @c NULL.
- *   To allocate a cache call vbi3_cache_new(). Caches have a reference
- *   counter, you can vbi3_cache_unref() after calling this function.
+ * @param ca Cache to be used by this Teletext decoder. If @a ca is @c NULL
+ *   the function allocates a new cache. To allocate a cache yourself call
+ *   vbi3_cache_new(). Caches have a reference counter, you can
+ *   vbi3_cache_unref() after calling this function.
  *
  * Allocates a new Teletext (ETS 300 706) decoder. Decoded data is
  * available through the following functions:
@@ -4698,8 +4699,7 @@ vbi3_teletext_decoder_new	(vbi3_cache *		ca,
 	vbi3_teletext_decoder *td;
 
 	if (!(td = vbi3_malloc (sizeof (*td)))) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Out of memory (%u)", sizeof (*td));
+		error ("Out of memory (%u bytes)", sizeof (*td));
 		return NULL;
 	}
 

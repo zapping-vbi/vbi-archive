@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.h,v 1.3 2005-01-31 07:17:13 mschimek Exp $ */
+/* $Id: exp-gfx.h,v 1.4 2005-06-28 00:57:33 mschimek Exp $ */
 
 #ifndef __ZVBI3_EXP_GFX_H__
 #define __ZVBI3_EXP_GFX_H__
@@ -43,20 +43,24 @@ vbi3_page_draw_teletext_region_va_list
 				(const vbi3_page *	pg,
 				 void *			buffer,
 				 const vbi3_image_format *format,
+				 unsigned int		x,
+				 unsigned int		y,
 				 unsigned int		column,
 				 unsigned int		row,
-				 unsigned int		width,
-				 unsigned int		height,
+				 unsigned int		n_columns,
+				 unsigned int		n_rows,
 				 va_list		export_options)
   __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
 vbi3_page_draw_teletext_region	(const vbi3_page *	pg,
 				 void *			buffer,
 				 const vbi3_image_format *format,
+				 unsigned int		x,
+				 unsigned int		y,
 				 unsigned int		column,
 				 unsigned int		row,
-				 unsigned int		width,
-				 unsigned int		height,
+				 unsigned int		n_columns,
+				 unsigned int		n_rows,
 				 ...)
   __attribute__ ((_vbi3_nonnull (1, 2, 3),
 		  _vbi3_sentinel));
@@ -78,20 +82,24 @@ vbi3_page_draw_caption_region_va_list
 				(const vbi3_page *	pg,
 				 void *			buffer,
 				 const vbi3_image_format *format,
+				 unsigned int		x,
+				 unsigned int		y,
 				 unsigned int		column,
 				 unsigned int		row,
-				 unsigned int		width,
-				 unsigned int		height,
+				 unsigned int		n_columns,
+				 unsigned int		n_rows,
 				 va_list		export_options)
   __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
 vbi3_page_draw_caption_region	(const vbi3_page *	pg,
 				 void *			buffer,
 				 const vbi3_image_format *format,
+				 unsigned int		x,
+				 unsigned int		y,
 				 unsigned int		column,
 				 unsigned int		row,
-				 unsigned int		width,
-				 unsigned int		height,
+				 unsigned int		n_columns,
+				 unsigned int		n_rows,
 				 ...)
   __attribute__ ((_vbi3_nonnull (1, 2, 3),
 		  _vbi3_sentinel));
