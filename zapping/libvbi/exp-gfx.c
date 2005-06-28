@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Closed Caption and Teletext rendering
  *
- *  Copyright (C) 2000, 2001, 2002, 2003, 2004 Michael H. Schimek
+ *  Copyright (C) 2000-2004 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.50 2005-02-18 07:56:22 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.51 2005-06-28 00:57:21 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -31,7 +31,7 @@
 #include "misc.h"
 #include "page.h"		/* vbi3_page */
 #include "lang.h"		/* vbi3_is_drcs() */
-#include "common/intl-priv.h"
+#include "intl-priv.h"
 #include "export-priv.h"	/* vbi3_export */
 #include "exp-gfx.h"
 #include "vt.h"			/* VBI3_TRANSPARENT_BLACK */
@@ -205,27 +205,42 @@ unicode_ccfont3			(unsigned int		c,
  */
 static void
 line_doubler			(void *			buffer,
-				 const vbi3_image_format *format)
+				 const vbi3_image_format *format,
+				 unsigned int		x,
+				 unsigned int		y,
+				 unsigned int		width,
+				 unsigned int		height)
 {
 	uint8_t *canvas;
 	unsigned int byte_width;
 	unsigned int bytes_per_line;
-	unsigned int height;
+	unsigned int bytes_per_pixel;
 
 	assert (VBI3_PIXFMT_IS_PACKED (format->pixfmt));
+	assert (x + width <= format->width);
+	assert (y + height <= format->height);
+	assert (0 == (height % 2));
 
-	canvas = ((uint8_t *) buffer) + format->offset;
+	bytes_per_pixel = vbi3_pixfmt_bytes_per_pixel (format->pixfmt);
+	byte_width = width * bytes_per_pixel;
 
-	byte_width = format->width
-		* vbi3_pixfmt_bytes_per_pixel (format->pixfmt);
 	bytes_per_line = format->bytes_per_line;
 
-	if (bytes_per_line <= 0)
+	if (bytes_per_line <= 0) {
 		bytes_per_line = byte_width;
+	} else {
+		assert (byte_width <= bytes_per_line);
+	}
 
-	for (height = format->height; height > 0; height -= 2) {
+	canvas = ((uint8_t *) buffer)
+		+ format->offset
+		+ y * bytes_per_line
+		+ x * bytes_per_pixel;
+
+	while (height > 0) {
 		memcpy (canvas + bytes_per_line, canvas, byte_width);
 		canvas += bytes_per_line * 2;
+		height -= 2;
 	}
 }
 
@@ -481,10 +496,9 @@ vbi3_rgba_conv			(void *			buffer,
 		break;
 
 	default:
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Invalid pixfmt %u (%s)",
-				(unsigned int) pixfmt,
-				vbi3_pixfmt_name (pixfmt));
+		debug ("Invalid pixfmt %u (%s)",
+		       (unsigned int) pixfmt,
+		       vbi3_pixfmt_name (pixfmt));
 		return FALSE;
 	}
 
@@ -544,7 +558,7 @@ do {									\
 		s += (cpl) * (cw) / 8 * (ch) / 2;			\
 		under1 >>= (ch) / 2;					\
 									\
-	case VBI3_DOUBLE_HEIGHT:						\
+	case VBI3_DOUBLE_HEIGHT:					\
 	case VBI3_DOUBLE_SIZE: 						\
 		ch1 >>= 1;						\
 									\
@@ -569,7 +583,7 @@ do {									\
 			d += bpl;					\
 			break;						\
 									\
-		case VBI3_DOUBLE_HEIGHT:					\
+		case VBI3_DOUBLE_HEIGHT:				\
 		case VBI3_DOUBLE_HEIGHT2:				\
 			for (x = 0; x < (cw); bits >>= 1, ++x) {	\
 				PIXEL (d, x, pen, bits & 1);		\
@@ -633,7 +647,7 @@ do {									\
 	case VBI3_DOUBLE_HEIGHT2:					\
 		s += 30;						\
 									\
-	case VBI3_DOUBLE_HEIGHT:						\
+	case VBI3_DOUBLE_HEIGHT:					\
 		for (y = 0; y < TCH / 2; d += bpl * 2, ++y)		\
 			for (x = 0; x < 12; ++s, x += 2) {		\
 				col = *s & 15;				\
@@ -719,15 +733,15 @@ do {									\
  * @param pg Source page.
  * @param buffer Image buffer.
  * @param format Pixel format and dimensions of the buffer.
- *   The buffer must be large enough for @a width x @a height characters
+ *   The buffer must be large enough for @a n_columns x @a height characters
  *   of 16 x 13 pixels each.
  * @param flags Optional set of the following flags:
  *   - @c VBI3_SCALE: Duplicate lines. In this case characters are 16 x 26
  *     pixels, suitable for frame (rather than field) overlay.
  * @param column First source column, 0 ... pg->columns - 1.
  * @param row First source row, 0 ... pg->rows - 1.
- * @param width Number of columns to draw, 1 ... pg->columns.
- * @param height Number of rows to draw, 1 ... pg->rows.
+ * @param n_columns Number of columns to draw, 1 ... pg->columns.
+ * @param n_rows Number of rows to draw, 1 ... pg->rows.
  * 
  * Draws a subsection of a Closed Caption vbi3_page.
  *
@@ -742,10 +756,12 @@ vbi3_page_draw_caption_region_va_list
 				(const vbi3_page *	pg,
 				 void *			buffer,
 				 const vbi3_image_format *format,
+				 unsigned int		x,
+				 unsigned int		y,
 				 unsigned int		column,
 				 unsigned int		row,
-				 unsigned int		width,
-				 unsigned int		height,
+				 unsigned int		n_columns,
+				 unsigned int		n_rows,
 				 va_list		export_options)
 {
 	vbi3_bool option_scale;
@@ -774,7 +790,8 @@ vbi3_page_draw_caption_region_va_list
 			ac = pg->text + i * pg->columns;
 
 			for (j = 0; j < pg->columns; ++j)
-				fprintf (stderr, "%d%d%02x ",
+				fprintf (stderr, "%d%d%d%02x ",
+					 ac[j].opacity,
 					 ac[j].foreground,
 					 ac[j].background,
 					 ac[j].unicode & 0xFF);
@@ -821,15 +838,33 @@ vbi3_page_draw_caption_region_va_list
 			break;
 	}
 
+	if (x >= format->width
+	    || y >= format->height) {
+		debug ("Position x %u, y %u is beyond image size %u x %u",
+		       x, y, format->width, format->height);
+		return FALSE;
+	}
+
+	if (column + n_columns > pg->columns
+	    || row + n_rows > pg->rows) {
+		debug ("Columns %u ... %u, rows %u ... %u beyond "
+		       "page size of %u x %u characters",
+		       column, column + n_columns - 1,
+		       row, row + n_rows - 1,
+		       pg->columns, pg->rows);
+		return FALSE;
+	}
+
 	scaled_height = option_scale ? 26 : 13;
 
-	if (width * 16 > format->width
-	    || height * scaled_height > format->height) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Image size %u x %u too small for "
-				"%u x %u characters",
-				format->width, format->height,
-				width, height);
+	if (n_columns * 16 > format->width - x
+	    || n_rows * scaled_height > format->height - y) {
+		debug ("Image size %u x %u too small to draw %u x %u "
+		       "characters (%u x %u pixels) at x %u, y %u",
+		       format->width, format->height,
+		       n_columns, n_rows,
+		       n_columns * 16, n_rows * scaled_height,
+		       x, y);
 		return FALSE;
 	}
 
@@ -838,48 +873,50 @@ vbi3_page_draw_caption_region_va_list
 			    brightness, contrast))
 		return FALSE;
 
-	canvas = ((uint8_t *) buffer) + format->offset;
-
 	bytes_per_pixel = vbi3_pixfmt_bytes_per_pixel (format->pixfmt);
 	bytes_per_line = format->bytes_per_line;
 
 	if (bytes_per_line <= 0) {
 		bytes_per_line = pg->columns * CCW * bytes_per_pixel;
 	} else if ((format->width * bytes_per_pixel) > bytes_per_line) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Image width %u (%s) > bytes_per_line %u",
-				format->width,
-				vbi3_pixfmt_name (format->pixfmt),
-				bytes_per_line);
+		debug ("Image width %u (%s) > bytes_per_line %u",
+		       format->width, vbi3_pixfmt_name (format->pixfmt),
+		       bytes_per_line);
 		return FALSE;
 	}
+
+	canvas = ((uint8_t *) buffer)
+		+ format->offset
+		+ y * bytes_per_line
+		+ x * bytes_per_pixel;
 
 	size = format->offset + bytes_per_line * format->height;
 
 	if (size > format->size) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Image %u x %u, offset %u, bytes_per_line %u " 
-				"> buffer size %u = 0x%08x",
-				format->width, format->height,
-				format->offset, bytes_per_line,
-				format->size, format->size);
+		debug ("Image %u x %u, offset %u, bytes_per_line %u " 
+		       "> buffer size %u = 0x%08x",
+		       format->width, format->height,
+		       format->offset, bytes_per_line,
+		       format->size, format->size);
 		return FALSE;
 	}
 
 	if (option_scale)
 		bytes_per_line *= 2;
 
-	row_adv = bytes_per_line * CCH - bytes_per_pixel * width * CCW;
+	row_adv = bytes_per_line * CCH - bytes_per_pixel * n_columns * CCW;
 
 	switch (bytes_per_pixel) {
+		unsigned int rowct;
+
 	case 4:
-		for (; height-- > 0; ++row) {
+		for (rowct = n_rows; rowct-- > 0; ++row) {
 			const vbi3_char *ac;
-			unsigned int count;
+			unsigned int colct;
 
 			ac = pg->text + row * pg->columns + column;
 
-			for (count = width; count-- > 0; ++ac) {
+			for (colct = n_columns; colct-- > 0; ++ac) {
 				DRAW_CC_CHAR (4);
 				canvas += CCW * 4;
 			}
@@ -890,13 +927,13 @@ vbi3_page_draw_caption_region_va_list
 		break;
 
 	case 3:
-		for (; height-- > 0; ++row) {
+		for (rowct = n_rows; rowct-- > 0; ++row) {
 			const vbi3_char *ac;
-			unsigned int count;
+			unsigned int colct;
 
 			ac = pg->text + row * pg->columns + column;
 
-			for (count = width; count-- > 0; ++ac) {
+			for (colct = n_columns; colct-- > 0; ++ac) {
 				DRAW_CC_CHAR (3);
 				canvas += CCW * 3;
 			}
@@ -907,13 +944,13 @@ vbi3_page_draw_caption_region_va_list
 		break;
 
 	case 2:
-		for (; height-- > 0; ++row) {
+		for (rowct = n_rows; rowct-- > 0; ++row) {
 			const vbi3_char *ac;
-			unsigned int count;
+			unsigned int colct;
 
 			ac = pg->text + row * pg->columns + column;
 
-			for (count = width; count-- > 0; ++ac) {
+			for (colct = n_columns; colct-- > 0; ++ac) {
 				DRAW_CC_CHAR (2);
 				canvas += CCW * 2;
 			}
@@ -924,13 +961,13 @@ vbi3_page_draw_caption_region_va_list
 		break;
 
 	case 1:
-		for (; height-- > 0; ++row) {
+		for (rowct = n_rows; rowct-- > 0; ++row) {
 			const vbi3_char *ac;
-			unsigned int count;
+			unsigned int colct;
 
 			ac = pg->text + row * pg->columns + column;
 
-			for (count = width; count-- > 0; ++ac) {
+			for (colct = n_columns; colct-- > 0; ++ac) {
 				DRAW_CC_CHAR (1);
 				canvas += CCW;
 			}
@@ -945,7 +982,8 @@ vbi3_page_draw_caption_region_va_list
 	}
 
 	if (option_scale)
-		line_doubler (buffer, format);
+  		line_doubler (buffer, format, x, y,
+			      n_columns * 16, n_rows * scaled_height);
 
 	return TRUE;
 }
@@ -954,19 +992,23 @@ vbi3_bool
 vbi3_page_draw_caption_region	(const vbi3_page *	pg,
 				 void *			buffer,
 				 const vbi3_image_format *format,
+				 unsigned int		x,
+				 unsigned int		y,
 				 unsigned int		column,
 				 unsigned int		row,
-				 unsigned int		width,
-				 unsigned int		height,
+				 unsigned int		n_columns,
+				 unsigned int		n_rows,
 				 ...)
 {
 	vbi3_bool r;
 	va_list export_options;
 
-	va_start (export_options, height);
-	r = vbi3_page_draw_caption_region_va_list (pg, buffer, format,
-						  column, row, width, height,
-						  export_options);
+	va_start (export_options, n_rows);
+
+	r = vbi3_page_draw_caption_region_va_list
+		(pg, buffer, format, x, y, column, row, n_columns, n_rows,
+		 export_options);
+
 	va_end (export_options);
 
 	return r;
@@ -983,8 +1025,8 @@ vbi3_page_draw_caption_region	(const vbi3_page *	pg,
  *     pixels, suitable for frame (rather than field) overlay.
  * @param column First source column, 0 ... pg->columns - 1.
  * @param row First source row, 0 ... pg->rows - 1.
- * @param width Number of columns to draw, 1 ... pg->columns.
- * @param height Number of rows to draw, 1 ... pg->rows.
+ * @param n_columns Number of columns to draw, 1 ... pg->columns.
+ * @param n_rows Number of rows to draw, 1 ... pg->rows.
  * 
  * Draws a subsection of a Closed Caption vbi3_page.
  *
@@ -1000,11 +1042,12 @@ vbi3_page_draw_caption_va_list	(const vbi3_page *	pg,
 				 const vbi3_image_format *format,
 				 va_list		export_options)
 {
-	return vbi3_page_draw_caption_region_va_list (pg, buffer, format,
-						     /* column */ 0,
-						     /* row */ 0,
-						     pg->columns, pg->rows,
-						     export_options);
+	return vbi3_page_draw_caption_region_va_list
+		(pg, buffer, format,
+		 /* x */ 0, /* y */ 0,
+		 /* column */ 0, /* row */ 0,
+		 pg->columns, pg->rows,
+		 export_options);
 }
 
 vbi3_bool
@@ -1017,10 +1060,14 @@ vbi3_page_draw_caption		(const vbi3_page *	pg,
 	va_list export_options;
 
 	va_start (export_options, format);
-	r = vbi3_page_draw_caption_region_va_list (pg, buffer, format,
-						  /* column */ 0, /* row */ 0,
-						  pg->columns, pg->rows,
-						  export_options);
+
+	r = vbi3_page_draw_caption_region_va_list
+		(pg, buffer, format,
+		 /* x */ 0, /* y */ 0,
+		 /* column */ 0, /* row */ 0,
+		 pg->columns, pg->rows,
+		 export_options);
+
 	va_end (export_options);
 
 	return r;
@@ -1077,7 +1124,7 @@ do {									\
  * @param pg Source page.
  * @param buffer Image buffer.
  * @param format Pixel format and dimensions of the buffer. The buffer must be
- *   large enough for @a width x @a height characters of 12 x 10 pixels
+ *   large enough for @a n_columns x @a n_rows characters of 12 x 10 pixels
  *   each.
  * @param flags Optional set of the following flags:
  *   - @c VBI3_REVEAL: Draw characters flagged 'conceal' (see vbi3_char).
@@ -1087,8 +1134,8 @@ do {									\
  *     pixels, suitable for frame (rather than field) overlay.
  * @param column First source column, 0 ... pg->columns - 1.
  * @param row First source row, 0 ... pg->rows - 1.
- * @param width Number of columns to draw, 1 ... pg->columns.
- * @param height Number of rows to draw, 1 ... pg->rows.
+ * @param n_columns Number of columns to draw, 1 ... pg->columns.
+ * @param n_rows Number of rows to draw, 1 ... pg->rows.
  * 
  * Draws a subsection of a Teletext vbi3_page.
  *
@@ -1103,10 +1150,12 @@ vbi3_page_draw_teletext_region_va_list
 				(const vbi3_page *	pg,
 				 void *			buffer,
 				 const vbi3_image_format *format,
+				 unsigned int		x,
+				 unsigned int		y,
 				 unsigned int		column,
 				 unsigned int		row,
-				 unsigned int		width,
-				 unsigned int		height,
+				 unsigned int		n_columns,
+				 unsigned int		n_rows,
 				 va_list		export_options)
 {
 	vbi3_bool option_scale;
@@ -1189,15 +1238,33 @@ vbi3_page_draw_teletext_region_va_list
 			break;
 	}
 
+	if (x >= format->width
+	    || y >= format->height) {
+		debug ("Position x %u, y %u is beyond image size %u x %u",
+		       x, y, format->width, format->height);
+		return FALSE;
+	}
+
+	if (column + n_columns > pg->columns
+	    || row + n_rows > pg->rows) {
+		debug ("Columns %u ... %u, rows %u ... %u beyond "
+		       "page size of %u x %u characters",
+		       column, column + n_columns - 1,
+		       row, row + n_rows - 1,
+		       pg->columns, pg->rows);
+		return FALSE;
+	}
+
 	scaled_height = option_scale ? 20 : 10;
 
-	if (width * 12 > format->width
-	    || height * scaled_height > format->height) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Image size %u x %u too small for "
-				"%u x %u characters",
-				format->width, format->height,
-				width, height);
+	if (n_columns * 12 > format->width - x
+	    || n_rows * scaled_height > format->height - x) {
+		debug ("Image size %u x %u too small to draw %u x %u "
+		       "characters (%u x %u pixels) at x %u, y %u",
+		       format->width, format->height,
+		       n_columns, n_rows,
+		       n_columns * 12, n_rows * scaled_height,
+		       x, y);
 		return FALSE;
 	}
 
@@ -1206,57 +1273,58 @@ vbi3_page_draw_teletext_region_va_list
 			    brightness, contrast))
 		return FALSE;
 
-	canvas = ((uint8_t *) buffer) + format->offset;
-
 	bytes_per_pixel = vbi3_pixfmt_bytes_per_pixel (format->pixfmt);
 	bytes_per_line = format->bytes_per_line;
 
 	if (bytes_per_line <= 0) {
 		bytes_per_line = pg->columns * TCW * bytes_per_pixel;
 	} else if ((format->width * bytes_per_pixel) > bytes_per_line) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Image width %u (%s) > bytes_per_line %u",
-				format->width,
-				vbi3_pixfmt_name (format->pixfmt),
-				bytes_per_line);
+		debug ("Image width %u (%s) > bytes_per_line %u",
+		       format->width, vbi3_pixfmt_name (format->pixfmt),
+		       bytes_per_line);
 		return FALSE;
 	}
+
+	canvas = ((uint8_t *) buffer)
+		+ format->offset
+		+ y * bytes_per_line
+		+ x * bytes_per_pixel;
 
 	size = format->offset + bytes_per_line * format->height;
 
 	if (size > format->size) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				"Image %u x %u, offset %u, bytes_per_line %u "
-				"> buffer size %u = 0x%08x",
-				format->width, format->height,
-				format->offset, bytes_per_line,
-				format->size, format->size);
+		debug ("Image %u x %u, offset %u, bytes_per_line %u "
+		       "> buffer size %u = 0x%08x",
+		       format->width, format->height,
+		       format->offset, bytes_per_line,
+		       format->size, format->size);
 		return FALSE;
 	}
 
 	if (option_scale)
 		bytes_per_line *= 2;
 
-	row_adv = bytes_per_line * TCH - bytes_per_pixel * width * TCW;
+	row_adv = bytes_per_line * TCH - bytes_per_pixel * n_columns * TCW;
 
 	switch (bytes_per_pixel) {
 	case 4:
 	{
 		uint32_t pen [2 + 8 + 32];
 		unsigned int i;
+		unsigned int rowct;
 
 		if (pg->drcs_clut)
 			for (i = 2; i < 2 + 8 + 32; i++)
 				pen[i] = ((uint32_t *) color_map)
 					[pg->drcs_clut[i]];
 
-		for (; height-- > 0; ++row) {
+		for (rowct = n_rows; rowct-- > 0; ++row) {
 			const vbi3_char *ac;
-			unsigned int count;
+			unsigned int colct;
 
 			ac = pg->text + row * pg->columns + column;
 
-			for (count = width; count-- > 0; ++ac) {
+			for (colct = n_columns; colct-- > 0; ++ac) {
 				DRAW_VT_CHAR (4);
 				canvas += TCW * 4;
 			}
@@ -1272,18 +1340,19 @@ vbi3_page_draw_teletext_region_va_list
 		const unsigned int bpp = 3;
 		uint8_t pen [(2 + 8 + 32) * 3];
 		unsigned int i;
+		unsigned int rowct;
 
 		if (pg->drcs_clut)
 			for (i = 2; i < 2 + 8 + 32; i++)
 				PIXEL (pen, i, color_map, pg->drcs_clut[i]);
 
-		for (; height-- > 0; ++row) {
+		for (rowct = n_rows; rowct-- > 0; ++row) {
 			const vbi3_char *ac;
-			unsigned int count;
+			unsigned int colct;
 
 			ac = pg->text + row * pg->columns + column;
 
-			for (count = width; count-- > 0; ++ac) {
+			for (colct = n_columns; colct-- > 0; ++ac) {
 				DRAW_VT_CHAR (3);
 				canvas += TCW * 3;
 			}
@@ -1298,19 +1367,20 @@ vbi3_page_draw_teletext_region_va_list
 	{
 		uint16_t pen [2 + 8 + 32];
 		unsigned int i;
+		unsigned int rowct;
 
 		if (pg->drcs_clut)
 			for (i = 2; i < 2 + 8 + 32; i++)
 				pen[i] = ((uint16_t *) color_map)
 					[pg->drcs_clut[i]];
 
-		for (; height-- > 0; ++row) {
+		for (rowct = n_rows; rowct-- > 0; ++row) {
 			const vbi3_char *ac;
-			unsigned int count;
+			unsigned int colct;
 
 			ac = pg->text + row * pg->columns + column;
 
-			for (count = width; count-- > 0; ++ac) {
+			for (colct = n_columns; colct-- > 0; ++ac) {
 				DRAW_VT_CHAR (2);
 				canvas += TCW * 2;
 			}
@@ -1325,19 +1395,20 @@ vbi3_page_draw_teletext_region_va_list
 	{
 		uint8_t pen [2 + 8 + 32];
 		unsigned int i;
+		unsigned int rowct;
 
 		if (pg->drcs_clut)
 			for (i = 2; i < 2 + 8 + 32; i++)
 				pen[i] = ((uint8_t *) color_map)
 					[pg->drcs_clut[i]];
 
-		for (; height-- > 0; ++row) {
+		for (rowct = n_rows; rowct-- > 0; ++row) {
 			const vbi3_char *ac;
-			unsigned int count;
+			unsigned int colct;
 
 			ac = pg->text + row * pg->columns + column;
 
-			for (count = width; count-- > 0; ++ac) {
+			for (colct = n_columns; colct-- > 0; ++ac) {
 				DRAW_VT_CHAR (1);
 				canvas += TCW;
 			}
@@ -1353,7 +1424,8 @@ vbi3_page_draw_teletext_region_va_list
 	}
 
 	if (option_scale)
-		line_doubler (buffer, format);
+		line_doubler (buffer, format, x, y,
+			      n_columns * 12, n_rows * scaled_height);
 
 	return TRUE;
 }
@@ -1362,19 +1434,24 @@ vbi3_bool
 vbi3_page_draw_teletext_region	(const vbi3_page *	pg,
 				 void *			buffer,
 				 const vbi3_image_format *format,
+				 unsigned int		x,
+				 unsigned int		y,
 				 unsigned int		column,
 				 unsigned int		row,
-				 unsigned int		width,
-				 unsigned int		height,
+				 unsigned int		n_columns,
+				 unsigned int		n_rows,
 				 ...)
 {
 	vbi3_bool r;
 	va_list export_options;
 
-	va_start (export_options, height);
-	r = vbi3_page_draw_teletext_region_va_list (pg, buffer, format,
-						   column, row, width, height,
-						   export_options);
+	va_start (export_options, n_rows);
+
+	r = vbi3_page_draw_teletext_region_va_list
+		(pg, buffer, format, x, y,
+		 column, row, n_columns, n_rows,
+		 export_options);
+
 	va_end (export_options);
 
 	return r;
@@ -1407,11 +1484,12 @@ vbi3_page_draw_teletext_va_list	(const vbi3_page *	pg,
 				 const vbi3_image_format *format,
 				 va_list		export_options)
 {
-	return vbi3_page_draw_teletext_region_va_list (pg, buffer, format,
-						      /* column */ 0,
-						      /* row */ 0,
-						      pg->columns, pg->rows,
-						      export_options);
+	return vbi3_page_draw_teletext_region_va_list
+		(pg, buffer, format,
+		 /* x */ 0, /* y */ 0,
+		 /* column */ 0, /* row */ 0,
+		 pg->columns, pg->rows,
+		 export_options);
 }
 
 vbi3_bool
@@ -1424,10 +1502,14 @@ vbi3_page_draw_teletext		(const vbi3_page *	pg,
 	va_list export_options;
 
 	va_start (export_options, format);
-	r = vbi3_page_draw_teletext_region_va_list (pg, buffer, format,
-						   /* column */ 0, /* row */ 0,
-						   pg->columns, pg->rows,
-						   export_options);
+
+	r = vbi3_page_draw_teletext_region_va_list
+		(pg, buffer, format,
+		 /* x */ 0, /* y */ 0,
+		 /* column */ 0, /* row */ 0,
+		 pg->columns, pg->rows,
+		 export_options);
+
 	va_end (export_options);
 
 	return r;
@@ -1567,13 +1649,15 @@ export_ppm			(vbi3_export *		e,
 		if (pg->columns < 40)
 			success = vbi3_page_draw_caption_region
 				(pg, image, &format,
+				 /* x */ 0, /* y */ 0,
 				 /* column */ 0, /* row */ row,
 				 pg->columns, /* rows */ 1,
-				 /* options */ 0);
+				 /* options */ VBI3_END);
 		else
 #endif
 			success = vbi3_page_draw_teletext_region
 				(pg, image, &format,
+				 /* x */ 0, /* y */ 0,
 				 /* column */ 0, /* row */ row,
 				 pg->columns, /* rows */ 1,
 				 /* options: */
@@ -1694,7 +1778,7 @@ png_draw_char			(uint8_t *		canvas,
 
 		break;
 
-	case VBI3_SEMI_TRANSPARENT:
+	case VBI3_TRANSLUCENT:
 		/* Translucent background (for 'boxed' text), opaque
 		   foreground. The background of multicolor DRCS is ambiguous,
 		   so we make them completely translucent. */
