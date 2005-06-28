@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.49 2005-02-05 22:25:20 mschimek Exp $ */
+/* $Id: export.c,v 1.50 2005-06-28 00:53:18 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -36,7 +36,7 @@
 #include <iconv.h>
 #include <math.h>
 #include "misc.h"
-#include "common/intl-priv.h"
+#include "intl-priv.h"
 #include "export-priv.h"
 
 /**
@@ -1078,6 +1078,7 @@ vbi3_export_info_enum		(unsigned int		indx)
 	xi->tooltip	= _(xc->export_info->tooltip);
 	xi->mime_type	= xc->export_info->mime_type;
 	xi->extension	= xc->export_info->extension;
+	xi->open_format	= xc->export_info->open_format;
 
 	return xi;
 }
@@ -1425,23 +1426,27 @@ vbi3_export_new			(const char *		keyword,
 	}
 
 	if (i >= N_ELEMENTS (export_modules)) {
-		_vbi3_asprintf (errstr, _("Unknown export module '%s'."), key);
+		if (errstr)
+			_vbi3_asprintf (errstr,
+					_("Unknown export module '%s'."), key);
 		return NULL;
 	}
 
 	if (!xc->_new) {
-		e = vbi3_malloc (sizeof (*e));
-		CLEAR (e);
+		if ((e = vbi3_malloc (sizeof (*e))))
+			CLEAR (*e);
 	} else {
 		e = xc->_new (xc);
 	}
 
 	if (!e) {
-		_vbi3_asprintf (errstr,
-			       _("Cannot initialize export module '%s', "
-				 "probably lack of memory."),
-			      xc->export_info->label ?
-			      xc->export_info->label : keyword);
+		if (errstr)
+			_vbi3_asprintf (errstr,
+					_("Cannot initialize export "
+					  "module '%s', "
+					  "probably lack of memory."),
+					xc->export_info->label ?
+					xc->export_info->label : keyword);
 		return NULL;
 	}
 
@@ -1458,10 +1463,12 @@ vbi3_export_new			(const char *		keyword,
 
 	if (!e->local_option_info) {
 		vbi3_free (e);
-		_vbi3_asprintf (errstr, _("Cannot initialize export module "
-					 "'%s', out of memory."),
-			      xc->export_info->label ?
-			      xc->export_info->label : keyword);
+		if (errstr)
+			_vbi3_asprintf (errstr,
+					_("Cannot initialize export module "
+					  "'%s', out of memory."),
+					xc->export_info->label ?
+					xc->export_info->label : keyword);
 		return NULL;
 	}
 
