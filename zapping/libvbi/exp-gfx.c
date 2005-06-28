@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.51 2005-06-28 00:57:21 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.52 2005-06-28 19:16:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -177,11 +177,11 @@ unicode_ccfont3			(unsigned int		c,
 	};
 	unsigned int i;
 
-	if (c < 0x0020)
+	if (c < 0x0020) {
 		c = 15; /* invalid */
-	else if (c < 0x0080)
+	} else if (c < 0x0080) {
 		c = c;
-	else {
+	} else {
 		for (i = 0; i < N_ELEMENTS (specials); ++i)
 			if (c == specials[i]) {
 				c = i + 6;
@@ -1166,8 +1166,8 @@ vbi3_page_draw_teletext_region_va_list
 	uint8_t *canvas;
 	unsigned int scaled_height;
 	unsigned int bytes_per_pixel;
-	unsigned int bytes_per_line;
-	unsigned int size;
+	unsigned long bytes_per_line;
+	unsigned long size;
 	unsigned int row_adv;
 
 	assert (NULL != pg);
@@ -1279,7 +1279,7 @@ vbi3_page_draw_teletext_region_va_list
 	if (bytes_per_line <= 0) {
 		bytes_per_line = pg->columns * TCW * bytes_per_pixel;
 	} else if ((format->width * bytes_per_pixel) > bytes_per_line) {
-		debug ("Image width %u (%s) > bytes_per_line %u",
+		debug ("Image width %u (%s) > bytes_per_line %lu",
 		       format->width, vbi3_pixfmt_name (format->pixfmt),
 		       bytes_per_line);
 		return FALSE;
@@ -1293,8 +1293,8 @@ vbi3_page_draw_teletext_region_va_list
 	size = format->offset + bytes_per_line * format->height;
 
 	if (size > format->size) {
-		debug ("Image %u x %u, offset %u, bytes_per_line %u "
-		       "> buffer size %u = 0x%08x",
+		debug ("Image %u x %u, offset %lu, bytes_per_line %lu "
+		       "> buffer size %lu = 0x%08lx",
 		       format->width, format->height,
 		       format->offset, bytes_per_line,
 		       format->size, format->size);
@@ -1737,6 +1737,11 @@ _vbi3_export_module_ppm = {
 #include "png.h"
 #include "setjmp.h"
 
+#define COLOR_MAP_SIZE (N_ELEMENTS (pg->color_map))
+#define TRANSLUCENT COLOR_MAP_SIZE
+#define TRANSPARENT (COLOR_MAP_SIZE * 2)
+#define PALETTE_SIZE (TRANSPARENT + 1)
+
 static void
 png_draw_char			(uint8_t *		canvas,
 				 unsigned int		bytes_per_line,
@@ -1756,7 +1761,7 @@ png_draw_char			(uint8_t *		canvas,
 		/* Transparent foreground and background. */
 
 	blank:
-		pen[0] = VBI3_TRANSPARENT_BLACK;
+		pen[0] = TRANSPARENT;
 
 		if (is_ttx)
 			DRAW_BLANK (canvas, 1, bytes_per_line, pen, TCW, TCH);
@@ -1767,26 +1772,24 @@ png_draw_char			(uint8_t *		canvas,
 		return;
 
 	case VBI3_TRANSPARENT_FULL:
-		/* Transparent background, opaque foreground. Currently not
-		   used. Mind Teletext level 2.5 foreground and background
-		   transparency by referencing colormap entry 8,
-		   VBI3_TRANSPARENT_BLACK. The background of multicolor DRCS is
+		/* Transparent background, opaque foreground.
+		   The background of Teletext multicolor DRCS is
 		   ambiguous, so we make them opaque. */
 
-		pen[0] = VBI3_TRANSPARENT_BLACK;
+		pen[0] = TRANSPARENT;
 		pen[1] = ac->foreground;
 
 		break;
 
 	case VBI3_TRANSLUCENT:
 		/* Translucent background (for 'boxed' text), opaque
-		   foreground. The background of multicolor DRCS is ambiguous,
-		   so we make them completely translucent. */
+		   foreground. The background of Teletext multicolor DRCS
+		   is ambiguous, so we make them completely translucent. */
 
 		if (vbi3_is_drcs (unicode))
 			pen += 64; /* use translucent DRCS palette */
 
-		pen[0] = ac->background + 40; /* translucent */
+		pen[0] = ac->background + TRANSLUCENT;
 		pen[1] = ac->foreground;
 
 		break;
@@ -1836,25 +1839,132 @@ png_draw_char			(uint8_t *		canvas,
 }
 
 static vbi3_bool
+write_png			(vbi3_export *		e,
+				 const vbi3_page *	pg,
+				 png_structp		png_ptr,
+				 png_infop		info_ptr,
+				 png_bytep		image,
+				 png_bytep *		row_pointer,
+				 const vbi3_image_format *format,
+				 vbi3_bool		double_height)
+{
+	png_color palette[PALETTE_SIZE];
+	png_byte alpha[PALETTE_SIZE];
+	png_text text[4];
+	char title[80];
+	unsigned int i;
+	unsigned int size;
+
+	if (setjmp (png_ptr->jmpbuf))
+		return FALSE;
+
+	png_init_io (png_ptr, e->fp);
+
+	png_set_IHDR (png_ptr, info_ptr,
+		      format->width,
+		      format->height << double_height,
+		      /* bit_depth */ 8,
+		      PNG_COLOR_TYPE_PALETTE,
+		      double_height ? PNG_INTERLACE_ADAM7 : PNG_INTERLACE_NONE,
+		      PNG_COMPRESSION_TYPE_DEFAULT,
+		      PNG_FILTER_TYPE_DEFAULT);
+
+	/* Could be optimized (or does libpng?) */
+	for (i = 0; i < COLOR_MAP_SIZE; ++i) {
+		/* Opaque. */
+		palette[i].red   = VBI3_R (pg->color_map[i]);
+		palette[i].green = VBI3_G (pg->color_map[i]);
+		palette[i].blue	 = VBI3_B (pg->color_map[i]);
+		alpha[i]	 = 255;
+
+		/* Translucent. */
+		palette[i + TRANSLUCENT] = palette[i];
+		alpha[i + TRANSLUCENT] = 128;
+	}
+
+	/* Transparent (black) background. */
+	palette[TRANSPARENT].red   = 0;
+	palette[TRANSPARENT].green = 0;
+	palette[TRANSPARENT].blue  = 0;
+	alpha[TRANSPARENT] = 0;
+
+	png_set_PLTE (png_ptr, info_ptr, palette, 80);
+	png_set_tRNS (png_ptr, info_ptr, alpha, 80, NULL);
+
+	png_set_gAMA (png_ptr, info_ptr, 1.0 / 2.2);
+
+	size = 0;
+
+	if (e->network)
+		size = snprintf (title, sizeof (title),
+				 "%s ", e->network);
+	else
+		title[0] = 0;
+
+	/* FIXME
+	   ISO 8859-1 (Latin-1) character set required,
+	   see png spec for other */
+	if (pg->pgno < 0x100) {
+		size += snprintf (title + size, sizeof (title) - size,
+				  "Closed Caption"); /* proper name */
+	} else if (VBI3_ANY_SUBNO != pg->subno) {
+		size += snprintf (title + size, sizeof (title) - size,
+				  _("Teletext Page %3x.%x"),
+				  pg->pgno, pg->subno);
+	} else {
+		size += snprintf (title + size, sizeof (title) - size,
+				  _("Teletext Page %3x"), pg->pgno);
+	}
+
+	CLEAR (text);
+
+	text[0].key = "Title";
+	text[0].text = title;
+	text[0].compression = PNG_TEXT_COMPRESSION_NONE;
+
+	text[1].key = "Software";
+	text[1].text = e->creator;
+	text[1].compression = PNG_TEXT_COMPRESSION_NONE;
+
+	png_set_text (png_ptr, info_ptr, text, 2);
+
+	png_write_info (png_ptr, info_ptr);
+
+	if (double_height) {
+		for (i = 0; i < format->height; ++i) {
+			uint8_t *s;
+
+			s = image + format->bytes_per_line * i;
+			row_pointer[i * 2 + 0] = s;
+			row_pointer[i * 2 + 1] = s;
+		}
+	} else {
+		for (i = 0; i < format->height; ++i)
+			row_pointer[i] = image + format->bytes_per_line * i;
+	}
+
+	png_write_image (png_ptr, row_pointer);
+
+	png_write_end (png_ptr, info_ptr);
+
+	return TRUE;
+}
+
+static vbi3_bool
 export_png			(vbi3_export *		e,
 				 const vbi3_page *	pg)
 {
 	gfx_instance *gfx = PARENT (e, gfx_instance, export);
 	vbi3_image_format format;
 	unsigned int cw, ch;
-	png_bytep *row_pointer;
 	png_bytep image;
+	png_bytep *row_pointer;
 	unsigned int row_adv;
 	png_byte pen[128];
 	png_bytep canvas;
 	unsigned int row;
-	unsigned int i;
 	png_structp png_ptr;
 	png_infop info_ptr;
-	png_color palette[80];
-	png_byte alpha[80];
-	png_text text[4];
-	char title[80];
 
 	if (pg->columns < 40) { /* caption */
 #ifdef ZAPPING8
@@ -1885,17 +1995,20 @@ export_png			(vbi3_export *		e,
 
 	if (NULL == image) {
 		_vbi3_export_malloc_error (e);
-		vbi3_free(row_pointer);
+		vbi3_free (row_pointer);
 		return FALSE;
 	}
 
 	row_adv = pg->columns * cw * (ch - 1);
 
-	if (pg->drcs_clut)
+	if (pg->drcs_clut) {
+		unsigned int i;
+
 		for (i = 2; i < 2 + 8 + 32; ++i) {
 			pen[i]      = pg->drcs_clut[i]; /* opaque */
-			pen[i + 64] = pg->drcs_clut[i] + 40; /* translucent */
+			pen[i + 64] = pg->drcs_clut[i] + TRANSLUCENT;
 		}
+	}
 
 	canvas = image;
 
@@ -1926,7 +2039,7 @@ export_png			(vbi3_export *		e,
 				       ac,
 				       (unsigned int) !e->reveal,
 				       pen,
-				       pg->columns >= 40);
+				       /* is_ttx */ pg->columns >= 40);
 
 			switch (ac->size) {
 			case VBI3_DOUBLE_WIDTH:
@@ -1958,110 +2071,14 @@ export_png			(vbi3_export *		e,
 		goto unknown_error;
 	}
 
-	/* Avoid possible longjmp breakage due to libpng ugliness */
-	/* XXX nested functions not portable. */
-	{ int do_write() {
-
-	if (setjmp (png_ptr->jmpbuf))
-		return 1;
-
-	png_init_io (png_ptr, e->fp);
-
-	png_set_IHDR (png_ptr, info_ptr,
-		      format.width,
-		      format.height << gfx->double_height,
-		      /* bit_depth */ 8,
-		      PNG_COLOR_TYPE_PALETTE,
-		      (gfx->double_height) ?
-		              PNG_INTERLACE_ADAM7 : PNG_INTERLACE_NONE,
-		      PNG_COMPRESSION_TYPE_DEFAULT,
-		      PNG_FILTER_TYPE_DEFAULT);
-
-	/* Could be optimized (or does libpng?) */
-	for (i = 0; i < 40; ++i) {
-		/* opaque */
-		palette[i].red   = pg->color_map[i] & 0xFF;
-		palette[i].green = (pg->color_map[i] >> 8) & 0xFF;
-		palette[i].blue	 = (pg->color_map[i] >> 16) & 0xFF;
-		alpha[i]	 = 255;
-
-		/* translucent */
-		palette[i + 40]  = palette[i];
-		alpha[i + 40]	 = 128;
+	if (!write_png (e, pg, png_ptr, info_ptr,
+			image, row_pointer, &format,
+			gfx->double_height)) {
+		png_destroy_write_struct (&png_ptr, &info_ptr);
+		goto write_error;
 	}
-
-	alpha[VBI3_TRANSPARENT_BLACK] = 0;
-	alpha[40 + VBI3_TRANSPARENT_BLACK] = 0;
-
-	png_set_PLTE (png_ptr, info_ptr, palette, 80);
-	png_set_tRNS (png_ptr, info_ptr, alpha, 80, NULL);
-
-	png_set_gAMA (png_ptr, info_ptr, 1.0 / 2.2);
-
-	{
-		unsigned int size = 0;
-
-		if (e->network)
-			size = snprintf (title, sizeof (title),
-					 "%s ", e->network);
-		else
-			title[0] = 0;
-
-		/*
-		 *  FIXME
-		 *  ISO 8859-1 (Latin-1) character set required,
-		 *  see png spec for other
-		 */
-		if (pg->pgno < 0x100) {
-			size += snprintf (title + size, sizeof (title) - size,
-					  "Closed Caption"); /* proper name */
-		} else if (VBI3_ANY_SUBNO != pg->subno) {
-			size += snprintf (title + size, sizeof(title) - size,
-					  _("Teletext Page %3x.%x"),
-					  pg->pgno, pg->subno);
-		} else {
-			size += snprintf (title + size, sizeof(title) - size,
-					  _("Teletext Page %3x"), pg->pgno);
-		}
-	}
-
-	CLEAR (text);
-
-	text[0].key = "Title";
-	text[0].text = title;
-	text[0].compression = PNG_TEXT_COMPRESSION_NONE;
-
-	text[1].key = "Software";
-	text[1].text = e->creator;
-	text[1].compression = PNG_TEXT_COMPRESSION_NONE;
-
-	png_set_text (png_ptr, info_ptr, text, 2);
-
-	png_write_info (png_ptr, info_ptr);
-
-	if (gfx->double_height) {
-		for (i = 0; i < format.height; ++i) {
-			uint8_t *s;
-
-			s = image + format.bytes_per_line * i;
-			row_pointer[i * 2 + 0] = s;
-			row_pointer[i * 2 + 1] = s;
-		}
-	} else {
-		for (i = 0; i < format.height; ++i)
-			row_pointer[i] = image + format.bytes_per_line * i;
-	}
-
-	png_write_image (png_ptr, row_pointer);
-
-	png_write_end (png_ptr, info_ptr);
 
 	png_destroy_write_struct (&png_ptr, &info_ptr);
-
-	return 0;
-
-	/* See setjmp above */
-	} if (do_write ()) goto write_error; }
 
 	vbi3_free (row_pointer);
 	vbi3_free (image);
