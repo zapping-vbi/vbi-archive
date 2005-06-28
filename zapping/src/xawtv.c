@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.c,v 1.11 2005-01-08 14:54:29 mschimek Exp $ */
+/* $Id: xawtv.c,v 1.12 2005-06-28 01:05:58 mschimek Exp $ */
 
 /*
    XawTV compatibility functions:
@@ -220,9 +220,7 @@ set_control			(const tveng_device_info *info,
   d = strtod (value, NULL) / 100.0;
   d = SATURATE (d, 0.0, 1.0);
 
-  for (c = NULL; (c = tv_next_control (info, c));)
-    if (c->id == id)
-      break;
+  c = tv_control_by_id (info, id);
 
   if (!c)
     return TRUE; /* not supported by device */

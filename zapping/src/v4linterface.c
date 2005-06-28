@@ -494,9 +494,7 @@ add_controls			(struct control_window *cb,
   cb->table = NULL;
   cb->index = 0;
 
-  ctrl = NULL;
-
-  while ((ctrl = tv_next_control (info, ctrl)))
+  for (ctrl = tv_next_control (info, NULL); ctrl; ctrl = ctrl->_next)
     {
       const tv_video_standard *vs;
 
@@ -660,9 +658,7 @@ update_control_box		(tveng_device_info *	info)
 
   c = ToolBox->controls;
 
-  ctrl = NULL;
-
-  while ((ctrl = tv_next_control (info, ctrl)))
+  for (ctrl = tv_next_control (info, NULL); ctrl; ctrl = ctrl->_next)
     {
       /* XXX Is this safe? Unlikely. */
       if (!c || c->ctrl != ctrl)
@@ -1006,9 +1002,7 @@ tveng_tc_control_by_id		(const tveng_device_info *info,
   const tv_control *c;
   guint i;
 
-  for (c = NULL; (c = tv_next_control (info, c));)
-    if (c->id == id)
-      break;
+  c = tv_control_by_id (info, id);
 
   if (NULL != c)
     for (i = 0; i < num_controls; ++i)
@@ -1032,9 +1026,7 @@ load_control_values		(tveng_device_info *	info,
   if (!tcc || num_controls == 0)
     return 0;
 
-  ctrl = NULL;
-
-  while ((ctrl = tv_next_control (info, ctrl)))
+  for (ctrl = tv_next_control (info, NULL); ctrl; ctrl = ctrl->_next)
     for (i = 0; i < num_controls; i++)
       if (normstrcmp (ctrl->label, tcc[i].name))
 	{
@@ -1080,9 +1072,7 @@ store_control_values		(tveng_device_info *	info,
   tcc = NULL;
   num_controls = 0;
 
-  ctrl = NULL;
-
-  while ((ctrl = tv_next_control (info, ctrl)))
+  for (ctrl = tv_next_control (info, NULL); ctrl; ctrl = ctrl->_next)
     num_controls++;
 
   if (num_controls > 0)
