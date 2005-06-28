@@ -21,6 +21,9 @@ gint			xv_image_port		= -1;
 /* Disable Xv and V4L overlay */
 gint			disable_overlay		= FALSE;
 
+/* Disable VBI (current session) */
+gint			disable_vbi		= FALSE;
+
 /* Will be TRUE if when quitting we were fullscreen */
 gboolean		was_fullscreen = FALSE;
 tveng_tuned_channel *	global_channel_list = NULL;

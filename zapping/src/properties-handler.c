@@ -1314,16 +1314,20 @@ static void
 on_enable_vbi_toggled	(GtkWidget	*widget,
 			 GtkWidget	*page _unused_)
 {
-  gboolean active =
-    gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
-  GtkWidget *itv_props =
-    get_properties_page(widget, _("VBI Options"),
-			_("Interactive TV"));
-  gtk_widget_set_sensitive(lookup_widget(widget,
-					 "vbox19"), active);
+  gboolean active;
+  GtkWidget *itv_props;
+
+  active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+  itv_props = get_properties_page (widget,
+				   _("VBI Options"),
+				   _("Interactive TV"));
+  gtk_widget_set_sensitive (lookup_widget (widget, "vbox19"), active);
 
   if (itv_props)
-    gtk_widget_set_sensitive(itv_props, active);
+    gtk_widget_set_sensitive (itv_props, active);
+
+  /* Override --no-vbi. */
+  disable_vbi = FALSE;
 }
 
 static void
@@ -1338,8 +1342,10 @@ vbi_general_setup	(GtkWidget	*page)
 
       /* Enable VBI decoding */
       widget = lookup_widget(page, "checkbutton6");
-      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
-				   zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi"));
+      gtk_toggle_button_set_active
+	(GTK_TOGGLE_BUTTON(widget),
+	 (!disable_vbi &&
+	  zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi")));
       on_enable_vbi_toggled(widget, page);
       g_signal_connect(G_OBJECT(widget), "toggled",
 		       G_CALLBACK(on_enable_vbi_toggled),
@@ -1390,42 +1396,32 @@ set_toggle		(GtkWidget *page,
 static void
 vbi_general_apply	(GtkWidget	*page)
 {
-
 #ifdef HAVE_LIBZVBI
-
-  togglean enable_vbi;
   GtkWidget *widget;
+  gboolean enable_new, enable_old;
   gchar *text;
 
-  /* enable VBI decoding */
-  enable_vbi = set_toggle (page, "checkbutton6",
-			   "/zapping/options/vbi/enable_vbi");
-  if (enable_vbi == TOGGLE_TO_FALSE)
+  widget = lookup_widget (page, "checkbutton6");
+  enable_new = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+  enable_old = zconf_get_boolean (NULL, "/zapping/options/vbi/enable_vbi");
+
+  if (!disable_vbi)
     {
-      /* XXX bad design */
-#if 0 /* Temporarily removed */
-      zvbi_reset_program_info ();
-      zvbi_reset_network_info ();
-#endif
+      if (enable_new == enable_old)
+	zconf_touch ("/zapping/options/vbi/enable_vbi");
+      else
+	zconf_set_boolean (enable_new, "/zapping/options/vbi/enable_vbi");
     }
-#if 0 /* always */
-  else if (use_vbi == TOGGLE_TO_FALSE)
-    {
-#if 0 /* Temporarily removed */
-      zvbi_reset_network_info ();
-#endif
-    }
-#endif
 
   widget = lookup_widget(page, "fileentry2"); /* VBI device entry */
   text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
 					 TRUE);
   if (text)
     zconf_set_string(text, "/zapping/options/vbi/vbi_device");
+
   g_free(text); /* In the docs it says this should be freed */
 
 #endif /* HAVE_LIBZVBI */
-
 }
 
 #if 0
@@ -1435,6 +1431,7 @@ static void
 itv_setup		(GtkWidget	*page)
 {
   GtkWidget *widget;
+  gboolean enable_vbi;
 
   /* The various itv filters */
   widget = lookup_widget(page, "optionmenu12");
@@ -1467,8 +1464,8 @@ itv_setup		(GtkWidget	*page)
     zconf_get_int(NULL, "/zapping/options/vbi/filter_level"));
 
   /* Set sensitive/unsensitive according to enable_vbi state */
-  gtk_widget_set_sensitive(page, zconf_get_boolean(NULL,
-			   "/zapping/options/vbi/enable_vbi"));
+  enable_vbi = zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi");
+  gtk_widget_set_sensitive(page, enable_vbi && !disable_vbi);
 }
 
 static void

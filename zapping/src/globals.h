@@ -37,6 +37,8 @@ extern gint			xv_image_port;
 
 extern gint			disable_overlay;
 
+extern gint			disable_vbi;
+
 /* Will be TRUE if when quitting we were fullscreen */
 extern gboolean			was_fullscreen;
 extern tveng_tuned_channel *	global_channel_list;

@@ -1,3 +1,260 @@
+2005-06-27    <mschimek@users.sf.net>
+
+	* zapping/plugins/deinterlace/test/ditest-x86.sh: New script to
+	  compare the output of different implementations of each
+	  deinterlace method.
+	* zapping/plugins/deinterlace/test/ditest-3dnow.sh,
+	  zapping/plugins/deinterlace/test/ditest-altivec.sh,
+	  zapping/plugins/deinterlace/test/ditest-mmx.sh,
+	  zapping/plugins/deinterlace/test/ditest-scalar.sh,
+	  zapping/plugins/deinterlace/test/ditest-sse2.sh,
+	  zapping/plugins/deinterlace/test/ditest-sse.sh: New make check
+	  script to ditest a particular implementation of all deinterlace
+	  methods, with SIMD emulator if necessary.
+	* zapping/plugins/deinterlace/test/md5sums-3dnow,
+	  zapping/plugins/deinterlace/test/md5sums-mmx,
+	  zapping/plugins/deinterlace/test/md5sums-scalar,
+	  zapping/plugins/deinterlace/test/md5sums-sse,
+	  zapping/plugins/deinterlace/test/md5sums-sse2:
+	  New file containing MD5 checksums of the expected output of this
+	  implementation of each deinterlace method for make check.
+	* zapping/plugins/deinterlace/test/gen-md5sums.sh: New script to
+	  generate MD5 checksums of the expected output of each
+	  implementation of each deinterlace method, using a SIMD emulator
+	  if necessary, for make check.
+	* zapping/plugins/deinterlace/test/emulator.sh: New shell helper
+	  function to find a CPU emulator if the required SIMD extension
+	  isn't supported, for various tests.
+	* zapping/plugins/deinterlace/test/ditest-all.sh: New shell helper
+	  function to repeat a ditest run with all deinterlace methods. 
+	* zapping/plugins/deinterlace/test/guard.h: New miniature built-in
+	  efence for ditest (make check). Copy of test/guard.h.
+	* plugins/deinterlace/test/dicmp.c: Extended for additional and
+	  automated tests.
+	* plugins/deinterlace/test/cpudt.c,
+	  plugins/deinterlace/test/dicmp.c: Moved here from
+	  plugins/deinterlace for make check.
+	* zapping/plugins/deinterlace/test/Makefile.am: New file for
+	  deinterlace plugin make check.
+	* zapping/plugins/deinterlace/test/README: New file.
+
+	* plugins/deinterlace/DI_GreedyH/DI_GreedyDeLoop.asm,
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyH.asm,
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyHF.asm,
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyHM2.h,
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyHM_NV.c,
+	  plugins/deinterlace/DI_GreedyH/DI_GrUpdtFS.asm,
+	  plugins/deinterlace/DI_GreedyH/DScalerCalls.c: Obsoleted by
+	  conversion to vector intrinsics, removed.
+	* plugins/deinterlace/DI_GreedyH/DI_GreedyHM_V.c,
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyHMPulldown.c, 
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyHM.h,
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyHM.c,
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyH.c,
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyHF.c: Converted to vector
+	  intrinsics. Added support for 3DNow, SSE2, x86-64 and AltiVec.
+	  Removed ununsed DScaler code. Cleaned up. All options work now.
+	* plugins/deinterlace/DI_GreedyH/Makefile.am: Rewrote along
+	  plugins/deinterlace/DI_Misc/Makefile.am as this code has been
+	  converted to vector intrinsics as well.
+
+	* plugins/deinterlace/DI_Misc/DI_TwoFrame.c: AltiVec
+	  compile fixes.
+	* plugins/deinterlace/DI_Misc/DI_TomsMoComp.c: New file integrating
+	  all the code formerly in plugins/deinterlace/DI_TomsMoComp.
+	  Converted the MMX inline asm to vector intrinsics. Added support
+	  for 3DNow, SSE2, x86-64 and AltiVec. Cleaned up. All options
+	  work now.
+	* plugins/deinterlace/DI_Misc/DI_MoComp2.c: New file integrating all
+	  the code formerly in plugins/deinterlace/DI_MoComp2. Converted the
+	  MMX inline asm to vector intrinsics. Added support for 3DNow, SSE2,
+	  x86-64 and AltiVec. Cleaned up.
+	* plugins/deinterlace/DI_Misc/DI_VideoWeave.c,
+	  plugins/deinterlace/DI_Misc/DI_VideoBob.c,
+	  plugins/deinterlace/DI_Misc/DI_TwoFrame.c,
+	  plugins/deinterlace/DI_Misc/DI_OldGame.c,
+	  plugins/deinterlace/DI_Misc/DI_BlendedClip.c,
+	  plugins/deinterlace/DI_Misc/DI_Adaptive.c,
+	  plugins/deinterlace/windows.h, plugins/deinterlace/DS_Deinterlace.h,
+	  plugins/deinterlace/DS_ApiCommon.h: Replaced longs by ints for
+	  proper operation on LP64 machines. Code assumes option values
+	  cast to int.
+	* plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c: Upper limit of
+	  GreedyTwoFrameThreshold is 127, not 128.
+	* plugins/deinterlace/DI_Misc/DI_Bob.c: Replaced inline asm by
+	  vector intrinsics.
+	* plugins/deinterlace/DI_Misc/DI_Weave.c,
+	  plugins/deinterlace/DI_Misc/DI_ScalerBob.c,
+	  plugins/deinterlace/DI_Misc/DI_OddOnly.c,
+	  plugins/deinterlace/DI_Misc/DI_Bob.c,
+	  plugins/deinterlace/DI_Misc/DI_EvenOnly.c: Added support for
+	  x86-64, AltiVec and a scalar version. Cleaned up.
+	* plugins/deinterlace/DI_Misc/DI_VideoWeave.c,
+	  plugins/deinterlace/DI_Misc/DI_VideoBob.c,
+	  plugins/deinterlace/DI_Misc/DI_TwoFrame.c,
+	  plugins/deinterlace/DI_Misc/DI_OldGame.c,
+	  plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c, 
+	  plugins/deinterlace/DI_Misc/DI_Greedy.c: Cleaned up.
+	* plugins/deinterlace/DI_Misc/Makefile.am (SIMD_CFLAGS): Increased
+	  inline limits for TomsMoComp and MoComp2. simd.h switches changed.
+	(libDI_Misc_la_CFLAGS): Removed -masm=intel as we no longer have any
+	  inline asm left over from DScaler.
+	(libDI_Misc_la_SOURCES, SIMD_SOURCES): DI_Bob.c, DI_EvenOnly.c
+	  DI_OddOnly.c, DI_ScalerBob.c, DI_Weave.c are now SIMD_SOURCES.
+
+	* plugins/deinterlace/DI_TomsMoComp,
+	  plugins/deinterlace/DI_MoComp2: Directory removed. This code is
+	  now in DI_Misc.
+	* plugins/deinterlace/windows.h: Improved SIMD helpers, added new
+	  scalar and SIMD optimized copy line and load-shift functions for
+	  new scalar, MoComp2, TomsMoComp and GreedyH plugin implementations.
+	* zapping.schemas.in: Added GreedyTestMode key.
+	* plugins/deinterlace/DS_Deinterlace.h: Added DEINTERLACE_METHOD
+	  prototypes.
+	* plugins/deinterlace/DS_Control.h: Removed unused DScaler code.
+	* plugins/deinterlace/preferences.c (load_options): Skip hidden
+	  options, for GreedyTestMode.
+	* plugins/deinterlace/main.c: Improved definition of SIMD consts. If
+	  DI_MAIN_HEIGHT_DIV is given, process image bottom instead of top.
+	(plugin_init): A SIMD CPU is no longer required.  DScaler
+	  cpu_feature_flags no longer needed, removed.  Added GreedyTestMode
+	  gconf key.
+	* plugins/deinterlace/Makefile.am: Removed ditest and dicmp
+	  targets. These are now in test/.
+	(SUBDIRS): DI_MoComp2, DI_TomsMoComp removed.  This code is now in
+	  DI_Misc. Added test.
+	(libdeinterlace_zapping_la_LIBADD): Removed
+	  DI_MoComp2/libDI_MoComp2.la, DI_TomsMoComp/libDI_TomsMoComp.la.
+
+	* plugins/Makefile.am: Since the deinterlace plugin now has scalar
+	  functions too, always compile it.
+	* libtv/cpu.h: Added CPU_FEATURE_SSE3 for simd.h.
+	* libtv/simd.h: Improved and added new functions for MoComp2,
+	  TomsMoComp and GreedyH.
+
+	* libvbi/export.c (vbi3_export_new): Cleared pointer, without NULL
+	  check, instead of vbi3_export struct after allocation. No
+	  asprintf when errstr is NULL. Patch #1188283 by makomk.
+
+	* plugins/teletext/view.c: s/VBI3_41_COLUMNS/VBI3_PADDING. 
+	* libvbi/export.h (vbi3_export_stdio): vbi3_page* may be NULL.
+	* libvbi/export.c (vbi3_export_info_enum): Didn't copy open_format.
+	* libvbi/bcd.h, libvbi/teletext.c, libvbi/network.c,
+	  libvbi/teletext_decoder.c, libvbi/teletext_decoder.h,
+	  libvbi/teletext_decoder-priv.h, libvbi/teletext.c,
+	  libvbi/sampling_par.h, libvbi/page.h, libvbi/misc.h,
+	  libvbi/export.c, libvbi/export.h, libvbi/exp-vtx.c,
+	  libvbi/exp-txt.c, libvbi/exp-html.c, libvbi/exp-gfx.c,
+	  libvbi/exp-gfx.h, libvbi/event.c, libvbi/event-priv.h,
+	  libvbi/event.h, libvbi/cache.c, libvbi/cache.h:
+	  Resynced with libzvbi 0.3.
+	* libvbi/Makefile.am (AM_CFLAGS): Compile with -DZAPPING8 to disable
+	  incomplete code. Removed such #defines in .c files.
+	(INCLUDES): Added top_srcdir/common to remove common/ from
+	  #include paths. common/ doesn't exist in libzvbi source tree.
+
+	* libtv/mmx/cpu.c (cpuid): x86-64 version didn't compile with older
+	  GCC.
+	* libvbi/top_title.c, libvbi/search.c, libvbi/search.h,
+	  libvbi/sampling_par.h, libvbi/misc.c, libvbi/image_format.h,
+	  libvbi/hamm.h, libvbi/hamm.c, libvbi/conv.c, libvbi/conv.h,
+	  libvbi/cache.c, libtv/sse/copy_block.c, libtv/mmx/copy_block.c,
+	  libtv/mmx/clear_block.h, libtv/avec/clear_block.h, libtv/misc.h, 
+	  libtv/image_format.c, libtv/image_format.h, libtv/clip_vector.c: 
+	  Replaced ints referring to memory sizes to longs for proper
+	  operation on LP64 systems.
+
+	* libvbi/macros.h (_vbi3_nonnull), libtv/macros.h (_tv_nonnull):
+	  This __attribute__ is not available before GCC 3.3.
+	* libvbi/macros.h (_vbi3_alloc): This __attribute__ is not
+	  available before GCC 3.0.
+
+	* src/tvengxv.c, src/tvengemu.c, src/tvengbktr.c, src/tveng25.c,
+	  src/tveng1.c, src/tveng_private.h, src/tveng.h, src/tveng.c:
+	  Replaced the code combining a soundcard volume and mute control
+	  with TV card controls by a layer of virtual controls. Moved the
+	  dead xv control code into video_xv.c, not yet integrated into
+	  the virtual control layer. Moved the control struct and methods
+	  into libtv/control.c/.h. Separated functions to access virtual
+	  and tv panel controls, and simplified various helper functions.
+	* src/video_xv.c: Moved dead xv control code from tveng.c here, not
+	  used yet.
+	* src/xawtv.c (set_control), src/v4linterface.c: Simplifications
+	  due to new virtual controls. 
+	* libtv/control.c, libtv/control.h: New files. tv_control struct
+	  and methods moved here from src/tveng.c, src/tveng.h.
+	* libtv/Makefile.am (libtv_la_SOURCES): Added control.c, control.h.
+
+	* test/clear_image-mmx.sh, test/clear_image-sse.sh,
+	  test/memcpy-mmx.sh, test/memcpy-sse.sh, test/simd-3dnow.sh,
+	  test/simd-altivec.sh, test/simd-mmx.sh, test/simd-sse2.sh,
+	  test/simd-sse.sh: New make check script to run this implementation
+	  of the test app, with emulator if necessary.
+	* test/simd-emu.sh: Find a CPU emulator if the required SIMD
+	  extension isn't supported at make check time.
+	* test/cpudt.c: New tool to determine which SIMD extensions are
+	  supported by our CPU during make check. From plugins/deinterlace.
+	* test/README: New file.
+	* test/simd.c: Fixed saturation macros. Improved definition of
+	  SIMD consts.
+	(test): Added missing vsplat, vzero, vminus1, vor, vxor, vector
+	  shift, vadds, vsubs, vector compare, vector min/max checks.
+          AltiVec compile fixes.
+	(PASS, FAIL): Replaced vsplat by scalar code, giving more reliable
+	  results and working around a GCC vector initialization bug.
+	* test/simd.c, test/memcpy.c, test/clear_image.c:
+	  Don't try all implementations, let the user choose one (and run
+	  the test app with emulator if necessary).
+	* test/Makefile.am: Rewrote to make check SIMD code with emulator
+	  if necessary, as we do in the deinterlace plugin.
+
+	* help/man/zapping.xml: Documented --cpu-features option.
+	* src/main.c (main): Added --cpu-features option to override CPU
+	  detection for tests.
+	* libtv/cpu.c, libtv/cpu.h: New function
+	  cpu_feature_set_from_string() for --cpu-features option and make
+	  check tools.
+
+	* configure.in: Since the deinterlace plugin now has scalar
+	  functions too, list it as always available.
+	(GCC_VERSION): Moved GCC version check into an AC_DEFUN.
+	(CHECK_SIMD): Check for more SIMD-broken GCC versions.
+	(AC_OUTPUT): Added plugins/deinterlace/test/Makefile. Removed
+	  DI_MoComp2 and DI_TomsMoComp, this code is now in DI_Misc.
+
+2005-06-12    <mschimek@users.sf.net>
+
+	* libvbi/misc.h, src/zmisc.h, libvbi/dlist.h (is_member, rem_head),
+	  libvbi/bcd.c (vbi3_dec2bcd, vbi3_bcd2dec), libtv/misc.h, 
+	  libtv/image_format.c (copy_block1_generic), libtv/avec/clear_block.h,
+	  libtv/sse/copy_block.c (copy_block1_sse_nt),
+	  libtv/mmx/copy_block.c (copy_block1_mmx), libtv/mmx/clear_block.h:
+	  Replaced __builtin_expect() by more readable likely()/unlikely()
+	  macros.  Thanks to Linux hackers for the idea.
+	
+2005-06-01    <mschimek@users.sf.net>
+
+	* zapping_setup_fb/Makefile.am (install-binPROGRAMS),
+	(uninstall-binPROGRAMS): Replaced hard-coded path /etc by
+	  $(sysconfdir). This follows GNU standards as recommended in
+	  automake.info, permits non-root installs and proper make
+	  distcheck. NOTE the default $(sysconfdir) is $(prefix)/etc,
+	  so root installation now requires ./configure --sysconfdir=/etc.
+
+	* libvbi/teletext.c (level_one_row): Corrected 2004-11-08
+	  wide_char fix.
+	* libvbi/exp-gfx.c (DRAW_CHAR): Reverted incorrect 2004-11-08
+	  double width character bpl fix.
+
+	* plugins/deinterlace/DI_MoComp2/SearchLoopBottom.inc,
+	  plugins/deinterlace/DI_MoComp2/MoComp2.h,
+	  plugins/deinterlace/DI_MoComp2/DI_MoComp2.c, 
+	  plugins/deinterlace/DI_TomsMoComp/SearchLoopBottom.inc,
+	  plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c,
+	  plugins/deinterlace/DI_TomsMoComp/TomsMoComp.h: Changed SIMD
+	  constants from static const to global const due to optimization
+	  problems with gcc 4.1.
+
 2005-05-04    <mschimek@users.sf.net>
 
 	* src/yuv2rgb.c: Didn't compile on x86-64 because it references
@@ -13,7 +270,18 @@
 	* src/capture.c (capture_start): Changed to request N_BUNDLES,
 	  ie. eight buffers, accept four, and fall back to using the capture
 	  thread if less. See also zapping-misc 2005-04-24.
-	* configure.in: Bumped version number to 0.9.5.
+
+2005-04-22    <mschimek@users.sf.net>
+
+ 	* src/zvbi.c (on_vbi_prefs_changed, on_vbi_device_changed),
+ 	  src/properties-handler.c (vbi_general_setup, vbi_general_apply).
+ 	  src/main.c (startup_teletext), src/globals.c, src/globals.h:
+ 	  Added shadow VBI switch to disable VBI on startup errors or
+ 	  --no-vbi for the current session.
+ 	* configure.in: Bumped version number to 0.9.5.
+	* configure.in: Users were confused when Zapping compiled without
+	  libzvbi, now configure fails when the library isn't present
+	  unless --without-zvbi was given.
 
 2005-04-21    <mschimek@users.sf.net>
 
@@ -29,7 +297,8 @@
 	  plugins/deinterlace/DI_TomsMoComp/TomsMoComp.h: Used SearchEffort
 	  value of MoComp2.  Renamed it to SearchEffort2.
 	* plugins/deinterlace/DI_Misc/Makefile.am (SIMD_CFLAGS): Add --param
-	  switches only if supported by gcc (compile bug reported by Christian).
+	  switches only if supported by gcc (compile bug reported by
+	  Christian).
 	* src/plugins.c (plugin_init),
 	  src/main.c (startup_zapping), plugins/teletext/main.c (plugin_init),
 	  plugins/screenshot/screenshot.c (plugin_init, plugin_load_config),

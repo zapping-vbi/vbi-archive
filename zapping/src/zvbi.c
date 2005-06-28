@@ -1501,8 +1501,12 @@ on_vbi_prefs_changed		(const gchar *		key _unused_,
 				 gboolean *		new_value,
 				 gpointer		data _unused_)
 {
+  gboolean enable;
+
+  enable = ((0 != *new_value) && !disable_vbi);
+
   /* Try to open the device */
-  if (!vbi && *new_value)
+  if (!vbi && enable)
     {
       D();
 
@@ -1510,14 +1514,16 @@ on_vbi_prefs_changed		(const gchar *		key _unused_,
 	{
 	  /* Define in site_def.h if you don't want this to happen */
 #ifndef DO_NOT_DISABLE_VBI_ON_FAILURE
-	  zcs_bool(FALSE, "enable_vbi");
+	  disable_vbi = TRUE;
 #endif	  
 	}
 
       D();
     }
 
-  if (vbi && !*new_value)
+  enable = ((0 != *new_value) && !disable_vbi);
+
+  if (vbi && !enable)
     {
       D();
 
@@ -1542,10 +1548,13 @@ on_vbi_device_changed		(const gchar *		key _unused_,
 				 const gchar **		new_value _unused_,
 				 gpointer		data _unused_)
 {
-  gboolean enable_vbi;
+  gboolean enable;
 
-  enable_vbi = zcg_bool (NULL, "enable_vbi");
-  if (enable_vbi && NULL != vbi)
+  enable = zcg_bool (NULL, "enable_vbi");
+
+  if (enable /* persistent */
+      && !disable_vbi /* current session */
+      && NULL != vbi)
     {
       int given_fd;
 
@@ -1569,7 +1578,7 @@ on_vbi_device_changed		(const gchar *		key _unused_,
 	{
 	  /* Define in site_def.h if you don't want this to happen */
 #ifndef DO_NOT_DISABLE_VBI_ON_FAILURE
-	  zcs_bool(FALSE, "enable_vbi");
+	  disable_vbi = TRUE;
 	  vbi_gui_sensitive (FALSE);
 #endif	  
 	}

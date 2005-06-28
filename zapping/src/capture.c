@@ -520,6 +520,7 @@ capture_source_dispatch		(GSource *		source,
 
 	  n_frames = display_filter (display_buffers[0].src_image,
 				     display_buffers[1].src_image);
+
 	  if (n_frames > 0)
 	    {
 	      video_blit_frame (&display_buffers[0].frame);

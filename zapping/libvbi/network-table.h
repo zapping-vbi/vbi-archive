@@ -1,4 +1,4 @@
-/* $Id: network-table.h,v 1.3 2005-01-31 07:21:34 mschimek Exp $ */
+/* $Id: network-table.h,v 1.4 2005-06-28 01:13:13 mschimek Exp $ */
 
 /* Generated file, do not edit! */
 
@@ -32,7 +32,7 @@ country_table [] = {
 	{ 0x3200, 0x1600, 0x0000, 0x0000, "BE", "Belgium" },
 	{ 0x4100, 0x2400, 0x3400, 0x0400, "CH", "Switzerland" },
 	{ 0x0000, 0x3200, 0x0000, 0x0000, "CZ", "Czech Republic" },
-	{ 0x4900, 0x0D00, 0x3D00, 0x0000, "DE", "Germany" },
+	{ 0x4900, 0x0000, 0x3D00, 0x0D00, "DE", "Germany" },
 	{ 0x0000, 0x2900, 0x0000, 0x0000, "DK", "Denmark" },
 	{ 0x0000, 0x0000, 0x0000, 0x0000, "ES", "Spain" },
 	{ 0x3500, 0x2600, 0x0000, 0x0000, "FI", "Finland" },

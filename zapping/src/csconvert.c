@@ -387,7 +387,7 @@ sbggr_bgr			(void *			dst_image,
 		break;
 				
 	default:
-		assert (!"reached");
+		assert (0);
 	}
 }
 
