@@ -276,7 +276,7 @@ image_new(tv_pixfmt pixfmt, guint w, guint h)
       g_assert_not_reached ();
     }
 
-  printv ("Created image: %s %dx%d, %d, %d\n",
+  printv ("Created image: %s %ux%u, %lu, %lu\n",
 	  new_image->fmt.pixel_format->name,
 	  new_image->fmt.width,
 	  new_image->fmt.height,

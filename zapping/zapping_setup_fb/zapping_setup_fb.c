@@ -340,8 +340,8 @@ main				(int			argc,
       message (2, "Screen %d:\n"
 	       "  position               %u, %u - %u, %u\n"
 	       "  frame buffer address   0x%lx\n"
-	       "  frame buffer size      %ux%u pixels, 0x%x bytes\n"
-	       "  bytes per line         %u bytes\n"
+	       "  frame buffer size      %ux%u pixels, 0x%lx bytes\n"
+	       "  bytes per line         %lu bytes\n"
 	       "  pixfmt                 %s\n",
 	       xs->screen_number,
 	       xs->x,
