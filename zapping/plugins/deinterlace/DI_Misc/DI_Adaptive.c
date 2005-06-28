@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_Adaptive.c,v 1.2 2005-02-05 22:20:54 mschimek Exp $
+// $Id: DI_Adaptive.c,v 1.3 2005-06-28 00:49:17 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 Mark Rejhon and Steve Grimm.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,12 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2.2.1  2005/05/20 05:45:14  mschimek
+// *** empty log message ***
+//
+// Revision 1.2  2005/02/05 22:20:54  mschimek
+// Completed l18n.
+//
 // Revision 1.1  2005/01/08 14:54:23  mschimek
 // *** empty log message ***
 //
@@ -59,16 +65,16 @@
 #include "DS_Deinterlace.h"
 //Z #include "..\help\helpids.h"
 
-long        StaticImageFieldCount = 100;
-long        LowMotionFieldCount = 4;
-long        StaticImageMode = INDEX_WEAVE;
-long        LowMotionMode = INDEX_VIDEO_2FRAME;
-long        HighMotionMode = INDEX_VIDEO_2FRAME;
-long        AdaptiveThres32Pulldown = 15;
-long        AdaptiveThresPulldownMismatch = 900;
+int        StaticImageFieldCount = 100;
+int        LowMotionFieldCount = 4;
+int        StaticImageMode = INDEX_WEAVE;
+int        LowMotionMode = INDEX_VIDEO_2FRAME;
+int        HighMotionMode = INDEX_VIDEO_2FRAME;
+int        AdaptiveThres32Pulldown = 15;
+int        AdaptiveThresPulldownMismatch = 900;
 
-long NumVideoModes = 0;
-long CurrentIndex = -1;
+int NumVideoModes = 0;
+int CurrentIndex = -1;
 DEINTERLACE_METHOD** DeintMethods = NULL;
 DEINTERLACE_METHOD* CurrentMethod = NULL;
 DEINTERLACEPLUGINSETSTATUS* pfnSetStatus;
@@ -80,7 +86,7 @@ LPCSTR ModeList[100];
 //
 // Switches to a new adaptive mode.  Updates the status bar if needed.
 ///////////////////////////////////////////////////////////////////////////////
-void UpdateAdaptiveMode(long Index)
+void UpdateAdaptiveMode(int Index)
 {
     int i;
     BOOL bFound = FALSE;
@@ -152,8 +158,8 @@ void UpdateAdaptiveMode(long Index)
 ///////////////////////////////////////////////////////////////////////////////
 BOOL DeinterlaceAdaptive(TDeinterlaceInfo* pInfo)
 {
-    static long StaticMatchCount = 0;
-    static long LowMatchCount = 0;
+    static int StaticMatchCount = 0;
+    static int LowMatchCount = 0;
 
     // If this is our first time, update the current adaptive mode to whatever
     // the ini file said our high-motion mode should be.
@@ -228,7 +234,7 @@ BOOL DeinterlaceAdaptive(TDeinterlaceInfo* pInfo)
     }
 }
 
-void __cdecl AdaptiveStart(long NumPlugIns, DEINTERLACE_METHOD** OtherPlugins, DEINTERLACEPLUGINSETSTATUS* SetStatus)
+void __cdecl AdaptiveStart(int NumPlugIns, DEINTERLACE_METHOD** OtherPlugins, DEINTERLACEPLUGINSETSTATUS* SetStatus)
 {
     int i;
     int j;
@@ -329,7 +335,8 @@ DEINTERLACE_METHOD AdaptiveMethod =
     IDH_ADAPTIVE,
 };
 
-DEINTERLACE_METHOD* DI_Adaptive_GetDeinterlacePluginInfo(long CpuFeatureFlags)
+DEINTERLACE_METHOD *
+DI_Adaptive_GetDeinterlacePluginInfo (void)
 {
     return &AdaptiveMethod;
 }

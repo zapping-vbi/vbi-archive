@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// $Id: DS_ApiCommon.h,v 1.2 2005-03-30 21:30:52 mschimek Exp $
+// $Id: DS_ApiCommon.h,v 1.3 2005-06-28 00:49:49 mschimek Exp $
 ///////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -23,6 +23,13 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2.2.1  2005/05/20 05:45:13  mschimek
+// *** empty log message ***
+//
+// Revision 1.2  2005/03/30 21:30:52  mschimek
+// MEMCPY_FUNC: Source is const pointer.
+// _DEINTERLACE_METHOD: Constness fixes.
+//
 // Revision 1.1  2005/01/08 14:54:22  mschimek
 // *** empty log message ***
 //
@@ -120,7 +127,7 @@ typedef enum
     return Value indicates whether.rest of screen needs to be
     refreshed
 */
-typedef BOOL (__cdecl SETTING_ONCHANGE)(long NewValue);
+typedef BOOL (__cdecl SETTING_ONCHANGE)(int NewValue);
 
 /** A Dscaler setting that may be manipulated
 */
@@ -128,13 +135,13 @@ typedef struct
 {
     const char* szDisplayName;
     SETTING_TYPE Type;
-    long LastSavedValue;
-    long* pValue;
-    long Default;
-    long MinValue;
-    long MaxValue;
-    long StepValue;
-    long OSDDivider;
+    int LastSavedValue;
+    int* pValue;
+    int Default;
+    int MinValue;
+    int MaxValue;
+    int StepValue;
+    int OSDDivider;
     const char** pszList;
     const char* szIniSection;
     const char* szIniEntry;
@@ -224,13 +231,13 @@ typedef struct
     int FieldHeight;
 
     /// Results from the NTSC Field compare
-    long FieldDiff;
+    int FieldDiff;
     /// Results of the PAL Mode deinterlace detect
-    long CombFactor;
+    int CombFactor;
     /// Function pointer to optimized memcpy function
     MEMCPY_FUNC* pMemcpy;
     /// What Type of CPU are we running
-    long CpuFeatureFlags;
+    int CpuFeatureFlags;
     /// Are we behind with processing
     BOOL bRunningLate;
     /// Are we behind with processing
@@ -243,7 +250,7 @@ typedef struct
     /** distance between lines in image
         need not match the pixel width
     */
-    long InputPitch;
+    int InputPitch;
 } TDeinterlaceInfo;
 
 #endif
