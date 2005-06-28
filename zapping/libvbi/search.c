@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.26 2005-01-31 07:09:38 mschimek Exp $ */
+/* $Id: search.c,v 1.27 2005-06-28 00:59:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -650,7 +650,7 @@ vbi3_search_ucs2_new		(vbi3_cache *		ca,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
 				 const uint16_t *	pattern,
-				 unsigned int		pattern_size,
+				 unsigned long		pattern_size,
 				 vbi3_bool		casefold,
 				 vbi3_bool		regexp,
 				 vbi3_search_progress_cb *progress,
@@ -670,8 +670,7 @@ vbi3_search_ucs2_new		(vbi3_cache *		ca,
 	}
 
 	if (!(s = vbi3_malloc (sizeof (*s)))) {
-		vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-				 "Out of memory (%u)", sizeof (*s));
+		error ("Out of memory (%u bytes)", sizeof (*s));
 		return NULL;
 	}
 
@@ -694,8 +693,7 @@ vbi3_search_ucs2_new		(vbi3_cache *		ca,
 
 		size = pattern_size * 2 * sizeof (*esc_pattern);
 		if (!(esc_pattern = vbi3_malloc (size))) {
-			vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-					 "Out of memory (%u)", size);
+			error ("Out of memory (%u buffer)", size);
 			goto failure;
 		}
 
@@ -817,7 +815,7 @@ vbi3_search_ucs2_new		(vbi3_cache *		ca,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
 				 const uint16_t *	pattern,
-				 unsigned int		pattern_size,
+				 unsigned long		pattern_size,
 				 vbi3_bool		casefold,
 				 vbi3_bool		regexp,
 				 vbi3_search_progress_cb *progress,

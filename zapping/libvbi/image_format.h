@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.3 2005-01-31 07:15:51 mschimek Exp $ */
+/* $Id: image_format.h,v 1.4 2005-06-28 01:00:12 mschimek Exp $ */
 
 #ifndef __ZVBI3_IMAGE_FORMAT_H__
 #define __ZVBI3_IMAGE_FORMAT_H__
@@ -336,30 +336,30 @@ typedef struct {
 	 * this refers to the Y plane only, with implied y_size =
 	 * bytes_per_line * height.
 	 */
-	unsigned int		bytes_per_line;
+	unsigned long		bytes_per_line;
 
 	/** For planar formats only, refers to the U and V plane. */
-	unsigned int		uv_bytes_per_line;
+	unsigned long		uv_bytes_per_line;
 
 	/**
 	 * For packed formats the image offset in bytes from the buffer
 	 * start. For planar formats this refers to the Y plane.
 	 */
-	unsigned int		offset;
+	unsigned long		offset;
 
 	/**
 	 * For planar formats only, the byte offset of the U and V
 	 * plane from the start of the buffer.
 	 */
-	unsigned int		u_offset;
-	unsigned int		v_offset;
+	unsigned long		u_offset;
+	unsigned long		v_offset;
 
 	/**
 	 * Buffer size. For packed formats size >= offset + height *
 	 * bytes_per_line. For planar formats size >=
 	 * MAX (offset + y_size, u_offset + uv_size, v_offset + uv_size).
 	 */
-	unsigned int		size;
+	unsigned long		size;
 
 	/** Pixel format used by the buffer. */
 	vbi3_pixfmt		pixfmt;

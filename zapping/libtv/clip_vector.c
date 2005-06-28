@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clip_vector.c,v 1.1 2004-09-10 04:55:01 mschimek Exp $ */
+/* $Id: clip_vector.c,v 1.2 2005-06-28 01:03:11 mschimek Exp $ */
 
 #include <stdlib.h>		/* malloc() */
 #include "misc.h"
@@ -58,7 +58,7 @@ tv_clip_vector_set		(tv_clip_vector *	dst,
 	if (src) {
 		if (src->size > dst->capacity) {
                         tv_clip *clip_vector;
-			unsigned int size;
+			unsigned long size;
 
                         assert (src->capacity >= src->size);
 
@@ -92,7 +92,7 @@ tv_clip_vector_copy		(tv_clip_vector *	dst,
 
 	if (src) {
 		tv_clip *clip_vector;
-		unsigned int size;
+		unsigned long size;
 
 		size = src->capacity * sizeof (*clip_vector);
 		if (!(clip_vector = malloc (size)))
@@ -204,7 +204,7 @@ _tv_clip_vector_add_clip_xy	(tv_clip_vector *	vector,
 		if (vector->size + n >= vector->capacity) {
 			tv_clip *new_vector;
 			unsigned int new_capacity;
-			unsigned int size;
+			unsigned long size;
 
 			/* 0 < n <= size <= capacity */
 			new_capacity = vector->capacity * 2;
@@ -270,7 +270,7 @@ _tv_clip_vector_add_clip_xy	(tv_clip_vector *	vector,
 	if (vector->size == vector->capacity) {
 		tv_clip *new_vector;
 		unsigned int new_capacity;
-		unsigned int size;
+		unsigned long size;
 
 		new_capacity = (vector->capacity < 16) ? 16
 			: vector->capacity * 2;
@@ -322,13 +322,13 @@ tv_clip_vector_to_clip_mask	(tv_clip_vector *	vector,
 				 unsigned int		height)
 {
 	uint8_t *mask;
-	unsigned int bpl;
+	unsigned long bpl;
 	tv_clip *clip;
 	unsigned int count;
 
 	assert (NULL != vector);
 
-	bpl = (width + 7) & (unsigned int) -8; 
+	bpl = (width + 7) & (unsigned long) -8; 
 
 	if (!(mask = calloc (1, height * bpl)))
 		return NULL;

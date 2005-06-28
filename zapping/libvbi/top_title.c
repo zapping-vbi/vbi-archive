@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top_title.c,v 1.2 2005-01-08 14:54:21 mschimek Exp $ */
+/* $Id: top_title.c,v 1.3 2005-06-28 00:59:18 mschimek Exp $ */
 
 #include <stdlib.h>		/* malloc(), qsort() */
 #include "conv.h"		/* _vbi3_strdup_locale_teletext() */
@@ -346,7 +346,7 @@ cache_network_get_top_titles	(cache_network *	cn,
 
 			if (size + 1 >= capacity) {
 				vbi3_top_title *tt1;
-				unsigned int n;
+				unsigned long n;
 
 				n = sizeof (*tt) * 2 * capacity;
 				if (!(tt1 = vbi3_realloc (tt, n))) {
