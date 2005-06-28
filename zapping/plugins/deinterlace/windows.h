@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: windows.h,v 1.6 2005-03-30 21:28:26 mschimek Exp $ */
+/* $Id: windows.h,v 1.7 2005-06-28 00:49:29 mschimek Exp $ */
 
 #ifndef WINDOWS_H
 #define WINDOWS_H
@@ -27,390 +27,421 @@
 #  include "config.h"
 #endif
 
+#include <stdlib.h>		/* malloc() */
 #include <stddef.h>		/* size_t */
 #include <inttypes.h>		/* int64_t */
 #include <assert.h>
+#include <string.h>		/* memcpy() */
 #include "common/intl-priv.h"	/* i18n */
+#include "libtv/misc.h"
 #include "libtv/cpu.h"		/* cpu_features */
+#include "libtv/simd.h"
 
-#ifdef SIMD
-#  include "libtv/simd.h"
+#if SIMD
 
-static __inline__ v16
-yuyv2yy				(vu8			yuyv)
-{
-	if (Z_BYTE_ORDER == Z_LITTLE_ENDIAN) {
-		/* 0xVVY1UUY0 -> 0x00Y100Y0 */
-		return vand ((v16) yuyv, vsplat16_255);
-	} else {
-		/* 0xY0UUY1VV -> 0x00Y000Y1 */
-		return (v16) vsru16 ((vu16) yuyv, 8);
-	}
-}
+static void
+copy_line			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		n_bytes)
+__attribute__ ((unused));
 
-#if SIMD == AVEC
+static void
+copy_line_pair			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		n_bytes,
+				 unsigned int		dst_bpl)
+__attribute__ ((unused));
 
-/* Do an aligned load from s, and two unaligned loads from
-    s + offs - dist and s + offs + dist.  Offs and dist are given
-    in bytes, offs must be a multiple of sizeof (vu8). */
-static __inline__ void
-uloadxt				(vu8 *			left,
-				 vu8 *			center,
-				 vu8 *			right,
-				 const vu8 *		s,
-				 unsigned int		offs,
-				 unsigned int		dist)
-{
-	vu8 t1, t2, t3;
+#  if Z_BYTE_ORDER == Z_LITTLE_ENDIAN
 
-	s += offs / sizeof (*s);
+#    define YMask vsplat16_255
+#    define UVMask vsplat16_m256
+#    define yuyv2yy(yuyv) ((v16) vand ((v16)(yuyv), YMask))
+#    define yuyv2uv(yuyv) ((v16) vsru16 ((v16)(yuyv), 8))
 
-	t1 = s[-1];
-	t2 = s[0];
-	t3 = s[+1];
+#  else
 
-	*left = vec_perm (t1, t2, vec_lvsl (-dist, (uint8_t *) s));
-	*center = t2;
-	*right = vec_perm (t2, t3, vec_lvsl (+dist, (uint8_t *) s));
-}
+#    define YMask vsplat16_m256
+#    define UVMask vsplat16_255
+#    define yuyv2yy(yuyv) ((v16) vsru16 ((vu16)(yuyv), 8))
+#    define yuyv2uv(yuyv) ((v16) vand ((v16)(yuyv), UVMask))
 
-static __inline__ void
-uload24t			(vu8 *			m4,
-				 vu8 *			m2,
-				 vu8 *			center,
-				 vu8 *			p2,
-				 vu8 *			p4,
-				 const vu8 *		s,
-				 unsigned int		offs)
-{
-	vu8 t1, t2, t3;
+#  endif /* Z_BYTE_ORDER */
 
-	s += offs / sizeof (*s);
+#if SIMD == CPU_FEATURE_ALTIVEC
 
-	t1 = s[-1];
-	t2 = s[0];
-	t3 = s[+1];
-
-	*m4 = vec_perm (t1, t2, vec_lvsl (-4, (uint8_t *) s));
-	*m2 = vec_perm (t1, t2, vec_lvsl (-2, (uint8_t *) s));
-	*center = t2;
-	*p2 = vec_perm (t2, t3, vec_lvsl (+2, (uint8_t *) s));
-	*p4 = vec_perm (t2, t3, vec_lvsl (+4, (uint8_t *) s));
-}
-
-#elif SIMD == SSE3
-
-static __inline__ void
-uloadxt				(vu8 *			left,
-				 vu8 *			center,
-				 vu8 *			right,
-				 const vu8 *		s,
-				 unsigned int		offs,
-				 unsigned int		dist)
-{
-	s += offs / sizeof (*s);
-
-	/* XXX is this faster? */
-	*left   = _mm_lddqu_si128 ((const vu8 *)((const uint8_t *) s - dist));
-	*center = *(const vu8 *)((uint8_t *) s); /* movdqu */
-	*right  = _mm_lddqu_si128 ((const vu8 *)((const uint8_t *) s + dist));
-}
-
-#elif SIMD == SSE2
-
-#if 1
-
-static __inline__ void
-uloadxt				(vu8 *			left,
-				 vu8 *			center,
-				 vu8 *			right,
-				 const vu8 *		s,
-				 unsigned int		offs,
-				 unsigned int		dist)
-{
-	const uint16_t *w;
-	const uint32_t *d;
-	const __m64 *q;
-	vu8 m1, m2, m3;
-
-	s += offs / sizeof (*s);
-
-	w = (const uint16_t *) s;
-	d = (const uint32_t *) s;
-	q = (const __m64 *) s;
-
-	m1 = s[0]; /* ponmlkji */
-	*center = m1;
-
-	switch (dist) {
-	case 2:
-		*left = _mm_insert_epi16 (_mm_slli_si128 (m1, 2), w[-1], 0);
-		*right = _mm_insert_epi16 (_mm_srli_si128 (m1, 2), w[8], 7);
-		break;
-
-	case 4:
-		m2 = _mm_cvtsi32_si128 (d[-1]); /* movd */
-		*left = vor (_mm_slli_si128 (m1, 4), m2);
-		m2 = _mm_slli_si128 (_mm_cvtsi32_si128 (d[4]), 12);
-		*right = vor (_mm_srli_si128 (m1, 4), m2);
-		break;
-
-	case 8:
-		m2 = _mm_set_epi64 ((__m64) 0LL, q[-1]); /* 0000hgfe movq */
-		m3 = _mm_set_epi64 ((__m64) 0LL, q[2]);  /* 0000tsrq */
-		m2 = _mm_unpacklo_epi32 (m2, m3);        /* tsrqhgfe */
-		*left = _mm_unpacklo_epi32 (m2, m1);     /* lkjihgfe */
-		*right = _mm_unpackhi_epi32 (m1, m2);    /* tsrqponm */
-		break;
-
-	default:
-		*left = vor (_mm_slli_si128 (m1, dist),
-			     _mm_srli_si128 (s[-1], 16 - dist));
-		*right = vor (_mm_srli_si128 (m1, dist),
-			      _mm_slli_si128 (s[1], 16 - dist));
-		break;
-	}
-}
-
-static __inline__ void
-uload24t			(vu8 *			m4,
-				 vu8 *			m2,
-				 vu8 *			center,
-				 vu8 *			p2,
-				 vu8 *			p4,
-				 const vu8 *		s,
-				 unsigned int		offs)
-{
-	const uint16_t *w;
-	vu8 t1;
-
-	s += offs / sizeof (*s);
-
-	w = (const uint16_t *) s;
-
-	/* FIXME */
-	*center = s[0];
-	t1 = _mm_slli_si128 (s[0], 2);
-	*m2 = _mm_insert_epi16 (t1, w[-1], 0);
-	t1 = _mm_slli_si128 (t1, 2);
-	*m4 = _mm_insert_epi16 (t1, w[-2], 0);
-	t1 = _mm_srli_si128 (s[0], 2);
-	*p2 = _mm_insert_epi16 (t1, w[8], 7);
-	t1 = _mm_srli_si128 (t1, 2);
-	*p4 = _mm_insert_epi16 (t1, w[9], 7);
-}
-
-#else /* XXX is this faster? */
-
-static __inline__ void
-uloadxt				(vu8 *			left,
-				 vu8 *			center,
-				 vu8 *			right,
-				 const vu8 *		s,
-				 unsigned int		offs,
-				 unsigned int		dist)
-{
-	s += offs / sizeof (*s);
-
-	*left   = _mm_loadu_ps ((const vu8 *)((const uint8_t *) s - dist));
-	*center = *(const vu8 *)((const uint8_t *) s); /* movdqu */
-	*right  = _mm_loadu_ps ((const vu8 *)((const uint8_t *) s + dist));
-}
-
-#endif
-
-#elif SIMD == MMX || SIMD == _3DNOW || SIMD == SSE
-
-static __inline__ void
-uloadxt				(vu8 *			left,
-				 vu8 *			center,
-				 vu8 *			right,
-				 const vu8 *		s,
-				 unsigned int		offs,
-				 unsigned int		dist)
-{
-	s += offs / sizeof (*s);
-
-	/* MMX permits unaligned loads.  There's a few cycle penalty
-	   when the load crosses a cache line boundary, but given 32 or 64
-	   byte cache lines a shift-load probably doesn't pay. */
-	*left   = *(const vu8 *)((const uint8_t *) s - dist);
-	*center = *(const vu8 *)((const uint8_t *) s);
-	*right  = *(const vu8 *)((const uint8_t *) s + dist);
-}
-
-static __inline__ void
-uload24t			(vu8 *			m4,
-				 vu8 *			m2,
-				 vu8 *			center,
-				 vu8 *			p2,
-				 vu8 *			p4,
-				 const vu8 *		s,
-				 unsigned int		offs)
-{
-	s += offs / sizeof (*s);
-
-	*m4     = *(const vu8 *)((const uint8_t *) s - 4);
-	*m2     = *(const vu8 *)((const uint8_t *) s - 2);
-	*center = *(const vu8 *)((const uint8_t *) s);
-	*p2     = *(const vu8 *)((const uint8_t *) s + 2);
-	*p4     = *(const vu8 *)((const uint8_t *) s + 4);
-}
-
-#endif /* uloadxt */
-
-#define uload2t(_l, _c, _r, _s, _o) uloadxt (_l, _c, _r, _s, _o, 2)
-#define uload4t(_l, _c, _r, _s, _o) uloadxt (_l, _c, _r, _s, _o, 4)
-#define uload6t(_l, _c, _r, _s, _o) uloadxt (_l, _c, _r, _s, _o, 6)
-#define uload8t(_l, _c, _r, _s, _o) uloadxt (_l, _c, _r, _s, _o, 8)
-
-/* Defined here to enable register parameters.
+/* Defined here to enable parameter passing in registers.
    NOTE n_bytes must be a multiple of sizeof (vu8). */
 static void
 copy_line			(uint8_t *		dst,
 				 const uint8_t *	src,
 				 unsigned int		n_bytes)
 {
-    vu8 *d = (vu8 *) dst;
-    const vu8 *s = (const vu8 *) src;
-    vu8 m0, m1, m2, m3;
+	unsigned int i = 0;
 
-    for (; n_bytes & -(sizeof (vu8) * 8); n_bytes -= sizeof (vu8) * 8) {
-	m0 = s[0];
-	m1 = s[1];
-	m2 = s[2];
-	m3 = s[3];
-	vstorent (d + 0, m0);
-	vstorent (d + 1, m1);
-	vstorent (d + 2, m2);
-	vstorent (d + 3, m3);
-	m0 = s[4];
-	m1 = s[5];
-	m2 = s[6];
-	m3 = s[7];
-	s += 8;
-	vstorent (d + 4, m0);
-	vstorent (d + 5, m1);
-	vstorent (d + 6, m2);
-	vstorent (d + 7, m3);
-	d += 8;
-    }
-
-    for (; n_bytes > 0; n_bytes -= sizeof (vu8)) {
-	vstorent (d, *s++);
-	++d;
-    }
+	for (n_bytes /= sizeof (vu8); n_bytes > 0; --n_bytes) {
+		vstorent (dst, i, vload (src, i));
+		i += sizeof (vu8);
+	}
 }
 
-/* Copies src to dst and dst + dst_bpl.  Defined here to enable register
-   parameters.  NOTE dst_bpl and n_bytes must be a multiple of sizeof (vu8). */
+/* Copies src to dst and dst + dst_bpl.  Defined here to enable parameter
+   passing in registers.  NOTE dst_bpl and n_bytes must be a multiple of
+   sizeof (vu8). */
 static void
 copy_line_pair			(uint8_t *		dst,
 				 const uint8_t *	src,
 				 unsigned int		n_bytes,
 				 unsigned int		dst_bpl)
 {
-    vu8 *d = (vu8 *) dst;
-    vu8 *d2;
-    const vu8 *s = (const vu8 *) src;
-    vu8 m0, m1, m2, m3;
+	for (n_bytes /= sizeof (vu8); n_bytes > 0; --n_bytes) {
+		vu8 m0;
 
-    d2 = (vu8 *)(dst + dst_bpl);
+		m0 = vload (src, 0);
+		src += sizeof (vu8);
 
-    for (; n_bytes & -(sizeof (vu8) * 8); n_bytes -= sizeof (vu8) * 8) {
-	m0 = s[0];
-	m1 = s[1];
-	m2 = s[2];
-	m3 = s[3];
-	vstorent (d + 0, m0);
-	vstorent (d + 1, m1);
-	vstorent (d + 2, m2);
-	vstorent (d + 3, m3);
-	vstorent (d2 + 0, m0);
-	vstorent (d2 + 1, m1);
-	vstorent (d2 + 2, m2);
-	vstorent (d2 + 3, m3);
-	m0 = s[4];
-	m1 = s[5];
-	m2 = s[6];
-	m3 = s[7];
-	s += 8;
-	vstorent (d + 4, m0);
-	vstorent (d + 5, m1);
-	vstorent (d + 6, m2);
-	vstorent (d + 7, m3);
-	d += 8;
-	vstorent (d2 + 4, m0);
-	vstorent (d2 + 5, m1);
-	vstorent (d2 + 6, m2);
-	vstorent (d2 + 7, m3);
-	d2 += 8;
-    }
-
-    for (; n_bytes > 0; n_bytes -= sizeof (vu8)) {
-	m0 = *s++;
-	vstorent (d, m0);
-	vstorent ((vu8 *)((uint8_t *) d + dst_bpl), m0);
-	++d;
-    }
+		vstorent (dst, 0, m0);
+		vstorent (dst, dst_bpl, m0);
+		dst += sizeof (vu8);
+	}
 }
 
-#endif /* defined (SIMD) */
+/* Do an aligned load from s, and two unaligned loads from
+    s + offs - dist and s + offs + dist.  Offs and dist are given
+    in bytes, offs must be a multiple of sizeof (vu8). */
+static always_inline void
+uloadxt				(vu8 *			left,
+				 vu8 *			center,
+				 vu8 *			right,
+				 const uint8_t *	src,
+				 unsigned int		offs,
+				 unsigned int		dist)
+{
+	vu8 t1, t2, t3;
 
-/* Helpers to switch between deinterlace implementations. */
+	src += offs;
 
-#define SIMD_PROTOS(name)						\
-extern BOOL name ## __MMX (TDeinterlaceInfo* pInfo);			\
-extern BOOL name ## __3DNOW (TDeinterlaceInfo* pInfo);			\
-extern BOOL name ## __SSE (TDeinterlaceInfo* pInfo);			\
-extern BOOL name ## __SSE2 (TDeinterlaceInfo* pInfo);			\
-extern BOOL name ## __AVEC (TDeinterlaceInfo* pInfo);
+	t1 = vload (src, -1 * (long) sizeof (vu8));
+	t2 = vload (src,  0 * (long) sizeof (vu8));
+	t3 = vload (src, +1 * (long) sizeof (vu8));
 
-#if defined (HAVE_MMX)
-#  define SIMD_SELECT_MMX(name)						\
-	(cpu_features & CPU_FEATURE_MMX) ? name ## __MMX
-#else
-#  define SIMD_SELECT_MMX(name) 0 ? NULL
-#endif
+	*left = vec_perm (t1, t2, vec_lvsl (-dist, src));
+	*center = t2;
+	*right = vec_perm (t2, t3, vec_lvsl (+dist, src));
+}
 
-/* Untested */
-#if 0 && defined (HAVE_3DNOW)
-#  define SIMD_SELECT_3DNOW(name)					\
-	(cpu_features & CPU_FEATURE_3DNOW) ? name ## __3DNOW
-#else
-#  define SIMD_SELECT_3DNOW(name) 0 ? NULL
-#endif
+static always_inline void
+uload24t			(vu8 *			m4,
+				 vu8 *			m2,
+				 vu8 *			center,
+				 vu8 *			p2,
+				 vu8 *			p4,
+				 const uint8_t *	src,
+				 unsigned int		offs)
+{
+	vu8 t1, t2, t3;
 
-#if defined (HAVE_SSE)
-#  define SIMD_SELECT_SSE(name)						\
-	(cpu_features & CPU_FEATURE_SSE) ? name ## __SSE
-#else
-#  define SIMD_SELECT_SSE(name) 0 ? NULL
-#endif
+	src += offs;
 
-/* Untested */
-#if 0 && defined (HAVE_SSE2)
-#  define SIMD_SELECT_SSE2(name)					\
-	(cpu_features & CPU_FEATURE_SSE2) ? name ## __SSE2
-#else
-#  define SIMD_SELECT_SSE2(name) 0 ? NULL
-#endif
+	t1 = vload (src, -1 * (long) sizeof (vu8));
+	t2 = vload (src,  0 * (long) sizeof (vu8));
+	t3 = vload (src, +1 * (long) sizeof (vu8));
 
-/* Untested */
-#if 0 && defined (HAVE_ALTIVEC)
-#  define SIMD_SELECT_ALTIVEC(name)					\
-	(cpu_features & CPU_FEATURE_ALTIVEC) ? name ## __AVEC
-#else
-#  define SIMD_SELECT_ALTIVEC(name) 0 ? NULL
-#endif
+	*m4 = vec_perm (t1, t2, vec_lvsl (-4, src));
+	*m2 = vec_perm (t1, t2, vec_lvsl (-2, src));
+	*center = t2;
+	*p2 = vec_perm (t2, t3, vec_lvsl (+2, src));
+	*p4 = vec_perm (t2, t3, vec_lvsl (+4, src));
+}
 
-#define SIMD_SELECT(name)						\
-	(SIMD_SELECT_ALTIVEC (name) :					\
-	 SIMD_SELECT_SSE2 (name) :					\
-	 SIMD_SELECT_SSE (name)	:					\
-	 SIMD_SELECT_3DNOW (name) :					\
-	 SIMD_SELECT_MMX (name) :					\
-	 (assert (0), NULL))
+#else /* SIMD != CPU_FEATURE_ALTIVEC */
+
+/* Defined here to enable parameter passing in registers.
+   NOTE n_bytes must be a multiple of sizeof (vu8). */
+static void
+copy_line			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		n_bytes)
+{
+	vu8 m0, m1, m2, m3;
+
+	/* Copies 64 (128) bytes. */
+	for (; n_bytes & -(sizeof (vu8) * 8); n_bytes -= sizeof (vu8) * 8) {
+		m0 = vload (src, 0 * sizeof (vu8));
+		m1 = vload (src, 1 * sizeof (vu8));
+		m2 = vload (src, 2 * sizeof (vu8));
+		m3 = vload (src, 3 * sizeof (vu8));
+
+		vstorent (dst, 0 * sizeof (vu8), m0);
+		vstorent (dst, 1 * sizeof (vu8), m1);
+		vstorent (dst, 2 * sizeof (vu8), m2);
+		vstorent (dst, 3 * sizeof (vu8), m3);
+
+		m0 = vload (src, 4 * sizeof (vu8));
+		m1 = vload (src, 5 * sizeof (vu8));
+		m2 = vload (src, 6 * sizeof (vu8));
+		m3 = vload (src, 7 * sizeof (vu8));
+		src += 8 * sizeof (vu8);
+
+		vstorent (dst, 4 * sizeof (vu8), m0);
+		vstorent (dst, 5 * sizeof (vu8), m1);
+		vstorent (dst, 6 * sizeof (vu8), m2);
+		vstorent (dst, 7 * sizeof (vu8), m3);
+		dst += 8 * sizeof (vu8);
+	}
+
+	/* Remaining bytes, usually not needed. */
+	for (; n_bytes > 0; n_bytes -= sizeof (vu8)) {
+		vstorent (dst, 0, vload (src, 0));
+		src += sizeof (vu8);
+		dst += sizeof (vu8);
+	}
+}
+
+/* Copies src to dst and dst + dst_bpl.  Defined here to enable parameter
+   passing in registers.  NOTE dst_bpl and n_bytes must be a multiple of
+   sizeof (vu8). */
+static void
+copy_line_pair			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		n_bytes,
+				 unsigned int		dst_bpl)
+{
+	uint8_t *dst2;
+	vu8 m0, m1, m2, m3;
+
+	dst2 = dst + dst_bpl;
+
+	for (; n_bytes & -(sizeof (vu8) * 4); n_bytes -= sizeof (vu8) * 4) {
+		m0 = vload (src, 0 * sizeof (vu8));
+		m1 = vload (src, 1 * sizeof (vu8));
+		m2 = vload (src, 2 * sizeof (vu8));
+		m3 = vload (src, 3 * sizeof (vu8));
+		src += 4 * sizeof (vu8);
+
+		vstorent (dst, 0 * sizeof (vu8), m0);
+		vstorent (dst, 1 * sizeof (vu8), m1);
+		vstorent (dst, 2 * sizeof (vu8), m2);
+		vstorent (dst, 3 * sizeof (vu8), m3);
+		dst += 4 * sizeof (vu8);
+
+		vstorent (dst2, 0 * sizeof (vu8), m0);
+		vstorent (dst2, 1 * sizeof (vu8), m1);
+		vstorent (dst2, 2 * sizeof (vu8), m2);
+		vstorent (dst2, 3 * sizeof (vu8), m3);
+		dst2 += 4 * sizeof (vu8);
+	}
+
+	for (; n_bytes > 0; n_bytes -= sizeof (vu8)) {
+		m0 = vload (src, 0);
+		src += sizeof (vu8);
+		vstorent (dst, 0, m0);
+		vstorent (dst, dst_bpl, m0);
+		dst += sizeof (vu8);
+	}
+}
+
+#if SIMD == CPU_FEATURE_SSE2
+
+#if 1
+
+/* _mm_sxli_si128 is misdefined under gcc -O0.  Arg 2 must be an immediate,
+   not a variable which evaluates to one, not even a const variable. */
+
+#define uloadxt(_left, _center, _right, _src, _offs, _dist)		\
+({									\
+	vu8 *left = _left;						\
+	vu8 *center = _center;						\
+	vu8 *right = _right;						\
+	const uint8_t *src = _src;					\
+	const uint16_t *w;						\
+	vu8 c;								\
+	src += _offs;							\
+									\
+	c = vload (src, 0); /* ponmlkji */				\
+	*center = c;							\
+									\
+	switch (_dist) {						\
+	case 2:								\
+		w = (const uint16_t *) src;				\
+		*left = _mm_insert_epi16				\
+			(_mm_slli_si128 (c, 2), w[-1], 0);		\
+		*right = _mm_insert_epi16				\
+			(_mm_srli_si128 (c, 2), w[8], 7);		\
+		break;							\
+									\
+	case 8:								\
+		c = _mm_shuffle_epi32 (c, _MM_SHUFFLE (1, 0, 3, 2));	\
+		/* lkjihgfe = (hgfedcba, lkjiponm) */			\
+		*left = _mm_unpackhi_epi64 (vload (src, -16), c);	\
+		/* tsrqponm = (lkjiponm, xwvutsrq) */			\
+		*right = _mm_unpacklo_epi64 (c, vload (src, +16));	\
+		break;							\
+									\
+	default:							\
+		*left = vor (_mm_slli_si128 (*center, _dist),		\
+			     _mm_srli_si128 (vload (src, -16),		\
+					     16 - (_dist)));		\
+		*right = vor (_mm_srli_si128 (*center, _dist),		\
+			      _mm_slli_si128 (vload (src, 16),		\
+					      16 - (_dist)));		\
+		break;							\
+	}								\
+})
+
+#define uload24t(_m4, _m2, _center, _p2, _p4, _src, _offs)		\
+({									\
+	vu8 *m4 = _m4;							\
+	vu8 *m2 = _m2;							\
+	vu8 *center = _center;						\
+	vu8 *p2 = _p2;							\
+	vu8 *p4 = _p4;							\
+	const uint8_t *src = _src;					\
+	const uint16_t *w;						\
+	vu8 t1;								\
+									\
+	src += _offs;							\
+									\
+	w = (const uint16_t *) src;					\
+									\
+	*center = vload (src, 0);					\
+									\
+	/* XXX we don't use *center because these instructions mix	\
+	   with calculations, x86 has not enough registers to save	\
+	   the center value for later and gcc can't easily avoid	\
+	   register spilling.  XXX May not apply to x86-64. */		\
+	t1 = _mm_slli_si128 (vload (src, 0), 2);			\
+	t1 = _mm_insert_epi16 (t1, w[-1], 0);				\
+	*m2 = t1;							\
+	t1 = _mm_slli_si128 (t1, 2);					\
+	*m4 = _mm_insert_epi16 (t1, w[-2], 0);				\
+									\
+	t1 = _mm_srli_si128 (vload (src, 0), 2);			\
+	t1 = _mm_insert_epi16 (t1, w[8], 7);				\
+	*p2 = t1;							\
+	t1 = _mm_srli_si128 (t1, 2);					\
+	*p4 = _mm_insert_epi16 (t1, w[9], 7);				\
+})
+
+#else /* XXX is this faster? */
+
+static always_inline void
+uloadxt				(vu8 *			left,
+				 vu8 *			center,
+				 vu8 *			right,
+				 const uint8_t *	src,
+				 unsigned int		offs,
+				 unsigned int		dist)
+{
+	src += offs;
+
+	*left   = vloadu (src, - (long) dist); /* movdqu */
+	*center = vload  (src,   (long) 0);    /* movdqa */
+	*right  = vloadu (src, + (long) dist);
+}
+
+static always_inline void
+uload24t			(vu8 *			m4,
+				 vu8 *			m2,
+				 vu8 *			center,
+				 vu8 *			p2,
+				 vu8 *			p4,
+				 const uint8_t *	src,
+				 unsigned int		offs)
+{
+	src += offs;
+
+	*m4     = vloadu (src, -4);
+	*m2     = vloadu (src, -2);
+	*center = vload  (src,  0);
+	*p2     = vloadu (src, +2);
+	*p4     = vloadu (src, +4);
+}
+
+#endif /* 0 */
+
+#elif SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW | CPU_FEATURE_SSE)
+
+static always_inline void
+uloadxt				(vu8 *			left,
+				 vu8 *			center,
+				 vu8 *			right,
+				 const uint8_t *	src,
+				 unsigned int		offs,
+				 unsigned int		dist)
+{
+	src += offs;
+
+	/* MMX permits unaligned loads.  There's a few cycle penalty
+	   when the load crosses a cache line boundary, but given 32 or 64
+	   byte cache lines a shift-load probably doesn't pay.  That aside
+	   we reduce register pressure. */
+	*left   = vload (src, - (long) dist);
+	*center = vload (src,   (long) 0);
+	*right  = vload (src, + (long) dist);
+}
+
+static always_inline void
+uload24t			(vu8 *			m4,
+				 vu8 *			m2,
+				 vu8 *			center,
+				 vu8 *			p2,
+				 vu8 *			p4,
+				 const uint8_t *	src,
+				 unsigned int		offs)
+{
+	src += offs;
+
+	*m4     = vload (src, -4);
+	*m2     = vload (src, -2);
+	*center = vload (src,  0);
+	*p2     = vload (src, +2);
+	*p4     = vload (src, +4);
+}
+
+#endif /* SIMD switch */
+
+#endif /* SIMD != CPU_FEATURE_ALTIVEC */
+
+#define uload2t(_l, _c, _r, _s, _o) uloadxt (_l, _c, _r, _s, _o, 2)
+#define uload4t(_l, _c, _r, _s, _o) uloadxt (_l, _c, _r, _s, _o, 4)
+#define uload6t(_l, _c, _r, _s, _o) uloadxt (_l, _c, _r, _s, _o, 6)
+#define uload8t(_l, _c, _r, _s, _o) uloadxt (_l, _c, _r, _s, _o, 8)
+
+#else /* !SIMD */
+
+static __inline__ void
+copy_line			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		n_bytes)
+__attribute__ ((unused));
+
+static __inline__ void
+copy_line_pair			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		n_bytes,
+				 unsigned int		dst_bpl)
+__attribute__ ((unused));
+
+static __inline__ void
+copy_line			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		n_bytes)
+{
+	memcpy (dst, src, n_bytes);
+}
+
+static __inline__ void
+copy_line_pair			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		n_bytes,
+				 unsigned int		dst_bpl)
+{
+	memcpy (dst, src, n_bytes);
+	memcpy (dst + dst_bpl, src, n_bytes);
+}
+
+#endif /* !SIMD */
 
 /* MSVC compatibility (will be removed after all the DScaler routines
    have been converted to vector intrinsics). */
@@ -429,28 +460,19 @@ extern BOOL name ## __AVEC (TDeinterlaceInfo* pInfo);
 #define __asm
 #define emms __asm__ __volatile__ (" emms\n");
 
-#define __min(x, y) ({							\
-  __typeof__ (x) _x = (x);						\
-  __typeof__ (y) _y = (y);						\
-  (_x < _y) ? _x : _y;							\
-})
-
-#define __max(x, y) ({							\
-  __typeof__ (x) _x = (x);						\
-  __typeof__ (y) _y = (y);						\
-  (_x > _y) ? _x : _y;							\
-})
+#define __min MIN
+#define __max MAX
 
 #define WINAPI
 #define APIENTRY
 
-typedef int BOOL;
+typedef int BOOL; /* for SETTINGS value pointer compatibility. */
 typedef unsigned char BYTE;
 typedef unsigned short WORD;
 typedef unsigned int UINT;
-typedef long LONG;
-typedef long DWORD;
-typedef unsigned long ULONG;
+typedef int LONG;
+typedef int DWORD;
+typedef unsigned int ULONG;
 typedef int32_t __int32;
 typedef int64_t __int64;
 typedef void *LPVOID;
@@ -497,6 +519,8 @@ enum {
   IDH_WEAVE,
 };
 
+#if 0
+
 /* For _save(), _restore() below. */
 #define _saved_regs unsigned int saved_regs[6]
 
@@ -541,5 +565,7 @@ enum {
 /* Stringify _strf(FOO) -> "FOO" */
 #define _strf1(x) #x
 #define _strf(x) _strf1(x)
+
+#endif
 
 #endif /* WINDOWS_H */
