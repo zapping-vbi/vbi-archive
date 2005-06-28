@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DS_Control.h,v 1.1 2005-01-08 14:54:22 mschimek Exp $
+// $Id: DS_Control.h,v 1.2 2005-06-28 00:51:57 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -71,6 +71,12 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1.2.1  2005/06/17 02:54:20  mschimek
+// *** empty log message ***
+//
+// Revision 1.1  2005/01/08 14:54:22  mschimek
+// *** empty log message ***
+//
 // Revision 1.2  2005/01/08 10:03:12  michael
 // *** empty log message ***
 //
@@ -925,103 +931,6 @@ typedef enum
 #define WM_FD_COMMON_CHANGEVALUE    (WM_APP + 208)
 
 /////////////////////////////////////////////////////////////////////////////
-// Control settings contained in DI_Adaptive.c
-/////////////////////////////////////////////////////////////////////////////
-
-typedef enum
-{
-    LOWMOTIONFIELDCOUNT = 0,
-    STATICIMAGEFIELDCOUNT,
-    STATICIMAGEMODE,
-    LOWMOTIONMODE,
-    HIGHMOTIONMODE,
-    ADAPTIVETHRESH32PULLDOWN,
-    ADAPTIVETHRESHMISMATCH,
-    DI_ADAPTIVE_SETTING_LASTONE,
-} DI_ADAPTIVE_SETTING;
-
-#define WM_DI_ADAPTIVE_GETVALUE     (WM_APP + 9)
-#define WM_DI_ADAPTIVE_SETVALUE     (WM_APP + 109)
-#define WM_DI_ADAPTIVE_CHANGEVALUE  (WM_APP + 209)
-
-/////////////////////////////////////////////////////////////////////////////
-// Control settings contained in DI_VideoBob.c
-/////////////////////////////////////////////////////////////////////////////
-
-typedef enum
-{
-    WEAVEEDGEDETECT = 0,
-    WEAVEJAGGIETHRESHOLD,
-    DI_VIDEOBOB_SETTING_LASTONE,
-} DI_VIDEOBOB_SETTING;
-
-#define WM_DI_VIDEOBOB_GETVALUE     (WM_APP + 10)
-#define WM_DI_VIDEOBOB_SETVALUE     (WM_APP + 110)
-#define WM_DI_VIDEOBOB_CHANGEVALUE  (WM_APP + 210)
-
-/////////////////////////////////////////////////////////////////////////////
-// Control settings contained in DI_BlendedClip.c
-/////////////////////////////////////////////////////////////////////////////
-
-typedef enum
-{
-    BLCMINIMUMCLIP = 0,
-    BLCPIXELMOTIONSENSE,
-    BLCRECENTMOTIONSENSE,
-    BLCMOTIONAVGPERIOD,
-    BLCPIXELCOMBSENSE,
-    BLCRECENTCOMBSENSE,
-    BLCCOMBAVGPERIOD,
-    BLCHIGHCOMBSKIP,
-    BLCLOWMOTIONSKIP,
-    BLCVERTICALSMOOTHING,
-    BLCUSEINTERPBOB,
-    BLCBLENDCHROMA,
-    BLCSHOWCONTROLS,
-    DI_BLENDEDCLIP_SETTING_LASTONE,
-} DI_BLENDEDCLIP_SETTING;
-
-#define WM_DI_BLENDEDCLIP_GETVALUE      (WM_APP + 11)
-#define WM_DI_BLENDEDCLIP_SETVALUE      (WM_APP + 111)
-#define WM_DI_BLENDEDCLIP_CHANGEVALUE   (WM_APP + 211)
-
-/////////////////////////////////////////////////////////////////////////////
-// Control settings contained in DI_TwoFrame.c
-/////////////////////////////////////////////////////////////////////////////
-
-typedef enum
-{
-    TWOFRAMESPATIALTOLERANCE = 0,
-    TWOFRAMETEMPORALTOLERANCE,
-    DI_TWOFRAME_SETTING_LASTONE,
-} DI_TWOFRAME_SETTING;
-
-#define WM_DI_TWOFRAME_GETVALUE     (WM_APP + 12)
-#define WM_DI_TWOFRAME_SETVALUE     (WM_APP + 112)
-#define WM_DI_TWOFRAME_CHANGEVALUE  (WM_APP + 212)
-
-/////////////////////////////////////////////////////////////////////////////
-// Control settings contained in DI_Greedy.c
-/////////////////////////////////////////////////////////////////////////////
-
-typedef enum
-{
-    GREEDYMAXCOMB = 0,
-    GREEDYUSETILTNWARP,
-    GREEDYSIZERATIO,
-    GREEDYLINEARSIZEPCNT,
-    GREEDYLINEARLOCIN,
-    GREEDYLINEARLOCOUT,
-    GREEDYTOPWARPFACTOR,
-    GREEDYBOTTOMWARPFACTOR,
-    DI_GREEDY_SETTING_LASTONE,
-} DI_GREEDY_SETTING;
-
-#define WM_DI_GREEDY_GETVALUE       (WM_APP + 15)
-#define WM_DI_GREEDY_SETVALUE       (WM_APP + 115)
-#define WM_DI_GREEDY_CHANGEVALUE    (WM_APP + 215)
-
-/////////////////////////////////////////////////////////////////////////////
 // Control settings contained in FLT_TNoise.c
 /////////////////////////////////////////////////////////////////////////////
 
@@ -1108,37 +1017,6 @@ typedef enum
 #define WM_VBI_GETVALUE     (WM_APP + 21)
 #define WM_VBI_SETVALUE     (WM_APP + 121)
 #define WM_VBI_CHANGEVALUE  (WM_APP + 221)
-
-/////////////////////////////////////////////////////////////////////////////
-// Control settings contained in DI_Greedy2Frame.c
-/////////////////////////////////////////////////////////////////////////////
-
-typedef enum
-{
-    GREEDYTWOFRAMETHRESHOLDLUMA = 0,
-    GREEDYTWOFRAMETHRESHOLDCHROMA,
-    DI_GREEDY2FRAME_SETTING_LASTONE,
-} DI_GREEDY2FRAME_SETTING;
-
-#define WM_DI_GREEDY2FRAME_GETVALUE     (WM_APP + 22)
-#define WM_DI_GREEDY2FRAME_SETVALUE     (WM_APP + 122)
-#define WM_DI_GREEDY2FRAME_CHANGEVALUE  (WM_APP + 222)
-
-/////////////////////////////////////////////////////////////////////////////
-// Control settings contained in DI_VideoWeave.c
-/////////////////////////////////////////////////////////////////////////////
-
-typedef enum
-{
-    TEMPORALTOLERANCE = 0,
-    SPATIALTOLERANCE,
-    SIMILARITYTHRESHOLD,
-    DI_VIDEOWEAVE_SETTING_LASTONE,
-} DI_VIDEOWEAVE_SETTING;
-
-#define WM_DI_VIDEOWEAVE_GETVALUE       (WM_APP + 23)
-#define WM_DI_VIDEOWEAVE_SETVALUE       (WM_APP + 123)
-#define WM_DI_VIDEOWEAVE_CHANGEVALUE    (WM_APP + 223)
 
 /////////////////////////////////////////////////////////////////////////////
 // Control settings contained in FLT_LinearCorrection.c
@@ -1297,50 +1175,6 @@ typedef enum
 #define WM_VT_GETVALUE     (WM_APP + 31)
 #define WM_VT_SETVALUE     (WM_APP + 131)
 #define WM_VT_CHANGEVALUE  (WM_APP + 231)
-
-
-/////////////////////////////////////////////////////////////////////////////
-// Control settings contained in DI_GreedyH.c
-/////////////////////////////////////////////////////////////////////////////
-
-typedef enum
-{
-	GR_MAX_COMB = 0,
-	GR_MOTION_THRESHOLD,
-	GR_MOTION_SENSE,
-	GR_GOOD_PULLDOWN_LVL,
-	GR_BAD_PULLDOWN_LVL,
-	GR_H_SHARPNESS,			
-	GR_V_SHARPNESS,			
-	GR_MEDIAN_FILTER,
-	GR_LOW_MOTION_PD_LVL,
-	GR_USE_PULLDOWN,
-	GR_USE_IN_BETWEEN,
-	GR_USE_MEDIAN_FILTER,
-	GR_USE_V_SHARPNESS,
-	GR_USE_H_SHARPNESS,
-//	GR_USE_LOW_MOTION_ONLY, 
-	DI_GREEDYH_SETTING_LASTONE,
-} DI_GREEDYH_SETTING;
-
-#define WM_DI_GREEDYH_GETVALUE		(WM_APP + 32)
-#define WM_DI_GREEDYH_SETVALUE		(WM_APP + 132)
-#define WM_DI_GREEDYH_CHANGEVALUE	(WM_APP + 232)
-
-/////////////////////////////////////////////////////////////////////////////
-// Control settings contained in DI_OldGame.c
-/////////////////////////////////////////////////////////////////////////////
-
-typedef enum
-{
-    DI_OLDGAME_MAXCOMB = 0,
-    DI_OLDGAME_COMPOSITEMODE,
-    DI_OLDGAME_SETTING_LASTONE,
-} DI_OLDGAME_SETTING;
-
-#define WM_DI_OLDGAME_GETVALUE     (WM_APP + 33)
-#define WM_DI_OLDGAME_SETVALUE     (WM_APP + 133)
-#define WM_DI_OLDGAME_CHANGEVALUE  (WM_APP + 233)
 
 /////////////////////////////////////////////////////////////////////////////
 // Control settings contained in FLT_Sharpness.c
@@ -1528,22 +1362,6 @@ typedef enum
 #define WM_ANTIPLOP_CHANGEVALUE  (WM_APP + 243)
 
 /////////////////////////////////////////////////////////////////////////////
-// Control settings contained in DI_TOMSMOCOMP.c
-/////////////////////////////////////////////////////////////////////////////
-
-typedef enum
-{
-    TOMSMOCOMPSEARCHEFFORT = 0,
-    TOMSMOCOMPUSESTRANGEBOB,
-    DI_TOMSMOCOMP_SETTING_LASTONE,
-} DI_TOMSMOCOMP_SETTING;
-
-#define WM_DI_TOMSMOCOMP_GETVALUE     (WM_APP + 44)
-#define WM_DI_TOMSMOCOMP_SETVALUE     (WM_APP + 144)
-#define WM_DI_TOMSMOCOMP_CHANGEVALUE  (WM_APP + 244)
-
-
-/////////////////////////////////////////////////////////////////////////////
 // Control settings for save per channel option
 /////////////////////////////////////////////////////////////////////////////
 
@@ -1727,20 +1545,6 @@ typedef enum
 #define WM_TOOLBARS_GETVALUE            (WM_APP + 50)
 #define WM_TOOLBARS_SETVALUE            (WM_APP + 150)
 #define WM_TOOLBARS_CHANGEVALUE         (WM_APP + 250)
-
-/////////////////////////////////////////////////////////////////////////////
-// Control settings contained in DI_MOCOMP2.c
-/////////////////////////////////////////////////////////////////////////////
-
-typedef enum
-{
-    MOCOMP2SEARCHEFFORT = 0,
-    DI_MOCOMP2_SETTING_LASTONE,
-} DI_MOCOMP2_SETTING;
-
-#define WM_DI_MOCOMP2_GETVALUE     (WM_APP + 51)
-#define WM_DI_MOCOMP2_SETVALUE     (WM_APP + 151)
-#define WM_DI_MOCOMP2_CHANGEVALUE  (WM_APP + 251)
 
 /////////////////////////////////////////////////////////////////////////////
 // Control settings contained in FLT_Chroma.c
