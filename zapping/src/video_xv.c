@@ -35,6 +35,7 @@
 #include "zimage.h"
 #include "zmisc.h"
 #include "capture.h"
+#include "tveng_private.h"
 
 #ifdef USE_XV /* Real stuff */
 
@@ -463,6 +464,288 @@ static video_backend xv = {
   XV_ITURBT_709:
     nv: boolean
  */
+
+static tv_bool
+set_control			(tveng_device_info *	info,
+				 tv_control *		control,
+				 int			value)
+{
+
+#if 0 /* TO DO */
+  if ((c->atom == info->filter) &&
+	  (info->port != None))
+	{
+	  XvSetPortAttribute(info->display,
+			     info->port,
+			     info->filter,
+			     value);
+	}
+      else if ((c->atom == info->double_buffer) &&
+	       (info->port != None))
+	{
+	  XvSetPortAttribute(info->display,
+			     info->port,
+			     info->double_buffer,
+			     value);
+	}
+      else if ((c->atom == info->colorkey) &&
+	       (info->port != None))
+	{
+	  int r, g, b;
+	  int rm=0xff, gm=0xff, bm=0xff, rs=16, gs=8, bs=0; /* masks, shifts */
+	  /* Adjust colorkey to the current pixformat */
+	  switch (info->current_bpp)
+	    {
+	    case 15:
+	      rm = gm = bm = 0xf8;
+	      rs = 7; gs = 2; bs = -3;
+	      break;
+	    case 16:
+	      rm = bm = 0xf8; gm = 0xfc;
+	      rs = 8; gs = 3; bs = -3;
+	      break;
+	    default:
+	      break;
+	    }
+	  r = (value>>16)&rm;
+	  if (rs > 0)
+	    r <<= rs;
+	  else
+	    r >>= -rs;
+	  g = (value>>8)&gm;
+	  if (gs > 0)
+	    g <<= gs;
+	  else
+	    g >>= -gs;
+	  b = value&bm;
+	  if (bs > 0)
+	    b <<= bs;
+	  else
+	    b >>= -bs;
+	  value = r+g+b;
+	  XvSetPortAttribute(info->display,
+			     info->port,
+			     info->colorkey,
+			     value);
+	}
+
+#endif
+
+  return FALSE;
+}
+
+static tv_bool
+get_control			(tveng_device_info *	info,
+				 tv_control *		control)
+{
+
+#if 0 /* TO DO */
+
+  if ((c->atom == info->filter) &&
+	   (info->port != None))
+    {
+      XvGetPortAttribute(info->display,
+			 info->port,
+			 info->filter,
+			 &value);
+    }
+  else if ((c->atom == info->double_buffer) &&
+	   (info->port != None))
+    {
+      XvGetPortAttribute(info->display,
+			 info->port,
+			 info->double_buffer,
+			 &value);
+    }
+  else if ((c->atom == info->colorkey) &&
+	   (info->port != None))
+    {
+      int r,g,b, val;
+      int rm=0xff, gm=0xff, bm=0xff, rs=16, gs=8, bs=0; /* masks, shifts */
+
+      XvGetPortAttribute(info->display,
+			 info->port,
+			 info->colorkey,
+			 &(val));
+
+      /* Adjust colorkey to the current pixformat */
+      switch (info->current_bpp)
+	{
+	case 15:
+	  rm = gm = bm = 0xf8;
+	  rs = 7; gs = 2; bs = -3;
+	  break;
+	case 16:
+	  rm = bm = 0xf8; gm = 0xfc;
+	  rs = 8; gs = 3; bs = -3;
+	  break;
+	default:
+	  break;
+	}
+      if (rs > 0)
+	r = val >> rs;
+      else
+	r = val << -rs;
+      r &= rm;
+      if (gs > 0)
+	g = val >> gs;
+      else
+	g = val << -gs;
+      g &= gm;
+      if (bs > 0)
+	b = val >> bs;
+      else
+	b = val << -bs;
+      b &= bm;
+      value = (r<<16)+(g<<8)+b;
+    }
+  else
+    {
+      return 0;
+    }
+
+  if (c->pub.value != value)
+    {
+      c->pub.value = value;
+      tv_callback_notify (info, &c->pub, c->pub._callback);
+    }
+
+#endif
+
+  return FALSE;
+}
+
+static tv_bool
+get_control_list		(tveng_device_info *	info)
+{
+
+#if 0 /* TO DO */
+
+  XvAttribute *at;
+  int attributes, i;
+  Display *dpy;
+
+  /* ? REQUIRE_IO_MODE (-1); */
+
+  TVLOCK;
+
+  tv_clear_error (info);
+
+  info->port = port;
+  dpy = info->display;
+  info->filter = info->colorkey =
+    info->double_buffer = None;
+
+  /* Add the controls in this port to the struct of controls */
+  at = XvQueryPortAttributes(dpy, port, &attributes);
+
+  for (i=0; i<attributes; i++)
+    {
+      ccontrol c;
+
+      if (info->debug_level)
+	fprintf(stderr, "  TVeng.c Xv atom: %s%s%s (%i -> %i)\n",
+		at[i].name,
+		(at[i].flags & XvGettable) ? " gettable" : "",
+		(at[i].flags & XvSettable) ? " settable" : "",
+		at[i].min_value, at[i].max_value);
+
+      /* Any attribute not settable and Gettable is of little value */
+      if ((!(at[i].flags & XvGettable)) ||
+	  (!(at[i].flags & XvSettable)))
+	continue;
+
+      CLEAR (c);
+
+      if (!strcmp("XV_FILTER", at[i].name))
+	  {
+	    info->filter = XInternAtom(dpy, "XV_FILTER",
+						False);
+	    c.atom = info->filter;
+	    if (!(c.pub.label = strdup (_("Filter"))))
+	      goto failure;
+	    c.pub.minimum = at[i].min_value;
+	    c.pub.maximum = at[i].max_value;
+	    c.pub.type = TV_CONTROL_TYPE_BOOLEAN;
+	    c.pub.menu = NULL;
+	    c.pub._parent = NULL; /* TVENG_CONTROLLER_MOTHER; */
+	    /* XXX clone, not panel. */
+	    if (!append_panel_control(info, &c.pub, sizeof (c)))
+	      {
+	      failure:
+		XFree (at);
+		UNTVLOCK;
+		return;
+	      }
+	  }
+
+      else if (!strcmp("XV_DOUBLE_BUFFER", at[i].name))
+	  {
+	    info->double_buffer = XInternAtom(dpy, "XV_DOUBLE_BUFFER",
+						       False);
+	    c.atom = info->double_buffer;
+	    if (!(c.pub.label = strdup (_("Filter"))))
+	      goto failure2;
+	    c.pub.minimum = at[i].min_value;
+	    c.pub.maximum = at[i].max_value;
+	    c.pub.type = TV_CONTROL_TYPE_BOOLEAN;
+	    c.pub.menu = NULL;
+	    c.pub._parent = NULL; /* TVENG_CONTROLLER_MOTHER; */
+	    if (!append_panel_control(info, &c.pub, sizeof (c)))
+	      {
+	      failure2:
+		XFree (at);
+		UNTVLOCK;
+		return;
+	      }
+	  }
+
+      else if (!strcmp("XV_COLORKEY", at[i].name))
+	  {
+	    info->colorkey = XInternAtom(dpy, "XV_COLORKEY",
+						False);
+	    c.atom = info->colorkey;
+	    /* TRANSLATORS: Color replaced by video in overlay mode. */
+	    if (!(c.pub.label = strdup (_("Colorkey"))))
+	      goto failure3;
+	    c.pub.minimum = at[i].min_value;
+	    c.pub.maximum = at[i].max_value;
+	    c.pub.type = TV_CONTROL_TYPE_COLOR;
+	    c.pub.menu = NULL;
+	    c.pub._parent = NULL; /* TVENG_CONTROLLER_MOTHER; */
+	    if (!append_panel_control(info, &c.pub, sizeof (c)))
+	      {
+	      failure3:
+		XFree (at);
+		UNTVLOCK;
+		return;
+	      }
+	  }
+    }
+
+  XFree (at);
+
+  p_tveng_update_controls(info);
+
+  UNTVLOCK;
+
+#endif
+
+  return FALSE;
+}
+
+static void
+init_panel			()
+{
+  struct panel_device panel;
+
+  CLEAR (panel);
+
+  panel.set_control = set_control;
+  panel.get_control = get_control;
+
+  get_control_list (NULL);
+}
 
 static void
 register_port			(XvPortID		xvport,
