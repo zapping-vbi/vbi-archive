@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.8 2005-06-28 01:02:37 mschimek Exp $ */
+/* $Id: misc.h,v 1.9 2005-06-28 19:16:09 mschimek Exp $ */
 
 #ifndef __ZTV_MISC_H__
 #define __ZTV_MISC_H__
@@ -204,9 +204,9 @@ do {									\
 /* legacy, to be removed/replaced */
 #ifndef printv
 #include <stdio.h>
+extern int debug_msg;
 #define printv(format, args...) \
 do { \
-  extern int debug_msg; \
   if (debug_msg) { \
     fprintf(stderr, format ,##args); \
   fflush(stderr); } \
