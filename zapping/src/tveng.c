@@ -624,9 +624,9 @@ int tveng_attach_device(const char* device_file,
       fprintf(stderr, "Detected framebuffer depth: %d\n",
 	      p_tveng_get_display_depth(info));
       fprintf (stderr, "Capture format:\n"
-	       "  buffer size            %ux%u pixels, 0x%x bytes\n"
-	       "  bytes per line         %u, %u bytes\n"
-	       "  offset		 %u, %u, %u bytes\n"
+	       "  buffer size            %ux%u pixels, 0x%lx bytes\n"
+	       "  bytes per line         %lu, %lu bytes\n"
+	       "  offset		 %lu, %lu, %lu bytes\n"
 	       "  pixfmt                 %s\n",
 	       info->capture.format.width,
 	       info->capture.format.height,
@@ -2139,36 +2139,35 @@ mixer_line_destroy_cb		(tv_audio_line *	line,
 				 void *			user_data)
 {
   ccontrol *c = user_data;
-  tv_control *tc;
 
   assert (line == c->mixer_line);
 
   if (c->override) {
-	  /* Remove mixer line */
+    /* Remove mixer line */
 
-	  c->override = FALSE;
+    c->override = FALSE;
 
-	  c->mixer_line = NULL;
-	  c->mixer_line_cb = NULL;
+    c->mixer_line = NULL;
+    c->mixer_line_cb = NULL;
 
-	  c->pub.minimum = c->source->minimum;
-	  c->pub.maximum = c->source->maximum;
-	  c->pub.step = c->source->step;
-	  c->pub.reset = c->source->reset;
+    c->pub.minimum = c->source->minimum;
+    c->pub.maximum = c->source->maximum;
+    c->pub.step = c->source->step;
+    c->pub.reset = c->source->reset;
 			
-	  c->pub.value = c->source->value;
+    c->pub.value = c->source->value;
 
-	  tv_callback_notify (c->info, &c->pub, c->pub._callback);
+    tv_callback_notify (c->info, &c->pub, c->pub._callback);
   } else {
-	  if (c->pub.id == TV_CONTROL_ID_MUTE)
-	  {
-		  c->info->control_mute = NULL;
-		  c->info->audio_mutable = 0; /* preliminary */
-	  }
+    if (c->pub.id == TV_CONTROL_ID_MUTE)
+      {
+	c->info->control_mute = NULL;
+	c->info->audio_mutable = 0; /* preliminary */
+      }
 
-	  tv_callback_delete_all (tc->_callback, 0, 0, 0, tc);
+    tv_callback_delete_all (c->pub._callback, 0, 0, 0, &c->pub);
 
-	  destroy_ccontrol (c);
+    destroy_ccontrol (c);
   }
 }
 
