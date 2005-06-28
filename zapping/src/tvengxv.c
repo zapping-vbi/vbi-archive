@@ -621,7 +621,7 @@ add_control			(struct private_tvengxv_device_info *p_info,
 			goto failure;
 	}
 
-	if (append_control (&p_info->info, &c.pub, sizeof (c)))
+	if (append_panel_control (&p_info->info, &c.pub, sizeof (c)))
 		return TRUE;
 
  failure:
@@ -1424,7 +1424,7 @@ static void tvengxv_close_device(tveng_device_info * info)
 
 	free_video_standards (info);
 	free_video_inputs (info);
-	free_controls (info);
+	free_panel_controls (info);
 
   /* clear the atoms */
 

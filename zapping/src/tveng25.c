@@ -151,9 +151,6 @@ struct private_tveng25_device_info
 
 #define P_INFO(p) PARENT (p, struct private_tveng25_device_info, info)
 
-/* FIXME must be >= capture.c/N_BUNDLES. */
-#define N_BUFFERS 8
-
 #ifndef TVENG25_BAYER_TEST
 #define TVENG25_BAYER_TEST 0
 #endif
@@ -620,7 +617,8 @@ add_control			(tveng_device_info *	info,
 		goto failure;
 	}
 
-	if (!(tc = append_control (info, &xc->pub, /* allocate size */ 0)))
+	if (!(tc = append_panel_control (info,
+					 &xc->pub, /* allocate size */ 0)))
 		goto failure;
 
 	get_xcontrol (info, C(tc));
@@ -632,7 +630,7 @@ add_control			(tveng_device_info *	info,
 	return TRUE;
 
  failure:
-	free_control (&xc->pub);
+	tv_control_delete (&xc->pub);
 
 	return TRUE; /* no control, but not end of enum */
 }
@@ -642,7 +640,7 @@ get_control_list		(tveng_device_info *	info)
 {
 	unsigned int cid;
 
-	free_controls (info);
+	free_panel_controls (info);
 
 	for (cid = V4L2_CID_BASE; cid < V4L2_CID_LASTP1; ++cid) {
 		/* EINVAL ignored */
@@ -2184,7 +2182,7 @@ static void tveng25_close_device(tveng_device_info * info)
       info->file_name = NULL;
     }
 
-	free_controls (info);
+	free_panel_controls (info);
 	free_video_standards (info);
 	free_video_inputs (info);
 

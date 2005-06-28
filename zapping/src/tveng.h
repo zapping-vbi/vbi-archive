@@ -57,6 +57,7 @@
 #include "libtv/overlay_buffer.h"
 #include "libtv/clip_vector.h"
 #include "libtv/callback.h"
+#include "libtv/control.h"
 
 /* The video device capabilities flags */
 #define TVENG_CAPS_CAPTURE (1 << 0) /* Can capture to memory */
@@ -441,85 +442,12 @@ tv_add_audio_callback		(tveng_device_info *	info,
  *  Controls
  */
 
-/* Programmatically accessable controls. Other controls
-   are anonymous, only the user knows what they do. Keep
-   the list short. */
-typedef enum {
-	TV_CONTROL_ID_NONE,
-	TV_CONTROL_ID_UNKNOWN = TV_CONTROL_ID_NONE,
-	TV_CONTROL_ID_BRIGHTNESS,
-	TV_CONTROL_ID_CONTRAST,
-	TV_CONTROL_ID_SATURATION,
-	TV_CONTROL_ID_HUE,
-	TV_CONTROL_ID_MUTE,
-	TV_CONTROL_ID_VOLUME,
-	TV_CONTROL_ID_BASS,
-	TV_CONTROL_ID_TREBLE,
-	/* preliminary */
-	TV_CONTROL_ID_AUDIO_MODE,
-} tv_control_id;
-
-typedef enum {
-	TV_CONTROL_TYPE_NONE,
-	TV_CONTROL_TYPE_INTEGER,	/* integer [min, max] */
-	TV_CONTROL_TYPE_BOOLEAN,	/* integer [0, 1] */
-	TV_CONTROL_TYPE_CHOICE,		/* multiple choice */
-	TV_CONTROL_TYPE_ACTION,		/* setting has one-time effect */
-	TV_CONTROL_TYPE_COLOR		/* RGB color entry */
-} tv_control_type;
-
-typedef struct _tv_control tv_control;
-
-struct _tv_control {
-  /* XXX this is private because tveng combines control lists and we don't want
-     the client to see this. Actually the tv_x_next functions are a pain, I
-     must think of something else to permit public next pointers everywhere.*/
-	tv_control *		_next;		/* private, use tv_control_next() */
-
-	void *			_parent;
-	tv_callback *		_callback;
-
-	char *			label;		/* localized */
-	unsigned int		hash;
-
-	tv_control_type		type;
-	tv_control_id		id;
-
-	char **			menu;		/* localized; last entry NULL */
-#if 0
-   add?	unsigned int		selectable;	/* menu item 1 << n */
-   control enabled/disabled flag?
-#endif
-	int			minimum;
-	int			maximum;
-	int			step;
-	int			reset;
-
-	int			value;		/* last known, not current value */
-
-  	tv_bool		_ignore; /* preliminary, private */
-};
-
 /* XXX should not take info argument*/
 int
 tveng_update_control(tv_control *control, tveng_device_info * info);
 int
 tveng_set_control(tv_control * control, int value,
 		  tveng_device_info * info);
-
-static __inline__ tv_callback *
-tv_control_add_callback		(tv_control *		control,
-				 void			(* notify)(tv_control *, void *),
-				 void			(* destroy)(tv_control *, void *),
-				 void *			user_data)
-{
-	assert (control != NULL);
-
-	return tv_callback_add (&control->_callback,
-				(tv_callback_fn *) notify,
-				(tv_callback_fn *) destroy,
-				user_data);
-}
 
 /*
  *  Audio matrix
@@ -718,8 +646,8 @@ tv_add_video_standard_callback	(tveng_device_info *	info,
 /* Controls */
 
 extern tv_control *
-tv_next_control			(const tveng_device_info *info,
-				 const tv_control *	control);
+tv_next_control			(tveng_device_info *	info,
+				 tv_control *		control);
 extern tv_control *
 tv_nth_control			(tveng_device_info *	info,
 				 unsigned int		nth);

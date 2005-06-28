@@ -94,7 +94,7 @@ add_control			(tveng_device_info *	info,
 
 	c.value		= current;
 
-	tc = append_control (info, &c, sizeof (c));
+	tc = append_panel_control (info, &c, sizeof (c));
 
 	return tc;
 }
@@ -227,7 +227,7 @@ static void tvengemu_close_device(tveng_device_info * info)
       info->file_name = NULL;
     }
 
-	free_controls (info);
+	free_panel_controls (info);
 	free_video_standards (info);
 	free_video_inputs (info);
 

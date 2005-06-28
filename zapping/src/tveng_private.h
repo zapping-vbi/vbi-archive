@@ -332,14 +332,6 @@ struct _tveng_device_info
 
   pthread_mutex_t mutex; /* Thread safety */
 
-  /* Controls managed directly by tveng.c */
-#ifdef USE_XV
-  XvPortID	port;
-  Atom filter;
-  Atom double_buffer;
-  Atom colorkey; /* colorkey doesn't have min, max, it's defined by
-		    RGB triplets */
-#endif
 
   unsigned int		callback_recursion;
 
@@ -347,7 +339,7 @@ struct _tveng_device_info
   tv_control *		control_mute;
   tv_bool		quiet;
 
-
+  tv_control *		cloned_controls;
 };
 
 
@@ -405,9 +397,9 @@ store_cur_##item		(tveng_device_info *	info,		\
 
 NODE_HELPER_FUNCTIONS		(control, control);
 extern void
-free_controls			(tveng_device_info *	info);
+free_panel_controls		(tveng_device_info *	info);
 extern tv_control *
-append_control			(tveng_device_info *	info,
+append_panel_control		(tveng_device_info *	info,
 				 tv_control *		tc,
 				 unsigned int		size);
 extern tv_control *

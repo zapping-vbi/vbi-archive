@@ -445,7 +445,7 @@ get_control_list		(tveng_device_info *	info)
 		c->pub.step	= 1;
 		c->pub.reset	= table->reset;
 
-		if (!(tc = append_control (info, &c->pub, 0))) {
+		if (!(tc = append_panel_control (info, &c->pub, 0))) {
 		failure:
 			free_control (&c->pub);
 			return FALSE;

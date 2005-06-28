@@ -1058,7 +1058,7 @@ add_control			(tveng_device_info *	info,
 
 	c.id		= id;
 
-	if ((tc = append_control (info, &c.pub, sizeof (c)))) {
+	if ((tc = append_panel_control (info, &c.pub, sizeof (c)))) {
 		P_INFO (info)->all_controls |= id;
 		return tc;
 	} else {
@@ -1202,7 +1202,7 @@ get_control_list		(tveng_device_info *	info)
 {
 	struct private_tveng1_device_info *p_info = P_INFO (info);
 
-	free_controls (info);
+	free_panel_controls (info);
 
 	p_info->all_controls = 0;
 
@@ -2982,7 +2982,7 @@ static void tveng1_close_device(tveng_device_info * info)
   if (info -> file_name)
     free(info -> file_name);
 
-	free_controls (info);
+	free_panel_controls (info);
 
 	free_video_standards (info);
 
