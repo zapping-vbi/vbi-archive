@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.h,v 1.1 2005-02-25 18:15:54 mschimek Exp $ */
+/* $Id: cpu.h,v 1.2 2005-06-28 00:52:54 mschimek Exp $ */
 
 #ifndef CPU_H
 #define CPU_H
@@ -31,6 +31,7 @@
 #define CPU_FEATURE_3DNOW	(1 << 6)
 #define CPU_FEATURE_3DNOW_EXT	(1 << 7)
 #define CPU_FEATURE_CYRIX_MMX	(1 << 8)
+#define CPU_FEATURE_SSE3	(1 << 10)
 
 /* powerpc features */
 #define CPU_FEATURE_ALTIVEC	(1 << 9)
@@ -41,5 +42,7 @@ extern cpu_feature_set		cpu_features;
 
 extern cpu_feature_set
 cpu_detection			(void);
+extern cpu_feature_set
+cpu_feature_set_from_string	(const char *		s);
 
 #endif /* CPU_H */
