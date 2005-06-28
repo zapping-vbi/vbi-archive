@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.13 2005-01-31 07:06:47 mschimek Exp $ */
+/* $Id: view.c,v 1.14 2005-06-28 00:53:35 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -975,7 +975,7 @@ get_page			(const vbi3_network *	nk,
     {
       pg = vbi3_teletext_decoder_get_page
 	(td, nk, pgno, subno,
-	 VBI3_41_COLUMNS, TRUE, /* add_column, */
+	 VBI3_PADDING, TRUE, /* add_column, */
 	 /* VBI3_PANELS, FALSE, */
 	 VBI3_NAVIGATION, navigation,
 	 VBI3_HYPERLINKS, hyperlinks,
@@ -988,7 +988,7 @@ get_page			(const vbi3_network *	nk,
     {
       pg = vbi3_teletext_decoder_get_page
 	(td, nk, pgno, subno,
-	 VBI3_41_COLUMNS, TRUE, /* add_column, */
+	 VBI3_PADDING, TRUE, /* add_column, */
 	 /* VBI3_PANELS, FALSE, */
 	 VBI3_NAVIGATION, navigation,
 	 VBI3_HYPERLINKS, hyperlinks,
@@ -1076,7 +1076,7 @@ update_header			(TeletextView *		view,
 	 ev->network,
 	 ev->ev.ttx_page.pgno,
 	 ev->ev.ttx_page.subno,
-	 VBI3_41_COLUMNS, TRUE,
+	 VBI3_PADDING, TRUE,
 	 VBI3_HEADER_ONLY, TRUE,
 	 VBI3_WST_LEVEL, VBI3_WST_LEVEL_1p5,
 	 VBI3_OVERRIDE_CHARSET_0, view->charset,
@@ -1087,7 +1087,7 @@ update_header			(TeletextView *		view,
 	 ev->network,
 	 ev->ev.ttx_page.pgno,
 	 ev->ev.ttx_page.subno,
-	 VBI3_41_COLUMNS, TRUE,
+	 VBI3_PADDING, TRUE,
 	 VBI3_HEADER_ONLY, TRUE,
 	 VBI3_WST_LEVEL, VBI3_WST_LEVEL_1p5,
 	 VBI3_DEFAULT_CHARSET_0, default_charset,
