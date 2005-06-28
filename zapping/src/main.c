@@ -65,10 +65,6 @@ Zapping *		zapping;
 
 /*** END OF GLOBAL STUFF ***/
 
-static gboolean		disable_vbi = FALSE; /* TRUE for disabling VBI
-						support */
-
-
 void shutdown_zapping(void);
 static gboolean startup_zapping(gboolean load_plugins,
 				tveng_device_info *info);
@@ -95,9 +91,6 @@ startup_teletext(void)
 #ifdef HAVE_LIBZVBI
   if (_teletext_view_new /* have Teletext plugin */)
     {
-      if (disable_vbi)
-	zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
-
       /* Make the vbi module open the device */
       D();
       zconf_touch("/zapping/options/vbi/enable_vbi");
@@ -106,7 +99,7 @@ startup_teletext(void)
   else
 #endif
     {
-      zconf_set_boolean(FALSE, "/zapping/options/vbi/enable_vbi");
+      disable_vbi = TRUE;
       vbi_gui_sensitive(FALSE);
     }
 }
@@ -292,6 +285,7 @@ int main(int argc, char * argv[])
   char *command = NULL;
   char *yuv_format = NULL;
   char *norm = NULL;
+  char *cpu_feature_str = NULL;
   gboolean mutable = TRUE;
   const gchar *display_name;
   tveng_device_info *info;
@@ -502,6 +496,15 @@ int main(int argc, char * argv[])
       NULL
     },
     {
+      "cpu-features",
+      0,
+      POPT_ARG_STRING,
+      &cpu_feature_str,
+      0,
+      N_("Override CPU detection"),
+      NULL
+    },
+    {
       NULL,
       0,
       0,
@@ -553,11 +556,25 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.201 2005-04-21 04:47:54 mschimek Exp $",
+	 "$Id: main.c,v 1.202 2005-06-28 01:10:31 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
-  printv ("CPU features 0x%x\n", cpu_features);
+
+  if (cpu_feature_str)
+    {
+      cpu_feature_set actual_features;
+
+      actual_features = cpu_features;
+      cpu_features &= cpu_feature_set_from_string (cpu_feature_str);
+
+      printv ("CPU features 0x%x (actual 0x%x)\n",
+    	      cpu_features, actual_features);
+    }
+  else
+    {
+      printv ("CPU features 0x%x\n", cpu_features);
+    }
 
   D();
   glade_gnome_init();
