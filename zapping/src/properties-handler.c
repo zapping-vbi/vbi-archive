@@ -1367,32 +1367,6 @@ vbi_general_setup	(GtkWidget	*page)
     }
 }
 
-typedef enum {
-  TOGGLE_FALSE,
-  TOGGLE_TRUE,
-  TOGGLE_TO_FALSE,
-  TOGGLE_TO_TRUE,
-} togglean;
-
-#define TOGGLE_CURRENT(t) ((t) & 1)
-#define TOGGLE_CHANGED(t) ((t) & 2)
-
-static togglean
-set_toggle		(GtkWidget *page,
-			 const gchar *widget_name,
-			 const gchar *zconf_name)
-{
-  gboolean new_state, old_state;
-  GtkWidget *widget;
-
-  widget = lookup_widget (page, widget_name);
-  new_state = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
-  old_state = zconf_get_boolean (NULL, zconf_name);
-  zconf_set_boolean (new_state, zconf_name);
-
-  return (old_state ^ new_state) * 2 + new_state;
-}
-
 static void
 vbi_general_apply	(GtkWidget	*page)
 {
