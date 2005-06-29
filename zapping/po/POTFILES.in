@@ -24,8 +24,8 @@ plugins/deinterlace/DI_Misc/DI_TwoFrame.c
 plugins/deinterlace/DI_Misc/DI_VideoBob.c
 plugins/deinterlace/DI_Misc/DI_VideoWeave.c
 plugins/deinterlace/DI_Misc/DI_Weave.c
-plugins/deinterlace/DI_MoComp2/DI_MoComp2.c
-plugins/deinterlace/DI_TomsMoComp/DI_TomsMoComp.c
+plugins/deinterlace/DI_Misc/DI_MoComp2.c
+plugins/deinterlace/DI_Misc/DI_TomsMoComp.c
 plugins/mpeg/mpeg.c
 plugins/mpeg/options.c
 plugins/mpeg/mpeg_properties.glade2
