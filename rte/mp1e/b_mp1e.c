@@ -20,7 +20,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: b_mp1e.c,v 1.48 2005-02-25 18:30:28 mschimek Exp $ */
+/* $Id: b_mp1e.c,v 1.49 2005-06-29 21:25:23 mschimek Exp $ */
 
 #include <unistd.h>
 #include <string.h>
@@ -540,6 +540,7 @@ wait_full_ca(fifo *f)
 		b->time = rb.timestamp;
 		b->user_data = rb.user_data;
 	} else {
+		b->data = NULL;
 		b->used = 0; /* EOF */
 	}
 
@@ -552,7 +553,8 @@ send_empty_ca(consumer *c, buffer *b)
 {
 	mp1e_codec *md = c->fifo->user_data;
 
-	if (md->unref_cb) {
+	if (md->unref_cb
+	    && b->data /* not EOF */) {
 		rte_buffer rb;
 
 		rb.data = b->data;
@@ -561,6 +563,10 @@ send_empty_ca(consumer *c, buffer *b)
 
 		md->unref_cb(md->codec.context, &md->codec, &rb);
 	}
+
+	b->data = NULL;
+	b->used = 0;
+	b->user_data = NULL;
 
 	unlink_node(&c->fifo->full, &b->node);
 	add_head(&c->fifo->empty, &b->node);
@@ -583,6 +589,7 @@ wait_full_cp(fifo *f)
 		b->time = rb.timestamp;
 		b->user_data = rb.user_data;
 	} else {
+		b->data = NULL;
 		b->used = 0; /* EOF */
 	}
 
