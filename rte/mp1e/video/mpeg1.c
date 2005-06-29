@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg1.c,v 1.45 2005-02-25 18:31:00 mschimek Exp $ */
+/* $Id: mpeg1.c,v 1.46 2005-06-29 21:24:37 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -2485,8 +2485,8 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 
 	rsp->video.sample_aspect = aspect_ratio_value[mpeg1->aspect_ratio_code];
 
-	memcpy(&codec->params, rsp, sizeof(codec->params));
-
+	if (&codec->params != rsp)
+		memcpy(&codec->params, rsp, sizeof(codec->params));
 
 
 	/* XXX this codec isn't reentrant */
@@ -2853,7 +2853,7 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 	}
 
 	if (KEYWORD("bit_rate")) {
-		mpeg1->bit_rate = RTE_OPTION_ARG(int, 30000, 8000000);
+		mpeg1->bit_rate = RTE_OPTION_ARG(int, 30000, 16000000);
 	} else if (KEYWORD("coded_frame_rate")) {
 		mpeg1->frame_rate_code =
 			rte_closest_double(&frame_rate_value[1], 8,
