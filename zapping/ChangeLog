@@ -1,3 +1,11 @@
+2005-06-29    <mschimek@users.sf.net>
+
+	* po/POTFILES.in: DI_MoComp2.c, DI_TomsMoComp.c moved into DI_Misc.
+	* zapping/plugins/deinterlace/test/md5sums-altivec:
+	  New file containing MD5 checksums of the expected output of this
+	  implementation of each deinterlace method for make check. Empty
+	  until someone tests this code on PPC.
+
 2005-06-28    <mschimek@users.sf.net>
 
 	* src/tveng.c (mixer_line_destroy_cb): Dereferenced uninitialized

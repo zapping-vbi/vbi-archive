@@ -1811,7 +1811,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=mp1e
- VERSION=1.9.5
+ VERSION=1.9.6
 
 
 cat >>confdefs.h <<_ACEOF
@@ -21478,7 +21478,7 @@ fi;
 # Check whether --enable-alsatest or --disable-alsatest was given.
 if test "${enable_alsatest+set}" = set; then
   enableval="$enable_alsatest"
-  enable_alsatest="$enableval"
+  enable_alsatest=no
 else
   enable_alsatest=yes
 fi;
@@ -21618,7 +21618,6 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-if test "x$enable_alsatest" = "xyes"; then
 
 echo "$as_me:$LINENO: checking for snd_ctl_open in -lasound" >&5
 echo $ECHO_N "checking for snd_ctl_open in -lasound... $ECHO_C" >&6
@@ -21697,7 +21696,6 @@ else
 
 fi
 
-fi
 
 if test "x$alsa_found" = "xyes" ; then
    have_libasound=yes

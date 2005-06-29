@@ -1,3 +1,39 @@
+2005-06-28    <mschimek@users.sf.net>
+
+	* options.c (parse_option): GCC 4.0 rejects a static function
+	  declaration in a function, moved that out.
+
+2005-04-24    <mschimek@users.sf.net>
+
+	* global_data.c, options.c (parse_option), options.h (options),
+	  systems/output.c (output_stdout):
+	  New option to cut output into sub-1GB segments. New option to
+	  change number of capture buffers.
+
+2005-04-11    <mschimek@users.sf.net>
+
+	* devices/v4l25.c (v4l25_init): Change audio mode (with
+	  v4l VIDIOCSAUDIO for compat. with broken drivers) matching
+	  the -a option.
+	* video/mpeg1.c (option_set), video/mpeg2.c (option_set):
+	  Doubled upper limit of video bit rate.
+	* configure.in: Bumped version number to 1.9.6.
+
+2005-03-16    <mschimek@users.sf.net>
+
+	* RTE release 0.5.6.
+
+2005-03-16    <mschimek@users.sf.net>
+
+	* b_mp1e.c (send_empty_ca): Do not return EOF buffer which contains
+	  no data.  Caused an assert (c->dequeued == 0) when stopping mp1e
+	  video recording in Zapping.
+	* audio/mp2.c (parameters_set): Must align output buffer size for
+	  bflush access.  SF bug #1162581 (make check segv due to buffer
+	  overflow).
+	* audio/mp2.c (parameters_set), video/mpeg2.c (parameters_set),
+	  video/mpeg2.c (parameters_set): No copy of codec->params to self.
+
 2005-02-28    <mschimek@users.sf.net>
 
 	* RTE release 0.5.4.
