@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.24 2004-10-22 00:58:15 mschimek Exp $ */
+/* $Id: options.c,v 1.25 2005-06-29 21:21:53 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -127,7 +127,7 @@ usage(FILE *fi)
 	exit((fi == stderr) ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
-#define OPT_STR "02a:b:c:e:f:g:hi:k:lm:n:o:p:r:s:t:vwx:zA:C:B:F:G:H:I:J:KL:M:PR:S:T:VX:"
+#define OPT_STR "02a:b:c:d:e:f:g:hi:jk:lm:n:o:p:r:s:t:vwx:zA:C:B:F:G:H:I:J:KL:M:PR:S:T:VX:"
 
 static const struct option
 long_options[] = {
@@ -136,11 +136,13 @@ long_options[] = {
 	{ "audio_mode",			required_argument, NULL, 'a' },
 	{ "video_bit_rate",		required_argument, NULL, 'b' },
 	{ "capture_device",		required_argument, NULL, 'c' },
+	{ "cap_buffers",		required_argument, NULL, 'd' },
 	{ "skip_method",		required_argument, NULL, 'e' },
 	{ "frame_rate",			required_argument, NULL, 'f' },
 	{ "gop_sequence",		required_argument, NULL, 'g' },
 	{ "help",			no_argument,	   NULL, 'h' },
 	{ "config",			required_argument, NULL, 'i' },
+	{ "cut_output",			no_argument,	   NULL, 'j' },
 	{ "break",			required_argument, NULL, 'k' },
 	{ "letterbox",			no_argument,	   NULL, 'l' },
 	{ "mux_mode",			required_argument, NULL, 'm' },
@@ -175,10 +177,11 @@ long_options[] = {
 	{ NULL }
 };
 
+static rte_bool parse_option(int c);
+
 static void
 options_from_file(char *name, rte_bool fail)
 {
-	static rte_bool parse_option(int c);
 	static int recursion = 0;
 	char *s, *p, buffer[300];
 	FILE *fi;
@@ -378,6 +381,10 @@ parse_option(int c)
 		cap_dev = strdup(optarg);
 		break;
 
+	case 'd':
+		cap_buffers = strtol(optarg, NULL, 0);
+		break;
+
 	case 'e':
 		if ((skip_method = suboption(skip_options, 3, 0)) < 0)
 			return FALSE;
@@ -435,6 +442,10 @@ parse_option(int c)
 
 	case 'i':
 		options_from_file(optarg, TRUE);
+		break;
+
+	case 'j':
+		cut_output = !cut_output;
 		break;
 
 	case 'k':
