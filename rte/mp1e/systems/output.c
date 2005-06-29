@@ -40,6 +40,9 @@ static buffer *
 output_stdout(struct multiplexer *mux,
 	      buffer *b)
 {
+	static long long count = 0;
+	static int part = 1;
+	extern char *outFileName;
 	unsigned char *s;
 	ssize_t r, n;
 
@@ -48,6 +51,25 @@ output_stdout(struct multiplexer *mux,
 
 	if (!b->used) /* EOF */
 		return b;
+
+	if (cut_output) {
+		if ((count + b->used) >= (1LL << 30)) {
+			char buf[256];
+
+			close (outFileFD);
+
+			snprintf (buf, 255, "part-%03d.mpg", ++part);
+
+			outFileFD = open(buf, O_CREAT | O_WRONLY |
+					 O_TRUNC | O_LARGEFILE,
+					 S_IRUSR | S_IWUSR | S_IRGRP |
+					 S_IWGRP | S_IROTH | S_IWOTH);
+
+			count = 0;
+		}
+
+		count += b->used;
+	}
 
 	s = b->data;
 	n = b->used;

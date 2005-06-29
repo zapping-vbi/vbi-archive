@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: global_data.c,v 1.20 2003-01-03 05:33:56 mschimek Exp $ */
+/* $Id: global_data.c,v 1.21 2005-06-29 21:23:19 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -116,3 +116,5 @@ int			cpu_type		= 0;			// detect
 /* Work-arounds for the AIW v4l driver */
 double                  source_fps              = -1.0;			// manually-defined source fps
 int                     fix_interlaced          = 0;			// drop every 2nd sequential field read and enable horizontal decimation
+
+int			cut_output		= 0;

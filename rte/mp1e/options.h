@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.h,v 1.10 2002-09-07 01:47:44 mschimek Exp $ */
+/* $Id: options.h,v 1.11 2005-06-29 21:23:45 mschimek Exp $ */
 
 extern int		test_mode;
 
@@ -88,5 +88,7 @@ extern int		cpu_type;
 /* AIW hacks */
 extern double		source_fps;
 extern int		fix_interlaced;
+
+extern int		cut_output;
 
 extern void		options(int ac, char **av);
