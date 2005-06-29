@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.5 2004-05-21 05:34:09 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.6 2005-06-29 21:24:08 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -30,6 +30,7 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <asm/types.h>
+#include "../common/videodev.h"
 #include "../common/videodev25.h"
 #include "../common/_videodev25.h"
 #include "../common/device.h"
@@ -271,6 +272,27 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 			old_mute.id = 0;
 
 			ASSERT("read mute control", errno == EINVAL /* unsupported */);
+		}
+	}
+
+	if (1) {
+		struct video_audio audio;
+
+		if (0 == ioctl (fd, VIDIOCGAUDIO, &audio)) {
+			switch (audio_mode) {
+			case 0: /* stereo */
+			case 1: /* joint stereo */
+			case 2: /* bilingual */
+				audio.mode = VIDEO_SOUND_STEREO;
+				break;
+
+			case 3: /* mono */
+				audio.mode = VIDEO_SOUND_MONO;
+				break;
+			}
+
+			ASSERT("set audio mode",
+			       0 == ioctl (fd, VIDIOCSAUDIO, &audio));
 		}
 	}
 
