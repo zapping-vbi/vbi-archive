@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mp2.c,v 1.38 2005-02-25 18:30:30 mschimek Exp $ */
+/* $Id: mp2.c,v 1.39 2005-06-29 21:25:39 mschimek Exp $ */
 
 #include <limits.h>
 
@@ -791,7 +791,8 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 
 	/* Parameters accepted */
 
-	memcpy(&codec->params, rsp, sizeof(codec->params));
+	if (&codec->params != rsp)
+		memcpy(&codec->params, rsp, sizeof(codec->params));
 
 	/*
 	 *  Initialize codec
@@ -956,6 +957,8 @@ parameters_set(rte_codec *codec, rte_stream_parameters *rsp)
 	mp2->codec.input_buffer_size = rsp->audio.fragment_size;
 	mp2->codec.output_buffer_size =
 		(mp2->bits_per_frame + BITS_PER_SLOT /* padded frame */ + 7) >> 3;
+	/* must align for bflush */
+	mp2->codec.output_buffer_size =	(mp2->codec.output_buffer_size + 7) & -8;
 	mp2->codec.output_bit_rate = bit_rate;
 	mp2->codec.output_frame_rate = sampling_freq / (double) SAMPLES_PER_FRAME;
 
