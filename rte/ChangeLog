@@ -1,3 +1,13 @@
+2005-03-16    <mschimek@users.sf.net>
+
+	* Release 0.5.6.
+
+2005-03-16    <mschimek@users.sf.net>
+
+	* test/Makefile.am: Added output of io-all-formats (make check)
+	  to CLEANFILES for make distcheck.
+	* configure.in: Bumped version number to 0.5.6.
+
 2005-03-11    <mschimek@users.sf.net>
 
 	* Release 0.5.5.

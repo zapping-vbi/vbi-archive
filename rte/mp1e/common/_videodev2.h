@@ -1,7 +1,7 @@
 /* Generated file, do not edit! */
 
 #include <stdio.h>
-#include "device.h"
+#include "common/device.h"
 
 #ifndef __GNUC__
 #undef __attribute__
@@ -175,11 +175,13 @@ fprint_struct_v4l2_performance (FILE *fp, int rw __attribute__ ((unused)), const
 {
 fprintf (fp, "frames=%ld "
 "framesdropped=%ld "
-"bytesin=? "
-"bytesout=? "
+"bytesin=%lu "
+"bytesout=%lu "
 "reserved[] ",
 (long) t->frames, 
-(long) t->framesdropped);
+(long) t->framesdropped, 
+(unsigned long) t->bytesin, 
+(unsigned long) t->bytesout);
 }
 
 static void
@@ -690,8 +692,9 @@ fprintf (fp, "offset=%lu "
 (unsigned long) t->length, 
 (unsigned long) t->bytesused);
 fprint_symbol_v4l2_buf_flag_ (fp, rw, t->flags);
-fputs (" timestamp=? "
-"timecode={", fp);
+fprintf (fp, " timestamp=%ld "
+"timecode={",
+(long) t->timestamp);
 fprint_struct_v4l2_timecode (fp, rw, &t->timecode);
 fprintf (fp, "} sequence=%lu "
 "reserved[] ",

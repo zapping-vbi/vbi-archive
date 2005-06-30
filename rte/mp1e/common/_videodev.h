@@ -1,7 +1,7 @@
 /* Generated file, do not edit! */
 
 #include <stdio.h>
-#include "device.h"
+#include "common/device.h"
 
 #ifndef __GNUC__
 #undef __attribute__

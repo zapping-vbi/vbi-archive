@@ -1,6 +1,6 @@
 Name:		rte
 Summary:	Real Time Software Video/Audio Encoder library
-Version:	0.5.5
+Version:	0.5.6
 Release:	1
 Copyright:	GPL
 Group:		Applications/Multimedia

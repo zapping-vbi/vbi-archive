@@ -1,7 +1,7 @@
 /* Generated file, do not edit! */
 
 #include <stdio.h>
-#include "device.h"
+#include "common/device.h"
 
 #ifndef __GNUC__
 #undef __attribute__
@@ -450,7 +450,7 @@ fprintf (fp, " description=\"%.*s\" "
 "pixelformat=\"%.4s\"=0x%lx "
 "reserved[] ",
 32, (const char *) t->description, 
-(const char *) t->pixelformat, (unsigned long) t->pixelformat);
+(const char *) & t->pixelformat, (unsigned long) t->pixelformat);
 }
 }
 
@@ -869,6 +869,14 @@ if (!arg) { fputs ("VIDIOC_G_TUNER", fp); return; }
 case VIDIOC_S_TUNER:
 if (!arg) { fputs ("VIDIOC_S_TUNER", fp); return; }
  fprint_struct_v4l2_tuner (fp, rw, arg);
+break;
+case VIDIOC_G_STD:
+if (!arg) { fputs ("VIDIOC_G_STD", fp); return; }
+case VIDIOC_S_STD:
+if (!arg) { fputs ("VIDIOC_S_STD", fp); return; }
+case VIDIOC_QUERYSTD:
+if (!arg) { fputs ("VIDIOC_QUERYSTD", fp); return; }
+ fprint_symbol_v4l2_std_ (fp, rw, * (__u64 *) arg);
 break;
 case VIDIOC_G_JPEGCOMP:
 if (!arg) { fputs ("VIDIOC_G_JPEGCOMP", fp); return; }

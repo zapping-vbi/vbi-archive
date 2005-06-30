@@ -1,3 +1,13 @@
+librte 0.5.6, 2005-03-17
+------------------------
+This is a bugfix release.
+
+- io-all-formats (mp1e_mpeg_audio-mpeg2_audio_layer2) make check
+  segfaulted do to a buffer overflow, depending on gcc optimization
+  switches.
+- Stopping mp1e video recording triggered an assert (c->dequeued == 0)
+  in Zapping.  Has been fixed there also.
+
 librte 0.5.5, 2005-03-11
 ------------------------
 This is a bugfix release.

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-11 04:54+0100\n"
+"POT-Creation-Date: 2005-03-17 03:52+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -36,8 +36,8 @@ msgid ""
 msgstr ""
 
 #: mp1e/video/mpeg1.c:2565 mp1e/video/mpeg1.c:2587 mp1e/video/mpeg1.c:2592
-#: mp1e/video/mpeg1.c:2602 mp1e/video/mpeg1.c:2960 mp1e/audio/mp2.c:1184
-#: mp1e/b_mp1e.c:448 mp1e/b_mp1e.c:498 mp1e/b_mp1e.c:508 mp1e/b_mp1e.c:1097
+#: mp1e/video/mpeg1.c:2602 mp1e/video/mpeg1.c:2960 mp1e/audio/mp2.c:1187
+#: mp1e/b_mp1e.c:448 mp1e/b_mp1e.c:498 mp1e/b_mp1e.c:508 mp1e/b_mp1e.c:1104
 #: ffmpeg/b_ffmpeg.c:676 ffmpeg/b_ffmpeg.c:1457 ffmpeg/b_ffmpeg.c:1881
 #: divx4linux/b_divx4linux.c:636 divx4linux/b_divx4linux.c:1059
 msgid "Out of memory."
@@ -55,7 +55,7 @@ msgstr ""
 msgid "Insert fake pictures"
 msgstr ""
 
-#: mp1e/video/mpeg1.c:2714 mp1e/audio/mp2.c:1005 ffmpeg/b_ffmpeg.c:918
+#: mp1e/video/mpeg1.c:2714 mp1e/audio/mp2.c:1008 ffmpeg/b_ffmpeg.c:918
 #: ffmpeg/b_ffmpeg.c:922 ffmpeg/b_ffmpeg.c:935 ffmpeg/b_ffmpeg.c:939
 #: divx4linux/b_divx4linux.c:809
 msgid "Bit rate"
@@ -128,78 +128,78 @@ msgstr ""
 msgid "off"
 msgstr ""
 
-#: mp1e/video/mpeg1.c:2777 mp1e/audio/mp2.c:1053
+#: mp1e/video/mpeg1.c:2777 mp1e/audio/mp2.c:1056
 #, c-format
 msgid "%f frames"
 msgstr ""
 
-#: mp1e/audio/mp2.c:986 ffmpeg/b_ffmpeg.c:853
+#: mp1e/audio/mp2.c:989 ffmpeg/b_ffmpeg.c:853
 msgid "Mono"
 msgstr ""
 
-#: mp1e/audio/mp2.c:987 ffmpeg/b_ffmpeg.c:854
+#: mp1e/audio/mp2.c:990 ffmpeg/b_ffmpeg.c:854
 msgid "Stereo"
 msgstr ""
 
-#: mp1e/audio/mp2.c:989 ffmpeg/b_ffmpeg.c:856
+#: mp1e/audio/mp2.c:992 ffmpeg/b_ffmpeg.c:856
 msgid "Bilingual"
 msgstr ""
 
-#: mp1e/audio/mp2.c:997
+#: mp1e/audio/mp2.c:1000
 msgid "Static"
 msgstr ""
 
-#: mp1e/audio/mp2.c:998
+#: mp1e/audio/mp2.c:1001
 msgid "Fast"
 msgstr ""
 
-#: mp1e/audio/mp2.c:999
+#: mp1e/audio/mp2.c:1002
 msgid "Accurate"
 msgstr ""
 
-#: mp1e/audio/mp2.c:1007 ffmpeg/b_ffmpeg.c:920 ffmpeg/b_ffmpeg.c:924
+#: mp1e/audio/mp2.c:1010 ffmpeg/b_ffmpeg.c:920 ffmpeg/b_ffmpeg.c:924
 #: ffmpeg/b_ffmpeg.c:937
 msgid "Output bit rate, all channels together"
 msgstr ""
 
-#: mp1e/audio/mp2.c:1009 ffmpeg/b_ffmpeg.c:912 ffmpeg/b_ffmpeg.c:926
+#: mp1e/audio/mp2.c:1012 ffmpeg/b_ffmpeg.c:912 ffmpeg/b_ffmpeg.c:926
 #: ffmpeg/b_ffmpeg.c:929 ffmpeg/b_ffmpeg.c:932
 msgid "Sampling frequency"
 msgstr ""
 
-#: mp1e/audio/mp2.c:1012 ffmpeg/b_ffmpeg.c:915
+#: mp1e/audio/mp2.c:1015 ffmpeg/b_ffmpeg.c:915
 msgid "Mode"
 msgstr ""
 
-#: mp1e/audio/mp2.c:1015
+#: mp1e/audio/mp2.c:1018
 msgid "Psychoacoustic analysis"
 msgstr ""
 
-#: mp1e/audio/mp2.c:1017
+#: mp1e/audio/mp2.c:1020
 msgid ""
 "Speed/quality tradeoff. Selecting 'Accurate' is recommended below 80 kbit/s "
 "per channel, when you have bat ears or a little more CPU load doesn't matter."
 msgstr ""
 
-#: mp1e/audio/mp2.c:1037
+#: mp1e/audio/mp2.c:1040
 #, c-format
 msgid "%u kbit/s"
 msgstr ""
 
-#: mp1e/audio/mp2.c:1042 ffmpeg/b_ffmpeg.c:972
+#: mp1e/audio/mp2.c:1045 ffmpeg/b_ffmpeg.c:972
 #, c-format
 msgid "%u Hz"
 msgstr ""
 
-#: mp1e/audio/mp2.c:1206 ffmpeg/b_ffmpeg.c:1221
+#: mp1e/audio/mp2.c:1209 ffmpeg/b_ffmpeg.c:1221
 msgid "MPEG-1 Audio Layer II"
 msgstr ""
 
-#: mp1e/audio/mp2.c:1225 ffmpeg/b_ffmpeg.c:1237
+#: mp1e/audio/mp2.c:1228 ffmpeg/b_ffmpeg.c:1237
 msgid "MPEG-2 Audio Layer II LSF"
 msgstr ""
 
-#: mp1e/audio/mp2.c:1226 ffmpeg/b_ffmpeg.c:1238
+#: mp1e/audio/mp2.c:1229 ffmpeg/b_ffmpeg.c:1238
 msgid ""
 "MPEG-2 Low Sampling Frequency extension to MPEG-1 Audio Layer II. Be warned "
 "not all MPEG video and audio players support MPEG-2 audio."
@@ -221,33 +221,33 @@ msgstr ""
 msgid "Insufficient resources to start context thread.\n"
 msgstr ""
 
-#: mp1e/b_mp1e.c:936 ffmpeg/b_ffmpeg.c:1546
+#: mp1e/b_mp1e.c:943 ffmpeg/b_ffmpeg.c:1546
 #, c-format
 msgid "Cannot create new codec instance '%s'. %s"
 msgstr ""
 
-#: mp1e/b_mp1e.c:940 ffmpeg/b_ffmpeg.c:1551
+#: mp1e/b_mp1e.c:947 ffmpeg/b_ffmpeg.c:1551
 #, c-format
 msgid "Cannot create new codec instance '%s'."
 msgstr ""
 
-#: mp1e/b_mp1e.c:1005 ffmpeg/b_ffmpeg.c:1726
+#: mp1e/b_mp1e.c:1012 ffmpeg/b_ffmpeg.c:1726
 msgid "MPEG-1 Program Stream"
 msgstr ""
 
-#: mp1e/b_mp1e.c:1015
+#: mp1e/b_mp1e.c:1022
 msgid "MPEG-1 VCD Program Stream"
 msgstr ""
 
-#: mp1e/b_mp1e.c:1025 ffmpeg/b_ffmpeg.c:1700
+#: mp1e/b_mp1e.c:1032 ffmpeg/b_ffmpeg.c:1700
 msgid "MPEG Video Elementary Stream"
 msgstr ""
 
-#: mp1e/b_mp1e.c:1035 ffmpeg/b_ffmpeg.c:1643
+#: mp1e/b_mp1e.c:1042 ffmpeg/b_ffmpeg.c:1643
 msgid "MPEG Audio Elementary Stream"
 msgstr ""
 
-#: mp1e/b_mp1e.c:1217
+#: mp1e/b_mp1e.c:1224
 msgid ""
 "MP1E backend requires MMX but the CPU type is unknown, backend disabled."
 msgstr ""
