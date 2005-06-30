@@ -1,3 +1,7 @@
+2005-06-30    <mschimek@users.sf.net>
+
+	* src/structpr_gen.pl: Didn't log VIDIOC_G|S_STD.
+
 2005-06-29    <mschimek@users.sf.net>
 
 	* po/POTFILES.in: DI_MoComp2.c, DI_TomsMoComp.c moved into DI_Misc.

@@ -25,12 +25,12 @@
 #  Perl and C gurus cover your eyes. This is one of my first
 #  attempts in this funny tongue and far from a proper C parser.
 
-# $Id: structpr_gen.pl,v 1.8 2005-03-30 21:22:07 mschimek Exp $
+# $Id: structpr_gen.pl,v 1.9 2005-06-30 21:59:20 mschimek Exp $
 
 $number		= '[0-9]+';
 $ident		= '\~?_*[a-zA-Z][a-zA-Z0-9_]*';
-$signed		= '((signed)?(char|short|int|long))|__s8|__s16|__s32|signed';
-$unsigned	= '(((unsigned\s*)|u|u_)(char|short|int|long))|__u8|__u16|__u32|unsigned';
+$signed		= '((signed)?(char|short|int|long))|__s8|__s16|__s32|__s64|signed';
+$unsigned	= '(((unsigned\s*)|u|u_)(char|short|int|long))|__u8|__u16|__u32|__u64|unsigned';
 $define		= '^\s*\#\s*define\s+';
 
 $printfn	= 'fprint_ioctl_arg';
@@ -168,6 +168,8 @@ foreach ($contents =~ /^(.*)/gm) {
 	} else {
 	    &add_ioctl ($1, $2, $3, $3);
 	}
+    } elsif (/$define($ident)\s+_IO(WR|R|W).*\(.*,\s*$number\s*,\s*($ident)\s*\)\s*$/) {
+	&add_ioctl ($1, $2, $3, $3);
     } elsif (/$define($ident)\s+_IO(WR|R|W).*\(.*,\s*$number\s*,\s*([^*]+)\s*\)\s*$/) {
 	&add_ioctl_check ($1, $2, $3);
     # Define 
@@ -629,7 +631,7 @@ sub enumeration {
 
 while (@contents) {
     $_ = shift(@contents);
-#   print ">>$_<<\n";
+    # print ">>$_<<\n";
 
     if (/^\s*(struct|union)\s*($ident)\s*\{/) {
 	&aggregate ($1, $2);
@@ -700,6 +702,19 @@ $text = "static void\n$printfn (FILE *fp, unsigned int cmd, int rw, void *arg)\n
     . "{\nswitch (cmd) {\n";
 
 while (($type, $case) = each %ioctl_cases) {
+    if ($typedefs{$type}) {
+	if ($symbolic{$type}) {
+	    &print_type ($type);
+	    $prefix = lc $symbolic{$type};
+	    $type = $typedefs{$type};
+	    $text .= "$case fprint_symbol_$prefix ";
+	    $text .= "(fp, rw, * ($type *) arg);\nbreak;\n";
+	    next;
+	}
+
+	$type = $typedefs{$type};
+    }
+
     if ($funcs{$type}) {
 	&print_type ($type);
 	$type =~ s/ /_/;
