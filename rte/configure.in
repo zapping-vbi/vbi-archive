@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.38 2005-03-11 04:22:41 mschimek Exp $
+dnl $Id: configure.in,v 1.39 2005-06-30 21:59:53 mschimek Exp $
 
 AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(rte, 0.5.5)
+AM_INIT_AUTOMAKE(rte, 0.5.6)
 AM_CONFIG_HEADER(config.h)
 AM_ACLOCAL_INCLUDE(m4)
 
