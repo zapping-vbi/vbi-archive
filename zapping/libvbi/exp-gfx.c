@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.52 2005-06-28 19:16:24 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.53 2005-07-04 21:57:57 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -597,7 +597,7 @@ do {									\
 				PIXEL (d, x, pen, bits & 1);		\
 				PIXEL (d, x + 1, pen, bits & 1);	\
 			}						\
-			d += bpl * 2;					\
+			d += bpl;					\
 			break;						\
 									\
 		case VBI3_DOUBLE_SIZE:					\

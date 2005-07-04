@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.c,v 1.4 2005-06-28 00:58:02 mschimek Exp $ */
+/* $Id: event.c,v 1.5 2005-07-04 21:57:57 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>		/* malloc() */
@@ -298,6 +298,8 @@ _vbi3_event_handler_list_add	(_vbi3_event_handler_list *es,
 		/* Add handler. */
 
 		if ((eh = vbi3_malloc (sizeof (*eh)))) {
+			CLEAR (*eh);
+
 			eh->next	= NULL;
 			eh->event_mask	= event_mask;
 

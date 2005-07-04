@@ -1,3 +1,18 @@
+2005-07-04    <mschimek@users.sf.net>
+
+	* plugins/teletext/view.c (update_header, selection_get):
+	  Added missing vbi3_page_draw_teletext_region x y parameters.
+	* src/mixer.c (startup_mixer), src/audio.c (devices_audio_kernel_open,
+	  devices_audio_mixer_open): Log OSS ioctls when --io-debug was given.
+	* libtv/callback.c (tv_callback_remove_all, tv_callback_delete_all,
+	  tv_callback_unblock_all, tv_callback_block_all):
+	  Fixed matching of NULL callback parameters.
+	* src/tveng.c (ccontrol_copy): Clear new control. Fixed callback
+	  redirection.
+	(destroy_ccontrol): Fixed restoring of callbacks.
+	* libtv/control.h, libtv/control.c (tv_control_dup): Removed
+	  unusual size parameter.
+
 2005-06-30    <mschimek@users.sf.net>
 
 	* src/structpr_gen.pl: Didn't log VIDIOC_G|S_STD.
@@ -150,7 +165,9 @@
 	* plugins/deinterlace/preferences.c (load_options): Skip hidden
 	  options, for GreedyTestMode.
 	* plugins/deinterlace/main.c: Improved definition of SIMD consts. If
-	  DI_MAIN_HEIGHT_DIV is given, process image bottom instead of top.
+	  DI_MAIN_HEIGHT_DIV is given (reducing the image height to test
+	  time consuming deinterlace methods on slow CPUs), process image
+	  bottom instead of top.
 	(plugin_init): A SIMD CPU is no longer required.  DScaler
 	  cpu_feature_flags no longer needed, removed.  Added GreedyTestMode
 	  gconf key.
