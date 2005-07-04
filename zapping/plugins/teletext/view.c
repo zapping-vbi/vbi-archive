@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.15 2005-06-28 19:15:11 mschimek Exp $ */
+/* $Id: view.c,v 1.16 2005-07-04 21:55:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1129,17 +1129,19 @@ update_header			(TeletextView *		view,
   buffer += column * (CW * 4);
 
   success = vbi3_page_draw_teletext_region (pg,
-					   buffer,
-					   &format,
-					   column,
-					   /* row */ 0,
-					   /* width */ 40 - column,
-					   /* height */ 1,
-					   VBI3_BRIGHTNESS, brightness,
-					   VBI3_CONTRAST, contrast,
-					   VBI3_REVEAL, TRUE,
-					   VBI3_FLASH_ON, TRUE,
-					   VBI3_END);
+					    buffer,
+					    &format,
+					    /* x */ 0,
+					    /* y */ 0,
+					    column,
+					    /* row */ 0,
+					    /* width */ 40 - column,
+					    /* height */ 1,
+					    VBI3_BRIGHTNESS, brightness,
+					    VBI3_CONTRAST, contrast,
+					    VBI3_REVEAL, TRUE,
+					    VBI3_FLASH_ON, TRUE,
+					    VBI3_END);
   g_assert (success);
 
   add_patch (view,
@@ -1931,6 +1933,8 @@ selection_get			(GtkWidget *		widget,
 	      (view->select.pg,
 	       gdk_pixbuf_get_pixels (pixbuf),
 	       &format,
+	       /* x */ 0,
+	       /* y */ 0,
 	       view->select.column1,
 	       view->select.row1,
 	       width,
