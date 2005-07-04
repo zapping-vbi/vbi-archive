@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: callback.c,v 1.3 2004-11-11 14:35:40 mschimek Exp $ */
+/* $Id: callback.c,v 1.4 2005-07-04 21:55:52 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -93,9 +93,9 @@ tv_callback_remove_all		(tv_callback *		list,
 				 void *			user_data)
 {
 	while (list) {
-		if ((user_data && user_data == list->user_data)
-		    && (notify && notify == list->notify)
-		    && (destroy && destroy == list->destroy)) {
+		if ((NULL == user_data || list->user_data == user_data)
+		    && (NULL == notify || list->notify == notify)
+		    && (NULL == destroy || list->destroy == destroy)) {
 			tv_callback *next;
 
 			if ((next = list->next))
@@ -123,9 +123,9 @@ tv_callback_delete_all		(tv_callback *		list,
 	assert (object != NULL);
 
 	while (list) {
-		if ((user_data && user_data == list->user_data)
-		    && (notify && notify == list->notify)
-		    && (destroy && destroy == list->destroy)) {
+		if ((NULL == user_data || list->user_data == user_data)
+		    && (NULL == notify || list->notify == notify)
+		    && (NULL == destroy || list->destroy == destroy)) {
 			tv_callback *next;
 
 			/* XXX needs ref counter? */
@@ -199,10 +199,11 @@ tv_callback_block_all		(tv_callback *		list,
 				 void *			user_data)
 {
 	for (; list; list = list->next) {
-		if ((user_data && user_data == list->user_data)
-		    && (notify && notify == list->notify)
-		    && (destroy && destroy == list->destroy))
+		if ((NULL == user_data || list->user_data == user_data)
+		    && (NULL == notify || list->notify == notify)
+		    && (NULL == destroy || list->destroy == destroy)) {
 			++list->blocked;
+		}
 	}
 }
 
@@ -223,10 +224,11 @@ tv_callback_unblock_all		(tv_callback *		list,
 				 void *			user_data)
 {
 	for (; list; list = list->next) {
-		if ((user_data && user_data == list->user_data)
-		    && (notify && notify == list->notify)
-		    && (destroy && destroy == list->destroy))
+		if ((NULL == user_data || list->user_data == user_data)
+		    && (NULL == notify || list->notify == notify)
+		    && (NULL == destroy || list->destroy == destroy)) {
 			if (list->blocked > 0)
 				--list->blocked;
+		}
 	}
 }
