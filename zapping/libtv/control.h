@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: control.h,v 1.1 2005-06-28 01:06:47 mschimek Exp $ */
+/* $Id: control.h,v 1.2 2005-07-04 21:56:19 mschimek Exp $ */
 
 #ifndef __ZTV_CONTROL_H__
 #define __ZTV_CONTROL_H__
@@ -82,9 +82,11 @@ struct _tv_control {
 	int			value;	/* last known, not current value */
 };
 
+tv_bool
+tv_control_copy			(tv_control *		dst,
+				 const tv_control *	src);
 tv_control *
-tv_control_dup			(const tv_control *	control,
-				 unsigned int		size);
+tv_control_dup			(const tv_control *	control);
 void
 tv_control_destroy		(tv_control *		control);
 void

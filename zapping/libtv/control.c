@@ -17,13 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: control.c,v 1.1 2005-06-28 01:06:37 mschimek Exp $ */
+/* $Id: control.c,v 1.2 2005-07-04 21:56:41 mschimek Exp $ */
 
 #include <stdlib.h>		/* malloc() */
 #include "misc.h"
 #include "control.h"
 
-static tv_bool
+tv_bool
 tv_control_copy			(tv_control *		dst,
 				 const tv_control *	src)
 {
@@ -80,14 +80,15 @@ tv_control_copy			(tv_control *		dst,
 }
 
 tv_control *
-tv_control_dup			(const tv_control *	c,
-				 unsigned int		size)
+tv_control_dup			(const tv_control *	c)
 {
 	tv_control *nc;
 
-	if (!(nc = malloc (MAX (sizeof (*nc), size)))) {
+	if (!(nc = malloc (sizeof (*nc)))) {
 		return NULL;
 	}
+
+	CLEAR (*nc);
 
 	if (!tv_control_copy (nc, c)) {
 		free (nc);
