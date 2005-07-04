@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mixer.c,v 1.13 2005-04-05 19:52:29 mschimek Exp $ */
+/* $Id: mixer.c,v 1.14 2005-07-04 21:55:27 mschimek Exp $ */
 
 /*
  *  These functions encapsulate the OS and driver specific
@@ -65,7 +65,8 @@ void		startup_mixer(tveng_device_info *info)
       if ((dev_name = zconf_get_string (NULL, "/zapping/options/audio/mixer_device")))
 	{
 	  /* FIXME report errors */
-	  if ((mixer = tv_mixer_open (0, dev_name)))
+	  if ((mixer = tv_mixer_open ((io_debug_msg > 0) ? stderr : NULL,
+				      dev_name)))
 	    {
 	      tv_audio_line *line;
 	      guint hash;

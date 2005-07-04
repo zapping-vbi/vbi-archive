@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.30 2005-02-12 13:31:52 mschimek Exp $ */
+/* $Id: audio.c,v 1.31 2005-07-04 21:55:38 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -307,7 +307,9 @@ devices_audio_kernel_open	(GtkWidget *		table _unused_,
     return n;
 
   /* FIXME report errors */
-  if ((n = oss_pcm_open (NULL, NULL, name)))
+  if ((n = oss_pcm_open (NULL,
+			 /* log_fp */ (io_debug_msg > 0) ? stderr : NULL,
+			 name)))
     return n;
 
   return NULL;
@@ -441,7 +443,8 @@ devices_audio_mixer_open	(GtkWidget *		table _unused_,
     return n;
 
   /* FIXME report errors */
-  if ((m = tv_mixer_open (AUDIO_MIXER_LOG_FP, name)))
+  if ((m = tv_mixer_open ((io_debug_msg > 0) ? stderr
+			  : AUDIO_MIXER_LOG_FP, name)))
     {
       if (m->inputs != NULL)
 	return &m->node;
