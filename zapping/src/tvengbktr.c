@@ -370,6 +370,7 @@ struct control_map {
 	control_id		priv_id;
 	const char *		label;
 	tv_control_id		tc_id;
+	tv_control_type         type;
 	int			minimum;
 	int			maximum;
 	int			reset;
@@ -380,38 +381,38 @@ struct control_map {
 static const struct control_map
 meteor_controls [] = {
 	{ CONTROL_BRIGHTNESS,	 N_("Brightness"), TV_CONTROL_ID_BRIGHTNESS,
-	  0, 255, 128 },
+	  TV_CONTROL_TYPE_INTEGER, 0, 255, 128 },
 	{ CONTROL_CONTRAST,	 N_("Contrast"),   TV_CONTROL_ID_CONTRAST,
-	  0, 255, 128 },
+	  TV_CONTROL_TYPE_INTEGER, 0, 255, 128 },
 	{ CONTROL_UV_SATURATION, N_("Saturation"), TV_CONTROL_ID_SATURATION,
-	  0, 255, 128 },
+	  TV_CONTROL_TYPE_INTEGER, 0, 255, 128 },
 #if 0
 	{ CONTROL_UV_GAIN,	 N_("U/V Gain"),   TV_CONTROL_ID_UNKNOWN,
-	  0, 255, 128 },
+	  TV_CONTROL_TYPE_INTEGER, 0, 255, 128 },
 #endif
 	{ CONTROL_HUE,		 N_("Hue"),        TV_CONTROL_ID_HUE,
-	  -128, 127, 0 },
+	  TV_CONTROL_TYPE_INTEGER, -128, 127, 0 },
 	CONTROL_MAP_END
 };
 
 static const struct control_map
 bktr_controls [] = {
 	{ CONTROL_BRIGHTNESS,	 N_("Brightness"),   TV_CONTROL_ID_BRIGHTNESS,
-	  -128, 127, 0 },
+	  TV_CONTROL_TYPE_INTEGER, -128, 127, 0 },
 	{ CONTROL_CONTRAST,	 N_("Contrast"),     TV_CONTROL_ID_CONTRAST,
-	  0, 511, 216 },
+	  TV_CONTROL_TYPE_INTEGER, 0, 511, 216 },
 	{ CONTROL_UV_SATURATION, N_("Saturation"),   TV_CONTROL_ID_SATURATION,
-	  0, 511, 216 },
+	  TV_CONTROL_TYPE_INTEGER, 0, 511, 216 },
 #if 0
 	{ CONTROL_U_SATURATION,	 N_("U Saturation"), TV_CONTROL_ID_UNKNOWN,
-	  0, 511, 256 },
+	  TV_CONTROL_TYPE_INTEGER, 0, 511, 256 },
 	{ CONTROL_V_SATURATION,  N_("V Saturation"), TV_CONTROL_ID_UNKNOWN,
-	  0, 511, 180 },
+	  TV_CONTROL_TYPE_INTEGER, 0, 511, 180 },
 #endif
 	{ CONTROL_HUE,		 N_("Hue"),          TV_CONTROL_ID_HUE,
-	  -128, 127, 0 },
+	  TV_CONTROL_TYPE_INTEGER, -128, 127, 0 },
 	{ CONTROL_MUTE,		 N_("Mute"),         TV_CONTROL_ID_MUTE,
-	  0, 1, 1 },
+	  TV_CONTROL_TYPE_BOOLEAN, 0, 1, 1 },
 	CONTROL_MAP_END
 };
 
@@ -434,7 +435,7 @@ get_control_list		(tveng_device_info *	info)
 
 		c->id		= table->priv_id;
 
-		c->pub.type	= TV_CONTROL_TYPE_INTEGER;
+		c->pub.type	= table->type;
 		c->pub.id	= table->tc_id;
 
 		if (!(c->pub.label = strdup (_(table->label))))
@@ -447,7 +448,7 @@ get_control_list		(tveng_device_info *	info)
 
 		if (!(tc = append_panel_control (info, &c->pub, 0))) {
 		failure:
-			free_control (&c->pub);
+			tv_control_delete (&c->pub);
 			return FALSE;
 		}
 
@@ -1904,7 +1905,10 @@ tvengbktr_close_device (tveng_device_info * info)
 {
 	gboolean was_active;
 
-  p_tveng_stop_everything (info, &was_active);
+  if (CAPTURE_MODE_TELETEXT == info->capture_mode)
+    stop_capturing (info);
+  else
+    p_tveng_stop_everything (info, &was_active);
 
   if (-1 != P_INFO (info)->tuner_fd) {
 	  device_close (info->log_fp, P_INFO (info)->tuner_fd);
@@ -1922,7 +1926,7 @@ tvengbktr_close_device (tveng_device_info * info)
       info->file_name = NULL;
     }
 
-  free_controls (info);
+  free_panel_controls (info);
   P_INFO (info)->mute_control = NULL;
   free_video_standards (info);
   P_INFO (info)->pal_standard = NULL;
