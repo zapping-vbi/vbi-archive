@@ -475,7 +475,7 @@ zmisc_stop (tveng_device_info *info)
 
     case DISPLAY_MODE_WINDOW | CAPTURE_MODE_TELETEXT:
       stop_teletext ();
-      tv_set_capture_mode (zapping->info, CAPTURE_MODE_NONE); /* ugh */
+      tveng_close_device (info);
       break;
 
     default:
