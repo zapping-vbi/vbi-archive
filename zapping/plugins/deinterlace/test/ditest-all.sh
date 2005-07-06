@@ -1,6 +1,6 @@
 #!/bin/sh
 
-source `dirname $0`/emulator.sh
+. `dirname $0`/emulator.sh
 
 methods="\
   VideoBob \

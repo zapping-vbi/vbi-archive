@@ -3,7 +3,7 @@
 srcdir=`cd $(dirname $0) >/dev/null; pwd; cd - >/dev/null`
 builddir=`pwd`
 
-source $srcdir/ditest-all.sh
+. $srcdir/ditest-all.sh
 
 trap "rm -rf $builddir/results-$$-*" EXIT
 feature=sse
