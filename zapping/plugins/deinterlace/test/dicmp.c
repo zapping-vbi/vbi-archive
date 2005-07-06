@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dicmp.c,v 1.2 2005-06-28 00:45:10 mschimek Exp $ */
+/* $Id: dicmp.c,v 1.3 2005-07-06 22:08:45 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 #ifdef HAVE_GETOPT_LONG
 #  include <getopt.h>
 #endif
