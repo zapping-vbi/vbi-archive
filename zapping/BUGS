@@ -4,7 +4,6 @@ Known bugs in Zapping, don't report them
 Zapping 0.9:
 * bktr interface needs more work.
   - opening ttx (new window) changes video capture size.
-  - capturing stops when switching from ttx (main window) back to video.
   - more.
 * src/tveng1.c/p_tveng1_dequeue/CSYNC hangs with bttv when changing video
   standard PAL NTSC PAL. Timeout SIGALRMs but doesn't EINTR.

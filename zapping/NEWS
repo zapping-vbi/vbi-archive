@@ -1,7 +1,7 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
-Zapping 0.9.5, 2005-07-05
+Zapping 0.9.5, 2005-07-07
 -------------------------
 Due to bugs in the original code major parts of the GreedyH
 deinterlace method were disabled.  This code has been restored, all

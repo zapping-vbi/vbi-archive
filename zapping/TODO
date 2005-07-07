@@ -1,6 +1,7 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Multilingual subtitle recording (SAMI).
 * Integrate XvPutImage controls into the tveng.c virtual control
   layer.
 * libtv/cpu.c needs an SSE3 check.

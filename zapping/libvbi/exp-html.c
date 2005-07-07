@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.34 2005-06-28 00:57:08 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.35 2005-07-07 12:58:57 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -511,7 +511,7 @@ title				(html_instance *	html,
 	if (pg->pgno < 0x100) {
 		puts (html, "<title lang=\"en\">");
 	} else {
-		/* TRANSLATORS: "lang=\"en\" refers to the page title
+		/* TRANSLATORS: lang=\"en\" refers to the page title
 		   "Teletext Page ...". Please specify "de", "fr", "es"
 		   etc. */
 		puts (html, _("<title lang=\"en\">"));
