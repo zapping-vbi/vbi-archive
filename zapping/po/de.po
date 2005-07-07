@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-07-05 14:06+0200\n"
+"POT-Creation-Date: 2005-07-07 00:00+0200\n"
 "PO-Revision-Date: 2005-07-06 23:49+0200\n"
 "Last-Translator: Michael H. Schimek <mschimek@users.sourceforge.net>\n"
 "Language-Team: German <de@li.org>\n"
@@ -24,7 +24,8 @@ msgid ""
 "$(alias), $(index), $(id), $(freq), $(standard) and $(input) are substituted "
 "by the respective values."
 msgstr ""
-"Eine Zeichenkette die beschreibt was in der Titelzeile des Hauptfensters gezeigt werden soll:\n"
+"Eine Zeichenkette die beschreibt was in der Titelzeile des Hauptfensters "
+"gezeigt werden soll:\n"
 "$(alias)    - Sendername\n"
 "$(index)    - Nummer des Senders in der Liste\n"
 "$(id)       - Kanalnummer\n"
@@ -216,7 +217,8 @@ msgstr "Bildeinstellungen _per Sender speichern"
 
 #: glade/zapping.glade2.h:48
 msgid "Save window _geometry (some WM's don't like it)"
-msgstr "_Fenstergeometrie speichern (nicht mit allen Fenstermanagern verträglich)"
+msgstr ""
+"_Fenstergeometrie speichern (nicht mit allen Fenstermanagern verträglich)"
 
 #: glade/zapping.glade2.h:49
 msgid "Select OSD font"
@@ -370,7 +372,9 @@ msgstr "Korrektes Seitenverhältnis"
 msgid ""
 "Approach an image aspect ratio similar to a real TV. This will double the "
 "image size."
-msgstr "Ein Seitenverhältnis entsprechend einem Fernsehbild anstreben, verdoppelt die Dateigröße"
+msgstr ""
+"Ein Seitenverhältnis entsprechend einem Fernsehbild anstreben, verdoppelt "
+"die Dateigröße"
 
 #: libvbi/exp-gfx.c:1708
 msgid "PPM"
@@ -434,7 +438,7 @@ msgstr "HTML-Header"
 msgid "Include HTML page header"
 msgstr "Einen HTML-Header erzeugen"
 
-#. TRANSLATORS: "lang=\"en\" refers to the page title
+#. TRANSLATORS: lang=\"en\" refers to the page title
 #. "Teletext Page ...". Please specify "de", "fr", "es"
 #. etc.
 #: libvbi/exp-html.c:517
@@ -1747,7 +1751,7 @@ msgid "Shortcut"
 msgstr "Tastenkombination"
 
 #: src/main.c:157 src/tveng.c:2252 src/tveng1.c:1123 src/tveng25.c:494
-#: src/tvengbktr.c:413 src/tvengxv.c:578
+#: src/tvengbktr.c:414 src/tvengxv.c:578
 msgid "Mute"
 msgstr "Stumm"
 
@@ -2220,20 +2224,20 @@ msgstr "Bildrate"
 msgid "Snapshot Mode"
 msgstr "Standbildmodus"
 
-#: src/tveng25.c:475 src/tvengbktr.c:382 src/tvengbktr.c:399 src/tvengxv.c:572
+#: src/tveng25.c:475 src/tvengbktr.c:383 src/tvengbktr.c:400 src/tvengxv.c:572
 msgid "Brightness"
 msgstr "Helligkeit"
 
 # src/interface.c:247
-#: src/tveng25.c:476 src/tvengbktr.c:384 src/tvengbktr.c:401 src/tvengxv.c:573
+#: src/tveng25.c:476 src/tvengbktr.c:385 src/tvengbktr.c:402 src/tvengxv.c:573
 msgid "Contrast"
 msgstr "Kontrast"
 
-#: src/tveng25.c:477 src/tvengbktr.c:386 src/tvengbktr.c:403 src/tvengxv.c:574
+#: src/tveng25.c:477 src/tvengbktr.c:387 src/tvengbktr.c:404 src/tvengxv.c:574
 msgid "Saturation"
 msgstr "Sättigung"
 
-#: src/tveng25.c:478 src/tvengbktr.c:392 src/tvengbktr.c:411 src/tvengxv.c:575
+#: src/tveng25.c:478 src/tvengbktr.c:393 src/tvengbktr.c:412 src/tvengxv.c:575
 msgid "Hue"
 msgstr "Farbton"
 
@@ -2329,15 +2333,15 @@ msgstr "%s scheint kein Videogerät zu sein"
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "»%s« unterstützt leider kein Streaming"
 
-#: src/tvengbktr.c:389
+#: src/tvengbktr.c:390
 msgid "U/V Gain"
 msgstr "U/V Verstärkung"
 
-#: src/tvengbktr.c:406
+#: src/tvengbktr.c:407
 msgid "U Saturation"
 msgstr "U Sättigung"
 
-#: src/tvengbktr.c:408
+#: src/tvengbktr.c:409
 msgid "V Saturation"
 msgstr "V Sättigung"
 
@@ -2670,7 +2674,9 @@ msgstr "Vorgabe der Teletext-Zeichenkodierung."
 #: zapping.schemas.in.h:2
 msgid ""
 "Default Teletext home page, usually 100. Valid values range from 100 to 899."
-msgstr "Vorgabe für die Teletext Hauptseite, normalerweise 100. Mögliche Werte reichen von 100 bis 899."
+msgstr ""
+"Vorgabe für die Teletext Hauptseite, normalerweise 100. Mögliche Werte "
+"reichen von 100 bis 899."
 
 #: zapping.schemas.in.h:3
 msgid "Default Teletext home page."
@@ -2682,13 +2688,18 @@ msgstr "Deinterlaceoption."
 
 #: zapping.schemas.in.h:5
 msgid "Display delay of second field (0.0 to 1.0 of one frame period)."
-msgstr "Verzögerung vor der Darstellung des zweiten Felds (0,0 bis 1,0 eines Bildzyklus)."
+msgstr ""
+"Verzögerung vor der Darstellung des zweiten Felds (0,0 bis 1,0 eines "
+"Bildzyklus)."
 
 #: zapping.schemas.in.h:6
 msgid ""
 "Enable navigation elements in the bottom row of the Teletext page. Valid "
 "values: disabled, flof_top1 (FLOF or TOP style 1), flof_top2 (TOP style 2)."
-msgstr "Navigationselemente am unteren Rand von Teletext-Seiten anzeigen. Mögliche Werte: disabled (deaktiviert), flof_top1 (FLOF oder TOP Variante 1), flof_top2 (TOP Variante 2)."
+msgstr ""
+"Navigationselemente am unteren Rand von Teletext-Seiten anzeigen. Mögliche "
+"Werte: disabled (deaktiviert), flof_top1 (FLOF oder TOP Variante 1), "
+"flof_top2 (TOP Variante 2)."
 
 #: zapping.schemas.in.h:7
 msgid "Enable navigation elements."
@@ -2738,7 +2749,9 @@ msgstr "Laufende Teletext Seitennummern."
 msgid ""
 "Roll the Teletext page number in the page header until the requested page "
 "has arrived."
-msgstr "Seitennummern in der Kopfzeile durchlaufen lassen bis die gewünschte Seite empfangen wurde."
+msgstr ""
+"Seitennummern in der Kopfzeile durchlaufen lassen bis die gewünschte Seite "
+"empfangen wurde."
 
 #: zapping.schemas.in.h:18
 msgid "Search all channels in the Teletext page memory."
@@ -2813,7 +2826,9 @@ msgid ""
 "This is the time in milliseconds Zapping will wait between pointer movements "
 "and blanking the pointer when over the video. A value of zero disables this "
 "feature."
-msgstr "Die Zeit in Millisekunden seit der letzten Mausbewegungen, nach der Zapping den Mauszeiger verbirgt. Der Wert 0 deaktiviert diese Funktion."
+msgstr ""
+"Die Zeit in Millisekunden seit der letzten Mausbewegungen, nach der Zapping "
+"den Mauszeiger verbirgt. Der Wert 0 deaktiviert diese Funktion."
 
 #: zapping.schemas.in.h:33
 msgid "Time to wait until blanking the pointer."
@@ -2827,7 +2842,10 @@ msgstr "Die Uhrzeit in der Kopfzeile von Teletext-Seiten aktualisieren."
 msgid ""
 "When your CPU is too slow to use the desired deinterlace mode you can reduce "
 "the horizontal resolution. Valid values: low, medium, high."
-msgstr "Wenn Ihr Prozessor für den gewünschten Deinterlace-Modus zu langsam ist, können Sie die horizontale Bildauflösung veringern. Mögliche Werte: low (niedrig), medium (mittel), high (hoch)."
+msgstr ""
+"Wenn Ihr Prozessor für den gewünschten Deinterlace-Modus zu langsam ist, "
+"können Sie die horizontale Bildauflösung veringern. Mögliche Werte: low "
+"(niedrig), medium (mittel), high (hoch)."
 
 #~ msgid "Filter"
 #~ msgstr "Filter"
