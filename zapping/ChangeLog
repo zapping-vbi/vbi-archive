@@ -1,3 +1,33 @@
+2005-07-07    <mschimek@users.sf.net>
+
+	* Release 0.9.5.
+
+2005-07-06    <mschimek@users.sf.net>
+
+	* de/po: Updated and merged in fixes from Debian Bug #313872.
+	* src/tvengbktr.c (tvengbktr_close_device), src/zmisc.c (zmisc_stop):
+	  Properly reset the tveng device when switching out of Teletext
+	  mode ("Couldn't change video standard" et al).
+	* src/tvengbktr.c (get_control_list): Mute control type s/int/bool.
+
+2005-07-05    <mschimek@users.sf.net>
+
+	* test/simd-sse.sh, test/simd-sse2.sh, test/simd-mmx.sh,
+	  test/simd-altivec.sh, test/simd-3dnow.sh, test/memcpy-sse.sh,
+	  test/memcpy-mmx.sh, test/clear_image-sse.sh,
+	  test/clear_image-mmx.sh, plugins/deinterlace/test/gen-md5sums.sh,
+	  plugins/deinterlace/test/ditest-x86.sh,
+	  plugins/deinterlace/test/ditest-sse2.sh,
+	  plugins/deinterlace/test/ditest-sse.sh,
+	  plugins/deinterlace/test/ditest-scalar.sh,
+	  plugins/deinterlace/test/ditest-mmx.sh,
+	  plugins/deinterlace/test/ditest-altivec.sh,
+	  plugins/deinterlace/test/ditest-all.sh,
+	  plugins/deinterlace/test/ditest-3dnow.sh:
+	  s/source/./ for csh compatibility.
+	* plugins/deinterlace/test/dicmp.c: Include unistd.h for BSD getopt().
+	* src/tvengbktr.c: tv_control API changed.
+
 2005-07-04    <mschimek@users.sf.net>
 
 	* plugins/teletext/view.c (update_header, selection_get):
