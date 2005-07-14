@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-07-07 00:00+0200\n"
+"POT-Creation-Date: 2005-07-14 08:06+0200\n"
 "PO-Revision-Date: 2005-03-03 10:54+0100\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
 "Language-Team: Italian <kde-i18n-it@kde.org>\n"
@@ -35,7 +35,7 @@ msgstr ""
 msgid "Advanced"
 msgstr "Avanzato"
 
-#: glade/zapping.glade2.h:4 src/audio.c:532 src/audio.c:537 src/tveng.c:4440
+#: glade/zapping.glade2.h:4 src/audio.c:532 src/audio.c:537 src/tveng.c:4448
 msgid "Audio"
 msgstr "Audio"
 
@@ -1456,8 +1456,8 @@ msgstr "Salva questa pagina su file"
 msgid "_Received"
 msgstr "_Ricevuto"
 
-#: plugins/teletext/window.c:341 src/v4linterface.c:1226
-#: src/v4linterface.c:2350
+#: plugins/teletext/window.c:341 src/v4linterface.c:1229
+#: src/v4linterface.c:2353
 msgid "Unnamed"
 msgstr "Senza nome"
 
@@ -1718,7 +1718,7 @@ msgstr "Comando"
 msgid "Shortcut"
 msgstr "Scorciatoia"
 
-#: src/main.c:157 src/tveng.c:2252 src/tveng1.c:1123 src/tveng25.c:494
+#: src/main.c:157 src/tveng.c:2260 src/tveng1.c:1123 src/tveng25.c:494
 #: src/tvengbktr.c:414 src/tvengxv.c:578
 msgid "Mute"
 msgstr "Silenzio"
@@ -2107,7 +2107,7 @@ msgstr "Impostazioni predefinite del desktop (%s)"
 msgid "Do not change"
 msgstr "Non cambiare"
 
-#: src/properties-handler.c:1168 src/tveng.c:4451
+#: src/properties-handler.c:1168 src/tveng.c:4459
 msgid "Automatic"
 msgstr "Automatica"
 
@@ -2146,38 +2146,38 @@ msgstr "_Disabilita"
 msgid "Page %x"
 msgstr "Pagina %x"
 
-#: src/tveng.c:2242 src/tveng25.c:493 src/tvengxv.c:579
+#: src/tveng.c:2247 src/tveng25.c:493 src/tvengxv.c:579
 msgid "Volume"
 msgstr "Volume"
 
-#: src/tveng.c:3168
+#: src/tveng.c:3176
 msgid "Cannot execute zapping_setup_fb."
 msgstr "Impossibile eseguire zapping_setup_fb."
 
-#: src/tveng.c:3178 src/tveng.c:3186
+#: src/tveng.c:3186 src/tveng.c:3194
 msgid "zapping_setup_fb failed."
 msgstr "zapping_setup_fb fallito."
 
-#: src/tveng.c:3191
+#: src/tveng.c:3199
 #, c-format
 msgid "zapping_setup_fb not found in \"%s\" or executable search path."
 msgstr ""
 "zapping_setup_fb non trovato in \"%s\" o nel percorso di ricerca degli "
 "eseguibili."
 
-#: src/tveng.c:3198
+#: src/tveng.c:3206
 msgid "Unknown error in zapping_setup_fb."
 msgstr "Errore sconosciuto in zapping_setup_fb."
 
-#: src/tveng.c:4458
+#: src/tveng.c:4466
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng.c:4465
+#: src/tveng.c:4473
 msgid "Stereo"
 msgstr "Stereo"
 
-#: src/tveng.c:4473
+#: src/tveng.c:4481
 msgid "Language 2"
 msgstr "Lingua 2"
 
@@ -2284,12 +2284,12 @@ msgstr "Rumorosità"
 msgid "Bass"
 msgstr "Bassi"
 
-#: src/tveng25.c:2218
+#: src/tveng25.c:2229
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr "%s non sembra un dispositivo di cattura valido"
 
-#: src/tveng25.c:2228
+#: src/tveng25.c:2239
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "Spiacente, ma \"%s\" non può fare streaming"
@@ -2337,33 +2337,33 @@ msgstr "Regola %s"
 msgid "Controls"
 msgstr "Controlli"
 
-#: src/v4linterface.c:1217 src/zmisc.c:1748
+#: src/v4linterface.c:1220 src/zmisc.c:1749
 msgid "Unknown"
 msgstr "Sconosciuto"
 
-#: src/v4linterface.c:1235
+#: src/v4linterface.c:1238
 msgid "No input"
 msgstr "Nessun ingresso"
 
-#: src/v4linterface.c:1246
+#: src/v4linterface.c:1249
 msgid "No standard"
 msgstr "Nessuno standard"
 
-#: src/v4linterface.c:2240
+#: src/v4linterface.c:2243
 msgid "Video standards"
 msgstr "Standard video"
 
-#: src/v4linterface.c:2260
+#: src/v4linterface.c:2263
 msgid "Audio inputs"
 msgstr "Ingressi audio"
 
-#: src/v4linterface.c:2280
+#: src/v4linterface.c:2283
 msgid "Video inputs"
 msgstr "Ingressi video"
 
 #. TRANSLATORS: This is displayed in the channel menu when
 #. the channel list is empty.
-#: src/v4linterface.c:2378
+#: src/v4linterface.c:2381
 msgid "No channels"
 msgstr "Nessun canale"
 
@@ -2487,7 +2487,7 @@ msgstr "Impossibile avviare Zapzilla"
 msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Spiacente, Zapzilla non può creare la configurazione"
 
-#: src/zmisc.c:664
+#: src/zmisc.c:665
 #, c-format
 msgid ""
 "Cannot start video overlay.\n"
@@ -2496,11 +2496,11 @@ msgstr ""
 "Impossibile avviare l'overlay video.\n"
 "%s"
 
-#: src/zmisc.c:677
+#: src/zmisc.c:678
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI è stato disabilitato, o non funziona."
 
-#: src/zmisc.c:715
+#: src/zmisc.c:716
 #, c-format
 msgid ""
 "Cannot start fullscreen overlay.\n"
@@ -2509,60 +2509,60 @@ msgstr ""
 "Impossibile avviare l'overlay a tutto schermo.\n"
 "%s"
 
-#: src/zmisc.c:971
+#: src/zmisc.c:972
 msgid "Hide the statusbar"
 msgstr "Nascondi la barra di stato"
 
-#: src/zmisc.c:1181
+#: src/zmisc.c:1182
 #, c-format
 msgid "%s is not a directory."
 msgstr "%s non è una directory."
 
-#: src/zmisc.c:1223
+#: src/zmisc.c:1224
 #, c-format
 msgid "Could not create directory %s"
 msgstr "Impossibile creare la directory %s"
 
-#: src/zmisc.c:1943
+#: src/zmisc.c:1944
 msgid "Device:"
 msgstr "Dispositivo:"
 
-#: src/zmisc.c:1944
+#: src/zmisc.c:1945
 msgid "Driver:"
 msgstr "Driver:"
 
-#: src/zmisc.c:1945
+#: src/zmisc.c:1946
 msgid "Device file:"
 msgstr "File del dispositivo:"
 
-#: src/zmisc.c:2291
+#: src/zmisc.c:2292
 #, c-format
 msgid "Overwrite %s?"
 msgstr "Sovrascrivere %s?"
 
-#: src/zmisc.c:2296
+#: src/zmisc.c:2297
 msgid "_Overwrite"
 msgstr "S_ovrascrivi"
 
-#: src/zmisc.c:2304
+#: src/zmisc.c:2305
 #, c-format
 msgid "%s is a directory."
 msgstr "%s è una directory."
 
-#: src/zmisc.c:2319
+#: src/zmisc.c:2320
 #, c-format
 msgid "%s is a special file"
 msgstr "%s è un file speciale"
 
-#: src/zmisc.c:2323
+#: src/zmisc.c:2324
 msgid "Continue"
 msgstr "Continua"
 
-#: src/zmisc.c:2600
+#: src/zmisc.c:2601
 msgid "Could not open help file"
 msgstr "Impossibile aprire il file d'aiuto"
 
-#: src/zmisc.c:2632
+#: src/zmisc.c:2633
 msgid "Could not open URL"
 msgstr "Impossibile aprire l'URL"
 

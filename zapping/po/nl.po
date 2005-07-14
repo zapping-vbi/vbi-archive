@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-07-07 00:00+0200\n"
+"POT-Creation-Date: 2005-07-14 08:06+0200\n"
 "PO-Revision-Date: 2005-02-07 03:42+0100\n"
 "Last-Translator: Guus Bonnema <abonnema@xs4all.nl>\n"
 "Language-Team: Dutch\n"
@@ -41,7 +41,7 @@ msgstr ""
 msgid "Advanced"
 msgstr "Geavanceerd"
 
-#: glade/zapping.glade2.h:4 src/audio.c:532 src/audio.c:537 src/tveng.c:4440
+#: glade/zapping.glade2.h:4 src/audio.c:532 src/audio.c:537 src/tveng.c:4448
 msgid "Audio"
 msgstr "Audio"
 
@@ -1481,8 +1481,8 @@ msgstr "Sla deze pagina op als bestand"
 msgid "_Received"
 msgstr "_Ontvangen"
 
-#: plugins/teletext/window.c:341 src/v4linterface.c:1226
-#: src/v4linterface.c:2350
+#: plugins/teletext/window.c:341 src/v4linterface.c:1229
+#: src/v4linterface.c:2353
 msgid "Unnamed"
 msgstr "Unbenoemd"
 
@@ -1761,7 +1761,7 @@ msgstr "Commando"
 msgid "Shortcut"
 msgstr "Sneltoets"
 
-#: src/main.c:157 src/tveng.c:2252 src/tveng1.c:1123 src/tveng25.c:494
+#: src/main.c:157 src/tveng.c:2260 src/tveng1.c:1123 src/tveng25.c:494
 #: src/tvengbktr.c:414 src/tvengxv.c:578
 msgid "Mute"
 msgstr "Geluid uit"
@@ -2152,7 +2152,7 @@ msgstr "Bureaubladstandaard (%s) gebruiken"
 msgid "Do not change"
 msgstr "Niet aanpassen"
 
-#: src/properties-handler.c:1168 src/tveng.c:4451
+#: src/properties-handler.c:1168 src/tveng.c:4459
 msgid "Automatic"
 msgstr "Automatisch"
 
@@ -2191,36 +2191,36 @@ msgstr "Uitschakelen"
 msgid "Page %x"
 msgstr "Pagina %x"
 
-#: src/tveng.c:2242 src/tveng25.c:493 src/tvengxv.c:579
+#: src/tveng.c:2247 src/tveng25.c:493 src/tvengxv.c:579
 msgid "Volume"
 msgstr "Volume"
 
-#: src/tveng.c:3168
+#: src/tveng.c:3176
 msgid "Cannot execute zapping_setup_fb."
 msgstr "Kan zapping_setup_fb niet uitvoeren."
 
-#: src/tveng.c:3178 src/tveng.c:3186
+#: src/tveng.c:3186 src/tveng.c:3194
 msgid "zapping_setup_fb failed."
 msgstr "zapping__setup__fb mislukt:"
 
-#: src/tveng.c:3191
+#: src/tveng.c:3199
 #, c-format
 msgid "zapping_setup_fb not found in \"%s\" or executable search path."
 msgstr "zapping_setup_fb niet gevonden in \"%s\" of in search path."
 
-#: src/tveng.c:3198
+#: src/tveng.c:3206
 msgid "Unknown error in zapping_setup_fb."
 msgstr "Onbekende fout in zapping_setup_fb."
 
-#: src/tveng.c:4458
+#: src/tveng.c:4466
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng.c:4465
+#: src/tveng.c:4473
 msgid "Stereo"
 msgstr "Stereo"
 
-#: src/tveng.c:4473
+#: src/tveng.c:4481
 msgid "Language 2"
 msgstr "Taal 2"
 
@@ -2333,13 +2333,13 @@ msgstr "Geluidsniveau"
 msgid "Bass"
 msgstr "Bass"
 
-#: src/tveng25.c:2218
+#: src/tveng25.c:2229
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr "%s lijkt geen video-apparaat te zijn"
 
 # src/tveng.c:70
-#: src/tveng25.c:2228
+#: src/tveng25.c:2239
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "\"%s\" ondersteunt geen streaming"
@@ -2388,36 +2388,36 @@ msgstr "%s bijregelen"
 msgid "Controls"
 msgstr "Regelpanelen"
 
-#: src/v4linterface.c:1217 src/zmisc.c:1748
+#: src/v4linterface.c:1220 src/zmisc.c:1749
 msgid "Unknown"
 msgstr "Onbekend"
 
-#: src/v4linterface.c:1235
+#: src/v4linterface.c:1238
 msgid "No input"
 msgstr "Geen input"
 
 # src/v4l2interface.c:344ï
-#: src/v4linterface.c:1246
+#: src/v4linterface.c:1249
 msgid "No standard"
 msgstr "Geen standaard"
 
 # src/v4l2interface.c:344ï
-#: src/v4linterface.c:2240
+#: src/v4linterface.c:2243
 msgid "Video standards"
 msgstr "Video standaards"
 
-#: src/v4linterface.c:2260
+#: src/v4linterface.c:2263
 msgid "Audio inputs"
 msgstr "Audio inputs"
 
-#: src/v4linterface.c:2280
+#: src/v4linterface.c:2283
 msgid "Video inputs"
 msgstr "Video invoer"
 
 # src/v4l2interface.c:146
 #. TRANSLATORS: This is displayed in the channel menu when
 #. the channel list is empty.
-#: src/v4linterface.c:2378
+#: src/v4linterface.c:2381
 msgid "No channels"
 msgstr "Geen kanalen"
 
@@ -2542,7 +2542,7 @@ msgstr "Zapzilla kon niet worden gestart"
 msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Zapzilla kon het configuratiebestand niet aanmaken"
 
-#: src/zmisc.c:664
+#: src/zmisc.c:665
 #, c-format
 msgid ""
 "Cannot start video overlay.\n"
@@ -2551,11 +2551,11 @@ msgstr ""
 "Kan video overlay niet starten.\n"
 "%s"
 
-#: src/zmisc.c:677
+#: src/zmisc.c:678
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI is uitgeschakeld of functioneert niet correct."
 
-#: src/zmisc.c:715
+#: src/zmisc.c:716
 #, c-format
 msgid ""
 "Cannot start fullscreen overlay.\n"
@@ -2564,60 +2564,60 @@ msgstr ""
 "Kan fullscreen overlay niet starten\n"
 "%s"
 
-#: src/zmisc.c:971
+#: src/zmisc.c:972
 msgid "Hide the statusbar"
 msgstr "Verberg de statusbalk"
 
-#: src/zmisc.c:1181
+#: src/zmisc.c:1182
 #, c-format
 msgid "%s is not a directory."
 msgstr "%s is geen directory"
 
-#: src/zmisc.c:1223
+#: src/zmisc.c:1224
 #, c-format
 msgid "Could not create directory %s"
 msgstr "Kon directory '%s' niet aanmaken"
 
-#: src/zmisc.c:1943
+#: src/zmisc.c:1944
 msgid "Device:"
 msgstr "Device:"
 
-#: src/zmisc.c:1944
+#: src/zmisc.c:1945
 msgid "Driver:"
 msgstr "Driver"
 
-#: src/zmisc.c:1945
+#: src/zmisc.c:1946
 msgid "Device file:"
 msgstr "Apparaatbestand:"
 
-#: src/zmisc.c:2291
+#: src/zmisc.c:2292
 #, c-format
 msgid "Overwrite %s?"
 msgstr "%s overschrijven?"
 
-#: src/zmisc.c:2296
+#: src/zmisc.c:2297
 msgid "_Overwrite"
 msgstr "_Overschrijven"
 
-#: src/zmisc.c:2304
+#: src/zmisc.c:2305
 #, c-format
 msgid "%s is a directory."
 msgstr "%s is een directory"
 
-#: src/zmisc.c:2319
+#: src/zmisc.c:2320
 #, c-format
 msgid "%s is a special file"
 msgstr "%s is een speciale file"
 
-#: src/zmisc.c:2323
+#: src/zmisc.c:2324
 msgid "Continue"
 msgstr "Continueer"
 
-#: src/zmisc.c:2600
+#: src/zmisc.c:2601
 msgid "Could not open help file"
 msgstr "Kon help file niet openen"
 
-#: src/zmisc.c:2632
+#: src/zmisc.c:2633
 msgid "Could not open URL"
 msgstr "Kon URL niet openen"
 
