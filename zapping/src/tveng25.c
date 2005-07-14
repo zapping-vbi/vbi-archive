@@ -840,6 +840,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 	struct private_tveng25_device_info * p_info = P_INFO (info);
 	struct video_input *vi = VI (l);
 	struct v4l2_frequency vfreq;
+	unsigned long new_freq;
 	tv_bool restart;
 	int buf_type;
 	tv_bool r;
@@ -847,7 +848,8 @@ set_tuner_frequency		(tveng_device_info *	info,
 	CLEAR (vfreq);
 	vfreq.tuner = vi->tuner;
 	vfreq.type = V4L2_TUNER_ANALOG_TV;
-	vfreq.frequency = (frequency << vi->step_shift) / vi->pub.u.tuner.step;
+
+	new_freq = (frequency << vi->step_shift) / vi->pub.u.tuner.step;
 
 	buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
@@ -856,11 +858,20 @@ set_tuner_frequency		(tveng_device_info *	info,
 		   && info->panel.cur_video_input == l);
 
 	if (restart) {
+		if (0 == xioctl (info, VIDIOC_G_FREQUENCY, &vfreq)) {
+			if (new_freq == vfreq.frequency) {
+				store_frequency (info, vi, new_freq);
+				return TRUE;
+			}
+		}
+
 		if (-1 == xioctl (info, VIDIOC_STREAMOFF, &buf_type))
 			return FALSE;
 
 		p_info->streaming = FALSE;
 	}
+
+	vfreq.frequency = new_freq;
 
 	r = TRUE;
 
