@@ -731,6 +731,9 @@ z_switch_video_input		(guint hash, tveng_device_info *info)
       return FALSE;
     }
 
+  if (l == tv_cur_video_input (info))
+    return TRUE;
+
   old_mode = tv_get_capture_mode (info);
   if (CAPTURE_MODE_READ == old_mode)
     {
@@ -744,8 +747,7 @@ z_switch_video_input		(guint hash, tveng_device_info *info)
   if (!tv_set_video_input (info, l))
     {
       if (CAPTURE_MODE_READ == old_mode) {
-	capture_start (info, GTK_WIDGET (zapping->video));
-	tveng_start_capturing (info);
+	capture_start (info, zapping->display_window);
       }
 
       ShowBox("Couldn't switch to video input %s\n%s",
@@ -755,8 +757,7 @@ z_switch_video_input		(guint hash, tveng_device_info *info)
     }
 
   if (CAPTURE_MODE_READ == old_mode) {
-    capture_start (info, GTK_WIDGET (zapping->video));
-    tveng_start_capturing (info);
+    capture_start (info, zapping->display_window);
   }
 
   zmodel_changed(z_input_model);
@@ -824,6 +825,9 @@ z_switch_standard		(guint hash, tveng_device_info *info)
     }
 #endif
 
+  if (s == tv_cur_video_standard (info))
+    return TRUE;
+
   old_mode = tv_get_capture_mode (info);
   if (CAPTURE_MODE_READ == old_mode)
     {
@@ -848,8 +852,7 @@ z_switch_standard		(guint hash, tveng_device_info *info)
   r = tv_set_video_standard (info, s);
 
   if (CAPTURE_MODE_READ == old_mode) {
-    capture_start (info, GTK_WIDGET (zapping->video));
-    tveng_start_capturing (info);
+    capture_start (info, zapping->display_window);
   }
 
 #ifdef HAVE_LIBZVBI
