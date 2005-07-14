@@ -89,12 +89,13 @@ do {									\
 typedef struct {
 	tv_control		pub;
 	tv_control **		prev_next;
-	tv_control *		source;
-	tv_bool			override;
 	tveng_device_info *	info;
-	Atom			atom;
+	/* TV card control. */
+	tv_control *		video_control;
+	/* Graphics card control (not used yet). */
+	tv_control *		display_control;
+	/* Soundcard control. */
 	tv_audio_line *		mixer_line;
-	tv_callback *		mixer_line_cb;
 } virtual_control;
 
 #define VC(l) PARENT (l, virtual_control, pub)
@@ -104,24 +105,48 @@ control_by_id			(tveng_device_info *	info,
 				 tv_control_id		id);
 
 static void
+virtual_control_notify_cb	(tv_control *		tc,
+				 void *			user_data);
+static void
+virtual_control_destroy_cb	(tv_control *		tc,
+				 void *			user_data);
+static void
+vc_mixer_line_notify_cb		(tv_audio_line *	line,
+				 void *			user_data);
+static void
+vc_mixer_line_destroy_cb	(tv_audio_line *	line,
+				 void *			user_data);
+
+static void
 destroy_virtual_control		(virtual_control *	vc)
 {
 	tv_control *next;
 
 	assert (NULL != vc);
 
-	if (NULL != vc->source) {
-		tv_callback_remove_all (vc->source->_callback,
-					/* notify: any */ NULL,
-					/* destroy: any */ NULL,
-					/* user_data: any */ NULL);
-		vc->source = NULL;
+	tv_callback_delete_all (vc->pub._callback,
+				/* notify: any */ NULL,
+				/* destroy: any */ NULL,
+				/* user_data: any */ NULL,
+				/* object */ &vc->pub);
+
+	if (vc->video_control) {
+		tv_callback_remove_all
+			(vc->video_control->_callback,
+			 (tv_callback_fn *) virtual_control_notify_cb,
+			 (tv_callback_fn *) virtual_control_destroy_cb,
+			 /* user_data */ vc);
+		vc->video_control = NULL;
 	}
 
-	tv_callback_remove (vc->mixer_line_cb);
-
-	vc->mixer_line = NULL;
-	vc->mixer_line_cb = NULL;
+	if (vc->mixer_line) {
+		tv_callback_remove_all
+			(vc->mixer_line->_callback,
+			 (tv_callback_fn *) vc_mixer_line_notify_cb,
+			 (tv_callback_fn *) vc_mixer_line_destroy_cb,
+			 /* user_data */ vc);
+		vc->mixer_line = NULL;
+	}
 
 	next = vc->pub._next;
 
@@ -144,7 +169,7 @@ destroy_cloned_controls		(tveng_device_info *	info)
 	}
 }
 
-/* Called after vc->source changed. */
+/* Called after vc->video changed. */
 static void
 virtual_control_notify_cb	(tv_control *		tc,
 				 void *			user_data)
@@ -156,28 +181,22 @@ virtual_control_notify_cb	(tv_control *		tc,
 	tv_callback_notify (NULL, &vc->pub, vc->pub._callback);
 }
 
-/* Called before vc->source disappears. */
+/* Called before vc->video disappears. */
 static void
 virtual_control_destroy_cb	(tv_control *		tc _unused_,
 				 void *			user_data)
 {
 	virtual_control *vc = (virtual_control *) user_data;
-	tv_control *next;
 
-	vc->source = NULL;
+	assert (tc == vc->video_control);
 
-	tv_callback_remove (vc->mixer_line_cb);
-	vc->mixer_line = NULL;
+	vc->video_control = NULL;
 
-	next = vc->pub._next;
-
-	assert (NULL != vc->prev_next);
-	*vc->prev_next = next;
-
-	if (next)
-		VC(next)->prev_next = vc->prev_next;
-
-	tv_control_delete (&vc->pub);
+	if (vc->mixer_line) {
+		/* Keep going as a mixer control. */
+	} else {
+		destroy_virtual_control (vc);
+	}
 }
 
 static virtual_control *
@@ -196,7 +215,7 @@ virtual_control_copy			(tv_control *		tc)
 		return NULL;
 	}
 
-	vc->source = tc;
+	vc->video_control = tc;
 
 	/* Redirect callbacks. */
 
@@ -931,18 +950,18 @@ tveng_build_hash(const char *string)
 
 void
 ioctl_failure			(tveng_device_info *	info,
-				 const char *		source_file_name,
+				 const char *		video_file_name,
 				 const char *		function_name,
-				 unsigned int		source_file_line,
+				 unsigned int		video_file_line,
 				 const char *		ioctl_name)
 {
 	info->tveng_errno = errno;
 
 	snprintf (info->error, 255,
 		  "%s:%s:%u: ioctl %s failed: %d, %s",
-		  source_file_name,
+		  video_file_name,
 		  function_name,
-		  source_file_line,
+		  video_file_line,
 		  ioctl_name,
 		  info->tveng_errno,
 		  strerror (info->tveng_errno));
@@ -1733,8 +1752,6 @@ update_xv_control (tveng_device_info * info, virtual_control *vc)
 {
   int value;
 
-  assert (vc->override || !vc->source);
-
   switch (vc->pub.id)
     {
     case TV_CONTROL_ID_VOLUME:
@@ -1787,12 +1804,10 @@ tveng_update_control(tv_control *control,
 
   tv_clear_error (info);
 
-  if (VC(control)->override
-      || !VC(control)->source)
+  if (VC(control)->mixer_line)
     RETURN_UNTVLOCK (update_xv_control (info, VC(control)));
-  else
-    control = VC(control)->source;
 
+  control = VC(control)->video_control;
   assert (NULL != control);
 
   if (!info->panel.get_control)
@@ -1811,8 +1826,10 @@ p_tveng_update_controls(tveng_device_info * info)
 
   /* Update the controls we maintain */
   for (tc = info->cloned_controls; tc; tc = tc->_next)
-    if (VC(tc)->override || !VC(tc)->source)
-      update_xv_control (info, VC(tc));
+    {
+      if (VC(tc)->mixer_line)
+	update_xv_control (info, VC(tc));
+    }
 
   if (!info->panel.get_control)
     return 0;
@@ -1847,7 +1864,8 @@ reset_video_volume		(tveng_device_info *	info,
 		switch (tc->id) {
 		case TV_CONTROL_ID_VOLUME:
 			/* Error ignored */
-			info->panel.set_control (info, tc, tc->maximum);
+			info->panel.set_control (info, tc,
+						 tc->maximum * 8 / 10);
 			break;
 
 		case TV_CONTROL_ID_MUTE:
@@ -1870,11 +1888,9 @@ set_control_audio		(tveng_device_info *	info,
 {
   tv_bool success = FALSE;
 
-  if (vc->override || !vc->source)
+  if (vc->mixer_line)
     {
       tv_callback *cb;
-
-      assert (NULL != vc->mixer_line);
 
       cb = vc->mixer_line->_callback;
 
@@ -1919,6 +1935,8 @@ set_control_audio		(tveng_device_info *	info,
     }
   else if (info->panel.set_control)
     {
+      assert (NULL != vc->video_control);
+
       if (quiet)
 	{
 	  tv_callback *cb;
@@ -1929,14 +1947,14 @@ set_control_audio		(tveng_device_info *	info,
 
 	  vc->pub._callback = NULL;
 
-	  success = info->panel.set_control (info, vc->source, value);
+	  success = info->panel.set_control (info, vc->video_control, value);
 
 	  vc->pub.value = old_value;
 	  vc->pub._callback = cb;
 	}
       else
 	{
-	  success = info->panel.set_control (info, vc->source, value);
+	  success = info->panel.set_control (info, vc->video_control, value);
 	}
     }
 
@@ -1972,7 +1990,7 @@ set_control			(virtual_control * vc,
 	|| vc->pub.id == TV_CONTROL_ID_MUTE)
       goto set_and_notify;
 
-  if (vc->override || !vc->source)
+  if (vc->mixer_line)
     {
       if (vc->pub.id == TV_CONTROL_ID_VOLUME
 	  || vc->pub.id == TV_CONTROL_ID_MUTE)
@@ -1993,11 +2011,10 @@ set_control			(virtual_control * vc,
 
       return r;
     }
-  else /* not override */
+  else
     {
-      //      info = (tveng_device_info *) vc->pub._parent; /* XXX */
-      assert (NULL != vc->source);
-      return set_panel_control (info, vc->source, value);
+      assert (NULL != vc->video_control);
+      return set_panel_control (info, vc->video_control, value);
     }
 }
 
@@ -2129,83 +2146,141 @@ static void
 vc_mixer_line_notify_cb		(tv_audio_line *	line,
 				 void *			user_data)
 {
-  virtual_control *vc = (virtual_control *) user_data;
-  int value;
+	virtual_control *vc = (virtual_control *) user_data;
+	int value;
 
-  assert (line == vc->mixer_line);
+	assert (line == vc->mixer_line);
 
-  switch (vc->pub.id)
-    {
-    case TV_CONTROL_ID_VOLUME:
-      vc->pub.minimum = line->minimum;
-      vc->pub.maximum = line->maximum;
-      vc->pub.step = line->step;
-      vc->pub.reset = line->reset;
+	switch (vc->pub.id) {
+	case TV_CONTROL_ID_VOLUME:
+		vc->pub.minimum = line->minimum;
+		vc->pub.maximum = line->maximum;
+		vc->pub.step = line->step;
+		vc->pub.reset = line->reset;
 
-      value = (line->volume[0] + line->volume[1] + 1) >> 1;
+		value = (line->volume[0] + line->volume[1] + 1) >> 1;
 
-      break;
+		break;
 
-    case TV_CONTROL_ID_MUTE:
-      vc->pub.reset = 0;
-      vc->pub.minimum = 0;
-      vc->pub.maximum = 1;
-      vc->pub.step = 1;
+	case TV_CONTROL_ID_MUTE:
+		vc->pub.reset = 0;
+		vc->pub.minimum = 0;
+		vc->pub.maximum = 1;
+		vc->pub.step = 1;
 
-      value = line->muted;
+		value = line->muted;
 
-      break;
+		break;
 
-    default:
-      assert (0);
-    }
+	default:
+		assert (0);
+	}
 
-  if (vc->info && !vc->info->quiet)
-    {
-      vc->pub.value = value;
-      tv_callback_notify (vc->info, &vc->pub, vc->pub._callback);
-    }
+	if (vc->info && !vc->info->quiet) {
+		vc->pub.value = value;
+		tv_callback_notify (vc->info, &vc->pub, vc->pub._callback);
+	}
 }
 
 /* This is a virtual control. When the underlying mixer line
    disappears, remove the control and make the corresponding
-   video device control visible again.
-   XXX c->info->quiet? */
+   video device control, if any, visible again. */
 static void
 vc_mixer_line_destroy_cb	(tv_audio_line *	line,
 				 void *			user_data)
 {
-  virtual_control *vc = (virtual_control *) user_data;
+	virtual_control *vc = (virtual_control *) user_data;
 
-  assert (line == vc->mixer_line);
+	assert (line == vc->mixer_line);
 
-  if (vc->override) {
-    /* Restore video device control. */
+	vc->mixer_line = NULL;
 
-    vc->override = FALSE;
+	if (vc->video_control) {
+		/* Restore overridden video device control. */
 
-    vc->mixer_line = NULL;
-    vc->mixer_line_cb = NULL;
+		vc->pub.minimum = vc->video_control->minimum;
+		vc->pub.maximum = vc->video_control->maximum;
+		vc->pub.step	= vc->video_control->step;
+		vc->pub.reset	= vc->video_control->reset;
 
-    vc->pub.minimum = vc->source->minimum;
-    vc->pub.maximum = vc->source->maximum;
-    vc->pub.step = vc->source->step;
-    vc->pub.reset = vc->source->reset;
+		/* XXX which value when info->quiet? */
+		vc->pub.value	= vc->video_control->value;
 
-    vc->pub.value = vc->source->value;
+		/* Notify about value and limits change. */
+		tv_callback_notify (vc->info, &vc->pub, vc->pub._callback);
+	} else {
+		if (TV_CONTROL_ID_MUTE == vc->pub.id) {
+			vc->info->control_mute = NULL;
+			vc->info->audio_mutable = 0; /* preliminary */
+		}
 
-    tv_callback_notify (vc->info, &vc->pub, vc->pub._callback);
-  } else {
-    /* No video device. */
+		destroy_virtual_control (vc);
+	}
+}
 
-    if (TV_CONTROL_ID_MUTE == vc->pub.id)
-      {
-	vc->info->control_mute = NULL;
-	vc->info->audio_mutable = 0; /* preliminary */
-      }
+static virtual_control *
+new_virtual_mixer_control	(tveng_device_info *	info,
+				 tv_audio_line *	line,
+				 tv_control_id		id)
+{
+	virtual_control *vc;
+	tv_callback *cb;
+	int value;
 
-    destroy_virtual_control (vc);
-  }
+	info = info;
+
+	vc = calloc (1, sizeof (*vc));
+	assert (NULL != vc); /* XXX */
+
+	vc->pub.id = id;
+
+	switch (id) {
+	case TV_CONTROL_ID_VOLUME:
+		vc->pub.type = TV_CONTROL_TYPE_INTEGER;
+
+		/* XXX which value when info->quiet? */
+		value = (line->volume[0] + line->volume[1] + 1) >> 1;
+
+		if (TVENG_MIXER_VOLUME_DEBUG)
+			vc->pub.label = strdup ("Mixer volume");
+		else
+			vc->pub.label = strdup (_("Volume"));
+
+		break;
+
+	case TV_CONTROL_ID_MUTE:
+		vc->pub.type = TV_CONTROL_TYPE_BOOLEAN;
+
+		/* XXX which value when info->quiet? */
+		value = line->muted;
+
+		if (TVENG_MIXER_VOLUME_DEBUG)
+			vc->pub.label = strdup ("Mixer mute");
+		else
+			vc->pub.label = strdup (_("Mute"));
+			
+		break;
+
+	default:
+		assert (0);
+	}
+
+	assert (NULL != vc->pub.label); /* XXX */
+
+	vc->pub.minimum	= line->minimum;
+	vc->pub.maximum	= line->maximum;
+	vc->pub.step	= line->step;
+	vc->pub.reset	= line->reset;
+	vc->pub.value	= value;
+
+	vc->mixer_line = line;
+
+	cb = tv_mixer_line_add_callback (line,
+					 vc_mixer_line_notify_cb,
+					 vc_mixer_line_destroy_cb, vc);
+	assert (NULL != cb); /* XXX */
+
+	return vc;
 }
 
 /* When line != NULL this adds a mixer control, hiding the
@@ -2218,127 +2293,57 @@ mixer_replace			(tveng_device_info *	info,
 {
 	tv_control *tc;
 	virtual_control *vc;
+	tv_callback *cb;
 
 	tc = control_by_id (info, id);
 
 	if (!tc) {
-		if (!line)
-			return;
+		if (line) {
+			vc = new_virtual_mixer_control (info, line, id);
 
-		/* Add new mixer control. */
+			vc->info = info;
 
-		vc = calloc (1, sizeof (*vc));
-		assert (NULL != vc); /* XXX */
-
-		vc->pub.id = id;
-
-		switch (id) {
-		case TV_CONTROL_ID_VOLUME:
-			vc->pub.type = TV_CONTROL_TYPE_INTEGER;
-
-			if (TVENG_MIXER_VOLUME_DEBUG)
-				vc->pub.label = strdup ("Mixer volume");
-			else
-				vc->pub.label = strdup (_("Volume"));
-
-			break;
-
-		case TV_CONTROL_ID_MUTE:
-			vc->pub.type = TV_CONTROL_TYPE_BOOLEAN;
-			
-			if (TVENG_MIXER_VOLUME_DEBUG)
-				vc->pub.label = strdup ("Mixer mute");
-			else
-				vc->pub.label = strdup (_("Mute"));
-			
-			break;
-
-		default:
-			assert (0);
+			insert_virtual_control (&info->cloned_controls, vc);
 		}
-
-		assert (NULL != vc->pub.label); /* XXX */
-
-		vc->info = info;
-		vc->mixer_line = line;
-
-		vc->mixer_line_cb = tv_mixer_line_add_callback
-			(line,
-			 vc_mixer_line_notify_cb,
-			 vc_mixer_line_destroy_cb, vc);
-
-		assert (NULL != vc->mixer_line_cb); /* XXX */
-
-		/* Set value and limits. */
-		vc_mixer_line_notify_cb (line, vc);
-
-		insert_virtual_control (&info->cloned_controls, vc);
 
 		return;
 	}
 
 	vc = PARENT (tc, virtual_control, pub);
 
-	if (vc->override) {
-		/* Have a mixer & video device. */
+	if (!line) {
+		if (vc->mixer_line) {
+			tv_callback_remove_all
+			  (vc->mixer_line->_callback,
+			   (tv_callback_fn *) vc_mixer_line_notify_cb,
+			   (tv_callback_fn *) vc_mixer_line_destroy_cb,
+			   /* user_data */ vc);
 
-		if (line) {
-			/* Replace mixer line. */
-
-			tv_callback_remove (vc->mixer_line_cb);
-
-			vc->mixer_line = line;
-
-			vc->mixer_line_cb = tv_mixer_line_add_callback
-				(line,
-				 vc_mixer_line_notify_cb,
-				 vc_mixer_line_destroy_cb, vc);
-			assert (NULL != vc->mixer_line_cb); /* XXX */
-
-			/* Set new value and limits, notify. */
-			vc_mixer_line_notify_cb (line, vc);
-		} else {
-			/* Remove mixer line, restore
-			   video device control. */
-
-			vc->override = FALSE;
-
-			tv_callback_remove (vc->mixer_line_cb);
-
-			vc->mixer_line = NULL;
-			vc->mixer_line_cb = NULL;
-
-			vc->pub.minimum = vc->source->minimum;
-			vc->pub.maximum = vc->source->maximum;
-			vc->pub.step = vc->source->step;
-			vc->pub.reset = vc->source->reset;
-			
-			vc->pub.value = vc->source->value;
-
-			tv_callback_notify (info, &vc->pub, vc->pub._callback);
+			/* Pretend the mixer_line will be deleted. */
+			vc_mixer_line_destroy_cb (vc->mixer_line, vc);
 		}
-	} else {
-		/* Have video device. */
 
-		if (line) {
-			/* Mixer line overrides. */
-
-			vc->override = TRUE;
-
-			vc->mixer_line = line;
-
-			vc->mixer_line_cb = tv_mixer_line_add_callback
-				(line,
-				 vc_mixer_line_notify_cb,
-				 vc_mixer_line_destroy_cb, vc);
-			assert (NULL != vc->mixer_line_cb); /* XXX */
-
-			/* Set new value and limits, notify. */
-			vc_mixer_line_notify_cb (line, vc);
-		} else {
-			return;
-		}
+		return;
 	}
+
+	/* Set new mixer line. */
+
+	if (vc->mixer_line)
+		tv_callback_remove_all
+		  (vc->mixer_line->_callback,
+		   (tv_callback_fn *) vc_mixer_line_notify_cb,
+		   (tv_callback_fn *) vc_mixer_line_destroy_cb,
+		   /* user_data */ vc);
+
+	vc->mixer_line = line;
+
+	cb = tv_mixer_line_add_callback	(line,
+					 vc_mixer_line_notify_cb,
+					 vc_mixer_line_destroy_cb, vc);
+	assert (NULL != cb); /* XXX */
+
+	/* Notify about value and limits change. */
+	vc_mixer_line_notify_cb (line, vc);
 }
 
 /*
@@ -2381,6 +2386,9 @@ tveng_attach_mixer_line		(tveng_device_info *	info,
 
   mixer_replace (info, line, TV_CONTROL_ID_VOLUME);
   mixer_replace (info, line, TV_CONTROL_ID_MUTE);
+
+  info->control_mute = NULL;
+  info->audio_mutable = FALSE; /* preliminary */
 
   for (tc = info->cloned_controls; tc; tc = tc->_next)
     if (tc->id == TV_CONTROL_ID_MUTE)
@@ -2456,7 +2464,7 @@ tv_quiet_set			(tveng_device_info *	info,
 			     /* quiet */ FALSE,
 			     /* reset */ FALSE);
 
-	  if (VC(tc)->override) /* uses soundcard mixer */
+	  if (VC(tc)->mixer_line) /* uses soundcard mixer */
 	    reset_video_volume (info, /* mute */ FALSE);
 	}
     }
