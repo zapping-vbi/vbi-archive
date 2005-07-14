@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.h,v 1.6 2004-11-03 06:52:27 mschimek Exp $ */
+/* $Id: zapping.h,v 1.7 2005-07-14 05:48:01 mschimek Exp $ */
 
 #ifndef ZAPPING_H
 #define ZAPPING_H
@@ -65,6 +65,9 @@ struct _Zapping
 
   tveng_device_info *	info;
   display_mode		display_mode;
+  /* XXX hack to remember the display window (main/fullscreen/background)
+     for capture_stop/start() at e.g. a video standard change. */
+  GtkWidget *		display_window;
   GtkActionGroup *	generic_action_group;
   GtkActionGroup *	vbi_action_group;
   GtkUIManager *	ui_manager;

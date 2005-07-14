@@ -639,6 +639,7 @@ zmisc_switch_mode(display_mode new_dmode,
 	  zconf_get_sources (info, /* mute */ FALSE);
 	}
 
+      zapping->display_window = GTK_WIDGET (zapping->video);
       return_value = capture_start (info, GTK_WIDGET (zapping->video)) ?
 	0 : -1;
       x11_screensaver_set (X11_SCREENSAVER_DISPLAY_ACTIVE

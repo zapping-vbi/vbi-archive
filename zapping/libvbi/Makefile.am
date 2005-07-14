@@ -57,6 +57,9 @@ libvbi_la_SOURCES = \
 wstfont2.xbm: wstfont2.pbm fontgen.c Makefile.am
 	$(MAKE) $(AM_MAKEFLAGS) fontgen$(EXEEXT)
 	$(top_builddir)/libvbi/fontgen$(EXEEXT) xbm wstfont2 10 < $< > $@
+#ccfont3.xbm: ccfont3.pbm fontgen Makefile.am
+#	$(MAKE) $(AM_MAKEFLAGS) fontgen$(EXEEXT)
+#	$(top_builddir)/libvbi/fontgen$(EXEEXT) xbm ccfont3 13 < $< > $@
 
 # must prevent link conflict with libvbi 0.2
 great_rename:

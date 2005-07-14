@@ -1,3 +1,36 @@
+2005-07-14    <mschimek@users.sf.net>
+
+	* Release 0.9.6.
+
+2005-07-14    <mschimek@users.sf.net>
+
+ 	* configure.in: Bumped version number to 0.9.6.
+
+2005-07-13    <mschimek@users.sf.net>
+
+	* src/zmisc.c (zmisc_switch_mode), src/v4linterface.c
+	  (z_switch_video_input, z_switch_standard), src/fullscreen.c
+	  (stop_fullscreen, start_fullscreen), src/zapping.h
+	  (struct _Zapping): Remember display window for capture
+	  restart (black fullscreen bug).
+
+	* src/tveng25.c (set_tuner_frequency): Test current frequency
+	  before stopping and restarting streaming.
+	* src/v4linterface.c (z_switch_video_input): 
+	  Test current video input before stopping and restarting capturing.
+	  Removed redundant tveng_start_capturing() call.
+	(z_switch_standard): 
+	  Test current standard before stopping and restarting capturing.
+	  Removed redundant tveng_start_capturing() call.
+
+2005-07-12    <mschimek@users.sf.net>
+
+	* src/tveng.c (mixer_replace): Rewrote because it didn't work
+	  with audio-less tv cards (shutdown crash bug).
+
+	* src/tveng.c (reset_video_volume): Sets video volume to maximum
+	  when we use the mixer, now 80% maximum to prevent whatsitsname.
+
 2005-07-07    <mschimek@users.sf.net>
 
 	* Release 0.9.5.

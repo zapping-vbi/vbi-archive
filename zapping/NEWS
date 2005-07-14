@@ -1,6 +1,14 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
+Zapping 0.9.6, 2005-07-14
+-------------------------
+This is a bugfix release.
+
+- Fullscreen-capture didn't work, giving a black screen.
+- Changing the volume with the soundcard mixer didn't work right when
+  the tv card has no volume controls, possibly with a crash at exit.
+
 Zapping 0.9.5, 2005-07-07
 -------------------------
 Due to bugs in the original code major parts of the GreedyH

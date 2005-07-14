@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.42 2005-02-12 13:37:07 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.43 2005-07-14 05:48:00 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -301,6 +301,7 @@ stop_fullscreen			(void)
     }
 
   zapping->display_mode = DISPLAY_MODE_WINDOW;
+  zapping->display_window = GTK_WIDGET (zapping->video);
   tv_set_capture_mode (zapping->info, CAPTURE_MODE_NONE);
 
   x11_vidmode_restore (svidmodes, &old_vidmode);
@@ -718,6 +719,7 @@ start_fullscreen		(display_mode		dmode,
   gtk_widget_hide (GTK_WIDGET (zapping));
 
   zapping->display_mode = DISPLAY_MODE_FULLSCREEN;
+  zapping->display_window = GTK_WIDGET (drawing_area);
   tv_set_capture_mode (zapping->info, cmode);
 
   gtk_widget_grab_focus (black_window);
