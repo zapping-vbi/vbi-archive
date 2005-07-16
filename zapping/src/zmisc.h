@@ -57,8 +57,8 @@
 #  define likely(expr) (expr)
 #  define unlikely(expr) (expr)
 #else
-#  define likely(expr) __builtin_expect(exp, 1)
-#  define unlikely(expr) __builtin_expect(exp, 0)
+#  define likely(expr) __builtin_expect(expr, 1)
+#  define unlikely(expr) __builtin_expect(expr, 0)
 #endif
 
 #undef PARENT
