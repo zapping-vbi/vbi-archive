@@ -1041,20 +1041,26 @@ destroy_threads			(void)
 
       if (NO_SOURCE_ID != pes_timeout_id)
 	{
+	  D();
 	  g_source_remove (pes_timeout_id);
+	  pes_timeout_id = NO_SOURCE_ID;
 	}
       else if (proxy_client)
 	{
 	  proxy_source *ps = PARENT (source, proxy_source, source);
 
+	  D();
 	  zf_rem_producer (&ps->producer);
 
 	  g_source_destroy (source);
 	  g_source_unref (source);
 	  source = NULL;
+
+	  proxy_client = NULL;
 	}
       else
 	{
+	  D();
 	  join_thread ("cap", capturer_id, &capturer_quit_ack, 15);
 	}
 
@@ -1369,6 +1375,7 @@ init_threads			(const gchar *		dev_name,
 	{
 	  ShowBox(failed, GTK_MESSAGE_ERROR,
 		  _("Out of resources to start a new thread."));
+
 	  zf_destroy_fifo (&sliced_fifo);
 	  destroy_capture ();
 	  return FALSE;
