@@ -1,3 +1,25 @@
+2005-07-16    <mschimek@users.sf.net>
+
+	* src/zvbi.c (destroy_threads): Attempted to destroy already
+	  destroyed resources, aborting the app with an invalid fifo error.
+	* plugins/screenshot/screenshot.c (execute_command): Const fix.
+	* src/tveng.c (store_cur_audio_input): Expect NULL input.
+	* src/tveng25.c: Added xstrndup, xstrcmp to get rid of warnings due
+	  to __u8* strings in the v4l2 API. Added support for audio inputs.
+	  Added work-around for ivtv driver G|S_FMT bugs. Added support for
+	  read()ing images.
+
+2005-07-15    <mschimek@users.sf.net>
+	
+	* configure.in: Check if GCC has __builtin_popcount. Removed -pg
+	  workaround since we no longer use -masm=intel.
+	(CHECK_SIMD): SSE2 DI_GreedyHM.c internal error fixed in GCC 4.0.1.
+	* libtv/pixel_format.c (popcnt): Use __builtin_popcount if available.
+	* src/zmisc.h (likely, unlikely): Fixed macro.
+	* libtv/image_format.c, libtv/pixel_format.h, libtv/pixel_format.c:
+	  Added TV_PIXFMT_NV12.
+	* src/csconvert.c: Added NV12-to-YUV420 converter.
+
 2005-07-14    <mschimek@users.sf.net>
 
 	* Release 0.9.6.

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.53 2005-07-04 21:57:57 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.54 2005-07-16 21:13:47 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1918,15 +1918,22 @@ write_png			(vbi3_export *		e,
 
 	CLEAR (text);
 
-	text[0].key = "Title";
+	text[0].key = strdup ("Title");
+	assert (NULL != text[0].key);
 	text[0].text = title;
 	text[0].compression = PNG_TEXT_COMPRESSION_NONE;
 
-	text[1].key = "Software";
+	text[1].key = strdup ("Software");
+	assert (NULL != text[1].key);
 	text[1].text = e->creator;
 	text[1].compression = PNG_TEXT_COMPRESSION_NONE;
 
 	png_set_text (png_ptr, info_ptr, text, 2);
+
+	free (text[1].key);
+	text[1].key = NULL;
+	free (text[0].key);
+	text[0].key = NULL;
 
 	png_write_info (png_ptr, info_ptr);
 

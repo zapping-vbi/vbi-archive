@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.9 2005-02-25 18:10:08 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.10 2005-07-16 21:14:02 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -48,6 +48,8 @@ setup_v4l2			(const char *		device_name,
 {
   int fd;
   struct v4l2_capability cap;
+
+  buffer = buffer;
 
   message (2, "Opening video device.\n");
 

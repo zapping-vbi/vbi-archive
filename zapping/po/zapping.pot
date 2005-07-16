@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-07-14 08:06+0200\n"
+"POT-Creation-Date: 2005-07-16 22:20+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -31,7 +31,7 @@ msgstr ""
 msgid "Advanced"
 msgstr ""
 
-#: glade/zapping.glade2.h:4 src/audio.c:532 src/audio.c:537 src/tveng.c:4448
+#: glade/zapping.glade2.h:4 src/audio.c:532 src/audio.c:537 src/tveng.c:4449
 msgid "Audio"
 msgstr ""
 
@@ -374,11 +374,11 @@ msgstr ""
 msgid "Teletext Page %3x"
 msgstr ""
 
-#: libvbi/exp-gfx.c:2104
+#: libvbi/exp-gfx.c:2111
 msgid "PNG"
 msgstr ""
 
-#: libvbi/exp-gfx.c:2105
+#: libvbi/exp-gfx.c:2112
 msgid "Export this page as PNG image"
 msgstr ""
 
@@ -595,7 +595,7 @@ msgstr ""
 #. hash collision code
 #. Warn
 #: plugins/alirc/alirc.c:375 plugins/mpeg/mpeg.c:2220
-#: plugins/screenshot/screenshot.c:1655
+#: plugins/screenshot/screenshot.c:1657
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
@@ -615,7 +615,7 @@ msgstr ""
 
 #: plugins/deinterlace/main.c:467 plugins/mpeg/mpeg.c:1534
 #: plugins/mpeg/mpeg.c:2150 plugins/screenshot/screenshot.c:519
-#: plugins/screenshot/screenshot.c:1418 plugins/teletext/main.c:258
+#: plugins/screenshot/screenshot.c:1420 plugins/teletext/main.c:258
 msgid "Plugins"
 msgstr ""
 
@@ -947,7 +947,7 @@ msgid "This plugin takes screenshots of the video capture."
 msgstr ""
 
 #: plugins/screenshot/screenshot.c:514 plugins/screenshot/screenshot.c:539
-#: plugins/screenshot/screenshot.c:1418
+#: plugins/screenshot/screenshot.c:1420
 msgid "Screenshot"
 msgstr ""
 
@@ -955,44 +955,44 @@ msgstr ""
 msgid "Take a screenshot"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:678 plugins/screenshot/screenshot.c:773
+#: plugins/screenshot/screenshot.c:678 plugins/screenshot/screenshot.c:775
 msgid "Error while writing screenshot\n"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:823
+#: plugins/screenshot/screenshot.c:825
 msgid "Saving..."
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:850
+#: plugins/screenshot/screenshot.c:852
 #, c-format
 msgid ""
 "Sorry, but I cannot write %s\n"
 "%s"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:884
+#: plugins/screenshot/screenshot.c:886
 msgid "Sorry, not enough resources to create a new thread"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:889
+#: plugins/screenshot/screenshot.c:891
 msgid "There are too many threads"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:1065
+#: plugins/screenshot/screenshot.c:1067
 #, c-format
 msgid "appx %u KB"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:1068
+#: plugins/screenshot/screenshot.c:1070
 #, c-format
 msgid "appx %.2f MB"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:1133 plugins/screenshot/screenshot.c:1277
+#: plugins/screenshot/screenshot.c:1135 plugins/screenshot/screenshot.c:1279
 msgid "This format has no quality option"
 msgstr ""
 
-#: plugins/screenshot/screenshot.c:1313
+#: plugins/screenshot/screenshot.c:1315
 msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
 msgstr ""
 
@@ -1685,7 +1685,7 @@ msgstr ""
 msgid "Shortcut"
 msgstr ""
 
-#: src/main.c:157 src/tveng.c:2260 src/tveng1.c:1123 src/tveng25.c:494
+#: src/main.c:157 src/tveng.c:2261 src/tveng1.c:1123 src/tveng25.c:533
 #: src/tvengbktr.c:414 src/tvengxv.c:578
 msgid "Mute"
 msgstr ""
@@ -2049,7 +2049,7 @@ msgstr ""
 msgid "Do not change"
 msgstr ""
 
-#: src/properties-handler.c:1168 src/tveng.c:4459
+#: src/properties-handler.c:1168 src/tveng.c:4460
 msgid "Automatic"
 msgstr ""
 
@@ -2088,36 +2088,36 @@ msgstr ""
 msgid "Page %x"
 msgstr ""
 
-#: src/tveng.c:2247 src/tveng25.c:493 src/tvengxv.c:579
+#: src/tveng.c:2248 src/tveng25.c:532 src/tvengxv.c:579
 msgid "Volume"
 msgstr ""
 
-#: src/tveng.c:3176
+#: src/tveng.c:3177
 msgid "Cannot execute zapping_setup_fb."
 msgstr ""
 
-#: src/tveng.c:3186 src/tveng.c:3194
+#: src/tveng.c:3187 src/tveng.c:3195
 msgid "zapping_setup_fb failed."
 msgstr ""
 
-#: src/tveng.c:3199
+#: src/tveng.c:3200
 #, c-format
 msgid "zapping_setup_fb not found in \"%s\" or executable search path."
 msgstr ""
 
-#: src/tveng.c:3206
+#: src/tveng.c:3207
 msgid "Unknown error in zapping_setup_fb."
 msgstr ""
 
-#: src/tveng.c:4466
+#: src/tveng.c:4467
 msgid "Mono"
 msgstr ""
 
-#: src/tveng.c:4473
+#: src/tveng.c:4474
 msgid "Stereo"
 msgstr ""
 
-#: src/tveng.c:4481
+#: src/tveng.c:4482
 msgid "Language 2"
 msgstr ""
 
@@ -2132,104 +2132,104 @@ msgstr ""
 msgid "Snapshot Mode"
 msgstr ""
 
-#: src/tveng25.c:475 src/tvengbktr.c:383 src/tvengbktr.c:400 src/tvengxv.c:572
+#: src/tveng25.c:514 src/tvengbktr.c:383 src/tvengbktr.c:400 src/tvengxv.c:572
 msgid "Brightness"
 msgstr ""
 
-#: src/tveng25.c:476 src/tvengbktr.c:385 src/tvengbktr.c:402 src/tvengxv.c:573
+#: src/tveng25.c:515 src/tvengbktr.c:385 src/tvengbktr.c:402 src/tvengxv.c:573
 msgid "Contrast"
 msgstr ""
 
-#: src/tveng25.c:477 src/tvengbktr.c:387 src/tvengbktr.c:404 src/tvengxv.c:574
+#: src/tveng25.c:516 src/tvengbktr.c:387 src/tvengbktr.c:404 src/tvengxv.c:574
 msgid "Saturation"
 msgstr ""
 
-#: src/tveng25.c:478 src/tvengbktr.c:393 src/tvengbktr.c:412 src/tvengxv.c:575
+#: src/tveng25.c:517 src/tvengbktr.c:393 src/tvengbktr.c:412 src/tvengxv.c:575
 msgid "Hue"
 msgstr ""
 
-#: src/tveng25.c:479
+#: src/tveng25.c:518
 msgid "Whiteness"
 msgstr ""
 
-#: src/tveng25.c:480
+#: src/tveng25.c:519
 msgid "Black level"
 msgstr ""
 
-#: src/tveng25.c:481 src/tveng25.c:482
+#: src/tveng25.c:520 src/tveng25.c:521
 msgid "White balance"
 msgstr ""
 
-#: src/tveng25.c:483
+#: src/tveng25.c:522
 msgid "Red balance"
 msgstr ""
 
-#: src/tveng25.c:484
+#: src/tveng25.c:523
 msgid "Blue balance"
 msgstr ""
 
-#: src/tveng25.c:485
+#: src/tveng25.c:524
 msgid "Gamma"
 msgstr ""
 
-#: src/tveng25.c:486
+#: src/tveng25.c:525
 msgid "Exposure"
 msgstr ""
 
-#: src/tveng25.c:487
+#: src/tveng25.c:526
 msgid "Auto gain"
 msgstr ""
 
-#: src/tveng25.c:488
+#: src/tveng25.c:527
 msgid "Gain"
 msgstr ""
 
-#: src/tveng25.c:489
+#: src/tveng25.c:528
 msgid "HCenter"
 msgstr ""
 
-#: src/tveng25.c:490
+#: src/tveng25.c:529
 msgid "VCenter"
 msgstr ""
 
-#: src/tveng25.c:491
+#: src/tveng25.c:530
 msgid "Hor. flipping"
 msgstr ""
 
-#: src/tveng25.c:492
+#: src/tveng25.c:531
 msgid "Vert. flipping"
 msgstr ""
 
-#: src/tveng25.c:495
+#: src/tveng25.c:534
 msgid "Audio Mute"
 msgstr ""
 
-#: src/tveng25.c:496
+#: src/tveng25.c:535
 msgid "Balance"
 msgstr ""
 
-#: src/tveng25.c:497
+#: src/tveng25.c:536
 msgid "Audio Balance"
 msgstr ""
 
-#: src/tveng25.c:498
+#: src/tveng25.c:537
 msgid "Treble"
 msgstr ""
 
-#: src/tveng25.c:499
+#: src/tveng25.c:538
 msgid "Loudness"
 msgstr ""
 
-#: src/tveng25.c:500
+#: src/tveng25.c:539
 msgid "Bass"
 msgstr ""
 
-#: src/tveng25.c:2229
+#: src/tveng25.c:2604
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr ""
 
-#: src/tveng25.c:2239
+#: src/tveng25.c:2623
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr ""
@@ -2524,18 +2524,18 @@ msgstr ""
 msgid "VBI interface: Failed to read from the device"
 msgstr ""
 
-#: src/zvbi.c:1161
+#: src/zvbi.c:1167
 #, c-format
 msgid ""
 "VBI initialization failed.\n"
 "%s"
 msgstr ""
 
-#: src/zvbi.c:1162
+#: src/zvbi.c:1168
 msgid "Ran out of memory."
 msgstr ""
 
-#: src/zvbi.c:1264
+#: src/zvbi.c:1270
 msgid ""
 "This probably means that the required driver isn't loaded. Add to your /etc/"
 "modules.conf the line:\n"
@@ -2545,7 +2545,7 @@ msgid ""
 "disable VBI in Settings/Preferences/VBI options/Enable VBI decoding."
 msgstr ""
 
-#: src/zvbi.c:1371
+#: src/zvbi.c:1377
 msgid "Out of resources to start a new thread."
 msgstr ""
 
