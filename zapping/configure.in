@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(zapping, 0.9.6,
+AC_INIT(zapping, 0.9.7cvs,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
 AC_CONFIG_SRCDIR(configure.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
@@ -46,6 +46,7 @@ test -e site_def.h || cat <<EOF >site_def.h
 /* #define TVENGEMU_ENABLE 1 */
 /* #define TVENG_FORCE_FORMAT 20 */
 /* #define TVENG25_BAYER_TEST 1 */
+/* #define TVENG25_NV12_TEST 1 */
 /* #define X11STUFF_WM_HINTS_DEBUG 1 */
 /* #define X11STUFF_VIDMODE_DEBUG 1 */
 /* #define X11STUFF_SCREENSAVER_DEBUG 1 */
@@ -99,7 +100,7 @@ AC_DEFUN([CHECK_SIMD], [
   HAVE_$1="yes"
   AC_COMPILE_IFELSE(AC_LANG_PROGRAM([#include <$3>], [$4]),, HAVE_$1="no")
   if test x$HAVE_$1 = xyes; then
-    dnl Older versions of GCC have not been tested.
+    dnl Older versions of GCC and other compilers have not been tested.
     GCC_VERSION(0, 30200, HAVE_$1="disabled")
   fi
   if test x$HAVE_$1 = xyes; then
@@ -117,11 +118,11 @@ AC_DEFUN([CHECK_SIMD], [
     dnl GCC 3.4.1 (x86_64), GCC 4.0.0 (i686):
     dnl DI_GreedyHM.c:1281: internal compiler error:
     dnl   in extract_insn, at recog.c:2083
-    GCC_VERSION(30300, 40100, HAVE_$1="broken")
+    GCC_VERSION(30300, 40001, HAVE_$1="broken")
   fi
   if test x$HAVE_$1 = xyes; then
     SIMD_SUPPORT="${SIMD_SUPPORT}$1 "
-    AC_DEFINE(HAVE_$1, 1, [Define if GCC supports $1 extensions])
+    AC_DEFINE(HAVE_$1, 1, [Define if CC supports $1 extensions])
   fi
   AM_CONDITIONAL(HAVE_$1, test $HAVE_$1 = yes)
   CFLAGS="$SAVE_CFLAGS"]
@@ -162,6 +163,17 @@ test "x$HAVE_X86" = "xyes" -a "x$HAVE_SSE2_ASM" = "xyes" && \
   PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD deinterlace"
 
 dnl ---------------------------------------------------------------------------
+dnl GCC builtins
+dnl ---------------------------------------------------------------------------
+
+AC_MSG_CHECKING(if $CC has __builtin_popcount)
+HAVE_BUILTIN_POPCOUNT="yes"
+AC_LINK_IFELSE(AC_LANG_PROGRAM(, [__builtin_popcount(123)]),
+  AC_DEFINE(HAVE_BUILTIN_POPCOUNT, 1, [Define if CC has __builtin_popcount]),
+  HAVE_BUILTIN_POPCOUNT="no")
+AC_MSG_RESULT($HAVE_BUILTIN_POPCOUNT)
+
+dnl ---------------------------------------------------------------------------
 dnl How to link pthreads functions
 dnl ---------------------------------------------------------------------------
 
@@ -175,16 +187,9 @@ AC_CHECK_LIB(pthread, pthread_create,,[
 ])
 
 dnl ---------------------------------------------------------------------------
-dnl Profiling
-dnl ---------------------------------------------------------------------------
 
-dnl This is a gcc work-around. On x86 -pg produces att syntax calls
-dnl ignoring -masm=intel in plugins/deinterlace modules.
-
-(echo "$CFLAGS" | grep "-pg" >/dev/null 2>/dev/null) && PG_CFLAGS="-pg"
+dnl Obsolete.
 AC_SUBST(PG_CFLAGS)
-
-CFLAGS=`echo "$CFLAGS" | sed s/-pg//`
 
 dnl ===========================================================================
 dnl Video (TV) device checks
