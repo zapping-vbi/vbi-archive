@@ -47,6 +47,7 @@
 #include <sys/mman.h>
 #include <errno.h>
 #include <linux/kernel.h>
+#include <ctype.h>
 
 #include "tveng.h"
 #define TVENG25_PROTOTYPES 1
@@ -114,6 +115,15 @@ struct video_input {
 #define VI(l) PARENT (l, struct video_input, pub)
 #define CVI(l) CONST_PARENT (l, struct video_input, pub)
 
+struct audio_input {
+	tv_audio_line		pub;
+
+	unsigned int		index;		/* struct v4l2_audio */
+};
+
+#define AI(l) PARENT (l, struct audio_input, pub)
+#define CAI(l) CONST_PARENT (l, struct audio_input, pub)
+
 /** @internal */
 struct xbuffer {
 	tv_capture_buffer	cb;
@@ -142,17 +152,21 @@ struct private_tveng25_device_info
 	tv_control *		mute;
 
 	tv_bool			bttv_driver;
+	tv_bool			ivtv_driver;
 	tv_bool			read_back_controls;
 	tv_bool			use_v4l_audio;
 	tv_bool			use_s_ctrl_old;
 
-	tv_bool			streaming;
+	tv_bool			capturing;
 };
 
 #define P_INFO(p) PARENT (p, struct private_tveng25_device_info, info)
 
 #ifndef TVENG25_BAYER_TEST
-#define TVENG25_BAYER_TEST 0
+#  define TVENG25_BAYER_TEST 0
+#endif
+#ifndef TVENG25_NV12_TEST
+#  define TVENG25_NV12_TEST 0
 #endif
 
 static tv_bool
@@ -160,6 +174,31 @@ queue_xbuffers			(tveng_device_info *	info);
 static tv_bool
 unmap_xbuffers			(tveng_device_info *	info,
 				 tv_bool		ignore_errors);
+
+static __inline__ char *
+xstrndup			(const __u8 *		s,
+				 size_t			size)
+{
+	/* strndup is a GNU extension. */
+	return _tv_strndup ((const char *) s, size);
+}
+
+/* xstrndup a __u8 array. */
+#undef XSTRADUP
+#define XSTRADUP(s) xstrndup ((s), N_ELEMENTS (s))
+
+static __inline__ int
+xstrncmp			(const __u8 *		s1,
+				 const char *		s2,
+				 size_t			size)
+{
+	return strncmp ((const char *) s1, s2, size);
+}
+
+/* xstrncmp a __u8 array. */
+#undef XSTRACMP
+#define XSTRACMP(s1, s2) xstrncmp ((s1), (s2), N_ELEMENTS (s1))
+
 
 /*
 	Audio matrix
@@ -539,7 +578,7 @@ add_control			(tveng_device_info *	info,
 		xc->pub.label = strdup (_(controls[i].label));
 		xc->pub.id = controls[i].id;
 	} else {
-		xc->pub.label = strndup (qc.name, 32);
+		xc->pub.label = XSTRADUP (qc.name);
 		xc->pub.id = TV_CONTROL_ID_UNKNOWN;
 	}
 
@@ -600,7 +639,7 @@ add_control			(tveng_device_info *	info,
 			qm.index = i;
 
 			if (0 == xioctl (info, VIDIOC_QUERYMENU, &qm)) {
-				xc->pub.menu[i] = strndup (qm.name, 32);
+				xc->pub.menu[i] = XSTRADUP (qm.name);
 				if (NULL == xc->pub.menu[i])
 					goto failure;
 			} else {
@@ -716,7 +755,7 @@ set_video_standard		(tveng_device_info *	info,
 			return TRUE;
 	}
 
-	if (P_INFO (info)->streaming)
+	if (P_INFO (info)->capturing)
 		return FALSE;
 
 	videostd_set = s->videostd_set;
@@ -755,7 +794,7 @@ get_video_standard_list		(tveng_device_info *	info)
 		standard.index = i;
 
 		if (-1 == xioctl_may_fail (info, VIDIOC_ENUMSTD, &standard)) {
-			if (errno == EINVAL)
+			if (EINVAL == errno)
 				break; /* end of enumeration */
 
 			ioctl_failure (info,
@@ -771,8 +810,8 @@ get_video_standard_list		(tveng_device_info *	info)
 
 		if (!(s = append_video_standard (&info->panel.video_standards,
 						 standard.id,
-						 standard.name,
-						 standard.name,
+						 (const char *) standard.name,
+						 (const char *) standard.name,
 						 sizeof (*s))))
 			goto failure;
 
@@ -854,7 +893,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 	buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
 	restart = (info->freq_change_restart
-		   && p_info->streaming
+		   && p_info->capturing
 		   && info->panel.cur_video_input == l);
 
 	if (restart) {
@@ -868,7 +907,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 		if (-1 == xioctl (info, VIDIOC_STREAMOFF, &buf_type))
 			return FALSE;
 
-		p_info->streaming = FALSE;
+		p_info->capturing = FALSE;
 	}
 
 	vfreq.frequency = new_freq;
@@ -894,7 +933,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 		}
 
 		if (0 == xioctl (info, VIDIOC_STREAMON, &buf_type)) {
-			p_info->streaming = TRUE;
+			p_info->capturing = TRUE;
 		} else {
 			/* XXX what now? */
 			r = FALSE;
@@ -1006,7 +1045,7 @@ set_video_input			(tveng_device_info *	info,
 				return TRUE;
 	}
 
-	if (P_INFO (info)->streaming)
+	if (P_INFO (info)->capturing)
 		return FALSE;
 
 	index = CVI (l)->index;
@@ -1095,7 +1134,9 @@ get_video_input_list		(tveng_device_info *	info)
 		input.index = i;
 
 		if (-1 == xioctl_may_fail (info, VIDIOC_ENUMINPUT, &input)) {
-			if (errno == EINVAL && i > 0)
+			/* i > 0 because video devices
+			   cannot have zero video inputs. */
+			if (EINVAL == errno && i > 0)
 				break; /* end of enumeration */
 
 			ioctl_failure (info,
@@ -1110,7 +1151,8 @@ get_video_input_list		(tveng_device_info *	info)
 		}
 
 		/* Sometimes NUL is missing. */
-		z_strlcpy (buf, input.name, sizeof (buf));
+		z_strlcpy (buf, (const char *) input.name,
+			   MIN (sizeof (buf), sizeof (input.name)));
 
 		if (input.type & V4L2_INPUT_TYPE_TUNER)
 			type = TV_VIDEO_LINE_TYPE_TUNER;
@@ -1141,6 +1183,116 @@ get_video_input_list		(tveng_device_info *	info)
 	return FALSE;
 }
 
+/*
+ *  Audio inputs
+ */
+
+static tv_bool
+get_audio_input			(tveng_device_info *	info)
+{
+	tv_audio_line *l;
+
+	if (info->panel.audio_inputs) {
+		struct v4l2_audio audio;
+
+		CLEAR (audio);
+
+		if (-1 == xioctl (info, VIDIOC_G_AUDIO, &audio))
+			return FALSE;
+
+		if (info->panel.cur_audio_input)
+			if (CAI (info->panel.cur_audio_input)->index
+			    == audio.index)
+				return TRUE;
+
+		for_all (l, info->panel.audio_inputs)
+			if (CAI (l)->index == audio.index)
+				break;
+	} else {
+		l = NULL;
+	}
+
+	store_cur_audio_input (info, l);
+
+	return TRUE;
+}
+
+static tv_bool
+set_audio_input			(tveng_device_info *	info,
+				 tv_audio_line *	l)
+{
+	struct v4l2_audio audio;
+
+	CLEAR (audio);
+	audio.index = CAI (l)->index;
+
+	if (-1 == xioctl (info, VIDIOC_S_AUDIO, &audio))
+		return FALSE;
+
+	store_cur_audio_input (info, l);
+
+	return TRUE;
+}
+
+static tv_bool
+get_audio_input_list		(tveng_device_info *	info)
+{
+	unsigned int i;
+
+	free_audio_inputs (info);
+
+	for (i = 0;; ++i) {
+		struct v4l2_audio audio;
+		char buf[sizeof (audio.name) + 1];
+		struct audio_input *ai;
+
+		CLEAR (audio);
+		audio.index = i;
+
+		if (-1 == xioctl_may_fail (info, VIDIOC_ENUMAUDIO, &audio)) {
+			if (EINVAL == errno)
+				break; /* end of enumeration */
+
+			ioctl_failure (info,
+				       __FILE__,
+				       __PRETTY_FUNCTION__,
+				       __LINE__,
+				       "VIDIOC_ENUMAUDIO");
+
+			free_audio_line_list (&info->panel.audio_inputs);
+
+			return FALSE;
+		}
+
+		/* Sometimes NUL is missing. */
+		z_strlcpy (buf, (const char *) audio.name,
+			   MIN (sizeof (buf), sizeof (audio.name)));
+
+		if (!(ai = AI(append_audio_line (&info->panel.audio_inputs,
+						 TV_AUDIO_LINE_TYPE_NONE,
+						 buf, buf,
+						 /* minimum */ 0,
+						 /* maximum */ 0,
+						 /* step */ 0,
+						 /* reset */ 0,
+						 sizeof (*ai)))))
+			goto failure;
+
+		ai->pub._parent = info;
+
+		ai->index = audio.index;
+	}
+
+	get_audio_input (info);
+
+	return TRUE;
+
+ failure:
+	free_audio_line_list (&info->panel.audio_inputs);
+	return FALSE;
+}
+
+
 static tv_pixfmt
 pixelformat_to_pixfmt		(unsigned int		pixelformat)
 {
@@ -1169,6 +1321,7 @@ pixelformat_to_pixfmt		(unsigned int		pixelformat)
 	case V4L2_PIX_FMT_YUV411P:	return TV_PIXFMT_YUV411;
 
 	case V4L2_PIX_FMT_SBGGR8:	return TV_PIXFMT_SBGGR;
+	case V4L2_PIX_FMT_NV12:		return TV_PIXFMT_NV12;
 
 	default:			return TV_PIXFMT_UNKNOWN;
 	}
@@ -1200,6 +1353,7 @@ pixfmt_to_pixelformat		(tv_pixfmt		pixfmt)
 	case TV_PIXFMT_YUV411:		return V4L2_PIX_FMT_YUV411P;	
 
 	case TV_PIXFMT_SBGGR:		return V4L2_PIX_FMT_SBGGR8;
+	case TV_PIXFMT_NV12:		return V4L2_PIX_FMT_NV12;
 
 	default:			return 0;
 	}
@@ -1408,20 +1562,15 @@ image_format_from_format	(tveng_device_info *	info _unused_,
 
 	CLEAR (*f);
 
-	if (TVENG25_BAYER_TEST) {
-		pixfmt = TV_PIXFMT_SBGGR;
-		bytes_per_line[0] = vfmt->fmt.pix.width;
-	} else {
-		pixfmt = pixelformat_to_pixfmt (vfmt->fmt.pix.pixelformat);
+	pixfmt = pixelformat_to_pixfmt (vfmt->fmt.pix.pixelformat);
 
-		if (TV_PIXFMT_UNKNOWN == pixfmt)
-			return FALSE;
+	if (TV_PIXFMT_UNKNOWN == pixfmt)
+		return FALSE;
 
-		/* bttv 0.9.12 bug:
-		   returns bpl = width * bpp, w/ bpp > 1 if planar YUV */
-		bytes_per_line[0] = vfmt->fmt.pix.width
-			* tv_pixfmt_bytes_per_pixel (pixfmt);
-	}
+	/* bttv 0.9.12 bug:
+	   returns bpl = width * bpp, w/ bpp > 1 if planar YUV */
+	bytes_per_line[0] = vfmt->fmt.pix.width
+		* tv_pixfmt_bytes_per_pixel (pixfmt);
 
 	tv_image_format_init (f,
 			      vfmt->fmt.pix.width,
@@ -1439,6 +1588,23 @@ image_format_from_format	(tveng_device_info *	info _unused_,
 	return TRUE;
 }
 
+static void
+ivtv_v4l2_format_fix		(tveng_device_info *	info,
+				 struct v4l2_format *	format)
+{
+	format->fmt.pix.pixelformat = V4L2_PIX_FMT_NV12;
+	format->fmt.pix.bytesperline = format->fmt.pix.width;
+	format->fmt.pix.sizeimage =
+		format->fmt.pix.width * format->fmt.pix.height * 2 / 3;
+
+	/* XXX not verified, may be _BOTTOM or _INTERLACED. */
+	if (info->panel.cur_video_standard
+	    && (format->fmt.pix.height
+		<= info->panel.cur_video_standard->frame_height / 2)) {
+		format->fmt.pix.field = V4L2_FIELD_TOP;
+	}
+}
+
 static tv_bool
 get_capture_format		(tveng_device_info *	info)
 {
@@ -1449,6 +1615,39 @@ get_capture_format		(tveng_device_info *	info)
 
 	if (-1 == xioctl (info, VIDIOC_G_FMT, &format))
 		return FALSE;
+
+	if (TVENG25_BAYER_TEST) {
+		if (V4L2_PIX_FMT_GREY != format.fmt.pix.pixelformat) {
+			format.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
+			format.fmt.pix.bytesperline = 0; /* tell me */
+			format.fmt.pix.sizeimage = 0; /* ditto */
+
+			if (-1 == xioctl (info, VIDIOC_S_FMT, &format))
+				return FALSE;
+		}
+
+		format.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR8;
+	} else if (TVENG25_NV12_TEST) {
+		if (V4L2_PIX_FMT_YVU420 != format.fmt.pix.pixelformat) {
+			format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
+			format.fmt.pix.bytesperline = 0; /* tell me */
+			format.fmt.pix.sizeimage = 0; /* ditto */
+
+			if (-1 == xioctl (info, VIDIOC_S_FMT, &format))
+				return FALSE;
+		}
+
+		format.fmt.pix.pixelformat = V4L2_PIX_FMT_NV12;
+	} else if (P_INFO (info)->ivtv_driver) {
+		/* Did we open the YUV capture device? */
+		assert (V4L2_PIX_FMT_MPEG != format.fmt.pix.pixelformat);
+
+		/* XXX ivtv 0.2.0 bug: returns pixelformat = 0,
+		   bytes_per_line = 0, sizeimage = 720 * 720, colorspace
+		   always = SMPTE170M, field always = INTERLACED. */
+
+		ivtv_v4l2_format_fix (info, &format);
+	}
 
 	/* Error ignored. */
 	image_format_from_format (info, &info->capture.format, &format);
@@ -1463,8 +1662,9 @@ set_capture_format		(tveng_device_info *	info,
 	struct private_tveng25_device_info *p_info = P_INFO (info);
 	struct v4l2_format format;
 	unsigned int pixelformat;
+	tv_bool r;
 
-	if (p_info->streaming)
+	if (p_info->capturing)
 		return FALSE;
 
 	CLEAR (format);
@@ -1489,6 +1689,12 @@ set_capture_format		(tveng_device_info *	info,
 
 		format.fmt.pix.width	= 352;
 		format.fmt.pix.height	= 288;
+	} else if (TVENG25_NV12_TEST) {
+		format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
+		pixelformat = V4L2_PIX_FMT_YVU420;
+
+		format.fmt.pix.width	= fmt->width;
+		format.fmt.pix.height	= fmt->height;
 	} else {
 		format.fmt.pix.pixelformat = pixelformat;
 
@@ -1499,10 +1705,12 @@ set_capture_format		(tveng_device_info *	info,
 	format.fmt.pix.bytesperline	= 0; /* minimum please */
 	format.fmt.pix.sizeimage	= 0; /* ditto */
 
-	if (format.fmt.pix.height > 288)
-		format.fmt.pix.field = V4L2_FIELD_INTERLACED;
-	else
+	format.fmt.pix.field = V4L2_FIELD_INTERLACED;
+	if (info->panel.cur_video_standard
+	    && (format.fmt.pix.height
+		<= info->panel.cur_video_standard->frame_height / 2)) {
 		format.fmt.pix.field = V4L2_FIELD_BOTTOM;
+	}
 
 	if (p_info->buffers)
 		unmap_xbuffers (info, /* ignore_errors */ TRUE);
@@ -1510,15 +1718,25 @@ set_capture_format		(tveng_device_info *	info,
 	if (-1 == xioctl (info, VIDIOC_S_FMT, &format))
 		return FALSE;
 
+	r = (format.fmt.pix.pixelformat == pixelformat);
+
+	if (TVENG25_BAYER_TEST) {
+		format.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR8;
+	} else if (TVENG25_NV12_TEST) {
+		format.fmt.pix.pixelformat = V4L2_PIX_FMT_NV12;
+	} else if (P_INFO (info)->ivtv_driver) {
+		/* XXX ivtv 0.2.0 bug: Ignores (does not read or write)
+		   pixelformat, bytes_per_line, sizeimage, field. */
+
+		ivtv_v4l2_format_fix (info, &format);
+	}
+
 	/* Actual image size (and pixfmt?). */
 
 	/* Error ignored. */
 	image_format_from_format (info, &info->capture.format, &format);
 
-	if (format.fmt.pix.pixelformat != pixelformat)
-		return FALSE;
-
-	return TRUE;
+	return r;
 }
 
 static void
@@ -1549,6 +1767,8 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 
 	if (TVENG25_BAYER_TEST) {
 		return TV_PIXFMT_SET (TV_PIXFMT_SBGGR);
+	} else if (TVENG25_NV12_TEST) {
+		return TV_PIXFMT_SET (TV_PIXFMT_NV12);
 	}
 
 	pixfmt_set = TV_PIXFMT_SET_EMPTY;
@@ -1574,7 +1794,7 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 	/* Gross! Let's see if TRY_FMT gives more information. */
 
 	/* sn9c102 1.0.8 bug: TRY_FMT doesn't copy format back to user. */
-	if (0 == strcmp (p_info->caps.driver, "sn9c102")) {
+	if (0 == XSTRACMP (p_info->caps.driver, "sn9c102")) {
 		return TV_PIXFMT_SET (TV_PIXFMT_SBGGR); /* is an USB camera */
 	}
 
@@ -1717,7 +1937,7 @@ restart				(tveng_device_info *	info)
 	if (-1 == xioctl (info, VIDIOC_STREAMOFF, &buf_type))
 		return FALSE;
 
-	p_info->streaming = FALSE;
+	p_info->capturing = FALSE;
 
 	if (!queue_xbuffers (info))
 		return FALSE;
@@ -1725,7 +1945,7 @@ restart				(tveng_device_info *	info)
 	if (-1 == xioctl (info, VIDIOC_STREAMON, &buf_type))
 		return FALSE;
 
-	p_info->streaming = TRUE;
+	p_info->capturing = TRUE;
 
 	errno = saved_errno;
 
@@ -1878,7 +2098,7 @@ flush_buffers			(tveng_device_info *	info)
 	struct private_tveng25_device_info *p_info = P_INFO (info);
 	unsigned int count;
 
-	if (!p_info->streaming) {
+	if (!p_info->capturing) {
 		return FALSE;
 	}
 
@@ -1915,36 +2135,172 @@ flush_buffers			(tveng_device_info *	info)
 }
 
 static int
+read_buffer			(tveng_device_info *	info,
+				 tv_capture_buffer *	buffer,
+				 const struct timeval *	timeout)
+{
+	struct private_tveng25_device_info *p_info = P_INFO (info);
+	struct timeval start;
+	struct timeval now;
+	struct timeval tv;
+	ssize_t actual;
+
+	if (CAPTURE_MODE_READ != info->capture_mode) {
+		info->tveng_errno = -1;
+		tv_error_msg(info, "Current capture mode is not READ (%d)",
+			     info->capture_mode);
+		return -1;
+	}
+
+	/* TODO buffer->size
+	   assert (buffer->size >= info->capture.format.size); */
+
+	start.tv_sec = 0;
+	start.tv_usec = 0;
+
+	/* When timeout is zero elapsed time doesn't matter. */
+	if (timeout && (timeout->tv_sec | timeout->tv_usec) > 0)
+		gettimeofday (&start, /* timezone */ NULL);
+
+	now = start;
+
+ select_again:
+	timeout_subtract_elapsed (&tv, timeout, &now, &start);
+
+	if ((tv.tv_sec | tv.tv_usec) > 0) {
+		fd_set set;
+		int r;
+
+ select_again_with_timeout:
+		FD_ZERO (&set);
+		FD_SET (info->fd, &set);
+
+		r = select (info->fd + 1,
+			    /* readable */ &set,
+			    /* writeable */ NULL,
+			    /* in exception */ NULL,
+			    timeout ? &tv : NULL);
+
+		switch (r) {
+		case -1: /* error */
+			switch (errno) {
+			case EINTR:
+				if (!timeout) /* infinite */
+					goto select_again_with_timeout;
+
+				gettimeofday (&now, /* timezone */ NULL);
+
+				goto select_again;
+
+			default:
+				restart (info);
+
+				info->tveng_errno = errno;
+				t_error("select()", info);
+
+				return -1;
+			}
+
+		case 0: /* timeout */
+			return 0;
+
+		default:
+			break;
+		}
+	}
+
+ read_again:
+	actual = read (info->fd, buffer->data, info->capture.format.size);
+
+	if ((ssize_t) 0 == actual) {
+		/* EOF? */
+
+		info->tveng_errno = 0;
+		t_error ("read", info);
+
+		return -1;
+	}
+
+	if ((ssize_t) -1 == actual) {
+		switch (errno) {
+		case EAGAIN:
+		case EBUSY:
+			if (!timeout) /* infinite */
+				goto select_again_with_timeout;
+
+			if ((timeout->tv_sec | timeout->tv_usec) <= 0)
+				return 0; /* timeout */
+
+			gettimeofday (&now, /* timezone */ NULL);
+			timeout_subtract_elapsed (&tv, timeout, &now, &start);
+
+			if ((tv.tv_sec | tv.tv_usec) <= 0)
+				return 0; /* timeout */
+
+			goto select_again_with_timeout;
+
+		case EINTR:
+			goto read_again;
+
+		default:
+			info->tveng_errno = errno;
+			t_error("read", info);
+
+			return -1;
+		}
+	}
+
+	gettimeofday (&buffer->sample_time, /* timezone */ NULL);
+
+	buffer->stream_time = 0;
+
+	p_info->last_timestamp = buffer->sample_time;
+
+	return 1;
+}
+
+static int
 read_frame			(tveng_device_info *	info,
 				 tv_capture_buffer *	buffer,
 				 const struct timeval *	timeout)
 {
-	tv_capture_buffer *qbuffer;
 	int r;
 
-	r = dequeue_buffer (info, &qbuffer, timeout);
-	if (r <= 0) /* error or timeout */
-		return r;
+	if (P_INFO (info)->caps.capabilities & V4L2_CAP_STREAMING) {
+		tv_capture_buffer *qbuffer;
 
-	assert (NULL != qbuffer);
+		r = dequeue_buffer (info, &qbuffer, timeout);
+		if (r <= 0) /* error or timeout */
+			return r;
 
-	if (buffer) {
-		const tv_image_format *dst_format;
+		assert (NULL != qbuffer);
 
-		dst_format = buffer->format;
-		if (!dst_format)
-			dst_format = &info->capture.format;
+		if (buffer) {
+			const tv_image_format *dst_format;
 
-		tv_copy_image (buffer->data, dst_format,
-			       qbuffer->data, &info->capture.format);
+			dst_format = buffer->format;
+			if (!dst_format)
+				dst_format = &info->capture.format;
 
-		buffer->sample_time = qbuffer->sample_time;
-		buffer->stream_time = qbuffer->stream_time;
+			tv_copy_image (buffer->data, dst_format,
+				       qbuffer->data, &info->capture.format);
+
+			buffer->sample_time = qbuffer->sample_time;
+			buffer->stream_time = qbuffer->stream_time;
+		}
+
+		/* Queue the buffer again for processing */
+		if (!queue_buffer (info, qbuffer))
+			return -1; /* error */
+	} else {
+		if (buffer) {
+			r = read_buffer (info, buffer, timeout);
+			if (r <= 0) /* error or timeout */
+				return r;
+		} else {
+			/* XXX read & discard. */
+		}
 	}
-
-	/* Queue the buffer again for processing */
-	if (!queue_buffer (info, qbuffer))
-		return -1; /* error */
 
 	return 1; /* success */
 }
@@ -2079,7 +2435,8 @@ set_capture_buffers		(tveng_device_info *	info,
 
 	assert (NULL == buffers);
 
-	if (p_info->streaming
+	if (p_info->capturing
+	    || !(p_info->caps.capabilities & V4L2_CAP_STREAMING)
 	    || CAPTURE_MODE_NONE != info->capture_mode) {
 		info->tveng_errno = -1;
 		tv_error_msg (info, "Internal error (%s:%d)",
@@ -2100,7 +2457,7 @@ set_capture_buffers		(tveng_device_info *	info,
 
 	/* sn9c102 1.0.8 bug: mmap fails for > 1 buffers, apparently
 	   because m.offset isn't page aligned. */
-	if (0 == strcmp (p_info->caps.driver, "sn9c102"))
+	if (0 == XSTRACMP (p_info->caps.driver, "sn9c102"))
 		n_buffers = 1;
 
 	if (!map_xbuffers (info,
@@ -2132,19 +2489,22 @@ enable_capture			(tveng_device_info *	info,
 
 		p_tveng_stop_everything(info,&dummy);
 
-		if (!p_info->buffers) {
-			if (!set_capture_buffers (info, NULL, 8))
+		if (p_info->caps.capabilities & V4L2_CAP_STREAMING) {
+			if (!p_info->buffers) {
+				if (!set_capture_buffers (info, NULL, 8))
+					return FALSE;
+			}
+
+			buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+			if (-1 == xioctl (info, VIDIOC_STREAMON, &buf_type)) {
+				unmap_xbuffers (info,
+						/* ignore_errors */ TRUE);
 				return FALSE;
+			}
 		}
 
-		buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-		if (-1 == xioctl (info, VIDIOC_STREAMON, &buf_type)) {
-			unmap_xbuffers (info, /* ignore_errors */ TRUE);
-			return FALSE;
-		}
-
-		p_info->streaming = TRUE;
+		p_info->capturing = TRUE;
 		info->capture_mode = CAPTURE_MODE_READ;
 
 		CLEAR (p_info->last_timestamp);
@@ -2153,15 +2513,26 @@ enable_capture			(tveng_device_info *	info,
 	} else {
 		int buf_type;
 
-		assert (info->capture_mode == CAPTURE_MODE_READ);
+		assert (CAPTURE_MODE_READ == info->capture_mode);
 
 		buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-		if (-1 == xioctl (info, VIDIOC_STREAMOFF, &buf_type)) {
-			return FALSE;
+		if (-1 == xioctl_may_fail (info, VIDIOC_STREAMOFF,
+					   &buf_type)) {
+			if (EINVAL != errno
+			    || (p_info->caps.capabilities
+				& V4L2_CAP_STREAMING)) {
+				ioctl_failure (info,
+					       __FILE__,
+					       __PRETTY_FUNCTION__,
+					       __LINE__,
+					       "VIDIOC_STREAMOFF");
+
+				return FALSE;
+			}
 		}
 
-		p_info->streaming = FALSE;
+		p_info->capturing = FALSE;
 		info->capture_mode = CAPTURE_MODE_NONE;
 
 		if (!unmap_xbuffers (info, /* ignore_errors */ FALSE)) {
@@ -2196,6 +2567,7 @@ static void tveng25_close_device(tveng_device_info * info)
 	free_panel_controls (info);
 	free_video_standards (info);
 	free_video_inputs (info);
+	free_audio_inputs (info);
 
   info->file_name = NULL;
 
@@ -2218,10 +2590,13 @@ get_capabilities		(tveng_device_info *	info)
 	if (-1 == xioctl_may_fail (info, VIDIOC_QUERYCAP, &p_info->caps))
 		goto failure;
 
-	p_info->bttv_driver = (0 == strcmp (p_info->caps.driver, "bttv"));
+	p_info->bttv_driver = (0 == XSTRACMP (p_info->caps.driver, "bttv"));
+	p_info->ivtv_driver = (0 == XSTRACMP (p_info->caps.driver, "ivtv"));
 
 	/* bttv 0.9.14 bug: S_TUNER ignores v4l2_tuner.audmode. */
 	p_info->use_v4l_audio = p_info->bttv_driver;
+
+	info->caps.flags = 0;
 
 	if (!(p_info->caps.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
 		info->tveng_errno = -1;
@@ -2231,9 +2606,18 @@ get_capabilities		(tveng_device_info *	info)
 		goto failure;
 	}
 
-	/* Check if we can mmap() this device */
-	/* XXX REQBUFS must be checked too */
-	if (!(p_info->caps.capabilities & V4L2_CAP_STREAMING)) {
+	info->caps.flags |= TVENG_CAPS_CAPTURE;
+
+	if (TVENG25_NV12_TEST) {
+		p_info->caps.capabilities &= ~V4L2_CAP_STREAMING;
+	}
+
+	if (p_info->caps.capabilities & V4L2_CAP_STREAMING) {
+		/* XXX REQBUFS must be checked too */
+		info->caps.flags |= TVENG_CAPS_QUEUE;
+	} else if (p_info->caps.capabilities & V4L2_CAP_READWRITE) {
+		/* Nothing. */
+	} else {
 		info -> tveng_errno = -1;
 		snprintf(info->error, 256,
 			 _("Sorry, but \"%s\" cannot do streaming"),
@@ -2241,18 +2625,15 @@ get_capabilities		(tveng_device_info *	info)
 		goto failure;
 	}
 
-#undef STRCOPY
-#define STRCOPY(s) _tv_strndup ((s), N_ELEMENTS (s))
-
 	/* We copy in case the string array lacks a NUL. */
 	/* XXX localize (encoding). */
-	if (!(info->node.label = STRCOPY (p_info->caps.card)))
+	if (!(info->node.label = XSTRADUP (p_info->caps.card)))
 		goto failure;
 
-	if (!(info->node.bus = STRCOPY (p_info->caps.bus_info)))
+	if (!(info->node.bus = XSTRADUP (p_info->caps.bus_info)))
 		goto failure;
 
-	if (!(info->node.driver = STRCOPY (p_info->caps.driver)))
+	if (!(info->node.driver = XSTRADUP (p_info->caps.driver)))
 		goto failure;
 
 	if (_tv_asprintf (&info->node.version,
@@ -2262,7 +2643,10 @@ get_capabilities		(tveng_device_info *	info)
 			  (p_info->caps.version >> 0) & 0xFF) < 0)
 		goto failure;
 
-	snprintf(info->caps.name, 32, p_info->caps.card);
+	_tv_strlcpy (info->caps.name,
+		     (const char *) p_info->caps.card,
+		     MIN (sizeof (info->caps.name),
+			  sizeof (p_info->caps.card)));
 	/* XXX get these elsewhere */
 	info->caps.channels = 0; /* FIXME video inputs */
 	info->caps.audios = 0;
@@ -2270,11 +2654,6 @@ get_capabilities		(tveng_device_info *	info)
 	info->caps.minwidth = 16;
 	info->caps.maxheight = 576;
 	info->caps.minheight = 16;
-	info->caps.flags = 0;
-	
-	/* This has been tested before */
-	info->caps.flags |= TVENG_CAPS_CAPTURE;
-	info->caps.flags |= TVENG_CAPS_QUEUE;
 
 	if (p_info->caps.capabilities & V4L2_CAP_TUNER)
 		info->caps.flags |= TVENG_CAPS_TUNER;
@@ -2303,16 +2682,78 @@ get_capabilities		(tveng_device_info *	info)
 	return FALSE;
 }
 
+/* ivtv 0.2.0 bug: /dev/video0+N (N = 0 ... 7) returns MPEG data, S_FMT
+   will not switch the device to NV12. To get NV12 images one has to read
+   from /dev/video32+N instead. */
+static tv_bool
+reopen_ivtv_capture_device	(tveng_device_info *	info,
+				 int			flags)
+{
+	char name[256];
+	unsigned int i;
+	unsigned long num;
+	int fd;
+	struct v4l2_capability caps;
+
+	/* XXX use fstat minor numbers instead? */ 
+
+	for (i = strlen (info->file_name); i > 0; --i)
+		if (!isdigit (info->file_name[i - 1]))
+			break;
+
+	num = strtoul (info->file_name + i, NULL, 0);
+	if (num >= 0x20 && num < 0x24)
+		return TRUE;
+
+	if (num >= 8)
+		num = 0;
+
+	snprintf (name, sizeof (name), "%.*s%lu",
+		  i, info->file_name, num + 32);
+
+	fd = device_open (info->log_fp, name, flags, 0);
+
+	if (-1 == fd) {
+		info->tveng_errno = errno;
+		snprintf (info->error, 256, 
+			  "Cannot open ivtv capture device %s",
+			  name);
+		return FALSE;
+	}
+
+	CLEAR (caps);
+
+	if (-1 == device_ioctl (info->log_fp, fprint_ioctl_arg, fd,
+				VIDIOC_QUERYCAP, &caps)
+	    || 0 != XSTRACMP (caps.driver, "ivtv")) {
+		info->tveng_errno = -1;
+
+		device_close (info->log_fp, fd);
+		fd = -1;
+
+		snprintf (info->error, 256, "%s is no ivtv capture device",
+			  name);
+
+		return FALSE;
+	}
+
+	device_close (info->log_fp, info->fd);
+
+	info->fd = fd;
+
+	return TRUE;
+}
+
 /*
   Return fd for the device file opened. Checks if the device is a
   valid video device. -1 on error.
   Flags will be used for open()'ing the file 
 */
+extern int disable_overlay;
 static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
 {
   struct private_tveng25_device_info *p_info = P_INFO (info);
   struct v4l2_framebuffer fb;
-  extern int disable_overlay;
 
   assert (info != NULL);
   assert (info->file_name != NULL);
@@ -2344,7 +2785,16 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
       return -1;
     }
 
-  if (TVENG25_BAYER_TEST)
+	if (p_info->ivtv_driver) {
+		if (!reopen_ivtv_capture_device (info, flags)) {
+			device_close(info->log_fp, info->fd);
+			free (info->node.device);
+			info->node.device = NULL;
+			return -1;
+		}
+	}
+
+  if (TVENG25_BAYER_TEST || TVENG25_NV12_TEST)
 	  p_info->caps.capabilities &= ~V4L2_CAP_VIDEO_OVERLAY;
 
   CLEAR (fb);
@@ -2497,6 +2947,8 @@ int tveng25_attach_device(const char* device_file,
 	info->panel.get_signal_strength = get_signal_strength;
 	info->panel.set_video_standard = set_video_standard;
 	info->panel.get_video_standard = get_video_standard;
+	info->panel.set_audio_input = set_audio_input;
+	info->panel.get_audio_input = get_audio_input;
 	info->panel.set_control = set_control;
 	info->panel.get_control = get_control;
 	info->panel.set_audio_mode = set_audio_mode;
@@ -2510,6 +2962,14 @@ int tveng25_attach_device(const char* device_file,
 	info->panel.cur_video_standard = NULL;
 
 	if (!get_video_input_list (info))
+		goto failure;
+
+	/* Audio inputs */
+
+	info->panel.audio_inputs = NULL;
+	info->panel.cur_audio_input = NULL;
+
+	if (!get_audio_input_list (info))
 		goto failure;
 
 	/* Controls */
@@ -2554,12 +3014,15 @@ int tveng25_attach_device(const char* device_file,
 	if (info->caps.flags & TVENG_CAPS_CAPTURE) {
 		info->capture.get_format = get_capture_format;
 		info->capture.set_format = set_capture_format;
-		info->capture.set_buffers = set_capture_buffers;
 		info->capture.read_frame = read_frame;
-		info->capture.queue_buffer = queue_buffer;
-	      	info->capture.dequeue_buffer = dequeue_buffer;
-		info->capture.flush_buffers = flush_buffers;
 		info->capture.enable = enable_capture;
+
+		if (info->caps.flags & TVENG_CAPS_QUEUE) {
+			info->capture.set_buffers = set_capture_buffers;
+			info->capture.queue_buffer = queue_buffer;
+			info->capture.dequeue_buffer = dequeue_buffer;
+			info->capture.flush_buffers = flush_buffers;
+		}
 
 		if (!get_capture_format (info))
 			goto failure;
