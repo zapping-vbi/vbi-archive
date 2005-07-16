@@ -391,6 +391,72 @@ sbggr_bgr			(void *			dst_image,
 	}
 }
 
+static void
+nv12_yuv420			(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format,
+				 const void *		user_data _unused_)
+{
+	uint8_t *dst;
+	uint8_t *udst;
+	uint8_t *vdst;
+	const uint8_t *src;
+	const uint8_t *end;
+	unsigned int width;
+	unsigned int height;
+	unsigned long dst_bpl;
+	unsigned long src_bpl;
+	unsigned long udst_padding;
+	unsigned long vdst_padding;
+	unsigned long src_padding;
+
+	dst = (uint8_t *) dst_image + dst_format->offset[0];
+	src = (const uint8_t *) src_image + src_format->offset[0];
+
+	width = MIN (dst_format->width, src_format->width);
+	height = MIN (dst_format->height, src_format->height);
+
+	assert (0 == ((width | height) % 2));
+
+	dst_bpl = dst_format->bytes_per_line[0];
+	src_bpl = src_format->bytes_per_line[0];
+
+	if (likely (dst_bpl == width && src_bpl == width)) {
+		memcpy (dst, src, width * height);
+	} else {
+		end = src + height * src_bpl;
+
+		while (src < end) {
+			memcpy (dst, src, width);
+			dst += dst_bpl;
+			src += src_bpl;
+		}
+	}
+
+	udst = (uint8_t *) dst_image + dst_format->offset[1];
+	vdst = (uint8_t *) dst_image + dst_format->offset[2];
+	src = (const uint8_t *) src_image + src_format->offset[1];
+
+	udst_padding = dst_format->bytes_per_line[1] - (width >> 1);
+	vdst_padding = dst_format->bytes_per_line[2] - (width >> 1);
+	src_padding = src_format->bytes_per_line[1] - width;
+
+	for (height >>= 1; height > 0; --height) {
+		end = src + width;
+
+		while (src < end) {
+			*udst++ = src[0];
+			*vdst++ = src[1];
+			src += 2;
+		}
+
+		udst += udst_padding;
+		vdst += vdst_padding;
+		src += src_padding;
+	}
+}
+
 void startup_csconvert(void)
 {
   CSFilter rgb_filters [] = {
@@ -422,7 +488,9 @@ void startup_csconvert(void)
 
     { TV_PIXFMT_SBGGR, TV_PIXFMT_BGRA32_LE, sbggr_bgr, "sbbgr->bgra" },
     { TV_PIXFMT_SBGGR, TV_PIXFMT_BGR24_LE, sbggr_bgr, "sbbgr->bgra" },
-    { TV_PIXFMT_SBGGR, TV_PIXFMT_BGR16_LE, sbggr_bgr, "sbbgr->bgra" }
+    { TV_PIXFMT_SBGGR, TV_PIXFMT_BGR16_LE, sbggr_bgr, "sbbgr->bgra" },
+
+    { TV_PIXFMT_NV12, TV_PIXFMT_YUV420, nv12_yuv420, "nv12->yuv420" }
   };
 
   CLEAR (filters);
