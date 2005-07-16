@@ -709,12 +709,11 @@ execute_command (screenshot_data *data)
   int argc = 0;
   char *env[10];
   int envc = 0;
-  int i;
 
   /* Invoke through sh */
-  argv[argc++] = "sh";
-  argv[argc++] = "-c";
-  argv[argc++] = data->command;
+  argv[argc++] = g_strdup ("sh");
+  argv[argc++] = g_strdup ("-c");
+  argv[argc++] = g_strdup (data->command);
 
   /* FIXME */
   env[envc++] = g_strdup_printf ("SCREENSHOT_PATH=%s", data->filename);
@@ -739,8 +738,11 @@ execute_command (screenshot_data *data)
 
   gnome_execute_async_with_env (NULL, argc, argv, envc, env);
 
-  for (i = 0; i < envc; i++)
-    g_free (env[i]);
+  while (envc-- > 0)
+    g_free (env[envc]);
+
+  while (argc-- > 0)
+    g_free (argv[argc]);
 }
 
 static void *
