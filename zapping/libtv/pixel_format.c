@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.c,v 1.4 2005-01-20 01:38:33 mschimek Exp $ */
+/* $Id: pixel_format.c,v 1.5 2005-07-16 21:12:05 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"		/* Z_BYTE_ORDER */
@@ -35,6 +35,7 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
 #define CASE(s) case TV_PIXFMT_##s : return #s ;
 
 	CASE (NONE)
+	CASE (NV12)
 	CASE (YUV444)
 	CASE (YVU444)
 	CASE (YUV422)
@@ -106,7 +107,6 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
 	CASE (ABGR8)
 	CASE (SBGGR)
 
-	case TV_PIXFMT_RESERVED0:
 	case TV_PIXFMT_RESERVED1:
 	case TV_PIXFMT_RESERVED2:
 	case TV_PIXFMT_RESERVED3:
@@ -191,6 +191,7 @@ pixel_formats [] = {
 	PLANAR (YVU420, 12, 1, 1, TRUE), 
 	PLANAR (YUV410,  9, 2, 2, FALSE), 
 	PLANAR (YVU410,  9, 2, 2, TRUE), 
+	PLANAR (NV12,   12, 0, 1, FALSE),
 
 	PACKED_YUV24 (YUVA32, 32, FALSE, 0xFF, 0xFF00, 0xFF0000, 0xFF000000),
 	PACKED_YUV24 (YVUA32, 32,  TRUE, 0xFF, 0xFF0000, 0xFF00, 0xFF000000),
@@ -269,6 +270,10 @@ tv_pixel_format_from_pixfmt	(tv_pixfmt		pixfmt)
 	return pf;
 }
 
+#ifdef HAVE_BUILTIN_POPCOUNT
+#  define popcnt(x) __builtin_popcount (x)
+#else
+
 /* Number of set bits. */
 static unsigned int
 popcnt				(unsigned int		x)
@@ -279,6 +284,8 @@ popcnt				(unsigned int		x)
 
 	return (x * 0x01010101) >> 24;
 }
+
+#endif
 
 /* Note this works only for RGB formats. */
 tv_pixfmt
