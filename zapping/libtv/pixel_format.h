@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.h,v 1.5 2005-01-31 07:12:26 mschimek Exp $ */
+/* $Id: pixel_format.h,v 1.6 2005-07-16 21:12:36 mschimek Exp $ */
 
 #ifndef __ZTV_PIXEL_FORMAT_H__
 #define __ZTV_PIXEL_FORMAT_H__
@@ -31,9 +31,9 @@ typedef enum {
 	TV_PIXFMT_NONE,
 	TV_PIXFMT_UNKNOWN = TV_PIXFMT_NONE,
 
-	TV_PIXFMT_RESERVED0,
-
 	/* Planar YUV formats */
+
+	TV_PIXFMT_NV12,			/* 4x4 1x1+1x1 */
 
 	TV_PIXFMT_YUV444,		/* 4x4 4x4 4x4 */
 	TV_PIXFMT_YVU444,
@@ -149,7 +149,8 @@ typedef uint64_t tv_pixfmt_set;
 				  + TV_PIXFMT_SET (TV_PIXFMT_YUV420)	\
 				  + TV_PIXFMT_SET (TV_PIXFMT_YVU420)	\
 				  + TV_PIXFMT_SET (TV_PIXFMT_YUV410)	\
-				  + TV_PIXFMT_SET (TV_PIXFMT_YVU410))
+				  + TV_PIXFMT_SET (TV_PIXFMT_YVU410)	\
+				  + TV_PIXFMT_SET (TV_PIXFMT_NV12))
 #define TV_PIXFMT_SET_YUVA32     (+ TV_PIXFMT_SET (TV_PIXFMT_YUVA32_LE)	\
 				  + TV_PIXFMT_SET (TV_PIXFMT_YUVA32_BE)	\
 				  + TV_PIXFMT_SET (TV_PIXFMT_YVUA32_LE)	\

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.12 2005-06-28 01:02:51 mschimek Exp $ */
+/* $Id: image_format.c,v 1.13 2005-07-16 21:12:25 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -99,24 +99,43 @@ tv_image_format_init		(tv_image_format *	format,
 
 		/* No padding. */
 		uv_bpl = format->bytes_per_line[0] >> pf->uv_hshift;
-		format->bytes_per_line[1] = uv_bpl;
-		format->bytes_per_line[2] = uv_bpl;
-		format->bytes_per_line[3] = 0;
 
 		y_size = format->bytes_per_line[0] * height;
 		uv_size = y_size >> (pf->uv_hshift + pf->uv_vshift);
 
-		if (pf->vu_order) {
-			format->offset[1] = y_size + uv_size;
-			format->offset[2] = y_size; 
-		} else {
-			format->offset[1] = y_size; 
-			format->offset[2] = y_size + uv_size;
+		switch (pixfmt) {
+		case TV_PIXFMT_NV12:
+			format->bytes_per_line[1] = uv_bpl;
+			format->bytes_per_line[2] = 0;
+			format->bytes_per_line[3] = 0;
+
+			format->offset[1] = y_size;
+			format->offset[2] = 0;
+			format->offset[3] = 0;
+
+			format->size = y_size + uv_size;
+
+			break;
+
+		default:
+			format->bytes_per_line[1] = uv_bpl;
+			format->bytes_per_line[2] = uv_bpl;
+			format->bytes_per_line[3] = 0;
+
+			if (pf->vu_order) {
+				format->offset[1] = y_size + uv_size;
+				format->offset[2] = y_size; 
+			} else {
+				format->offset[1] = y_size; 
+				format->offset[2] = y_size + uv_size;
+			}
+
+			format->offset[3] = 0;
+
+			format->size = y_size + uv_size * 2;
+
+			break;
 		}
-
-		format->offset[3] = 0;
-
-		format->size = y_size + uv_size * 2;
 	} else {
 		format->bytes_per_line[1] = 0;
 		format->bytes_per_line[2] = 0;
@@ -161,7 +180,8 @@ tv_image_format_is_valid	(const tv_image_format *format)
 	min_size = format->bytes_per_line[0] * (format->height - 1) + min_bpl;
 
 	if (pf->planar) {
-		unsigned long min_uv_bytes_per_line;
+		unsigned long min_uv_bpl;
+		unsigned long min_uv_size;
 		unsigned long min_u_size;
 		unsigned long min_v_size;
 		unsigned long p1_offset;
@@ -181,45 +201,72 @@ tv_image_format_is_valid	(const tv_image_format *format)
 			return FALSE;
 
 		/* U and V bits_per_pixel assumed 8. */
-		min_uv_bytes_per_line = format->width >> pf->uv_hshift;
+		min_uv_bpl = format->width >> pf->uv_hshift;
 
-		if (format->bytes_per_line[1] < min_uv_bytes_per_line
-		    || format->bytes_per_line[2] < min_uv_bytes_per_line)
-			return FALSE;
+		switch (pf->pixfmt) {
+		case TV_PIXFMT_NV12:
+			if (format->bytes_per_line[1] < min_uv_bpl)
+				return FALSE;
 
-		/* We don't enforce bytes_per_line padding on the last line. */
-		min_u_size = format->bytes_per_line[1]
-			* ((format->height >> pf->uv_vshift) - 1)
-			+ min_uv_bytes_per_line;
+			/* We don't enforce bytes_per_line padding
+			   on the last line. */
+			min_uv_size = format->bytes_per_line[1]
+				* ((format->height >> pf->uv_vshift) - 1)
+				+ min_uv_bpl;
 
-		min_v_size = format->bytes_per_line[2]
-			* ((format->height >> pf->uv_vshift) - 1)
-			+ min_uv_bytes_per_line;
+			/* Y before UV, planes must not overlap. */
+			if (format->offset[0] + min_size > format->offset[1])
+				return FALSE;
 
-		if (pf->vu_order != (format->offset[2] > format->offset[1]))
-			return FALSE;
+			/* All planes must fit in buffer. */
+			if (format->offset[1] + min_uv_size >= format->size)
+				return FALSE;
 
-		if (format->offset[1] > format->offset[2]) {
-			p1_offset = format->offset[2];
-			p2_offset = format->offset[1];
-		} else {
-			p1_offset = format->offset[1];
-			p2_offset = format->offset[2];
+			break;
+
+		default:
+			if (format->bytes_per_line[1] < min_uv_bpl
+			    || format->bytes_per_line[2] < min_uv_bpl)
+				return FALSE;
+
+			/* We don't enforce bytes_per_line padding
+			   on the last line. */
+			min_u_size = format->bytes_per_line[1]
+				* ((format->height >> pf->uv_vshift) - 1)
+				+ min_uv_bpl;
+
+			min_v_size = format->bytes_per_line[2]
+				* ((format->height >> pf->uv_vshift) - 1)
+				+ min_uv_bpl;
+
+			if (pf->vu_order
+			    != (format->offset[2] > format->offset[1]))
+				return FALSE;
+
+			if (format->offset[1] > format->offset[2]) {
+				p1_offset = format->offset[2];
+				p2_offset = format->offset[1];
+			} else {
+				p1_offset = format->offset[1];
+				p2_offset = format->offset[2];
+			}
+
+			/* Y before U and V, planes must not overlap. */
+			if (format->offset[0] + min_size > p1_offset)
+				return FALSE;
+
+			/* U and V planes must not overlap. */
+			if (p1_offset + min_u_size > p2_offset)
+				return FALSE;
+
+			/* All planes must fit in buffer. */
+			if (p2_offset + min_v_size > format->size)
+				return FALSE;
+
+			break;
 		}
-
-		/* Y before U and V, planes must not overlap. */
-		if (format->offset[0] + min_size >= p1_offset)
-			return FALSE;
-
-		/* U and V planes must not overlap. */
-		if (p1_offset + min_u_size >= p2_offset)
-			return FALSE;
-
-		/* All planes must fit in buffer. */
-		if (p2_offset + min_v_size >= format->size)
-			return FALSE;
 	} else {
-		if (format->offset[0] + min_size >= format->size)
+		if (format->offset[0] + min_size > format->size)
 			return FALSE;
 	}
 
@@ -389,16 +436,18 @@ tv_clear_image			(void *			image,
 		clear_block[0] (data + format->offset[1], 0x80,
 				uv_width, uv_height,
 				format->bytes_per_line[1]);
-		clear_block[0] (data + format->offset[2], 0x80,
-				uv_width, uv_height,
-				format->bytes_per_line[2]);
+
+		if (TV_PIXFMT_NV12 != pf->pixfmt) {
+			clear_block[0] (data + format->offset[2], 0x80,
+					uv_width, uv_height,
+					format->bytes_per_line[2]);
+		}
 
 		return TRUE;
 	}
 
 	switch (pf->pixfmt) {
 	case TV_PIXFMT_NONE:
-	case TV_PIXFMT_RESERVED0:
 	case TV_PIXFMT_RESERVED1:
 	case TV_PIXFMT_RESERVED2:
 	case TV_PIXFMT_RESERVED3:
@@ -483,6 +532,7 @@ tv_clear_image			(void *			image,
 	case TV_PIXFMT_YVU420:
 	case TV_PIXFMT_YUV410:
 	case TV_PIXFMT_YVU410:
+	case TV_PIXFMT_NV12:
 	case TV_PIXFMT_RGBA32_LE:
 	case TV_PIXFMT_RGBA32_BE:
 	case TV_PIXFMT_BGRA32_LE:
@@ -651,11 +701,13 @@ tv_copy_image			(void *			dst_image,
 			    dst_format->bytes_per_line[1],
 			    src_format->bytes_per_line[1]);
 
-		copy_block (d + dst_format->offset[2],
-			    s + src_format->offset[2],
-			    uv_width, uv_height,
-			    dst_format->bytes_per_line[2],
-			    src_format->bytes_per_line[2]);
+		if (TV_PIXFMT_NV12 != pf->pixfmt) {
+			copy_block (d + dst_format->offset[2],
+				    s + src_format->offset[2],
+				    uv_width, uv_height,
+				    dst_format->bytes_per_line[2],
+				    src_format->bytes_per_line[2]);
+		}
 
 		return TRUE;
 	}
