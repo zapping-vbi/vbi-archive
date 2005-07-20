@@ -151,13 +151,18 @@ struct private_tveng25_device_info
 
 	tv_control *		mute;
 
-	tv_bool			bttv_driver;
-	tv_bool			ivtv_driver;
+	unsigned int		bttv_driver;
+	unsigned int		ivtv_driver;
+
 	tv_bool			read_back_controls;
 	tv_bool			use_v4l_audio;
 	tv_bool			use_s_ctrl_old;
 
+	/* Capturing has been started (STREAMON). */
 	tv_bool			capturing;
+
+	/* Capturing has been started and we called read(). */
+	tv_bool			reading;
 };
 
 #define P_INFO(p) PARENT (p, struct private_tveng25_device_info, info)
@@ -904,8 +909,15 @@ set_tuner_frequency		(tveng_device_info *	info,
 			}
 		}
 
-		if (-1 == xioctl (info, VIDIOC_STREAMOFF, &buf_type))
-			return FALSE;
+		if (p_info->caps.capabilities & V4L2_CAP_STREAMING) {
+			if (-1 == xioctl (info, VIDIOC_STREAMOFF, &buf_type))
+				return FALSE;
+		} else if (p_info->reading) {
+			/* Error ignored. */
+			xioctl_may_fail (info, VIDIOC_STREAMOFF, &buf_type);
+
+			p_info->reading = FALSE;
+		}
 
 		p_info->capturing = FALSE;
 	}
@@ -919,7 +931,7 @@ set_tuner_frequency		(tveng_device_info *	info,
 	else
 		r = FALSE;
 
-	if (restart) {
+	if (restart && (p_info->caps.capabilities & V4L2_CAP_STREAMING)) {
 		unsigned int i;
 
 		/* Some drivers do not completely fill buffers when
@@ -995,7 +1007,7 @@ get_video_input			(tveng_device_info *	info)
 	if (info->panel.video_inputs) {
 		int index;
 
-		/* sn9c102 bug. */
+		/* sn9c102 bug: */
 		index = 0;
 
 		if (TVENG25_BAYER_TEST)
@@ -1304,7 +1316,8 @@ pixelformat_to_pixfmt		(unsigned int		pixelformat)
 	case V4L2_PIX_FMT_RGB555X:	return TV_PIXFMT_BGRA16_BE;
 	case V4L2_PIX_FMT_RGB565X:	return TV_PIXFMT_BGR16_BE;
 
-	  /* Note Spec (0.4) is wrong: r <-> b, RGB32 wrong in bttv 0.9 */
+		/* Note Spec (0.4) is wrong: r <-> b. */
+		/* bttv 0.9 bug: RGB32 is wrong. */
 	case V4L2_PIX_FMT_BGR24:	return TV_PIXFMT_BGR24_LE;
 	case V4L2_PIX_FMT_RGB24:	return TV_PIXFMT_BGR24_BE;
 	case V4L2_PIX_FMT_BGR32:	return TV_PIXFMT_BGRA32_LE;
@@ -1568,7 +1581,7 @@ image_format_from_format	(tveng_device_info *	info _unused_,
 		return FALSE;
 
 	/* bttv 0.9.12 bug:
-	   returns bpl = width * bpp, w/ bpp > 1 if planar YUV */
+	   returns bpl = width * bpp, w/ bpp > 1 if planar YUV. */
 	bytes_per_line[0] = vfmt->fmt.pix.width
 		* tv_pixfmt_bytes_per_pixel (pixfmt);
 
@@ -1619,7 +1632,7 @@ get_capture_format		(tveng_device_info *	info)
 	if (TVENG25_BAYER_TEST) {
 		if (V4L2_PIX_FMT_GREY != format.fmt.pix.pixelformat) {
 			format.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
-			format.fmt.pix.bytesperline = 0; /* tell me */
+			format.fmt.pix.bytesperline = 0; /* minimum please */
 			format.fmt.pix.sizeimage = 0; /* ditto */
 
 			if (-1 == xioctl (info, VIDIOC_S_FMT, &format))
@@ -1630,7 +1643,7 @@ get_capture_format		(tveng_device_info *	info)
 	} else if (TVENG25_NV12_TEST) {
 		if (V4L2_PIX_FMT_YVU420 != format.fmt.pix.pixelformat) {
 			format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
-			format.fmt.pix.bytesperline = 0; /* tell me */
+			format.fmt.pix.bytesperline = 0; /* minimum please */
 			format.fmt.pix.sizeimage = 0; /* ditto */
 
 			if (-1 == xioctl (info, VIDIOC_S_FMT, &format))
@@ -1638,13 +1651,19 @@ get_capture_format		(tveng_device_info *	info)
 		}
 
 		format.fmt.pix.pixelformat = V4L2_PIX_FMT_NV12;
-	} else if (P_INFO (info)->ivtv_driver) {
+	} else if (P_INFO (info)->ivtv_driver > 0) {
 		/* Did we open the YUV capture device? */
 		assert (V4L2_PIX_FMT_MPEG != format.fmt.pix.pixelformat);
 
-		/* XXX ivtv 0.2.0 bug: returns pixelformat = 0,
-		   bytes_per_line = 0, sizeimage = 720 * 720, colorspace
-		   always = SMPTE170M, field always = INTERLACED. */
+		/* ivtv 0.2.0-rc1a bug: returns pixelformat = 0,
+		   bytes_per_line = 0, sizeimage = 720 * 720, colorspace =
+		   SMPTE170M regardless of video standard, field =
+		   INTERLACED regardless of image size.
+
+		   ivtv 0.3.6o, 0.3.7 bug: returns pixelformat =
+		   V4L2_PIX_FMT_UYVY, bytes_per_line = 0, sizeimage =
+		   width * height * 1.5, colorspace and field as above.
+		*/
 
 		ivtv_v4l2_format_fix (info, &format);
 	}
@@ -1671,7 +1690,7 @@ set_capture_format		(tveng_device_info *	info,
 
 	format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-	/* XXX bttv 0.9.14 bug: with YUV 4:2:0 activation of VBI
+	/* bttv 0.9.14 bug: with YUV 4:2:0 activation of VBI
 	   can cause a SCERR & driver reset, DQBUF -> EIO. */
 	pixelformat = pixfmt_to_pixelformat (fmt->pixel_format->pixfmt);
 
@@ -1724,9 +1743,10 @@ set_capture_format		(tveng_device_info *	info,
 		format.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR8;
 	} else if (TVENG25_NV12_TEST) {
 		format.fmt.pix.pixelformat = V4L2_PIX_FMT_NV12;
-	} else if (P_INFO (info)->ivtv_driver) {
-		/* XXX ivtv 0.2.0 bug: Ignores (does not read or write)
-		   pixelformat, bytes_per_line, sizeimage, field. */
+	} else if (P_INFO (info)->ivtv_driver > 0) {
+		/* ivtv 0.2.0-rc1a, 0.3.6o, 0.3.7 bug: Ignores (does
+		   not read or write) pixelformat, bytes_per_line, sizeimage,
+		   field. */
 
 		ivtv_v4l2_format_fix (info, &format);
 	}
@@ -1767,7 +1787,12 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 
 	if (TVENG25_BAYER_TEST) {
 		return TV_PIXFMT_SET (TV_PIXFMT_SBGGR);
-	} else if (TVENG25_NV12_TEST) {
+	}
+
+	/* ivtv 0.2.0-rc1a, 0.3.6o, 0.3.7 bug: VIDIOC_ENUMFMT is not
+	   supported and VIDIOC_TRY_FMT returns pixelformat = UYVY. */
+	if (p_info->ivtv_driver > 0
+	    || TVENG25_NV12_TEST) {
 		return TV_PIXFMT_SET (TV_PIXFMT_NV12);
 	}
 
@@ -1802,7 +1827,7 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 		struct v4l2_format format;
 		unsigned int pixelformat;
 
- 		/* XXX bttv 0.9.14 bug: with YUV 4:2:0 activation of VBI
+ 		/* bttv 0.9.14 bug: with YUV 4:2:0 activation of VBI
 		   can cause a SCERR & driver reset, DQBUF -> EIO. */
 		pixelformat = pixfmt_to_pixelformat (pixfmt);
 		if (0 == pixelformat)
@@ -1828,7 +1853,7 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 		struct v4l2_format format;
 		unsigned int pixelformat;
 
- 		/* XXX bttv 0.9.14 bug: with YUV 4:2:0 activation of VBI
+ 		/* bttv 0.9.14 bug: with YUV 4:2:0 activation of VBI
 		   can cause a SCERR & driver reset, DQBUF -> EIO. */
 		pixelformat = pixfmt_to_pixelformat (pixfmt);
 		if (0 == pixelformat)
@@ -2252,6 +2277,8 @@ read_buffer			(tveng_device_info *	info,
 
 	gettimeofday (&buffer->sample_time, /* timezone */ NULL);
 
+	p_info->reading = TRUE;
+
 	buffer->stream_time = 0;
 
 	p_info->last_timestamp = buffer->sample_time;
@@ -2517,19 +2544,14 @@ enable_capture			(tveng_device_info *	info,
 
 		buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-		if (-1 == xioctl_may_fail (info, VIDIOC_STREAMOFF,
-					   &buf_type)) {
-			if (EINVAL != errno
-			    || (p_info->caps.capabilities
-				& V4L2_CAP_STREAMING)) {
-				ioctl_failure (info,
-					       __FILE__,
-					       __PRETTY_FUNCTION__,
-					       __LINE__,
-					       "VIDIOC_STREAMOFF");
-
+		if (p_info->caps.capabilities & V4L2_CAP_STREAMING) {
+			if (-1 == xioctl (info, VIDIOC_STREAMOFF, &buf_type))
 				return FALSE;
-			}
+		} else if (p_info->reading) {
+			/* Error ignored. */
+			xioctl_may_fail (info, VIDIOC_STREAMOFF, &buf_type);
+
+			p_info->reading = FALSE;
 		}
 
 		p_info->capturing = FALSE;
@@ -2590,8 +2612,15 @@ get_capabilities		(tveng_device_info *	info)
 	if (-1 == xioctl_may_fail (info, VIDIOC_QUERYCAP, &p_info->caps))
 		goto failure;
 
-	p_info->bttv_driver = (0 == XSTRACMP (p_info->caps.driver, "bttv"));
-	p_info->ivtv_driver = (0 == XSTRACMP (p_info->caps.driver, "ivtv"));
+	p_info->bttv_driver = 0;
+	if (0 == XSTRACMP (p_info->caps.driver, "bttv")) {
+		p_info->bttv_driver = p_info->caps.version;
+	}
+
+	p_info->ivtv_driver = 0;
+	if (0 == XSTRACMP (p_info->caps.driver, "ivtv")) {
+		p_info->ivtv_driver = p_info->caps.version;
+	}
 
 	/* bttv 0.9.14 bug: S_TUNER ignores v4l2_tuner.audmode. */
 	p_info->use_v4l_audio = p_info->bttv_driver;
@@ -2682,9 +2711,9 @@ get_capabilities		(tveng_device_info *	info)
 	return FALSE;
 }
 
-/* ivtv 0.2.0 bug: /dev/video0+N (N = 0 ... 7) returns MPEG data, S_FMT
-   will not switch the device to NV12. To get NV12 images one has to read
-   from /dev/video32+N instead. */
+/* ivtv 0.2.0-rc1a, 0.3.6o, 0.3.7 feature: /dev/video0+N (N = 0 ... 7)
+   returns MPEG data, S_FMT will not switch the device to NV12. To get
+   NV12 images one has to read from /dev/video32+N instead. */
 static tv_bool
 reopen_ivtv_capture_device	(tveng_device_info *	info,
 				 int			flags)
@@ -2785,7 +2814,7 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
       return -1;
     }
 
-	if (p_info->ivtv_driver) {
+	if (p_info->ivtv_driver > 0) {
 		if (!reopen_ivtv_capture_device (info, flags)) {
 			device_close(info->log_fp, info->fd);
 			free (info->node.device);
