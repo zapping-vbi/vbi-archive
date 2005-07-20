@@ -1,3 +1,11 @@
+2005-07-20    <mschimek@users.sf.net>
+
+	* src/tveng25.c (set_tuner_frequency): No STREAMOFF before the
+	  first read(), don't restart streaming if we're read()ing.
+	(enable_capture): No STREAMOFF before the first read().
+	(get_supported_pixfmt_set): Added work-around for ivtv driver
+	  which does not support ENUM_FMT and has broken TRY_FMT.
+
 2005-07-16    <mschimek@users.sf.net>
 
 	* src/zvbi.c (destroy_threads): Attempted to destroy already
