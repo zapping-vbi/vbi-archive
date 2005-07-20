@@ -1866,7 +1866,7 @@ reset_video_volume		(tveng_device_info *	info,
 		case TV_CONTROL_ID_VOLUME:
 			/* Error ignored */
 			info->panel.set_control (info, tc,
-						 tc->maximum * 8 / 10);
+						 tc->maximum * 9 / 10);
 			break;
 
 		case TV_CONTROL_ID_MUTE:
