@@ -817,6 +817,9 @@ z_switch_standard		(guint hash, tveng_device_info *info)
       return FALSE;
     }
 
+  if (s == tv_cur_video_standard (info))
+    return TRUE;
+
 #ifdef HAVE_LIBZVBI
   if ((vbi = zvbi_get_object ()))
     {
@@ -824,9 +827,6 @@ z_switch_standard		(guint hash, tveng_device_info *info)
       zvbi_close_device ();
     }
 #endif
-
-  if (s == tv_cur_video_standard (info))
-    return TRUE;
 
   old_mode = tv_get_capture_mode (info);
   if (CAPTURE_MODE_READ == old_mode)
