@@ -7,7 +7,7 @@ builddir=`pwd`
 
 trap "rm -rf $builddir/results-$$-*" EXIT
 
-for feature in scalar mmx 3dnow sse sse2 altivec; do
+for feature in scalar mmx 3dnow sse sse2 sse3 altivec; do
   ditest_all $feature
   dir="$builddir/results-$$-$feature"
   if test -d $dir; then

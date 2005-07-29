@@ -123,6 +123,8 @@ if test -d results-$$-sse; then
   else
     echo "*** Have no sse2 results to compare against sse reference."
   fi
+
+  # TODO compare sse2 <-> sse3 (should be identical)
 else
   echo "*** Have no sse reference results to compare x86 implementations."
 fi

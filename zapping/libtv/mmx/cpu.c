@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.c,v 1.2 2005-06-28 00:59:02 mschimek Exp $ */
+/* $Id: cpu.c,v 1.3 2005-07-29 17:39:28 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -29,7 +29,7 @@
  *  References
  *
  *  "Intel Processor Identification and the CPUID Instruction",
- *  Application Note AP-485, November 2000, order no. 241618-016,
+ *  Application Note AP-485, February 2005, order no. 241618-028,
  *  http://developer.intel.com
  *
  *  "AMD Processor Recognition Application Note",
@@ -148,11 +148,12 @@ cpuid				(cpuid_t *		buf,
 #endif
 
 /* Function 0x1 */
-#define INTEL_TSC	(1 << 4)
-#define INTEL_CMOV	(1 << 15)
-#define INTEL_MMX	(1 << 23)
-#define INTEL_SSE	(1 << 25)
-#define INTEL_SSE2	(1 << 26)
+#define INTEL_EDX_TSC	(1 << 4)
+#define INTEL_EDX_CMOV	(1 << 15)
+#define INTEL_EDX_MMX	(1 << 23)
+#define INTEL_EDX_SSE	(1 << 25)
+#define INTEL_EDX_SSE2	(1 << 26)
+#define INTEL_ECX_SSE3	(1 << 0)
 
 /* Function 0x80000001 */
 #define AMD_MMX_EXT	(1 << 22)
@@ -184,29 +185,33 @@ cpu_detection_mmx		(void)
 		if (0 == strncmp (c.s + 4, "GenuineIntel", 12)) {
 			cpuid (&c, 1);
 
-			if (c.r.edx & INTEL_TSC)
+			if (c.r.edx & INTEL_EDX_TSC)
 				features |= CPU_FEATURE_TSC;
-			if (c.r.edx & INTEL_CMOV)
+			if (c.r.edx & INTEL_EDX_CMOV)
 				features |= CPU_FEATURE_CMOV;
-			if (c.r.edx & INTEL_MMX)
+			if (c.r.edx & INTEL_EDX_MMX)
 				features |= CPU_FEATURE_MMX;
-			if (c.r.edx & INTEL_SSE)
+			if (c.r.edx & INTEL_EDX_SSE)
 				features |= CPU_FEATURE_SSE;
-			if (c.r.edx & INTEL_SSE2)
+			if (c.r.edx & INTEL_EDX_SSE2)
 				features |= CPU_FEATURE_SSE2;
+			if (c.r.ecx & INTEL_ECX_SSE3)
+				features |= CPU_FEATURE_SSE3;
 		} else if (0 == strncmp (c.s + 4, "AuthenticAMD", 12)) {
 			cpuid (&c, 1);
 
-			if (c.r.edx & INTEL_TSC)
+			if (c.r.edx & INTEL_EDX_TSC)
 				features |= CPU_FEATURE_TSC;
-			if (c.r.edx & INTEL_CMOV)
+			if (c.r.edx & INTEL_EDX_CMOV)
 				features |= CPU_FEATURE_CMOV;
-			if (c.r.edx & INTEL_MMX)
+			if (c.r.edx & INTEL_EDX_MMX)
 				features |= CPU_FEATURE_MMX;
-			if (c.r.edx & INTEL_SSE)
+			if (c.r.edx & INTEL_EDX_SSE)
 				features |= CPU_FEATURE_SSE;
-			if (c.r.edx & INTEL_SSE2)
+			if (c.r.edx & INTEL_EDX_SSE2)
 				features |= CPU_FEATURE_SSE2;
+			if (c.r.ecx & INTEL_ECX_SSE3)
+				features |= CPU_FEATURE_SSE3;
 
 			if (cpuid (&c, 0x80000000) > 0x80000000) {
 				cpuid (&c, 0x80000001);
@@ -226,7 +231,7 @@ cpu_detection_mmx		(void)
 			if (cpuid (&c, 0x80000000) > 0x80000000) {
 				cpuid (&c, 0x80000001);
 
-				if (c.r.edx & INTEL_TSC)
+				if (c.r.edx & INTEL_EDX_TSC)
 					features |= CPU_FEATURE_TSC;
 				if (c.r.edx & CYRIX_MMX)
 					features |= CPU_FEATURE_MMX;
@@ -237,21 +242,21 @@ cpu_detection_mmx		(void)
 			} else {
 				cpuid (&c, 1);
 
-				if (c.r.edx & INTEL_TSC)
+				if (c.r.edx & INTEL_EDX_TSC)
 					features |= CPU_FEATURE_TSC;
-				if (c.r.edx & INTEL_MMX)
+				if (c.r.edx & INTEL_EDX_MMX)
 					features |= CPU_FEATURE_MMX;
 			}
 		} else if (0 == strncmp (c.s + 4, "CentaurHauls", 12)) {
 			cpuid (&c, 1);
 
-			if (c.r.edx & INTEL_TSC)
+			if (c.r.edx & INTEL_EDX_TSC)
 				features |= CPU_FEATURE_TSC;
-			if (c.r.edx & INTEL_CMOV)
+			if (c.r.edx & INTEL_EDX_CMOV)
 				features |= CPU_FEATURE_CMOV;
-			if (c.r.edx & INTEL_MMX)
+			if (c.r.edx & INTEL_EDX_MMX)
 				features |= CPU_FEATURE_MMX;
-			if (c.r.edx & INTEL_SSE)
+			if (c.r.edx & INTEL_EDX_SSE)
 				features |= CPU_FEATURE_SSE;
 		}
 	}

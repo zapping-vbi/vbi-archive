@@ -6,8 +6,8 @@ File overview
 
 cpudt/cpudt.c
 	CPU feature detection.  Use like "if cpudt mmx; then ..."
-	Possible features are mmx, 3dnow, sse, sse2, altivec and
-	others.  Used by emulator.sh.
+	Possible features are mmx, 3dnow, sse, sse2, sse3, altivec
+	and others.  Used by emulator.sh.
 
 dicmp/dicmp.c
 	Compares YUYV images, kind of a specialized version of cmp.  Type
@@ -25,7 +25,7 @@ ditest-all.sh
 	cross-compile or the CPU lacks the required feature.  Used by
 	other ditest scripts.
 
-ditest-scalar|mmx|3dnow|sse|sse2|altivec.sh
+ditest-scalar|mmx|3dnow|sse|sse2|sse3|altivec.sh
 	make check runs these scripts to check if each implementation
 	of each deinterlace method we compiled produces the output
 	recorded in md5sums-*.  Supposed to reveal compiler bugs.
@@ -57,5 +57,5 @@ gen-md5sums.sh
 	compute md5 checksums.  Supposed to be run after deinterlace
 	sources changed.
 
-md5sums-scalar|mmx|3dnow|sse|sse2|altivec
+md5sums-scalar|mmx|3dnow|sse|sse2|sse3|altivec
 	Checksums for make check.

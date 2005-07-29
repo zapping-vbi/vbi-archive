@@ -22,7 +22,8 @@ find_emulator () {
     else
       case "$feature" in
         altivec) pre=nosuchthing ;;
-              *) pre=/usr/local/lib/libmmxemu.so ;;
+	sse3) pre=nosuchthing ;;
+        *) pre=/usr/local/lib/libmmxemu.so ;;
       esac
 
       if test -e $pre; then

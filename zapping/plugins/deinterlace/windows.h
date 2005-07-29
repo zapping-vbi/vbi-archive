@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: windows.h,v 1.7 2005-06-28 00:49:29 mschimek Exp $ */
+/* $Id: windows.h,v 1.8 2005-07-29 17:39:29 mschimek Exp $ */
 
 #ifndef WINDOWS_H
 #define WINDOWS_H
@@ -107,8 +107,8 @@ copy_line_pair			(uint8_t *		dst,
 }
 
 /* Do an aligned load from s, and two unaligned loads from
-    s + offs - dist and s + offs + dist.  Offs and dist are given
-    in bytes, offs must be a multiple of sizeof (vu8). */
+   s + offs - dist and s + offs + dist.  Offs and dist are given
+   in bytes, offs must be a multiple of sizeof (vu8). */
 static always_inline void
 uloadxt				(vu8 *			left,
 				 vu8 *			center,
@@ -241,9 +241,46 @@ copy_line_pair			(uint8_t *		dst,
 	}
 }
 
-#if SIMD == CPU_FEATURE_SSE2
+#if SIMD == CPU_FEATURE_SSE3
 
-#if 1
+static always_inline void
+uloadxt				(vu8 *			left,
+				 vu8 *			center,
+				 vu8 *			right,
+				 const uint8_t *	src,
+				 unsigned int		offs,
+				 unsigned int		dist)
+{
+	src += offs;
+
+	/* For details on lddqu vs. movdqu see
+	   http://www.intel.com/technology/itj/2004/
+	   volume08issue01/art01_microarchitecture/p06_sse.htm. */
+
+	*left = _mm_lddqu_si128 ((const __m128i *)(src - (long) dist));
+	*center = vload (src, 0); /* movdqa */
+	*right = _mm_lddqu_si128 ((const __m128i *)(src + (long) dist));
+}
+
+static always_inline void
+uload24t			(vu8 *			m4,
+				 vu8 *			m2,
+				 vu8 *			center,
+				 vu8 *			p2,
+				 vu8 *			p4,
+				 const uint8_t *	src,
+				 unsigned int		offs)
+{
+	src += offs;
+
+	*m4 = _mm_lddqu_si128 ((const __m128i *)(src - 4));
+	*m2 = _mm_lddqu_si128 ((const __m128i *)(src - 2));
+	*center = vload (src, 0);
+	*p2 = _mm_lddqu_si128 ((const __m128i *)(src + 2));
+	*p4 = _mm_lddqu_si128 ((const __m128i *)(src + 4));
+}
+
+#elif SIMD == CPU_FEATURE_SSE2
 
 /* _mm_sxli_si128 is misdefined under gcc -O0.  Arg 2 must be an immediate,
    not a variable which evaluates to one, not even a const variable. */
@@ -279,12 +316,8 @@ copy_line_pair			(uint8_t *		dst,
 		break;							\
 									\
 	default:							\
-		*left = vor (_mm_slli_si128 (*center, _dist),		\
-			     _mm_srli_si128 (vload (src, -16),		\
-					     16 - (_dist)));		\
-		*right = vor (_mm_srli_si128 (*center, _dist),		\
-			      _mm_slli_si128 (vload (src, 16),		\
-					      16 - (_dist)));		\
+		*left = vloadu (src, - (long)(_dist)); /* movdqu */	\
+		*right = vloadu (src, + (long)(_dist));			\
 		break;							\
 	}								\
 })
@@ -310,6 +343,7 @@ copy_line_pair			(uint8_t *		dst,
 	   with calculations, x86 has not enough registers to save	\
 	   the center value for later and gcc can't easily avoid	\
 	   register spilling.  XXX May not apply to x86-64. */		\
+									\
 	t1 = _mm_slli_si128 (vload (src, 0), 2);			\
 	t1 = _mm_insert_epi16 (t1, w[-1], 0);				\
 	*m2 = t1;							\
@@ -322,43 +356,6 @@ copy_line_pair			(uint8_t *		dst,
 	t1 = _mm_srli_si128 (t1, 2);					\
 	*p4 = _mm_insert_epi16 (t1, w[9], 7);				\
 })
-
-#else /* XXX is this faster? */
-
-static always_inline void
-uloadxt				(vu8 *			left,
-				 vu8 *			center,
-				 vu8 *			right,
-				 const uint8_t *	src,
-				 unsigned int		offs,
-				 unsigned int		dist)
-{
-	src += offs;
-
-	*left   = vloadu (src, - (long) dist); /* movdqu */
-	*center = vload  (src,   (long) 0);    /* movdqa */
-	*right  = vloadu (src, + (long) dist);
-}
-
-static always_inline void
-uload24t			(vu8 *			m4,
-				 vu8 *			m2,
-				 vu8 *			center,
-				 vu8 *			p2,
-				 vu8 *			p4,
-				 const uint8_t *	src,
-				 unsigned int		offs)
-{
-	src += offs;
-
-	*m4     = vloadu (src, -4);
-	*m2     = vloadu (src, -2);
-	*center = vload  (src,  0);
-	*p2     = vloadu (src, +2);
-	*p4     = vloadu (src, +4);
-}
-
-#endif /* 0 */
 
 #elif SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW | CPU_FEATURE_SSE)
 
@@ -376,6 +373,7 @@ uloadxt				(vu8 *			left,
 	   when the load crosses a cache line boundary, but given 32 or 64
 	   byte cache lines a shift-load probably doesn't pay.  That aside
 	   we reduce register pressure. */
+
 	*left   = vload (src, - (long) dist);
 	*center = vload (src,   (long) 0);
 	*right  = vload (src, + (long) dist);
@@ -518,54 +516,5 @@ enum {
   IDH_VIDEOWEAVE,
   IDH_WEAVE,
 };
-
-#if 0
-
-/* For _save(), _restore() below. */
-#define _saved_regs unsigned int saved_regs[6]
-
-/* NOTE inline asm shall not use global mutables. Global consts are
-   safe, but only by absolute address. %[name] would use ebx (GOT)
-   relative addressing and inline asm usually overwrites ebx. Static
-   consts must be referenced with _m() though, or they optimize away.
-   Locals with _m(), ebp or esp relative, are safe. _m(name) is a
-   named asm operand (gcc 3.1+ feature), such that inline asm can
-   refer to locals by %[name] instead of numbers. */
-#define _m(x) [x] "m" (x)
-#define _m_array(x) [x] "m" (x[0])
-
-/* Replaces  mov eax,local+3  by  mov eax,%[local3]  and  _m_nth(local,3) */
-#define _m_nth(x, nth) [x##nth] "m" (((char *) &x)[nth])
-
-/* Some "as" dislike type mixing, eg. cmp QWORD PTR [eax], 0 */
-#define _m_int(x) [Int_##x] "m" (* (int *) &x)
-
-/* NOTE Intel syntax - dest first. */
-#define _save(x) " mov %[saved_" #x "]," #x "\n"
-#define _restore(x) " mov " #x ",%[saved_" #x "]\n"
-
-/* We use Intel syntax because the code was written for MSVC, noprefix
-   because regs have no % prefix. ebx is the -fPIC GOT pointer. We cannot
-   add ebx to the clobber list, must save & restore by hand. */
-#define _asm_begin							\
-  __asm__ __volatile__ (						\
-  ".intel_syntax noprefix\n"						\
-  _save(ebx)
-#define _asm_end							\
-  _restore(ebx)								\
-  ".intel_syntax\n"							\
-  ::									\
-  [saved_eax] "m" (saved_regs[0]),					\
-  [saved_ebx] "m" (saved_regs[1]),					\
-  [saved_ecx] "m" (saved_regs[2]),					\
-  [saved_edx] "m" (saved_regs[3]),					\
-  [saved_esi] "m" (saved_regs[4]),					\
-  [saved_edi] "m" (saved_regs[5])
-
-/* Stringify _strf(FOO) -> "FOO" */
-#define _strf1(x) #x
-#define _strf(x) _strf1(x)
-
-#endif
 
 #endif /* WINDOWS_H */

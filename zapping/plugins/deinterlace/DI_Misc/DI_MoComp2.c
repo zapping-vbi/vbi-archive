@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_MoComp2.c,v 1.3 2005-06-28 19:17:10 mschimek Exp $
+// $Id: DI_MoComp2.c,v 1.4 2005-07-29 17:39:30 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2003 Tom Barry & John Adcock.  All rights reserved.
 // Copyright (c) 2005 Michael H. Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2005/06/28 19:17:10  mschimek
+// *** empty log message ***
+//
 // Revision 1.2  2005/06/28 00:48:07  mschimek
 // New file integrating all the code formerly in
 // plugins/deinterlace/DI_MoComp2. Converted the MMX inline asm to vector
@@ -94,7 +97,8 @@
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceMoComp2);
 
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
-	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
+	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_SSE3 |	\
+	    CPU_FEATURE_ALTIVEC)
 
 static void
 simple_bob			(uint8_t *		pDest,
@@ -129,7 +133,7 @@ SIMD_NAME (DeinterlaceMoComp2)	(TDeinterlaceInfo *pInfo)
     unsigned long src_padding1;
     unsigned long src_padding2;
 
-    if (SIMD == CPU_FEATURE_SSE2) {
+    if (SIMD & (CPU_FEATURE_SSE2 | CPU_FEATURE_SSE3)) {
 	if (((unsigned long) pInfo->Overlay |
 	     (unsigned long) pInfo->PictureHistory[0]->pData |
 	     (unsigned long) pInfo->PictureHistory[1]->pData |
@@ -377,7 +381,7 @@ DI_MoComp2_GetDeinterlacePluginInfo (void)
     f = SIMD_FN_SELECT (DeinterlaceMoComp2,
 			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
 			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
-			CPU_FEATURE_ALTIVEC);
+			CPU_FEATURE_SSE3 | CPU_FEATURE_ALTIVEC);
 
     if (f) {
 	m = malloc (sizeof (*m));

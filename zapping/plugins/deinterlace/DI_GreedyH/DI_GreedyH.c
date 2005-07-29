@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyH.c,v 1.3 2005-06-28 00:47:12 mschimek Exp $
+// $Id: DI_GreedyH.c,v 1.4 2005-07-29 17:39:29 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -37,6 +37,11 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2005/06/28 00:47:12  mschimek
+// Converted to vector intrinsics. Added support for 3DNow, SSE2, x86-64
+// and AltiVec. Removed ununsed DScaler code. Cleaned up. All options work
+// now.
+//
 // Revision 1.2.2.4  2005/06/17 02:54:20  mschimek
 // *** empty log message ***
 //
@@ -148,6 +153,19 @@ DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
 	    return DI_GreedyHM_ALTIVEC (pInfo);
 	} else {
 	    return DI_GreedyHF_ALTIVEC (pInfo);
+	}
+    } else
+#endif
+
+#if defined (HAVE_SSE3)
+    if (cpu_features & CPU_FEATURE_SSE3) {
+	if (GreedyUseMedianFilter |
+	    GreedyUsePulldown |
+	    GreedyUseVSharpness |
+	    GreedyUseHSharpness) {
+	    return DI_GreedyHM_SSE3 (pInfo);
+	} else {
+	    return DI_GreedyHF_SSE3 (pInfo);
 	}
     } else
 #endif
@@ -343,6 +361,10 @@ DI_GreedyH_GetDeinterlacePluginInfo (void)
 
 #if defined (HAVE_ALTIVEC)
     if (cpu_features & CPU_FEATURE_ALTIVEC)
+	f = DeinterlaceGreedyH;
+#endif
+#if defined (HAVE_SSE3)
+    if (cpu_features & CPU_FEATURE_SSE3)
 	f = DeinterlaceGreedyH;
 #endif
 #if defined (HAVE_SSE2)

@@ -1,3 +1,37 @@
+2005-07-29    <mschimek@users.sf.net>
+
+	* src/v4linterface.c (z_switch_standard): Temporarily closed but
+	  did not reopen VBI when the requested standard is already
+	  selected. Bug introduced in 0.9.6.
+
+	* configure.in (AC_OUTPUT): Added zapping.desktop.in. 
+	* zapping.desktop.in, zapping.desktop.in.in: Renamed
+	  zapping.desktop.in to zapping.desktop.in.in for automatic
+	  insertion of the application version number. Added _Comment
+	  and X-GNOME-Bugzilla metadata.
+
+2005-07-27    <mschimek@users.sf.net>
+
+	* configure.in (CHECK_SIMD): Added SSE3 check.
+	* libtv/mmx/cpu.c: Added SSE3 detection.
+	* plugins/deinterlace/test/README: Added sse3.
+	* plugins/deinterlace/test/emulator.sh: Can't emulate sse3.
+	* plugins/deinterlace/test/gen-md5sums.sh (builddir): Added sse3.
+	* plugins/deinterlace/test/ditest.c (usage): Added --cpu sse3.
+	* plugins/deinterlace/test/Makefile.am (TESTS, EXTRA_DIST):
+	  Added ditest-sse3.sh, md5sums-sse3.
+	* plugins/deinterlace/test/ditest-sse3.sh,
+	  plugins/deinterlace/test/md5sums-sse3: Added.
+	* plugins/deinterlace/DI_Misc/DI_TomsMoComp.c,
+	  plugins/deinterlace/DI_Misc/DI_MoComp2.c,
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyH.c: Added support for
+	  SSE3 optimized versions.
+	* plugins/deinterlace/DI_GreedyH/Makefile.am,
+	  plugins/deinterlace/DI_Misc/Makefile.am: Added SSE3 optimized
+	  targets.
+	* plugins/deinterlace/windows.h: Removed obsolete inline asm code.
+	  Added SSE3 optimized functions.
+
 2005-07-20    <mschimek@users.sf.net>
 
 	* src/tveng25.c (set_tuner_frequency): No STREAMOFF before the

@@ -59,6 +59,12 @@ libDI_Misc_SSE2_la_CFLAGS = $(SIMD_CFLAGS) -msse2 -DSIMD=CPU_FEATURE_SSE2
 libDI_Misc_SSE2_la_SOURCES = $(SIMD_SOURCES)
 endif
 
+if HAVE_SSE3
+SIMD_LIBS += libDI_Misc_SSE3.la
+libDI_Misc_SSE3_la_CFLAGS = $(SIMD_CFLAGS) -msse3 -DSIMD=CPU_FEATURE_SSE3
+libDI_Misc_SSE3_la_SOURCES = $(SIMD_SOURCES)
+endif
+
 # powerpc
 
 if HAVE_ALTIVEC

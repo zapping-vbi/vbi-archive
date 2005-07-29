@@ -18,6 +18,10 @@ if HAVE_SSE2
 TESTS += ditest-sse2.sh
 endif
 
+if HAVE_SSE3
+TESTS += ditest-sse3.sh
+endif
+
 if HAVE_ALTIVEC
 TESTS += ditest-altivec.sh
 endif
@@ -30,6 +34,7 @@ EXTRA_DIST = \
 	ditest-scalar.sh \
 	ditest-sse.sh \
 	ditest-sse2.sh \
+	ditest-sse3.sh \
 	ditest-x86.sh \
 	emulator.sh \
 	gen-md5sums.sh \
@@ -38,7 +43,8 @@ EXTRA_DIST = \
 	md5sums-mmx \
 	md5sums-scalar \
 	md5sums-sse \
-	md5sums-sse2
+	md5sums-sse2 \
+	md5sums-sse3
 
 INCLUDES = \
 	-I$(top_srcdir) \
@@ -77,6 +83,7 @@ ditest-mmx.sh \
 ditest-scalar.sh \
 ditest-sse.sh \
 ditest-sse2.sh \
+ditest-sse3.sh \
 gen-md5sums.sh:
 	$(MAKE) ditest-all.sh
 

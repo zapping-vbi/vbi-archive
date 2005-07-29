@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ditest.c,v 1.2 2005-06-28 01:13:14 mschimek Exp $ */
+/* $Id: ditest.c,v 1.3 2005-07-29 17:39:30 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -293,6 +293,7 @@ usage				(FILE *			fp,
 		 "		 mmx\n"
 		 "		 sse\n"
 		 "		 sse2\n"
+		 "		 sse3\n"
 		 "		 amd-mmx   AMD MMX extensions\n"
 		 "		 3dnow     3DNow!\n"
 		 "		 3dnow-ext 3DNow! extensions\n"
