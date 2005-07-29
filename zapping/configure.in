@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(zapping, 0.9.7cvs1,
+AC_INIT(zapping, 0.9.7cvs2,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
 AC_CONFIG_SRCDIR(configure.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
@@ -110,15 +110,17 @@ AC_DEFUN([CHECK_SIMD], [
     dnl   in find_reloads_toplev, at reload.c:4438
     GCC_VERSION(30200, 30300, HAVE_$1="broken")
   fi
-  if test x$HAVE_$1 = xyes -a x$1 = xSSE2; then
-    dnl GCC 3.3.5:
-    dnl DI_GreedyHF.c: In function `DI_GreedyHF_SSE2':
-    dnl DI_GreedyHF.c:172: internal compiler error:
-    dnl   in push_reload, at reload.c:1315
-    dnl GCC 3.4.1 (x86_64), GCC 4.0.0 (i686):
-    dnl DI_GreedyHM.c:1281: internal compiler error:
-    dnl   in extract_insn, at recog.c:2083
-    GCC_VERSION(30300, 40001, HAVE_$1="broken")
+  if test x$HAVE_$1 = xyes; then
+    if test x$1 = xSSE2 -o x$1 = xSSE3; then
+      dnl GCC 3.3.5:
+      dnl DI_GreedyHF.c: In function `DI_GreedyHF_SSE2':
+      dnl DI_GreedyHF.c:172: internal compiler error:
+      dnl   in push_reload, at reload.c:1315
+      dnl GCC 3.4.1 (x86_64), GCC 4.0.0 (i686):
+      dnl DI_GreedyHM.c:1281: internal compiler error:
+      dnl   in extract_insn, at recog.c:2083
+      GCC_VERSION(30300, 40001, HAVE_$1="broken")
+    fi
   fi
   if test x$HAVE_$1 = xyes; then
     SIMD_SUPPORT="${SIMD_SUPPORT}$1 "
@@ -133,7 +135,7 @@ CHECK_SIMD(MMX, [-mmmx], [mmintrin.h], [_mm_setzero_si64 ()])
 CHECK_SIMD(3DNOW, [-mmmx], [mm3dnow.h], [_m_femms ()])
 CHECK_SIMD(SSE, [-msse], [xmmintrin.h], [_mm_setzero_ps ()])
 CHECK_SIMD(SSE2, [-msse2], [emmintrin.h], [_mm_setzero_pd ()])
-dnl CHECK_SIMD(SSE3, [-msse3], [pmmintrin.h], [_mm_lddqu_si128 (0x1000)])
+CHECK_SIMD(SSE3, [-msse3], [pmmintrin.h], [_mm_lddqu_si128 (0x1000)])
 
 dnl powerpc
 CHECK_SIMD(ALTIVEC, [-maltivec -mabi=altivec], [altivec.h], [vec_dssall ()])
@@ -816,6 +818,7 @@ dnl ---------------------------------------------------------------------------
 
 AC_OUTPUT([
 Makefile
+zapping.desktop.in
 zapping.spec
 common/Makefile
 libtv/Makefile
