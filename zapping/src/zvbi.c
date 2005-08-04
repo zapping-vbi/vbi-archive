@@ -659,22 +659,26 @@ decoder_giofunc			(GIOChannel *		source _unused_,
       unsigned int n_lines;
       GList *p;
 
-      n_lines = b->used / sizeof (vbi_sliced);
+      if (b->used > 0)
+	{
+	  n_lines = b->used / sizeof (vbi_sliced);
 
-      if (flush > 0)
-	{
-	  --flush;
-	}
-      else
-	{
-	  for (p = decoder_list; p; p = p->next)
+	  if (flush > 0)
 	    {
-	      zvbi_decoder_fn *func = p->data;
-	      func ((vbi_sliced *) b->data, n_lines, b->time);
+	      --flush;
 	    }
+	  else
+	    {
+	      for (p = decoder_list; p; p = p->next)
+		{
+		  zvbi_decoder_fn *func = p->data;
+		  func ((vbi_sliced *) b->data, n_lines, b->time);
+		}
 
-	  if (vbi)
-	    vbi_decode (vbi, (vbi_sliced *) b->data, (int) n_lines, b->time);
+	      if (vbi)
+		vbi_decode (vbi, (vbi_sliced *) b->data,
+			    (int) n_lines, b->time);
+	    }
 	}
 
       zf_send_empty_buffer (&channel_consumer, b);
@@ -1539,7 +1543,7 @@ on_vbi_prefs_changed		(const gchar *		key _unused_,
 	  || CAPTURE_MODE_TELETEXT == tv_get_capture_mode (zapping->info))
 	zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 			   CAPTURE_MODE_OVERLAY,
-			   zapping->info);
+			   zapping->info, /* warnings */ TRUE);
 
       zvbi_close_device ();
 
