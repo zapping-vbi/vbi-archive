@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.8 2005-06-28 19:15:46 mschimek Exp $ */
+/* $Id: main.c,v 1.9 2005-08-04 01:40:49 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -324,7 +324,7 @@ start_thread1			(void)
   if (CAPTURE_MODE_READ != old_mode)
     if (-1 == zmisc_switch_mode (zapping->display_mode,
 				 CAPTURE_MODE_READ,
-				 zapping->info))
+				 zapping->info, /* warnings */ TRUE))
       {
 	goto failure;
       }
@@ -405,7 +405,8 @@ start_thread1			(void)
 
  failure1:
   /* Error ignored. */
-  zmisc_switch_mode (zapping->display_mode, old_mode, zapping->info);
+  zmisc_switch_mode (zapping->display_mode,
+		     old_mode, zapping->info, /* warnings */ FALSE);
 
  failure:
   return FALSE;

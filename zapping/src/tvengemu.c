@@ -197,13 +197,16 @@ add_video_inputs		(tveng_device_info *	info)
 {
 	tv_video_line *l;
 
-	l = append_video_line (&info->panel.video_inputs, TV_VIDEO_LINE_TYPE_TUNER,
+	l = append_video_line (&info->panel.video_inputs,
+			       TV_VIDEO_LINE_TYPE_TUNER,
 			       "Tuner", "Tuner", sizeof (tv_video_line));
 
 	l->_parent = info;
 
-	l = append_video_line (&info->panel.video_inputs, TV_VIDEO_LINE_TYPE_BASEBAND,
-			       "Composite", "Composite", sizeof (tv_video_line));
+	l = append_video_line (&info->panel.video_inputs,
+			       TV_VIDEO_LINE_TYPE_BASEBAND,
+			       "Composite", "Composite",
+			       sizeof (tv_video_line));
 
 	l->_parent = info;
 

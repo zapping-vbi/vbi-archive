@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cmd.c,v 1.16 2005-01-31 07:08:17 mschimek Exp $ */
+/* $Id: cmd.c,v 1.17 2005-08-04 01:40:52 mschimek Exp $ */
 
 /**
  * Provides the functionality in the Python interface of Zapping.
@@ -80,7 +80,8 @@ static PyObject* py_quit (PyObject *self _unused_,
 
   zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 		     CAPTURE_MODE_NONE,
-		     zapping->info);
+		     zapping->info,
+		     /* warnings */ TRUE);
 
   /* Tell the widget that the GUI is going to be closed */
   p = g_list_first(plugin_list);
@@ -104,7 +105,8 @@ switch_mode			(display_mode dmode,
   if (0)
     fprintf (stderr, "switch_mode: %d %d\n", dmode, cmode);
 
-  if (-1 == zmisc_switch_mode (dmode, cmode, zapping->info))
+  if (-1 == zmisc_switch_mode (dmode, cmode, zapping->info,
+			       /* warnings */ TRUE))
     {
       ShowBox ("%s",
 	       GTK_MESSAGE_ERROR,

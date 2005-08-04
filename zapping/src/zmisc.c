@@ -442,7 +442,8 @@ zmisc_restore_previous_mode(tveng_device_info * info)
   from_old_tveng_capture_mode (&dmode, &cmode,
 			       zcg_int(NULL, "previous_mode"));
 
-  return zmisc_switch_mode(dmode, cmode, info);
+  return zmisc_switch_mode(dmode, cmode, info,
+			   /* warnings */ TRUE);
 }
 
 gboolean
@@ -502,7 +503,8 @@ zmisc_stop (tveng_device_info *info)
 int
 zmisc_switch_mode(display_mode new_dmode,
 		  capture_mode new_cmode,
-		  tveng_device_info * info)
+		  tveng_device_info * info,
+		  gboolean warnings)
 {
   int return_value = 0;
   gint x, y, w, h;
@@ -630,8 +632,9 @@ zmisc_switch_mode(display_mode new_dmode,
 		 GDK_WINDOW_XID (GTK_WIDGET (zapping->video)->window),
 		 TVENG_ATTACH_XV, info);
 
-	      ShowBox("Capture mode not available:\n%s",
-		      GTK_MESSAGE_ERROR, tv_get_errstr (info));
+	      if (warnings)
+		ShowBox("Capture mode not available:\n%s",
+			GTK_MESSAGE_ERROR, tv_get_errstr (info));
 
 	      goto failure;
 	    }
@@ -649,7 +652,8 @@ zmisc_switch_mode(display_mode new_dmode,
 
     case DISPLAY_MODE_WINDOW | CAPTURE_MODE_OVERLAY:
       if (disable_overlay) {
-	ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
+	if (warnings)
+	  ShowBox("preview has been disabled", GTK_MESSAGE_WARNING);
 	goto failure;
       }
 
@@ -662,8 +666,9 @@ zmisc_switch_mode(display_mode new_dmode,
 	}
       else
 	{
-	  ShowBox (_("Cannot start video overlay.\n%s"),
-		   GTK_MESSAGE_ERROR, tv_get_errstr (info));
+	  if (warnings)
+	    ShowBox (_("Cannot start video overlay.\n%s"),
+		     GTK_MESSAGE_ERROR, tv_get_errstr (info));
 	  zmisc_stop (info);
 	  goto failure;
 	}
@@ -675,8 +680,9 @@ zmisc_switch_mode(display_mode new_dmode,
 
       if (!start_teletext ())
 	{
-	  ShowBox(_("VBI has been disabled, or it doesn't work."),
-		  GTK_MESSAGE_INFO);
+	  if (warnings)
+	    ShowBox(_("VBI has been disabled, or it doesn't work."),
+		    GTK_MESSAGE_INFO);
 	  zmisc_stop (info);
 	  goto failure;
 	}
@@ -694,7 +700,8 @@ zmisc_switch_mode(display_mode new_dmode,
     case DISPLAY_MODE_BACKGROUND | CAPTURE_MODE_OVERLAY:
     case DISPLAY_MODE_BACKGROUND | CAPTURE_MODE_TELETEXT:
       if (disable_overlay) {
-	ShowBox ("Preview has been disabled", GTK_MESSAGE_WARNING);
+	if (warnings)
+	  ShowBox ("Preview has been disabled", GTK_MESSAGE_WARNING);
 	goto failure;
       }
 
@@ -713,8 +720,9 @@ zmisc_switch_mode(display_mode new_dmode,
 	}
       else
 	{
-	  ShowBox (_("Cannot start fullscreen overlay.\n%s"),
-		   GTK_MESSAGE_ERROR, tv_get_errstr (info));
+	  if (warnings)
+	    ShowBox (_("Cannot start fullscreen overlay.\n%s"),
+		     GTK_MESSAGE_ERROR, tv_get_errstr (info));
 	  /* XXX s/overlay//. */
 	  zmisc_stop (info);
 	  goto failure;
@@ -2586,7 +2594,7 @@ z_help_display			(GtkWindow *		parent,
       /* Error ignored. */
       zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 			 tv_get_capture_mode (zapping->info),
-			 zapping->info);
+			 zapping->info, /* warnings */ FALSE);
     }
 
   if (!gnome_help_display (filename, link_id, &error))
@@ -2618,7 +2626,7 @@ z_url_show			(GtkWindow *		parent,
       /* Error ignored. */
       zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 			 tv_get_capture_mode (zapping->info),
-			 zapping->info);
+			 zapping->info, /* warnings */ TRUE);
     }
 
   if (!gnome_url_show (url, &error))

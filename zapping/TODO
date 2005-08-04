@@ -28,7 +28,6 @@ Outstanding issues for future releases
   usefull in fullscreen. Would be nice if we could combine
   that with multiple cards, channel mosaic and picture-in-
   picture. Even better with OpenGL animations.
-* Mouse wheel needs testing.
 * keyboard: there are too many conflicts between the Zapping
   and Xawtv mapping, better add an option to prefs.
 * Suppress mute function of keypad enter when entering

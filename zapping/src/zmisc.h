@@ -364,7 +364,8 @@ gboolean zmisc_stop (tveng_device_info *info);
 int
 zmisc_switch_mode(display_mode new_dmode,
 		  capture_mode new_cmode,
-		  tveng_device_info * info);
+		  tveng_device_info * info,
+		  gboolean warnings);
 
 /**
  * Like tveng_restart_everything, but updates overlay clips as necessary.

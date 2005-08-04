@@ -1,3 +1,16 @@
+2005-08-02    <mschimek@users.sf.net>
+
+	* src/zvbi.c (decoder_giofunc): Didn't handle errors passed through
+	  the vbi fifo.
+	* plugins/mpeg/mpeg.c, plugins/screenshot/screenshot.c
+	  (screenshot_grab), plugins/deinterlace/main.c (start_thread1),
+	  src/zmisc.c (z_url_show, z_help_display, zmisc_switch_mode,
+	  zmisc_restore_previous_mode), src/zmisc.h, src/zvbi.c
+	  (on_vbi_prefs_changed), src/main.c (restore_last_capture_mode), 
+	  src/cmd.c (py_quit, switch_mode), src/channel_editor.c
+	  (on_channel_search_clicked): Avoid duplicate or unnecessary
+	  error dialogs on display/capture mode change.
+
 2005-07-29    <mschimek@users.sf.net>
 
 	* src/v4linterface.c (z_switch_standard): Temporarily closed but

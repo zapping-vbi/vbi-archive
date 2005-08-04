@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-07-29 01:31+0200\n"
+"POT-Creation-Date: 2005-07-30 04:28+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -649,56 +649,56 @@ msgstr ""
 msgid "Disabled"
 msgstr ""
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:234
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:237
 msgid "Max Comb"
 msgstr ""
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:240
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:243
 msgid "Motion Threshold"
 msgstr ""
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:246
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:249
 msgid "Motion Sense"
 msgstr ""
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:252
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:255
 msgid "Good PullDown Lvl"
 msgstr ""
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:258
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:261
 msgid "Bad PullDown Lvl"
 msgstr ""
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:264
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:312
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:267
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:315
 msgid "H. Sharpness"
 msgstr ""
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:270
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:306
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:273
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:309
 msgid "V. Sharpness"
 msgstr ""
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:276
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:300
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:279
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:303
 msgid "Median Filter"
 msgstr ""
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:282
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:285
 msgid "High Comb Skip"
 msgstr ""
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:288
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:291
 msgid "Auto Pull-Down"
 msgstr ""
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:294
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:297
 msgid "In-Between Frames"
 msgstr ""
 
 #. size of this struct
 #. curr version compiled
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:330
+#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:333
 msgid "Video (Greedy, High Motion)"
 msgstr ""
 
@@ -798,19 +798,19 @@ msgstr ""
 msgid "Simple Weave"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_MoComp2.c:348
+#: plugins/deinterlace/DI_Misc/DI_MoComp2.c:351
 msgid "Video (MoComp2)"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:952
+#: plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:955
 msgid "Search Effort"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:958
+#: plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:961
 msgid "Use Strange Bob"
 msgstr ""
 
-#: plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:969
+#: plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:972
 msgid "Video (TomsMoComp)"
 msgstr ""
 

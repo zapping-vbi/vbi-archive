@@ -1528,7 +1528,8 @@ screenshot_grab (gint dialog)
 
       if (CAPTURE_MODE_READ != tv_get_capture_mode (zapping_info))
 	zmisc_switch_mode (DISPLAY_MODE_WINDOW,
-			   CAPTURE_MODE_READ, zapping_info);
+			   CAPTURE_MODE_READ, zapping_info,
+			   /* warnings */ TRUE);
 
       if (tv_get_capture_mode (zapping_info) != CAPTURE_MODE_READ)
 	{

@@ -225,7 +225,8 @@ restore_last_capture_mode		(void)
     {
       if (-1 == zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 				   CAPTURE_MODE_READ,
-				   zapping->info))
+				   zapping->info,
+				   /* warnings */ FALSE))
 	ShowBox (_("Capture mode couldn't be started:\n%s"),
 		 GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
     }
@@ -238,7 +239,8 @@ restore_last_capture_mode		(void)
 				   (enum old_tveng_capture_mode)
 				   zcg_int (NULL, "capture_mode"));
 
-      if (-1 == zmisc_switch_mode (dmode, cmode, zapping->info))
+      if (-1 == zmisc_switch_mode (dmode, cmode, zapping->info,
+				   /* warnings */ FALSE))
 	{
 	  if (CAPTURE_MODE_READ != cmode)
 	    {
@@ -247,7 +249,8 @@ restore_last_capture_mode		(void)
 			GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
 
 	      if (-1 == zmisc_switch_mode (DISPLAY_MODE_WINDOW,
-					   CAPTURE_MODE_READ, zapping->info))
+					   CAPTURE_MODE_READ, zapping->info,
+					   /* warnings */ FALSE))
 		{
 		  if (0)
 		    ShowBox(_("Capture mode couldn't be started either:\n%s"),
@@ -556,7 +559,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.203 2005-06-28 19:14:15 mschimek Exp $",
+	 "$Id: main.c,v 1.204 2005-08-04 01:40:52 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();

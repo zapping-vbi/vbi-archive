@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.47 2005-01-19 04:16:19 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.48 2005-08-04 01:40:51 mschimek Exp $ */
 
 /*
   TODO:
@@ -699,7 +699,8 @@ on_channel_search_clicked	(GtkButton *		search _unused_,
      fail, so we can disable the option. */
   if (-1 == zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 			       CAPTURE_MODE_READ,
-			       zapping->info))
+			       zapping->info,
+			       /* warnings */ TRUE))
     return;
 
   cs = g_malloc (sizeof (station_search));

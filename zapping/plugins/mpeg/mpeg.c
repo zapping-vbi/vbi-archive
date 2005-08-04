@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.59 2005-04-21 04:48:51 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.60 2005-08-04 01:40:49 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -494,7 +494,8 @@ do_start			(const gchar *		file_name)
 	      ShowBox ("Cannot switch to requested capture format",
 		       GTK_MESSAGE_ERROR);
 
-	      zmisc_switch_mode (old_dmode, old_cmode, zapping_info);
+	      zmisc_switch_mode (old_dmode, old_cmode, zapping_info,
+				 /* warnings */ FALSE);
 
 	      return FALSE;
 	    }
@@ -511,7 +512,8 @@ do_start			(const gchar *		file_name)
 	      ShowBox ("Cannot switch capture format",
 		       GTK_MESSAGE_ERROR);
 
-	      zmisc_switch_mode (old_dmode, old_cmode, zapping_info);
+	      zmisc_switch_mode (old_dmode, old_cmode, zapping_info,
+				 /* warnings */ FALSE);
 
 	      return FALSE;
 	    }
@@ -575,7 +577,8 @@ do_start			(const gchar *		file_name)
 		      capture_format_id = -1;
 		    }
 
-		  zmisc_switch_mode (old_dmode, old_cmode, zapping_info);
+		  zmisc_switch_mode (old_dmode, old_cmode, zapping_info,
+				     /* warnings */ FALSE);
 
 		  return FALSE;
 		}
@@ -604,7 +607,8 @@ do_start			(const gchar *		file_name)
 	      ShowBox ("Oops, catched a bug.",
 		       GTK_MESSAGE_ERROR);
 
-	      zmisc_switch_mode (old_dmode, old_cmode, zapping_info);
+	      zmisc_switch_mode (old_dmode, old_cmode, zapping_info,
+				 /* warnings */ FALSE);
 
 	      return FALSE; 
 	    }
@@ -654,7 +658,8 @@ do_start			(const gchar *		file_name)
 
 
 
-      if (-1 == zmisc_switch_mode (old_dmode, CAPTURE_MODE_READ, zapping_info))
+      if (-1 == zmisc_switch_mode (old_dmode, CAPTURE_MODE_READ, zapping_info,
+				   /* warnings */ FALSE))
 	{
 	  rte_context_delete (context);
 	  context_enc = NULL;
