@@ -866,7 +866,13 @@ void startup_yuv2rgb (void)
     {TV_PIXFMT_YUV420, TV_PIXFMT_BGR24_LE, c_proxy, (void*)YUV420_BGR24},
     {TV_PIXFMT_YVU420, TV_PIXFMT_BGR24_LE, c_proxy, (void*)YVU420_BGR24},
     {TV_PIXFMT_YUV420, TV_PIXFMT_BGRA32_LE, c_proxy, (void*)YUV420_RGB32},
-    {TV_PIXFMT_YVU420, TV_PIXFMT_BGRA32_LE, c_proxy, (void*)YVU420_RGB32}
+    {TV_PIXFMT_YVU420, TV_PIXFMT_BGRA32_LE, c_proxy, (void*)YVU420_RGB32},
+#warning Testing - these are NOT NV12 converters
+    {TV_PIXFMT_NV12, TV_PIXFMT_BGRA16_LE, c_proxy, (void*)YUV420_RGB555},
+    {TV_PIXFMT_NV12, TV_PIXFMT_BGR16_LE, c_proxy, (void*)YUV420_RGB565},
+    {TV_PIXFMT_NV12, TV_PIXFMT_RGB24_LE, c_proxy, (void*)YUV420_RGB24},
+    {TV_PIXFMT_NV12, TV_PIXFMT_BGR24_LE, c_proxy, (void*)YUV420_BGR24},
+    {TV_PIXFMT_NV12, TV_PIXFMT_BGRA32_LE, c_proxy, (void*)YUV420_RGB32},
   };
 
   /* Try first the MMX versions of the functions */
