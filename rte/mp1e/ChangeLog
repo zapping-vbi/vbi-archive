@@ -1,3 +1,7 @@
+2005-08-15    <mschimek@users.sf.net>
+
+	* b_mp1e.c: Added cut_output variable for an unused mp1e function.
+
 2005-06-30    <mschimek@users.sf.net>
 
 	* common/structpr.pl: Didn't log VIDIOC_G|S_STD.
