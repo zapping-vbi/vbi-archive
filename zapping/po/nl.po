@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2005-07-14 08:06+0200\n"
-"PO-Revision-Date: 2005-02-07 03:42+0100\n"
+"PO-Revision-Date: 2005-08-16 16:58+0200\n"
 "Last-Translator: Guus Bonnema <abonnema@xs4all.nl>\n"
 "Language-Team: Dutch\n"
 "MIME-Version: 1.0\n"
@@ -1549,9 +1549,8 @@ msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr "<span foreground=\"yellow\">geluid aan</span>"
 
 #: src/capture.c:895
-#, fuzzy
 msgid "Cannot stop capturing while recording."
-msgstr "Kan opnemen niet beginnen: %s"
+msgstr "Kan niet stoppen met capture tijdens de opname."
 
 #: src/capture.c:1074
 #, c-format
@@ -1883,7 +1882,7 @@ msgstr "CMD"
 
 #: src/main.c:504
 msgid "Override CPU detection"
-msgstr ""
+msgstr "Overschrijf CPU detectie"
 
 #: src/main.c:589
 msgid "Sorry, but there is no module support in GLib"
@@ -2681,112 +2680,101 @@ msgid "Zapping TV Viewer"
 msgstr "Zapping TV Tuner"
 
 #: zapping.schemas.in.h:1
-#, fuzzy
 msgid "Default Teletext character set."
-msgstr "Standaardactie:"
+msgstr "standaard teletekst karakterset."
 
 #: zapping.schemas.in.h:2
 msgid ""
 "Default Teletext home page, usually 100. Valid values range from 100 to 899."
-msgstr ""
+msgstr "Teletext home page, normaliter 100. Pagina's mogelijk van 100 tot 899."
 
 #: zapping.schemas.in.h:3
-#, fuzzy
 msgid "Default Teletext home page."
-msgstr " Teletekst pagina %x"
+msgstr "Standaard teletekst home page"
 
 #: zapping.schemas.in.h:4
-#, fuzzy
 msgid "Deinterlace option."
-msgstr "Deinterlace plugin"
+msgstr "Deinterlace optie"
 
 #: zapping.schemas.in.h:5
 msgid "Display delay of second field (0.0 to 1.0 of one frame period)."
-msgstr ""
+msgstr "Toon de vertraging van het 2e veld (0.0 - 1.0 van één frame periode)."
 
 #: zapping.schemas.in.h:6
 msgid ""
 "Enable navigation elements in the bottom row of the Teletext page. Valid "
 "values: disabled, flof_top1 (FLOF or TOP style 1), flof_top2 (TOP style 2)."
-msgstr ""
+msgstr "Maak navigatie elementen in de laatste rij van de TT pagina. Toegestane waarden: disabled, flof_top1 (FLOF of TOP style 1), flof_top2 (TOP style 2)."
 
 #: zapping.schemas.in.h:7
 msgid "Enable navigation elements."
-msgstr ""
+msgstr "Inschakelen navigatie elementen."
 
 #: zapping.schemas.in.h:8
 msgid "Enables slow MMX and 3DNow! optimized functions for tests."
-msgstr ""
+msgstr "Enable vertraagt MMX en 3DNow! geoptimaliseerde functies voor tests."
 
 #: zapping.schemas.in.h:9
 msgid "Greedy (high motion) deinterlace test mode."
-msgstr ""
+msgstr "Gretige deinterlace (veel beweging) test mode"
 
 #: zapping.schemas.in.h:10
 msgid "Horizontal image resolution in deinterlace mode."
-msgstr ""
+msgstr "Horizontale beeldresulutie in deinterlace mode."
 
 #: zapping.schemas.in.h:11
-#, fuzzy
 msgid "Keep the main window above other windows."
-msgstr "Venstergrootte aanpassen, toon/verberg gereedschappen"
+msgstr "Houdt het hoofdvenster bovenaan."
 
 #: zapping.schemas.in.h:12
 msgid "Maximum number of networks in the Teletext page cache."
-msgstr ""
+msgstr "Maximaal aantal netwerken in de teletext pagina cache."
 
 #: zapping.schemas.in.h:13
 msgid "Maximum size of the Teletext page cache in bytes."
-msgstr ""
+msgstr "Maximale grootte van de teletext pagina cache in bytes."
 
 #: zapping.schemas.in.h:14
-#, fuzzy
 msgid ""
 "Quality/speed trade-off when scaling and anti-aliasing Teletext pages. Valid "
 "values: nearest, tiles, bilinear, hyper."
-msgstr ""
-"Kwaliteit/snelheid afweging bij het schalen en gebruik van anti-aliasing op "
-"de pagina."
+msgstr "Kwaliteit/snelheid afweging bij het schalen en gebruik van anti-aliasing op de pagina. Valide waarden: nearest, tiles, bilinear, hyper."
 
 #: zapping.schemas.in.h:15
 msgid "Reverse the temporal field order."
-msgstr ""
+msgstr "Omgekeerde tijdvolgorde van de velden."
 
 #: zapping.schemas.in.h:16
-#, fuzzy
 msgid "Roll Teletext page numbers."
-msgstr " Teletekst pagina %x"
+msgstr "Scrollen teletekst pagina nrs"
 
 #: zapping.schemas.in.h:17
 msgid ""
 "Roll the Teletext page number in the page header until the requested page "
 "has arrived."
-msgstr ""
+msgstr "Scroll de tt pagina nummer in de pagina header tot de gevraagde pagina verschijnt."
 
 #: zapping.schemas.in.h:18
 msgid "Search all channels in the Teletext page memory."
-msgstr ""
+msgstr "Onderzoek alle kanalen in het tt pagina geheugen."
 
 #: zapping.schemas.in.h:19
 msgid "Show a menu bar in the main window."
-msgstr ""
+msgstr "Toon menu in het hoofdvenster."
 
 #: zapping.schemas.in.h:20
-#, fuzzy
 msgid "Show a status bar in Teletext windows."
-msgstr "Kloon huidige teletekstvenster"
+msgstr "Toon statusbalk in teletext vensters."
 
 #: zapping.schemas.in.h:21
-#, fuzzy
 msgid "Show a toolbar in Teletext windows."
-msgstr "Kloon huidige teletekstvenster"
+msgstr "Toon een toolbar in teletext venster."
 
 #: zapping.schemas.in.h:22
 msgid "Show a toolbar in the main window."
-msgstr ""
+msgstr "Toon een toolbar in het hoofdvenster."
 
 #: zapping.schemas.in.h:23
-#, fuzzy
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Teletext viewer may not display the correct font or national characters. You "
@@ -2794,66 +2782,60 @@ msgid ""
 "values: western_and_central_europe, eastern_europe, "
 "western_europe_and_turkey, central_and_southeast_europe, cyrillic, "
 "greek_and_turkish, arabic, hebrew_and_arabic."
-msgstr ""
-"Sommige zenders geven geen volledige taalcode mee, waardoor het mogelijk is "
-"dat teletekst niet de juiste lettertypen of vreemde tekens toont. Voer hier "
-"de geografische regio in om te gebruiken als extra hint."
+msgstr "Sommige zenders geven geen volledige taalcode mee, waardoor het mogelijk is dat teletekst niet de juiste lettertypen of vreemde tekens toont. Voer hier de geografische regio in om te gebruiken als extra hint. Toegestane waarden zijn: western_and_central_europe, eastern_europe, western_europe_and_turkey, central_and_southeast_europe, cyrillic, greek_and_turkish, arabic, hebrew_and_arabic."
 
 #: zapping.schemas.in.h:24
 msgid "Switch to full capture size for screenshot."
-msgstr ""
+msgstr "Schakel om naar volledige capture formaat voor schermafdruk."
 
 #: zapping.schemas.in.h:25
-#, fuzzy
 msgid "Teletext implementation level."
-msgstr "_Teletekstprotocol:"
+msgstr "Teletekst implementatie level."
 
 #: zapping.schemas.in.h:26
 msgid "Teletext implementation level. Valid values: 1, 1.5, 2.5, 3.5."
-msgstr ""
+msgstr "Teletekst implementatie level. Toegestane waarden: 1, 1.5, 2.5, 3.5."
 
 #: zapping.schemas.in.h:27
-#, fuzzy
 msgid "Teletext page scaling quality."
-msgstr "Vooruit"
+msgstr "Teletekst pagina schaalverander kwaliteit."
 
 #: zapping.schemas.in.h:28
 msgid "Text brightness, valid values range from 0 to 255."
-msgstr ""
+msgstr "Tekst helderheid. waarden van 0 tot 255."
 
 #: zapping.schemas.in.h:29
 msgid "Text contrast, valid values range from -128 to 127."
-msgstr ""
+msgstr "Tekst contrast, waarden van -128 tot 127."
 
 #: zapping.schemas.in.h:30
-#, fuzzy
 msgid "The Teletext search is case insensitive."
-msgstr "Hoofdletterongevoelig"
+msgstr "De teletekst zoekfunctie is hoofdletterongevoelig."
 
 #: zapping.schemas.in.h:31
 msgid "The Teletext search text is a regular expression."
-msgstr ""
+msgstr "De teletekst zoektekst is een reguliere expressie."
 
 #: zapping.schemas.in.h:32
 msgid ""
 "This is the time in milliseconds Zapping will wait between pointer movements "
 "and blanking the pointer when over the video. A value of zero disables this "
 "feature."
-msgstr ""
+msgstr "Dit is de tijd in milliseconden, die Zapping wacht tussen muis bewegingen and uitvegen van de muispointer over het videogebied. Een waarde van nul schakelt de functie uit."
 
 #: zapping.schemas.in.h:33
 msgid "Time to wait until blanking the pointer."
-msgstr ""
+msgstr "Tijdsduur om te wachten tot het wegvegen van de muispointer."
 
 #: zapping.schemas.in.h:34
 msgid "Update the clock in the Teletext page header."
-msgstr ""
+msgstr "Bijwerken van de klok in de teletekst header."
 
 #: zapping.schemas.in.h:35
 msgid ""
 "When your CPU is too slow to use the desired deinterlace mode you can reduce "
 "the horizontal resolution. Valid values: low, medium, high."
-msgstr ""
+msgstr "Als uw CPU te traag is om de gewenste de-interlace mode te gebruiken, dan kunt u de horizontale resolutie verminderen. Waarden: low, medium, high."
 
 #~ msgid "Filter"
 #~ msgstr "Filter"
