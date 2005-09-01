@@ -37,36 +37,23 @@
 #include "zmodel.h"
 #include "frequencies.h"
 
-typedef void
-zvbi_decoder_fn			(const vbi_sliced *	sliced,
-				 unsigned int		n_lines,
-				 double			timestamp);
-typedef void
-zvbi_chsw_fn			(const tveng_tuned_channel *channel,
-				 guint			scanning);
-
-extern void
-zvbi_add_decoder		(zvbi_decoder_fn *	decoder,
-				 zvbi_chsw_fn *		chsw);
-extern void
-zvbi_remove_decoder		(zvbi_decoder_fn *	decoder,
-				 zvbi_chsw_fn *		chsw);
+#include "libvbi/vbi_decoder.h"
+#include "libvbi/export.h"
 
 extern void
 startup_zvbi			(void);
 extern void
 shutdown_zvbi			(void);
 
-/* Open the configured VBI device, FALSE on error */
-gboolean
-zvbi_open_device		(const char *		dev_name);
-/* Closes the VBI device */
-void
-zvbi_close_device		(void);
+extern void
+zvbi_stop			(gboolean		destroy_decoder);
+extern gboolean
+zvbi_start			(void);
+
 /* Returns the global vbi object, or NULL if vbi isn't enabled or
    doesn't work. You can safely use this function to test if VBI works
    (it will return NULL if it doesn't). */
-vbi_decoder *
+vbi3_decoder *
 zvbi_get_object			(void);
 /* Returns the model for the vbi object. You can hook into this to know
    when the vbi object is created or destroyed. */
@@ -105,6 +92,53 @@ zvbi_current_rating		(void);
 vbi_wst_level
 zvbi_teletext_level		(void);
 
+extern gchar *
+zvbi_language_name		(const vbi3_character_set *cs);
+extern gboolean
+zvbi_cur_channel_get_ttx_encoding
+				(vbi3_charset_code *	charset_code,
+				 vbi3_pgno		pgno);
+extern gboolean
+zvbi_cur_channel_set_ttx_encoding
+				(vbi3_pgno		pgno,
+				 vbi3_charset_code	charset_code);
+
+typedef struct _zvbi_encoding_menu zvbi_encoding_menu;
+
+struct _zvbi_encoding_menu {
+  zvbi_encoding_menu *		next;
+  GtkCheckMenuItem *		item;
+  gchar *			name;
+  vbi3_charset_code		code;
+  gpointer			user_data;
+};
+
+typedef void
+zvbi_encoding_menu_toggled_cb	(GtkCheckMenuItem *	menu_item,
+				 zvbi_encoding_menu *	em);
+extern void
+zvbi_encoding_menu_set_active	(GtkMenu *		menu,
+				 vbi3_charset_code	code);
+extern GtkMenu *
+zvbi_create_encoding_menu	(zvbi_encoding_menu_toggled_cb *callback,
+				 gpointer		user_data);
+
+typedef gchar *
+zvbi_xot_zcname_fn		(const vbi3_export *	e,
+				 const vbi3_option_info *oi,
+				 gpointer		user_data);
+extern GtkWidget *
+zvbi_export_option_table_new	(vbi3_export *		context,
+				 zvbi_xot_zcname_fn *	zconf_name,
+				 gpointer		user_data);
+extern gboolean
+zvbi_export_load_zconf		(vbi3_export *		context,
+				 zvbi_xot_zcname_fn *	zconf_name,
+				 gpointer		user_data);
+
+vbi3_pgno
+zvbi_find_subtitle_page		(void);
+
 #else /* !HAVE_LIBZVBI */
 
 /* Startups the VBI engine (doesn't open devices) */
@@ -117,9 +151,5 @@ shutdown_zvbi			(void);
 typedef int vbi_pgno;
 
 #endif /* !HAVE_LIBZVBI */
-
-/* Modifies the gui according to VBI availability. */
-void
-vbi_gui_sensitive		(gboolean		on);
 
 #endif /* zvbi.h */
