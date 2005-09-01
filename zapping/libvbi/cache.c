@@ -28,15 +28,15 @@
 #include "cache-priv.h"
 
 #ifndef CACHE_DEBUG
-#define CACHE_DEBUG 0
+#  define CACHE_DEBUG 0
 #endif
 
 #ifndef CACHE_STATUS
-#define CACHE_STATUS 0
+#  define CACHE_STATUS 0
 #endif
 
 #ifndef CACHE_CONSISTENCY
-#define CACHE_CONSISTENCY 0
+#  define CACHE_CONSISTENCY 0
 #endif
 
 /** @internal */
@@ -72,7 +72,7 @@ struct _vbi3_cache {
 	/** Cached networks, most recently used at head of list. */
 	list			networks;
 
-	/** Number of networks in cache except zombies. */
+	/** Number of networks in cache except referenced and zombies. */
 	unsigned int		n_networks;
 	unsigned int		network_limit;
 
@@ -254,8 +254,8 @@ delete_network			(vbi3_cache *		ca,
 			vbi3_program_id_destroy (&cn->program_id[ch]);
 	}
 
-	cache_network_destroy_caption (cn);
 #endif
+	cache_network_destroy_caption (cn);
 	cache_network_destroy_teletext (cn);
 
 	CLEAR (*cn);
@@ -288,7 +288,8 @@ delete_surplus_networks		(vbi3_cache *		ca)
 
 	/* Remove last recently used networks first. */
 	FOR_ALL_NODES_REVERSE (cn, cn1, &ca->networks, node) {
-		if (cn->ref_count > 0)
+		if (cn->ref_count > 0
+		    || cn->n_referenced_pages > 0)
 			continue;
 
 		if (cn->zombie
@@ -399,11 +400,65 @@ network_by_id			(vbi3_cache *		ca,
 }
 
 static cache_network *
+recycle_network			(vbi3_cache *		ca)
+{
+	cache_network *cn, *cn1;
+
+	/* We absorb the last recently used cache_network
+	   without references. */
+
+	FOR_ALL_NODES_REVERSE (cn, cn1, &ca->networks, node)
+		if (0 == cn->ref_count
+		    && 0 == cn->n_referenced_pages)
+			break;
+
+	if (NULL == cn->node.pred)
+		return NULL;
+
+	if (cn->n_pages > 0)
+		delete_all_pages (ca, cn);
+
+	unlink_node (&cn->node);
+
+	cn->ref_count = 0;
+
+	cn->zombie = FALSE;
+
+	vbi3_network_destroy (&cn->network);
+
+	cn->confirm_cni_vps = 0;
+	cn->confirm_cni_8301 = 0;
+	cn->confirm_cni_8302 = 0;
+
+#ifndef ZAPPING8
+	vbi3_program_info_destroy (&cn->program_info);
+	vbi3_aspect_ratio_destroy (&cn->aspect_ratio);
+
+	{
+		vbi3_pid_channel ch;
+
+		for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
+			vbi3_program_id_destroy (&cn->program_id[ch]);
+	}
+#endif
+
+	cn->n_pages = 0;
+	cn->max_pages = 0;
+
+	cn->n_referenced_pages = 0;
+
+	cache_network_destroy_caption (cn);
+	cache_network_destroy_teletext (cn);
+
+	return cn;
+}
+
+static cache_network *
 add_network			(vbi3_cache *		ca,
 				 const vbi3_network *	nk,
 				 vbi3_videostd_set	videostd_set)
 {
-	cache_network *cn, *cn1;
+	cache_network *cn;
 
 #ifdef ZAPPING8
 	videostd_set = videostd_set; /* unused, no warning */
@@ -414,62 +469,8 @@ add_network			(vbi3_cache *		ca,
 		return cn;
 	}
 
-	/* Allow +1 for channel change. */
-	if (ca->n_networks >= ca->network_limit + 1) {
-		/* We absorb the last recently used cache_network
-		   without references. */
-
-		FOR_ALL_NODES_REVERSE (cn, cn1, &ca->networks, node)
-			if (0 == cn->ref_count
-			    && 0 == cn->n_referenced_pages)
-				break;
-
-		if (!cn->node.pred) {
-			if (CACHE_DEBUG)
-				fprintf (stderr,
-					 "%s: network_limit=%u, "
-					 "all referenced\n",
-					 __FUNCTION__, ca->network_limit);
-			return NULL;
-		}
-
-		if (cn->n_pages > 0)
-			delete_all_pages (ca, cn);
-
-		unlink_node (&cn->node);
-
-		cn->ref_count = 0;
-
-		cn->zombie = FALSE;
-
-		vbi3_network_destroy (&cn->network);
-
-		cn->confirm_cni_vps = 0;
-		cn->confirm_cni_8301 = 0;
-		cn->confirm_cni_8302 = 0;
-
-#ifndef ZAPPING8
-		vbi3_program_info_destroy (&cn->program_info);
-		vbi3_aspect_ratio_destroy (&cn->aspect_ratio);
-
-		{
-			vbi3_pid_channel ch;
-
-			for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
-				vbi3_program_id_destroy (&cn->program_id[ch]);
-		}
-#endif
-
-		cn->n_pages = 0;
-		cn->max_pages = 0;
-
-		cn->n_referenced_pages = 0;
-
-#ifndef ZAPPING8
-		cache_network_destroy_caption (cn);
-#endif
-		cache_network_destroy_teletext (cn);
-	} else {
+	if (ca->n_networks < ca->network_limit
+	    || NULL == (cn = recycle_network (ca))) {
 		if (!(cn = vbi3_cache_malloc (sizeof (*cn)))) {
 			if (CACHE_DEBUG)
 				fprintf (stderr, "%s: out of memory\n",
@@ -495,9 +496,8 @@ add_network			(vbi3_cache *		ca,
 
 	for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
 		vbi3_program_id_init (&cn->program_id[ch], ch);
-
-	cache_network_init_caption (cn);
 #endif
+	cache_network_init_caption (cn);
 	cache_network_init_teletext (cn);
 
 	return cn;
@@ -520,14 +520,9 @@ vbi3_ttx_page_stat_init		(vbi3_ttx_page_stat *	ps)
 {
 	assert (NULL != ps);
 
-	ps->page_type		= VBI3_UNKNOWN_PAGE;
+	CLEAR (*ps);
 
-	ps->charset_code	= 0; /* en */
-
-	ps->subpages		= 0;
-
-	ps->subno_min		= 0;
-	ps->subno_max		= 0;
+	ps->page_type = VBI3_UNKNOWN_PAGE;
 }
 
 /**
@@ -544,7 +539,7 @@ cache_network_get_ttx_page_stat	(const cache_network *	cn,
 
 	ps1 = cache_network_const_page_stat (cn, pgno);
 
-	if (VBI3_NORMAL_PAGE == (vbi3_ttx_page_type) ps1->page_type) {
+	if (VBI3_NORMAL_PAGE == (vbi3_page_type) ps1->page_type) {
 		unsigned int flags;
 
 		flags = ps1->flags & (C5_NEWSFLASH |
@@ -558,13 +553,16 @@ cache_network_get_ttx_page_stat	(const cache_network *	cn,
 		else
 			ps->page_type = VBI3_NORMAL_PAGE;
 	} else {
-		ps->page_type = (vbi3_ttx_page_type) ps1->page_type;
+		ps->page_type = (vbi3_page_type) ps1->page_type;
 	}
 
-	if (0xFF == ps1->charset_code)
-		ps->charset_code = 0; /* unknown -> en */
-	else
-		ps->charset_code = (vbi3_charset_code) ps1->charset_code;
+	if (0xFF == ps1->charset_code) {
+		/* Unknown. */
+		ps->character_set = NULL;
+	} else {
+		ps->character_set = vbi3_character_set_from_code
+			((vbi3_charset_code) ps1->charset_code);
+	}
 
 	if (ps1->subcode <= 9)
 		ps->subpages	= ps1->subcode; /* common */
@@ -790,7 +788,7 @@ cache_page_dump			(const cache_page *	cp,
 		ps = cache_network_const_page_stat (cn, cp->pgno);
 
 		fprintf (fp, "%s/L%u/S%04x subp=%u/%u (%u-%u) ",
-			 vbi3_ttx_page_type_name (ps->page_type),
+			 vbi3_page_type_name (ps->page_type),
 			 ps->charset_code,
 			 ps->subcode,
 			 ps->n_subpages,
@@ -1378,7 +1376,7 @@ _vbi3_cache_put_page		(vbi3_cache *		ca,
 
 		ps = cache_network_const_page_stat (cn, cp->pgno);
 
-		if (VBI3_NONSTD_SUBPAGES == (vbi3_ttx_page_type) ps->page_type)
+		if (VBI3_NONSTD_SUBPAGES == (vbi3_page_type) ps->page_type)
 			subno_mask = 0;
 		else
 			subno_mask = - ((unsigned int) cp->subno <= 0x79);
