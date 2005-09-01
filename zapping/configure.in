@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(zapping, 0.9.7cvs3,
+AC_INIT(zapping, 0.10pre,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
 AC_CONFIG_SRCDIR(configure.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
@@ -32,6 +32,10 @@ test -e site_def.h || cat <<EOF >site_def.h
 #ifndef SITE_DEF_H
 #define SITE_DEF_H
 /* #define AUDIO_MIXER_LOG_FP stderr */
+/* #define CACHE_DEBUG 1 */
+/* #define CACHE_STATUS 1 */
+/* #define CACHE_CONSISTENCY 1 */
+/* #define DLIST_CONSISTENCY 1 */
 /* #define DI_MAIN_HEIGHT_DIV 1 */
 /* #define DI_GREEDYHM_V_ASSERT 1 */
 /* #define KEYBOARD_KEY_LOG 1 */
@@ -554,28 +558,30 @@ dnl VBI decoding library
 dnl ---------------------------------------------------------------------------
 
 HAVE_ZVBI="no"
+REQUIRED_ZVBI_VERSION=0.2.11
 
 AC_ARG_WITH([zvbi], 
   AS_HELP_STRING([--with-zvbi], [Use libzvbi (yes).]),
   [with_zvbi="$withval"], [with_zvbi=yes])
 
 if test "x$with_zvbi" = "xyes"; then
-  PKG_CHECK_MODULES(ZVBI, [zvbi-0.2 >= 0.2.9],
+  PKG_CHECK_MODULES(ZVBI, [zvbi-0.2 >= $REQUIRED_ZVBI_VERSION],
     [AC_DEFINE(HAVE_LIBZVBI, 1, [Define if ZVBI lib is present])
      HAVE_ZVBI="yes"
      AC_SUBST(ZVBI_CFLAGS)
      AC_SUBST(ZVBI_LIBS)],
-    [echo "*** Could not find libzvbi >= 0.2.9.  The library is required"
-     echo "*** for Teletext, caption/subtitles and OSD.  The latest version"  
-     echo "*** is available from http://zapping.sourceforge.net.  To compile"
-     echo "*** Zapping without libzvbi run ./configure --without-zvbi"
+    [echo "*** Could not find libzvbi >= $REQUIRED_ZVBI_VERSION."
+     echo "*** The library is required for Teletext, caption/subtitles"
+     echo "*** and OSD.  The latest version is available from"
+     echo "*** http://zapping.sourceforge.net.  To compile Zapping without"
+     echo "*** libzvbi run ./configure --without-zvbi"
      exit 1])
 fi
 
 AM_CONDITIONAL(HAVE_LIBZVBI, test "x$HAVE_ZVBI" = "xyes")
 
 test "x$HAVE_ZVBI" = "xyes" && \
-  PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD teletext"
+  PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD teletext subtitle"
 
 dnl ---------------------------------------------------------------------------
 dnl Check for Gnome unicode library or libc 2.1.
@@ -840,6 +846,7 @@ plugins/deinterlace/DI_Misc/Makefile
 plugins/deinterlace/test/Makefile
 plugins/mpeg/Makefile
 plugins/screenshot/Makefile
+plugins/subtitle/Makefile
 plugins/teletext/Makefile
 help/Makefile
 help/man/Makefile
