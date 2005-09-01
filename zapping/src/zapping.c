@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.c,v 1.12 2005-06-28 19:14:54 mschimek Exp $ */
+/* $Id: zapping.c,v 1.13 2005-09-01 01:33:38 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -462,9 +462,8 @@ display_mode_radio_actions [] = {
 #endif
 
 static GtkActionEntry
-vbi_actions [] = {
+teletext_actions [] = {
   { "TeletextSubmenu", NULL, N_("_Teletext"), NULL, NULL, NULL },
-  { "SubtitlesSubmenu", NULL, N_("_Subtitles"), NULL, NULL, NULL },
   { "BookmarksSubmenu", NULL, N_("_Bookmarks"), NULL, NULL, NULL },
   { "Teletext", "zapping-teletext", N_("_Teletext"), "<Control>t",
     N_("Activate Teletext mode"), G_CALLBACK (teletext_action) },
@@ -474,8 +473,13 @@ vbi_actions [] = {
     NULL, G_CALLBACK (new_teletext_action) },
 };
 
+static GtkActionEntry
+subtitle_actions [] = {
+  { "SubtitlesSubmenu", NULL, N_("_Subtitles"), NULL, NULL, NULL },
+};
+
 static GtkToggleActionEntry
-vbi_toggle_actions [] = {
+subtitle_toggle_actions [] = {
   { "Subtitles", "zapping-subtitle", N_("_Subtitles"), "<Control>u",
     N_("Switch subtitles on or off"), G_CALLBACK (subtitles_action), FALSE },
 };
@@ -576,7 +580,9 @@ zapping_create_popup		(Zapping *		z,
   gtk_ui_manager_insert_action_group (ui_manager,
 				      z->generic_action_group, APPEND);
   gtk_ui_manager_insert_action_group (ui_manager,
-				      z->vbi_action_group, APPEND);
+				      z->teletext_action_group, APPEND);
+  gtk_ui_manager_insert_action_group (ui_manager,
+				      z->subtitle_action_group, APPEND);
 
   success = gtk_ui_manager_add_ui_from_string (ui_manager,
 					       popup_menu_description,
@@ -654,7 +660,14 @@ zapping_create_popup		(Zapping *		z,
 	(ui_manager, "/Popup/PopupSubmenu/SubtitlesSubmenu");
       if (widget)
 	{
-	  if ((menu = subtitle_menu_new ()))
+	  gint pgno = 0;
+#ifdef HAVE_LIBZVBI
+	  const gchar *key = "/zapping/internal/callbacks/closed_caption";
+
+	  if (zconf_get_boolean (NULL, key))
+	    pgno = zvbi_caption_pgno;
+#endif
+	  if ((menu = zvbi_subtitle_menu_new (pgno)))
 	    gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget), menu);
 	  else
 	    gtk_widget_hide (widget);
@@ -820,7 +833,13 @@ extern void shutdown_zapping(void); /* main.c */
 static void
 instance_finalize		(GObject *		object)
 {
-  /* Zapping *z = ZAPPING (object); */
+  Zapping *z = ZAPPING (object);
+
+  if (NULL != z->subtitles)
+    {
+      gtk_widget_destroy (GTK_WIDGET (z->subtitles));
+      z->subtitles = NULL;
+    }
 
   /* preliminary */
   shutdown_zapping ();
@@ -836,7 +855,7 @@ instance_init			(GTypeInstance *	instance,
   GError *error = NULL;
   GtkAction *action;
   GtkToggleAction *toggle_action;
-  GtkWidget *box;
+  GtkWidget *stack;
   GtkWidget *widget;
   gboolean success;
 
@@ -865,25 +884,34 @@ instance_init			(GTypeInstance *	instance,
      visible despite initially without menu. */
   z_show_empty_submenu (z->generic_action_group, "ChannelsSubmenu");
 
-  z->vbi_action_group = gtk_action_group_new ("ZappingVBIActions");
+  z->teletext_action_group = gtk_action_group_new ("ZappingTeletextActions");
+  z->subtitle_action_group = gtk_action_group_new ("ZappingSubtitleActions");
 #ifdef ENABLE_NLS
-  gtk_action_group_set_translation_domain (z->vbi_action_group,
+  gtk_action_group_set_translation_domain (z->teletext_action_group,
+					   GETTEXT_PACKAGE);
+  gtk_action_group_set_translation_domain (z->subtitle_action_group,
 					   GETTEXT_PACKAGE);
 #endif					   
-  gtk_action_group_add_actions (z->vbi_action_group,
-				vbi_actions, G_N_ELEMENTS (vbi_actions),
+  gtk_action_group_add_actions (z->teletext_action_group,
+				teletext_actions,
+				G_N_ELEMENTS (teletext_actions),
 				/* user_data */ z);
-  gtk_action_group_add_toggle_actions (z->vbi_action_group,
-				       vbi_toggle_actions,
-				       G_N_ELEMENTS (vbi_toggle_actions),
+  gtk_action_group_add_actions (z->subtitle_action_group,
+				subtitle_actions,
+				G_N_ELEMENTS (subtitle_actions),
+				/* user_data */ z);
+  gtk_action_group_add_toggle_actions (z->subtitle_action_group,
+				       subtitle_toggle_actions,
+				       G_N_ELEMENTS (subtitle_toggle_actions),
 				       /* user_data */ z);
 
   /* Mutual exclusive with "Teletext". */
-  action = gtk_action_group_get_action (z->vbi_action_group, "RestoreVideo");
+  action = gtk_action_group_get_action (z->teletext_action_group,
+					"RestoreVideo");
   z_action_set_visible (action, FALSE);
 
 #ifdef HAVE_LIBZVBI
-  action = gtk_action_group_get_action (z->vbi_action_group, "Subtitles");
+  action = gtk_action_group_get_action (z->subtitle_action_group, "Subtitles");
   zconf_add_hook ("/zapping/internal/callbacks/closed_caption",
 		  (ZConfHook) zconf_hook_subtitles,
 		  GTK_TOGGLE_ACTION (action));
@@ -891,9 +919,9 @@ instance_init			(GTypeInstance *	instance,
 
   /* We add the submenu ourselves. Make sure the menu item is
      visible despite initially without menu. */
-  z_show_empty_submenu (z->vbi_action_group, "TeletextSubmenu");
-  z_show_empty_submenu (z->vbi_action_group, "SubtitlesSubmenu");
-  z_show_empty_submenu (z->vbi_action_group, "BookmarksSubmenu");
+  z_show_empty_submenu (z->teletext_action_group, "TeletextSubmenu");
+  z_show_empty_submenu (z->subtitle_action_group, "SubtitlesSubmenu");
+  z_show_empty_submenu (z->teletext_action_group, "BookmarksSubmenu");
 
   gnome_app_construct (&z->app, "Zapping", "Zapping");
 
@@ -901,7 +929,9 @@ instance_init			(GTypeInstance *	instance,
   gtk_ui_manager_insert_action_group (z->ui_manager,
 				      z->generic_action_group, APPEND);
   gtk_ui_manager_insert_action_group (z->ui_manager,
-				      z->vbi_action_group, APPEND);
+				      z->teletext_action_group, APPEND);
+  gtk_ui_manager_insert_action_group (z->ui_manager,
+				      z->subtitle_action_group, APPEND);
 
   success = gtk_ui_manager_add_ui_from_string (z->ui_manager,
 					       ui_description,
@@ -964,15 +994,15 @@ instance_init			(GTypeInstance *	instance,
        the Teletext plugin needs it. */
   }
 
-  box = gtk_hbox_new (FALSE, 0);
-  z->contents = GTK_BOX (box);
-  gtk_widget_show (box);
-  gnome_app_set_contents (&z->app, box);
+  stack = z_stack_new ();
+  z->contents = Z_STACK (stack);
+  gtk_widget_show (stack);
+  gnome_app_set_contents (&z->app, stack);
 
   widget = z_video_new ();
   z->video = Z_VIDEO (widget);
   gtk_widget_show (widget);
-  gtk_container_add (GTK_CONTAINER (box), widget);
+  z_stack_put (Z_STACK (stack), widget, ZSTACK_VIDEO);
 
   {
     GdkColor black = { 0, 0, 0, 0 };

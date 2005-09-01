@@ -19,13 +19,15 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.h,v 1.7 2005-07-14 05:48:01 mschimek Exp $ */
+/* $Id: zapping.h,v 1.8 2005-09-01 01:33:27 mschimek Exp $ */
 
 #ifndef ZAPPING_H
 #define ZAPPING_H
 
 #include <gnome.h>
+#include "plugins/subtitle/view.h"
 #include "tveng.h"
+#include "zstack.h"
 #include "zvideo.h"
 
 G_BEGIN_DECLS
@@ -69,7 +71,8 @@ struct _Zapping
      for capture_stop/start() at e.g. a video standard change. */
   GtkWidget *		display_window;
   GtkActionGroup *	generic_action_group;
-  GtkActionGroup *	vbi_action_group;
+  GtkActionGroup *	teletext_action_group;
+  GtkActionGroup *	subtitle_action_group;
   GtkUIManager *	ui_manager;
   GtkMenuBar *		menubar;
   gboolean		menubar_added;
@@ -78,8 +81,12 @@ struct _Zapping
   gboolean		toolbar_added;
   GnomeAppBar *		appbar;
   gboolean		appbar_added;
-  GtkBox *		contents;
+
+  ZStack *		contents;
+
   ZVideo *		video;
+  SubtitleView *	subtitles;
+
   gboolean		decorated;
 };
 
