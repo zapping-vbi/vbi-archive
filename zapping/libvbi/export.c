@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.51 2005-06-28 19:17:09 mschimek Exp $ */
+/* $Id: export.c,v 1.52 2005-09-01 01:36:29 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -36,7 +36,11 @@
 #include <iconv.h>
 #include <math.h>		/* fabs() */
 #include "misc.h"
-#include "intl-priv.h"
+#ifdef ZAPPING8
+#  include "common/intl-priv.h"
+#else
+#  include "intl-priv.h"
+#endif
 #include "export-priv.h"
 
 /**
@@ -117,7 +121,6 @@ export_modules [] = {
 	&_vbi3_export_module_html,
 	&_vbi3_export_module_text,
 	&_vbi3_export_module_vtx,
-#ifndef ZAPPING8
 	&_vbi3_export_module_mpsub,
 	&_vbi3_export_module_qttext,
 	&_vbi3_export_module_realtext,
@@ -125,7 +128,6 @@ export_modules [] = {
 	&_vbi3_export_module_subrip,
 	&_vbi3_export_module_subviewer,
 	/* &_vbi3_export_module_tmpl, */
-#endif
 };
 
 static vbi3_export_info
@@ -717,6 +719,11 @@ vbi3_export_set_timestamp	(vbi3_export *		e,
 {
 	assert (NULL != e);
 
+	if (!e->stream.have_timestamp) {
+		e->stream.start_timestamp = timestamp;
+		e->stream.have_timestamp = TRUE;
+	}
+
 	e->stream.timestamp = timestamp;
 }
 
@@ -1146,7 +1153,7 @@ free_option_info		(vbi3_option_info *	oi,
 
 	for (i = 0; i < oi_size; ++i) {
 		if (VBI3_OPTION_MENU == oi[i].type) {
-			vbi3_free ((char *) oi[i].menu.str);
+			vbi3_free (oi[i].menu.str);
 		}
 	}
 
@@ -1209,7 +1216,7 @@ localize_option_info		(const vbi3_option_info *oi,
 
 		if (VBI3_OPTION_MENU == loi[i].type) {
 			unsigned int j;
-			char **menu;
+			const char **menu;
 
 			size = loi[i].max.num + 1;
 
@@ -1221,7 +1228,7 @@ localize_option_info		(const vbi3_option_info *oi,
 			for (j = 0; j < size; ++j)
 				menu[j] = _(loi[i].menu.str[j]);
 
-			loi[i].menu.str = (const char * const *) menu;
+			loi[i].menu.str = menu;
 		}
 	}
 
@@ -1453,6 +1460,7 @@ vbi3_export_new			(const char *		keyword,
 	e->module = xc;
 	e->errstr = NULL;
 
+	e->stream.start_timestamp = 0.0;
 	e->stream.timestamp = 0.0;
 
 	e->local_export_info = vbi3_export_info_enum (i);
