@@ -71,17 +71,25 @@ on_channel_key_press		(GtkWidget *	widget,
 void
 z_set_main_title		(tveng_tuned_channel	*channel,
 				 gchar *default_name);
-
-extern tveng_tc_control *
-zconf_get_controls		(guint			num_controls,
+extern gboolean
+zconf_get_controls		(tveng_tuned_channel *	channel,
 				 const gchar *		path);
 extern void
 zconf_create_controls		(tveng_tc_control *	tcc,
 				 guint			num_controls,
 				 const gchar *		path);
+#ifdef HAVE_LIBZVBI
+extern gboolean
+zconf_get_ttx_encodings		(tveng_tuned_channel *	channel,
+				 const gchar *		path);
+extern void
+zconf_create_ttx_encodings	(tveng_ttx_encoding *	tcc,
+				 guint			n_ttx_encodings,
+				 const gchar *		path);
+#endif
 tveng_tc_control *
-tveng_tc_control_by_id		(const tveng_device_info *info,
-				 tveng_tc_control *tcc,
+tveng_tc_control_by_id		(tveng_device_info *	info,
+				 tveng_tc_control *	tcc,
 				 guint			num_controls,
 				 tv_control_id		id);
 extern gint

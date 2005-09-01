@@ -845,11 +845,100 @@ tveng_tuned_channel_set_control	(tveng_tuned_channel *	tc,
   tc->controls = tcc;
   tc->num_controls = i + 1;
 
-  g_strlcpy (tcc[i].name, name, 32);
+  g_strlcpy (tcc[i].name, name, sizeof (tcc[i].name));
   tcc[i].value = value;
 
   return TRUE;
 }
+
+#ifdef HAVE_LIBZVBI
+
+void
+tveng_tuned_channel_remove_ttx_encoding
+				(tveng_tuned_channel *	tc,
+				 vbi3_pgno		pgno)
+{
+  guint i;
+
+  g_return_if_fail (NULL != tc);
+
+  for (i = 0; i < tc->num_ttx_encodings; ++i)
+    if (pgno == tc->ttx_encodings[i].pgno)
+      {
+	memmove (&tc->ttx_encodings[i],
+		 &tc->ttx_encodings[i + 1],
+		 (tc->num_ttx_encodings - i - 1)
+		 * sizeof (tc->ttx_encodings[0]));
+
+	--tc->num_ttx_encodings;
+
+	break;
+      }
+}
+
+gboolean
+tveng_tuned_channel_set_ttx_encoding
+				(tveng_tuned_channel *	tc,
+				 vbi3_pgno		pgno,
+				 vbi3_charset_code	charset_code)
+{
+  tveng_ttx_encoding *te;
+  guint i;
+
+  g_return_val_if_fail (NULL != tc, FALSE);
+
+  if (0 == pgno)
+    return TRUE;
+
+  if ((vbi3_charset_code) -1 == charset_code)
+    {
+      tveng_tuned_channel_remove_ttx_encoding (tc, pgno);
+      return TRUE;
+    }
+
+  for (i = 0; i < tc->num_ttx_encodings; ++i)
+    if (pgno == tc->ttx_encodings[i].pgno)
+      {
+	/* XXX notify teletext & subtitle view */
+	tc->ttx_encodings[i].charset_code = charset_code;
+	return TRUE;
+      }
+
+  te = g_realloc (tc->ttx_encodings, (i + 1) * sizeof (tc->ttx_encodings[0]));
+  if (NULL == te)
+    return FALSE;
+
+  tc->ttx_encodings = te;
+  tc->num_ttx_encodings = i + 1;
+
+  te[i].pgno = pgno;
+  te[i].charset_code = charset_code;
+
+  return TRUE;
+}
+
+gboolean
+tveng_tuned_channel_get_ttx_encoding
+				(tveng_tuned_channel *	tc,
+				 vbi3_charset_code *	charset_code,
+				 vbi3_pgno		pgno)
+{
+  guint i;
+
+  g_return_val_if_fail (NULL != tc, FALSE);
+  g_return_val_if_fail (NULL != charset_code, FALSE);
+
+  for (i = 0; i < tc->num_ttx_encodings; ++i)
+    if (pgno == tc->ttx_encodings[i].pgno)
+      {
+	*charset_code = tc->ttx_encodings[i].charset_code;
+	return TRUE;
+      }
+
+  return FALSE;
+}
+
+#endif
 
 tveng_tuned_channel *
 tveng_tuned_channel_first	(tveng_tuned_channel *list)
@@ -1116,6 +1205,7 @@ tveng_tuned_channel_copy	(tveng_tuned_channel *	d,
   g_free (d->rf_name);
   g_free (d->rf_table);
   g_free (d->controls);
+  g_free (d->ttx_encodings);
 
   d->name		= g_utf8_normalize (s->name ? s->name : "",
 					    -1, G_NORMALIZE_DEFAULT_COMPOSE);
@@ -1130,28 +1220,50 @@ tveng_tuned_channel_copy	(tveng_tuned_channel *	d,
   d->num_controls	= s->num_controls;
 
   if (s->num_controls > 0)
-    d->controls = g_memdup (s->controls,
-      d->num_controls * sizeof (*(d->controls)));
+    {
+      d->controls = g_memdup (s->controls,
+			      s->num_controls * sizeof (s->controls[0]));
+      d->num_controls = s->num_controls;
+    }
   else
-    d->controls = NULL;
+    {
+      d->controls = NULL;
+      d->num_controls = 0;
+    }
 
   d->caption_pgno	= s->caption_pgno;
+
+  if (s->num_ttx_encodings > 0)
+    {
+      d->ttx_encodings = g_memdup (s->ttx_encodings,
+				   s->num_ttx_encodings
+				   * sizeof (s->ttx_encodings[0]));
+      d->num_ttx_encodings = s->num_ttx_encodings;
+    }
+  else
+    {
+      d->ttx_encodings = NULL;
+      d->num_ttx_encodings = 0;
+    }
 }
 
 tveng_tuned_channel *
 tveng_tuned_channel_new		(const tveng_tuned_channel *tc)
 {
-  static const tveng_tuned_channel empty_tc = {
-    "", "", "", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-  };
   tveng_tuned_channel *new_tc;
 
   new_tc = g_malloc0 (sizeof (*new_tc));
 
-  if (!tc)
-    tc = &empty_tc;
-
-  tveng_tuned_channel_copy (new_tc, tc);
+  if (NULL == tc)
+    {
+      new_tc->name	= g_strdup ("");
+      new_tc->rf_name	= g_strdup ("");
+      new_tc->rf_table	= g_strdup ("");
+    }
+  else
+    {
+      tveng_tuned_channel_copy (new_tc, tc);
+    }
 
   return new_tc;
 }
@@ -1166,6 +1278,10 @@ tveng_tuned_channel_delete	(tveng_tuned_channel *	tc)
   g_free (tc->rf_name);
   g_free (tc->rf_table);
   g_free (tc->controls);
+  g_free (tc->ttx_encodings);
+
+  CLEAR (*tc);
+
   g_free (tc);
 }
 
@@ -1238,12 +1354,12 @@ tveng_tuned_channel_in_list	(tveng_tuned_channel *	list,
   Returns the number of items in the list
 */
 unsigned int
-tveng_tuned_channel_num (const tveng_tuned_channel * list)
+tveng_tuned_channel_num		(tveng_tuned_channel *	list)
 {
   unsigned int num_channels = 0;
   const tveng_tuned_channel *tc_ptr;
 
-  tc_ptr = tveng_tuned_channel_first ((tveng_tuned_channel *) list);
+  tc_ptr = tveng_tuned_channel_first (list);
 
   while (tc_ptr)
     {
@@ -1251,7 +1367,7 @@ tveng_tuned_channel_num (const tveng_tuned_channel * list)
       tc_ptr = tc_ptr -> next;
     }
 
-  return (num_channels);
+  return num_channels;
 }
 
 /*

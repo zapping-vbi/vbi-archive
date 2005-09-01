@@ -19,20 +19,33 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: frequencies.h,v 1.14 2005-01-08 14:54:27 mschimek Exp $ */
+/* $Id: frequencies.h,v 1.15 2005-09-01 01:36:06 mschimek Exp $ */
 
 #ifndef FREQUENCIES_H
 #define FREQUENCIES_H
 
 #include "tveng.h"
 #include "keyboard.h"
-//#include "zvbi.h"
+
+#ifdef HAVE_LIBZVBI
+#  include "libvbi/bcd.h"
+#  include "libvbi/lang.h"
+#endif
 
 typedef struct _tveng_tc_control tveng_tc_control;
 
 struct _tveng_tc_control {
   gchar				name [32];
   gfloat			value;		/* [0;1] */
+};
+
+typedef struct _tveng_ttx_encoding tveng_ttx_encoding;
+
+struct _tveng_ttx_encoding {
+#ifdef HAVE_LIBZVBI
+  vbi3_pgno			pgno;
+  vbi3_charset_code		charset_code;
+#endif
 };
 
 typedef struct _tveng_tuned_channel tveng_tuned_channel;
@@ -53,7 +66,11 @@ struct _tveng_tuned_channel {
   guint				num_controls;	/* number of saved controls for this channel */
   tveng_tc_control *		controls;	/* saved controls for this channel */
 
-  int				caption_pgno;	/* last used subtitle page on this channel */
+  /* last used subtitle page on this channel */
+  int				caption_pgno;
+
+  guint				num_ttx_encodings;
+  tveng_ttx_encoding *		ttx_encodings;
 
   /* Don't use this to navigate through the tuned_channel list, use
      the API instead */
@@ -130,6 +147,22 @@ extern gboolean
 tveng_tuned_channel_set_control	(tveng_tuned_channel *	tc,
 				 const gchar *		name,
 				 gfloat			value);
+#ifdef HAVE_LIBZVBI
+extern gboolean
+tveng_tuned_channel_set_ttx_encoding
+				(tveng_tuned_channel *	tc,
+				 vbi3_pgno		pgno,
+				 vbi3_charset_code	charset_code);
+extern gboolean
+tveng_tuned_channel_get_ttx_encoding
+				(tveng_tuned_channel *	tc,
+				 vbi3_charset_code *	charset_code,
+				 vbi3_pgno		pgno);
+extern void
+tveng_tuned_channel_remove_ttx_encoding
+				(tveng_tuned_channel *	tc,
+				 vbi3_pgno		pgno);
+#endif
 
 tveng_tuned_channel *
 tveng_tuned_channel_first	(tveng_tuned_channel *list);
@@ -177,7 +210,7 @@ tveng_tuned_channel_in_list	(tveng_tuned_channel *	list,
 
 /* old stuff */
 unsigned int
-tveng_tuned_channel_num (const tveng_tuned_channel * list);
+tveng_tuned_channel_num		(tveng_tuned_channel *	list);
 tveng_tuned_channel *
 tveng_remove_tuned_channel (gchar * rf_name, int id,
 			    tveng_tuned_channel * list);
