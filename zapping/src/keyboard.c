@@ -167,14 +167,16 @@ zconf_create_z_key		(z_key			key,
   g_assert(path != NULL);
 
   s = g_strjoin (NULL, path, "key", NULL);
-  zconf_create_uint (key.key, desc, s);
+  zconf_set_uint (key.key, s);
+  if (desc)
+    zconf_set_description (desc, s);
   g_free (s);
 
   if (zconf_error ())
     return;
 
   s = g_strconcat (path, "mask", NULL);
-  zconf_create_uint (key.mask, NULL, s);
+  zconf_set_uint (key.mask, s);
   g_free (s);
 }
 
@@ -778,9 +780,9 @@ save_key_bindings			(void)
       buffer = g_strdup_printf ("/zapping/options/main/keys/%d_cmd", i);
       /* Save old style command for easier switch back to pre-0.7 versions. */
       if (kb->old_cmd)
-	zconf_create_string (kb->old_cmd, NULL, buffer);
+	zconf_set_string (kb->old_cmd, buffer);
       else
-	zconf_create_string (kb->command, NULL, buffer);
+	zconf_set_string (kb->command, buffer);
       g_free (buffer);
 
       buffer = g_strdup_printf ("/zapping/options/main/keys/%d_", i);
@@ -953,11 +955,15 @@ on_selection_changed		(GtkTreeSelection *	selection,
   remove = lookup_widget (GTK_WIDGET (tree_view), "general-keyboard-remove");
   gtk_widget_set_sensitive (remove, selected);
 
-  combo = lookup_widget (GTK_WIDGET (tree_view), "combo1");
-  gtk_tree_model_get (model, &iter, C_COMMAND, &action, -1);
-  gtk_entry_set_text (GTK_ENTRY (GTK_COMBO (combo)->entry), action);
-  g_free (action);
+  if (selected)
+    {
+      combo = lookup_widget (GTK_WIDGET (tree_view), "combo1");
+      gtk_tree_model_get (model, &iter, C_COMMAND, &action, -1);
+      gtk_entry_set_text (GTK_ENTRY (GTK_COMBO (combo)->entry), action);
+      g_free (action);
+    }
 }
+
 
 static void
 on_combo_entry_changed		(GtkEditable *		editable,
