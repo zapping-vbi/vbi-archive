@@ -673,6 +673,13 @@ z_signal_connect_python		(gpointer		instance,
 				 const gchar *		detailed_signal,
 				 const gchar *		command);
 
+typedef GTimeVal (* ZTimeoutFunc)(gpointer user_data);
+
+extern guint
+z_timeout_add			(GTimeVal		wakeup,
+				 ZTimeoutFunc		function,
+				 gpointer		data);
+
 /* Common constants for item position in Gtk insert functions. */
 #define PREPEND 0
 #define APPEND -1
