@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: subtitle.h,v 1.4 2005-01-19 04:16:22 mschimek Exp $ */
+/* $Id: subtitle.h,v 1.5 2005-09-01 01:31:09 mschimek Exp $ */
 
 #ifndef SUBTITLE_H
 #define SUBTITLE_H
@@ -28,14 +28,30 @@
 #  include "config.h"
 #endif
 
-#include <gtk/gtkwidget.h>
+#include <gtk/gtk.h>
+#include "libvbi/exp-gfx.h"
+#include "plugins/subtitle/view.h"
 
 G_BEGIN_DECLS
 
 extern int zvbi_caption_pgno; /* page for subtitles */
 
-GtkWidget *
-subtitle_menu_new		(void);
+extern void
+subt_store_position_in_config	(SubtitleView *		view,
+				 const gchar *		path);
+extern void
+subt_set_position_from_config	(SubtitleView *		view,
+				 const gchar *		path);
+
+extern guint
+zvbi_menu_shell_insert_active_subtitle_pages
+				(GtkMenuShell *		menu,
+				 gint			position,
+				 vbi3_pgno		curr_pgno,
+				 gboolean		separator_above,
+				 gboolean		separator_below);
+extern GtkWidget *
+zvbi_subtitle_menu_new		(vbi3_pgno		curr_pgno);
 
 extern void
 shutdown_subtitle		(void);
