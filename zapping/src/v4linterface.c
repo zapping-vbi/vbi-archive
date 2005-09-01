@@ -755,6 +755,10 @@ z_switch_video_input		(guint hash, tveng_device_info *info)
 	      l->label, tv_get_errstr(info));
       return FALSE;
     }
+  else
+    {
+      python_command_printf (NULL, "zapping.closed_caption(0)");
+    }
 
   if (CAPTURE_MODE_READ == old_mode) {
     capture_start (info, zapping->display_window);
@@ -799,7 +803,7 @@ z_switch_standard		(guint hash, tveng_device_info *info)
   capture_mode old_mode;
   tv_bool r;
 #ifdef HAVE_LIBZVBI
-  vbi_decoder *vbi;
+  vbi3_decoder *vbi;
 #endif
 
   for (s = tv_next_video_standard (info, NULL);
@@ -822,10 +826,7 @@ z_switch_standard		(guint hash, tveng_device_info *info)
 
 #ifdef HAVE_LIBZVBI
   if ((vbi = zvbi_get_object ()))
-    {
-      /* XXX should avoid this if same scanning. */
-      zvbi_close_device ();
-    }
+    zvbi_stop (/* destroy_decoder */ FALSE);
 #endif
 
   old_mode = tv_get_capture_mode (info);
@@ -836,13 +837,10 @@ z_switch_standard		(guint hash, tveng_device_info *info)
 	  ShowBox ("%s", GTK_MESSAGE_ERROR, tv_get_errstr (info));
 
 #ifdef HAVE_LIBZVBI
-	  if (vbi)
+	  if (NULL != vbi)
 	    {
-	      const gchar *device;
-
-	      device = zconf_get_string (NULL,
-					 "/zapping/options/vbi/vbi_device");
-	      zvbi_open_device (device);
+	      /* Error ignored. */
+	      zvbi_start ();
 	    }
 #endif
 	  return FALSE;
@@ -856,12 +854,10 @@ z_switch_standard		(guint hash, tveng_device_info *info)
   }
 
 #ifdef HAVE_LIBZVBI
-  if (vbi)
+  if (NULL != vbi)
     {
-      const gchar *device;
-
-      device = zconf_get_string (NULL, "/zapping/options/vbi/vbi_device");
-      zvbi_open_device (device);
+      /* Error ignored. */
+      zvbi_start ();
     }
 #endif
 
@@ -925,54 +921,58 @@ static int normstrcmp (const char * in1, const char * in2)
   }
 }
 
-tveng_tc_control *
-zconf_get_controls		(guint			num_controls,
+gboolean
+zconf_get_controls		(tveng_tuned_channel *	channel,
 				 const gchar *		path)
 {
-  tveng_tc_control *tcc;
-  gchar *array;
+  gchar *zcname;
+  guint n_controls;
   guint i;
 
-  if (num_controls == 0)
-    return NULL;
+  zcname = g_strconcat (path, "/num_controls", NULL);
+  zconf_get_uint (&n_controls, zcname);
+  g_free (zcname);
 
-  tcc = g_malloc0 (sizeof (*tcc) * num_controls);
-  array = g_strconcat (path, "/controls", NULL);
+  if (0 == n_controls)
+    return TRUE;
 
-  for (i = 0; i < num_controls; i++)
+  zcname = g_strconcat (path, "/controls", NULL);
+
+  for (i = 0; i < n_controls; ++i)
     {
-      gchar *control;
-      gchar *name;
-      const gchar *s;
+      gchar *path_i;
+      gchar *zcname_i;
+      const gchar *name;
 
-      if (!zconf_get_nth (i, &control, array))
+      if (!zconf_get_nth (i, &path_i, zcname))
 	{
 	  g_warning ("Saved control %u is malformed, skipping", i);
 	  continue;
 	}
-  
-      name = g_strconcat (control, "/name", NULL);
-      s = zconf_get_string (NULL, name);
-      g_free (name);
 
-      if (!s)
+      zcname_i = g_strconcat (path_i, "/name", NULL);
+      name = zconf_get_string (NULL, zcname_i);
+      g_free (zcname_i);
+
+      if (NULL != name)
 	{
-	  g_free (control);
-	  continue;
+	  gfloat value;
+
+	  zcname_i = g_strconcat (path_i, "/value", NULL);
+	  /* Error ignored. */
+	  zconf_get_float (&value, zcname_i);
+	  g_free (zcname_i);
+
+	  /* Error ignored. */
+	  tveng_tuned_channel_set_control (channel, name, value);
 	}
 
-      g_strlcpy (tcc[i].name, s, 32);
-
-      name = g_strconcat (control, "/value", NULL);
-      zconf_get_float (&tcc[i].value, name);
-      g_free (name);
-
-      g_free (control);
+      g_free (path_i);
     }
 
-  g_free (array);
+  g_free (zcname);
 
-  return tcc;
+  return TRUE;
 }
 
 void
@@ -987,17 +987,104 @@ zconf_create_controls		(tveng_tc_control *	tcc,
       gchar *name;
 
       name = g_strdup_printf ("%s/controls/%d/name", path, i);
-      zconf_create_string (tcc[i].name, "Control name", name);
+      zconf_set_string (tcc[i].name, name);
+      zconf_set_description ("Control name", name);
       g_free (name);
 
       name = g_strdup_printf ("%s/controls/%d/value", path, i);
-      zconf_create_float (tcc[i].value, "Control value", name);
+      zconf_set_float (tcc[i].value, name);
+      zconf_set_description ("Control value", name);
       g_free (name);
     }
 }
 
+#ifdef HAVE_LIBZVBI
+
+gboolean
+zconf_get_ttx_encodings		(tveng_tuned_channel *	channel,
+				 const gchar *		path)
+{
+  gchar *zcname;
+  guint n_encodings;
+  guint i;
+
+  zcname = g_strconcat (path, "/num_ttx_encodings", NULL);
+  zconf_get_uint (&n_encodings, zcname);
+  g_free (zcname);
+
+  if (0 == n_encodings)
+    return TRUE;
+
+  zcname = g_strconcat (path, "/ttx_encodings", NULL);
+
+  for (i = 0; i < n_encodings; ++i)
+    {
+      gchar *path_i;
+      gchar *zcname_i;
+      vbi3_pgno pgno;
+
+      if (!zconf_get_nth (i, &path_i, zcname))
+	{
+	  g_warning ("Saved ttx_encoding %u is malformed, skipping", i);
+	  continue;
+	}
+
+      zcname_i = g_strconcat (path_i, "/pgno", NULL);
+      pgno = zconf_get_int (NULL, zcname_i);
+      g_free (zcname_i);
+
+      if (0 != pgno)
+	{
+	  vbi3_charset_code charset_code;
+
+	  zcname_i = g_strconcat (path_i, "/charset_code", NULL);
+	  /* Error ignored. */
+	  charset_code = zconf_get_int (NULL, zcname_i);
+	  g_free (zcname_i);
+
+	  /* Error ignored. */
+	  tveng_tuned_channel_set_ttx_encoding (channel, pgno, charset_code);
+	}
+
+      g_free (path_i);
+    }
+
+  g_free (zcname);
+
+  return TRUE;
+}
+
+void
+zconf_create_ttx_encodings	(tveng_ttx_encoding *	tcc,
+				 guint			n_ttx_encodings,
+				 const gchar *		path)
+{
+  guint i;
+
+  for (i = 0; i < n_ttx_encodings; ++i)
+    {
+      if (0 != tcc[i].pgno &&
+	  (vbi3_charset_code) -1 != tcc[i].charset_code)
+	{
+	  gchar *name;
+
+	  name = g_strdup_printf ("%s/ttx_encodings/%d/pgno", path, i);
+	  zconf_set_int ((gint) tcc[i].pgno, name);
+	  zconf_set_description ("Page number", name);
+	  g_free (name);
+
+	  name = g_strdup_printf ("%s/ttx_encodings/%d/charset_code", path, i);
+	  zconf_set_int ((gint) tcc[i].charset_code, name);
+	  zconf_set_description ("Character set code", name);
+	  g_free (name);
+	}
+    }
+}
+
+#endif
+
 tveng_tc_control *
-tveng_tc_control_by_id		(const tveng_device_info *info,
+tveng_tc_control_by_id		(tveng_device_info *	info,
 				 tveng_tc_control *	tcc,
 				 guint			num_controls,
 				 tv_control_id		id)
@@ -2512,7 +2599,7 @@ py_control_incr			(PyObject *self _unused_, PyObject *args)
   };
   char *control_name;
   int increment, ok;
-  const tv_control *tc;
+  tv_control *tc;
   guint i;
 
   increment = +1;
