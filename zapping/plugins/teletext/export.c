@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5 2005-01-19 04:17:01 mschimek Exp $ */
+/* $Id: export.c,v 1.6 2005-09-01 01:37:57 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -28,6 +28,7 @@
 #define ZCONF_DOMAIN "/zapping/ttxview/"
 #include "src/zconf.h"
 #include "src/zmisc.h"
+#include "src/zvbi.h"
 #include "export.h"
 
 static GObjectClass *		parent_class;
@@ -35,338 +36,18 @@ static GObjectClass *		parent_class;
 /* Zconf name for the given export option, must be g_free()ed. */
 static gchar *
 xo_zconf_name			(const vbi3_export *	e,
-				 const vbi3_option_info *oi)
+				 const vbi3_option_info *oi,
+				 gpointer		user_data)
 {
   const vbi3_export_info *xi;
+
+  user_data = user_data;
 
   xi = vbi3_export_info_from_export (e);
   g_assert (xi != NULL);
 
   return g_strdup_printf ("/zapping/options/export/%s/%s",
 			  xi->keyword, oi->keyword);
-}
-
-static GtkWidget *
-label_new			(const vbi3_option_info *oi)
-{
-  GtkWidget *label;
-  GtkMisc *misc;
-  gchar *buffer2;
-
-  buffer2 = g_strconcat (oi->label, ":", NULL);
-  label = gtk_label_new (buffer2);
-  g_free (buffer2);
-
-  misc = GTK_MISC (label);
-  gtk_misc_set_alignment (misc, 1.0, 0.5);
-  gtk_misc_set_padding (misc, 3, 0);
-
-  return label;
-}
-
-static void
-on_control_changed		(GtkWidget *		widget,
-				 vbi3_export *		e)
-{
-  gchar *keyword;
-  const vbi3_option_info *oi;
-  vbi3_option_value val;
-  gchar *zcname;
-
-  g_assert (e != NULL);
-
-  keyword = (gchar *) g_object_get_data (G_OBJECT (widget), "key");
-  oi = vbi3_export_option_info_by_keyword (e, keyword);
-
-  g_assert (oi != NULL);
-
-  zcname = xo_zconf_name (e, oi);
-
-  if (oi->menu.str)
-    {
-      val.num = z_object_get_int_data (G_OBJECT (widget), "index");
-      vbi3_export_option_menu_set (e, keyword, val.num);
-    }
-  else
-    {
-      switch (oi->type)
-	{
-	case VBI3_OPTION_BOOL:
-	  val.num = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
-	  if (vbi3_export_option_set (e, keyword, val))
-	    zconf_set_boolean (val.num, zcname);
-	  break;
-
-	case VBI3_OPTION_INT:
-	  val.num = (int) GTK_ADJUSTMENT (widget)->value;
-	  if (vbi3_export_option_set (e, keyword, val))
-	    zconf_set_int (val.num, zcname);
-	  break;
-
-	case VBI3_OPTION_REAL:
-	  val.dbl = GTK_ADJUSTMENT (widget)->value;
-	  if (vbi3_export_option_set (e, keyword, val))
-	    zconf_set_float (val.dbl, zcname);
-	  break;
-
-	case VBI3_OPTION_STRING:
-	  val.str = (gchar * ) gtk_entry_get_text (GTK_ENTRY (widget));
-	  if (vbi3_export_option_set (e, keyword, val))
-	    zconf_set_string (val.str, zcname);
-	  break;
-
-	default:
-	  g_warning ("Unknown export option type %d in %s\n",
-		     oi->type, __PRETTY_FUNCTION__);
-	  break;
-	}
-    }
-
-  g_free (zcname);
-}
-
-static void
-create_menu			(GtkWidget *		table,
-				 const vbi3_option_info *oi,
-				 unsigned int		index,
-				 vbi3_export *		e)
-{
-  GtkWidget *option_menu;
-  GtkWidget *menu;
-  gchar *zcname;
-  guint saved;
-  unsigned int i;
-
-  option_menu = gtk_option_menu_new ();
-  menu = gtk_menu_new ();
-
-  zcname = xo_zconf_name (e, oi);
-  saved = zconf_get_int (NULL, zcname);
-
-  for (i = 0; i <= (unsigned int) oi->max.num; ++i)
-    {
-      gchar buf[32];
-      GtkWidget *menu_item;
-
-      switch (oi->type)
-	{
-	case VBI3_OPTION_BOOL:
-	case VBI3_OPTION_INT:
-	  g_snprintf (buf, sizeof (buf), "%d", oi->menu.num[i]);
-	  menu_item = gtk_menu_item_new_with_label (buf);
-	  break;
-
-	case VBI3_OPTION_REAL:
-	  g_snprintf (buf, sizeof (buf), "%f", oi->menu.dbl[i]);
-	  menu_item = gtk_menu_item_new_with_label (buf);
-	  break;
-
-	case VBI3_OPTION_STRING:
-	  menu_item = gtk_menu_item_new_with_label (oi->menu.str[i]);
-	  break;
-
-	case VBI3_OPTION_MENU:
-	  menu_item = gtk_menu_item_new_with_label (oi->menu.str[i]);
-	  break;
-
-	default:
-	  g_warning ("Unknown export option type %d in %s\n",
-		     oi->type, __PRETTY_FUNCTION__);
-	  continue;
-	}
-
-      z_object_set_const_data (G_OBJECT (menu_item), "key", oi->keyword);
-      g_object_set_data (G_OBJECT (menu_item), "index", GINT_TO_POINTER (i));
-
-      g_signal_connect (G_OBJECT (menu_item), "activate",
-			G_CALLBACK (on_control_changed), e);
-
-      gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
-
-      if (i == saved)
-	on_control_changed (menu_item, e);
-    }
-
-  gtk_option_menu_set_menu (GTK_OPTION_MENU (option_menu), menu);
-  zconf_create_int (oi->def.num, oi->tooltip, zcname);
-  gtk_option_menu_set_history (GTK_OPTION_MENU (option_menu), saved);
-  z_tooltip_set (option_menu, oi->tooltip);
-
-  g_free (zcname);
-
-  gtk_table_resize (GTK_TABLE (table), index + 1, 2);
-  gtk_table_attach (GTK_TABLE (table), label_new (oi),
-		    0, 1, index, index + 1,
-                    (GtkAttachOptions)(GTK_FILL),
-                    (GtkAttachOptions)(0), 3, 3);
-  gtk_table_attach (GTK_TABLE (table), option_menu,
-		    1, 2, index, index + 1,
-                    (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions)(0), 3, 3);
-}
-
-static void
-create_checkbutton		(GtkWidget *		table,
-				 const vbi3_option_info *oi,
-				 unsigned int		index,
-				 vbi3_export *		e)
-{
-  GtkWidget *check_button;
-  gchar *zcname;
-
-  check_button = gtk_check_button_new_with_label (oi->label);
-  gtk_toggle_button_set_mode (GTK_TOGGLE_BUTTON (check_button),
-			      /* indicator */ FALSE);
-  z_tooltip_set (check_button, oi->tooltip);
-  z_object_set_const_data (G_OBJECT (check_button), "key", oi->keyword);
-  g_signal_connect (G_OBJECT (check_button), "toggled",
-		    G_CALLBACK (on_control_changed), e);
-
-  zcname = xo_zconf_name (e, oi);
-  zconf_create_boolean (oi->def.num, oi->tooltip, zcname);
-  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (check_button),
-				zconf_get_boolean (NULL, zcname));
-  g_free (zcname);
-
-  on_control_changed (check_button, e);
-
-  gtk_table_resize (GTK_TABLE (table), index + 1, 2);
-  gtk_table_attach (GTK_TABLE (table), check_button,
-		    1, 2, index, index + 1,
-                    (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions)(0), 3, 3);
-}
-
-static void
-create_slider			(GtkWidget *		table,
-				 const vbi3_option_info *oi,
-				 unsigned int		index,
-				 vbi3_export *		e)
-{ 
-  GtkObject *adj;
-  GtkWidget *hscale;
-  gchar *zcname;
-
-  zcname = xo_zconf_name (e, oi);
-
-  if (oi->type == VBI3_OPTION_INT)
-    {
-      adj = gtk_adjustment_new (oi->def.num, oi->min.num, oi->max.num,
-				1, 10, 10);
-      zconf_create_int (oi->def.num, oi->tooltip, zcname);
-      gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
-				zconf_get_int (NULL, zcname));
-    }
-  else
-    {
-      adj = gtk_adjustment_new (oi->def.dbl, oi->min.dbl, oi->max.dbl,
-				1, 10, 10);
-      zconf_create_float (oi->def.dbl, oi->tooltip, zcname);
-      gtk_adjustment_set_value (GTK_ADJUSTMENT (adj),
-				zconf_get_float (NULL, zcname));
-    }
-
-  g_free (zcname);
-
-  z_object_set_const_data (G_OBJECT (adj), "key", oi->keyword);
-  g_signal_connect (adj, "value-changed", G_CALLBACK (on_control_changed), e);
-
-  on_control_changed ((GtkWidget *) adj, e);
-
-  hscale = gtk_hscale_new (GTK_ADJUSTMENT (adj));
-  gtk_scale_set_value_pos (GTK_SCALE (hscale), GTK_POS_LEFT);
-  gtk_scale_set_digits (GTK_SCALE (hscale), 0);
-  z_tooltip_set (hscale, oi->tooltip);
-
-  gtk_table_resize (GTK_TABLE (table), index + 1, 2);
-  gtk_table_attach (GTK_TABLE (table), label_new (oi),
-		    0, 1, index, index + 1,
-                    (GtkAttachOptions)(GTK_FILL),
-                    (GtkAttachOptions)(0), 3, 3);
-  gtk_table_attach (GTK_TABLE (table), hscale,
-		    1, 2, index, index + 1,
-                    (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions)(0), 3, 3);
-}
-
-static void
-create_entry			(GtkWidget *		table,
-				 const vbi3_option_info *oi,
-				 unsigned int		index,
-				 vbi3_export *		e)
-{ 
-  GtkWidget *entry;
-  gchar *zcname;
-
-  entry = gtk_entry_new ();
-  z_tooltip_set (entry, oi->tooltip);
-
-  z_object_set_const_data (G_OBJECT (entry), "key", oi->keyword);
-  g_signal_connect (G_OBJECT (entry), "changed", 
-		    G_CALLBACK (on_control_changed), e);
-
-  on_control_changed (entry, e);
-
-  zcname = xo_zconf_name (e, oi);
-  zconf_create_string (oi->def.str, oi->tooltip, zcname);
-  gtk_entry_set_text (GTK_ENTRY (entry), zconf_get_string (NULL, zcname));
-  g_free (zcname);
-
-  gtk_table_resize (GTK_TABLE (table), index + 1, 2);
-  gtk_table_attach (GTK_TABLE (table), label_new (oi),
-		    0, 1, index, index + 1,
-                    (GtkAttachOptions)(GTK_FILL),
-                    (GtkAttachOptions)(0), 3, 3);
-  gtk_table_attach (GTK_TABLE (table), entry,
-		    1, 2, index, index + 1,
-                    (GtkAttachOptions)(GTK_EXPAND | GTK_FILL),
-                    (GtkAttachOptions)(0), 3, 3);
-}
-
-static GtkWidget *
-options_table_new		(vbi3_export *		e)
-{
-  GtkWidget *table;
-  const vbi3_option_info *oi;
-  unsigned int i;
-
-  table = gtk_table_new (1, 2, FALSE);
-
-  for (i = 0; (oi = vbi3_export_option_info_enum (e, (int) i)); ++i)
-    {
-      if (!oi->label)
-	continue; /* not intended for user */
-
-      if (oi->menu.str)
-	{
-	  create_menu (table, oi, i, e);
-	}
-      else
-	{
-	  switch (oi->type)
-	    {
-	    case VBI3_OPTION_BOOL:
-	      create_checkbutton (table, oi, i, e);
-	      break;
-
-	    case VBI3_OPTION_INT:
-	    case VBI3_OPTION_REAL:
-	      create_slider (table, oi, i, e);
-	      break;
-
-	    case VBI3_OPTION_STRING:
-	      create_entry (table, oi, i, e);
-	      break;
-
-	    default:
-	      g_warning ("Unknown export option type %d in %s",
-			 oi->type, __PRETTY_FUNCTION__);
-	      continue;
-	    }
-	}
-    }
-
-  return table;
 }
 
 static gchar *
@@ -403,6 +84,7 @@ on_menu_activate		(GtkWidget *		menu_item,
   gchar *keyword;
   GtkContainer *container;
   GList *glist;
+  GtkWidget *table;
 
   keyword = (gchar *) g_object_get_data (G_OBJECT (menu_item), "key");
   g_assert (keyword != NULL);
@@ -432,14 +114,19 @@ on_menu_activate		(GtkWidget *		menu_item,
   while ((glist = gtk_container_get_children (container)))
     gtk_container_remove (container, GTK_WIDGET (glist->data));
 
-  if (vbi3_export_option_info_enum (sp->context, 0))
+  table = zvbi_export_option_table_new (sp->context,
+					xo_zconf_name,
+					/* user_data */ NULL);
+  if (NULL != table)
     {
+      GtkWidget *box;
       GtkWidget *frame;
-      GtkWidget *table;
 
+      box = gtk_hbox_new (/* homogeneous */ FALSE, /* spacing */ 0);
+      gtk_container_add (GTK_CONTAINER (box), table);
+      gtk_container_set_border_width (GTK_CONTAINER (box), 6);
       frame = gtk_frame_new (_("Options"));
-      table = options_table_new (sp->context);
-      gtk_container_add (GTK_CONTAINER (frame), table);
+      gtk_container_add (GTK_CONTAINER (frame), box);
       gtk_widget_show_all (frame);
       gtk_box_pack_start (GTK_BOX (sp->option_box), frame, TRUE, TRUE, 0);
     }
@@ -582,38 +269,46 @@ instance_init			(GTypeInstance *	instance,
     GtkWidget *menu;
     gchar *format;
     const vbi3_export_info *xm;
-    unsigned int i;
+    guint count;
+    guint i;
 
     menu = gtk_menu_new ();
     gtk_option_menu_set_menu (GTK_OPTION_MENU (sp->format_menu), menu);
 
     zconf_get_string (&format, "/zapping/options/export_format");
 
+    count = 0;
+
     for (i = 0; (xm = vbi3_export_info_enum ((int) i)); ++i)
-      if (xm->label) /* user module */
-	{
-	  GtkWidget *menu_item;
+      {
+	if (xm->label && !xm->open_format) /* user module, not subtitles */
+	  {
+	    GtkWidget *menu_item;
 
-	  menu_item = gtk_menu_item_new_with_label (xm->label);
-	  gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
+	    menu_item = gtk_menu_item_new_with_label (xm->label);
+	    gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
 
-	  if (xm->tooltip)
-	    z_tooltip_set (menu_item, xm->tooltip);
+	    if (xm->tooltip)
+	      z_tooltip_set (menu_item, xm->tooltip);
 
-	  z_object_set_const_data (G_OBJECT (menu_item), "key", xm->keyword);
+	    z_object_set_const_data (G_OBJECT (menu_item), "key", xm->keyword);
 
-	  if (i == 0 || (format && 0 == strcmp (xm->keyword, format)))
-	    {
-	      on_menu_activate (menu_item, sp);
-	      gtk_option_menu_set_history (GTK_OPTION_MENU (sp->format_menu),
-					   i);
-	    }
+	    if (0 == count || (format && 0 == strcmp (xm->keyword, format)))
+	      {
+		on_menu_activate (menu_item, sp);
+		gtk_option_menu_set_history (GTK_OPTION_MENU (sp->format_menu),
+					     count);
+	      }
 
-	  g_signal_connect (G_OBJECT (menu_item), "activate",
-			    G_CALLBACK (on_menu_activate), sp);
-	}
+	    g_signal_connect (G_OBJECT (menu_item), "activate",
+			      G_CALLBACK (on_menu_activate), sp);
+
+	    ++count;
+	  }
+      }
 
     g_free (format);
+    format = NULL;
   }
 
   widget = gtk_button_new_from_stock (GTK_STOCK_CANCEL);
