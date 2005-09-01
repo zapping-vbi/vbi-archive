@@ -6,21 +6,21 @@ noinst_LTLIBRARIES = libvbi.la
 AM_CFLAGS = -DZAPPING8
 
 BUILT_SOURCES = \
-	wstfont2.xbm
+	wstfont2.xbm \
+	ccfont3.xbm
 
 EXTRA_DIST = \
 	$(BUILT_SOURCES) \
 	fontgen.c \
-	wstfont2.pbm
+	wstfont2.pbm \
+	ccfont3.pbm
 
 CLEANFILES = \
 	$(BUILT_SOURCES) \
 	fontgen
 
-# $(top_srcdir)/common has intl-priv.h.
 INCLUDES = \
 	-I$(top_srcdir) \
-	-I$(top_srcdir)/common \
 	-D_GNU_SOURCE \
 	-D_REENTRANT \
 	$(UNICODE_CFLAGS)
@@ -28,11 +28,13 @@ INCLUDES = \
 libvbi_la_SOURCES = \
 	bcd.c bcd.h \
 	cache.c cache.h cache-priv.h \
+	caption_decoder.c caption_decoder.h caption_decoder-priv.h \
 	conv.c conv.h \
 	dlist.h \
 	event.c event.h event-priv.h \
 	exp-gfx.c exp-gfx.h wstfont2.xbm \
 	exp-html.c \
+	exp-sub.c \
 	exp-txt.c exp-txt.h \
 	exp-vtx.c \
 	export.c export.h export-priv.h \
@@ -48,18 +50,22 @@ libvbi_la_SOURCES = \
 	pdc.h \
 	sampling_par.h \
 	search.c search.h \
+	sliced.h \
 	teletext.c \
 	teletext_decoder.c teletext_decoder-priv.h teletext_decoder.h \
 	top_title.c top_title.h \
 	ure.c ure.h \
+	vbi_decoder.c vbi_decoder.h vbi_decoder-priv.h \
 	vt.h
 
-wstfont2.xbm: wstfont2.pbm fontgen.c Makefile.am
+exp-gfx.c: wstfont2.xbm ccfont3.xbm
+
+wstfont2.xbm: wstfont2.pbm Makefile.am
 	$(MAKE) $(AM_MAKEFLAGS) fontgen$(EXEEXT)
 	$(top_builddir)/libvbi/fontgen$(EXEEXT) xbm wstfont2 10 < $< > $@
-#ccfont3.xbm: ccfont3.pbm fontgen Makefile.am
-#	$(MAKE) $(AM_MAKEFLAGS) fontgen$(EXEEXT)
-#	$(top_builddir)/libvbi/fontgen$(EXEEXT) xbm ccfont3 13 < $< > $@
+ccfont3.xbm: ccfont3.pbm Makefile.am
+	$(MAKE) $(AM_MAKEFLAGS) fontgen$(EXEEXT)
+	$(top_builddir)/libvbi/fontgen$(EXEEXT) xbm ccfont3 13 < $< > $@
 
 # must prevent link conflict with libvbi 0.2
 great_rename:
