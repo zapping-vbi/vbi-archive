@@ -288,6 +288,36 @@ on_button_press			(GtkWidget *		widget _unused_,
 }
 
 static void
+show_teletext_buttons		(gboolean		on)		
+{
+
+#ifdef HAVE_LIBZVBI
+
+  GtkAction *teletext_action;
+  GtkAction *restore_action;
+
+  teletext_action = gtk_action_group_get_action
+    (zapping->teletext_action_group, "Teletext");
+  restore_action = gtk_action_group_get_action
+    (zapping->teletext_action_group, "RestoreVideo");
+
+  if (on)
+    {
+      z_action_set_visible (teletext_action, FALSE);
+      z_action_set_visible (restore_action, TRUE);
+    }
+  else
+    {
+      z_action_set_visible (restore_action, FALSE);
+      z_action_set_visible (teletext_action, TRUE);
+      zapping_view_appbar (zapping, FALSE);
+    }
+
+#endif
+
+}
+
+static void
 stop_teletext			(void)
 {
 
@@ -338,13 +368,26 @@ start_teletext			(void)
       || !zvbi_get_object ())
     return FALSE;
 
-  /* Bktr driver needs special programming for VBI-only mode. */
   if (tv_get_controller (zapping->info) != TVENG_CONTROLLER_NONE)
     tveng_close_device (zapping->info);
+
+  /* bttv 0.8.x bug: Screws up VBI field order unless we restart VBI
+     capturing after stopping video capturing. */
+
+  zvbi_stop (/* destroy_decoder */ FALSE);
+
+  /* Bktr driver needs special programming for VBI-only mode. */
   if (-1 == tveng_attach_device (zcg_char (NULL, "video_device"),
 				 GDK_WINDOW_XWINDOW
 				 (GTK_WIDGET (zapping->video)->window),
 				 TVENG_ATTACH_VBI, zapping->info))
+    {
+      ShowBox ("Teletext mode not available.",
+	       GTK_MESSAGE_ERROR);
+      return FALSE;
+    }
+
+  if (!zvbi_start ())
     {
       ShowBox ("Teletext mode not available.",
 	       GTK_MESSAGE_ERROR);
@@ -453,31 +496,34 @@ zmisc_stop (tveng_device_info *info)
     return TRUE;
 
   /* Stop current capture mode */
-  switch (((int) zapping->display_mode) | (int) tv_get_capture_mode (info))
+  switch (zapping->display_mode)
     {
-    case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_READ:
-    case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_OVERLAY:
-    case DISPLAY_MODE_FULLSCREEN | CAPTURE_MODE_TELETEXT:
-    case DISPLAY_MODE_BACKGROUND | CAPTURE_MODE_READ:
-    case DISPLAY_MODE_BACKGROUND | CAPTURE_MODE_OVERLAY:
-    case DISPLAY_MODE_BACKGROUND | CAPTURE_MODE_TELETEXT:
+    case DISPLAY_MODE_FULLSCREEN:
+    case DISPLAY_MODE_BACKGROUND:
       if (!stop_fullscreen ())
 	return FALSE;
       break;
 
-    case DISPLAY_MODE_WINDOW | CAPTURE_MODE_READ:
-      if (!capture_stop ())
-	return FALSE;
-      break;
+    case DISPLAY_MODE_WINDOW:
+      switch (tv_get_capture_mode (info))
+	{
+	case CAPTURE_MODE_READ:
+	  if (!capture_stop ())
+	    return FALSE;
+	  break;
 
-    case DISPLAY_MODE_WINDOW | CAPTURE_MODE_OVERLAY:
-      stop_overlay ();
-      break;
+	case CAPTURE_MODE_OVERLAY:
+	  stop_overlay ();
+	  break;
 
-    case DISPLAY_MODE_WINDOW | CAPTURE_MODE_TELETEXT:
-      stop_teletext ();
-      tveng_close_device (info);
-      break;
+	case CAPTURE_MODE_TELETEXT:
+	  stop_teletext ();
+	  tveng_close_device (info);
+	  break;
+
+	default:
+	  break;
+	}
 
     default:
       break;
@@ -500,6 +546,7 @@ zmisc_stop (tveng_device_info *info)
   Returns whatever tveng returns (0 == success), but we print the
   message ourselves too, so no need to aknowledge it to the user.
 */
+extern int disable_overlay;
 int
 zmisc_switch_mode(display_mode new_dmode,
 		  capture_mode new_cmode,
@@ -510,7 +557,7 @@ zmisc_switch_mode(display_mode new_dmode,
   gint x, y, w, h;
   display_mode old_dmode;
   capture_mode old_cmode;
-  extern int disable_overlay;
+  gboolean old_caption;
   gint muted;
   gint timeout;
 
@@ -567,42 +614,15 @@ zmisc_switch_mode(display_mode new_dmode,
     goto failure;
 
 #ifdef HAVE_LIBZVBI
-  if (!flag_exit_program)
-    {
-      GtkAction *action;
-
-      if (new_dmode == DISPLAY_MODE_WINDOW
-	  && new_cmode == CAPTURE_MODE_TELETEXT)
-	{
-	  action = gtk_action_group_get_action (zapping->vbi_action_group,
-						"Teletext");
-	  z_action_set_visible (action, FALSE);
-
-	  action = gtk_action_group_get_action (zapping->vbi_action_group,
-						"RestoreVideo");
-	  z_action_set_visible (action, TRUE);
-	}
-      else
-	{
-	  action = gtk_action_group_get_action (zapping->vbi_action_group,
-						"RestoreVideo");
-	  z_action_set_visible (action, FALSE);
-
-	  action = gtk_action_group_get_action (zapping->vbi_action_group,
-						"Teletext");
-	  z_action_set_visible (action, TRUE);
-
-	  zapping_view_appbar (zapping, FALSE);
-	}
-    }
-#endif /* HAVE_LIBZVBI */
+  old_caption = zconf_get_boolean
+    (NULL, "/zapping/internal/callbacks/closed_caption");
+  python_command_printf (GTK_WIDGET (zapping),
+			 "zapping.closed_caption(0)");
+#endif
 
   if (CAPTURE_MODE_NONE == new_cmode
       || CAPTURE_MODE_TELETEXT == new_cmode)
     {
-#ifdef HAVE_LIBZVBI
-      python_command_printf (GTK_WIDGET (zapping), "zapping.closed_caption(0)");
-#endif
       osd_clear();
       osd_unset_window();
     }
@@ -739,14 +759,25 @@ zmisc_switch_mode(display_mode new_dmode,
   if (old_cmode != new_cmode
       || old_dmode != new_dmode)
     {
+      enum old_tveng_capture_mode otcmode;
+
       zapping->display_mode = new_dmode;
 
-      zcs_int ((int) to_old_tveng_capture_mode (old_dmode, old_cmode),
-	       "previous_mode");
+      otcmode = to_old_tveng_capture_mode (old_dmode, old_cmode);
+      zcs_int ((int) otcmode, "previous_mode");
 
       if (old_cmode != new_cmode)
 	last_cmode = old_cmode;
+
+      show_teletext_buttons (DISPLAY_MODE_WINDOW == new_dmode
+			     && CAPTURE_MODE_TELETEXT == new_cmode);
     }
+
+#ifdef HAVE_LIBZVBI
+  if (old_caption && CAPTURE_MODE_TELETEXT != new_cmode)
+    python_command_printf (GTK_WIDGET (zapping),
+			   "zapping.closed_caption(1)");
+#endif
 
   /* Update the standards, channels, etc */
   zmodel_changed(z_input_model);
@@ -1172,6 +1203,8 @@ z_build_path			(const gchar *		path,
 	{
 	  b = g_strndup (path, i);
 
+	  /* XXX doesn't detect broken symlinks. */
+
 	  if (-1 == stat (b, &sb))
 	    {
 	      if (ENOENT != errno && ENOTDIR != errno)
@@ -1229,7 +1262,8 @@ z_build_path_with_alert		(GtkWindow *		parent,
     {
       z_show_non_modal_message_dialog
 	(parent, GTK_MESSAGE_ERROR,
-	 _("Could not create directory %s"), "%s",
+	 _("Could not create directory"),
+	 _("Could not create %s.\n%s"),
 	 path, error->message);
 
       g_error_free (error);
@@ -2594,7 +2628,8 @@ z_help_display			(GtkWindow *		parent,
       /* Error ignored. */
       zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 			 tv_get_capture_mode (zapping->info),
-			 zapping->info, /* warnings */ FALSE);
+			 zapping->info,
+			 /* warnings */ FALSE);
     }
 
   if (!gnome_help_display (filename, link_id, &error))
@@ -2626,7 +2661,8 @@ z_url_show			(GtkWindow *		parent,
       /* Error ignored. */
       zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 			 tv_get_capture_mode (zapping->info),
-			 zapping->info, /* warnings */ TRUE);
+			 zapping->info,
+			 /* warnings */ TRUE);
     }
 
   if (!gnome_url_show (url, &error))
@@ -2696,4 +2732,166 @@ z_signal_connect_python		(gpointer		instance,
 			   detailed_signal,
 			   G_CALLBACK (on_python_command1),
 			   /* const cast */ command);
+}
+
+/* ZTimeout -- like GTimeout, except the callback is called once at a
+   future time, not at intervals. The callback must return the time
+   (GTimeVal) when it wants to be called again, or "null" to remove
+   the timeout. */
+
+typedef struct _ZTimeoutSource ZTimeoutSource;
+
+struct _ZTimeoutSource
+{
+  GSource     source;
+  GTimeVal    expiration;
+};
+
+static gboolean
+z_timeout_prepare		(GSource *		source,
+				 gint *			timeout)
+{
+  ZTimeoutSource *timeout_source = (ZTimeoutSource *) source;
+  glong sec;
+  glong msec;
+  GTimeVal current_time;
+
+  g_source_get_current_time (source, &current_time);
+
+  sec = timeout_source->expiration.tv_sec - current_time.tv_sec;
+  msec = (timeout_source->expiration.tv_usec - current_time.tv_usec) / 1000;
+
+  if (sec < 0 || (0 == sec && msec < 0))
+    {
+      msec = 0;
+    }
+  else
+    {
+      if (msec < 0)
+	{
+	  msec += 1000;
+	  sec -= 1;
+	}
+
+      msec = MIN ((guint) G_MAXINT, (guint) msec + 1000 * (guint) sec);
+    }
+
+  *timeout = (gint) msec;
+  
+  return (0 == msec);
+}
+
+static gboolean 
+z_timeout_check			(GSource *		source)
+{
+  ZTimeoutSource *timeout_source = (ZTimeoutSource *) source;
+  GTimeVal current_time;
+
+  g_source_get_current_time (source, &current_time);
+  
+  return ((timeout_source->expiration.tv_sec < current_time.tv_sec) ||
+	  ((timeout_source->expiration.tv_sec == current_time.tv_sec) &&
+	   (timeout_source->expiration.tv_usec <= current_time.tv_usec)));
+}
+
+static gboolean
+z_timeout_dispatch		(GSource *		source,
+				 GSourceFunc		callback,
+				 gpointer		user_data)
+{
+  ZTimeoutSource *timeout_source = (ZTimeoutSource *) source;
+  ZTimeoutFunc cb = (ZTimeoutFunc) callback;
+
+  if (!cb)
+    {
+      g_warning ("Timeout source dispatched without callback\n"
+		 "You must call g_source_set_callback().");
+      return FALSE;
+    }
+
+  timeout_source->expiration = cb (user_data);
+
+  return (0 != timeout_source->expiration.tv_sec ||
+	  0 != timeout_source->expiration.tv_usec);
+}
+
+static GSourceFuncs
+z_timeout_funcs =
+{
+  .prepare	= z_timeout_prepare,
+  .check	= z_timeout_check,
+  .dispatch	= z_timeout_dispatch,
+};
+
+/**
+ * z_timeout_source_new:
+ * @wakeup: call once at this time.
+ * 
+ * Return value: the newly-created timeout source
+ **/
+static GSource *
+z_timeout_source_new		(GTimeVal		wakeup)
+{
+  GSource *source;
+  ZTimeoutSource *timeout_source;
+
+  source = g_source_new (&z_timeout_funcs, sizeof (ZTimeoutSource));
+  timeout_source = (ZTimeoutSource *) source;
+  timeout_source->expiration = wakeup;
+  
+  return source;
+}
+
+/**
+ * z_timeout_add_full:
+ * @priority: the priority of the idle source. Typically this will be in the
+ *            range between #G_PRIORITY_DEFAULT_IDLE and #G_PRIORITY_HIGH_IDLE.
+ * @wakeup: first time to call
+ * @function: function to call
+ * @data:     data to pass to @function
+ * @notify:   function to call when the idle is removed, or %NULL
+ * 
+ * Sets a function to be called once at a later time.
+ *
+ * Return value: the id of event source.
+ **/
+static guint
+z_timeout_add_full		(gint			priority,
+				 GTimeVal		wakeup,
+				 ZTimeoutFunc		function,
+				 gpointer		data,
+				 GDestroyNotify		notify)
+{
+  GSource *source;
+  guint id;
+  
+  g_return_val_if_fail (function != NULL, 0);
+
+  source = z_timeout_source_new (wakeup);
+
+  if (priority != G_PRIORITY_DEFAULT)
+    g_source_set_priority (source, priority);
+
+  g_source_set_callback (source, (GSourceFunc) function, data, notify);
+  id = g_source_attach (source, NULL);
+  g_source_unref (source);
+
+  return id;
+}
+
+/**
+ * z_timeout_add:
+ * @wakeup: first time to call
+ * @function: function to call
+ * @data:     data to pass to @function
+ * 
+ * Return value: the id of event source.
+ **/
+guint
+z_timeout_add			(GTimeVal		wakeup,
+				 ZTimeoutFunc		function,
+				 gpointer		data)
+{
+  return z_timeout_add_full (G_PRIORITY_DEFAULT, wakeup,
+			     function, data, NULL);
 }
