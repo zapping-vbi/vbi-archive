@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.43 2005-07-14 05:48:00 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.44 2005-09-01 01:30:45 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -44,6 +44,9 @@
 #include "zvideo.h"
 #include "globals.h"
 #include "zvbi.h"
+#include "zstack.h"
+#include "plugins/subtitle/view.h"
+#include "subtitle.h"
 
 extern gboolean was_fullscreen;
 
@@ -51,6 +54,8 @@ static x11_vidmode_info *	svidmodes;
 static GtkWidget *		drawing_area;
 static GtkWidget * 		black_window; /* The black window when you go
 						 fullscreen */
+static GtkWidget *		full_stack;
+static SubtitleView *		subtitles;
 static x11_vidmode_state	old_vidmode;
 static const tv_screen *	screen;
 
@@ -269,11 +274,91 @@ find_screen			(void)
   return xs;
 }
 
+GdkPixbuf *
+fullscreen_get_subtitle_image	(GdkRectangle *		expose,
+				 guint			width,
+				 guint			height)
+{
+  if (subtitles)
+    return subtitles->get_image (subtitles, expose, width, height);
+  else
+    return NULL;
+}
+
+static const gchar *
+subfull_key = "/zapping/internal/subtitle/fullscreen";
+
+gboolean
+fullscreen_activate_subtitles	(gboolean		active)
+{
+  g_assert (NULL != full_stack);
+
+  if (active)
+    {
+      if (_subtitle_view_new)
+	{
+	  if (!subtitles)
+	    {
+	      subtitles = (SubtitleView *) _subtitle_view_new ();
+
+	      subt_set_position_from_config (subtitles, subfull_key);
+
+	      gtk_widget_show (GTK_WIDGET (subtitles));
+
+	      z_signal_connect_const
+		(G_OBJECT (subtitles),
+		 "z-position-changed",
+		 G_CALLBACK (subt_store_position_in_config),
+		 subfull_key);
+
+	      g_signal_connect (G_OBJECT (subtitles), "destroy",
+				G_CALLBACK (gtk_widget_destroyed),
+				&subtitles);
+
+	      z_stack_put (Z_STACK (full_stack),
+			   GTK_WIDGET (subtitles),
+			   ZSTACK_SUBTITLES);
+	    }
+
+	  subtitles->monitor_page (subtitles,
+				   zvbi_caption_pgno);
+
+	  if (CAPTURE_MODE_OVERLAY == tv_get_capture_mode (zapping->info))
+	    {
+	      const tv_window *w;
+
+	      w = tv_cur_overlay_window (zapping->info);
+
+	      subtitles->set_rolling (subtitles, FALSE);
+
+	      subtitles->set_video_bounds (subtitles,
+					   w->x, w->y, w->width, w->height);
+	    }
+	}
+    }
+  else
+    {
+      if (subtitles)
+	{
+	  gtk_widget_destroy (GTK_WIDGET (subtitles));
+	  subtitles = NULL;
+	}
+    }
+
+  return TRUE;
+}
+
 gboolean
 stop_fullscreen			(void)
 {
   g_assert (DISPLAY_MODE_FULLSCREEN == zapping->display_mode
 	    || DISPLAY_MODE_BACKGROUND == zapping->display_mode);
+
+  if (subtitles)
+    {
+      gtk_widget_destroy (GTK_WIDGET (subtitles));
+      subtitles = NULL;
+    }
 
   switch (tv_get_capture_mode (zapping->info))
     {
@@ -379,10 +464,13 @@ start_fullscreen		(display_mode		dmode,
     (window, gtk_ui_manager_get_accel_group (zapping->ui_manager));
 
 
+  full_stack = z_stack_new ();
+  gtk_widget_show (full_stack);
+  gtk_container_add (GTK_CONTAINER (black_window), full_stack);
+
   fixed = gtk_fixed_new ();
   gtk_widget_show (fixed);
-  gtk_container_add (GTK_CONTAINER (black_window), fixed);
-
+  z_stack_put (Z_STACK (full_stack), fixed, ZSTACK_VIDEO);
 
   if (CAPTURE_MODE_TELETEXT == cmode)
     {
