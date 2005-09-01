@@ -180,6 +180,12 @@ autoconnect_modify		(GtkDialog	*dialog,
 		       G_CALLBACK(modify_page),
 		       GINT_TO_POINTER(page_id));      
     }
+  else if (GTK_IS_COMBO_BOX(widget))
+    {
+      g_signal_connect(G_OBJECT(widget), "changed",
+		       G_CALLBACK(modify_page),
+		       GINT_TO_POINTER(page_id));      
+    }
   else if (GTK_IS_OPTION_MENU(widget))
     {
       g_signal_connect(G_OBJECT(widget), "changed",
