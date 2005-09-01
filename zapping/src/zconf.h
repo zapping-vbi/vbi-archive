@@ -113,10 +113,10 @@ void zconf_set_string(const gchar * new_value, const gchar * path);
 
 /*
   Creates an string value. Sets desc to NULL to leave it
-  undocumented. Can fail if the given string is too large. FALSE on error.
+  undocumented.
 */
-gboolean zconf_create_string(const gchar * value, const gchar * desc,
-			     const gchar * path);
+void zconf_create_string(const gchar * value, const gchar * desc,
+			 const gchar * path);
 
 /*
   Gets a boolean value. If where is not NULL, the value is also stored
@@ -152,6 +152,10 @@ void zconf_set_float(gfloat new_value, const gchar * path);
 void zconf_create_float(gfloat new_value, const gchar * desc,
 			const gchar * path);
 
+gboolean
+zconf_copy			(const gchar *		dst,
+				 const gchar *		src);
+
 /*
   Documentation functions.
 */
@@ -161,7 +165,7 @@ void zconf_create_float(gfloat new_value, const gchar * desc,
   returned, and zconf_error will return non-zero). If where is not
   NULL, the string will also be stored there (after g_strdup()'ing it)
 */
-gchar * zconf_get_description(gchar ** where, const gchar * path);
+const gchar * zconf_get_description(gchar ** where, const gchar * path);
 
 /*
   Sets the string that describes a key.
@@ -180,7 +184,7 @@ gboolean zconf_set_description(const gchar * desc, const gchar * path);
   string, and it will only be valid until the next zconf call. if
   where is not NULL, a new copy will be g_strdup()'ed there.
 */
-gchar * zconf_get_nth(guint nth, gchar ** where, const gchar * path);
+const gchar * zconf_get_nth(guint nth, gchar ** where, const gchar * path);
 
 /*
   Removes a key from the database. All the keys descendant from this
@@ -199,7 +203,7 @@ enum zconf_type zconf_get_type(const gchar * key);
   allocated, it may be overwritten the next time you call any zconf
   function. Always succeeds (returns [Unknown] if the type is unknown :-)
 */
-const char *
+const gchar *
 zconf_type_string(enum zconf_type type);
 
 /*

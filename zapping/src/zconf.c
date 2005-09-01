@@ -58,7 +58,13 @@ struct zconf_key
   gchar * name; /* The name of the key */
   gchar * full_path; /* Full path to this key */
   gchar * description; /* description for the key */
-  gpointer contents; /* Its contents */
+  union
+  {
+    gint integer;
+    gchar * string;
+    gfloat floating;
+    gboolean boolean;
+  } contents; /* Its contents */
   struct zconf_key * parent; /* A pointer to the parent node */
   GList * tree; /* A list to the children of the key */
   ZModel * model; /* for hooks */
@@ -350,97 +356,245 @@ gint zconf_error(void)
   return (zconf_we);
 }
 
+static gboolean
+p_zconf_copy			(const gchar *		dst_path,
+				 struct zconf_key *	src_key)
+{
+  struct zconf_key *dst_key;
+  gchar *new_path;
+
+  new_path = g_strconcat (dst_path, "/", src_key->name, NULL);
+
+  dst_key = p_zconf_resolve (new_path, zconf_root);
+
+  if (NULL == dst_key)
+    {
+      /* The value doesn't exist yet, create it */
+      dst_key = p_zconf_create (new_path, zconf_root);
+      dst_key->type = src_key->type;
+    }
+  else
+    {
+      g_assert (dst_key->type == src_key->type);
+    }
+
+  switch (src_key->type)
+    {
+      GList *p;
+
+    case ZCONF_TYPE_DIR:
+      for (p = src_key->tree; p; p = p->next)
+	{
+	  struct zconf_key *child_key = (struct zconf_key *) p->data;
+
+	  if (!p_zconf_copy (new_path, child_key))
+	    goto failure;
+	}
+      break;
+
+    case ZCONF_TYPE_INTEGER:
+      if (dst_key->contents.integer != src_key->contents.integer)
+	{
+	  dst_key->contents.integer = src_key->contents.integer;
+
+	  if (dst_key->model)
+	    zmodel_changed (dst_key->model);
+	}
+      break;
+
+    case ZCONF_TYPE_STRING:
+      if (NULL == dst_key->contents.string)
+	{
+	  /* Is a new key. */
+	  dst_key->contents.string = g_strdup (src_key->contents.string);
+	}
+      else if (0 != strcmp (dst_key->contents.string,
+			    src_key->contents.string))
+	{
+	  g_free (dst_key->contents.string);
+
+	  dst_key->contents.string = g_strdup (src_key->contents.string);
+
+	  if (dst_key->model)
+	    zmodel_changed (dst_key->model);
+	}
+      break;
+
+    case ZCONF_TYPE_FLOAT:
+      if (dst_key->contents.floating != src_key->contents.floating)
+	{
+	  dst_key->contents.floating = src_key->contents.floating;
+
+	  if (dst_key->model)
+	    zmodel_changed (dst_key->model);
+	}
+      break;
+
+    case ZCONF_TYPE_BOOLEAN:
+      if (dst_key->contents.boolean != src_key->contents.boolean)
+	{
+	  dst_key->contents.boolean = src_key->contents.boolean;
+
+	  if (dst_key->model)
+	    zmodel_changed (dst_key->model);
+	}
+      break;
+
+    default:
+      g_assert_not_reached ();
+      break;
+    }
+
+  g_free (new_path);
+  new_path = NULL;
+
+  return TRUE;
+
+ failure:
+  g_free (new_path);
+  new_path = NULL;
+
+  return FALSE;
+}
+
+/* Copies the key src into dir dst. Copies recursively if src is
+   a dir. dst must be a dir, if it exists. */
+gboolean
+zconf_copy			(const gchar *		dst_path,
+				 const gchar *		src_path)
+{
+  struct zconf_key *dst_key;
+  struct zconf_key *src_key;
+
+  g_assert (NULL != dst_path);
+  g_assert (NULL != src_path);
+
+  dst_key = p_zconf_resolve (dst_path, zconf_root);
+
+  if (NULL == dst_key)
+    {
+      /* The value doesn't exist yet, create it */
+      dst_key = p_zconf_create (dst_path, zconf_root);
+      dst_key->type = ZCONF_TYPE_DIR;
+    }
+  else
+    {
+      g_assert (ZCONF_TYPE_DIR == dst_key->type);
+    }
+
+  src_key = p_zconf_resolve (src_path, zconf_root);
+
+  if (NULL == src_key)
+    {
+      /* Doesn't exist. */
+      zconf_we = FALSE;
+    }
+  else
+    {
+      zconf_we = !p_zconf_copy (dst_path, src_key);
+    }
+
+  return !zconf_we;
+}
+
+#define GET_VALUE(_type, _field, _nothing)				\
+  struct zconf_key *key;						\
+  zconf_we = TRUE; /* start with an error */				\
+  g_assert (NULL != path);						\
+  g_assert (zconf_started);						\
+  g_assert (NULL != zconf_root);					\
+  key = p_zconf_resolve (path, zconf_root);				\
+  if (where)								\
+    *where = _nothing;							\
+  if (!key)								\
+    return _nothing;							\
+  if (_type != key->type)						\
+    return _nothing;							\
+  if (where)								\
+    *where = key->contents._field;					\
+  zconf_we = FALSE;							\
+  return key->contents._field;
+
+#define SET_VALUE(_type, _field)					\
+  struct zconf_key *key;						\
+  zconf_we = TRUE; /* start with an error */				\
+  g_assert (NULL != path);						\
+  g_assert (zconf_started);						\
+  g_assert (NULL != zconf_root);					\
+  if (!(key = p_zconf_resolve (path, zconf_root)))			\
+    {									\
+      key = p_zconf_create (path, zconf_root);				\
+      key->type = _type;						\
+    }									\
+  else if (_type != key->type)						\
+    {									\
+      if (ZCONF_TYPE_DIR != key->type)					\
+	g_warning ("Changing the type of %s from %s to %s.",		\
+		   path, zconf_type_string (key->type),			\
+		   zconf_type_string (_type));				\
+      if (ZCONF_TYPE_STRING == key->type)				\
+	{								\
+	  g_free (key->contents.string);				\
+	  key->contents.string = NULL;					\
+	}								\
+      key->type = _type;						\
+    }									\
+  if (ZCONF_TYPE_STRING != _type					\
+      && new_value != key->contents._field)				\
+    {									\
+      key->contents._field = new_value;					\
+      if (key->model)							\
+	zmodel_changed (key->model);					\
+    }									\
+  zconf_we = FALSE;
+
+#define CREATE_VALUE(_type, _field)					\
+  struct zconf_key *key;						\
+  zconf_we = TRUE; /* start with an error */				\
+  g_assert (NULL != path);						\
+  g_assert (zconf_started);						\
+  g_assert (NULL != zconf_root);					\
+  if (!(key = p_zconf_resolve (path, zconf_root)))			\
+    {									\
+      key = p_zconf_create (path, zconf_root);				\
+      key->type = _type;						\
+      key->contents._field = new_value;					\
+    }									\
+  else if (_type != key->type)						\
+    {									\
+      if (ZCONF_TYPE_DIR != key->type)					\
+	g_warning ("Changing the type of %s from %s to %s.",		\
+		   path, zconf_type_string (key->type),			\
+		   zconf_type_string (_type));				\
+      if (ZCONF_TYPE_STRING == key->type)				\
+	g_free (key->contents.string);					\
+      key->type = _type;						\
+      key->contents._field = new_value;					\
+    }									\
+  if (desc && !key->description)					\
+    key->description = g_strdup (desc);					\
+  zconf_we = FALSE;
+
 /*
   Gets an integer value, returns 0 on error (ambiguous). If where
   is not NULL, the value is also stored in the location pointed to by
   where.
 */
-gint zconf_get_int(gint * where, const gchar * path)
+gint
+zconf_get_int			(gint *			where,
+				 const gchar *		path)
 {
-  struct zconf_key * key;
-  zconf_we = TRUE; /* Start with an error */
-
-  g_assert(path != NULL);
-  g_assert(zconf_started == TRUE);
-  g_assert(zconf_root != NULL);
-
-  key = p_zconf_resolve(path, zconf_root);
-
-  /* To avoid errors */
-  if (where)
-    *where = 0;
-
-  if (!key)
-    return 0;
-
-  if (key -> type != ZCONF_TYPE_INTEGER)
-    return 0;
-
-  if (key->contents == NULL)
-    return 0;
-
-  if (where != NULL)
-    /* Save a copy here too */
-    *where = *((gint*)key->contents);
-
-  zconf_we = FALSE;
-  return (*((gint*)key->contents));
+  GET_VALUE (ZCONF_TYPE_INTEGER, integer, 0);
 }
 
 /*
   Sets an integer value, creating the path to it if needed.
 */
-void zconf_set_int(gint new_value, const gchar * path)
+void
+zconf_set_int			(gint			new_value,
+				 const gchar *		path)
 {
-  struct zconf_key * key;
-  zconf_we = TRUE; /* Start with an error */
-
-  g_assert(path != NULL);
-  g_assert(zconf_started == TRUE);
-  g_assert(zconf_root != NULL);
-
-  key = p_zconf_resolve(path, zconf_root);
-
-  if (!key) /* The value doesn't exist yet, create it */
-    {
-      key = p_zconf_create(path, zconf_root);
-      /* Set the type of this new value */
-      key->type = ZCONF_TYPE_INTEGER;
-    }
-
-  /* Check if we are changing the value of the key, and warn if it is
-     pertinent */
-  if (key->type != ZCONF_TYPE_INTEGER)
-    {
-      if (key->type != ZCONF_TYPE_DIR)
-	g_warning("Changing the value of %s from %s to %s",
-		  path,
-		  zconf_type_string(key->type),
-		  zconf_type_string(ZCONF_TYPE_INTEGER));
-
-      /* Free anything that was previously allocated here */
-      if (key->contents)
-	g_free(key->contents);
-
-      key -> contents = NULL;
-      key -> type = ZCONF_TYPE_INTEGER;
-    }
-
-  zconf_we = FALSE;
-
-  /* Set the new value */
-  if (!key->contents || *(gint*)key->contents != new_value)
-    {
-      /* If there is no memory reserved for this key, create it */
-      if (key->contents == NULL)
-	key->contents = g_malloc(sizeof(gint));
-
-      *((gint*)key->contents) = new_value;
-      
-      /* notify of the change */
-      if (key->model)
-	zmodel_changed(key->model);
-    }
+  SET_VALUE (ZCONF_TYPE_INTEGER, integer);
 }
 
 /*
@@ -451,41 +605,7 @@ void zconf_set_int(gint new_value, const gchar * path)
 void zconf_create_int(gint new_value, const gchar * desc,
 			  const gchar * path)
 {
-  struct zconf_key * key;
-  zconf_we = TRUE; /* Start with an error */
-
-  g_assert(path != NULL);
-  g_assert(zconf_started == TRUE);
-  g_assert(zconf_root != NULL);
-
-  key = p_zconf_resolve(path, zconf_root);
-
-  if (!key) /* The value doesn't exist yet, create it */
-    {
-      key = p_zconf_create(path, zconf_root);
-
-      /* Set the type of this new value */
-      key->type = ZCONF_TYPE_INTEGER;
-
-      /* If there is no memory reserved for this key, create it */
-      if (key->contents == NULL)
-	key->contents = g_malloc(sizeof(gint));
-      
-      /* Set the new value */
-      *((gint*)key->contents) = new_value;
-    }
-
-  if (key -> type != ZCONF_TYPE_INTEGER)
-    g_warning("Trying to create %s as %s, but it existed before"
-		" as %s",
-	      path, zconf_type_string(ZCONF_TYPE_INTEGER),
-	      zconf_type_string(key -> type));
-
-  /* If we have no description, use the supplied one (if supplied) */
-  if ((key->description == NULL) && (desc != NULL))
-    key->description = g_strdup(desc);
-
-  zconf_we = FALSE;
+  CREATE_VALUE (ZCONF_TYPE_INTEGER, integer);
 }
 
 guint zconf_get_uint(guint * where, const gchar * path)
@@ -512,236 +632,141 @@ void zconf_create_uint(guint new_value, const gchar * desc,
   if where is not NULL, zconf will g_strdup the string itself, and
   place a pointer to it in where, that should be freed later with g_free.
 */
-const gchar * zconf_get_string(gchar ** where, const gchar * path)
+const gchar *
+zconf_get_string		(gchar **		where,
+				 const gchar *		path)
 {
-  struct zconf_key * key;
-  zconf_we = TRUE; /* Start with an error */
+  struct zconf_key *key;						
 
-  g_assert(path != NULL);
-  g_assert(zconf_started == TRUE);
-  g_assert(zconf_root != NULL);
+  zconf_we = TRUE; /* start with an error */				
 
-  key = p_zconf_resolve(path, zconf_root);
+  g_assert (NULL != path);						
+  g_assert (zconf_started);						
+  g_assert (NULL != zconf_root);					
 
-  /* To avoid errors */
-  if (where)
+  key = p_zconf_resolve (path, zconf_root);				
+
+  if (where)								
     *where = NULL;
 
-  if (!key)
+  if (!key)								
     return NULL;
 
-  if (key -> type != ZCONF_TYPE_STRING)
+  if (ZCONF_TYPE_STRING != key->type)
     return NULL;
 
-  if (key->contents == NULL)
-    return NULL;
+  if (where)								
+    *where = g_strdup (key->contents.string);
 
-  if (where != NULL)
-    /* Save a copy here too */
-    *where = g_strdup((gchar*)key->contents);
+  zconf_we = FALSE;							
 
-  zconf_we = FALSE;
-  return ((gchar*)key->contents);
+  return key->contents.string;
 }
 
 /*
   Sets an string value to the given string.
 */
-void zconf_set_string(const gchar * new_value, const gchar * path)
+void
+zconf_set_string		(const gchar *		new_value,
+				 const gchar *		path)
 {
-  struct zconf_key * key;
-  zconf_we = TRUE; /* Start with an error */
+  struct zconf_key *key;						
 
-  g_assert(path != NULL);
-  g_assert(zconf_started == TRUE);
-  g_assert(zconf_root != NULL);
+  zconf_we = TRUE; /* start with an error */				
 
-  if (!new_value)
-    new_value = "";
+  g_assert (NULL != path);						
+  g_assert (zconf_started);						
+  g_assert (NULL != zconf_root);					
 
-  key = p_zconf_resolve(path, zconf_root);
-
-  if (!key) /* The value doesn't exist yet, create it */
-    {
-      key = p_zconf_create(path, zconf_root);
-      /* Set the type of this new value */
+  if (!(key = p_zconf_resolve (path, zconf_root)))			
+    {									
+      key = p_zconf_create (path, zconf_root);				
       key->type = ZCONF_TYPE_STRING;
-    }
+    }									
+  else if (ZCONF_TYPE_STRING != key->type)
+    {									
+      if (ZCONF_TYPE_DIR != key->type)					
+	g_warning ("Changing the type of %s from %s to %s.",		
+		   path, zconf_type_string (key->type),			
+		   zconf_type_string (ZCONF_TYPE_STRING));
 
-  /* Check if we are changing the value of the key, and warn if it is
-     pertinent */
-  if (key->type != ZCONF_TYPE_STRING)
-    {
-      if (key->type != ZCONF_TYPE_DIR)
-	g_warning("Changing the value of %s from %s to %s",
-		  path,
-		  zconf_type_string(key->type),
-		  zconf_type_string(ZCONF_TYPE_STRING));
+      key->type = ZCONF_TYPE_STRING;
+      key->contents.string = NULL;
+    }									
 
-      /* Free anything that was previously allocated here */
-      if (key->contents)
-	g_free(key->contents);
-
-      key -> contents = NULL;
-      key -> type = ZCONF_TYPE_STRING;
+  if (NULL == key->contents.string /* type changed to string */	
+      || 0 != strcmp (key->contents.string, new_value))		
+    {								
+      g_free (key->contents.string);				
+      key->contents.string = g_strdup (new_value ? new_value : "");	
+	
+      if (key->model)						
+	zmodel_changed (key->model);				
     }
 
   zconf_we = FALSE;
-
-  if (!key->contents || strcmp(key->contents, new_value))
-    {
-      /* Free any memory previously allocated */
-      if (key->contents != NULL)
-	{
-	  g_free(key->contents);
-	  key->contents = NULL;
-	}
-
-      /* Set the new value */
-      key->contents = g_strdup(new_value);
-      
-      /* notify of the change */
-      if (key->model)
-	zmodel_changed(key->model);
-    }
 }
 
 /*
   Creates an string value. Sets desc to NULL to leave it
   undocumented. Can fail if the given string is too large. FALSE on error.
 */
-gboolean zconf_create_string(const gchar * value, const gchar * desc,
-			     const gchar * path)
+void
+zconf_create_string		(const gchar *		new_value,
+				 const gchar *		desc,
+				 const gchar *		path)
 {
-  struct zconf_key * key;
-  zconf_we = TRUE; /* Start with an error */
+  struct zconf_key *key;						
 
-  g_assert(path != NULL);
-  g_assert(zconf_started == TRUE);
-  g_assert(zconf_root != NULL);
-  g_assert(value != NULL);
+  zconf_we = TRUE; /* start with an error */				
 
-  key = p_zconf_resolve(path, zconf_root);
+  g_assert (NULL != path);						
+  g_assert (zconf_started);						
+  g_assert (NULL != zconf_root);					
 
-  if (!key) /* The value doesn't exist yet, create it */
-    {
-      key = p_zconf_create(path, zconf_root);
+  if (!(key = p_zconf_resolve (path, zconf_root)))			
+    {									
+      key = p_zconf_create (path, zconf_root);				
 
-      /* Set the type of this new value */
       key->type = ZCONF_TYPE_STRING;
+      key->contents.string = g_strdup (new_value);			
+    }									
+  else if (ZCONF_TYPE_STRING != key->type)
+    {									
+      if (ZCONF_TYPE_DIR != key->type)					
+	g_warning ("Changing the type of %s from %s to %s.",		
+		   path, zconf_type_string (key->type),			
+		   zconf_type_string (ZCONF_TYPE_STRING));
 
-      /* If there is no memory reserved for this key, create it */
-      if (key->contents == NULL)
-	key->contents = g_strdup(value);
-
-      if (key->contents == NULL)
-	return FALSE;
+      key->type = ZCONF_TYPE_STRING;
+      key->contents.string = g_strdup (new_value);			
     }
 
-  if (key -> type != ZCONF_TYPE_STRING)
-    g_warning("Trying to create %s as %s, but it existed before"
-	      " as %s",
-	      path, zconf_type_string(ZCONF_TYPE_STRING),
-	      zconf_type_string(key -> type));
-
-  /* If we have no description, use the supplied one (if supplied) */
-  if ((key->description == NULL) && (desc != NULL))
-    key->description = g_strdup(desc);
+  if (desc && !key->description)					
+    key->description = g_strdup (desc);					
 
   zconf_we = FALSE;
-  return TRUE;
 }
 
 /*
   Gets a boolean value. If where is not NULL, the value is also stored
   there. Returns FALSE on error (ambiguous, use zconf_error to check).
 */
-gboolean zconf_get_boolean(gboolean * where, const gchar * path)
+gboolean
+zconf_get_boolean		(gboolean *		where,
+				 const gchar *		path)
 {
-  struct zconf_key * key;
-  zconf_we = TRUE; /* Start with an error */
-
-  g_assert(path != NULL);
-  g_assert(zconf_started == TRUE);
-  g_assert(zconf_root != NULL);
-
-  key = p_zconf_resolve(path, zconf_root);
-
-  /* To avoid errors */
-  if (where)
-    *where = FALSE;
-
-  if (!key)
-    return FALSE;
-
-  if (key -> type != ZCONF_TYPE_BOOLEAN)
-    return FALSE;
-
-  if (key->contents == NULL)
-    return FALSE;
-
-  if (where != NULL)
-    /* Save a copy here too */
-    *where = *((gboolean*)key->contents);
-
-  zconf_we = FALSE;
-  return (*((gboolean*)key->contents));
+  GET_VALUE (ZCONF_TYPE_BOOLEAN, boolean, FALSE);
 }
 
 /*
   Sets a boolean value.
 */
-void zconf_set_boolean(gboolean new_value, const gchar * path)
+void
+zconf_set_boolean		(gboolean		new_value,
+				 const gchar *		path)
 {
-  struct zconf_key * key;
-  zconf_we = TRUE; /* Start with an error */
-
-  g_assert(path != NULL);
-  g_assert(zconf_started == TRUE);
-  g_assert(zconf_root != NULL);
-
-  key = p_zconf_resolve(path, zconf_root);
-
-  if (!key) /* The value doesn't exist yet, create it */
-    {
-      key = p_zconf_create(path, zconf_root);
-      /* Set the type of this new value */
-      key->type = ZCONF_TYPE_BOOLEAN;
-    }
-
-  /* Check if we are changing the value of the key, and warn if it is
-     pertinent */
-  if (key->type != ZCONF_TYPE_BOOLEAN)
-    {
-      if (key->type != ZCONF_TYPE_DIR)
-	g_warning("Changing the value of %s from %s to %s",
-		  path,
-		  zconf_type_string(key->type),
-		  zconf_type_string(ZCONF_TYPE_BOOLEAN));
-
-      /* Free anything that was previously allocated here */
-      if (key->contents)
-	g_free(key->contents);
-
-      key -> contents = NULL;
-      key -> type = ZCONF_TYPE_BOOLEAN;
-    }
-
-  zconf_we = FALSE;
-
-  if (!key->contents || *((gboolean*)key->contents) != new_value)
-    {
-      /* If there is no memory reserved for this key, create it */
-      if (key->contents == NULL)
-	key->contents = g_malloc(sizeof(gboolean));
-
-      /* Set the new value */
-      *((gboolean*)key->contents) = new_value;
-      
-      /* notify of the change */
-      if (key->model)
-	zmodel_changed(key->model);
-    }
+  SET_VALUE (ZCONF_TYPE_BOOLEAN, boolean);
 }
 
 /*
@@ -750,77 +775,18 @@ void zconf_set_boolean(gboolean new_value, const gchar * path)
 void zconf_create_boolean(gboolean new_value, const gchar * desc,
 			  const gchar * path)
 {
-  struct zconf_key * key;
-  zconf_we = TRUE; /* Start with an error */
-
-  g_assert(path != NULL);
-  g_assert(zconf_started == TRUE);
-  g_assert(zconf_root != NULL);
-
-  key = p_zconf_resolve(path, zconf_root);
-
-  if (!key) /* The value doesn't exist yet, create it */
-    {
-      key = p_zconf_create(path, zconf_root);
-
-      /* Set the type of this new value */
-      key->type = ZCONF_TYPE_BOOLEAN;
-
-      /* If there is no memory reserved for this key, create it */
-      if (key->contents == NULL)
-	key->contents = g_malloc(sizeof(gboolean));
-      
-      /* Set the new value */
-      *((gboolean*)key->contents) = new_value;
-    }
-
-  if (key -> type != ZCONF_TYPE_BOOLEAN)
-    g_warning("Trying to create %s as %s, but it existed before"
-	      " as %s",
-	      path, zconf_type_string(ZCONF_TYPE_BOOLEAN),
-	      zconf_type_string(key -> type));
-
-  /* If we have no description, use the supplied one (if supplied) */
-  if ((key->description == NULL) && (desc != NULL))
-    key->description = g_strdup(desc);
-
-  zconf_we = FALSE;
+  CREATE_VALUE (ZCONF_TYPE_BOOLEAN, boolean);
 }
 
 /*
   Gets a float value. If where is not NULL, the value is also stored
   there. Returns 0.0 on error (ambiguous, use zconf_error to check).
 */
-gfloat zconf_get_float(gfloat * where, const gchar * path)
+gfloat
+zconf_get_float			(gfloat *		where,
+				 const gchar *		path)
 {
-  struct zconf_key * key;
-  zconf_we = TRUE; /* Start with an error */
-
-  g_assert(path != NULL);
-  g_assert(zconf_started == TRUE);
-  g_assert(zconf_root != NULL);
-
-  key = p_zconf_resolve(path, zconf_root);
-
-  /* To avoid errors */
-  if (where)
-    *where = 0.0;
-
-  if (!key)
-    return 0;
-
-  if (key -> type != ZCONF_TYPE_FLOAT)
-    return 0;
-
-  if (key->contents == NULL)
-    return 0;
-
-  if (where != NULL)
-    /* Save a copy here too */
-    *where = *((gfloat*)key->contents);
-
-  zconf_we = FALSE;
-  return (*((gfloat*)key->contents));
+  GET_VALUE (ZCONF_TYPE_FLOAT, floating, 0.0);
 }
 
 /*
@@ -828,55 +794,7 @@ gfloat zconf_get_float(gfloat * where, const gchar * path)
 */
 void zconf_set_float(gfloat new_value, const gchar * path)
 {
-  struct zconf_key * key;
-  zconf_we = TRUE; /* Start with an error */
-
-  g_assert(path != NULL);
-  g_assert(zconf_started == TRUE);
-  g_assert(zconf_root != NULL);
-
-  key = p_zconf_resolve(path, zconf_root);
-
-  if (!key) /* The value doesn't exist yet, create it */
-    {
-      key = p_zconf_create(path, zconf_root);
-      /* Set the type of this new value */
-      key->type = ZCONF_TYPE_FLOAT;
-    }
-
-  /* Check if we are changing the value of the key, and warn if it is
-     pertinent */
-  if (key->type != ZCONF_TYPE_FLOAT)
-    {
-      if (key->type != ZCONF_TYPE_DIR)
-	g_warning("Changing the value of %s from %s to %s",
-		  path,
-		  zconf_type_string(key->type),
-		  zconf_type_string(ZCONF_TYPE_FLOAT));
-
-      /* Free anything that was previously allocated here */
-      if (key->contents)
-	g_free(key->contents);
-
-      key -> contents = NULL;
-      key -> type = ZCONF_TYPE_FLOAT;
-    }
-
-  zconf_we = FALSE;
-
-  if (!key->contents || *((gboolean*)key->contents) != new_value)
-    {
-      /* If there is no memory reserved for this key, create it */
-      if (key->contents == NULL)
-	key->contents = g_malloc(sizeof(gfloat));
-
-      /* Set the new value */
-      *((gfloat*)key->contents) = new_value;
-
-      /* notify of the change */
-      if (key->model)
-	zmodel_changed(key->model);
-    }
+  SET_VALUE (ZCONF_TYPE_FLOAT, floating);
 }
 
 /*
@@ -885,41 +803,7 @@ void zconf_set_float(gfloat new_value, const gchar * path)
 void zconf_create_float(gfloat new_value, const gchar * desc,
 			const gchar * path)
 {
-  struct zconf_key * key;
-  zconf_we = TRUE; /* Start with an error */
-
-  g_assert(path != NULL);
-  g_assert(zconf_started == TRUE);
-  g_assert(zconf_root != NULL);
-
-  key = p_zconf_resolve(path, zconf_root);
-
-  if (!key) /* The value doesn't exist yet, create it */
-    {
-      key = p_zconf_create(path, zconf_root);
-
-      /* Set the type of this new value */
-      key->type = ZCONF_TYPE_FLOAT;
-
-      /* If there is no memory reserved for this key, create it */
-      if (key->contents == NULL)
-	key->contents = g_malloc(sizeof(gfloat));
-      
-      /* Set the new value */
-      *((gfloat*)key->contents) = new_value;
-    }
-
-  if (key -> type != ZCONF_TYPE_FLOAT)
-    g_warning("Trying to create %s as %s, but it existed before"
-	      " as %s",
-	      path, zconf_type_string(ZCONF_TYPE_FLOAT),
-	      zconf_type_string(key -> type));
-
-  /* If we have no description, use the supplied one (if supplied) */
-  if ((key->description == NULL) && (desc != NULL))
-    key->description = g_strdup(desc);
-
-  zconf_we = FALSE;
+  CREATE_VALUE (ZCONF_TYPE_FLOAT, floating);
 }
 
 /*
@@ -931,7 +815,9 @@ void zconf_create_float(gfloat new_value, const gchar * desc,
   returned, and zconf_error will return non-zero). If where is not
   NULL, the string will also be stored there (after g_strdup()'ing it)
 */
-gchar * zconf_get_description(gchar ** where, const gchar * path)
+const gchar *
+zconf_get_description		(gchar **		where,
+				 const gchar *		path)
 {
   struct zconf_key * key;
   zconf_we = TRUE; /* Start with an error */
@@ -945,12 +831,17 @@ gchar * zconf_get_description(gchar ** where, const gchar * path)
   if (!key)
     return NULL;
 
-  if ((where != NULL) && (key -> description != NULL))
-    /* Save a copy here too */
-    *where = g_strdup(key->description);
+  if (where)
+    {
+      *where = NULL;
+
+      if (NULL != key->description)
+	*where = g_strdup (key->description);
+    }
 
   zconf_we = FALSE;
-  return (key->description);
+
+  return key->description;
 }
 
 /*
@@ -996,7 +887,10 @@ gboolean zconf_set_description(const gchar * desc, const gchar * path)
   string, and it will only be valid until the next zconf call. if
   where is not NULL, a new copy will be g_strdup()'ed there.
 */
-gchar * zconf_get_nth(guint index, gchar ** where, const gchar * path)
+const gchar *
+zconf_get_nth			(guint			index,
+				 gchar **		where,
+				 const gchar *		path)
 {
   struct zconf_key * key;
   struct zconf_key * subkey; /* The found key */
@@ -1092,7 +986,7 @@ enum zconf_type zconf_get_type(const gchar * path)
   allocated, it may be overwritten the next time you call any zconf
   function. Always succeeds (returns [Unknown] if the type is unknown :-)
 */
-const char *
+const gchar *
 zconf_type_string(enum zconf_type type)
 {
   switch (type)
@@ -1237,19 +1131,16 @@ p_zconf_parse(xmlNodePtr node, xmlDocPtr doc, struct zconf_key ** skey,
   switch (key_type) /* Get the value */
     {
     case ZCONF_TYPE_BOOLEAN:
-      new_key -> contents = g_malloc(sizeof(gboolean));
-      *((gboolean*)new_key -> contents) = atoi(node_string);
+      new_key->contents.boolean = atoi(node_string);
       break;
     case ZCONF_TYPE_INTEGER:
-      new_key -> contents = g_malloc(sizeof(gint));
-      *((gint*) new_key -> contents) = atoi(node_string);
+      new_key->contents.integer = atoi(node_string);
       break;
     case ZCONF_TYPE_FLOAT:
-      new_key -> contents = g_malloc(sizeof(gfloat));
-      *((gfloat*) new_key -> contents) = atof(node_string);
+      new_key->contents.floating = atof(node_string);
       break;
     case ZCONF_TYPE_STRING:
-      new_key -> contents = g_strdup(node_string);
+      new_key->contents.string = g_strdup(node_string);
       break;
     case ZCONF_TYPE_DIR: /* Nothing to be done here */
       break;
@@ -1294,7 +1185,6 @@ p_zconf_write(xmlNodePtr node, xmlDocPtr doc, struct zconf_key * key)
   g_assert(doc != NULL);
   g_assert(node != NULL);
   g_assert(key -> name != NULL);
-  g_assert((key->type == ZCONF_TYPE_DIR) || (key -> contents != NULL));
 
   switch (key -> type)
     {
@@ -1303,19 +1193,19 @@ p_zconf_write(xmlNodePtr node, xmlDocPtr doc, struct zconf_key * key)
       break;
     case ZCONF_TYPE_INTEGER:
       str_type = "integer";
-      str_value = g_strdup_printf("%d", *((gint*)key->contents));
+      str_value = g_strdup_printf("%d", key->contents.integer);
       break;
     case ZCONF_TYPE_BOOLEAN:
       str_type = "boolean";
-      str_value = g_strdup_printf("%d", (gint) *((gboolean*)key->contents));
+      str_value = g_strdup_printf("%d", (gint) key->contents.boolean);
       break;
     case ZCONF_TYPE_FLOAT:
       str_type = "float";
-      str_value = g_strdup_printf("%g", *((gfloat*)key->contents));
+      str_value = g_strdup_printf("%g", key->contents.floating);
       break;
     case ZCONF_TYPE_STRING:
       str_type = "string";
-      str_value = g_strdup((gchar*)key->contents);
+      str_value = g_strdup(key->contents.string);
       break;
     default:
       g_assert_not_reached();
@@ -1357,10 +1247,14 @@ p_zconf_cut_branch(struct zconf_key * key)
   g_assert(key -> name != NULL);
   g_assert(key -> full_path != NULL);
 
-  g_free(key -> name);
-  g_free(key -> full_path);
-  g_free(key -> contents);
-  g_free(key -> description);
+  g_free (key->name);
+  g_free (key->full_path);
+
+  if (ZCONF_TYPE_STRING == key->type)
+    g_free (key->contents.string);
+
+  g_free (key->description);
+
   if (key->model)
     g_object_unref(G_OBJECT(key->model));
 
@@ -1605,7 +1499,10 @@ void on_key_model_changed		(GObject	*model,
   g_assert(hook != NULL);
   g_assert(hook->callback != NULL);
 
-  hook->callback(key->full_path, key->contents, hook->data);
+  if (ZCONF_TYPE_STRING == key->type)
+    hook->callback (key->full_path, key->contents.string, hook->data);
+  else
+    hook->callback (key->full_path, &key->contents, hook->data);
 }
 
 static struct zconf_hook*
@@ -1645,7 +1542,12 @@ real_add_hook(const gchar * key_name, ZConfHook callback, gpointer data,
 		   hook);
 
   if (wakeup)
-    callback(key->full_path, key->contents, data);
+    {
+      if (ZCONF_TYPE_STRING == key->type)
+	callback (key->full_path, key->contents.string, data);
+      else
+	callback (key->full_path, &key->contents, data);
+    }
 
   return hook;
 }
