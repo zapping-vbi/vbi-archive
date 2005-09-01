@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.13 2005-04-21 04:48:17 mschimek Exp $ */
+/* $Id: main.c,v 1.14 2005-09-01 01:29:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -30,7 +30,6 @@
 #include "src/plugin_common.h"
 #include "src/properties.h"
 #include "src/zgconf.h"
-#include "src/zvbi.h"		/* zvbi_add_decoder() */
 #include "src/remote.h"
 #include "view.h"
 #include "window.h"
@@ -38,8 +37,6 @@
 #include "main.h"
 
 #define GCONF_DIR "/apps/zapping/plugins/teletext"
-
-vbi3_teletext_decoder *		td;
 
 vbi3_network			anonymous_network;
 
@@ -62,10 +59,10 @@ ttxview_popup_menu_new		(GtkWidget *		widget,
   if (!(view = teletext_view_from_widget (widget)))
     return NULL;
 
-  success = teletext_view_vbi3_link_from_pointer_position
+  success = view->link_from_pointer_position
     (view, &link, (int) event->x, (int) event->y);
 
-  widget = teletext_view_popup_menu_new (view, &link, FALSE);
+  widget = view->popup_menu (view, &link, /* large */ FALSE);
 
   if (success)
     vbi3_link_destroy (&link);
@@ -95,8 +92,8 @@ py_ttx_open_new			(PyObject *		self _unused_,
   int subpage;
   vbi3_pgno pgno;
   vbi3_subno subno;
-  guint width;
-  guint height;
+  gint width;
+  gint height;
 
   view = teletext_view_from_widget (python_command_widget ());
 
@@ -146,13 +143,13 @@ py_ttx_open_new			(PyObject *		self _unused_,
   widget = teletext_window_new ();
   window = TELETEXT_WINDOW (widget);
 
-  teletext_view_load_page (window->view, &anonymous_network, pgno, subno);
+  window->view->load_page (window->view, &anonymous_network, pgno, subno);
 
   gtk_widget_realize (widget);
 
   z_update_gui ();
 
-  gdk_window_resize (widget->window, (int) width, (int) height);
+  gdk_window_resize (widget->window, width, height);
 
   gtk_widget_show (widget);
 
@@ -183,44 +180,6 @@ actions [] = {
 };
 
 static void
-decoder				(const vbi_sliced *	sliced,
-				 unsigned int		n_lines,
-				 double			timestamp)
-{
-  while (n_lines > 0)
-    {
-      if (sliced->id & VBI_SLICED_TELETEXT_B)
-	vbi3_teletext_decoder_decode (td, sliced->data, timestamp);
-
-      ++sliced;
-      --n_lines;
-    }
-}
-
-static void
-channel_switch			(const tveng_tuned_channel *channel,
-				 guint			scanning)
-{
-  vbi3_network nk;
-
-  if (channel)
-    {
-      CLEAR (nk);
-
-      nk.name = channel->name;
-
-      /* XXX this is weak, better use a hash or CNIs. */
-      nk.user_data = (void *)(channel->index + 1);
-    }
-
-  vbi3_teletext_decoder_reset (td,
-			       channel ? &nk : NULL,
-			       (525 == scanning) ?
-			       VBI3_VIDEOSTD_SET_525_60 :
-			       VBI3_VIDEOSTD_SET_625_50);
-}
-
-static void
 plugin_close			(void)
 {
   while (teletext_windows)
@@ -236,11 +195,6 @@ plugin_close			(void)
   bookmark_list_destroy (&bookmarks);
 
   vbi3_network_destroy (&anonymous_network);
-
-  zvbi_remove_decoder (decoder, channel_switch);
-
-  vbi3_teletext_decoder_delete (td);
-  td = NULL;
 }
 
 static void
@@ -268,8 +222,6 @@ plugin_init			(PluginBridge		bridge _unused_,
   static const property_handler ph = {
     .add = properties_add,
   };
-  vbi3_cache *ca;
-  gint value;
 
   D();
 
@@ -307,29 +259,6 @@ plugin_init			(PluginBridge		bridge _unused_,
 		("Open Teletext color dialog"), "zapping.ttx_color()");
 
   D();
-
-  td = vbi3_teletext_decoder_new (NULL, NULL, VBI3_VIDEOSTD_SET_625_50);
-  g_assert (NULL != td);
-
-  D();
-
-  ca = vbi3_teletext_decoder_get_cache (td);
-
-  value = 1 << 30;
-  z_gconf_get_int (&value, GCONF_DIR "/cache_size");
-  vbi3_cache_set_memory_limit (ca, (unsigned int) value);
-
-  D();
-
-  value = 1;
-  z_gconf_get_int (&value, GCONF_DIR "/cache_networks");
-  vbi3_cache_set_network_limit (ca, (unsigned int) value);
-
-  vbi3_cache_unref (ca);
-
-  D();
-
-  zvbi_add_decoder (decoder, channel_switch);
 
   return TRUE;
 }

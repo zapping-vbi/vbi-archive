@@ -19,12 +19,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preferences.c,v 1.2 2004-12-07 17:30:43 mschimek Exp $ */
+/* $Id: preferences.c,v 1.3 2005-09-01 01:29:18 mschimek Exp $ */
 
 #include "common/intl-priv.h"
 #include "libvbi/cache.h"
 #include "src/zgconf.h"
 #include "src/zspinslider.h"
+#include "src/zvbi.h"
 #include "main.h"
 #include "preferences.h"
 
@@ -164,6 +165,7 @@ attach_combo_box		(GtkTable *		table,
 void
 teletext_prefs_apply		(TeletextPrefs *	prefs)
 {
+  vbi3_decoder *vbi;
   vbi3_cache *ca;
   gint value;
 
@@ -171,18 +173,30 @@ teletext_prefs_apply		(TeletextPrefs *	prefs)
 
   /* These do not auto apply because we cannot undo. */
 
-  ca = vbi3_teletext_decoder_get_cache (td);
+  ca = NULL;
+  if ((vbi = zvbi_get_object ()))
+    {
+      vbi3_teletext_decoder *td;
+
+      td = vbi3_decoder_cast_to_teletext_decoder (vbi);
+      ca = vbi3_teletext_decoder_get_cache (td);
+    }
 
   value = gtk_adjustment_get_value (prefs->cache_size);
   value *= 1 << 10;
   z_gconf_set_int (GCONF_DIR "/cache_size", value);
-  vbi3_cache_set_memory_limit (ca, (unsigned int) value);
 
+  if (ca)
+    vbi3_cache_set_memory_limit (ca, (unsigned int) value);
+  
   value = gtk_adjustment_get_value (prefs->cache_networks);
   z_gconf_set_int (GCONF_DIR "/cache_networks", value);
-  vbi3_cache_set_network_limit (ca, (unsigned int) value);
 
-  vbi3_cache_unref (ca);
+  if (ca)
+    {
+      vbi3_cache_set_network_limit (ca, (unsigned int) value);
+      vbi3_cache_unref (ca);
+    }
 }
 
 void
@@ -193,8 +207,8 @@ teletext_prefs_cancel		(TeletextPrefs *	prefs)
 
   g_return_if_fail (IS_TELETEXT_PREFS (prefs));
 
-  if (!prefs->change_set)
-    return;
+  if (prefs->change_set)
+    {
 
   /* Revert to old values. */
   success = gconf_client_commit_change_set (gconf_client,
@@ -211,6 +225,7 @@ teletext_prefs_cancel		(TeletextPrefs *	prefs)
 	  g_error_free (error);
 	  error = NULL;
 	}
+    }
     }
 
   gtk_widget_destroy (GTK_WIDGET (prefs));

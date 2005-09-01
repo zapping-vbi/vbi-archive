@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.4 2005-01-31 07:07:18 mschimek Exp $ */
+/* $Id: search.c,v 1.5 2005-09-01 01:28:59 mschimek Exp $ */
 
 #include "src/zgconf.h"
 #include "main.h"		/* td */
@@ -147,7 +147,7 @@ idle				(gpointer		user_data)
 	  pg2 = vbi3_page_dup (pg);
 	  g_assert (NULL != pg2);
 
-	  teletext_view_show_page (sp->view, pg2);
+	  sp->view->show_page (sp->view, pg2);
 	}
 
       result (sp, _("Found text on page %x.%02x:"), pg->pgno, pg->subno);
@@ -197,6 +197,7 @@ search_restart			(SearchDialog *		sp,
 				 gboolean		casefold,
 				 gboolean		all_channels _unused_)
 {
+  vbi3_teletext_decoder *td;
   const vbi3_network *nk;
   gchar *pattern;
 
@@ -210,6 +211,9 @@ search_restart			(SearchDialog *		sp,
   nk = &sp->view->req.network;
   if (vbi3_network_is_anonymous (nk))
     nk = NULL; /* use received */
+
+  g_assert (NULL != sp->view->vbi);
+  td = vbi3_decoder_cast_to_teletext_decoder (sp->view->vbi);
 
   /* Progress callback: Tried first with, to permit the user cancelling
      a running search. But it seems there's a bug in libzvbi,

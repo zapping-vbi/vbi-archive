@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bookmark.c,v 1.3 2005-01-31 07:21:34 mschimek Exp $ */
+/* $Id: bookmark.c,v 1.4 2005-09-01 01:29:29 mschimek Exp $ */
 
 #include "libvbi/top_title.h"
 #include "main.h"
@@ -235,18 +235,24 @@ on_add_bookmark_activate	(GtkWidget *		menu_item _unused_,
 				 TeletextView *		view)
 {
   tveng_tuned_channel *channel;
+  vbi3_teletext_decoder *td;
   vbi3_top_title tt;
 
-  if (!view->pg)
+  if (NULL == view->pg)
     return;
+
+  td = NULL;
+  if (view->vbi)
+    td = vbi3_decoder_cast_to_teletext_decoder (view->vbi);
 
   channel = tveng_tuned_channel_nth (global_channel_list,
 				     (unsigned int) cur_tuned_channel);
 
+
   if (td && vbi3_teletext_decoder_get_top_title (td, &tt,
-						view->pg->network,
-						view->pg->pgno,
-						view->pg->subno))
+						 view->pg->network,
+						 view->pg->pgno,
+						 view->pg->subno))
     {
       bookmark_list_add (&bookmarks,
 			 channel ? channel->name : NULL,
@@ -333,7 +339,7 @@ on_bookmark_menu_item_activate	(GtkWidget *		menu_item,
 	z_switch_channel (channel, zapping->info);
     }
 
-  teletext_view_load_page (data, &anonymous_network, b->pn.pgno, b->pn.subno);
+  data->load_page (data, &anonymous_network, b->pn.pgno, b->pn.subno);
 }
 
 static GnomeUIInfo

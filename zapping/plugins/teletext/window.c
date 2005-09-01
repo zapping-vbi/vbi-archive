@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: window.c,v 1.9 2005-01-31 07:21:34 mschimek Exp $ */
+/* $Id: window.c,v 1.10 2005-09-01 01:28:47 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -67,10 +67,10 @@ static void
 on_top_menu_activate		(GtkWidget *		menu_item _unused_,
 				 top_menu *		tm)
 {
-  teletext_view_load_page (tm->window->view,
-			   &tm->pn.network,
-			   tm->pn.pgno,
-			   tm->pn.subno);
+  tm->window->view->load_page (tm->window->view,
+			       &tm->pn.network,
+			       tm->pn.pgno,
+			       tm->pn.subno);
 }
 
 static GtkWidget *
@@ -79,9 +79,12 @@ top_menu_item_new		(TeletextWindow *	window,
 				 const vbi3_top_title *	tt,
 				 gboolean		connect)
 {
+  vbi3_teletext_decoder *td;
   vbi3_ttx_page_stat ps;
   GtkWidget *menu_item;
   const gchar *stock_id;
+
+  td = vbi3_decoder_cast_to_teletext_decoder (window->vbi);
 
   ps.page_type = VBI3_UNKNOWN_PAGE;
 
@@ -160,9 +163,12 @@ append_top_menu			(TeletextWindow *	window,
 				 GtkMenuShell *		menu,
 				 const vbi3_network *	nk)
 {
+  vbi3_teletext_decoder *td;
   GtkWidget *first_item;
   vbi3_top_title *tt;
   unsigned int n_elements;
+
+  td = vbi3_decoder_cast_to_teletext_decoder (window->vbi);
 
   first_item = NULL;
 
@@ -275,7 +281,7 @@ on_channel_menu_received_toggled (GtkCheckMenuItem *	menu_item,
 				 TeletextWindow *	window)
 {
   if (menu_item->active)
-    teletext_view_switch_network (window->view, &anonymous_network);
+    window->view->switch_network (window->view, &anonymous_network);
 }
 
 static void
@@ -290,7 +296,7 @@ on_channel_menu_toggled		(GtkCheckMenuItem *	menu_item,
 	  fputc ('\n', stderr);
 	}
 
-      teletext_view_switch_network (cm->window->view, &cm->network);
+      cm->window->view->switch_network (cm->window->view, &cm->network);
     }
 }
 
@@ -299,6 +305,7 @@ append_channel_menu		(TeletextWindow *	window,
 				 GtkMenuShell *		menu)
 {
   GtkWidget *first_item;
+  vbi3_teletext_decoder *td;
   vbi3_cache *ca;
   vbi3_network *nk;
   unsigned int n_elements;
@@ -319,6 +326,7 @@ append_channel_menu		(TeletextWindow *	window,
 
   gtk_menu_shell_append (menu, first_item);
 
+  td = vbi3_decoder_cast_to_teletext_decoder (window->vbi);
   ca = vbi3_teletext_decoder_get_cache (td);
   nk = vbi3_cache_get_networks (ca, &n_elements);
   vbi3_cache_unref (ca);
@@ -443,7 +451,7 @@ on_encoding_menu_auto_toggled	(GtkCheckMenuItem *	menu_item,
 				 TeletextWindow *	window)
 {
   if (menu_item->active)
-    teletext_view_set_charset (window->view, (vbi3_charset_code) -1);
+    window->view->set_charset (window->view, (vbi3_charset_code) -1);
 }
 
 static void
@@ -451,7 +459,7 @@ on_encoding_menu_toggled	(GtkCheckMenuItem *	menu_item,
 				 encoding_menu *	em)
 {
   if (menu_item->active)
-    teletext_view_set_charset (em->window->view, em->code);
+    em->window->view->set_charset (em->window->view, em->code);
 }
 
 static void
@@ -473,7 +481,7 @@ on_view_charset_changed		(TeletextView *		view,
   check = window->encoding_auto_item;
 
   for (; list; list = list->next)
-    if (list->code == view->charset)
+    if (list->code == view->override_charset)
       {
 	check = list->item;
 	break;
@@ -753,12 +761,12 @@ on_button_press_event		(GtkWidget *		widget _unused_,
   switch (event->button)
     {
     case 3: /* right button, context menu */
-      success = teletext_view_vbi3_link_from_pointer_position
+      success = window->view->link_from_pointer_position
 	(window->view, &link, (gint) event->x, (gint) event->y);
 
-      menu = teletext_view_popup_menu_new (window->view,
-					   success ? &link : NULL,
-					   TRUE);
+      menu = window->view->popup_menu (window->view,
+				       success ? &link : NULL,
+				       /* large */ TRUE);
       if (menu)
 	gtk_menu_popup (GTK_MENU (menu),
 			NULL, NULL, NULL, NULL,
@@ -874,6 +882,10 @@ window_vbi3_event_handler	(const vbi3_event *	ev,
 
   switch (ev->type)
     {
+    case VBI3_EVENT_CLOSE:
+      gtk_widget_destroy (GTK_WIDGET (window));
+      break;
+
     case VBI3_EVENT_TOP_CHANGE:
       /* TOP data is distributed across several Teletext pages,
 	 may change as we receive more pages. Also called on
@@ -901,8 +913,8 @@ instance_finalize		(GObject *		object)
 {
   TeletextWindow *window = TELETEXT_WINDOW (object);
 
-  vbi3_teletext_decoder_remove_event_handler
-    (td, window_vbi3_event_handler, window);
+  vbi3_decoder_remove_event_handler
+    (window->vbi, window_vbi3_event_handler, window);
 
   teletext_windows = g_list_remove (teletext_windows, window);
 
@@ -927,6 +939,10 @@ instance_init			(GTypeInstance *	instance,
   GtkWidget *widget;
   GObject *object;
   GtkToggleAction *toggle_action;
+
+  /* XXX bad design */
+  window->vbi = zvbi_get_object ();
+  g_assert (NULL != window->vbi);
 
   window->action_group = gtk_action_group_new ("TeletextWindowActions");
 #ifdef ENABLE_NLS
@@ -1001,13 +1017,14 @@ instance_init			(GTypeInstance *	instance,
     vbi3_bool success;
 
     /* Update UI if new information becomes available. */
-    success = vbi3_teletext_decoder_add_event_handler
-      (td,
-       (VBI3_EVENT_NETWORK |
+    success = vbi3_decoder_add_event_handler
+      (window->vbi,
+       (VBI3_EVENT_CLOSE |
+	VBI3_EVENT_NETWORK |
 	VBI3_EVENT_TOP_CHANGE |
 	VBI3_EVENT_REMOVE_NETWORK),
        window_vbi3_event_handler, window);
-  
+
     g_assert (success);
   }
 
