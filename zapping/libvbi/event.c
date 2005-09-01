@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.c,v 1.5 2005-07-04 21:57:57 mschimek Exp $ */
+/* $Id: event.c,v 1.6 2005-09-01 01:34:40 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>		/* malloc() */
@@ -69,7 +69,6 @@ _vbi3_event_name			(vbi3_event_mask	event)
 	CASE (LOCAL_TIME)
 	CASE (PROG_ID)
 	CASE (CC_RAW)
-	CASE (CC_ROLL_UP)
 	}
 
 	return NULL;
@@ -255,9 +254,8 @@ _vbi3_event_handler_list_add	(_vbi3_event_handler_list *es,
 				 vbi3_event_cb *		callback,
 				 void *			user_data)
 {
-	vbi3_event_handler *eh, **ehp;
+	vbi3_event_handler *eh, **ehp, *found;
 	vbi3_event_mask event_union;
-	vbi3_bool found;
 
 	assert (NULL != es);
 
@@ -265,12 +263,12 @@ _vbi3_event_handler_list_add	(_vbi3_event_handler_list *es,
 
 	event_union = 0;
 
-	found = FALSE;
+	found = NULL;
 
 	while ((eh = *ehp)) {
 		if (eh->callback == callback
 		    && eh->user_data == user_data) {
-			found = TRUE;
+			found = eh;
 
 			if (0 == event_mask) {
 				/* Remove handler. */
@@ -292,32 +290,30 @@ _vbi3_event_handler_list_add	(_vbi3_event_handler_list *es,
 		ehp = &eh->next;
 	}
 
-	eh = NULL;
-
-	if (!found && event_mask) {
+	if (NULL == found && event_mask) {
 		/* Add handler. */
 
-		if ((eh = vbi3_malloc (sizeof (*eh)))) {
-			CLEAR (*eh);
+		if ((found = vbi3_malloc (sizeof (*found)))) {
+			CLEAR (*found);
 
-			eh->next	= NULL;
-			eh->event_mask	= event_mask;
+			found->next		= NULL;
+			found->event_mask	= event_mask;
 
-			eh->callback	= callback;
-			eh->user_data	= user_data;
+			found->callback		= callback;
+			found->user_data	= user_data;
 
 			/* Whoops. Remalloc'ed ourselves? */
-			eh->blocked	= (es->current == eh);
+			found->blocked = (es->current == found);
 
 			event_union |= event_mask;
 
-			*ehp = eh;
+			*ehp = found;
 		}
 	}
 
 	es->event_mask = event_union;
 
-	return eh;
+	return found;
 }
 
 void
