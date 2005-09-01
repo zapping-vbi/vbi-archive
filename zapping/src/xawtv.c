@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.c,v 1.12 2005-06-28 01:05:58 mschimek Exp $ */
+/* $Id: xawtv.c,v 1.13 2005-09-01 01:28:09 mschimek Exp $ */
 
 /*
    XawTV compatibility functions:
@@ -209,7 +209,7 @@ global_section			(FILE *			fp,
 }
 
 static gboolean
-set_control			(const tveng_device_info *info,
+set_control			(tveng_device_info *	info,
 				 tveng_tuned_channel *	ch,
 				 tv_control_id		id,
 				 const gchar *		value)
@@ -230,7 +230,7 @@ set_control			(const tveng_device_info *info,
 
 static gboolean
 channel_section			(FILE *			fp,
-				 const tveng_device_info *info,
+				 tveng_device_info *	info,
 				 tv_rf_channel *	rf_ch,
 				 tveng_tuned_channel *	tt_ch,
 				 gboolean *		have_channel)
@@ -262,8 +262,14 @@ channel_section			(FILE *			fp,
 	  for (l = NULL; (l = tv_next_video_input (info, l));)
 	    if (0 == g_ascii_strcasecmp (l->label, value))
 	      break;
+
 	  if (l)
-	    tt_ch->input = l->hash;
+	    {
+	      tt_ch->input = l->hash;
+
+	      if (TV_VIDEO_LINE_TYPE_BASEBAND == l->type)
+		*have_channel = TRUE;
+	    }
 	}
       else if (0 == strcmp (ident, "norm"))
 	{
@@ -282,7 +288,7 @@ channel_section			(FILE *			fp,
 	      if (0 == tt_ch->frequ)
 		tt_ch->frequ = rf_ch->frequency;
 
-	      *have_channel = TRUE;	      
+	      *have_channel = TRUE;      
 	    }
 	}
       else if (0 == strcmp (ident, "freq"))
@@ -305,6 +311,7 @@ channel_section			(FILE *			fp,
 	      *have_channel = TRUE;
 	    }
 	}
+      /* FIXME "freq" ? */
       else if (0 == strcmp (ident, "freq"))
 	{
 	  fine_tuning = strtol (value, NULL, 0);
@@ -398,7 +405,7 @@ section				(FILE *			fp,
 	  skip_section (fp);
 	}
     }
-  else
+  else /* channel */
     {
       gchar *t;
 
@@ -959,7 +966,7 @@ property_get_string		(GdkWindow *		window,
     return NULL;
 
   s = g_string_new (NULL);
-  g_string_append_len (s, prop, (gint) nitems);
+  g_string_append_len (s, (gchar *) prop, (gint) nitems);
 
   /* Make sure we have a cstring. */
   g_string_append_len (s, "", 1);
