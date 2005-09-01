@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.60 2005-08-04 01:40:49 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.61 2005-09-01 01:37:12 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -36,8 +36,12 @@
 #include "mpeg.h"
 #include "src/properties.h"
 #include "pixmaps.h"
+#include "src/zvbi.h"
+#include "src/subtitle.h"
 
 #include "src/v4linterface.h" /* videostd_inquiry; preliminary */
+
+#include "libvbi/export.h"
 
 /*
   TODO:
@@ -78,6 +82,7 @@ static gchar *			record_option_filename;
 /* Configuration */
 
 static rte_context *		context_prop;
+static vbi3_export *		export_prop;
 static GtkWidget *		audio_options;
 static GtkWidget *		video_options;
 static gint			capture_w = 384;
@@ -106,6 +111,25 @@ static guint			update_timeout_id = NO_SOURCE_ID;
 static gpointer			audio_handle;
 static void *			audio_buf;	/* preliminary */
 static unsigned int		audio_size;
+
+/* An array of files for multilingual subtitle recording
+   in multiple monolingual formats. Not implemented yet. */
+static struct {
+  vbi3_export *		export;
+  FILE *		fp;
+}				subt_file[30];
+static struct {
+  vbi3_pgno		first;
+  vbi3_pgno		last;
+  guint			file_num; /* index into subt_file[] */
+}				subt_page[60];
+static enum {
+  SUBT_SEL_DISPLAYED,
+  SUBT_SEL_ALL,
+  SUBT_SEL_PAGES,
+}				subt_selection;
+static double			subt_start_timestamp;
+static gboolean			subt_row_update;
 
 static tveng_device_info *	zapping_info;
 static zf_consumer		mpeg_consumer;
@@ -184,6 +208,115 @@ video_unref			(rte_context *		context _unused_,
   b = (zf_buffer *) rb->user_data;
   zf_send_empty_buffer (&mpeg_consumer, b);
   return TRUE;
+}
+
+static vbi3_bool
+subt_handler			(const vbi3_event *	ev,
+				 void *			user_data)
+{
+  vbi3_page *pg;
+  vbi3_decoder *vbi;
+  vbi3_pgno pgno;
+  guint file_num;
+
+  user_data = user_data;
+
+  switch (ev->type) {
+  case VBI3_EVENT_TTX_PAGE:
+    pgno = ev->ev.ttx_page.pgno;
+    break;
+
+  case VBI3_EVENT_CC_PAGE:
+    if (subt_row_update && !(ev->ev.caption.flags & VBI3_ROW_UPDATE))
+      return FALSE; /* pass on */
+    pgno = ev->ev.caption.channel;
+    break;
+
+  default:
+    g_assert_not_reached ();
+  }
+
+  file_num = 0;
+
+  switch (subt_selection)
+    {
+      guint i;
+
+    default:
+      for (i = 0; i < 1 /* G_N_ELEMENTS (subt_page) */; ++i)
+	{
+	  if (pgno >= subt_page[i].first
+	      && pgno <= subt_page[i].last)
+	    break;
+	}
+
+      if (i >= 1 /* G_N_ELEMENTS (subt_page) */)
+	return FALSE; /* pass on */
+
+      file_num = subt_page[i].file_num;
+
+      break;
+    }
+
+  vbi = zvbi_get_object ();
+  g_assert (NULL != vbi);
+
+  if (pgno >= 0x100)
+    {
+      vbi3_charset_code charset_code;
+
+      if (zvbi_cur_channel_get_ttx_encoding (&charset_code, pgno))
+	{
+	  pg = vbi3_decoder_get_page
+	    (vbi, NULL /* current network */,
+	     pgno, VBI3_ANY_SUBNO,
+	     VBI3_OVERRIDE_CHARSET_0, charset_code,
+	     VBI3_WST_LEVEL, VBI3_WST_LEVEL_1p5,
+	     VBI3_PADDING, FALSE,
+	     VBI3_END);
+	}
+      else
+	{
+	  pg = vbi3_decoder_get_page
+	    (vbi, NULL /* current network */,
+	     pgno, VBI3_ANY_SUBNO,
+#if 0
+	     VBI3_DEFAULT_CHARSET_0, option_default_cs,
+#endif
+	     VBI3_WST_LEVEL, VBI3_WST_LEVEL_1p5,
+	     VBI3_PADDING, FALSE,
+	     VBI3_END);
+	}
+    }
+  else
+    {
+      pg = vbi3_decoder_get_page
+	(vbi, NULL /* current network */,
+	 pgno, /* subno */ 0,
+#if 0
+	 VBI3_DEFAULT_FOREGROUND, option_default_fg,
+	 VBI3_DEFAULT_BACKGROUND, option_default_bg,
+#endif
+	 VBI3_PADDING, FALSE,
+	 VBI3_ROW_CHANGE, (vbi3_bool) subt_row_update,
+	 VBI3_END);
+    }
+
+  g_assert (NULL != pg);
+
+  g_assert (NULL != subt_file[file_num].export);
+
+  vbi3_export_set_timestamp (subt_file[file_num].export, ev->timestamp);
+
+  if (!vbi3_export_stdio (subt_file[file_num].export,
+			  subt_file[file_num].fp, pg))
+    {
+      /* TODO, error ignored for now. */
+    }
+
+  vbi3_page_delete (pg);
+
+  return FALSE; /* pass on */
 }
 
 /*
@@ -363,6 +496,50 @@ saving_dialog_status_enable	(rte_context *		context)
  */
 
 static void
+stop_subtitle_encoding		(void)
+{
+  vbi3_decoder *vbi;
+  guint i;
+
+  vbi = NULL;
+
+  if (NULL != subt_file[0].export)
+    {
+      vbi = zvbi_get_object ();
+      g_assert (NULL != vbi);
+
+      vbi3_decoder_remove_event_handler (vbi, subt_handler, NULL);
+    }
+
+  for (i = 0; i < G_N_ELEMENTS (subt_file); ++i)
+    {
+      if (NULL != subt_file[i].export)
+	{
+	  const vbi3_export_info *xi;
+
+	  g_assert (NULL != subt_file[i].fp);
+
+	  xi = vbi3_export_info_from_export (subt_file[i].export);
+	  g_assert (xi != NULL);
+
+	  if (xi->open_format)
+	    {
+	      /* Finalize. */
+	      /* XXX error check */
+	      vbi3_export_stdio (subt_file[i].export,
+				 subt_file[i].fp, NULL);
+	    }
+
+	  fclose (subt_file[i].fp);
+	  subt_file[i].fp = NULL;
+
+	  vbi3_export_delete (subt_file[i].export);
+	  subt_file[i].export = NULL;
+	}
+    }
+}
+
+static void
 do_stop				(void)
 {
   if (!active)
@@ -374,6 +551,8 @@ do_stop				(void)
 
   rte_context_delete (context_enc);
   context_enc = NULL;
+
+  stop_subtitle_encoding ();
 
   zf_rem_consumer (&mpeg_consumer);
 
@@ -390,6 +569,247 @@ do_stop				(void)
   capture_format_id = -1;
 
   active = FALSE;
+}
+
+static const gchar *
+rec_conf_get_string		(const gchar *		name)
+{
+  gchar *zcname;
+  const gchar *value;
+
+  zcname = g_strconcat (zconf_root, "/configs/",
+			record_config_name, name, NULL);
+  value = zconf_get_string (NULL, zcname);
+  g_free (zcname);
+
+  return value;
+}
+
+static gchar *
+xo_zconf_name			(const vbi3_export *	e,
+				 const vbi3_option_info *oi,
+				 gpointer		user_data)
+{
+  const vbi3_export_info *xi;
+
+  user_data = user_data;
+
+  xi = vbi3_export_info_from_export (e);
+  g_assert (xi != NULL);
+
+  return g_strconcat (zconf_root, "/configs/",
+		      record_config_name, "/vbi_file_options/",
+		      xi->keyword, "/", oi->keyword, NULL);
+}
+
+static gboolean
+open_subtitle_file		(const gchar *		format,
+				 const gchar *		file_name)
+{
+  const vbi3_export_info *xi;
+  gchar **extensions;
+  gchar *subt_file_name;
+  guint i;
+
+  subt_file_name = NULL;
+
+  for (i = 0; i < G_N_ELEMENTS (subt_file); ++i)
+    if (NULL == subt_file[i].export)
+      break;
+
+  if (i >= G_N_ELEMENTS (subt_file))
+    return FALSE;
+
+  subt_file[i].export = vbi3_export_new (format, NULL);
+  if (NULL == subt_file[i].export)
+    goto failure;
+
+  if (!zvbi_export_load_zconf (subt_file[i].export, xo_zconf_name, NULL))
+    goto failure;
+
+  vbi3_export_set_timestamp (subt_file[i].export, subt_start_timestamp);
+
+  xi = vbi3_export_info_from_export (subt_file[i].export);
+  g_assert (xi != NULL);
+
+  extensions = g_strsplit (xi->extension, ",", 2);
+  subt_file_name = z_replace_filename_extension (file_name, extensions[0]);
+  g_strfreev (extensions);
+
+  subt_file[i].fp = fopen (subt_file_name, "w");
+  if (NULL == subt_file[i].fp)
+    goto failure;
+
+  g_free (subt_file_name);
+  subt_file_name = NULL;
+
+  return TRUE;
+
+ failure:
+  g_free (subt_file_name);
+  subt_file_name = NULL;
+
+  vbi3_export_delete (subt_file[i].export);
+  subt_file[i].export = NULL;
+
+  return FALSE;
+}
+
+static gboolean
+is_valid_pgno			(vbi3_pgno		pgno)
+{
+  if (!vbi3_is_bcd (pgno))
+    return FALSE;
+
+  if (pgno >= 1 && pgno <= 8)
+    return TRUE;
+
+  if (pgno >= 0x100 && pgno <= 0x899)
+    return TRUE;
+
+  return FALSE;
+}
+
+static void
+parse_subtitle_page_numbers	(void)
+{
+  gchar *zcname;
+  const gchar *s;
+  gchar *end;
+  vbi3_pgno pgno;
+  guint n_pages;
+
+  CLEAR (subt_page);
+
+  zcname = g_strconcat (zconf_root, "/configs/",
+			record_config_name, "/vbi_pages", NULL);
+  s = zconf_get_string (NULL, zcname);
+  g_free (zcname);
+  zcname = NULL;
+
+  if (NULL == s)
+    return;
+
+  n_pages = 0;
+
+  for (;;)
+    {
+      if (n_pages >= G_N_ELEMENTS (subt_page))
+	break;
+
+      if (0 == *s)
+	break;
+
+      if (!isdigit (*s))
+	{
+	  ++s;
+	  continue;
+	}
+
+      pgno = strtoul (s, &end, 16);
+      s = end;
+
+      if (!is_valid_pgno (pgno))
+	continue;
+
+      subt_page[n_pages].first = pgno;
+
+      while (*s && isspace (*s))
+	++s;
+
+      if (0 && '-' == *s)
+	{
+	  ++s;
+
+	  while (*s && isspace (*s))
+	    ++s;
+
+	  if (isdigit (*s))
+	    {
+	      pgno = strtoul (s, &end, 16);
+	      s = end;
+
+	      if (!is_valid_pgno (pgno))
+		continue;
+	    }
+	}
+
+      subt_page[n_pages++].last = pgno;
+    }
+}
+
+static void
+init_subtitle_encoding		(const gchar *		file_name)
+{
+  const gchar *selection;
+  const gchar *mode;
+
+  selection = rec_conf_get_string ("/vbi_selection");
+  if (NULL == selection)
+    return;
+
+  if (0 == strcmp (selection, "displayed"))
+    {
+      subt_selection = SUBT_SEL_DISPLAYED;
+
+      CLEAR (subt_page);
+
+      subt_page[0].first = zvbi_caption_pgno;
+      subt_page[0].last = subt_page[0].first;
+    }
+  else if (0 == strcmp (selection, "all"))
+    {
+      subt_selection = SUBT_SEL_ALL;
+
+      CLEAR (subt_page);
+
+      /* 0 if none. */
+      subt_page[0].first = zvbi_find_subtitle_page ();
+      subt_page[0].last = subt_page[0].first;
+    }
+  else if (0 == strcmp (selection, "pages"))
+    {
+      subt_selection = SUBT_SEL_PAGES;
+
+      parse_subtitle_page_numbers ();
+    }
+
+  if (0 == subt_page[0].first)
+    return;
+
+  mode = rec_conf_get_string ("/vbi_mode");
+  if (NULL == mode)
+    return;
+
+  if (0 == strcmp (mode, "file"))
+    {
+      vbi3_decoder *vbi;
+      const gchar *format;
+      gchar *zcname;
+
+      vbi = zvbi_get_object ();
+      if (NULL == vbi)
+	goto failure;
+
+      format = rec_conf_get_string ("/vbi_file_format");
+      if (NULL == format)
+	goto failure;
+
+      /* XXX this isn't terribly accurate, should use the
+	 start time calculated by/for the rte_context. */
+      subt_start_timestamp = zf_current_time ();
+
+      /* Error ignored. */
+      open_subtitle_file (format, file_name);
+
+      zcname = g_strconcat (zconf_root, "/configs/",
+			    record_config_name, "/vbi_row_update", NULL);
+      subt_row_update = zconf_get_boolean (NULL, zcname);
+      g_free (zcname);
+
+    failure:
+      ;
+    }
 }
 
 static gboolean
@@ -744,6 +1164,8 @@ do_start			(const gchar *		file_name)
       g_assert (rte_set_output_discard (context));
     }
 
+  init_subtitle_encoding (file_name);
+
   active = TRUE;
 
   /* don't let anyone mess with our settings from now on */
@@ -751,6 +1173,21 @@ do_start			(const gchar *		file_name)
 
   if (video_codec)
     zf_add_consumer (&capture_fifo, &mpeg_consumer);
+
+  if (subt_file[0].export)
+    {
+      vbi3_decoder *vbi;
+      vbi3_bool success;
+
+      vbi = zvbi_get_object ();
+      g_assert (NULL != vbi);
+
+      success = vbi3_decoder_add_event_handler (vbi,
+						VBI3_EVENT_TTX_PAGE |
+						VBI3_EVENT_CC_PAGE,
+						subt_handler, NULL);
+      g_assert (success);
+    }
 
   if (!rte_start (context, 0.0, NULL, TRUE))
     {
@@ -767,6 +1204,8 @@ do_start			(const gchar *		file_name)
   return TRUE;
 
  failed:
+  stop_subtitle_encoding ();
+
   if (context_enc)
     rte_context_delete (context_enc);
   context_enc = NULL;
@@ -902,32 +1341,6 @@ record_config_menu_attach	(const gchar *		source,
   g_free (zcname);
 
   return count;
-}
-
-/*
- *  Copy record configs (see below).
- */
-static void
-record_config_zconf_copy	(const gchar *		source,
-				 const gchar *		dest)
-{
-  gchar *zcname = g_strconcat (source, "/configs", NULL);
-  gchar *label;
-  gint i;
-
-  for (i = 0; (label = zconf_get_nth ((guint) i, NULL, zcname)); i++)
-    {
-      gchar *base = g_path_get_basename (label);
-      rte_context *context;
-      gint w, h;
-
-      /* :-P */
-      context = grte_context_load (source, base, NULL, NULL, NULL, &w, &h);
-      grte_context_save (context, dest, base, w, h);
-      rte_context_delete (context);
-
-      g_free (base);
-    }
 }
 
 /**
@@ -1196,6 +1609,329 @@ on_file_format_changed		(GtkWidget *		menu,
   select_file_format (mpeg_properties, record_config_name, keyword);
 }
 
+static const gchar *
+subtitle_modes [] = {
+  "none",
+  /* "open", */
+  /* "closed", */
+  "file"
+};
+
+static guint
+find_subtitle_mode		(const gchar *		mode)
+{
+  guint i;
+
+  for (i = 0; i < G_N_ELEMENTS (subtitle_modes); ++i)
+    if (0 == strcmp (subtitle_modes[i], mode))
+      return i;
+
+  return 0;
+}
+
+static void
+activate_subtitle_mode_button	(GtkWidget *		mpeg_properties,
+				 const gchar *		conf_name)
+{
+  gchar *zcname;
+  const gchar *mode;
+  gchar *wname;
+  GtkWidget *widget;
+
+  zcname = g_strconcat (zconf_root_temp, "/configs/",
+			conf_name, "/vbi_mode", NULL);
+
+  zconf_create_string (subtitle_modes[0], "VBI recording mode", zcname);
+  mode = zconf_get_string (NULL, zcname);
+
+  if (NULL != mode)
+    mode = subtitle_modes[find_subtitle_mode (mode)];
+  else
+    mode = subtitle_modes[0];
+
+  g_free (zcname);
+
+  wname = g_strconcat ("subt-", mode, NULL);
+  widget = lookup_widget (mpeg_properties, wname);
+  g_free (wname);
+
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), TRUE);
+}
+
+static void
+on_subtitle_file_toggled	(GtkToggleButton *	toggle_button,
+				 GtkWidget *		mpeg_properties)
+{
+  gboolean active;
+  GtkWidget *box;
+
+  active = gtk_toggle_button_get_active (toggle_button);
+
+  box = lookup_widget (mpeg_properties, "alignment5");
+  gtk_widget_set_sensitive (box, active);
+}
+
+static gchar *
+xo_temp_zconf_name		(const vbi3_export *	e,
+				 const vbi3_option_info *oi,
+				 gpointer		user_data)
+{
+  const vbi3_export_info *xi;
+
+  user_data = user_data;
+
+  xi = vbi3_export_info_from_export (e);
+  g_assert (xi != NULL);
+
+  return g_strconcat (zconf_root_temp, "/configs/",
+		      record_config_name, "/vbi_file_options/",
+		      xi->keyword, "/", oi->keyword, NULL);
+}
+
+static void
+on_vbi_format_menu_activate	(GtkWidget *		menu_item,
+				 GtkWidget *		mpeg_properties)
+{
+  GtkWidget *format_menu;
+  gchar *zcname;
+  gchar *keyword;
+  GtkContainer *container;
+  GList *glist;
+  GtkWidget *table;
+
+  format_menu = lookup_widget (mpeg_properties, "optionmenu17");
+  zcname = (gchar *) g_object_get_data (G_OBJECT (format_menu), "zcname");
+
+  keyword = (gchar *) g_object_get_data (G_OBJECT (menu_item), "key");
+  g_assert (keyword != NULL);
+
+  zconf_set_string (keyword, zcname);
+
+  vbi3_export_delete (export_prop);
+  export_prop = vbi3_export_new (keyword, NULL);
+  g_assert (NULL != export_prop);
+
+  container = GTK_CONTAINER (lookup_widget (mpeg_properties,
+					    "subt-file-option-box"));
+  while ((glist = gtk_container_get_children (container)))
+    gtk_container_remove (container, GTK_WIDGET (glist->data));
+
+  table = zvbi_export_option_table_new (export_prop, xo_temp_zconf_name,
+					/* user_data */ NULL);
+  if (NULL != table)
+    {
+#if 0
+      GtkWidget *frame;
+
+      frame = gtk_frame_new (_("Options"));
+      gtk_container_add (GTK_CONTAINER (frame), table);
+      gtk_widget_show_all (frame);
+      gtk_box_pack_start (GTK_BOX (container), frame, TRUE, TRUE, 0);
+#else
+      gtk_widget_show_all (table);
+      gtk_box_pack_start (GTK_BOX (container), table, TRUE, TRUE, 0);
+#endif
+    }
+}
+
+static const gchar *
+subtitle_selections [] = {
+  "displayed",
+  /* "all", */
+  "pages",
+};
+
+static guint
+find_subtitle_selection		(const gchar *		selection)
+{
+  guint i;
+
+  for (i = 0; i < G_N_ELEMENTS (subtitle_selections); ++i)
+    if (0 == strcmp (subtitle_selections[i], selection))
+      return i;
+
+  return 0;
+}
+
+static void
+activate_subtitle_selection	(GtkWidget *		mpeg_properties,
+				 const gchar *		conf_name)
+{
+  gchar *zcname;
+  const gchar *selection;
+  gchar *wname;
+  GtkWidget *widget;
+
+  zcname = g_strconcat (zconf_root_temp, "/configs/",
+			conf_name, "/vbi_selection", NULL);
+
+  zconf_create_string (subtitle_selections[0],
+		       "VBI subtitle page selection", zcname);
+  selection = zconf_get_string (NULL, zcname);
+
+  if (NULL != selection)
+    selection = subtitle_selections[find_subtitle_selection (selection)];
+  else
+    selection = subtitle_selections[0];
+
+  g_free (zcname);
+
+  wname = g_strconcat ("subt-", selection, NULL);
+  widget = lookup_widget (mpeg_properties, wname);
+  g_free (wname);
+
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), TRUE);
+}
+
+static void
+init_subtitle_file_options	(GtkWidget *		mpeg_properties,
+				 const gchar *		conf_name)
+{
+    GtkWidget *format_menu;
+    GtkWidget *menu;
+    gchar *zcname;
+    gchar *format;
+    const vbi3_export_info *xm;
+    guint count;
+    guint i;
+
+    format_menu = lookup_widget (mpeg_properties, "optionmenu17");
+
+    menu = gtk_menu_new ();
+    gtk_widget_show (menu);
+
+    gtk_option_menu_set_menu (GTK_OPTION_MENU (format_menu), menu);
+
+    zcname = g_strconcat (zconf_root_temp, "/configs/",
+			  conf_name, "/vbi_file_format", NULL);
+
+    g_object_set_data_full (G_OBJECT (format_menu), "zcname",
+			    zcname, g_free);
+
+    zconf_get_string (&format, zcname);
+
+    count = 0;
+
+    for (i = 0; (xm = vbi3_export_info_enum ((int) i)); ++i)
+      {
+	if (xm->label && xm->open_format)
+	  {
+	    GtkWidget *menu_item;
+
+	    menu_item = gtk_menu_item_new_with_label (xm->label);
+	    gtk_widget_show (menu_item);
+	    gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);
+
+	    if (xm->tooltip)
+	      z_tooltip_set (menu_item, xm->tooltip);
+
+	    z_object_set_const_data (G_OBJECT (menu_item), "key", xm->keyword);
+
+	    if (0 == count || (format && 0 == strcmp (xm->keyword, format)))
+	      {
+		on_vbi_format_menu_activate (menu_item, mpeg_properties);
+		gtk_option_menu_set_history (GTK_OPTION_MENU (format_menu),
+					     count);
+	      }
+
+	    g_signal_connect (G_OBJECT (menu_item), "activate",
+			      G_CALLBACK (on_vbi_format_menu_activate),
+			      mpeg_properties);
+
+	    ++count;
+	  }
+      }
+
+    g_free (format);
+    format = NULL;
+}
+
+static void
+save_subtitle_config		(GtkWidget *		mpeg_properties)
+{
+  gchar *zcname;
+  GtkWidget *widget;
+  gboolean active;
+  guint i;
+
+  for (i = 0; i < G_N_ELEMENTS (subtitle_modes); ++i)
+    {
+      gchar *wname;
+
+      wname = g_strconcat ("subt-", subtitle_modes[i], NULL);
+      widget = lookup_widget (mpeg_properties, wname);
+      g_free (wname);
+
+      active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+      if (active)
+	{
+	  zcname = g_strconcat (zconf_root_temp, "/configs/",
+				record_config_name, "/vbi_mode", NULL);
+
+	  zconf_set_string (subtitle_modes[i], zcname);
+
+	  g_free (zcname);
+	  zcname = NULL;
+
+	  break;
+	}
+    }
+
+  /* vbi_file_format and its options take care of themselves,
+     except for row_update. */
+
+  {
+    widget = lookup_widget (mpeg_properties, "subt-row-update");
+    active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+
+    zcname = g_strconcat (zconf_root_temp, "/configs/",
+			  record_config_name, "/vbi_row_update", NULL);
+
+    zconf_set_boolean (active, zcname);
+
+    g_free (zcname);
+    zcname = NULL;
+  }
+
+  for (i = 0; i < G_N_ELEMENTS (subtitle_selections); ++i)
+    {
+      gchar *wname;
+
+      wname = g_strconcat ("subt-", subtitle_selections[i], NULL);
+      widget = lookup_widget (mpeg_properties, wname);
+      g_free (wname);
+
+      active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
+      if (active)
+	{
+	  zcname = g_strconcat (zconf_root_temp, "/configs/",
+				record_config_name, "/vbi_selection", NULL);
+
+	  zconf_set_string (subtitle_selections[i], zcname);
+
+	  g_free (zcname);
+	  zcname = NULL;
+
+	  break;
+	}
+    }
+
+  {
+    const gchar *buffer;
+
+    widget = lookup_widget (mpeg_properties, "subt-page-entry");
+    buffer = gtk_entry_get_text (GTK_ENTRY (widget));
+
+    zcname = g_strconcat (zconf_root_temp, "/configs/",
+			  record_config_name, "/vbi_pages", NULL);
+
+    zconf_set_string (buffer, zcname);
+
+    g_free (zcname);
+    zcname = NULL;
+  }
+}
+
 /**
  * rebuild_config_dialog:
  * @mpeg_properties: 
@@ -1246,19 +1982,76 @@ rebuild_config_dialog		(GtkWidget *		mpeg_properties,
   {
     gchar *zcname;
 
-    zcname = g_strconcat (zconf_root_temp, "/configs/", conf_name, "/capture_width", NULL);
+    zcname = g_strconcat (zconf_root_temp, "/configs/",
+			  conf_name, "/capture_width", NULL);
     zconf_create_int (384, "Capture width", zcname);
     zconf_get_int (&capture_w, zcname);
     g_free (zcname);
     widget = lookup_widget (mpeg_properties, "spinbutton9");
     gtk_spin_button_set_value (GTK_SPIN_BUTTON (widget), (gdouble) capture_w);
 
-    zcname = g_strconcat (zconf_root_temp, "/configs/", conf_name, "/capture_height", NULL);
+    zcname = g_strconcat (zconf_root_temp, "/configs/",
+			  conf_name, "/capture_height", NULL);
     zconf_create_int (288, "Capture height", zcname);
     zconf_get_int (&capture_h, zcname);
     g_free (zcname);
     widget = lookup_widget (mpeg_properties, "spinbutton10");
     gtk_spin_button_set_value (GTK_SPIN_BUTTON (widget), (gdouble) capture_h);
+  }
+
+  {
+    widget = lookup_widget (mpeg_properties, "subt-open");
+    gtk_widget_set_sensitive (widget, FALSE);
+    widget = lookup_widget (mpeg_properties, "subt-closed");
+    gtk_widget_set_sensitive (widget, FALSE);
+    widget = lookup_widget (mpeg_properties, "alignment1");
+    gtk_widget_set_sensitive (widget, FALSE);
+    widget = lookup_widget (mpeg_properties, "optionmenu16");
+    gtk_widget_set_sensitive (widget, FALSE);
+    widget = lookup_widget (mpeg_properties, "subt-all");
+    gtk_widget_set_sensitive (widget, FALSE);
+
+    widget = lookup_widget (mpeg_properties, "subt-file");
+    on_subtitle_file_toggled (GTK_TOGGLE_BUTTON (widget), mpeg_properties);
+    g_signal_connect (G_OBJECT (widget), "toggled",
+		      G_CALLBACK (on_subtitle_file_toggled), mpeg_properties);
+
+    activate_subtitle_mode_button (mpeg_properties, conf_name);
+
+    activate_subtitle_selection	(mpeg_properties, conf_name);
+
+    init_subtitle_file_options (mpeg_properties, conf_name);
+
+    {
+      gchar *zcname;
+
+      zcname = g_strconcat (zconf_root, "/configs/",
+			    record_config_name, "/vbi_row_update", NULL);
+      zconf_create_boolean
+	(FALSE, "Update roll-up caption at row granularity", zcname);
+
+      widget = lookup_widget (mpeg_properties, "subt-row-update");
+      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget),
+				    zconf_get_boolean (NULL, zcname));
+
+      g_free (zcname);
+      zcname = NULL;
+    }
+
+    {
+      gchar *zcname;
+
+      zcname = g_strconcat (zconf_root, "/configs/",
+			    record_config_name, "/vbi_pages", NULL);
+      zconf_create_string ("", "Subtitle pages to record", zcname);
+
+      widget = lookup_widget (mpeg_properties, "subt-page-entry");
+      gtk_entry_set_text (GTK_ENTRY (widget),
+			  zconf_get_string (NULL, zcname));
+
+      g_free (zcname);
+      zcname = NULL;
+    }
   }
 }
 
@@ -1324,6 +2117,8 @@ save_current_config		(GtkWidget *		page)
       grte_context_save (context_prop,
 			 zconf_root_temp, record_config_name,
 			 capture_w, capture_h);
+
+      save_subtitle_config (page);
     }
 }
 
@@ -1336,11 +2131,9 @@ pref_apply			(GtkWidget *		page)
 
   /* Replace old configs by changed ones and delete temp */
 
-  buffer = g_strconcat (zconf_root, "/configs", NULL);
-  zconf_delete (buffer);
+  buffer = g_strconcat (zconf_root_temp, "/configs", NULL);
+  zconf_copy (zconf_root, buffer);
   g_free (buffer);
-
-  record_config_zconf_copy (zconf_root_temp, zconf_root);
 
   zconf_delete (zconf_root_temp);
 
@@ -1446,9 +2239,13 @@ pref_setup			(GtkWidget *		page)
 {
   GtkWidget *new = lookup_widget (page, "new");
   GtkWidget *delete = lookup_widget (page, "delete");
+  gchar *buffer;
 
   /* All changes preliminary until ok/apply */
-  record_config_zconf_copy (zconf_root, zconf_root_temp);
+
+  buffer = g_strconcat (zconf_root, "/configs", NULL);
+  zconf_copy (zconf_root_temp, buffer);
+  g_free (buffer);
 
   pref_rebuild_configs (page, record_config_name);
 
@@ -2108,6 +2905,10 @@ plugin_close			(void)
   // XXX order?
 
   saving_dialog_delete ();
+
+  if (export_prop)
+    vbi3_export_delete (export_prop);
+  export_prop = NULL;
 
   if (context_prop)
     rte_context_delete (context_prop);
