@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.h,v 1.4 2005-06-28 00:58:21 mschimek Exp $ */
+/* $Id: event.h,v 1.5 2005-09-01 01:34:19 mschimek Exp $ */
 
 #ifndef EVENT_H
 #define EVENT_H
@@ -33,8 +33,8 @@
 #include "network.h"		/* vbi3_network */
 #include "link.h"		/* vbi3_link */
 #ifndef ZAPPING8
-#include "aspect_ratio.h"	/* vbi3_aspect_ratio */
-#include "program_info.h"	/* vbi3_program_info */
+#  include "aspect_ratio.h"	/* vbi3_aspect_ratio */
+#  include "program_info.h"	/* vbi3_program_info */
 #endif
 #include "page.h"		/* vbi3_char */
 #include "pdc.h"		/* vbi3_program_id */
@@ -114,8 +114,8 @@ typedef unsigned int vbi3_event_mask;
 #define	VBI3_EVENT_PROG_INFO 0x0080
 
 /**
- * New information about Teletext pages is available, for example
- * a subtitle page is in transmission now.
+ * New information about Closed Caption or Teletext pages is available,
+ * for example a subtitle page is in transmission now.
  */
 #define VBI3_EVENT_PAGE_TYPE 0x0100
 /**
@@ -146,20 +146,24 @@ typedef unsigned int vbi3_event_mask;
 #define VBI3_EVENT_REMOVE_NETWORK 0x1000
 
 /* TODO */
-#define VBI3_EVENT_CC_ROLL_UP 0x200000
 #define VBI3_EVENT_CC_RAW 0x400000
+
+/* TODO */
+#define VBI3_EVENT_TIMER 0x800000
 
 /** @} */
 
 /**
  * @brief Teletext page flags.
  */
+/* Note the bit positions are defined by the Teletext standard,
+   don't change. */
 typedef enum {
 	/**
 	 * The page header is suitable for a rolling display
 	 * and clock updates.
 	 */
-	VBI3_ROLL_HEADER		= 0x000001,
+	VBI3_ROLL_HEADER	= 0x000001,
 	/**
 	 * Newsflash page.
 	 */
@@ -188,6 +192,7 @@ typedef enum {
 	VBI3_WORD_UPDATE	= (1 << 1), /* XXX not implemented yet */
 	VBI3_ROW_UPDATE		= (1 << 2),
 	VBI3_PAGE_UPDATE	= (1 << 3), /* XXX not implemented yet */
+	VBI3_START_ROLLING	= (1 << 4),
 } vbi3_cc_page_flags;
 
 /**
@@ -233,6 +238,7 @@ typedef struct vbi3_event {
 		}			local_time;
 		const vbi3_program_id *	prog_id;
 		struct { }		remove_network;
+
 	}			ev;
 } vbi3_event;
 
