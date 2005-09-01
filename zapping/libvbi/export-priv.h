@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export-priv.h,v 1.2 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: export-priv.h,v 1.3 2005-09-01 01:36:41 mschimek Exp $ */
 
 #ifndef EXPORT_PRIV_H
 #define EXPORT_PRIV_H
@@ -73,8 +73,10 @@ struct _vbi3_export {
 		vbi3_pgno		pgno;
 		vbi3_subno		subno;
 
-		/** Timestamp. */
+		double			start_timestamp;
 		double			timestamp;
+
+		vbi3_bool		have_timestamp;
 	}			stream;
 
 	/** See vbi3_export_set_link_cb(). */
