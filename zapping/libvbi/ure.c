@@ -28,7 +28,7 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ure.c,v 1.4 2005-06-28 19:17:10 mschimek Exp $ */
+/* $Id: ure.c,v 1.5 2005-09-01 01:33:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -474,7 +474,7 @@ static unsigned long cclass_flags[] = {
  */
 static unsigned long
 #ifdef __STDC__
-_ure_prop_list(ucs2_t *pp, unsigned long limit, unsigned long *mask,
+_ure_prop_list(const ucs2_t *pp, unsigned long limit, unsigned long *mask,
                _ure_buffer_t *b)
 #else
      _ure_prop_list(pp, limit, mask, b)
@@ -484,7 +484,7 @@ _ure_prop_list(ucs2_t *pp, unsigned long limit, unsigned long *mask,
 #endif
 {
   unsigned long n, m;
-  ucs2_t *sp, *ep;
+  const ucs2_t *sp, *ep;
 
   sp = pp;
   ep = sp + limit;
@@ -538,7 +538,7 @@ _ure_prop_list(ucs2_t *pp, unsigned long limit, unsigned long *mask,
  */
 static unsigned long
 #ifdef __STDC__
-_ure_hex(ucs2_t *np, unsigned long limit, ucs4_t *n)
+_ure_hex(const ucs2_t *np, unsigned long limit, ucs4_t *n)
 #else
      _ure_hex(np, limit, n)
      ucs2_t *np;
@@ -547,7 +547,7 @@ _ure_hex(ucs2_t *np, unsigned long limit, ucs4_t *n)
 #endif
 {
   ucs2_t i;
-  ucs2_t *sp, *ep;
+  const ucs2_t *sp, *ep;
   ucs4_t nn;
 
   sp = np;
@@ -748,7 +748,7 @@ static _ure_trie_t cclass_trie[] = {
  */
 static unsigned long
 #ifdef __STDC__
-_ure_posix_ccl(ucs2_t *cp, unsigned long limit, _ure_symtab_t *sym)
+_ure_posix_ccl(const ucs2_t *cp, unsigned long limit, _ure_symtab_t *sym)
 #else
      _ure_posix_ccl(cp, limit, sym)
      ucs2_t *cp;
@@ -759,7 +759,7 @@ _ure_posix_ccl(ucs2_t *cp, unsigned long limit, _ure_symtab_t *sym)
   int i;
   unsigned long n;
   _ure_trie_t *tp;
-  ucs2_t *sp, *ep;
+  const ucs2_t *sp, *ep;
 
   /*
    * If the number of characters left is less than 7, then this cannot be
@@ -800,7 +800,7 @@ _ure_posix_ccl(ucs2_t *cp, unsigned long limit, _ure_symtab_t *sym)
  */
 static unsigned long
 #ifdef __STDC__
-_ure_cclass(ucs2_t *cp, unsigned long limit, _ure_symtab_t *symp,
+_ure_cclass(const ucs2_t *cp, unsigned long limit, _ure_symtab_t *symp,
             _ure_buffer_t *b)
 #else
      _ure_cclass(cp, limit, symp, b)
@@ -812,7 +812,7 @@ _ure_cclass(ucs2_t *cp, unsigned long limit, _ure_symtab_t *symp,
 {
   int range_end;
   unsigned long n;
-  ucs2_t *sp, *ep;
+  const ucs2_t *sp, *ep;
   ucs4_t c, last;
   _ure_ccl_t *cclp;
   _ure_range_t range;
@@ -978,7 +978,7 @@ _ure_cclass(ucs2_t *cp, unsigned long limit, _ure_symtab_t *symp,
  */
 static unsigned long
 #ifdef __STDC__
-_ure_probe_ls(ucs2_t *ls, unsigned long limit, ucs4_t *c)
+_ure_probe_ls(const ucs2_t *ls, unsigned long limit, ucs4_t *c)
 #else
      _ure_probe_ls(ls, limit, c)
      ucs2_t *ls;
@@ -987,7 +987,7 @@ _ure_probe_ls(ucs2_t *ls, unsigned long limit, ucs4_t *c)
 #endif
 {
   ucs4_t i, code;
-  ucs2_t *sp, *ep;
+  const ucs2_t *sp, *ep;
 
   for (i = code = 0, sp = ls, ep = sp + limit; i < 4 && sp < ep; sp++) {
     if (*sp >= '0' && *sp <= '9')
@@ -1018,7 +1018,7 @@ _ure_compile_symbol(const ucs2_t *sym, unsigned long limit,
 #endif
 {
   ucs4_t c;
-  ucs2_t *sp, *ep;
+  const ucs2_t *sp, *ep;
 
   sp = sym;
   ep = sym + limit;
