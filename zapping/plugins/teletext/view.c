@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.16 2005-07-04 21:55:07 mschimek Exp $ */
+/* $Id: view.c,v 1.17 2005-09-01 01:30:05 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -31,12 +31,13 @@
 #include "libvbi/exp-txt.h"
 #include "src/zgconf.h"
 #include "src/subtitle.h"
-#include "src/remote.h"
+#include "src/zvbi.h"
 #include "preferences.h"	/* teletext_foo_enum[] */
 #include "export.h"
 #include "search.h"
 #include "main.h"
 #include "view.h"
+#include "src/remote.h"
 
 #define BLINK_CYCLE 300 /* ms */
 
@@ -183,8 +184,8 @@ scale_patch			(struct ttx_patch *	p,
   n = (0 == p->row) ? 0 : 5;
   p->sy = dsth * n / srch;
   p->sh = ceil (dsth * (n + p->height * CH) / (double) srch) - p->sy;
-  p->dy = p->sy + (int) floor (sh * p->row * CH / (double) uh
-			       - dsth * n / (double) srch + .5);
+  p->dy = p->sy + lrint (floor (sh * p->row * CH / (double) uh
+				- dsth * n / (double) srch + .5));
  
   srcw = p->width * p->columns * CW + 10;
   dstw = (sw * srcw + (uw >> 1)) / uw;
@@ -192,8 +193,8 @@ scale_patch			(struct ttx_patch *	p,
   p->sx = dstw * n / srcw;
   p->sw = ceil (dstw * (n + p->width * p->columns * CW)
 		/ (double) srcw) - p->sx;
-  p->dx = p->sx + (int) floor (sw * p->column * CW / (double) uw
-			       - dstw * n / (double) srcw + .5);
+  p->dx = p->sx + lrint (floor (sw * p->column * CW / (double) uw
+				- dstw * n / (double) srcw + .5));
 
   if (dstw > 0 && dsth > 0)
     {
@@ -510,8 +511,10 @@ create_empty_image		(TeletextView *		view)
   sw = gdk_pixbuf_get_width (view->scaled_on);
   sh = gdk_pixbuf_get_height (view->scaled_on);
 
-  sx = sw / (double) gdk_pixbuf_get_width (pixbuf);
-  sy = sh / (double) gdk_pixbuf_get_height (pixbuf);
+  sx = gdk_pixbuf_get_width (pixbuf);
+  sx = sw / sx;
+  sy = gdk_pixbuf_get_height (pixbuf);
+  sy = sh / sy;
 
   gdk_pixbuf_scale (/* src */ pixbuf,
 		    /* dst */ view->scaled_on, 0, 0, sw, sh,
@@ -626,8 +629,10 @@ resize_scaled_page_image	(TeletextView *		view,
 
       if (view->pg)
 	{
-	  sx = width / (double) gdk_pixbuf_get_width (view->unscaled_on);
-	  sy = height / (double) gdk_pixbuf_get_height (view->unscaled_on);
+	  sx = gdk_pixbuf_get_width (view->unscaled_on);
+	  sx = width / sx;
+	  sy = gdk_pixbuf_get_height (view->unscaled_on);
+	  sy = height / sy;
 
 	  gdk_pixbuf_scale (/* src */ view->unscaled_on,
 			    /* dst */ view->scaled_on, 0, 0, width, height,
@@ -758,7 +763,7 @@ history_back_action		(GtkAction *		action _unused_,
 
       sp = &view->history.stack[top - 2];
 
-      teletext_view_load_page (view, &sp->network, sp->pgno, sp->subno);
+      view->load_page (view, &sp->network, sp->pgno, sp->subno);
     }
 }
 
@@ -793,7 +798,7 @@ history_forward_action		(GtkAction *		action _unused_,
 
       sp = &view->history.stack[top];
 
-      teletext_view_load_page (view, &sp->network, sp->pgno, sp->subno);
+      view->load_page (view, &sp->network, sp->pgno, sp->subno);
     }
 }
 
@@ -829,7 +834,7 @@ update_cursor_shape		(TeletextView *		view)
 
   link.type = VBI3_LINK_NONE;
 
-  success = teletext_view_vbi3_link_from_pointer_position (view, &link, x, y);
+  success = view->link_from_pointer_position (view, &link, x, y);
 
   switch (link.type)
     {
@@ -961,33 +966,39 @@ redraw_all_views		(void)
 }
 
 static vbi3_page *
-get_page			(const vbi3_network *	nk,
+get_page			(TeletextView *		view,
+				 vbi3_charset_code *	charset_code,
+				 const vbi3_network *	nk,
 				 vbi3_pgno		pgno,
-				 vbi3_subno		subno,
-				 vbi3_charset_code	charset)
+				 vbi3_subno		subno)
 {
   vbi3_page *pg;
+  vbi3_char *cp;
+  vbi3_char *end;
+
+  /* Override charset code from channel config, if present. */
+  zvbi_cur_channel_get_ttx_encoding (charset_code, pgno);
 
   if (nk && vbi3_network_is_anonymous (nk))
     nk = NULL; /* use currently received network */
 
-  if ((int) charset >= 0)
+  if (VBI3_CHARSET_CODE_NONE != *charset_code)
     {
-      pg = vbi3_teletext_decoder_get_page
-	(td, nk, pgno, subno,
+      pg = vbi3_decoder_get_page
+	(view->vbi, nk, pgno, subno,
 	 VBI3_PADDING, TRUE, /* add_column, */
 	 /* VBI3_PANELS, FALSE, */
 	 VBI3_NAVIGATION, navigation,
 	 VBI3_HYPERLINKS, hyperlinks,
 	 /* VBI3_PDC_LINKS, TRUE, */
 	 VBI3_WST_LEVEL, teletext_level,
-	 VBI3_OVERRIDE_CHARSET_0, charset,
+	 VBI3_OVERRIDE_CHARSET_0, *charset_code,
 	 VBI3_END);
     }
   else
     {
-      pg = vbi3_teletext_decoder_get_page
-	(td, nk, pgno, subno,
+      pg = vbi3_decoder_get_page
+	(view->vbi, nk, pgno, subno,
 	 VBI3_PADDING, TRUE, /* add_column, */
 	 /* VBI3_PANELS, FALSE, */
 	 VBI3_NAVIGATION, navigation,
@@ -998,21 +1009,54 @@ get_page			(const vbi3_network *	nk,
 	 VBI3_END);
     }
 
+  if (pg)
+    {
+      for (cp = pg->text, end = cp + pg->rows * pg->columns; cp < end; ++cp)
+	cp->opacity = VBI3_OPAQUE;
+    }
+
   return pg;
+}
+
+static void
+set_charset_code_from_config	(TeletextView *		view,
+				 vbi3_pgno		pgno)
+{
+  vbi3_charset_code charset_code;
+
+  charset_code = view->override_charset;
+
+  zvbi_cur_channel_get_ttx_encoding (&charset_code, pgno);
+
+  if (charset_code != view->override_charset)
+    {
+      view->override_charset = charset_code;
+      g_signal_emit (view, signals[CHARSET_CHANGED], 0);
+    }
 }
 
 static void
 reformat_view			(TeletextView *		view)
 {
+  vbi3_charset_code charset_code;
   vbi3_page *pg;
 
-  if ((pg = get_page (view->pg->network,
+  charset_code = view->override_charset;
+
+  if ((pg = get_page (view,
+		      &charset_code,
+		      view->pg->network,
 		      view->pg->pgno,
-		      view->pg->subno,
-		      view->charset)))
+		      view->pg->subno)))
     {
       vbi3_page_unref (view->pg);
       view->pg = pg;
+
+      if (charset_code != view->override_charset)
+	{
+	  view->override_charset = charset_code;
+	  g_signal_emit (view, signals[CHARSET_CHANGED], 0);
+	}
 
       redraw_view (view);
     }
@@ -1069,21 +1113,21 @@ update_header			(TeletextView *		view,
       column = 8; /* page number and clock */
     }
 
-  if ((int) view->charset >= 0)
+  if (VBI3_CHARSET_CODE_NONE != view->override_charset)
     {
-      pg = vbi3_teletext_decoder_get_page
-	(td,
+      pg = vbi3_decoder_get_page
+	(view->vbi,
 	 ev->network,
 	 ev->ev.ttx_page.pgno,
 	 ev->ev.ttx_page.subno,
 	 VBI3_PADDING, TRUE,
 	 VBI3_HEADER_ONLY, TRUE,
 	 VBI3_WST_LEVEL, VBI3_WST_LEVEL_1p5,
-	 VBI3_OVERRIDE_CHARSET_0, view->charset,
+	 VBI3_OVERRIDE_CHARSET_0, view->override_charset,
 	 VBI3_END);
     } else {
-      pg = vbi3_teletext_decoder_get_page
-	(td,
+      pg = vbi3_decoder_get_page
+	(view->vbi,
 	 ev->network,
 	 ev->ev.ttx_page.pgno,
 	 ev->ev.ttx_page.subno,
@@ -1155,12 +1199,16 @@ update_header			(TeletextView *		view,
 }
 
 static vbi3_bool
-view_vbi3_event_handler		(const vbi3_event *	ev,
+decoder_event_handler		(const vbi3_event *	ev,
 				 void *			user_data _unused_)
 {
-  GList *p;
+  TeletextView *view = TELETEXT_VIEW (user_data);
 
   switch (ev->type) {
+  case VBI3_EVENT_CLOSE:
+    gtk_widget_destroy (&view->darea.widget);
+    break;
+
   case VBI3_EVENT_NETWORK:
     if (0)
       {
@@ -1168,39 +1216,41 @@ view_vbi3_event_handler		(const vbi3_event *	ev,
 	fputc ('\n', stderr);
       }
 
-    for (p = g_list_first (teletext_views); p; p = p->next)
+    //    for (p = g_list_first (teletext_views); p; p = p->next)
       {
-	TeletextView *view;
+	//TeletextView *view;
+	vbi3_charset_code charset_code;
 
-	view = (TeletextView *) p->data;
+	//view = (TeletextView *) p->data;
 
 	if (!vbi3_network_is_anonymous (&view->req.network))
-	  continue;
-
-	if ((unsigned int) -1 != view->charset)
-	  {
-	    /* XXX should use default charset of the new network
-	       from config if one exists. */
-	    view->charset = -1;
-
-	    g_signal_emit (view, signals[CHARSET_CHANGED], 0);
-	  }
+	  break;//	  continue;
 
 	if (view->selecting)
-	  continue;
+	  break;//	  continue;
 
 	if (view->freezed)
-	  continue;
+	  break;//	  continue;
 
 	vbi3_page_unref (view->pg);
+
+	charset_code = VBI3_CHARSET_CODE_NONE;
 
 	/* Change to view of same page of the new network, such that
 	   header updates match the rest of the page.  When the page
 	   is not cached redraw_view() displays "loading". */
-	view->pg = get_page (ev->network,
+	/* XXX multiple view instances could share the same page. */
+	view->pg = get_page (view,
+			     &charset_code,
+			     ev->network,
 			     view->req.pgno,
-			     view->req.subno,
-			     view->charset);
+			     view->req.subno);
+
+	if (charset_code != view->override_charset)
+	  {
+	    view->override_charset = charset_code;
+	    g_signal_emit (view, signals[CHARSET_CHANGED], 0);
+	  }
 
 	redraw_view (view);
       }
@@ -1208,35 +1258,46 @@ view_vbi3_event_handler		(const vbi3_event *	ev,
     break;
 
   case VBI3_EVENT_TTX_PAGE:
-    for (p = g_list_first (teletext_views); p; p = p->next)
+    //for (p = g_list_first (teletext_views); p; p = p->next)
       {
-	TeletextView *view;
+	//TeletextView *view;
 
-	view = (TeletextView *) p->data;
+	//view = (TeletextView *) p->data;
 
 	if (view->selecting)
-	  continue;
+	  break;//	  continue;
 
 	if (view->freezed)
-	  continue;
+	  break;//	  continue;
 
 	if (!vbi3_network_is_anonymous (&view->req.network)
 	    && !vbi3_network_equal (&view->req.network, ev->network))
-	  continue;
+	  break;//	  continue;
 
 	if (ev->ev.ttx_page.pgno == view->req.pgno
 	    && (VBI3_ANY_SUBNO == view->req.subno
 		|| ev->ev.ttx_page.subno == view->req.subno))
 	  {
+	    vbi3_charset_code charset_code;
 	    vbi3_page *pg;
 
-	    if ((pg = get_page (ev->network,
+	    charset_code = view->override_charset;
+
+	    /* XXX multiple view instances could share the same page. */
+	    if ((pg = get_page (view,
+				&charset_code,
+				ev->network,
 				ev->ev.ttx_page.pgno,
-				ev->ev.ttx_page.subno,
-				view->charset)))
+				ev->ev.ttx_page.subno)))
 	      {
 		vbi3_page_unref (view->pg);
 		view->pg = pg;
+
+		if (charset_code != view->override_charset)
+		  {
+		    view->override_charset = charset_code;
+		    g_signal_emit (view, signals[CHARSET_CHANGED], 0);
+		  }
 
 		redraw_view (view);
 	      }
@@ -1279,13 +1340,13 @@ set_hold			(TeletextView *		view,
     }
 }
 
-static void
+static gboolean
 monitor_pgno			(TeletextView *		view,
 				 const vbi3_network *	nk,
 				 vbi3_pgno		pgno,
-				 vbi3_subno		subno,
-				 vbi3_charset_code	charset)
+				 vbi3_subno		subno)
 {
+  vbi3_charset_code charset_code;
   vbi3_page *pg;
 
   view->freezed = FALSE;
@@ -1295,20 +1356,64 @@ monitor_pgno			(TeletextView *		view,
 
   page_num_set (&view->req, nk, pgno, subno);
 
+  if (NULL == view->vbi)
+    {
+      vbi3_teletext_decoder *td;
+      vbi3_cache *ca;
+      gint value;
+      vbi3_bool success;
+
+      if (NULL == (view->vbi = zvbi_get_object ()))
+	return FALSE;
+
+      td = vbi3_decoder_cast_to_teletext_decoder (view->vbi);
+      ca = vbi3_teletext_decoder_get_cache (td);
+      g_assert (NULL != ca);
+
+      value = 1 << 30;
+      z_gconf_get_int (&value, GCONF_DIR "/cache_size");
+      vbi3_cache_set_memory_limit (ca, (unsigned int) value);
+
+      value = 1;
+      z_gconf_get_int (&value, GCONF_DIR "/cache_networks");
+      vbi3_cache_set_network_limit (ca, (unsigned int) value);
+
+      vbi3_cache_unref (ca);
+
+      success = vbi3_decoder_add_event_handler
+	(view->vbi,
+	 (VBI3_EVENT_CLOSE |
+	  VBI3_EVENT_NETWORK |
+	  VBI3_EVENT_TTX_PAGE),
+	 decoder_event_handler, view);
+
+      g_assert (success);
+    }
+
   g_signal_emit (view, signals[REQUEST_CHANGED], 0);
 
   pg = NULL;
 
+  charset_code = VBI3_CHARSET_CODE_NONE;
+
   if (pgno >= 0x100 && pgno <= 0x899)
-    pg = get_page (nk, pgno, subno, charset);
+    pg = get_page (view, &charset_code, nk, pgno, subno);
 
   if (pg || !rolling_header)
     {
       vbi3_page_unref (view->pg);
       view->pg = pg; /* can be NULL */
+
+      if (charset_code != view->override_charset)
+	{
+	  view->override_charset = charset_code;
+	  g_signal_emit (view, signals[CHARSET_CHANGED], 0);
+	}
     }
 
   redraw_view (view);
+
+  return TRUE;
 }
 
 static gboolean
@@ -1321,35 +1426,21 @@ deferred_load_timeout		(gpointer		user_data)
   monitor_pgno (view,
 		&view->deferred.network,
 		view->deferred.pgno,
-		view->deferred.subno,
-		view->charset);
+		view->deferred.subno);
 
   view->deferred_load = FALSE;
 
   return FALSE; /* don't call again */
 }
 
-void
-teletext_view_load_page		(TeletextView *		view,
+static gboolean
+load_page_			(TeletextView *		view,
 				 const vbi3_network *	nk,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno)
 {
   view->hold = (VBI3_ANY_SUBNO != subno);
   set_hold (view, view->hold);
-
-  /* XXX this was intended to override a subtitle page character set
-     code, but on a second thought resetting on page change is strange. */
-  if (0)
-    if ((int) view->charset >= 0)
-      {
-	/* XXX actually we should query config for a
-	   network-pgno-subno - charset pair, reset to default
-	   only if none exists. */
-	view->charset = -1;
-	
-	g_signal_emit (view, signals[CHARSET_CHANGED], 0);
-      }
 
   if (view->toolbar)
     teletext_toolbar_set_url (view->toolbar, pgno, subno);
@@ -1398,14 +1489,16 @@ teletext_view_load_page		(TeletextView *		view,
     {
       view->deferred.timeout_id = NO_SOURCE_ID;
 
-      monitor_pgno (view, nk, pgno, subno, view->charset);
+      monitor_pgno (view, nk, pgno, subno);
     }
 
   z_update_gui ();
+
+  return TRUE;
 }
 
-void
-teletext_view_show_page		(TeletextView *		view,
+static void
+show_page_			(TeletextView *		view,
 				 vbi3_page *		pg)
 {
   if (NULL == pg)
@@ -1429,15 +1522,7 @@ teletext_view_show_page		(TeletextView *		view,
 
   g_signal_emit (view, signals[REQUEST_CHANGED], 0);
 
-  if ((int) view->charset >= 0)
-    {
-      /* XXX actually we should query config for a
-	 network-pgno-subno - charset pair, reset to default
-	 only if none exists. */
-      view->charset = -1;
-
-      g_signal_emit (view, signals[CHARSET_CHANGED], 0);
-    }
+  set_charset_code_from_config (view, pg->pgno);
 
   vbi3_page_unref (view->pg);
   view->pg = vbi3_page_ref (pg);
@@ -1489,9 +1574,8 @@ set_transient_for		(GtkWindow *		window,
 }
 
 /* Note on success you must vbi3_link_destroy. */
-gboolean
-teletext_view_vbi3_link_from_pointer_position
-				(TeletextView *		view,
+static gboolean
+link_from_pointer_position_	(TeletextView *		view,
 				 vbi3_link *		lk,
 				 gint			x,
 				 gint			y)
@@ -1502,7 +1586,6 @@ teletext_view_vbi3_link_from_pointer_position
   gint height;
   guint row;
   guint column;
-  const vbi3_char *ac;
 
   vbi3_link_init (lk);
 
@@ -1527,15 +1610,6 @@ teletext_view_vbi3_link_from_pointer_position
 
   column = (x * pg->columns) / width;
   row = (y * pg->rows) / height;
-
-  if (column >= pg->columns
-      || row >= pg->rows)
-    return FALSE;
-
-  ac = pg->text + row * pg->columns + column;
-
-  if (!(ac->attr & VBI3_LINK))
-    return FALSE;
 
   return vbi3_page_get_hyperlink (pg, lk, column, row);
 }
@@ -1640,7 +1714,7 @@ py_ttx_open			(PyObject *		self _unused_,
   else
     py_return_false;
 
-  teletext_view_load_page (view, &view->req.network, pgno, subno);
+  view->load_page (view, &view->req.network, pgno, subno);
 
   py_return_true;
 }
@@ -1674,7 +1748,7 @@ py_ttx_page_incr		(PyObject *		self _unused_,
   else if (pgno > 0x899)
     pgno = 0x100 + (pgno & 0xFF);
 
-  teletext_view_load_page (view, &view->req.network, pgno, VBI3_ANY_SUBNO);
+  view->load_page (view, &view->req.network, pgno, VBI3_ANY_SUBNO);
 
   py_return_true;
 }
@@ -1711,7 +1785,7 @@ py_ttx_subpage_incr		(PyObject *		self _unused_,
 
   subno = vbi3_add_bcd (subno, vbi3_dec2bcd (value)) & 0xFF;
 
-  teletext_view_load_page (view, &view->req.network, view->req.pgno, subno);
+  view->load_page (view, &view->req.network, view->req.pgno, subno);
 
   py_return_true;
 }
@@ -1747,14 +1821,14 @@ home_action			(GtkAction *		action _unused_,
     case VBI3_LINK_SUBPAGE:
       if (lk->pgno)
 	{
-	  teletext_view_load_page (view, lk->network, lk->pgno, lk->subno);
+	  view->load_page (view, lk->network, lk->pgno, lk->subno);
 	}
       else
 	{
-	  teletext_view_load_page (view,
-				   &view->req.network,
-				   default_home_pgno (),
-				   VBI3_ANY_SUBNO);
+	  view->load_page (view,
+			   &view->req.network,
+			   default_home_pgno (),
+			   VBI3_ANY_SUBNO);
 	}
 
       break;
@@ -1778,34 +1852,40 @@ py_ttx_home			(PyObject *		self _unused_,
   py_return_true;
 }
 
-gboolean
-teletext_view_switch_network	(TeletextView *		view,
+static gboolean
+switch_network_			(TeletextView *		view,
 				 const vbi3_network *	nk)
 {
-  if ((unsigned int) -1 != view->charset)
+  if (VBI3_CHARSET_CODE_NONE != view->override_charset)
     {
-      view->charset = -1;
+      view->override_charset = VBI3_CHARSET_CODE_NONE;
 
       g_signal_emit (view, signals[CHARSET_CHANGED], 0);
     }
 
-  teletext_view_load_page (view, nk, default_home_pgno (), VBI3_ANY_SUBNO);
+  view->load_page (view, nk, default_home_pgno (), VBI3_ANY_SUBNO);
 
   return TRUE;
 }
 
-gboolean
-teletext_view_set_charset	(TeletextView *		view,
-				 vbi3_charset_code	code)
+static gboolean
+set_charset_			(TeletextView *		view,
+				 vbi3_charset_code	charset_code)
 {
-  if (view->charset != code)
+  if (charset_code == view->override_charset)
+    return TRUE;
+
+  view->override_charset = charset_code;
+
+  g_signal_emit (view, signals[CHARSET_CHANGED], 0);
+
+  if (view->pg)
     {
-      view->charset = code;
-
-      g_signal_emit (view, signals[CHARSET_CHANGED], 0);
-
-      reformat_view (view);
+      /* Error ignored. */
+      zvbi_cur_channel_set_ttx_encoding (view->pg->pgno, charset_code);
     }
+
+  reformat_view (view);
 
   return TRUE;
 }
@@ -1883,7 +1963,7 @@ selection_get			(GtkWidget *		widget,
 	      {
 		gtk_selection_data_set (selection_data,
 					GDK_SELECTION_TYPE_STRING, 8,
-					buffer, actual);
+					(void *) buffer, actual);
 	      }
 
 	    g_free (buffer);
@@ -1961,7 +2041,7 @@ selection_get			(GtkWidget *		widget,
 
 	    gtk_selection_data_set (selection_data,
 				    GDK_SELECTION_TYPE_PIXMAP, 32,
-				    (char * ) id, 4);
+				    (void * ) id, 4);
 	
 	    g_object_unref (pixbuf);
 
@@ -2498,6 +2578,8 @@ hotlist_menu_insert		(GtkMenuShell *		menu,
 				 gboolean		separator,
 				 gint			position)
 {
+  vbi3_decoder *vbi;
+  vbi3_teletext_decoder *td;
   gboolean have_subtitle_index = FALSE;
   gboolean have_now_and_next   = FALSE;
   gboolean have_current_progr  = FALSE;
@@ -2507,8 +2589,10 @@ hotlist_menu_insert		(GtkMenuShell *		menu,
   vbi3_pgno pgno;
   guint count;
 
-  if (!td)
+  if (!(vbi = zvbi_get_object ()))
     return 0;
+
+  td = vbi3_decoder_cast_to_teletext_decoder (vbi);
 
   count = 0;
 
@@ -2688,8 +2772,8 @@ popup_page_uiinfo [] = {
   GNOMEUIINFO_END
 };
 
-GtkWidget *
-teletext_view_popup_menu_new	(TeletextView *		view,
+static GtkWidget *
+popup_menu_			(TeletextView *		view,
 				 const vbi3_link *	lk,
 				 gboolean		large)
 {
@@ -2762,7 +2846,7 @@ teletext_view_popup_menu_new	(TeletextView *		view,
 
       widget = popup_page_uiinfo[3].widget; /* subtitles */
 
-      if ((subtitles_menu = subtitle_menu_new ()))
+      if ((subtitles_menu = zvbi_subtitle_menu_new (/* curr_pgno */ 0)))
 	gtk_menu_item_set_submenu (GTK_MENU_ITEM (widget), subtitles_menu);
       else
 	gtk_widget_set_sensitive (widget, FALSE);
@@ -2815,7 +2899,6 @@ expose_event			(GtkWidget *		widget,
 				 GdkEventExpose *	event)
 {
   TeletextView *view = TELETEXT_VIEW (widget);
-  GdkRegion *region;
 
   draw_scaled_page_image (view,
 			  widget->window,
@@ -2831,6 +2914,7 @@ expose_event			(GtkWidget *		widget,
       gint columns, rows; /* page */
       gint scol, srow; /* start */
       gint ccol, crow; /* current */
+      GdkRegion *region;
 
       select_positions (view,
 			view->select.last_x,
@@ -2904,7 +2988,7 @@ button_press_event		(GtkWidget *		widget,
 	}
       else
 	{
-	  success = teletext_view_vbi3_link_from_pointer_position
+	  success = view->link_from_pointer_position
 	    (view, &lk, (int) event->x,	(int) event->y);
 
 	  if (success)
@@ -2913,7 +2997,7 @@ button_press_event		(GtkWidget *		widget,
 		{
 		case VBI3_LINK_PAGE:
 		case VBI3_LINK_SUBPAGE:
-		  teletext_view_load_page (view,lk.network, lk.pgno, lk.subno);
+		  view->load_page (view, lk.network, lk.pgno, lk.subno);
 		  break;
 
 		case VBI3_LINK_HTTP:
@@ -2944,7 +3028,7 @@ button_press_event		(GtkWidget *		widget,
       return TRUE; /* handled */
 
     case 2: /* middle button, open link in new window */
-      success = teletext_view_vbi3_link_from_pointer_position
+      success = view->link_from_pointer_position
 	(view, &lk, (int) event->x, (int) event->y);
 
       if (success)
@@ -3025,10 +3109,10 @@ teletext_view_on_key_press	(GtkWidget *		widget _unused_,
 	{
 	  if (digit >= 1 && digit <= 8)
 	    {
-	      teletext_view_load_page (view,
-				       NULL,
-				       (vbi3_pgno) digit * 0x100,
-				       VBI3_ANY_SUBNO);
+	      view->load_page (view,
+			       NULL,
+			       (vbi3_pgno) digit * 0x100,
+			       VBI3_ANY_SUBNO);
 
 	      return TRUE; /* handled, don't pass on */
 	    }
@@ -3046,10 +3130,10 @@ teletext_view_on_key_press	(GtkWidget *		widget _unused_,
 
       if (view->entered_pgno >= 0x100)
 	{
-	  teletext_view_load_page (view,
-				   NULL,
-				   view->entered_pgno,
-				   VBI3_ANY_SUBNO);
+	  view->load_page (view,
+			   /* nk */ NULL,
+			   view->entered_pgno,
+			   VBI3_ANY_SUBNO);
 	}
       else
 	{
@@ -3108,6 +3192,10 @@ instance_finalize		(GObject *		object)
   GdkWindow *window;
 
   teletext_views = g_list_remove (teletext_views, view);
+
+  if (NULL != view->vbi)
+    vbi3_decoder_remove_event_handler
+      (view->vbi, decoder_event_handler, view);
 
   if (view->search_dialog)
     gtk_widget_destroy (view->search_dialog);
@@ -3202,6 +3290,13 @@ instance_init			(GTypeInstance *	instance,
   GtkWidget *widget;
   gint uw, uh;
 
+  view->show_page	= show_page_;
+  view->load_page	= load_page_;
+  view->switch_network	= switch_network_;
+  view->popup_menu	= popup_menu_;
+  view->link_from_pointer_position = link_from_pointer_position_;
+  view->set_charset	= set_charset_;
+
   view->action_group = gtk_action_group_new ("TeletextViewActions");
 #ifdef ENABLE_NLS
   gtk_action_group_set_translation_domain (view->action_group,
@@ -3215,7 +3310,7 @@ instance_init			(GTypeInstance *	instance,
 
   vbi3_network_init (&view->req.network);
 
-  view->charset = -1; /* automatic */
+  view->override_charset = VBI3_CHARSET_CODE_NONE;
 
   history_update_gui (view);
 
@@ -3257,10 +3352,10 @@ instance_init			(GTypeInstance *	instance,
   view->blink_timeout_id =
     g_timeout_add (BLINK_CYCLE / 4, (GSourceFunc) blink_timeout, view);
 
-  teletext_view_load_page (view,
-			   NULL,
-			   default_home_pgno (),
-			   VBI3_ANY_SUBNO);
+  view->load_page (view,
+		   /* nk */ NULL,
+		   default_home_pgno (),
+		   VBI3_ANY_SUBNO);
 
   teletext_views = g_list_append (teletext_views, view);
 
@@ -3341,8 +3436,12 @@ color_notify			(GConfClient *		client _unused_,
 				 GConfEntry *		entry _unused_,
 				 gpointer		user_data _unused_)
 {
-  if (z_gconf_get_int (&brightness, GCONF_DIR "/view/brightness")
-      || z_gconf_get_int (&contrast, GCONF_DIR "/view/contrast"))
+  gboolean success = FALSE;
+
+  success |= z_gconf_get_int (&brightness, GCONF_DIR "/view/brightness");
+  success |= z_gconf_get_int (&contrast, GCONF_DIR "/view/contrast");
+
+  if (success)
     redraw_all_views ();
 }
 
@@ -3462,13 +3561,6 @@ class_init			(gpointer		g_class,
 		("Teletext search"), "zapping.ttx_search()");
   cmd_register ("ttx_export", py_ttx_export, METH_VARARGS,
 		("Teletext export"), "zapping.ttx_export()");
-
-  /* Send all events to our main event handler. */
-  success = vbi3_teletext_decoder_add_event_handler
-    (td,
-     (VBI3_EVENT_NETWORK |
-      VBI3_EVENT_TTX_PAGE),
-     view_vbi3_event_handler, /* user_data */ NULL);
 
   g_assert (success);
 }
