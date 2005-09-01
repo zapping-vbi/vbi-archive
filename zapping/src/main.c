@@ -89,19 +89,33 @@ static void
 startup_teletext(void)
 {
 #ifdef HAVE_LIBZVBI
-  if (_teletext_view_new /* have Teletext plugin */)
+  if (NULL == _teletext_view_new /* have Teletext plugin */)
+    gtk_action_group_set_visible (zapping->teletext_action_group, FALSE);
+
+  if (NULL == _subtitle_view_new /* have Subtitle plugin */)
+    gtk_action_group_set_visible (zapping->subtitle_action_group, FALSE);
+
+  D();
+
+  /* XXX still useful for channel names et al. */
+  if (_teletext_view_new || _subtitle_view_new)
     {
-      /* Make the vbi module open the device */
-      D();
-      zconf_touch("/zapping/options/vbi/enable_vbi");
+      /* Error ignored. */
+      zvbi_start ();
       D();
     }
-  else
+#else
+  disable_vbi = TRUE;
+
+  gtk_action_group_set_visible (zapping->teletext_action_group, FALSE);
+  gtk_action_group_set_visible (zapping->subtitle_action_group, FALSE);
+
+  printv ("VBI disabled, removing GUI items\n");
+      
+  /* Set the capture mode to a default value and disable VBI */
+  if (zcg_int (NULL, "capture_mode") == OLD_TVENG_TELETEXT)
+    zcs_int (OLD_TVENG_CAPTURE_READ, "capture_mode");
 #endif
-    {
-      disable_vbi = TRUE;
-      vbi_gui_sensitive(FALSE);
-    }
 }
 
 /*
@@ -181,14 +195,15 @@ init_zapping_stock		(void)
 static void
 restore_controls		(void)
 {
-  tveng_tc_control *controls;
-  guint num_controls;
+  tveng_tuned_channel *tc;
   gboolean start_muted;
 
   D();
 
-  zconf_get_int (&num_controls, ZCONF_DOMAIN "num_controls");
-  controls = zconf_get_controls (num_controls, "/zapping/options/main");
+  tc = tveng_tuned_channel_new (/* copy of */ NULL);
+
+  /* Error ignored. */
+  zconf_get_controls (tc, "/zapping/options/main");
 
   start_muted = zcg_bool (NULL, "start_muted");
 
@@ -197,12 +212,15 @@ restore_controls		(void)
       tveng_tc_control *mute;
 
       if ((mute = tveng_tc_control_by_id (zapping->info,
-					  controls, num_controls,
+					  tc->controls, tc->num_controls,
 					  TV_CONTROL_ID_MUTE)))
 	mute->value = 1;
     }
 
-  load_control_values (zapping->info, controls, num_controls);
+  load_control_values (zapping->info, tc->controls, tc->num_controls);
+
+  tveng_tuned_channel_delete (tc);
+  tc = NULL;
 
   set_mute (3 /* update */, /* controls */ TRUE, /* osd */ FALSE);
 
@@ -225,22 +243,21 @@ restore_last_capture_mode		(void)
     {
       if (-1 == zmisc_switch_mode (DISPLAY_MODE_WINDOW,
 				   CAPTURE_MODE_READ,
-				   zapping->info,
-				   /* warnings */ FALSE))
+				   zapping->info, /* warnings */ FALSE))
 	ShowBox (_("Capture mode couldn't be started:\n%s"),
 		 GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
     }
   else
     {
+      gint cap_mode;
       display_mode dmode;
       capture_mode cmode;
 
+      cap_mode = zcg_int (NULL, "capture_mode");
       from_old_tveng_capture_mode (&dmode, &cmode,
-				   (enum old_tveng_capture_mode)
-				   zcg_int (NULL, "capture_mode"));
+				   (enum old_tveng_capture_mode) cap_mode);
 
-      if (-1 == zmisc_switch_mode (dmode, cmode, zapping->info,
-				   /* warnings */ FALSE))
+      if (-1 == zmisc_switch_mode (dmode, cmode, zapping->info, /* warnings */ FALSE))
 	{
 	  if (CAPTURE_MODE_READ != cmode)
 	    {
@@ -559,7 +576,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.204 2005-08-04 01:40:52 mschimek Exp $",
+	 "$Id: main.c,v 1.205 2005-09-01 01:33:15 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
@@ -967,15 +984,6 @@ void shutdown_zapping(void)
   if (was_fullscreen)
     zcs_int(OLD_TVENG_CAPTURE_PREVIEW, "capture_mode");
 
-#ifdef HAVE_LIBZVBI
-  /*
-   * Shuts down the teletext view
-   */
-  /*  printv(" ttxview"); */
-  /*  if (_shutdown_ttxview) */
-  /*    _shutdown_ttxview(); */
-#endif
-
   /* Unloads all plugins, this tells them to save their config too */
   printv("plugins");
   plugin_unload_plugins(plugin_list);
@@ -1000,8 +1008,8 @@ void shutdown_zapping(void)
     store_control_values (zapping->info, &controls, &n_controls);
     zconf_delete (ZCONF_DOMAIN "num_controls");
     zconf_delete ("/zapping/options/main/controls");
-    zconf_create_uint (n_controls, "Saved controls",
-		       ZCONF_DOMAIN "num_controls");
+    zconf_set_uint (n_controls, ZCONF_DOMAIN "num_controls");
+    zconf_set_description ("Saved controls", ZCONF_DOMAIN "num_controls");
     zconf_create_controls (controls, n_controls, "/zapping/options/main");
   }
 
@@ -1026,13 +1034,15 @@ void shutdown_zapping(void)
 
 #define SAVE_CONFIG(_type, _name, _cname, _descr)			\
   buffer = g_strdup_printf (ZCONF_DOMAIN "tuned_channels/%d/" #_cname, i); \
-  zconf_create_##_type (channel-> _name, _descr, buffer);		\
+  zconf_set_##_type (channel->_name, buffer);				\
+  zconf_set_description (_descr, buffer);				\
   g_free (buffer);
 
       SAVE_CONFIG (string,  name,         name,         "Station name");
 
       buffer = g_strdup_printf (ZCONF_DOMAIN "tuned_channels/%d/freq", i);
-      zconf_create_uint (channel->frequ / 1000, "Tuning frequency", buffer);
+      zconf_set_uint (channel->frequ / 1000, buffer);
+      zconf_set_description ("Tuning frequency", buffer);
       g_free (buffer);
 
       SAVE_CONFIG (z_key,   accel,        accel,        "Accelerator key");
@@ -1046,11 +1056,25 @@ void shutdown_zapping(void)
       if (channel->num_controls > 0)
 	{
 	  buffer = g_strdup_printf (ZCONF_DOMAIN "tuned_channels/%d", i);
-	  zconf_create_controls (channel->controls, channel->num_controls, buffer);
+	  zconf_create_controls (channel->controls,
+				 channel->num_controls, buffer);
 	  g_free (buffer);
 	}
 
       SAVE_CONFIG (int, caption_pgno, caption_pgno, "Default subtitle page");
+
+#ifdef HAVE_LIBZVBI
+      SAVE_CONFIG (uint,    num_ttx_encodings, num_ttx_encodings,
+		   "Saved Teletext page encodings");
+
+      if (channel->num_ttx_encodings > 0)
+	{
+	  buffer = g_strdup_printf (ZCONF_DOMAIN "tuned_channels/%d", i);
+	  zconf_create_ttx_encodings (channel->ttx_encodings,
+				      channel->num_ttx_encodings, buffer);
+	  g_free (buffer);
+	}
+#endif
 
       i++;
     }
@@ -1164,8 +1188,6 @@ static gboolean startup_zapping(gboolean load_plugins,
 {
   guint i = 0;
   gchar * buffer = NULL;
-  gchar * buffer2 = NULL;
-  tveng_tuned_channel new_channel;
   GList * p;
   D();
   /* Starts the configuration engine */
@@ -1177,9 +1199,6 @@ static gboolean startup_zapping(gboolean load_plugins,
   D();
   startup_remote ();
   startup_cmd ();
-#ifdef GNOME2_PORT_COMPLETE
-  cmd_register ("subtitle_overlay", subtitle_overlay_cmd, 0, NULL);
-#endif
   startup_properties();
   D();
 
@@ -1239,46 +1258,44 @@ static gboolean startup_zapping(gboolean load_plugins,
 
   while (zconf_get_nth (i, &buffer, ZCONF_DOMAIN "tuned_channels") != NULL)
     {
-      CLEAR (new_channel);
+      tveng_tuned_channel *tc;
+      gchar *buffer2;
+      guint len;
 
-      g_assert (strlen (buffer) > 0);
+      tc = tveng_tuned_channel_new (/* copy of */ NULL);
 
-      if (buffer[strlen (buffer) - 1] == '/')
-	buffer[strlen (buffer) - 1] = 0;
+      len = strlen (buffer);
+      while (len > 0 && '/' == buffer[len - 1])
+	buffer[--len] = 0;
 
       /* Get all the items from here */
 
 #define LOAD_CONFIG(_type, _name, _cname)				\
   buffer2 = g_strconcat (buffer, "/" #_cname, NULL);			\
-  zconf_get_##_type (&new_channel. _name, buffer2);			\
+  zconf_get_##_type (&tc->_name, buffer2);				\
   g_free (buffer2);
 
       LOAD_CONFIG (string,  name,         name);
       LOAD_CONFIG (string,  rf_name,      real_name);
-      LOAD_CONFIG (int,     frequ,        freq);
-      new_channel.frequ *= 1000;
+      LOAD_CONFIG (uint,    frequ,        freq);
+      tc->frequ *= 1000 /* Hz */;
       LOAD_CONFIG (z_key,   accel,        accel);
       LOAD_CONFIG (string,  rf_table,     country);
-      LOAD_CONFIG (int,     input,        input);
-      LOAD_CONFIG (int,     standard,     standard);
-      LOAD_CONFIG (int,     num_controls, num_controls);
+      LOAD_CONFIG (uint,    input,        input);
+      LOAD_CONFIG (uint,    standard,     standard);
+      LOAD_CONFIG (int,	    caption_pgno, caption_pgno);
 
-      new_channel.controls = zconf_get_controls (new_channel.num_controls,
-						 buffer);
+      /* Error ignored. */
+      zconf_get_controls (tc, buffer);
 
-      LOAD_CONFIG (int, caption_pgno, caption_pgno);
+      /* Error ignored. */
+      zconf_get_ttx_encodings (tc, buffer);
 
-      tveng_tuned_channel_insert (&global_channel_list,
-				  tveng_tuned_channel_new (&new_channel),
-				  G_MAXINT);
-
-      /* Free the previously allocated mem */
-      g_free (new_channel.name);
-      g_free (new_channel.rf_name);
-      g_free (new_channel.rf_table);
-      g_free (new_channel.controls);
+      tveng_tuned_channel_insert (&global_channel_list, tc,
+				  /* position */ G_MAXINT);
 
       g_free (buffer);
+
       i++;
     }
 
@@ -1325,6 +1342,11 @@ static gboolean startup_zapping(gboolean load_plugins,
 	_teletext_view_new = plugin_symbol (info, "view_new");
 	_teletext_view_from_widget = plugin_symbol (info, "view_from_widget");
 	_teletext_toolbar_new = plugin_symbol (info, "toolbar_new");
+      }
+
+    if ((info = plugin_by_name ("subtitle")))
+      {
+	_subtitle_view_new = plugin_symbol (info, "view_new");
       }
   }
 
