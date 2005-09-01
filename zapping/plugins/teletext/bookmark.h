@@ -19,10 +19,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bookmark.h,v 1.2 2004-11-03 06:45:03 mschimek Exp $ */
+/* $Id: bookmark.h,v 1.3 2005-09-01 01:40:53 mschimek Exp $ */
 
-#ifndef BOOKMARK_H
-#define BOOKMARK_H
+#ifndef TELETEXT_BOOKMARK_H
+#define TELETEXT_BOOKMARK_H
 
 #include <gtk/gtk.h>
 
@@ -107,4 +107,4 @@ bookmark_editor_new		(bookmark_list *	bl);
 
 G_END_DECLS
 
-#endif /* BOOKMARK_H */
+#endif /* TELETEXT_BOOKMARK_H */

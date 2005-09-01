@@ -19,6 +19,12 @@
 #ifndef FULLSCREEN_H
 #define FULLSCREEN_H
 
+extern GdkPixbuf *
+fullscreen_get_subtitle_image	(GdkRectangle *		expose,
+				 guint			width,
+				 guint			height);
+extern gboolean
+fullscreen_activate_subtitles	(gboolean		active);
 extern gboolean
 start_fullscreen		(display_mode		dmode,
 				 capture_mode		cmode);

@@ -19,10 +19,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.2 2004-11-03 06:45:35 mschimek Exp $ */
+/* $Id: export.h,v 1.3 2005-09-01 01:40:53 mschimek Exp $ */
 
-#ifndef EXPORT_H
-#define EXPORT_H
+#ifndef TELETEXT_EXPORT_H
+#define TELETEXT_EXPORT_H
 
 #include <gtk/gtk.h>
 #include "libvbi/export.h"
@@ -77,4 +77,4 @@ export_dialog_new		(const vbi3_page *	pg,
 
 G_END_DECLS
 
-#endif /* EXPORT_H */
+#endif /* TELETEXT_EXPORT_H */

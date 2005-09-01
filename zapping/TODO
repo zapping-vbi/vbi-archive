@@ -1,18 +1,13 @@
 Outstanding issues for future releases
 --------------------------------------
 
-* Multilingual subtitle recording (SAMI).
 * Integrate XvPutImage controls into the tveng.c virtual control
-  layer.
-* libtv/cpu.c needs an SSE3 check.
+  layer. Like mixer volume, substitute tv card brightness and
+  contrast control when available for XVPutImage.
 * Capture buffer negotiation (tv_set_buffers) is only implemented for
   interfaces with buffer queue (i.e. v4l2).
-* Fail if configure cannot find libzvbi, add --without-zvbi to override.
-* Create a shadow list of controls in tveng.c instead of _ignore. 
 * Disable overlay GUI if not possible (driver, DGA etc).
 * Take a look at ATI video in Xorg CVS. 
-* Add a shadow VBI switch to disable VBI on startup errors or --no-vbi
-  for the _current session_.  Don't override the persistent user switch.
 * Handle locked gconf.
 * Investigate gtkglext.
 * Middle mouse button shouldn't be hardwired but run a Python command.
@@ -41,8 +36,6 @@ Outstanding issues for future releases
   zsfb. Test with Xnest.
 * Keyboard preferences: Python commands should not be visible,
   by default. Use GtkAction?
-* Recording: like mixer volume, substitute tv card brightness and
-  contrast control when available for XVPutImage.
 * Examine interaction of Zapping (esp. overlay) with RANDR.
   http://keithp.com/~keithp/talks/randr/randr/
   xc/doc/specs/Randr, xrandr et al
@@ -61,11 +54,6 @@ Outstanding issues for future releases
 * preferences from context menu (zapping-misc 2003-01-05)
 * configure.in: esd, oss etc checks
 * Improve documentation.
-* Check compilation works without optional libs
-* Switching subtitles on/off needs improvement:
-  Make widgets insensitive if we have no previous page
-  and cannot lookup. Unselect and sensitive in
-  Teletext mode.
 * vbi: add toggle button to disable CC/TTX decoding
   (independent of station name decoding, that is). Mind
   listing subtitles. Should also disable trigger
@@ -100,6 +88,38 @@ Outstanding issues for future releases
   disable. Can we safely, without disabling events enabled before
   or between, by other zapping/gnome/gtk/gdk modules?
 * WM_ICON could display a network icon in titlebar?
+
+* Switching subtitles on/off needs improvement:
+
+  On a channel change, make subtitle widgets insensitive if this
+  channel has no default subtitle page remembered from an earlier
+  activation and/or we do not currently receive subtitles
+  (zvbi_find_subtitle_page ()). Listen to VBI3_EVENT_PAGE_TYPE to
+  make the widgets sensitive when that changes. Always make the
+  widget sensitive in Teletext mode. Add a subtitle menu to the
+  video window main menu (currently only a context menu).
+
+* Open subtitles:
+
+  This is mainly interesting for subtitle recording and alpha blending
+  (although I would prefer window compositing or OpenGL textures for
+   positioning flexibility). For a starting point see SubtitleView->
+  get_image, currently used for screenshots. YUV alpha blending
+  formula:
+  Y  = Y2  * a + Y1  * (1 - a);
+  Cb = Cb2 * a + Cb1 * (1 - a);
+  Cr = Cr2 * a + Cr1 * (1 - a);
+  Seems wrong but converting to RGB, alpha blending and converting
+  back to YUV would give the same result.
+
+* Multilingual subtitle recording:
+
+  With "closed" caption/subtitles this is easy, see also
+  libzvbi/test/ttxfilter. To create multilingual subtitle files: a) open
+  a file for each language, or b) store multiple languages in the same
+  file (e.g. SAMI). It will probably suffice to call the zvbi export
+  module with different vbi_page.pgnos and handle the details there.
+  We may have to know all pgnos before creating the file header though.
 
 * Parrot plugin:
 
@@ -262,14 +282,15 @@ Outstanding issues for future releases
   table name as used in various imported config files, or ranges
   identified as incorrect but listed for compatibility.
 
-* Caption
+* Caption below picture:
 
-  a) in picture
-  b) below picture
+  When the video is letterboxed and there are no open subtitles in
+  the black bars (see WSS625) move the video up. Otherwise, in window
+  mode add a black bar below the video and move the subtitle view down.
+  In fullscreen mode make the video smaller than the screen (if it
+  isn't already) and move it up, the subtitle view down.
 
-  * Fixed width / proportional
-  * Movable
-  * Resizable
+* Custom caption/subtitle fonts.
 
 ------------------------------------------------------------------------------
 

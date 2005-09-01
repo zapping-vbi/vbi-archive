@@ -8,7 +8,9 @@ SUBDIRS = \
 
 # Need libzvbi 0.2.x to build this module.
 if HAVE_LIBZVBI
-SUBDIRS += teletext
+SUBDIRS += \
+	subtitle \
+	teletext
 endif
 
 # Not built this time:

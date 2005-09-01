@@ -19,10 +19,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: window.h,v 1.2 2004-11-03 06:47:44 mschimek Exp $ */
+/* $Id: window.h,v 1.3 2005-09-01 01:40:53 mschimek Exp $ */
 
-#ifndef WINDOW_H
-#define WINDOW_H
+#ifndef TELETEXT_WINDOW_H
+#define TELETEXT_WINDOW_H
 
 #include <gnome.h>
 #include "view.h"
@@ -51,6 +51,8 @@ struct _TeletextWindow
   GtkActionGroup *	action_group;
 
   /*< private >*/
+
+  vbi3_decoder *	vbi;
 
   GtkUIManager *	ui_manager;
 
@@ -81,4 +83,4 @@ teletext_window_new		(void);
 
 G_END_DECLS
 
-#endif /* WINDOW_H */
+#endif /* TELETEXT_WINDOW_H */

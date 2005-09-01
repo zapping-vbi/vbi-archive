@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache-priv.h,v 1.2 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: cache-priv.h,v 1.3 2005-09-01 01:40:52 mschimek Exp $ */
 
 #ifndef CACHE_PRIV_H
 #define CACHE_PRIV_H
@@ -29,8 +29,8 @@
 #include "cache.h"
 #include "dlist.h"		/* list, node & funcs */
 #ifndef ZAPPING8
-#include "aspect_ratio.h"	/* vbi3_aspect_ratio */
-#include "program_info.h"	/* vbi3_program_info */
+#  include "aspect_ratio.h"	/* vbi3_aspect_ratio */
+#  include "program_info.h"	/* vbi3_program_info */
 #endif
 #include "sampling_par.h"	/* vbi3_videostd_set */
 #include "vt.h"			/* Teletext definitions */

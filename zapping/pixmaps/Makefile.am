@@ -8,8 +8,9 @@ PIXMAPS = \
 	gnome-oscilloscope.png \
 	gnome-session.png \
 	gnome-shutdown.png \
-	teletext48.png \
-	interlace48.png
+	interlace48.png \
+	subtitle48.png \
+	teletext48.png
 
 BUILTIN_PIXMAPS = \
 	up.png \

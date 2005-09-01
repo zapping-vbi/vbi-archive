@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.16 2005-01-31 07:15:41 mschimek Exp $ */
+/* $Id: lang.h,v 1.17 2005-09-01 01:40:52 mschimek Exp $ */
 
 #ifndef __ZVBI3_LANG_H__
 #define __ZVBI3_LANG_H__
@@ -36,6 +36,8 @@ VBI3_BEGIN_DECLS
  * Valid codes are in range 0 ... 127.
  */
 typedef unsigned int vbi3_charset_code;
+
+#define VBI3_CHARSET_CODE_NONE ((vbi3_charset_code) -1)
 
 /**
  * @brief Teletext character sets.

@@ -1,6 +1,76 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
+Zapping 0.10, 2005-09-
+------------------------
+This version of Zapping improves caption and subtitle support.
+
+- It has a new, more standards compliant Closed Caption decoder.
+- Subtitles are now implemented as a plugin with various preferences:
+  Scaling/antialiasing mode, text brightness and contrast, Closed Caption
+  padding and soft rolling, default foreground and background color,
+  Teletext default character set, and an option to shrink double height
+  Teletext characters. All options auto-apply.
+- Links and page numbers on Teletext (subtitle) pages are clickable
+  as in Teletext windows.
+- Subtitles have a context menu to disable them, reset size and
+  position, open the preferences, override the character encoding of
+  Teletext pages, and to select another subtitle language.
+- Subtitles scale with the video, now with fixed character aspect
+  unless the available space is too small.
+- Subtitles can be dragged to a different size and position. The position
+  automatically adjusts to keep all text visible. Size and position are
+  remembered in the configuration, separately for windowed and
+  fullscreen mode.
+- Roll-up Closed Caption updates with each character received and
+  rolls smoothly.
+- The subtitle languages menu now uses radio menu items to indicate
+  the current language.
+- Users can override the character encoding of individual Teletext pages,
+  this is remembered in the configuration per-channel data and affects
+  Teletext browsing, subtitle display and recording, screenshots, and
+  the subtitle language menus.
+- In fullscreen mode subtitles no longer appear outside the video, if
+  it is smaller than the screen for technical reasons, but can be
+  dragged into the border.
+- The screenshot plugin has an option to save the image with or without
+  the displayed subtitles overlaid, with preview.
+- The recording plugin permits recording of Closed Caption and Teletext
+  subtitles as MPSub, QTText, RealText, SAMI, SubRip or SubViewer file,
+  preserving text styles, justification and color if supported by the
+  format.
+
+Other improvements:
+
+- The VBI device UI moved into the device section.  A new option has been
+  added to select a DVB PES file as source (mainly for tests).  GnomeVFS
+  is used to read compressed PES files.
+- The Xawtv config import routines now handles baseband inputs
+  (Debian bug/patch #302835).
+- Zapping now has an entry at bugzilla.gnome.org. Hopefully the app will
+  soon appear in bug-buddy menus to simplify bug reports.
+- Bug-buddy metadata and a comment string was added to the zapping.desktop
+  file.
+- With GCC 4.0.1 compiling of SSE2 optimized functions is enabled (earlier
+  versions had a bug aborting the compilation).
+- New SSE3 optimized deinterlace routines were added.
+- This version has preliminary support for the ivtv 0.2 and 0.3 driver
+  (untested). So far display and screenshots only, no video out, recording
+  or playback.
+
+Fixes:
+
+- A crash when clicking on the keyboard preferences "remove key" button.
+- A bug in the VBI code aborting the app with an invalid fifo error.
+- When the current video standard was selected from the standards menu
+  Zapping closed the VBI device.
+
+Dependencies:
+
+- Zapping now requires libzvbi >= 0.2.11 for better DVB PES support
+  (the most recent version is 0.2.16).
+
+
 Zapping 0.9.6, 2005-07-14
 -------------------------
 This is a bugfix release.

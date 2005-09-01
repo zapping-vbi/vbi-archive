@@ -54,7 +54,7 @@ jpeg_mydest_empty_output_buffer (j_compress_ptr cinfo)
 
   data->io_flush (data, data->io_buffer_size);
 
-  priv->dest.next_output_byte = data->io_buffer;
+  priv->dest.next_output_byte = (void *) data->io_buffer;
   priv->dest.free_in_buffer = data->io_buffer_size;
 
   return TRUE;
@@ -112,7 +112,7 @@ backend_init (screenshot_data *data, gboolean write,
       jpeg_create_compress(&priv->cinfo);
 
       /* Output handler */
-      priv->dest.next_output_byte = data->io_buffer;
+      priv->dest.next_output_byte = (void *) data->io_buffer;
       priv->dest.free_in_buffer = data->io_buffer_size;
       priv->dest.init_destination = jpeg_mydest_init_destination;
       priv->dest.empty_output_buffer = jpeg_mydest_empty_output_buffer;
@@ -137,7 +137,7 @@ backend_init (screenshot_data *data, gboolean write,
       jpeg_create_decompress (&priv->dinfo);
 
       /* Input handler */
-      priv->src.next_input_byte = data->io_buffer;
+      priv->src.next_input_byte = (void *) data->io_buffer;
       priv->src.bytes_in_buffer = data->io_buffer_used;
       priv->src.init_source = jpeg_mysrc_init_source;
       priv->src.fill_input_buffer = jpeg_mysrc_fill_input_buffer; 

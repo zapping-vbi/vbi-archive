@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.17 2005-06-28 00:58:43 mschimek Exp $ */
+/* $Id: cache.h,v 1.18 2005-09-01 01:40:52 mschimek Exp $ */
 
 #ifndef __ZVBI3_CACHE_H__
 #define __ZVBI3_CACHE_H__
@@ -73,11 +73,11 @@ typedef enum {
 	VBI3_TOP_PAGE		= 0xFE,		/* MPT, AIT, MPT-EX */
 
 	VBI3_UNKNOWN_PAGE	= 0xFF,		/* libzvbi private */
-} vbi3_ttx_page_type;
+} vbi3_page_type;
 
 /* in packet.c */
 extern const char *
-vbi3_ttx_page_type_name		(vbi3_ttx_page_type	type)
+vbi3_page_type_name		(vbi3_page_type		type)
   __attribute__ ((const));
 /**
  * @brief Meta data and statistical info about a cached Teletext page.
@@ -86,13 +86,15 @@ vbi3_ttx_page_type_name		(vbi3_ttx_page_type	type)
  * (e.g. data from Teletext page inventory tables) or not anymore.
  */
 typedef struct {
+  /* XXX add pgno and timestamp? */
+
 	/** Teletext page type. */
-	vbi3_ttx_page_type	page_type;
+	vbi3_page_type		page_type;
 	/**
 	 * Primary character set used on the page. You might use
-	 * this as a subtitle language hint.
+	 * this as a subtitle language hint. @c NULL if unknown.
 	 */
-	vbi3_charset_code	charset_code;
+	const vbi3_character_set *character_set;
 	/** Expected number of subpages: 0 or 2 ... 79. */
 	unsigned int		subpages;
 	/** Lowest subno received yet. */

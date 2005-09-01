@@ -278,7 +278,7 @@ picture_sizes_load_default	(void)
 static inline void
 picture_sizes_reset_index	(void)
 {
-  zconf_create_int (0, "", ZCONF_PICTURE_SIZES "/index");
+  zconf_set_int (0, ZCONF_PICTURE_SIZES "/index");
 }
 
 static gboolean
@@ -342,10 +342,10 @@ picture_sizes_save		(void)
 			     ZCONF_PICTURE_SIZES "/%u/", i);
 
       strcpy (s, "width");
-      zconf_create_uint (ps->width, "", buffer);
+      zconf_set_uint (ps->width, buffer);
 
       strcpy (s, "height");
-      zconf_create_uint (ps->height, "", buffer);
+      zconf_set_uint (ps->height, buffer);
 
       *s = 0;
       zconf_create_z_key (ps->key, "", buffer);
@@ -371,8 +371,8 @@ picture_sizes_on_menu_activate	(GtkMenuItem *		menu_item,
   for (ps = favorite_picture_sizes; ps; ps = ps->next)
     if (0 == count--)
       {
-	zconf_create_int (GPOINTER_TO_INT (user_data),
-			  "", ZCONF_PICTURE_SIZES "/index");
+	zconf_set_int (GPOINTER_TO_INT (user_data),
+		       ZCONF_PICTURE_SIZES "/index");
 	python_command_printf (GTK_WIDGET (menu_item),
 			       "zapping.resize_screen(%u, %u)",
 			       ps->width, ps->height);
@@ -1131,6 +1131,7 @@ mw_apply		(GtkWidget	*page)
 
 
 /* Video */
+
 static void
 video_setup		(GtkWidget	*page)
 {
@@ -1308,179 +1309,6 @@ video_apply		(GtkWidget	*page)
   picture_sizes_apply (GTK_TREE_VIEW (widget));
 }
 
-/* VBI */
-
-static void
-on_enable_vbi_toggled	(GtkWidget	*widget,
-			 GtkWidget	*page _unused_)
-{
-  gboolean active;
-  GtkWidget *itv_props;
-
-  active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
-  itv_props = get_properties_page (widget,
-				   _("VBI Options"),
-				   _("Interactive TV"));
-  gtk_widget_set_sensitive (lookup_widget (widget, "vbox19"), active);
-
-  if (itv_props)
-    gtk_widget_set_sensitive (itv_props, active);
-
-  /* Override --no-vbi. */
-  disable_vbi = FALSE;
-}
-
-static void
-vbi_general_setup	(GtkWidget	*page)
-{
-
-#ifdef HAVE_LIBZVBI
-
-  if (_teletext_view_new /* have ttx plugin */)
-    {
-      GtkWidget *widget;
-
-      /* Enable VBI decoding */
-      widget = lookup_widget(page, "checkbutton6");
-      gtk_toggle_button_set_active
-	(GTK_TOGGLE_BUTTON(widget),
-	 (!disable_vbi &&
-	  zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi")));
-      on_enable_vbi_toggled(widget, page);
-      g_signal_connect(G_OBJECT(widget), "toggled",
-		       G_CALLBACK(on_enable_vbi_toggled),
-		       page);
-
-      /* VBI device */
-      widget = lookup_widget(page, "fileentry2");
-      widget = gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(widget));
-      gtk_entry_set_text(GTK_ENTRY(widget),
-			 zconf_get_string(NULL,
-					  "/zapping/options/vbi/vbi_device"));
-    }
-  else
-
-#endif /* !HAVE_LIBZVBI */
-
-    {
-      gtk_widget_set_sensitive (page, FALSE);
-    }
-}
-
-static void
-vbi_general_apply	(GtkWidget	*page)
-{
-#ifdef HAVE_LIBZVBI
-  GtkWidget *widget;
-  gboolean enable_new, enable_old;
-  gchar *text;
-
-  widget = lookup_widget (page, "checkbutton6");
-  enable_new = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
-  enable_old = zconf_get_boolean (NULL, "/zapping/options/vbi/enable_vbi");
-
-  if (!disable_vbi)
-    {
-      if (enable_new == enable_old)
-	zconf_touch ("/zapping/options/vbi/enable_vbi");
-      else
-	zconf_set_boolean (enable_new, "/zapping/options/vbi/enable_vbi");
-    }
-
-  widget = lookup_widget(page, "fileentry2"); /* VBI device entry */
-  text = gnome_file_entry_get_full_path (GNOME_FILE_ENTRY(widget),
-					 TRUE);
-  if (text)
-    zconf_set_string(text, "/zapping/options/vbi/vbi_device");
-
-  g_free(text); /* In the docs it says this should be freed */
-
-#endif /* HAVE_LIBZVBI */
-}
-
-#if 0
-
-/* Interactive TV */
-static void
-itv_setup		(GtkWidget	*page)
-{
-  GtkWidget *widget;
-  gboolean enable_vbi;
-
-  /* The various itv filters */
-  widget = lookup_widget(page, "optionmenu12");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_int(NULL, "/zapping/options/vbi/pr_trigger"));
-
-  widget = lookup_widget(page, "optionmenu16");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_int(NULL, "/zapping/options/vbi/nw_trigger"));
-
-  widget = lookup_widget(page, "optionmenu17");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_int(NULL, "/zapping/options/vbi/st_trigger"));
-
-  widget = lookup_widget(page, "optionmenu18");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_int(NULL, "/zapping/options/vbi/sp_trigger"));
-
-  widget = lookup_widget(page, "optionmenu19");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_int(NULL, "/zapping/options/vbi/op_trigger"));
-
-  widget = lookup_widget(page, "optionmenu6");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_int(NULL, "/zapping/options/vbi/trigger_default"));
-
-  /* Filter level */
-  widget = lookup_widget(page, "optionmenu5");
-  gtk_option_menu_set_history(GTK_OPTION_MENU(widget),
-    zconf_get_int(NULL, "/zapping/options/vbi/filter_level"));
-
-  /* Set sensitive/unsensitive according to enable_vbi state */
-  enable_vbi = zconf_get_boolean(NULL, "/zapping/options/vbi/enable_vbi");
-  gtk_widget_set_sensitive(page, enable_vbi && !disable_vbi);
-}
-
-static void
-itv_apply		(GtkWidget	*page)
-{
-  GtkWidget *widget;
-  gint index;
-
-  /* The many itv filters */
-  widget = lookup_widget(page, "optionmenu12");
-  index = z_option_menu_get_active(widget);
-  zconf_set_int(index, "/zapping/options/vbi/pr_trigger");
-  
-  widget = lookup_widget(page, "optionmenu16");
-  index = z_option_menu_get_active(widget);
-  zconf_set_int(index, "/zapping/options/vbi/nw_trigger");
-  
-  widget = lookup_widget(page, "optionmenu17");
-  index = z_option_menu_get_active(widget);
-  zconf_set_int(index, "/zapping/options/vbi/st_trigger");
-  
-  widget = lookup_widget(page, "optionmenu18");
-  index = z_option_menu_get_active(widget);
-  zconf_set_int(index, "/zapping/options/vbi/sp_trigger");
-  
-  widget = lookup_widget(page, "optionmenu19");
-  index = z_option_menu_get_active(widget);
-  zconf_set_int(index, "/zapping/options/vbi/op_trigger");
-  
-  widget = lookup_widget(page, "optionmenu6");
-  index = z_option_menu_get_active(widget);
-  zconf_set_int(index, "/zapping/options/vbi/trigger_default");
-  
-  /* Filter level */
-  widget = lookup_widget(page, "optionmenu5");
-  index = z_option_menu_get_active(widget);
-  zconf_set_int(index, "/zapping/options/vbi/filter_level");
-}
-
-#endif
-
 static void
 add				(GtkDialog	*dialog)
 {
@@ -1497,20 +1325,9 @@ add				(GtkDialog	*dialog)
       "general-video-table", video_setup, video_apply,
       .help_link_id = "zapping-settings-video-options" }
   };
-  SidebarEntry vbi [] = {
-    { N_("General"), "gnome-monitor.png", "vbox17",
-      vbi_general_setup, vbi_general_apply,
-      .help_link_id = "zapping-settings-vbi" },
-#if 0 /* temporarily disabled */
-    { N_("Interactive TV"), "gnome-monitor.png", "vbox33",
-      itv_setup, itv_apply }
-#endif
-  };
   SidebarGroup groups [] = {
     { N_("Devices"),	     devices, G_N_ELEMENTS (devices) },
     { N_("General Options"), general, G_N_ELEMENTS (general) },
-    { N_("VBI Options"),     vbi,     G_N_ELEMENTS (vbi) }
-    /* XXX "VBI Options" is also a constant in ttxview.c */
   };
 
   standard_properties_add (dialog, groups, G_N_ELEMENTS (groups),

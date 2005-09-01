@@ -1043,7 +1043,7 @@ tv_##item##s			(const tveng_device_info *info)		\
 }
 
 #define NEXT_NODE_FUNC(item, kind)					\
-const tv_##kind *							\
+tv_##kind *								\
 tv_next_##item			(const tveng_device_info *info,		\
 				 const tv_##kind *	p)		\
 {									\
@@ -1055,7 +1055,7 @@ tv_next_##item			(const tveng_device_info *info,		\
 }
 
 #define NTH_NODE_FUNC(item, kind)					\
-const tv_##kind *							\
+tv_##kind *								\
 tv_nth_##item			(tveng_device_info *	info,		\
 				 unsigned int		index)		\
 {									\

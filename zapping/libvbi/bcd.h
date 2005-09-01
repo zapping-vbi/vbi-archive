@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.h,v 1.4 2005-06-28 00:54:00 mschimek Exp $ */
+/* $Id: bcd.h,v 1.5 2005-09-01 01:40:52 mschimek Exp $ */
 
 #ifndef __ZVBI3_BCD_H__
 #define __ZVBI3_BCD_H__
@@ -194,10 +194,10 @@ vbi3_bcd_digits_greater		(unsigned int		bcd,
 typedef int vbi3_pgno;
 
 /* XXX document me */
-#define VBI3_CAPTION_C1 1
-#define VBI3_CAPTION_C2 2
-#define VBI3_CAPTION_C3 3
-#define VBI3_CAPTION_C4 4
+#define VBI3_CAPTION_CC1 1
+#define VBI3_CAPTION_CC2 2
+#define VBI3_CAPTION_CC3 3
+#define VBI3_CAPTION_CC4 4
 #define VBI3_CAPTION_T1 5
 #define VBI3_CAPTION_T2 6
 #define VBI3_CAPTION_T3 7

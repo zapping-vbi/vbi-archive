@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.36 2005-06-28 00:53:49 mschimek Exp $ */
+/* $Id: export.h,v 1.37 2005-09-01 01:40:52 mschimek Exp $ */
 
 #ifndef __ZVBI3_EXPORT_H__
 #define __ZVBI3_EXPORT_H__
@@ -33,11 +33,7 @@
 #include "link.h"		/* vbi3_link */
 #include "pdc.h"		/* vbi3_preselection */
 #include "page.h"		/* vbi3_page */
-#ifdef ZAPPING8
-typedef struct vbi3_decoder vbi3_decoder;
-#else
-#  include "vbi_decoder.h"	/* vbi3_decoder */
-#endif
+#include "vbi_decoder.h"	/* vbi3_decoder */
 
 VBI3_BEGIN_DECLS
 
@@ -231,7 +227,7 @@ typedef struct {
 	union {
 		int *			num;
 		double *		dbl;
-		const char * const *	str;
+		const char **		str;
 	}			menu;
 	/**
 	 * A localized description of the option for the user,

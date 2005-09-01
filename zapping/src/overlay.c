@@ -667,6 +667,8 @@ gboolean
 start_overlay			(void)
 {
   GdkEventMask mask;
+  gint width;
+  gint height;
 
   tv_info.main_window = GTK_WIDGET (zapping);
   tv_info.video_window = GTK_WIDGET (zapping->video);
@@ -681,8 +683,11 @@ start_overlay			(void)
 
   gdk_window_get_geometry (GTK_WIDGET (zapping->video)->window,
 			   &tv_info.vw_x, &tv_info.vw_y,
-			   &tv_info.vw_width, &tv_info.vw_height,
+			   &width, &height,
 			   /* depth */ NULL);
+
+  tv_info.vw_width = width;
+  tv_info.vw_height = height;
 
   tv_info.screen = tv_screen_list_find (screens,
 					tv_info.mw_x + tv_info.vw_x,

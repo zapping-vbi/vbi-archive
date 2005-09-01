@@ -30,6 +30,7 @@
     <short>Keep the main window above other windows.</short>
    </locale>
   </schema>
+
   <schema>
    <key>/schemas/apps/zapping/plugins/teletext/default_charset</key>
    <applyto>/apps/zapping/plugins/teletext/default_charset</applyto>
@@ -220,6 +221,7 @@ requested page has arrived.</long>
  flof_top2 (TOP style 2).</long>
    </locale>
   </schema>
+
   <schema>
    <key>/schemas/apps/zapping/plugins/deinterlace/options/Deinterlace/EdgeDetect</key>
    <applyto>/apps/zapping/plugins/deinterlace/options/Deinterlace/EdgeDetect</applyto>
@@ -696,5 +698,98 @@ high.</long>
 tests.</long>
    </locale>
   </schema>
+
+  <schema>
+   <key>/schemas/apps/zapping/plugins/subtitle/default_charset</key>
+   <applyto>/apps/zapping/plugins/subtitle/default_charset</applyto>
+   <owner>Zapping</owner>
+   <type>string</type>
+   <default>western_central_europe</default>
+   <locale name="C">
+    <short>Default Teletext character set.</short>
+    <long>Some stations fail to transmit a complete language
+ identifier, so the Teletext viewer may not display the correct font
+ or national characters. You can select your geographical region here
+ as an additional hint. Valid values: western_and_central_europe,
+ eastern_europe, western_europe_and_turkey, central_and_southeast_europe,
+ cyrillic, greek_and_turkish, arabic, hebrew_and_arabic.</long>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/subtitle/interp_type</key>
+   <applyto>/apps/zapping/plugins/subtitle/interp_type</applyto>
+   <owner>Zapping</owner>
+   <type>string</type>
+   <default>bilinear</default>
+   <locale name="C">
+    <short>Caption/subtitle scaling quality.</short>
+    <long>Quality/speed trade-off when scaling and anti-aliasing
+ caption/subtitles. Valid values: nearest, tiles, bilinear, hyper.</long>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/subtitle/pad</key>
+   <applyto>/apps/zapping/plugins/subtitle/pad</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>1</default>
+   <locale name="C">
+    <short>Pad Closed Caption text with spaces.</short>
+    <long>Adds spaces around words in Closed Caption text to improve legibility.</long>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/subtitle/roll</key>
+   <applyto>/apps/zapping/plugins/subtitle/roll</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>1</default>
+   <locale name="C">
+    <short>Enable smooth rolling of real time Closed Caption.</short>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/subtitle/foreground</key>
+   <applyto>/apps/zapping/plugins/subtitle/foreground</applyto>
+   <owner>Zapping</owner>
+   <type>string</type>
+   <default>#FFFFFF</default>
+   <locale name="C">
+    <short>Closed Caption default foreground color.</short>
+    <long>Default foreground color of Closed Caption text (#RRGGBB), default #FFFFFF.</long>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/subtitle/background</key>
+   <applyto>/apps/zapping/plugins/subtitle/background</applyto>
+   <owner>Zapping</owner>
+   <type>string</type>
+   <default>#000000</default>
+   <locale name="C">
+    <short>Closed Caption default background color.</short>
+    <long>Default background color of Closed Caption text (#RRGGBB), default #000000.</long>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/subtitle/brightness</key>
+   <applyto>/apps/zapping/plugins/subtitle/brightness</applyto>
+   <owner>Zapping</owner>
+   <type>int</type>
+   <default>128</default>
+   <locale name="C">
+    <short>Text brightness, valid values range from 0 to 255.</short>
+   </locale>
+  </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/subtitle/contrast</key>
+   <applyto>/apps/zapping/plugins/subtitle/contrast</applyto>
+   <owner>Zapping</owner>
+   <type>int</type>
+   <default>64</default>
+   <locale name="C">
+    <short>Text contrast, valid values range from -128 to 127.</short>
+   </locale>
+  </schema>
+
  </schemalist>
 </gconfschemafile>

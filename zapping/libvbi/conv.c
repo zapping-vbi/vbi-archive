@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.c,v 1.6 2005-06-28 01:01:10 mschimek Exp $ */
+/* $Id: conv.c,v 1.7 2005-09-01 01:40:52 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -29,7 +29,11 @@
 #include <errno.h>
 #include <langinfo.h>
 #include <assert.h>
-#include "intl-priv.h"
+#ifdef ZAPPING8
+#  include "common/intl-priv.h"
+#else
+#  include "intl-priv.h"
+#endif
 #include "misc.h"		/* N_ELEMENTS() */
 #include "conv.h"
 

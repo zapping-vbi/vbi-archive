@@ -541,10 +541,10 @@ enum tveng_controller
 
 /* Video inputs */
 
-extern const tv_video_line *
+extern tv_video_line *
 tv_next_video_input		(const tveng_device_info *info,
 				 const tv_video_line *	line);
-extern const tv_video_line *
+extern tv_video_line *
 tv_nth_video_input		(tveng_device_info *	info,
 				 unsigned int		hash);
 extern unsigned int
@@ -581,10 +581,10 @@ tv_add_video_input_callback	(tveng_device_info *	info,
 
 /* Audio inputs */
 
-extern const tv_audio_line *
+extern tv_audio_line *
 tv_next_audio_input		(const tveng_device_info *info,
 				 const tv_audio_line *	line);
-extern const tv_audio_line *
+extern tv_audio_line *
 tv_nth_audio_input		(tveng_device_info *	info,
 				 unsigned int		hash);
 extern unsigned int
@@ -610,10 +610,10 @@ tv_add_audio_input_callback	(tveng_device_info *	info,
 
 /* Video standards */
 
-extern const tv_video_standard *
+extern tv_video_standard *
 tv_next_video_standard		(const tveng_device_info *info,
 				 const tv_video_standard *standard);
-extern const tv_video_standard *
+extern tv_video_standard *
 tv_nth_video_standard		(tveng_device_info *	info,
 				 unsigned int		nth);
 extern unsigned int

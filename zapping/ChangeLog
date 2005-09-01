@@ -1,3 +1,135 @@
+2005-08-25    <mschimek@users.sf.net>
+
+	* src/keyboard.c (on_selection_changed): Fixed crash on clicking
+	  keyboard prefs remove key button.
+
+	* src/zmisc.c (zmisc_switch_mode): Reenable subtitles after a
+	  switch to capture or overlay mode.
+
+	* src/xawtv.c (channel_section): Handle baseband inputs (Debian
+	  bug/patch #302835, with a fix).
+
+2005-08-24    <mschimek@users.sf.net>
+
+	* src/zvbi.h, src/zvbi.c (zvbi_add_decoder, zvbi_remove_decoder): 
+	  No longer needed, removed.
+	* src/zvbi.c (zvbi_channel_switched): vbi3_(teletext_)decoder_reset
+	  on channel change moved here from plugins/teletext/main.c.
+	* plugins/teletext/window.c (top_menu_item_new, append_top_menu,
+	  append_channel_menu, instance_finalize, instance_init),
+	  plugins/teletext/search.c (search_restart),
+	  plugins/teletext/preferences.c (teletext_prefs_apply),
+	  plugins/teletext/bookmark.c (on_add_bookmark_activate),
+	  plugins/teletext/main.c, plugins/teletext/view.c: Use
+	  zvbi_get_object() vbi3_decoder instead of teletext
+	  plugin private vbi3_teletext_decoder.
+
+	* src/fullscreen.c (fullscreen_activate_subtitles),
+	  src/subtitle.c (py_closed_caption): Remember subtitle size and
+	  position in config.
+	* src/subtitle.h, src/subtitle.c: Added helper functions to get/set
+	  subtitle position in Zapping config.
+	* plugins/subtitle/view.h, plugins/subtitle/view.c: Added position
+	  changed signal to update config.
+
+2005-08-23    <mschimek@users.sf.net>
+
+	* po/POTFILES.in: Added libvbi/exp-sub.c, plugins/subtitle/main.c,
+	  plugins/subtitle/preferences.c, plugins/subtitle/view.c,
+	  src/mixer.c, src/zgconf.c, src/zspinslider.c. Removed
+	  src/fullscreen.c, src/interface.c.
+
+	* libvbi/caption_decoder.h, libvbi/caption_decoder.c: Added
+	  vbi3_caption_decoder_get_cc_channel_stat function to find active
+	  caption channels, equivalent to vbi3_ttx_page_stat. Added
+	  VBI3_EVENT_PAGE_TYPE as in teletext_decoder to notify clients
+	  about caption activity changes.
+	* src/subtitle.c (subtitle_menu_new),
+	  src/zvbi.c (zvbi_find_subtitle_page): Use new
+	  vbi3_caption_decoder_get_cc_channel_stat function to find active
+	  caption channels.
+	(subtitle_menu_new): Use radio menu items to indicate the currently
+	  selected subtitle page, if any. Display language from user
+	  selected Teletext encoding, if any.
+
+	* configure.in: Require libzvbi >= 0.2.11 to make
+	  vbi_pes_demux_reset() available.
+	* src/zvbi.c: Play back PES VBI files in real time, at a rate
+	  calculated from PTS.
+	* src/zmisc.h, src/zmisc.c (z_timeout_add): New GSource based on
+	  g_timeout to alert the process once at some future time, for real
+	  time playback of PES VBI files.
+
+	* src/main.c (startup_teletext): Disable vbi only if both the
+	  Teletext and subtitle plugin are missing.
+	* src/zvbi.c (zvbi_stop, zvbi_start), src/zapping.h (struct _Zapping), 
+	  src/zmisc.c (show_teletext_buttons), src/main.c (startup_teletext),
+	  src/zapping.c (zapping_create_popup, instance_init): Split
+	  zapping->vbi_action_group into Teletext and subtitle groups.
+
+2005-08-21    <mschimek@users.sf.net>
+
+	* libvbi/ure.c: Const fixes.
+	* libvbi/caption_decoder-priv.h, libvbi/caption_decoder.h,
+	  libvbi/caption_decoder.c, libvbi/event.h: Replaced
+	  VBI_EVENT_ROLL_UP event by a cc_page flag. Same effect but
+	  more efficient.
+	* libvbi/vbi_decoder.c, libvbi/event.h: Added VBI_EVENT_TIMER
+	  to aid caption roll-up.
+	* libvbi/event.c (_vbi3_event_handler_list_add): Incorrectly
+	  returned NULL failure if the handler is already listed and only
+	  its event mask changed.
+	* libvbi/cache.c (add_network): Ignore network_limit if we cannot
+	  reuse a cached network because they're all referenced.
+	(add_network, delete_network): Call caption routines now present
+	  in the Zapping version of libzvbi3.
+
+2005-08-15    <mschimek@users.sf.net>
+
+	* plugins/teletext/view.c,
+	  src/main.c, src/v4linterface.c, src/v4linterface.h,
+	  src/frequencies.c, src/frequencies.h: Added functions to store
+	  individual Teletext page character encodings with channel
+	  config data.
+
+	* libvbi/export.c (vbi3_export_set_timestamp), libvbi/export-priv.h,
+	  libvbi/exp-sub.c: Fixed the calculation of the display delay of
+	  the first subtitle page.
+
+	* plugins/mpeg/mpeg.c (pref_setup, pref_apply): Replaced makeshift
+	  config copy which handled only rte_context stuff by the new
+	  zconf_copy() to copy the VBI configuration as well.
+	(do_stop, do_start): Added subtitle file recording.
+
+	* src/zconf.h, src/zconf.c (zconf_copy): Added for the
+	  recording plugin.	
+
+2005-08-12    <mschimek@users.sf.net>
+
+	* libvbi/Makefile.am (libvbi_la_SOURCES): Added exp-sub.c.
+	* libvbi/export.c: Enabled caption/subtitle export modules.
+	* libvbi/exp-sub.c: New caption/subtitle export module, added from
+	  libzvbi 0.3 branch.
+	
+	* plugins/teletext/export.c (on_menu_activate),
+	  src/zvbi.h, src/zvbi.c: Moved functions to create a GtkTable of
+	  vbi_export options from plugins/teletext/export.c to zvbi.c for
+	  reuse by recording plugin. Fixed config initialization.
+	* src/zvbi.c (on_control_changed): Did not store the value of VBI
+	  export menu options in config.
+
+2005-08-11    <mschimek@users.sf.net>
+
+	* src/fullscreen.c: Changed to use new subtitle routines. Subtitles
+	  no longer appear outside the video (but can be dragged there).
+
+	* src/zvbi.c: Use GnomeVFS to read PES files. Tested with local
+	  raw and .gz files. Replaced RunBox macros by
+	  z_show_non_modal_message_dialog().
+	* src/properties.c (autoconnect_modify): Support gtk_combo_box.
+	* src/v4linterface.c (z_switch_video_input): Disable subtitles on
+	  success.
+
 2005-08-02    <mschimek@users.sf.net>
 
 	* src/zvbi.c (decoder_giofunc): Didn't handle errors passed through
@@ -11,7 +143,47 @@
 	  (on_channel_search_clicked): Avoid duplicate or unnecessary
 	  error dialogs on display/capture mode change.
 
+2005-07-30    <mschimek@users.sf.net>
+
+	* libvbi/exp-gfx.c (rgba_conv): Optimized.
+	(vbi3_page_draw_caption_region_va_list): Store alpha channel
+	  depending on character opacity (used to be always 0xFF).
+	(vbi3_page_draw_teletext_region_va_list): Store alpha channel
+	  depending on character opacity.
+
+	* src/zvbi.c: Added Devices/VBI preferences.
+	* src/main.c (startup_teletext),
+	  src/v4linterface.c (z_switch_standard): Functions to start/stop
+	  VBI capturing changed.
+
 2005-07-29    <mschimek@users.sf.net>
+
+	* src/globals.c, src/globals.h,
+	  src/main.c (startup_zapping): Another plugin hack for subtitles.
+	* zapping.schemas.in: Added subtitle options.
+	* plugins/subtitle/view.c, plugins/subtitle/view.h:
+	  New file replacing the subtitle rendering
+	  routines in src/osd.c. GObject-ified the subtitle drawing area.
+	  Added support for page and URL hyperlinks on Teletext overlays.
+	  Made subtitles movable by dragging, but only as far as they
+	  remain visible, and new subtitles automatically move to become
+	  visible again. Made subtitles resizeable by dragging.	Added
+	  rolling display of roll-up Closed Caption. Added options
+	  interpolation type, text brightness and contrast, CC padding, CC
+	  foreground and background color, rolling CC, Teletext default
+	  charset, shrink double height Teletext characters. Added a
+	  subtitle context menu to disable subtitles, reset size and
+	  position, open the preferences, override the character set of
+	  Teletext subtitles, select another language. Subtitles no longer
+	  scale horizontally, preserving the character aspect, unless the
+	  allocated space is too small.
+	* plugins/subtitle/preferences.c, plugins/subtitle/preferences.h:
+	  New subtitle preferences.
+	* plugins/subtitle/main.c, plugins/subtitle/main.h:
+	  New subtitle plugin interface.
+	* plugins/subtitle/Makefile.am: New subtitle plugin.
+	* plugins/Makefile.am (SUBDIRS): Added subtitle.
+	* configure.in (AC_OUTPUT): Added plugins/subtitle/Makefile.
 
 	* src/v4linterface.c (z_switch_standard): Temporarily closed but
 	  did not reopen VBI when the requested standard is already
@@ -45,7 +217,23 @@
 	* plugins/deinterlace/windows.h: Removed obsolete inline asm code.
 	  Added SSE3 optimized functions.
 
+2005-07-21    <mschimek@users.sf.net>
+
+	* plugins/teletext/view.c
+	(teletext_view_vbi3_link_from_pointer_position): Removed duplicate
+	  safety checks.
+
+	* src/osd.c: Replaced the caption/subtitle rendering code by a
+	  simpler version, with only one non-rectangular shaped window
+	  instead of one variable width window per row.
+
 2005-07-20    <mschimek@users.sf.net>
+
+	* src/tveng25.c (set_tuner_frequency): No STREAMOFF before the
+	  first read(), don't restart streaming if we're read()ing.
+	(enable_capture): No STREAMOFF before the first read().
+	(get_supported_pixfmt_set): Added work-around for ivtv driver
+	  which does not support ENUM_FMT and has broken TRY_FMT.
 
 	* src/tveng25.c (set_tuner_frequency): No STREAMOFF before the
 	  first read(), don't restart streaming if we're read()ing.
@@ -73,7 +261,7 @@
 	* src/zmisc.h (likely, unlikely): Fixed macro.
 	* libtv/image_format.c, libtv/pixel_format.h, libtv/pixel_format.c:
 	  Added TV_PIXFMT_NV12.
-	* src/csconvert.c: Added NV12-to-YUV420 converter.
+	* src/csconvert.c: Added NV12-to-YUV420 converter for tests.
 
 2005-07-14    <mschimek@users.sf.net>
 

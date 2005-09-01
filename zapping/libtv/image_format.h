@@ -17,12 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.8 2005-06-28 01:03:01 mschimek Exp $ */
+/* $Id: image_format.h,v 1.9 2005-09-01 01:40:52 mschimek Exp $ */
 
 #ifndef __ZTV_IMAGE_FORMAT_H__
 #define __ZTV_IMAGE_FORMAT_H__
 
 #include <stdio.h>		/* FILE */
+#include <stdlib.h>		/* free() */
 #include "pixel_format.h"
 
 TV_BEGIN_DECLS
@@ -91,6 +92,13 @@ tv_copy_image			(void *			dst_image,
 				 const void *		src_image,
 				 const tv_image_format *src_format)
   __attribute__ ((_tv_nonnull (1, 2)));
+/* Replace free() by a more descriptive name for documentation purposes. */
+static __inline__ void
+tv_delete_image			(void *			image)
+{
+  free (image);
+}
+
 extern void *
 tv_new_image			(const void *		src_image,
 				 const tv_image_format *src_format)

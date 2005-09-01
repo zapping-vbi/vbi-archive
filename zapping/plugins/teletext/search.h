@@ -19,10 +19,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.h,v 1.2 2004-11-03 06:46:56 mschimek Exp $ */
+/* $Id: search.h,v 1.3 2005-09-01 01:40:53 mschimek Exp $ */
 
-#ifndef SEARCH_H
-#define SEARCH_H
+#ifndef TELETEXT_SEARCH_H
+#define TELETEXT_SEARCH_H
 
 #include <gtk/gtk.h>
 #include "libvbi/bcd.h"		/* vbi3_pgno, vbi3_subno */
@@ -82,4 +82,4 @@ search_dialog_new		(TeletextView *		view);
 
 G_END_DECLS
 
-#endif /* SEARCH_H */
+#endif /* TELETEXT_SEARCH_H */

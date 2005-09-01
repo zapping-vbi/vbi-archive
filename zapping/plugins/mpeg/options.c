@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.26 2005-01-08 14:54:24 mschimek Exp $ */
+/* $Id: options.c,v 1.27 2005-09-01 01:40:52 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -475,6 +475,8 @@ grte_options_create (rte_context *context, rte_codec *codec)
  *        + / "codec name"				/ "codec name"
  *          + option = ...
  *        :
+ *      + / vbi_file_options
+ *        + option = ...
  *    :
  *
  *  Note this assumes a stream can consist of exactly one video
@@ -736,7 +738,6 @@ grte_codec_create_menu		(rte_context *		context,
 
   if (cxinfo->min_elementary[stream_type] != 1) /* "None" permitted? */
     {
-      /* TRANSLATORS: Which codec: None, A, B, C, ... */
       menu_item = gtk_menu_item_new_with_label (_("No codec"));
       gtk_widget_show (menu_item);
       gtk_menu_shell_append (GTK_MENU_SHELL (menu), menu_item);

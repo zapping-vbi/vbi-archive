@@ -55,4 +55,8 @@ guint (*_ttxview_hotlist_menu_insert)(GtkMenuShell *		menu,
 				      gboolean		separator,
 				      gint position);
 
+/* Preliminary subtitle plugin interface. */
+GtkWidget *
+(*_subtitle_view_new)		(void);
+
 #endif /* HAVE_LIBZVBI */

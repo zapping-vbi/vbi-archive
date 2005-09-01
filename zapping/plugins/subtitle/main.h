@@ -1,8 +1,8 @@
 /*
  *  Zapping TV viewer
  *
- *  Copyright (C) 2000, 2001, 2002 Iñaki García Etxebarria
- *  Copyright (C) 2000, 2001, 2002, 2003, 2004 Michael H. Schimek
+ *  Copyright (C) 2000-2002 Iñaki García Etxebarria
+ *  Copyright (C) 2000-2005 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,24 +19,22 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.h,v 1.4 2005-09-01 01:40:53 mschimek Exp $ */
+/* $Id: main.h,v 1.1 2005-09-01 01:40:53 mschimek Exp $ */
 
-#ifndef TELETEXT_MAIN_H
-#define TELETEXT_MAIN_H
+#ifndef SUBTITLE_MAIN_H
+#define SUBTITLE_MAIN_H
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <gtk/gtk.h>
-#include "libvbi/teletext_decoder.h"
-#include "bookmark.h"
+extern GList *			subtitle_views;
 
-extern vbi3_network		anonymous_network;
-extern bookmark_list		bookmarks;
-extern BookmarkEditor *		bookmarks_dialog;
-extern GtkActionGroup *		teletext_action_group;
-extern GList *			teletext_windows;
-extern GList *			teletext_views;
+extern gboolean
+plugin_get_symbol		(const gchar *		name,
+				 gint			hash,
+				 gpointer *		ptr);
+extern gint
+plugin_get_protocol		(void);
 
-#endif /* TELETEXT_MAIN_H */
+#endif /* SUBTITLE_MAIN_H */

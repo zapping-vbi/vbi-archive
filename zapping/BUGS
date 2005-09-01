@@ -107,6 +107,9 @@ sn9c102 1.0.8 driver:
   m.offset isn't page aligned.
 
 bttv driver:
+* 0.8.x: When video capturing is disabled while VBI capturing is
+  active, the driver passes VBI frames at the end of the first field
+  (i.e. F1-F0, F3-F2, ... instead of F1-F2, F3-F4, ...)
 * 0.9.14: with YUV 4:2:0 activation of VBI capturing can cause a
   SCERR & driver reset, DQBUF -> EIO.
 * bt8x8 has no PAL delay line, or is disabled in YUYV mode?

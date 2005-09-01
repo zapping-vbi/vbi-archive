@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.48 2005-08-04 01:40:51 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.49 2005-09-01 01:40:54 mschimek Exp $ */
 
 /*
   TODO:
@@ -579,11 +579,13 @@ station_search_timeout		(gpointer		p)
 
   if (cs->iteration == 0)
     {
+      guint size;
       gdouble progress;
 
       /* New channel */
 
-      progress = cs->channel / (gdouble) tv_rf_channel_table_size (&cs->ch);
+      size = tv_rf_channel_table_size (&cs->ch);
+      progress = cs->channel / (gdouble) size;
       gtk_progress_bar_set_fraction (cs->progressbar, progress);
 
       z_label_set_text_printf (cs->label,

@@ -470,6 +470,9 @@ set_control			(tveng_device_info *	info,
 				 tv_control *		control,
 				 int			value)
 {
+  info = info;
+  control = control;
+  value = value;
 
 #if 0 /* TO DO */
   if ((c->atom == info->filter) &&
@@ -538,6 +541,8 @@ static tv_bool
 get_control			(tveng_device_info *	info,
 				 tv_control *		control)
 {
+  info = info;
+  control = control;
 
 #if 0 /* TO DO */
 
@@ -618,6 +623,7 @@ get_control			(tveng_device_info *	info,
 static tv_bool
 get_control_list		(tveng_device_info *	info)
 {
+  info = info;
 
 #if 0 /* TO DO */
 

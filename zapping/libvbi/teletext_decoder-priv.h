@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder-priv.h,v 1.3 2005-06-28 00:55:30 mschimek Exp $ */
+/* $Id: teletext_decoder-priv.h,v 1.4 2005-09-01 01:40:52 mschimek Exp $ */
 
 #ifndef TELETEXT_DECODER_PRIV_H
 #define TELETEXT_DECODER_PRIV_H
@@ -29,23 +29,30 @@
 #include "event-priv.h"		/* _vbi3_event_handler_list */
 #include "cache-priv.h"		/* vbi3_cache, vt.h */
 #ifndef ZAPPING8
-#include "pfc_demux.h"		/* vbi3_pfc_demux */
-#include "trigger.h"		/* _vbi3_trigger */
+#  include "pfc_demux.h"	/* vbi3_pfc_demux */
+#  include "trigger.h"		/* _vbi3_trigger */
 #endif
 #include "teletext_decoder.h"
 
+typedef void
+teletext_reset_fn		(vbi3_teletext_decoder *td,
+				 cache_network *	cn,
+				 double			time);
+typedef void
+teletext_delete_fn		(vbi3_teletext_decoder *td);
+
 struct _vbi3_teletext_decoder {
-	/** The cache we use. */
-	vbi3_cache *		cache;
-
-	/** Current network in the cache. */
-	cache_network *		network;
-
 	/**
 	 * Pages in progress, per magazine in case of parallel transmission.
 	 * When complete we copy the page into the cache.
 	 */
 	cache_page		buffer[8];
+
+	/**
+	 * Current page, points into buffer[], switched by a page header
+	 * with different magazine number. Can be @c NULL (no header
+	 * received yet).
+	 */
 	cache_page *		current;
 
 #ifndef ZAPPING8
@@ -56,24 +63,41 @@ struct _vbi3_teletext_decoder {
 	_vbi3_trigger *		triggers;
 #endif
 
-	/** Used for channel switch detection. */
+	/** Used for channel switch detection, see there. */
 	pagenum			header_page;
 	uint8_t			header[40];
-
-	double			timestamp;
-	double			reset_time;
-
-	_vbi3_event_handler_list handlers;
-
-	void (* virtual_reset)	(vbi3_teletext_decoder *	td,
-				 cache_network *	cn,
-				 double			time);
 
 	/** Time to receive a packet 8/30 CNI or VPS CNI. */
 	double			cni_830_timeout;
 	double			cni_vps_timeout;
 
+	/**
+	 * Remember past uncorrectable errors: One bit for each call of
+	 * vbi3_teletext_decoder_feed(), most recent result in lsb. The idea
+	 * is to disable the decoder if we get too many errors.
+	 */
+	unsigned int		error_history;
+
+	/* Interface */
+
+	/** The cache we use. */
+	vbi3_cache *		cache;
+
+	/** Current network in the cache. */
+	cache_network *		network;
+
+	double			timestamp;
+	double			reset_time;
+
 	vbi3_videostd_set	videostd_set;
+
+	/** Called by vbi3_teletext_decoder_reset(). */
+	teletext_reset_fn *	virtual_reset;
+
+	_vbi3_event_handler_list handlers;
+
+	/** Called by vbi3_teletext_decoder_delete(). */
+	teletext_delete_fn *	virtual_delete;
 };
 
 /* in packet.c */

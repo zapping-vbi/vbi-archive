@@ -11,6 +11,7 @@ bin_PROGRAMS = zapping zapping_remote
 
 COMMON_LIB = $(top_builddir)/common/libcommon.a
 TV_LIB = $(top_builddir)/libtv/libtv.la
+VBI_LIB = $(top_builddir)/libvbi/libvbi.la
 
 # Need gcc and as support for SSE to build this module.
 # Cannot build for target x86_64, code is 32 bit.
@@ -93,10 +94,11 @@ zapping_SOURCES = \
 	zmisc.c zmisc.h \
 	zmodel.c zmodel.h \
 	zspinslider.c zspinslider.h \
+	zstack.c zstack.h \
 	zvbi.c zvbi.h \
 	zvideo.c zvideo.h
 
-zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(TV_LIB) \
+zapping_LDADD = $(gen_conv_lib) $(COMMON_LIB) $(TV_LIB) $(VBI_LIB) \
   $(PACKAGE_LIBS) $(PYTHON_LIBS) \
   $(X_LIBS) -lX11 $(X_DPMS_LIBS) $(X_XINERAMA_LIBS) \
   $(X_XF86DGA_LIBS) $(X_XF86VMODE_LIBS) $(X_XV_LIBS) \

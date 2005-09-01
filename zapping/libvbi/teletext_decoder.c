@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.9 2005-06-28 00:54:48 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.10 2005-09-01 01:40:52 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -178,7 +178,7 @@ drcs_mode_name			(drcs_mode		mode)
  * Static ASCII string, NULL if @a type is invalid.
  */
 const char *
-vbi3_ttx_page_type_name		(vbi3_ttx_page_type	type)
+vbi3_page_type_name		(vbi3_page_type		type)
 {
 	switch (type) {
 
@@ -779,7 +779,7 @@ top_page_stat			(cache_network *	cn,
 				 btt_page_type		btt_type)
 {
 	page_stat *ps;
-	vbi3_ttx_page_type page_type;
+	vbi3_page_type page_type;
 	unsigned int subcode;
 	vbi3_bool changed;
 
@@ -840,7 +840,7 @@ top_page_stat			(cache_network *	cn,
 
 	log ("BTT %04x: %2u %04x %s\n",
 	     pgno, btt_type, subcode,
-	     vbi3_ttx_page_type_name (page_type));
+	     vbi3_page_type_name (page_type));
 
 	ps = cache_network_page_stat (cn, pgno);
 
@@ -1083,7 +1083,7 @@ decode_mpt_page			(vbi3_teletext_decoder *	td,
 
 			for (i = 0; i < 40; ++i) {
 				page_stat *ps;
-				vbi3_ttx_page_type page_type;
+				vbi3_page_type page_type;
 				unsigned int subcode;
 				int n;
 
@@ -1100,7 +1100,7 @@ decode_mpt_page			(vbi3_teletext_decoder *	td,
 
 				log ("MPT %04x: %04x %x %s\n",
 				     pgno, subcode, n,
-				     vbi3_ttx_page_type_name (page_type));
+				     vbi3_page_type_name (page_type));
 
 				if (n > 9) {
 					/* Has more than 9 subpages, details
@@ -1147,7 +1147,7 @@ decode_mpt_ex_page		(vbi3_teletext_decoder *	td,
 			for (i = 0; i < 5; ++i) {
 				pagenum pn;
 				page_stat *ps;
-				vbi3_ttx_page_type page_type;
+				vbi3_page_type page_type;
 				unsigned int subcode;
 
 				if (!top_page_number (&pn, raw)) {
@@ -1208,8 +1208,8 @@ mip_page_stat			(cache_network *	cn,
 				 vbi3_pgno		pgno)
 {
 	page_stat *ps;
-	vbi3_ttx_page_type page_type;
-	vbi3_ttx_page_type old_type;
+	vbi3_page_type page_type;
+	vbi3_page_type old_type;
 	int code;
 	unsigned int subcode;
 	unsigned int old_subcode;
@@ -1379,7 +1379,7 @@ mip_page_stat			(cache_network *	cn,
 
 	log ("MIP %04x: %02x:%02x:%04x %s\n",
 	     pgno, page_type, ps->charset_code, subcode,
-	     vbi3_ttx_page_type_name (page_type));
+	     vbi3_page_type_name (page_type));
 
 	return changed;
 }
@@ -1745,6 +1745,9 @@ static void
 eacem_trigger			(vbi3_teletext_decoder *	td,
 				 cache_page *		cp)
 {
+	td = td;
+	cp = cp;
+
 #if 0 /* TODO */
 
 	vbi3_page_priv pgp;
@@ -2008,7 +2011,7 @@ detect_channel_change		(vbi3_teletext_decoder *	td,
 		td->header_page.pgno = cp->pgno;
 		COPY (td->header, cp->data.lop.raw[0]);
 
-		/* Reset at next vbi3_teletext_decoder_decode() call. */
+		/* Reset at next vbi3_teletext_decoder_feed() call. */
 		td->virtual_reset (td, NULL, td->timestamp + 0.0);
 
 		break;
@@ -2092,7 +2095,7 @@ store_page			(vbi3_teletext_decoder *	td,
 
 		ps->flags = cp->flags;
 
-		switch ((vbi3_ttx_page_type) ps->page_type) {
+		switch ((vbi3_page_type) ps->page_type) {
 		case VBI3_NO_PAGE:
 		case VBI3_UNKNOWN_PAGE:
 			if (cp->flags & C6_SUBTITLE)
@@ -2151,7 +2154,8 @@ store_page			(vbi3_teletext_decoder *	td,
 			     cp->x27_designations,
 			     cp->x28_designations);
 
-			cp1 = _vbi3_cache_put_page (td->cache, td->network, cp);
+			cp1 = _vbi3_cache_put_page (td->cache,
+						    td->network, cp);
 
 			if (cp1) {
 				vbi3_event e;
@@ -2514,7 +2518,7 @@ decode_packet_0			(vbi3_teletext_decoder *	td,
 
 		ps = cache_network_page_stat (td->network, cp->pgno);
 
-		switch ((vbi3_ttx_page_type) ps->page_type) {
+		switch ((vbi3_page_type) ps->page_type) {
 		case VBI3_NO_PAGE:
 			/* Who's wrong here? */
 			ps->page_type = VBI3_UNKNOWN_PAGE;
@@ -3486,9 +3490,7 @@ status_change			(vbi3_teletext_decoder *	td,
 				 const uint8_t		buffer[42])
 {
 	const vbi3_character_set *cs;
-	cache_network *cn;
 	char *title;
-	vbi3_event e;
 
 	cs = vbi3_character_set_from_code (0); /* XXX ok? */
 	title = _vbi3_strdup_locale_teletext (buffer + 22, 20, cs);
@@ -3496,18 +3498,25 @@ status_change			(vbi3_teletext_decoder *	td,
 	if (!title)
 		return FALSE;
 
-#ifndef ZAPPING8
-	cn = td->network;
+#ifdef ZAPPING8
+	td = td;
+#else
+	{
+		cache_network *cn;
+		vbi3_event e;
 
-	vbi3_free (cn->program_info.title);
-	cn->program_info.title = title;
+		cn = td->network;
 
-	e.type = VBI3_EVENT_PROG_INFO;
-	e.network = &cn->network;
-	e.timestamp = td->timestamp;
-	e.ev.prog_info = &cn->program_info;
+		vbi3_free (cn->program_info.title);
+		cn->program_info.title = title;
 
-	_vbi3_event_handler_list_send (&td->handlers, &e);
+		e.type = VBI3_EVENT_PROG_INFO;
+		e.network = &cn->network;
+		e.timestamp = td->timestamp;
+		e.ev.prog_info = &cn->program_info;
+
+		_vbi3_event_handler_list_send (&td->handlers, &e);
+	}
 #endif
 
 	return TRUE;
@@ -3783,21 +3792,23 @@ decode_packet_8_30		(vbi3_teletext_decoder *	td,
  * @c FALSE if the packet contained incorrectable errors. 
  */
 vbi3_bool
-vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
+vbi3_teletext_decoder_feed	(vbi3_teletext_decoder *	td,
 				 const uint8_t		buffer[42],
 				 double			timestamp)
 {
+	vbi3_bool success;
 	cache_page *cp;
 	int pmag;
 	int mag0;
 	int packet;
+
+	success = FALSE;
 
 	td->timestamp = timestamp;
 
 	if (td->reset_time > 0
 	    && timestamp >= td->reset_time) {
 		cache_network *cn;
-		vbi3_event e;
 
 		/* Deferred reset. */
 
@@ -3811,7 +3822,7 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 	}
 
 	if ((pmag = vbi3_unham16p (buffer)) < 0)
-		return FALSE;
+		goto finish;
 
 	mag0 = pmag & 7;
 	packet = pmag >> 3;
@@ -3835,42 +3846,47 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 		     & (VBI3_EVENT_TTX_PAGE |
 			VBI3_EVENT_TRIGGER |
 			VBI3_EVENT_PAGE_TYPE |
-			VBI3_EVENT_TOP_CHANGE)))
-		return TRUE;
+			VBI3_EVENT_TOP_CHANGE))) {
+		success = TRUE;
+		goto finish;
+	}
 
 	switch (packet) {
 	case 0:
 		/* Page header. */
-		return decode_packet_0 (td, cp, buffer, (unsigned int) mag0);
+		success = decode_packet_0 (td, cp, buffer,
+					   (unsigned int) mag0);
+		break;
 
 	case 1 ... 25:
 		/* Page body. */
 		switch (cp->function) {
 		case PAGE_FUNCTION_DISCARD:
-			return TRUE;
+			success = TRUE;
+			break;
 
 		case PAGE_FUNCTION_GPOP:
 		case PAGE_FUNCTION_POP:
-			if (!decode_pop_packet (cp, buffer + 2,
-						(unsigned int) packet))
-				return FALSE;
+			success = decode_pop_packet (cp, buffer + 2,
+						     (unsigned int) packet);
 			break;
 
 		case PAGE_FUNCTION_GDRCS:
 		case PAGE_FUNCTION_DRCS:
 			memcpy (cp->data.drcs.lop.raw[packet],
 				buffer + 2, 40);
+			success = TRUE;
 			break;
 
 		case PAGE_FUNCTION_AIT:
-			if (!(decode_ait_packet (cp, buffer + 2,
-						 (unsigned int) packet)))
-				return FALSE;
+			success = decode_ait_packet (cp, buffer + 2,
+						     (unsigned int) packet);
 			break;
 
 		case PAGE_FUNCTION_EPG:
-			// TODO
-			return TRUE;
+			/* TODO */
+			success = TRUE;
+			break;
 
 		case PAGE_FUNCTION_LOP:
 		case PAGE_FUNCTION_TRIGGER:
@@ -3884,9 +3900,11 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 				err |= vbi3_unpar8 (buffer[2 + i]);
 
 			if (err < 0)
-				return FALSE;
+				break;
 
 			memcpy (cp->data.unknown.raw[packet], buffer + 2, 40);
+
+			success = TRUE;
 
 			break;
 		}
@@ -3898,6 +3916,7 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 		case PAGE_FUNCTION_MPT_EX:
 		default:
 			memcpy (cp->data.unknown.raw[packet], buffer + 2, 40);
+			success = TRUE;
 			break;
 		}
 
@@ -3907,17 +3926,20 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 
 	case 26:
 		/* Page enhancement packet. */
-		return decode_packet_26 (td, cp, buffer);
+		success = decode_packet_26 (td, cp, buffer);
+		break;
 
 	case 27:
 		/* Page linking. */
-		return decode_packet_27 (td, cp, buffer);
+		success = decode_packet_27 (td, cp, buffer);
+		break;
 
 	case 28:
 	case 29:
 		/* Level 2.5/3.5 enhancement. */
-		return decode_packet_28_29 (td, cp, buffer,
-					    (unsigned int) packet);
+		success = decode_packet_28_29 (td, cp, buffer,
+					       (unsigned int) packet);
+		break;
 
 	case 30:
 	case 31:
@@ -3930,7 +3952,8 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 
 		switch (channel) {
 		case 0:
-			return decode_packet_8_30 (td, buffer);
+			success = decode_packet_8_30 (td, buffer);
+			break;
 
 		/* 1 ... 3	= Packet 1/30 ... 3/30 */
 		/* 4		= Low bit rate audio */
@@ -3943,6 +3966,7 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 
 		default:
 			log ("IDL %u\n", channel);
+			success = TRUE;
 			break;
 		}
 
@@ -3953,7 +3977,9 @@ vbi3_teletext_decoder_decode	(vbi3_teletext_decoder *	td,
 		assert (0);
 	}
 
-	return TRUE;
+ finish:
+	td->error_history = td->error_history * 2 + success;
+	return success;
 }
 
 /**
@@ -4186,6 +4212,10 @@ vbi3_teletext_decoder_get_program_id
 				 vbi3_pid_channel	channel)
 {
 #ifdef ZAPPING8
+	td = td;
+	pid = pid;
+	channel = channel;
+
 	assert (0);
 #else
 	assert (NULL != td);
@@ -4333,6 +4363,8 @@ void
 cache_network_destroy_teletext	(cache_network *	cn)
 {
 	/* Nothing. */
+
+	cn = cn;
 }
 
 /**
@@ -4365,25 +4397,35 @@ cache_network_init_teletext	(cache_network *	cn)
 	cn->have_top = FALSE;
 }
 
-/* Internal reset function, called by td->virtual_reset(). */
+/**
+ * @internal
+ * @param td Teletext decoder allocated with vbi3_teletext_decoder_new().
+ * @param cn New network, can be @c NULL if 0.0 != time.
+ * @param time Deferred reset when time is greater than
+ *   vbi3_teletext_decoder_feed() timestamp. Pass a negative number to
+ *   cancel a deferred reset, 0.0 to reset immediately.
+ *
+ * Internal reset function, called via td->virtual_reset().
+ */
 static void
-reset				(vbi3_teletext_decoder *	td,
+internal_reset			(vbi3_teletext_decoder *	td,
 				 cache_network *	cn,
 				 double			time)
 {
-	vbi3_event e;
-
 	assert (NULL != td);
 
 	if (0)
-		fprintf (stderr, "reset %f: %f -> %f\n",
+		fprintf (stderr, "teletext reset %f: %f -> %f\n",
 			 td->timestamp, td->reset_time, time);
 
-	if (time <= 0.0 || time > td->reset_time)
+	if (time <= 0.0 /* reset now or cancel deferred reset */
+	    || time > td->reset_time)
 		td->reset_time = time;
 
-	if (0.0 != time)
+	if (0.0 != time) {
+		/* Don't reset now. */
 		return;
+	}
 
 	assert (NULL != cn);
 
@@ -4400,11 +4442,15 @@ reset				(vbi3_teletext_decoder *	td,
 
 	_vbi3_teletext_decoder_resync (td);
 
-	e.type		= VBI3_EVENT_RESET;
-	e.network	= &td->network->network;
-	e.timestamp	= td->timestamp;
+	if (internal_reset == td->virtual_reset) {
+		vbi3_event e;
 
-	_vbi3_event_handler_list_send (&td->handlers, &e);
+		e.type		= VBI3_EVENT_RESET;
+		e.network	= &td->network->network;
+		e.timestamp	= td->timestamp;
+
+		_vbi3_event_handler_list_send (&td->handlers, &e);
+	}
 }
 
 /**
@@ -4437,7 +4483,7 @@ vbi3_teletext_decoder_remove_event_handler
  * @param event_mask Set of events (@c VBI3_EVENT_) the handler is waiting
  *   for, can be -1 for all and 0 for none.
  * @param callback Function to be called on events by
- *   vbi3_teletext_decoder_decode() and other vbi3_teletext functions as noted.
+ *   vbi3_teletext_decoder_feed() and other vbi3_teletext functions as noted.
  * @param user_data User pointer passed through to the @a callback function.
  * 
  * Adds a new event handler to the Teletext decoder. When the @a callback
@@ -4500,6 +4546,7 @@ vbi3_teletext_decoder_add_event_handler
 						  user_data)) {
 		if (add_mask & (VBI3_EVENT_TTX_PAGE |
 				VBI3_EVENT_TRIGGER)) {
+			/* XXX is this really necessary? */
 			_vbi3_teletext_decoder_resync (td);
 		}
 
@@ -4552,7 +4599,7 @@ vbi3_teletext_decoder_get_cache	(vbi3_teletext_decoder *td)
  * This function sends a @c VBI3_EVENT_RESET.
  *
  * You can pass a vbi3_network structure to identify the new network in
- * advance, before the decoder receives an ID if ever.
+ * advance, before the decoder receives a network ID, if ever.
  */
 void
 vbi3_teletext_decoder_reset	(vbi3_teletext_decoder *	td,
@@ -4566,7 +4613,9 @@ vbi3_teletext_decoder_reset	(vbi3_teletext_decoder *	td,
 	td->videostd_set = videostd_set;
 
 	cn = _vbi3_cache_add_network (td->cache, nk, videostd_set);
+
 	td->virtual_reset (td, cn, 0.0 /* now */);
+
 	cache_network_unref (cn);
 }
 
@@ -4638,7 +4687,7 @@ _vbi3_teletext_decoder_init	(vbi3_teletext_decoder *	td,
 	if (!td->cache)
 		return FALSE;
 
-	td->virtual_reset = reset;
+	td->virtual_reset = internal_reset;
 
 	td->cni_830_timeout = 2.5; /* sec */
 	td->cni_vps_timeout = 5 / 25.0; /* sec */
@@ -4648,10 +4697,20 @@ _vbi3_teletext_decoder_init	(vbi3_teletext_decoder *	td,
 	td->videostd_set = videostd_set;
 
 	cn = _vbi3_cache_add_network (td->cache, nk, videostd_set);
-	reset (td, cn, 0.0 /* now */);
+	internal_reset (td, cn, 0.0 /* now */);
 	cache_network_unref (cn);
 
 	return TRUE;
+}
+
+static void
+internal_delete			(vbi3_teletext_decoder *	td)
+{
+	assert (NULL != td);
+
+	_vbi3_teletext_decoder_destroy (td);
+
+	vbi3_free (td);
 }
 
 /**
@@ -4667,9 +4726,9 @@ vbi3_teletext_decoder_delete	(vbi3_teletext_decoder *	td)
 	if (NULL == td)
 		return;
 
-	_vbi3_teletext_decoder_destroy (td);
+	assert (NULL != td->virtual_delete);
 
-	vbi3_free (td);
+	td->virtual_delete (td);
 }
 
 /**
@@ -4707,6 +4766,8 @@ vbi3_teletext_decoder_new	(vbi3_cache *		ca,
 		vbi3_free (td);
 		td = NULL;
 	}
+
+	td->virtual_delete = internal_delete;
 
 	return td;
 }

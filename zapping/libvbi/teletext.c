@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.36 2005-07-04 21:57:57 mschimek Exp $ */
+/* $Id: teletext.c,v 1.37 2005-09-01 01:40:52 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -32,7 +32,11 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include "intl-priv.h"
+#ifdef ZAPPING8
+#  include "common/intl-priv.h"
+#else
+#  include "intl-priv.h"
+#endif
 #include "cache-priv.h"
 #include "teletext_decoder-priv.h"
 #ifndef ZAPPING8
@@ -3298,7 +3302,7 @@ top_navigation_bar_style_2	(vbi3_page_priv *	pgp)
 	pgno = pgp->pg.pgno;
 
 	do {
-		vbi3_ttx_page_type type;
+		vbi3_page_type type;
 
 		ps = cache_network_const_page_stat (pgp->cn, pgno);
 		type = ps->page_type;
@@ -3468,7 +3472,7 @@ _vbi3_page_priv_from_cache_page_va_list
 	assert (NULL != cn);
 	assert (NULL != cn->cache);
 
-	pgp->cn			= cn;
+	pgp->cn			= cache_network_ref (cn);
 	pgp->cp			= cache_page_ref (cp);
 
 	pgp->pg.cache		= cn->cache;
@@ -3935,6 +3939,9 @@ vbi3_page_dup			(const vbi3_page *	pg)
 	new_pgp->pdc_table_size = 0;
 
 	if (new_pgp->pg.cache) {
+		if (new_pgp->cn)
+			cache_network_ref (new_pgp->cn);
+
 		if (new_pgp->cp)
 			cache_page_ref (new_pgp->cp);
 
@@ -3952,8 +3959,7 @@ vbi3_page_dup			(const vbi3_page *	pg)
 		if (new_pgp->pdc_table) {
 			new_pgp->pdc_table_size = pgp->pdc_table_size;
 		} else {
-			vbi3_log_printf (VBI3_DEBUG, __FUNCTION__,
-					"Out of memory");
+			debug ("Out of memory");
 
 			vbi3_page_delete (&new_pgp->pg);
 
@@ -3984,11 +3990,13 @@ _vbi3_page_priv_destroy		(vbi3_page_priv *	pgp)
 	assert (NULL != pgp);
 
 	if (pgp->pg.cache) {
-		cache_page_unref (pgp->cp);
-
 		for (i = 0; i < N_ELEMENTS (pgp->drcs_cp); ++i) {
 			cache_page_unref (pgp->drcs_cp[i]);
 		}
+
+		cache_page_unref (pgp->cp);
+
+		cache_network_unref (pgp->cn);
 	}
 
 #ifndef ZAPPING8

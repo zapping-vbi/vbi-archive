@@ -43,7 +43,7 @@
 #include "globals.h"
 
 /* The plugin protocol we are able to understand */
-#define PLUGIN_PROTOCOL 0x907
+#define PLUGIN_PROTOCOL 0xA00
 
 /* The definition of a PluginBrigde */
 typedef gboolean (*PluginBridge) ( gpointer * ptr, gchar * plugin,

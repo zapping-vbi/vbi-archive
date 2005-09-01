@@ -19,15 +19,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.h,v 1.2 2004-11-03 06:42:06 mschimek Exp $ */
+/* $Id: view.h,v 1.3 2005-09-01 01:40:53 mschimek Exp $ */
 
-#ifndef VIEW_H
-#define VIEW_H
+#ifndef TELETEXT_VIEW_H
+#define TELETEXT_VIEW_H
 
 #include <gnome.h>
 #include "libvbi/page.h"	/* vbi3_page, vbi3_pgno, vbi3_subno */
 #include "libvbi/link.h"	/* vbi3_link */
-#include "libvbi/teletext_decoder.h"
+#include "libvbi/vbi_decoder.h"
 #include "page_num.h"
 #include "toolbar.h"
 
@@ -79,6 +79,32 @@ struct _TeletextView
 
   GtkActionGroup *	action_group; 
 
+  void
+  (* show_page)		(TeletextView *		view,
+			 vbi3_page *		pg);
+  gboolean
+  (* load_page)		(TeletextView *		view,
+			 const vbi3_network *	nk,
+			 vbi3_pgno		pgno,
+			 vbi3_subno		subno);
+  gboolean
+  (* switch_network)	(TeletextView *		view,
+			 const vbi3_network *	nk);
+  GtkWidget *
+  (* popup_menu)	(TeletextView *		view,
+			 const vbi3_link *	ld,
+			 gboolean		large);
+  gboolean
+  (* link_from_pointer_position)
+			(TeletextView *		view,
+			 vbi3_link *		ld,
+			 gint			x,
+			 gint			y);
+  gboolean
+  (* set_charset)	(TeletextView *		view,
+			 vbi3_charset_code	charset_code);
+
+
   /* ugly hack */
   void			(* client_redraw)(TeletextView *	view,
 					  unsigned int		width,
@@ -89,10 +115,12 @@ struct _TeletextView
 
   /*< private >*/
 
+  vbi3_decoder *	vbi;
+
   vbi3_pgno		entered_pgno;	/* page number being entered */
 
   page_num		req;		/* requested page */
-  vbi3_charset_code	charset;	/* override charset (-1 default) */
+  vbi3_charset_code	override_charset;
 
   vbi3_page *		pg;		/* displayed page (shared, r/o) */
 
@@ -173,49 +201,14 @@ teletext_view_get_type		(void) G_GNUC_CONST;
 GtkWidget *
 teletext_view_new		(void);
 
-extern gboolean
-teletext_view_vbi3_link_from_pointer_position
-				(TeletextView *		view,
-				 vbi3_link *		ld,
-				 gint			x,
-				 gint			y);
-extern GtkWidget *
-teletext_view_popup_menu_new	(TeletextView *		view,
-				 const vbi3_link *	ld,
-				 gboolean		large);
 extern TeletextView *
 teletext_view_from_widget	(GtkWidget *		widget);
-extern void
-teletext_view_load_page		(TeletextView *		view,
-				 const vbi3_network *	nk,
-				 vbi3_pgno		pgno,
-				 vbi3_subno		subno);
-extern void
-teletext_view_show_page		(TeletextView *		view,
-				 vbi3_page *		pg);
-extern gboolean
-teletext_view_switch_network	(TeletextView *		view,
-				 const vbi3_network *	nk);
-extern gboolean
-teletext_view_set_charset	(TeletextView *		view,
-				 vbi3_charset_code	code);
-
-extern GtkWidget *
-bookmarks_menu_new (TeletextView *	view);
 
 extern guint
 ttxview_hotlist_menu_insert	(GtkMenuShell *		menu,
 				 gboolean		separator,
 				 gint position);
 
-extern vbi3_teletext_decoder *
-zvbi3_teletext_decoder		(void);
-
-extern void
-start_zvbi			(void);
-extern void
-stop_zvbi			(void);
-
 G_END_DECLS
 
-#endif /* VIEW_H */
+#endif /* TELETEXT_VIEW_H */

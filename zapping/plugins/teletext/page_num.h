@@ -19,10 +19,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: page_num.h,v 1.1 2004-11-03 06:46:08 mschimek Exp $ */
+/* $Id: page_num.h,v 1.2 2005-09-01 01:40:53 mschimek Exp $ */
 
-#ifndef PAGE_NUM_H
-#define PAGE_NUM_H
+#ifndef TELETEXT_PAGE_NUM_H
+#define TELETEXT_PAGE_NUM_H
 
 #include <assert.h>
 #include "libvbi/bcd.h"		/* vbi3_pgno, vbi3_subno */
@@ -85,4 +85,4 @@ page_num_set			(page_num *		pn,
   pn->subno = subno;
 }
 
-#endif /* PAGE_NUM_H */
+#endif /* TELETEXT_PAGE_NUM_H */

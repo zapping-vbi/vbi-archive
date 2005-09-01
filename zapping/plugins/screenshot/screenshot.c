@@ -27,6 +27,7 @@
 #include "src/zgconf.h"
 #include "src/yuv2rgb.h"
 #include "src/properties.h"
+#include "src/fullscreen.h"
 #include <gdk-pixbuf/gdk-pixbuf.h> /* previews */
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -79,7 +80,7 @@ static gboolean screenshot_option_toolbutton;
 static gchar *screenshot_option_format = NULL;
 static gint screenshot_option_quality;
 static gint screenshot_option_deint;
-
+static gboolean screenshot_option_subtitles;
 
 /* Properties handling code */
 static void
@@ -378,6 +379,7 @@ plugin_load_config (gchar *root_key)
 
   LOAD_CONFIG (int, 75, quality, "Quality of the compressed image");
   LOAD_CONFIG (int, 0, deint, "Deinterlace mode");
+  LOAD_CONFIG (boolean, FALSE, subtitles, "Save with subtitles");
 
   LOAD_CONFIG (boolean, TRUE, toolbutton, "Add toolbar button");
 }
@@ -413,6 +415,7 @@ plugin_save_config (gchar * root_key)
 
   SAVE_CONFIG (int, quality);
   SAVE_CONFIG (int, deint);
+  SAVE_CONFIG (boolean, subtitles);
 
   SAVE_CONFIG (boolean, toolbutton);
 }
@@ -625,9 +628,12 @@ screenshot_destroy (screenshot_data *data)
     fclose (data->io_fp);
 
   g_free (data->error);
-  g_free (data->deint_data);
 
-  free (data->data);
+  tv_delete_image (data->data);
+
+  if (data->subtitles)
+    g_object_unref (G_OBJECT (data->subtitles));
+
   g_free (data->auto_filename);
 
   if (data->pixbuf)
@@ -745,23 +751,84 @@ execute_command (screenshot_data *data)
     g_free (argv[argc]);
 }
 
+static void
+overlay_subtitles		(screenshot_data *	data)
+{
+  uint8_t *dst;
+  const uint8_t *src;
+  guint subt_width;
+  guint subt_height;
+  guint width;
+  guint height;
+  guint dst_bpl;
+  guint src_bpl;
+  guint dst_padding;
+  guint src_padding;
+  guint row;
+
+  if (NULL == data->subtitles)
+    return;
+
+  /* Subtitle image should have the same size as the video,
+     but better safe than sorry. */
+  subt_width = gdk_pixbuf_get_width (data->subtitles);
+  subt_height = gdk_pixbuf_get_height (data->subtitles);
+
+  width = MIN (data->format.width, subt_width);
+  height = MIN (data->format.height, subt_height);
+
+  dst = data->data;
+  dst_bpl = data->format.bytes_per_line[0];
+  dst += ((data->format.width - width + 1) >> 1) * 3 /* RGB */
+    + ((data->format.height - height + 1) >> 1) * dst_bpl;
+  dst_padding = dst_bpl - width * 3;
+
+  src = gdk_pixbuf_get_pixels (data->subtitles);
+  src_bpl = gdk_pixbuf_get_rowstride (data->subtitles);
+  src += ((subt_width - width + 1) >> 1) * 4 /* RGBA */
+    + ((subt_height - height + 1) >> 1) * src_bpl;
+  src_padding = src_bpl - width * 4;
+
+  for (row = 0; row < height; ++row)
+    {
+      guint column;
+
+      for (column = 0; column < width; ++column)
+	{
+	  /* R, G, B, A -> R, G, B */
+	  if (0 != src[3])
+	    {
+	      dst[0] = src[0];
+	      dst[1] = src[1];
+	      dst[2] = src[2];
+	    }
+
+	  dst += 3;
+	  src += 4;
+	}
+
+      dst += dst_padding;
+      src += src_padding;
+    }
+}
+
 static void *
 screenshot_saving_thread (void *_data)
 {
   screenshot_data *data = (screenshot_data *) _data;
-  gchar *new_data;
 
-  g_free (data->deint_data);
-  data->deint_data = NULL;
+  if (screenshot_option_deint)
+    switch (data->format.height)
+      {
+      case 480:
+      case 576:
+	screenshot_deinterlace (data->data, &data->format,
+				/* parity */ screenshot_option_deint - 1);
+	break;
+      }
 
-  if (data->format.height == 480 || data->format.height == 576)
-    if (screenshot_option_deint)
-      if ((new_data = screenshot_deinterlace (data,
-		      screenshot_option_deint - 1)))
-	{
-	  free (data->data);
-	  data->data = new_data;
-	}
+  if (screenshot_option_subtitles && data->subtitles)
+    overlay_subtitles (data);
 
   data->backend->save (data);
 
@@ -934,7 +1001,8 @@ screenshot_save			(screenshot_data *	data)
 static void
 preview (screenshot_data *data)
 {
-  void *old_data;
+  void *old_image;
+  void *tmp_image;
   tv_image_format old_format;
   const tv_pixel_format *pf;
   unsigned int h_offset;
@@ -943,8 +1011,24 @@ preview (screenshot_data *data)
   if (!data || !data->drawingarea || !data->pixbuf)
     return;
 
-  old_data = data->data;
+  old_image = data->data;
   old_format = data->format;
+
+  tmp_image = NULL;
+
+  if (screenshot_option_deint
+      || (screenshot_option_subtitles && data->subtitles))
+    {
+      /* Need a working copy. */
+
+      tmp_image = tv_new_image (data->data, &data->format);
+      if (!tmp_image)
+	return;
+
+      data->data = tmp_image;
+    }
+
+  /* Apply cookie cutter. */
 
   pf = data->format.pixel_format;
 
@@ -953,28 +1037,21 @@ preview (screenshot_data *data)
   v_offset = (((data->format.height - PREVIEW_HEIGHT) >> 1)
 	      & (unsigned int) -1); /* top field first */
 
-  data->data = (char *) data->data
-    + h_offset + v_offset * old_format.bytes_per_line[0];
+  data->data = (uint8_t *) data->data
+    + h_offset + v_offset * data->format.bytes_per_line[0];
 
   data->format.width = PREVIEW_WIDTH;
   data->format.height = PREVIEW_HEIGHT;
 
-  if ((!!screenshot_option_deint) != (!!data->deint_data))
+  if (screenshot_option_deint)
     {
-      if (data->deint_data)
-	g_free (data->deint_data);
-
-      if (screenshot_option_deint)
-	data->deint_data = screenshot_deinterlace (data,
-			     screenshot_option_deint - 1);
-      else
-	data->deint_data = NULL;
+      screenshot_deinterlace (data, &data->format,
+			      /* parity */ screenshot_option_deint - 1);
     }
 
-  if (screenshot_option_deint && data->deint_data)
+  if (screenshot_option_subtitles && data->subtitles)
     {
-      data->data = data->deint_data;
-      data->format.bytes_per_line[0] = data->format.width * 3;
+      overlay_subtitles (data);
     }
 
   if (data->backend->load)
@@ -1015,7 +1092,7 @@ preview (screenshot_data *data)
 	}
 
       data->backend->load (data,
-			   gdk_pixbuf_get_pixels (data->pixbuf),
+			   (void *) gdk_pixbuf_get_pixels (data->pixbuf),
 			   gdk_pixbuf_get_rowstride (data->pixbuf));
     }
   else /* backend doesn't support preview (lossless format?) */
@@ -1024,7 +1101,7 @@ preview (screenshot_data *data)
       gchar *s, *d;
 
       s = data->data;
-      d = gdk_pixbuf_get_pixels (data->pixbuf);
+      d = (void *) gdk_pixbuf_get_pixels (data->pixbuf);
       rowstride = gdk_pixbuf_get_rowstride (data->pixbuf);
 
       for (line = 0; line < data->format.height; line++)
@@ -1038,12 +1115,15 @@ preview (screenshot_data *data)
 	* (double)(old_format.width * old_format.height);
     }
 
-  gtk_widget_set_size_request (data->drawingarea, PREVIEW_WIDTH,
+  gtk_widget_set_size_request (data->drawingarea,
+			       PREVIEW_WIDTH,
 			       PREVIEW_HEIGHT);
 
  restore:
+  free (tmp_image);
+
   data->format = old_format;
-  data->data = old_data;
+  data->data = old_image;
 }
 
 static gboolean
@@ -1076,9 +1156,21 @@ on_drawingarea_expose_event             (GtkWidget      *widget _unused_,
   return FALSE;
 }
 
+static void
+on_subtitles_toggled		(GtkToggleButton *	toggle_button,
+				 screenshot_data *	data)
+{
+  screenshot_option_subtitles =
+    gtk_toggle_button_get_active (toggle_button);
+
+  preview (data);
+
+  on_drawingarea_expose_event (NULL, NULL, data);
+}
+
 static gboolean
-on_deint_changed                      (GtkWidget *widget,
-				       screenshot_data *data)
+on_deint_changed		(GtkWidget *		widget,
+				 screenshot_data *	data)
 {
   gint new_deint = z_object_get_int_data (G_OBJECT (widget), "deint");
 
@@ -1087,10 +1179,8 @@ on_deint_changed                      (GtkWidget *widget,
 
   screenshot_option_deint = new_deint;
 
-  g_free (data->deint_data);
-  data->deint_data = NULL;
-
   preview (data);
+
   on_drawingarea_expose_event (NULL, NULL, data);
 
   return FALSE;
@@ -1314,6 +1404,21 @@ build_dialog (screenshot_data *data)
       z_set_sensitive_with_tooltip (widget, FALSE, NULL,
         _("Only useful with full size, unscaled picture (480 or 576 lines)"));
     }
+
+  /* Subtitles */
+
+  widget = lookup_widget (data->dialog, "subtitles");
+  gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget),
+				screenshot_option_subtitles);
+  if (data->subtitles)
+    {
+      g_signal_connect (G_OBJECT (widget), "toggled",
+			G_CALLBACK (on_subtitles_toggled), data);
+    }
+  else
+    {
+      gtk_widget_set_sensitive (widget, FALSE);
+    }
 }
 
 static gint format_request = -1;
@@ -1481,6 +1586,21 @@ copy_image (screenshot_data *data, capture_frame *frame)
 
   data->format = image->fmt;
   data->data = tv_new_image (image->img, &image->fmt);
+
+  if (DISPLAY_MODE_FULLSCREEN == zapping->display_mode)
+    {
+      data->subtitles = fullscreen_get_subtitle_image (/* expose */ NULL,
+						       image->fmt.width,
+						       image->fmt.height);
+    }
+  else if (zapping->subtitles)
+    {
+      data->subtitles =
+	zapping->subtitles->get_image (zapping->subtitles,
+				       /* expose */ NULL,
+				       image->fmt.width,
+				       image->fmt.height);
+    }
 
   return (NULL != data->data);
 }

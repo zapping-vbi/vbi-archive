@@ -19,6 +19,7 @@
  */
 
 #include "src/plugin_common.h"
+#include "plugins/subtitle/view.h"
 #include <pthread.h>
 
 typedef struct screenshot_data screenshot_data;
@@ -43,8 +44,7 @@ struct screenshot_data
 
   void *		data;
   tv_image_format	format;	/* Format of the grabbed image */
-
-  gpointer		deint_data;
+  GdkPixbuf *		subtitles;
 
   gchar *		io_buffer;
   guint			io_buffer_size;	/* Allocated */
@@ -91,7 +91,10 @@ struct screenshot_backend
 
 extern gboolean screenshot_close_everything;
 
-extern gchar *screenshot_deinterlace (screenshot_data *, gint);
+extern void
+screenshot_deinterlace		(void *				image,
+				 const tv_image_format *	format,
+				 gint				parity);
 
 /*
  *  Encoding backends

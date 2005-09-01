@@ -19,10 +19,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: toolbar.h,v 1.2 2004-11-03 06:47:18 mschimek Exp $ */
+/* $Id: toolbar.h,v 1.3 2005-09-01 01:40:53 mschimek Exp $ */
 
-#ifndef TOOLBAR_H
-#define TOOLBAR_H
+#ifndef TELETEXT_TOOLBAR_H
+#define TELETEXT_TOOLBAR_H
 
 #include <gtk/gtk.h>
 #include "libvbi/bcd.h"		/* vbi3_pgno, vbi3_subno */
@@ -89,4 +89,4 @@ teletext_toolbar_new			(GtkActionGroup *action_group);
 
 G_END_DECLS
 
-#endif /* TOOLBAR_H */
+#endif /* TELETEXT_TOOLBAR_H */

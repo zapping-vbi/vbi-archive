@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zvideo.c,v 1.6 2005-01-08 14:54:29 mschimek Exp $ */
+/* $Id: zvideo.c,v 1.7 2005-09-01 01:40:54 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -711,7 +711,7 @@ class_init			(gpointer		g_class,
   widget_class->size_request = size_request;
 
   {
-    unsigned char empty_cursor [16 * 16 / 8];
+    char empty_cursor [16 * 16 / 8];
     GdkColor fg = { 0, 0, 0, 0 };
     GdkPixmap *pixmap;
 

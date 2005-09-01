@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.10 2005-06-28 00:56:20 mschimek Exp $ */
+/* $Id: misc.h,v 1.11 2005-09-01 01:40:52 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -186,6 +186,13 @@ vbi3_log_printf			(const char *		function,
 #endif
 
 #endif /* !__GNUC__ */
+
+/* 32 bit constant byte reverse, e.g. 0xAABBCCDD -> 0xDDCCBBAA */
+#define SWAB32(m)							\
+	(+ (((m) & 0xFF000000) >> 24)					\
+	 + (((m) & 0xFF0000) >> 8)					\
+	 + (((m) & 0xFF00) << 16)					\
+	 + (((m) & 0xFF) << 8))
 
 #undef CLAMP
 #define CLAMP(n, min, max) SATURATE (n, min, max)

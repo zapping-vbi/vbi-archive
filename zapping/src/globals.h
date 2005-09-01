@@ -69,4 +69,10 @@ extern GtkWidget * (*_ttxview_bookmarks_menu_new)(GtkWidget *widget);
 extern guint (*_ttxview_hotlist_menu_insert)(GtkMenuShell *menu,
 					     gboolean separator,
 					     gint position);
+
+/* Preliminary subtitle plugin interface. */
+extern GtkWidget *
+(*_subtitle_view_new)		(void);
+
+
 #endif /* HAVE_LIBZVBI */

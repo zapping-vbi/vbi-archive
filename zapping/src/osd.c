@@ -43,7 +43,6 @@
 #include "properties.h"
 #include "interface.h"
 #include "globals.h"
-#include "subtitle.h"
 
 #ifndef OSD_TEST
 #define OSD_TEST 0
@@ -253,11 +252,17 @@ geometry_update			(void)
 	set_piece_geometry(&(matrix[i]->pieces[j]));
 }
 
+
+
+
+
 /**
  * Widget creation/destruction with caching (for reducing flicker)
  */
 /* List of destroyed windows for reuse */
 static GList *window_stack = NULL;
+
+
 
 static GtkWidget *
 get_window(void)
@@ -422,285 +427,9 @@ osd_clear			(void)
   zmodel_changed (osd_model);
 }
 
-static void
-roll_up(guint first_row, guint last_row)
-{
-  gint i;
-  float y = 0, h = 0;
-  gboolean y_set = FALSE;
-
-  if (first_row >= last_row)
-    return;
-
-  /* This code assumes all pieces in a row have the same height */
-  if (matrix[first_row]->n_pieces)
-    {
-      y = matrix[first_row]->pieces[0].y;
-      h = matrix[first_row]->pieces[0].h;
-      y_set = TRUE;
-    }
-
-  clear_row (first_row, FALSE);
-  
-  for (; first_row < last_row; first_row++)
-    {
-      float tmp = 0, tmph = 0;
-      gboolean tmp_set;
-
-      swap(matrix[first_row], matrix[first_row + 1]);
-
-      if (matrix[first_row]->n_pieces)
-	{
-	  tmp = matrix[first_row]->pieces[0].y;
-	  tmph = matrix[first_row]->pieces[0].h;
-	  tmp_set = TRUE;
-	}
-      else
-	tmp_set = FALSE;
-
-      for (i=0; i<matrix[first_row]->n_pieces; i++)
-	{
-	  piece *p = matrix[first_row]->pieces + i;
-
-	  p->row --;
-
-	  if (y_set)
-	    {
-	      p->y = y;
-	      p->h = h;
-	    }
-	  else
-	    p->y -= p->h;
-
-	  set_piece_geometry(p);
-	}
-
-      y = tmp;
-      h = tmph;
-      y_set = tmp_set;
-    }
-
-  zmodel_changed(osd_model);
-}
-
 /**
  * OSD sources.
  */
-
-#ifdef HAVE_LIBZVBI
-#include "src/zvbi.h"
-
-static vbi_page osd_page;
-extern int osd_pipe[2];
-static gint input_id = -1;
-
-static void
-ttx_position		(piece		*p)
-{
-  gint x = cx, y = cy, w = cw, h = ch;
-  gint scol;
-  gint srow;
-
-  /* Text area 40x25 is (64, 38) - (703, 537) in a 768x576 screen */
-  x += (64 * w) / 768;
-  y += (38 * h) / 576;
-  w -= (128 * w) / 768;
-  h -= (76 * h) / 576;
-
-  scol = (p->column * w) / p->max_columns;
-  srow = (p->row * h) / p->max_rows;
-
-  p->w = ((p->column + p->width) * w) / p->max_columns - scol;
-  p->h = ((p->row + 1) * h) / p->max_rows - srow;
-  p->sw = p->w;
-
-  p->x = x + scol;
-  p->y = y + srow;
-}
-
-static void
-cc_position		(piece		*p)
-{
-  gint x = cx, y = cy, w = cw, h = ch;
-  gint width0 /* min width of each char */,
-    extra /* pixels remaining for completing total width */,
-    total /* total width of the line */;
-  gint i, j=0 /* internal checking */;
-
-  /* Text area 34x15 is (48, 45) - (591, 434) in a 640x480 screen */
-  x += (48*w)/640;
-  y += (45*h)/480;
-  w -= (96*w)/640;
-  h -= (90*h)/480;
-
-  total = w;
-  width0 = total/p->max_columns;
-  extra = total - width0*p->max_columns;
-
-  p->num_double_columns = MIN(MAX(0, extra - p->column), p->width);
-  if (p->num_double_columns)
-    p->double_columns = (int *)
-      g_malloc(p->num_double_columns * sizeof(p->double_columns[0]));
-
-  p->w = 0;
-  p->x = x;
-  for (i=0; i<p->column+p->width; i++)
-    {
-      int w = width0 + (i<extra);
-
-      if ((i-p->column) < p->num_double_columns &&
-	  (i-p->column) >= 0)
-	{
-	  p->double_columns[i-p->column] = (i-p->column)*width0;
-	  j++;
-	}
-
-      p->w += w * (i >= p->column) * (i < (p->column+p->width));
-      p->x += w * (i < p->column);
-    }
-
-  g_assert(j == p->num_double_columns);
-
-  p->sw = width0 * p->width;
-  p->h = ((p->row+1)*h)/p->max_rows-(p->row*h)/p->max_rows;
-
-  p->y = y + (p->row*h)/p->max_rows;
-}
-
-static void
-add_piece_vbi		(guint col, guint row, guint width)
-{
-  GdkPixbuf *buf;
-  GtkWidget *da;
-
-  da = pop_window();
-
-  if (osd_page.columns < 40) /* naive cc test */
-    {
-      buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
-			   (int)(16 * width), 26);
-      vbi_draw_cc_page_region(&osd_page,
-			      VBI_PIXFMT_RGBA32_LE,
-			      (uint32_t *) gdk_pixbuf_get_pixels(buf),
-			      gdk_pixbuf_get_rowstride(buf),
-			      (int) col, (int) row, (int) width,
-			      1 /* height */);
-    }
-  else
-    {
-      buf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
-			   (gint)(12 * width), 10);
-      vbi_draw_vt_page_region(&osd_page,
-			      VBI_PIXFMT_RGBA32_LE,
-			      (uint32_t *) gdk_pixbuf_get_pixels(buf),
-			      gdk_pixbuf_get_rowstride(buf),
-			      (int) col, (int) row, (int) width,
-			      1 /* height */,
-			      1 /* reveal */, 1 /* flash_on */);
-    }
-
-  add_piece(buf, da, col, row, width,
-	    (guint) osd_page.rows,
-	    (guint) osd_page.columns, 0.0, 0.0, 0.0, 0.0,
-	    (osd_page.columns < 40) ? cc_position : ttx_position);
-}
-
-static void
-render_page		(void)
-{
-  vbi_char *ac_row;
-  guint row;
-  guint i, j;
-  gboolean dirty = FALSE;
-
-  row = osd_page.dirty.y0;
-  ac_row = osd_page.text + row * osd_page.columns;
-
-  for (; row <= (guint) osd_page.dirty.y1; ac_row += osd_page.columns, row++)
-    {
-      clear_row(row, TRUE);
-      for (i = j = 0; i < (guint) osd_page.columns; i++)
-        {
-	  if (ac_row[i].opacity != VBI_TRANSPARENT_SPACE)
-	    j++;
-	  else if (j > 0)
-	    {
-	      add_piece_vbi(i - j, row, j);
-	      dirty = TRUE;
-	      j = 0;
-	    }
-	}
-
-      if (j)
-	{
-	  dirty = TRUE;
-	  add_piece_vbi(osd_page.columns - j, row, j);
-	}
-    }
-
-  clear_stack();
-
-  if (dirty)
-    zmodel_changed(osd_model);
-}
-
-static void
-osd_event		(gpointer	   data _unused_,
-			 gint              source _unused_, 
-			 GdkInputCondition condition _unused_)
-{
-  vbi_decoder *vbi = zvbi_get_object();
-  char dummy[16];
-
-  if (!vbi)
-    return;
-
-  if (read(osd_pipe[0], dummy, 16 /* flush */) <= 0)
-    return;
-
-  if (!zconf_get_boolean(NULL, "/zapping/internal/callbacks/closed_caption"))
-    return;
-
- switch (zvbi_caption_pgno)
-   {
-   case 1 ... 8:
-     if (!vbi_fetch_cc_page(vbi, &osd_page, zvbi_caption_pgno, TRUE))
-       return; /* trouble in outer space */
-     break;
-
-   case 0x100 ... 0x899:
-     if (!vbi_fetch_vt_page(vbi, &osd_page,
-			    zvbi_caption_pgno, VBI_ANY_SUBNO,
-			    VBI_WST_LEVEL_1p5, 25 /* rows */, TRUE /* nav */))
-       return;
-     break;
-
-   default:
-     return;
-   }
-
-  if (osd_page.dirty.y0 > osd_page.dirty.y1)
-    return; /* not dirty (caption only) */
-
-  if (abs(osd_page.dirty.roll) >= osd_page.rows)
-    {
-      osd_clear();
-      return;
-    }
-
-  if (osd_page.dirty.roll == -1)
-    {
-      roll_up ((guint) osd_page.dirty.y0,
-	       (guint) osd_page.dirty.y1);
-      return;
-    }
-
-  g_assert(osd_page.dirty.roll == 0);
-    /* currently never down or more than one row */
-
-  render_page();
-}
-#endif /* HAVE_LIBZVBI */
 
 #include <libxml/parser.h>
 
@@ -1373,12 +1102,6 @@ startup_osd(void)
   for (i = 0; i<MAX_ROWS; i++)
     matrix[i] = g_malloc0(sizeof(row));
 
-#ifdef HAVE_LIBZVBI
-  input_id = gdk_input_add(osd_pipe[0], GDK_INPUT_READ,
-			   osd_event, NULL);
-  CLEAR (osd_page);
-#endif
-
   osd_model = ZMODEL(zmodel_new());
 
   zcc_int(0, "Which kind of OSD should be used", "osd_type");
@@ -1420,10 +1143,6 @@ shutdown_osd(void)
 
   for (i = 0; i<MAX_ROWS; i++)
     g_free(matrix[i]);
-
-#ifdef HAVE_LIBZVBI
-  gdk_input_remove(input_id);
-#endif
 
   g_object_unref (G_OBJECT (osd_model));
   osd_model = NULL;

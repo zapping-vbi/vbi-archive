@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.54 2005-07-16 21:13:47 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.55 2005-09-01 01:40:52 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -31,7 +31,11 @@
 #include "misc.h"
 #include "page.h"		/* vbi3_page */
 #include "lang.h"		/* vbi3_is_drcs() */
-#include "intl-priv.h"
+#ifdef ZAPPING8
+#  include "common/intl-priv.h"
+#else
+#  include "intl-priv.h"
+#endif
 #include "export-priv.h"	/* vbi3_export */
 #include "exp-gfx.h"
 #include "vt.h"			/* VBI3_TRANSPARENT_BLACK */
@@ -45,8 +49,6 @@
 
 #define TCPL (wstfont2_width / TCW * wstfont2_height / TCH)
 
-#ifndef ZAPPING8
-
 #include "ccfont3.xbm"
 
 /* Closed Caption character cell dimensions */
@@ -55,8 +57,6 @@
 #define CCH 13
 
 #define CCPL (ccfont3_width / CCW * ccfont3_height / CCH)
-
-#endif /* !ZAPPING8 */
 
 /**
  * @internal
@@ -244,24 +244,17 @@ line_doubler			(void *			buffer,
 	}
 }
 
-/* Find first set bit in constant, e.g. 0x123 -> 9 with boundary
-   cases 0xFFFF FFFF -> 32, 0x1 -> 1, 0 -> 1 */
+#define TRANS(v)							\
+	SATURATE((((((int)((v) & 0xFF) - 128)				\
+		  * contrast) >> 6) + brightness), 0, 255)
+
+/* Find first set bit in constant, e.g.
+   0xFFFFFFFF -> 32, 0x123 -> 9, 1 -> 1, 0 -> 1 */
 #define FFS2(m) ((m) & 0x2 ? 2 : 1)
 #define FFS4(m) ((m) & 0xC ? 2 + FFS2 ((m) >> 2) : FFS2 (m))
 #define FFS8(m) ((m) & 0xF0 ? 4 + FFS4 ((m) >> 4) : FFS4 (m))
 #define FFS16(m) ((m) & 0xFF00 ? 8 + FFS8 ((m) >> 8) : FFS8 (m))
 #define FFS32(m) ((m) & 0xFFFF0000 ? 16 + FFS16 ((m) >> 16) : FFS16 (m))
-
-/* 32 bit constant byte reverse, e.g. 0xAABBCCDD -> 0xDDCCBBAA */
-#define SWAB32(m)							\
-	(+ (((m) & 0xFF000000) >> 24)					\
-	 + (((m) & 0xFF0000) >> 8)					\
-	 + (((m) & 0xFF00) << 16)					\
-	 + (((m) & 0xFF) << 8))
-
-#define TRANS(v)							\
-	SATURATE((((((int)((v) & 0xFF) - 128)				\
-		  * contrast) >> 6) + brightness), 0, 255)
 
 #define CONV(v, n, m)							\
 	((FFS32 (m) > n) ?						\
@@ -273,21 +266,21 @@ line_doubler			(void *			buffer,
 	 (TRANS ((v) >> (n - 8)) << (FFS32 (m) - 8)) & m :		\
 	 (TRANS ((v) >> (n - 8)) >> (8 - FFS32 (m))) & m)
 
-/* Converts 0xAABBGGRR value v to another value, transposing by
+/* Converts 0xBBGGRR value v to another value, transposing by
    brightness and contrast, then shifting and masking
    color bits to positions given by r, g, b, a mask */  
 #define RGBA_CONV(v, r, g, b, a)					\
 	(+ TRANS_CONV (v, 8, r)						\
 	 + TRANS_CONV (v, 16, g)					\
 	 + TRANS_CONV (v, 24, b)					\
-	 + CONV (v, 32, a))
+	 + CONV (alpha, 8, a))
 
 /* Like RGBA_CONV for reversed endian */
 #define RGBA_CONV_SWAB32(v, r, g, b, a)					\
 	(+ TRANS_CONV (v, 8, SWAB32 (r))				\
 	 + TRANS_CONV (v, 16, SWAB32 (g))				\
 	 + TRANS_CONV (v, 24, SWAB32 (b))				\
-	 + CONV (v, 32, SWAB32 (a)))
+	 + CONV (alpha, 8, SWAB32 (a)))
 
 #define PUSH(p, type, value)						\
 	*((type *) p) = value; p += sizeof (type);
@@ -358,6 +351,7 @@ line_doubler			(void *			buffer,
  *   for no change.
  * @param contrast Change contrast: -128 inverse ... 0 none ...
  *   127 maximum, 64 for no change.
+ * @param alpha Replacement alpha value: 0 ... 255.
  *
  * Converts vbi3_rgba types to pixels of desired format.
  *
@@ -373,7 +367,8 @@ vbi3_rgba_conv			(void *			buffer,
 				 const vbi3_rgba *	color,
 				 unsigned int		color_size,
 				 int			brightness,
-				 int			contrast)
+				 int			contrast,
+				 int			alpha)
 {
 	uint8_t *d = buffer;
 
@@ -401,6 +396,7 @@ vbi3_rgba_conv			(void *			buffer,
 			d += 3;
 		}
 		break;
+
 	case VBI3_PIXFMT_RGB24_BE:
 		while (color_size-- > 0) {
 			unsigned int value = *color++;
@@ -501,6 +497,53 @@ vbi3_rgba_conv			(void *			buffer,
 		       vbi3_pixfmt_name (pixfmt));
 		return FALSE;
 	}
+
+	return TRUE;
+}
+
+#define COLOR_MAP_ELEMENTS N_ELEMENTS (((vbi3_page *) 0)->color_map)
+
+struct color_map {
+	unsigned int		map [3 * COLOR_MAP_ELEMENTS];
+	void *			fg [4];
+	void *			bg [4];
+};
+
+static vbi3_bool
+color_map_init			(struct color_map *	cm,
+				 const vbi3_page *	pg,
+				 vbi3_pixfmt		pixfmt,
+				 unsigned int		bytes_per_pixel,
+				 int			brightness,
+				 int			contrast)
+{
+	cm->bg[VBI3_TRANSPARENT_SPACE] = (uint8_t *) cm->map
+		+ COLOR_MAP_ELEMENTS * 2 * bytes_per_pixel;
+	cm->bg[VBI3_TRANSLUCENT] = (uint8_t *) cm->map
+		+ COLOR_MAP_ELEMENTS * 1 * bytes_per_pixel;
+
+	if (!vbi3_rgba_conv (cm->bg[VBI3_TRANSPARENT_SPACE], pixfmt,
+			     pg->color_map, COLOR_MAP_ELEMENTS,
+			     brightness, contrast, /* alpha */ 0x00))
+		return FALSE;
+
+	if (!vbi3_rgba_conv (cm->bg[VBI3_TRANSLUCENT], pixfmt,
+			     pg->color_map, COLOR_MAP_ELEMENTS,
+			     brightness, contrast, /* alpha */ 0x7F))
+		return FALSE;
+
+	cm->bg[VBI3_TRANSPARENT_FULL] = cm->bg[VBI3_TRANSPARENT_SPACE];
+	cm->bg[VBI3_OPAQUE] = cm->map;
+
+	if (!vbi3_rgba_conv (cm->map, pixfmt,
+			     pg->color_map, COLOR_MAP_ELEMENTS,
+			     brightness, contrast, /* alpha */ 0xFF))
+		return FALSE;
+
+	cm->fg[VBI3_TRANSPARENT_SPACE] = cm->bg[VBI3_TRANSPARENT_SPACE];
+	cm->fg[VBI3_TRANSPARENT_FULL] = cm->map;
+	cm->fg[VBI3_TRANSLUCENT] = cm->map;
+	cm->fg[VBI3_OPAQUE] = cm->map;
 
 	return TRUE;
 }
@@ -709,25 +752,37 @@ do {									\
 			PIXEL (d, x, pen, 0);				\
 } while (0)
 
-#define DRAW_CC_CHAR(bytes_per_pixel)					\
+#define DRAW_CC_PAGE(bytes_per_pixel)					\
 do {									\
-	const unsigned int bpp = bytes_per_pixel;			\
-	unsigned int pen[2];						\
+	for (rowct = n_rows; rowct-- > 0; ++row) {			\
+		const vbi3_char *ac;					\
+		unsigned int colct;					\
 									\
-	PIXEL (pen, 0, color_map, ac->background);			\
-	PIXEL (pen, 1, color_map, ac->foreground);			\
+		ac = pg->text + row * pg->columns + column;		\
 									\
-	DRAW_CHAR (canvas, bytes_per_pixel, bytes_per_line,		\
-		   pen,							\
-		   ccfont3_bits, CCPL, CCW, CCH,			\
-		   unicode_ccfont3 (ac->unicode,			\
+		for (colct = n_columns; colct-- > 0; ++ac) {		\
+			const unsigned int bpp = bytes_per_pixel;	\
+			unsigned int pen[2];				\
+									\
+			PIXEL (pen, 0, cm.bg[ac->opacity], ac->background); \
+			PIXEL (pen, 1, cm.fg[ac->opacity], ac->foreground); \
+									\
+			DRAW_CHAR (canvas, bytes_per_pixel,		\
+				   bytes_per_line, pen,			\
+				   ccfont3_bits, CCPL, CCW, CCH,	\
+				   unicode_ccfont3 (ac->unicode,	\
 				    ac->attr & VBI3_ITALIC),		\
-		   /* bold */ 0,					\
-		   (!!(ac->attr & VBI3_UNDERLINE)) << 12 /* cell row */, \
-		   VBI3_NORMAL_SIZE);					\
+				   /* bold */ 0,			\
+				   (!!(ac->attr & VBI3_UNDERLINE))	\
+				   << 12 /* cell row */,		\
+				   VBI3_NORMAL_SIZE);			\
+									\
+			canvas += CCW * bytes_per_pixel;		\
+		}							\
+									\
+		canvas += row_adv;					\
+	}								\
 } while (0)
-
-#ifndef ZAPPING8
 
 /**
  * @param pg Source page.
@@ -764,16 +819,16 @@ vbi3_page_draw_caption_region_va_list
 				 unsigned int		n_rows,
 				 va_list		export_options)
 {
+	struct color_map cm;
 	vbi3_bool option_scale;
 	int brightness;
 	int contrast;
-	unsigned int color_map [N_ELEMENTS (pg->color_map)];
 	uint8_t *canvas;
 	unsigned int scaled_height;
 	unsigned int bytes_per_pixel;
-	unsigned int bytes_per_line;
-	unsigned int size;
-	unsigned int row_adv;
+	unsigned long bytes_per_line;
+	unsigned long size;
+	unsigned long row_adv;
 
 	assert (NULL != pg);
 	assert (NULL != buffer);
@@ -868,18 +923,17 @@ vbi3_page_draw_caption_region_va_list
 		return FALSE;
 	}
 
-	if (!vbi3_rgba_conv (color_map, format->pixfmt,
-			    pg->color_map, N_ELEMENTS (pg->color_map),
-			    brightness, contrast))
-		return FALSE;
-
 	bytes_per_pixel = vbi3_pixfmt_bytes_per_pixel (format->pixfmt);
+
+	color_map_init (&cm, pg, format->pixfmt, bytes_per_pixel,
+			brightness, contrast);
+
 	bytes_per_line = format->bytes_per_line;
 
 	if (bytes_per_line <= 0) {
 		bytes_per_line = pg->columns * CCW * bytes_per_pixel;
 	} else if ((format->width * bytes_per_pixel) > bytes_per_line) {
-		debug ("Image width %u (%s) > bytes_per_line %u",
+		debug ("Image width %u (%s) > bytes_per_line %lu",
 		       format->width, vbi3_pixfmt_name (format->pixfmt),
 		       bytes_per_line);
 		return FALSE;
@@ -893,8 +947,8 @@ vbi3_page_draw_caption_region_va_list
 	size = format->offset + bytes_per_line * format->height;
 
 	if (size > format->size) {
-		debug ("Image %u x %u, offset %u, bytes_per_line %u " 
-		       "> buffer size %u = 0x%08x",
+		debug ("Image %u x %u, offset %lu, bytes_per_line %lu " 
+		       "> buffer size %lu = 0x%08lx",
 		       format->width, format->height,
 		       format->offset, bytes_per_line,
 		       format->size, format->size);
@@ -909,74 +963,18 @@ vbi3_page_draw_caption_region_va_list
 	switch (bytes_per_pixel) {
 		unsigned int rowct;
 
-	case 4:
-		for (rowct = n_rows; rowct-- > 0; ++row) {
-			const vbi3_char *ac;
-			unsigned int colct;
-
-			ac = pg->text + row * pg->columns + column;
-
-			for (colct = n_columns; colct-- > 0; ++ac) {
-				DRAW_CC_CHAR (4);
-				canvas += CCW * 4;
-			}
-
-			canvas += row_adv;
-		}
-
-		break;
-
-	case 3:
-		for (rowct = n_rows; rowct-- > 0; ++row) {
-			const vbi3_char *ac;
-			unsigned int colct;
-
-			ac = pg->text + row * pg->columns + column;
-
-			for (colct = n_columns; colct-- > 0; ++ac) {
-				DRAW_CC_CHAR (3);
-				canvas += CCW * 3;
-			}
-
-			canvas += row_adv;
-		}
-
-		break;
-
-	case 2:
-		for (rowct = n_rows; rowct-- > 0; ++row) {
-			const vbi3_char *ac;
-			unsigned int colct;
-
-			ac = pg->text + row * pg->columns + column;
-
-			for (colct = n_columns; colct-- > 0; ++ac) {
-				DRAW_CC_CHAR (2);
-				canvas += CCW * 2;
-			}
-
-			canvas += row_adv;
-		}
-
-		break;
-
 	case 1:
-		for (rowct = n_rows; rowct-- > 0; ++row) {
-			const vbi3_char *ac;
-			unsigned int colct;
-
-			ac = pg->text + row * pg->columns + column;
-
-			for (colct = n_columns; colct-- > 0; ++ac) {
-				DRAW_CC_CHAR (1);
-				canvas += CCW;
-			}
-
-			canvas += row_adv;
-		}
-
+		DRAW_CC_PAGE (1);
 		break;
-
+	case 2:
+		DRAW_CC_PAGE (2);
+		break;
+	case 3:
+		DRAW_CC_PAGE (3);
+		break;
+	case 4:
+		DRAW_CC_PAGE (4);
+		break;
 	default:
 		assert (0);
 	}
@@ -1073,15 +1071,13 @@ vbi3_page_draw_caption		(const vbi3_page *	pg,
 	return r;
 }
 
-#endif /* !ZAPPING8 */
-
-#define DRAW_VT_CHAR(bytes_per_pixel)					\
+#define DRAW_VT_CHAR(bytes_per_line, bytes_per_pixel)			\
 do {									\
 	const unsigned int bpp = bytes_per_pixel;			\
 	unsigned int unicode;						\
 									\
-	PIXEL (pen, 0, color_map, ac->background);			\
-	PIXEL (pen, 1, color_map, ac->foreground);			\
+	PIXEL (pen, 0, cm.bg[ac->opacity], ac->background); 		\
+	PIXEL (pen, 1, cm.fg[ac->opacity], ac->foreground);		\
 									\
 	unicode = (ac->attr & option_space_attr) ?			\
 		0x0020 : ac->unicode;					\
@@ -1111,12 +1107,38 @@ do {									\
 				   bytes_per_line, pen,			\
 				   wstfont2_bits, TCPL, TCW, TCH,	\
 				   unicode_wstfont2 (unicode,		\
-						ac->attr & VBI3_ITALIC),	\
-				   ac->attr & VBI3_BOLD,			\
+				     ac->attr & VBI3_ITALIC),		\
+				   ac->attr & VBI3_BOLD,		\
 				   (!!(ac->attr & VBI3_UNDERLINE)) << 9	\
 					/* cell row 9 */,		\
 				   ac->size);				\
 		}							\
+	}								\
+} while (0)
+
+#define DRAW_VT_PAGE(bytes_per_pixel)					\
+do {									\
+	uint8_t pen [(2 + 8 + 32) * bytes_per_pixel];			\
+	const unsigned int bpp = bytes_per_pixel;			\
+	unsigned int rowct;						\
+	unsigned int i;							\
+									\
+	if (pg->drcs_clut)						\
+		for (i = 2; i < 2 + 8 + 32; i++)			\
+			PIXEL (pen, i, cm.map, pg->drcs_clut[i]);	\
+									\
+	for (rowct = n_rows; rowct-- > 0; ++row) {			\
+		const vbi3_char *ac;					\
+		unsigned int colct;					\
+									\
+		ac = pg->text + row * pg->columns + column;		\
+									\
+		for (colct = n_columns; colct-- > 0; ++ac) {		\
+			DRAW_VT_CHAR (bytes_per_line, bytes_per_pixel);	\
+			canvas += TCW * bytes_per_pixel;		\
+		}							\
+									\
+		canvas += row_adv;					\
 	}								\
 } while (0)
 
@@ -1158,11 +1180,11 @@ vbi3_page_draw_teletext_region_va_list
 				 unsigned int		n_rows,
 				 va_list		export_options)
 {
+	struct color_map cm;
 	vbi3_bool option_scale;
 	unsigned int option_space_attr;
 	int brightness;
 	int contrast;
-	unsigned int color_map [N_ELEMENTS (pg->color_map)];
 	uint8_t *canvas;
 	unsigned int scaled_height;
 	unsigned int bytes_per_pixel;
@@ -1268,12 +1290,11 @@ vbi3_page_draw_teletext_region_va_list
 		return FALSE;
 	}
 
-	if (!vbi3_rgba_conv (color_map, format->pixfmt,
-			    pg->color_map, N_ELEMENTS (color_map),
-			    brightness, contrast))
-		return FALSE;
-
 	bytes_per_pixel = vbi3_pixfmt_bytes_per_pixel (format->pixfmt);
+
+	color_map_init (&cm, pg, format->pixfmt, bytes_per_pixel,
+			brightness, contrast);
+
 	bytes_per_line = format->bytes_per_line;
 
 	if (bytes_per_line <= 0) {
@@ -1307,118 +1328,18 @@ vbi3_page_draw_teletext_region_va_list
 	row_adv = bytes_per_line * TCH - bytes_per_pixel * n_columns * TCW;
 
 	switch (bytes_per_pixel) {
-	case 4:
-	{
-		uint32_t pen [2 + 8 + 32];
-		unsigned int i;
-		unsigned int rowct;
-
-		if (pg->drcs_clut)
-			for (i = 2; i < 2 + 8 + 32; i++)
-				pen[i] = ((uint32_t *) color_map)
-					[pg->drcs_clut[i]];
-
-		for (rowct = n_rows; rowct-- > 0; ++row) {
-			const vbi3_char *ac;
-			unsigned int colct;
-
-			ac = pg->text + row * pg->columns + column;
-
-			for (colct = n_columns; colct-- > 0; ++ac) {
-				DRAW_VT_CHAR (4);
-				canvas += TCW * 4;
-			}
-
-			canvas += row_adv;
-		}
-
-		break;
-	}
-
-	case 3:
-	{
-		const unsigned int bpp = 3;
-		uint8_t pen [(2 + 8 + 32) * 3];
-		unsigned int i;
-		unsigned int rowct;
-
-		if (pg->drcs_clut)
-			for (i = 2; i < 2 + 8 + 32; i++)
-				PIXEL (pen, i, color_map, pg->drcs_clut[i]);
-
-		for (rowct = n_rows; rowct-- > 0; ++row) {
-			const vbi3_char *ac;
-			unsigned int colct;
-
-			ac = pg->text + row * pg->columns + column;
-
-			for (colct = n_columns; colct-- > 0; ++ac) {
-				DRAW_VT_CHAR (3);
-				canvas += TCW * 3;
-			}
-
-			canvas += row_adv;
-		}
-
-		break;
-	}
-
-	case 2:
-	{
-		uint16_t pen [2 + 8 + 32];
-		unsigned int i;
-		unsigned int rowct;
-
-		if (pg->drcs_clut)
-			for (i = 2; i < 2 + 8 + 32; i++)
-				pen[i] = ((uint16_t *) color_map)
-					[pg->drcs_clut[i]];
-
-		for (rowct = n_rows; rowct-- > 0; ++row) {
-			const vbi3_char *ac;
-			unsigned int colct;
-
-			ac = pg->text + row * pg->columns + column;
-
-			for (colct = n_columns; colct-- > 0; ++ac) {
-				DRAW_VT_CHAR (2);
-				canvas += TCW * 2;
-			}
-
-			canvas += row_adv;
-		}
-
-		break;
-	}
-
 	case 1:
-	{
-		uint8_t pen [2 + 8 + 32];
-		unsigned int i;
-		unsigned int rowct;
-
-		if (pg->drcs_clut)
-			for (i = 2; i < 2 + 8 + 32; i++)
-				pen[i] = ((uint8_t *) color_map)
-					[pg->drcs_clut[i]];
-
-		for (rowct = n_rows; rowct-- > 0; ++row) {
-			const vbi3_char *ac;
-			unsigned int colct;
-
-			ac = pg->text + row * pg->columns + column;
-
-			for (colct = n_columns; colct-- > 0; ++ac) {
-				DRAW_VT_CHAR (1);
-				canvas += TCW;
-			}
-
-			canvas += row_adv;
-		}
-
+		DRAW_VT_PAGE (1);
 		break;
-	}
-
+	case 2:
+		DRAW_VT_PAGE (2);
+		break;
+	case 3:
+		DRAW_VT_PAGE (3);
+		break;
+	case 4:
+		DRAW_VT_PAGE (4);
+		break;
 	default:
 		assert (0);
 	}
@@ -1613,12 +1534,8 @@ export_ppm			(vbi3_export *		e,
 	unsigned int row;
 
 	if (pg->columns < 40) { /* caption */
-#ifdef ZAPPING8
-		assert (0);
-#else
 		cw = CCW;
 		ch = CCH;
-#endif
 	} else {
 		cw = TCW;
 		ch = TCH;
@@ -1645,7 +1562,6 @@ export_ppm			(vbi3_export *		e,
 	for (row = 0; row < pg->rows; ++row) {
 		vbi3_bool success;
 
-#ifndef ZAPPING8
 		if (pg->columns < 40)
 			success = vbi3_page_draw_caption_region
 				(pg, image, &format,
@@ -1654,7 +1570,6 @@ export_ppm			(vbi3_export *		e,
 				 pg->columns, /* rows */ 1,
 				 /* options */ VBI3_END);
 		else
-#endif
 			success = vbi3_page_draw_teletext_region
 				(pg, image, &format,
 				 /* x */ 0, /* y */ 0,
@@ -1765,10 +1680,9 @@ png_draw_char			(uint8_t *		canvas,
 
 		if (is_ttx)
 			DRAW_BLANK (canvas, 1, bytes_per_line, pen, TCW, TCH);
-#ifndef ZAPPING8
 		else
 			DRAW_BLANK (canvas, 1, bytes_per_line, pen, CCW, CCH);
-#endif
+
 		return;
 
 	case VBI3_TRANSPARENT_FULL:
@@ -1824,7 +1738,6 @@ png_draw_char			(uint8_t *		canvas,
 				   	/* cell row 9 */,
 				   ac->size);
 		} else {
-#ifndef ZAPPING8
 			DRAW_CHAR (canvas, 1, bytes_per_line,
 				   pen, ccfont3_bits, CCPL, CCW, CCH,
 				   unicode_ccfont3 (unicode,
@@ -1833,7 +1746,6 @@ png_draw_char			(uint8_t *		canvas,
 				   (!!(ac->attr & VBI3_UNDERLINE)) << 12
 				   	/* cell row 12 */,
 				   VBI3_NORMAL_SIZE);
-#endif
 		}
 	}
 }
@@ -1974,12 +1886,8 @@ export_png			(vbi3_export *		e,
 	png_infop info_ptr;
 
 	if (pg->columns < 40) { /* caption */
-#ifdef ZAPPING8
-		assert (0);
-#else
 		cw = CCW;
 		ch = CCH;
-#endif
 	} else {
 		cw = TCW;
 		ch = TCH;
