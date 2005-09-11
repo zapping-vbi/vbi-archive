@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.6 2005-06-29 21:24:08 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.7 2005-09-11 23:07:05 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -192,6 +192,8 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 	int hmod, vmod, i, width1, height1;
 	v4l2_std_id std;
 	struct v4l2_standard standard;
+	struct v4l2_cropcap cropcap;
+	struct v4l2_crop crop;
 
 	if (verbose >= 3)
 		log_fp = stderr;
@@ -312,6 +314,18 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 	else
 		par->height = (height1 + 15) & -16;
 
+	memset (&cropcap, 0, sizeof (cropcap));
+	cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+	if (0 == _ioctl (fd, VIDIOC_CROPCAP, &cropcap)) {
+		memset (&crop, 0, sizeof (crop));
+		crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		crop.c = cropcap.defrect;
+
+		if (-1 == _ioctl (fd, VIDIOC_S_CROP, &crop))
+			FAIL ("VIDIOC_S_CROP failed\n");
+	}
+
 	for (;;) {
 		int new_mode, new_width, new_height;
 
@@ -320,6 +334,13 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 		vfmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		vfmt.fmt.pix.width = par->width;
 		vfmt.fmt.pix.height = par->height;
+
+		if (cropcap.defrect.height > 0) {
+			/* If we have cropcap data, make sure we don't
+			    overscan. */
+			if (vfmt.fmt.pix.height > cropcap.defrect.height)
+				vfmt.fmt.pix.height = cropcap.defrect.height;
+		}
 
 		if (YUV420(filter_mode)) {
 			vfmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
