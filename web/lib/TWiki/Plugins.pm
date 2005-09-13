@@ -211,7 +211,7 @@ sub registerPlugin
             $installWeb = $web;
         } else {
             # not found
-            initialisationError( "Plugins: couldn't register $plugin, no plugin topic" );
+            # initialisationError( "Plugins: couldn't register $plugin, no plugin topic" );
             return;
         }
     }
