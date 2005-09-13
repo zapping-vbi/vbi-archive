@@ -1,5 +1,5 @@
 #!/bin/sh
-#$Id: prepare_web.sh,v 1.22 2005-05-10 00:33:45 mschimek Exp $
+#$Id: prepare_web.sh,v 1.23 2005-09-13 02:31:35 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
@@ -117,10 +117,9 @@ chmod a+rX templates/*.tmpl
 if test `whoami` = "root"; then
   chown nfsnobody.zapping twiki -R
   chmod u+w,go-w,a+rX twiki -R
-else
-  chmod a+rwX twiki -R
 fi
 
-# See also cgi-bin/chown.
+# You could also try this:
+# wget -q --proxy=off -O - http://zapping.sourceforge.net/cgi-bin/chown
 
 ) 2>&1 | tee prepare_web.log

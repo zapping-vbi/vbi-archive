@@ -27,7 +27,7 @@ use vars qw($web $topic $user $installWeb $VERSION $debug
             %smiliesUrls %smiliesEmotions
             $smiliesPattern $allPattern $smiliesPubUrl $smiliesFormat );
 
-$VERSION = '1.002';
+$VERSION = '1.003';
 
 $smiliesPattern = '^\s*\|\s*<nop>(?:\&nbsp\;)?([^\s|]+)\s*\|\s*%ATTACHURL%\/([^\s]+)\s*\|\s*"([^"|]+)"\s*\|\s*$';
 #                          smilie       url            emotion
@@ -44,7 +44,7 @@ sub initPlugin
 
     # Get plugin preferences
     $smiliesFormat = &TWiki::Func::getPreferencesValue( "SMILIESPLUGIN_FORMAT" ) 
-					|| '<img alt="$tooltip" src="$url" />';
+					|| '<img src="$url" alt="$tooltip" title="$tooltip" border="0" />';
 
     my $topic = &TWiki::Func::getPreferencesValue( "SMILIESPLUGIN_TOPIC" ) 
 					|| "$installWeb.SmiliesPlugin"; 

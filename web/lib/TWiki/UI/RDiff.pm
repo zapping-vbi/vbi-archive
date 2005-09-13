@@ -409,6 +409,9 @@ sub diff {
     if( ! $rev2 ) { $rev2 = 0; }
     $rev1 =~ s/r?1\.//go;  # cut 'r' and major
     $rev2 =~ s/r?1\.//go;  # cut 'r' and major
+    # Fix for Codev.SecurityAlertExecuteCommandsWithRev
+    $rev1 = $maxrev unless( $rev1 =~ s/.*?([0-9]+).*/$1/o );
+    $rev2 = $maxrev unless( $rev2 =~ s/.*?([0-9]+).*/$1/o );
     if( $rev1 < 1 )       { $rev1 = $maxrev; }
     if( $rev1 > $maxrev ) { $rev1 = $maxrev; }
     if( $rev2 < 1 )       { $rev2 = 1; }

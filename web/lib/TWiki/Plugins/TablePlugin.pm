@@ -41,7 +41,7 @@ use vars qw(
         @rowspan
     );
 
-$VERSION = '1.012';  # 01 Dec 2003
+$VERSION = '1.013';  # 01 Aug 2004
 $translationToken = "\0";
 $currTablePre = "";
 $upchar = "";
@@ -346,6 +346,7 @@ sub processTR {
                 }
 
                 $attr .= " valign=\"$vAlign\"" if $vAlign;
+                $attr .= " class=\"twikiFirstCol\"" if $colCount == 1;
                 push @row, [ $value, "$attr", "th" ];
             } else {
                 if( /^\s*(.*?)\s*$/ ) {   # strip white spaces
@@ -357,6 +358,7 @@ sub processTR {
                     $attr .= " align=\"$align\""; # override $attr
                 }
                 $attr .= " valign=\"$vAlign\"" if $vAlign;
+                $attr .= " class=\"twikiFirstCol\"" if $colCount == 1;
                 push @row, [ $value, "$attr", "td" ];
             }
         }
@@ -553,8 +555,10 @@ sub emitTable
                    $arrow = "<a name=\"sorted_table\"><span title=\"$fields[$stype] ";
                    if( $dir == 0 ) {
                        $arrow .= "sorted ascending\">$upchar</span></a>";
+                       $attr .= " class=\"twikiSortedAscendingCol\"";
                    } else {
                        $arrow .= "sorted descending\">$downchar</span></a>";
+                       $attr .= " class=\"twikiSortedDescendingCol\"";
                    }
                }
                $color = "";

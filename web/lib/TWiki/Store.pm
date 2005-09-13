@@ -572,7 +572,9 @@ sub getRevisionInfo
     }
 
     $theRev = "" unless( $theRev );
-    $theRev =~ s/^1\.//o;
+    $theRev =~ s/r?1\.//o;  # cut 'r' and major
+    # Fix for Codev.SecurityAlertExecuteCommandsWithRev
+    $theRev = "" unless( $theRev =~ s/.*?([0-9]+).*/$1/o );
 
     $topicHandler = _getTopicHandler( $theWebName, $theTopic, $attachment ) if( ! $topicHandler );
     my( $rcsOut, $rev, $date, $user, $comment ) = $topicHandler->getRevisionInfo( $theRev );

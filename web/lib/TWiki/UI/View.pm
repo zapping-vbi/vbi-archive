@@ -107,6 +107,8 @@ sub view {
 
     if( $rev ) {
       $rev =~ s/r?1\.//go;  # cut 'r' and major
+      # Fix for Codev.SecurityAlertExecuteCommandsWithRev
+      $rev = $maxrev unless( $rev =~ s/.*?([0-9]+).*/$1/o );
       if( $rev < 1 )       { $rev = 1; }
       if( $rev > $maxrev ) { $rev = $maxrev; }
     } else {

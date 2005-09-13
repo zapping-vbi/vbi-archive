@@ -25,7 +25,9 @@
 #   initPlugin              ( $topic, $web, $user, $installWeb )    1.000
 #   initializeUserHandler   ( $loginName, $url, $pathInfo )         1.010
 #   registrationHandler     ( $web, $wikiName, $loginName )         1.010
+#   beforeCommonTagsHandler ( $text, $topic, $web )                 1.024
 #   commonTagsHandler       ( $text, $topic, $web )                 1.000
+#   afterCommonTagsHandler  ( $text, $topic, $web )                 1.024
 #   startRenderingHandler   ( $text, $web )                         1.000
 #   outsidePREHandler       ( $text )                               1.000
 #   insidePREHandler        ( $text )                               1.000
@@ -58,7 +60,7 @@ use vars qw(
         $debug $exampleCfgVar
     );
 
-$VERSION = '1.010';
+$VERSION = '1.021';
 $pluginName = 'EmptyPlugin';  # Name of this Plugin
 
 # =========================
@@ -67,16 +69,16 @@ sub initPlugin
     ( $topic, $web, $user, $installWeb ) = @_;
 
     # check for Plugins.pm versions
-    if( $TWiki::Plugins::VERSION < 1 ) {
+    if( $TWiki::Plugins::VERSION < 1.021 ) {
         TWiki::Func::writeWarning( "Version mismatch between $pluginName and Plugins.pm" );
         return 0;
     }
 
     # Get plugin debug flag
-    $debug = TWiki::Func::getPreferencesFlag( "\U$pluginName\E_DEBUG" );
+    $debug = TWiki::Func::getPluginPreferencesFlag( "DEBUG" );
 
     # Get plugin preferences, the variable defined by:          * Set EXAMPLE = ...
-    $exampleCfgVar = &TWiki::Func::getPreferencesValue( "EMPTYPLUGIN_EXAMPLE" ) || "default";
+    $exampleCfgVar = TWiki::Func::getPluginPreferencesValue( "EXAMPLE" ) || "default";
 
     # Plugin correctly initialized
     TWiki::Func::writeDebug( "- TWiki::Plugins::${pluginName}::initPlugin( $web.$topic ) is OK" ) if $debug;
@@ -120,6 +122,16 @@ sub DISABLE_registrationHandler
 }
 
 # =========================
+sub DISABLE_beforeCommonTagsHandler
+{
+### my ( $text, $topic, $web ) = @_;   # do not uncomment, use $_[0], $_[1]... instead
+
+    TWiki::Func::writeDebug( "- ${pluginName}::beforeCommonTagsHandler( $_[2].$_[1] )" ) if $debug;
+
+    # Called at the beginning of TWiki::handleCommonTags (for cache Plugins use only)
+}
+
+# =========================
 sub DISABLE_commonTagsHandler
 {
 ### my ( $text, $topic, $web ) = @_;   # do not uncomment, use $_[0], $_[1]... instead
@@ -127,11 +139,21 @@ sub DISABLE_commonTagsHandler
     TWiki::Func::writeDebug( "- ${pluginName}::commonTagsHandler( $_[2].$_[1] )" ) if $debug;
 
     # This is the place to define customized tags and variables
-    # Called by sub handleCommonTags, after %INCLUDE:"..."%
+    # Called by TWiki::handleCommonTags, after %INCLUDE:"..."%
 
     # do custom extension rule, like for example:
     # $_[0] =~ s/%XYZ%/&handleXyz()/ge;
     # $_[0] =~ s/%XYZ{(.*?)}%/&handleXyz($1)/ge;
+}
+
+# =========================
+sub DISABLE_afterCommonTagsHandler
+{
+### my ( $text, $topic, $web ) = @_;   # do not uncomment, use $_[0], $_[1]... instead
+
+    TWiki::Func::writeDebug( "- ${pluginName}::afterCommonTagsHandler( $_[2].$_[1] )" ) if $debug;
+
+    # Called at the end of TWiki::handleCommonTags (for cache Plugins use only)
 }
 
 # =========================

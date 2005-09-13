@@ -25,7 +25,9 @@
 #   initPlugin              ( $topic, $web, $user, $installWeb )    1.000
 #   initializeUserHandler   ( $loginName, $url, $pathInfo )         1.010
 #   registrationHandler     ( $web, $wikiName, $loginName )         1.010
+#   beforeCommonTagsHandler ( $text, $topic, $web )                 1.024
 #   commonTagsHandler       ( $text, $topic, $web )                 1.000
+#   afterCommonTagsHandler  ( $text, $topic, $web )                 1.024
 #   startRenderingHandler   ( $text, $web )                         1.000
 #   outsidePREHandler       ( $text )                               1.000
 #   insidePREHandler        ( $text )                               1.000
@@ -59,7 +61,7 @@ use vars qw(
         $debug $doOldInclude $renderingWeb
     );
 
-$VERSION = '1.010';
+$VERSION = '1.021';
 $pluginName = 'DefaultPlugin';  # Name of this Plugin
 
 # =========================
@@ -68,16 +70,16 @@ sub initPlugin
     ( $topic, $web, $user, $installWeb ) = @_;
 
     # check for Plugins.pm versions
-    if( $TWiki::Plugins::VERSION < 1 ) {
+    if( $TWiki::Plugins::VERSION < 1.021 ) {
         TWiki::Func::writeWarning( "Version mismatch between $pluginName and Plugins.pm" );
         return 0;
     }
 
     # Get plugin preferences
-    $doOldInclude = TWiki::Func::getPreferencesFlag( "\U$pluginName\E_OLDINCLUDE" ) || "";
+    $doOldInclude = TWiki::Func::getPluginPreferencesFlag( "OLDINCLUDE" ) || "";
 
     # Get plugin debug flag
-    $debug = TWiki::Func::getPreferencesFlag( "\U$pluginName\E_DEBUG" );
+    $debug = TWiki::Func::getPluginPreferencesFlag( "DEBUG" );
 
     $renderingWeb = $web;
 
@@ -123,6 +125,16 @@ sub DISABLE_registrationHandler
 }
 
 # =========================
+sub DISABLE_beforeCommonTagsHandler
+{
+### my ( $text, $topic, $web ) = @_;   # do not uncomment, use $_[0], $_[1]... instead
+
+    TWiki::Func::writeDebug( "- ${pluginName}::beforeCommonTagsHandler( $_[2].$_[1] )" ) if $debug;
+
+    # Called at the beginning of TWiki::handleCommonTags (for cache Plugins use only)
+}
+
+# =========================
 sub commonTagsHandler
 {
 ### my ( $text, $topic, $web ) = @_;   # do not uncomment, use $_[0], $_[1]... instead
@@ -130,7 +142,7 @@ sub commonTagsHandler
     TWiki::Func::writeDebug( "- ${pluginName}::commonTagsHandler( $_[2].$_[1] )" ) if $debug;
 
     # This is the place to define customized tags and variables
-    # Called by sub handleCommonTags, after %INCLUDE:"..."%
+    # Called by TWiki::handleCommonTags, after %INCLUDE:"..."%
 
     # for compatibility for earlier TWiki versions:
     if( $doOldInclude ) {
@@ -142,6 +154,16 @@ sub commonTagsHandler
     # do custom extension rule, like for example:
     # $_[0] =~ s/%XYZ%/&handleXyz()/ge;
     # $_[0] =~ s/%XYZ{(.*?)}%/&handleXyz($1)/ge;
+}
+
+# =========================
+sub DISABLE_afterCommonTagsHandler
+{
+### my ( $text, $topic, $web ) = @_;   # do not uncomment, use $_[0], $_[1]... instead
+
+    TWiki::Func::writeDebug( "- ${pluginName}::afterCommonTagsHandler( $_[2].$_[1] )" ) if $debug;
+
+    # Called at the end of TWiki::handleCommonTags (for cache Plugins use only)
 }
 
 # =========================
@@ -175,16 +197,16 @@ sub outsidePREHandler
 
     # Use alternate %Web:WikiName% syntax (versus the standard Web.WikiName).
     # This is an old JosWiki render option. (Uncomment for JosWiki compatibility)
-#   $_[0] =~ s/(^|\s|\()\%([^\s].*?[^\s]):([^\s].*?[^\s])\%/&TWiki::internalLink($2,$3,"$2:$3",$1,1)/geo;
+#   $_[0] =~ s/(^|\s|\()\%([^\s].*?[^\s]):([^\s].*?[^\s])\%/&TWiki::Render::internalLink($2,$3,"$2:$3",$1,1)/geo;
 
     # Use "forced" non-WikiName links (i.e. %Linkname%)
     # This is an old JosWiki render option. (Uncomment for JosWiki compatibility)
-#   $_[0] =~ s/(^|\s|\()\%([^\s].*?[^\s])\%/&TWiki::internalLink($web,$2,$2,$1,1)/geo;
+#   $_[0] =~ s/(^|\s|\()\%([^\s].*?[^\s])\%/&TWiki::Render::internalLink($web,$2,$2,$1,1)/geo;
 
     # Use "forced" non-WikiName links (i.e. %Web.Linkname%)
     # This is an old JosWiki render option combined with the new Web.LinkName notation
     # (Uncomment for JosWiki compatibility)
-#   $_[0] =~ s/(^|\s|\()\%([a-zA-Z0-9]+)\.(.*?[^\s])\%(\s|\)|$)/&TWiki::internalLink($2,$3,$3,$1,1)/geo;
+#   $_[0] =~ s/(^|\s|\()\%([a-zA-Z0-9]+)\.(.*?[^\s])\%(\s|\)|$)/&TWiki::Render::internalLink($2,$3,$3,$1,1)/geo;
 
     # Use <link>....</link> links
     # This is an old JosWiki render option. (Uncomment for JosWiki compatibility)

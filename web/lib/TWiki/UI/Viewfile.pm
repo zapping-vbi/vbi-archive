@@ -43,6 +43,9 @@ sub view {
 
   my $fileName = $query->param( 'filename' );
   my $rev = $query->param( 'rev' ) || "";
+  $rev =~ s/r?1\.//o;  # cut 'r' and major
+  # Fix for Codev.SecurityAlertExecuteCommandsWithRev
+  $rev = "" unless( $rev =~ s/.*?([0-9]+).*/$1/o );
 
   return unless TWiki::UI::webExists( $webName, $topic );
 

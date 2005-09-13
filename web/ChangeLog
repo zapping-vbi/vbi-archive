@@ -1,6 +1,10 @@
+2005-09-13    <mschimek@users.sf.net>
+
+	* sgi-bin, lib: Twiki update.
+
 2005-05-09    <mschimek@users.sf.net>
 
-	* backup.sh: Remove twiki diffs when done.
+	* backup.sh: Remove twiki diffs when done. /tmp/persistent change.
 
 2005-03-30    <mschimek@users.sf.net>
 

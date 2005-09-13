@@ -48,7 +48,7 @@ use vars qw(
         $nrCols $encodeStart $encodeEnd $table
     );
 
-$VERSION = '1.022';
+$VERSION = '1.024';
 $encodeStart = "--EditTableEncodeStart--";
 $encodeEnd   = "--EditTableEncodeEnd--";
 $prefsInitialized  = 0;
@@ -170,14 +170,15 @@ sub commonTagsHandler
     my $doEdit = 0;
     my $cgiRows = -1;
 
-    foreach( split( /\n/, $_[0] ) ) {
+    # appended stuff is a hack to handle EDITTABLE correctly if at end
+    foreach( split( /\r?\n/, "$_[0]\n<nop>\n" ) ) {
         if( s/(\s*)%EDITTABLE{(.*)}%/&handleEditTableTag( $theWeb, $theTopic, $1, $2 )/geo ) {
             $enableForm = 1;
             $tableNr += 1;
 
             my $cgiTableNr = $query->param( 'ettablenr' ) || 0;
             $cgiRows = $query->param( 'etrows' ) || -1;
-            if( $cgiTableNr == $tableNr ) {
+            if( ( $cgiTableNr == $tableNr ) && ( "$theWeb.$theTopic" eq "$web.$topic" ) ) {
 
                if( $query->param( 'etsave' ) ) {
                    # [Save table] button pressed
@@ -265,7 +266,7 @@ sub commonTagsHandler
         }
         $result .= "$_\n";
     }
-
+    $result =~ s|\n?<nop>\n$||o; # clean up hack that handles EDITTABLE correctly if at end
     $_[0] = $result;
 }
 
@@ -584,7 +585,7 @@ sub inputElement
         }
         my $cell = $table->getCell( $theTableNr, $theRowNr - 1, $theCol );
         $theValue = $cell if( defined $cell );  # original value from file
-        $theValue = $encodeStart . encodeValue( $theValue ) . $encodeEnd if $theValue;
+        $theValue = $encodeStart . encodeValue( $theValue ) . $encodeEnd unless( $theValue eq "" );
         $theValue = "\*$theValue\*" if( $isHeader );
         $text .= "<input$style type=\"hidden\" name=\"$theName\" value=\"$theValue\" />";
         $text = "\*$text\*" if( $isHeader );
@@ -594,7 +595,7 @@ sub inputElement
         $rows = 3 if $rows < 1;
         $cols = 30 if $cols < 1;
 
-        $theValue = $encodeStart . encodeValue( $theValue ) . $encodeEnd if $theValue;
+        $theValue = $encodeStart . encodeValue( $theValue ) . $encodeEnd unless( $theValue eq "" );
         $text .= "<textarea$style rows=\"$rows\" cols=\"$cols\" name=\"$theName\">$theValue</textarea>";
         $text .= saveEditCellFormat( $cellFormat, $theName );
 
@@ -603,7 +604,7 @@ sub inputElement
         $ifFormat = $bits[3] if( @bits > 3 );
         $ifFormat = $ifFormat || $prefJSCALENDARDATEFORMAT;
         $size = 10 if $size < 1;
-        $theValue = $encodeStart . encodeValue( $theValue ) . $encodeEnd if $theValue;
+        $theValue = $encodeStart . encodeValue( $theValue ) . $encodeEnd unless( $theValue eq "" );
         $text .= "<input type=\"text\" name=\"$theName\" id=\"id$theName\" size=\"$size\" value=\"$theValue\" />";
         $text .= saveEditCellFormat( $cellFormat, $theName );
         $text .= "<button type=\"reset\" id=\"trigger$theName\">...</button>";
@@ -614,7 +615,7 @@ sub inputElement
 
     } else { #  if( $type eq "text")
         $size = 16 if $size < 1;
-        $theValue = $encodeStart . encodeValue( $theValue ) . $encodeEnd if $theValue;
+        $theValue = $encodeStart . encodeValue( $theValue ) . $encodeEnd unless( $theValue eq "" );
         $text = "<input$style type=\"text\" name=\"$theName\" size=\"$size\" value=\"$theValue\"/>";
         $text .= saveEditCellFormat( $cellFormat, $theName );
     }
@@ -681,10 +682,11 @@ sub handleTableRow
             } else {
                 if( ( ! $cellDefined ) && ( @format >= $col )
                  && ( $format[$col-1] =~ /^\s*(.*?)\,\s*(.*?)\,\s*(.*?)\s*$/ ) ) {
-                     # default value of "| text, 20, a, b,c |" cell is "a, b, c"
+                     # default value of "| text, 20, a, b, c |" cell is "a, b, c"
                      # default value of "| select, 1, a, b, c |" cell is "a"
                      $val = $1;  # type
-                     $cell = $3 || "";
+                     $cell = $3;
+                     $cell = "" unless( defined $cell && $cell ne "" ); # Proper handling of "0"
                      $cell =~ s/\,.*$//o if( $val eq "select" || $val eq "date" );
                 }
                 $text .= inputElement( $theTableNr, $theRowNr, $col-1, "etcell${theRowNr}x$col", $cell ) . " \|";
@@ -712,7 +714,8 @@ sub doSaveTable
     my $insideTable = 0;
     my $doSave = 0;
     my $result = "";
-    foreach( split( /\n/, $text ) ) {
+    # appended stuff is a hack to handle EDITTABLE correctly if at end
+    foreach( split( /\r?\n/, "$text\n<nop>\n" ) ) {
         if( /%EDITTABLE{(.*)}%/o ) {
             $tableNr += 1;
             if( $tableNr == $theTableNr ) {
@@ -760,6 +763,7 @@ sub doSaveTable
         }
         $result .= "$_\n";
     }
+    $result =~ s|\n<nop>\n$||o; # clean up hack that handles EDITTABLE correctly if at end
 
     my $error = &TWiki::Func::saveTopicText( $theWeb, $theTopic, $result, "", $quiet );
     TWiki::Func::setTopicEditLock( $theWeb, $theTopic, 0 );  # unlock Topic
