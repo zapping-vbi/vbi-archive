@@ -45,7 +45,7 @@ sub view {
   my $rev = $query->param( 'rev' ) || "";
   $rev =~ s/r?1\.//o;  # cut 'r' and major
   # Fix for Codev.SecurityAlertExecuteCommandsWithRev
-  $rev = "" unless( $rev =~ s/.*?([0-9]+).*/$1/o );
+  $rev = "" unless( $rev =~ s/^.*?([0-9]+).*$/$1/so );
 
   return unless TWiki::UI::webExists( $webName, $topic );
 

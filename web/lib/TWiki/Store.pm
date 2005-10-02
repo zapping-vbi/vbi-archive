@@ -451,7 +451,9 @@ sub _readVersionNoMeta
     my( $theWeb, $theTopic, $theRev ) = @_;
     my $topicHandler = _getTopicHandler( $theWeb, $theTopic );
     
-    $theRev =~ s/^1\.//o;
+    $theRev =~ s/^r?1\.//o;
+    # Fix for Codev.SecurityAlertExecuteCommandsWithInclude
+    $theRev = "" unless( $theRev =~ s/^.*?([0-9]+).*$/$1/so );
     return $topicHandler->getRevision( $theRev );
 }
 
@@ -468,7 +470,9 @@ sub readAttachmentVersion
    my ( $theWeb, $theTopic, $theAttachment, $theRev ) = @_;
    
    my $topicHandler = _getTopicHandler( $theWeb, $theTopic, $theAttachment );
-   $theRev =~ s/^1\.//o;
+   $theRev =~ s/^r?1\.//o;
+   # Fix for Codev.SecurityAlertExecuteCommandsWithInclude
+   $theRev = "" unless( $theRev =~ s/^.*?([0-9]+).*$/$1/so );
    return $topicHandler->getRevision( $theRev );
 }
 
@@ -574,7 +578,7 @@ sub getRevisionInfo
     $theRev = "" unless( $theRev );
     $theRev =~ s/r?1\.//o;  # cut 'r' and major
     # Fix for Codev.SecurityAlertExecuteCommandsWithRev
-    $theRev = "" unless( $theRev =~ s/.*?([0-9]+).*/$1/o );
+    $theRev = "" unless( $theRev =~ s/^.*?([0-9]+).*$/$1/so );
 
     $topicHandler = _getTopicHandler( $theWebName, $theTopic, $attachment ) if( ! $topicHandler );
     my( $rcsOut, $rev, $date, $user, $comment ) = $topicHandler->getRevisionInfo( $theRev );
