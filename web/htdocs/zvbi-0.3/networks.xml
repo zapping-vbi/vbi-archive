@@ -4,7 +4,7 @@
 
   Libzvbi Networks Table
 
-  Copyright (C) 2000-2004 Michael H. Schimek
+  Copyright (C) 2000-2005 Michael H. Schimek
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License version 2 as
@@ -21,7 +21,7 @@
 
   ============================================================================
 
-  This information comes from TR 101 231 EBU rev. 2004-04a, www.ebu.ch,
+  This information comes from TR 101 231 EBU rev. 2005-09, www.ebu.ch,
 
   Table A.1: Register of Country and Network Identification
              (CNI) codes for Teletext based systems
@@ -32,9 +32,10 @@
 
   ============================================================================
 
-  Highest network id is n529.
+  Highest network id is n634 (arbitrary number used to distinguish
+    networks in libzvbi-0.2).
 
-  $Id: networks.xml,v 1.2 2004-07-09 16:12:04 mschimek Exp $
+  $Id: networks.xml,v 1.3 2005-10-07 14:53:44 mschimek Exp $
 
 -->
 <networks>
@@ -110,11 +111,11 @@
       <cni-8301>0x3225</cni-8301>
     </network>
     <network id="n386">
-      <name>RTL-Kempen</name>
+      <name>RTV-Kempen</name>
       <cni-8301>0x3210</cni-8301>
     </network>
     <network id="n387">
-      <name>RTL-Mechelen</name>
+      <name>RTV-Mechelen</name>
       <cni-8301>0x3211</cni-8301>
     </network>
     <network id="n388">
@@ -134,35 +135,47 @@
       <cni-8301>0x3215</cni-8301>
     </network>
     <network id="n392">
-      <name>Canal+</name>
+      <name>Be 1 ana</name>
       <cni-8301>0x3216</cni-8301>
     </network>
     <network id="n393">
-      <name>Canal+N1</name>
+      <name>Be 1 num</name>
       <cni-8301>0x3217</cni-8301>
     </network>
     <network id="n394">
-      <name>Canal+N2</name>
+      <name>Be Ciné 1</name>
       <cni-8301>0x3218</cni-8301>
     </network>
     <network id="n395">
-      <name>Canal+N3</name>
+      <name>Be Sport 1</name>
       <cni-8301>0x3219</cni-8301>
     </network>
+    <network id="n530">
+      <name>Be 1 + 1h</name>
+      <cni-8301>0x32A7</cni-8301>
+    </network>
+    <network id="n531">
+      <name>Be Ciné 2</name>
+      <cni-8301>0x32A8</cni-8301>
+    </network>
+    <network id="n532">
+      <name>Be Sport 2</name>
+      <cni-8301>0x32A9</cni-8301>
+    </network>
     <network id="n396">
-      <name>Canal+VL1</name>
+      <name>PRIME Sport 1</name>
       <cni-8301>0x321A</cni-8301>
     </network>
     <network id="n397">
-      <name>Canal+VL2</name>
+      <name>PRIME Sport 2</name>
       <cni-8301>0x321B</cni-8301>
     </network>
     <network id="n398">
-      <name>Canal+VLN1</name>
+      <name>PRIME Action</name>
       <cni-8301>0x321C</cni-8301>
     </network>
     <network id="n399">
-      <name>Canal+VLN2</name>
+      <name>PRIME One</name>
       <cni-8301>0x321D</cni-8301>
     </network>
     <network id="n400">
@@ -355,7 +368,7 @@
       <cni-pdc-b>0x3C23</cni-pdc-b>
     </network>
     <network id="n430">
-      <name>Prima tv</name>
+      <name>Prima TV</name>
       <cni-8301>0x4204</cni-8301>
     </network>
     <network id="n431">
@@ -412,6 +425,21 @@
       <name>TV2 Charlie</name>
       <cni-8301>0x4505</cni-8301>
       <cni-8302>0x2905</cni-8302>
+    </network>
+    <network id="n533">
+      <name>TV2 Film</name>
+      <cni-8301>0x4508</cni-8301>
+      <cni-8302>0x2908</cni-8302>
+    </network>
+    <network id="n534">
+      <name>TV Danmark</name>
+      <cni-8301>0x4506</cni-8301>
+      <cni-8302>0x2906</cni-8302>
+    </network>
+    <network id="n535">
+      <name>Kanal 5</name>
+      <cni-8301>0x4507</cni-8301>
+      <cni-8302>0x2907</cni-8302>
     </network>
   </country>
 
@@ -496,6 +524,18 @@
       <cni-8301>0xF101</cni-8301>
       <cni-8302>0x2FE2</cni-8302>
       <cni-pdc-b>0x3F62</cni-pdc-b>
+    </network>
+    <network id="n536">
+      <name>Eurosport2</name>
+      <cni-8301>0xF102</cni-8301>
+      <cni-8302>0x2FE3</cni-8302>
+      <cni-pdc-b>0x3F63</cni-pdc-b>
+    </network>
+    <network id="n537">
+      <name>Eurosportnews</name>
+      <cni-8301>0xF103</cni-8301>
+      <cni-8302>0x2FE4</cni-8302>
+      <cni-pdc-b>0x3F64</cni-pdc-b>
     </network>
     <network id="n33">
       <name>France 2</name>
@@ -641,13 +681,35 @@
       <cni-8301>0x4943</cni-8301>
       <cni-vps>0x0D43</cni-vps>
     </network>
+    <network id="n634">
+      <name>KDG Infokanal</name>
+      <cni-vps>0x0D75</cni-vps>
+    </network>
+    <network id="n633">
+      <name>DAS VIERTE</name>
+      <cni-vps>0x0D76</cni-vps>
+    </network>
+    <network id="n538">
+      <name>1-2-3.TV</name>
+      <cni-8301>0x49BD</cni-8301>
+      <cni-vps>0x0D77</cni-vps>
+    </network>
     <network id="n522">
       <name>TELE-5</name>
+      <cni-8301>0x49BE</cni-8301>
       <cni-vps>0x0D78</cni-vps>
+    </network>
+    <network id="n632">
+      <name>RTL Shop</name>
+      <cni-vps>0x0D79</cni-vps>
     </network>
     <network id="n523">
       <name>N24</name>
       <cni-vps>0x0D7A</cni-vps>
+    </network>
+    <network id="n631">
+      <name>TV Berlin</name>
+      <cni-vps>0x0D7B</cni-vps>
     </network>
     <network id="n54">
       <name>ONYX-TV</name>
@@ -708,7 +770,7 @@
       <cni-vps>0x0D8C</cni-vps>
     </network>
     <network id="n67">
-      <name>Deutsches Sportfernsehen</name>
+      <name>DSF</name>
       <cni-vps>0x0D8D</cni-vps>
     </network>
     <network id="n68">
@@ -1047,11 +1109,11 @@
       <cni-vps>0x0DDC</cni-vps>
     </network>
     <network id="n144">
-      <name>SDR/SWF Baden-Württemberg</name>
+      <name>SWR-1 Baden-Württemberg</name>
       <cni-vps>0x0DDD</cni-vps>
     </network>
     <network id="n145">
-      <name>SWF-1 Rheinland-Pfalz</name>
+      <name>SWR-1 Rheinland-Pfalz</name>
       <cni-vps>0x0DDE</cni-vps>
     </network>
     <network id="n146">
@@ -1111,7 +1173,7 @@
       <cni-vps>0x0DEB</cni-vps>
     </network>
     <network id="n159">
-      <name>SDR-1 Regional</name>
+      <name>SW 3 Regional</name>
       <cni-vps>0x0DEC</cni-vps>
     </network>
     <network id="n160">
@@ -1123,11 +1185,11 @@
       <cni-vps>0x0DEE</cni-vps>
     </network>
     <network id="n162">
-      <name>SDR/SWF BW und Rhld-Pfalz</name>
+      <name>SW 3 Regional</name>
       <cni-vps>0x0DEF</cni-vps>
     </network>
     <network id="n163">
-      <name>SWF-1 / Regionalprogramm</name>
+      <name>SWR1 / Regionalprogramm</name>
       <cni-vps>0x0DF0</cni-vps>
     </network>
     <network id="n164">
@@ -1396,17 +1458,17 @@
       <cni-8302>0x2101</cni-8302>
       <cni-pdc-b>0x3101</cni-pdc-b>
     </network>
-    <network id="n207">
-      <name>NET</name>
-      <cni-8301>0x3002</cni-8301>
-      <cni-8302>0x2102</cni-8302>
-      <cni-pdc-b>0x3102</cni-pdc-b>
-    </network>
     <network id="n208">
       <name>ET-3</name>
       <cni-8301>0x3003</cni-8301>
       <cni-8302>0x2103</cni-8302>
       <cni-pdc-b>0x3103</cni-pdc-b>
+    </network>
+    <network id="n207">
+      <name>NET</name>
+      <cni-8301>0x3002</cni-8301>
+      <cni-8302>0x2102</cni-8302>
+      <cni-pdc-b>0x3102</cni-pdc-b>
     </network>
   </country>
 
@@ -1498,49 +1560,124 @@
     <name>Italy</name>
     <country-code>IT</country-code>
     <cni-8301>0x3900</cni-8301>
+    <cni-8302>0x1500</cni-8302>
+    <network id="n227">
+      <name>RAI 1</name>
+      <cni-8301>0x3901</cni-8301>
+    </network>
+    <network id="n228">
+      <name>RAI 2</name>
+      <cni-8301>0x3902</cni-8301>
+    </network>
+    <network id="n229">
+      <name>RAI 3</name>
+      <cni-8301>0x3903</cni-8301>
+    </network>
+    <network id="n231">
+      <name>Rete A</name>
+      <cni-8301>0x3904</cni-8301>
+    </network>
+    <network id="n539">
+      <name>Canale Italia</name>
+      <cni-8301>0x3905</cni-8301>
+      <cni-8302>0x1505</cni-8302>
+    </network>
+    <network id="n540">
+      <name>Telenova</name>
+      <cni-8301>0x3909</cni-8301>
+    </network>
     <network id="n224">
       <name>Arte</name>
       <cni-8301>0x390A</cni-8301>
     </network>
-    <network id="n225">
-      <name>Canale 5</name>
-      <cni-8301>0xFA05</cni-8301>
+    <network id="n237">
+      <name>TRS TV</name>
+      <cni-8301>0x3910</cni-8301>
+    </network>
+    <network id="n541">
+      <name>Sky Cinema Classic</name>
+      <cni-8301>0x3911</cni-8301>
+      <cni-8302>0x1511</cni-8302>
+    </network>
+    <network id="n542">
+      <name>Sky Future use (canale 109)</name>
+      <cni-8301>0x3912</cni-8301>
+      <cni-8302>0x1512</cni-8302>
+    </network>
+    <network id="n543">
+      <name>Sky Calcio 1</name>
+      <cni-8301>0x3913</cni-8301>
+      <cni-8302>0x1513</cni-8302>
+    </network>
+    <network id="n544">
+      <name>Sky Calcio 2</name>
+      <cni-8301>0x3914</cni-8301>
+      <cni-8302>0x1514</cni-8302>
+    </network>
+    <network id="n545">
+      <name>Sky Calcio 3</name>
+      <cni-8301>0x3915</cni-8301>
+      <cni-8302>0x1515</cni-8302>
+    </network>
+    <network id="n546">
+      <name>Sky Calcio 4</name>
+      <cni-8301>0x3916</cni-8301>
+      <cni-8302>0x1516</cni-8302>
+    </network>
+    <network id="n547">
+      <name>Sky Calcio 5</name>
+      <cni-8301>0x3917</cni-8301>
+      <cni-8302>0x1517</cni-8302>
+    </network>
+    <network id="n548">
+      <name>Sky Calcio 6</name>
+      <cni-8301>0x3918</cni-8301>
+      <cni-8302>0x1518</cni-8302>
+    </network>
+    <network id="n549">
+      <name>Sky Calcio 7</name>
+      <cni-8301>0x3919</cni-8301>
+      <cni-8302>0x1519</cni-8302>
+    </network>
+    <network id="n449">
+      <name>RaiNews24</name>
+      <cni-8301>0x3920</cni-8301>
+    </network>
+    <network id="n450">
+      <name>RAI Med</name>
+      <cni-8301>0x3921</cni-8301>
+    </network>
+    <network id="n451">
+      <name>RAI Sport</name>
+      <cni-8301>0x3922</cni-8301>
+    </network>
+    <network id="n452">
+      <name>RAI Educational</name>
+      <cni-8301>0x3923</cni-8301>
+    </network>
+    <network id="n453">
+      <name>RAI Edu Lab</name>
+      <cni-8301>0x3924</cni-8301>
+    </network>
+    <network id="n454">
+      <name>RAI Nettuno 1</name>
+      <cni-8301>0x3925</cni-8301>
+    </network>
+    <network id="n455">
+      <name>RAI Nettuno 2</name>
+      <cni-8301>0x3926</cni-8301>
+    </network>
+    <network id="n456">
+      <name>Camera Deputati</name>
+      <cni-8301>0x3927</cni-8301>
+    </network>
+    <network id="n457">
+      <name>RAI Mosaico</name>
+      <cni-8301>0x3928</cni-8301>
     </network>
     <network id="n438">
       <name>Discovery Italy</name>
       <cni-8301>0x3930</cni-8301>
-    </network>
-    <network id="n439">
-      <name>Discovery Civilisations</name>
-      <cni-8301>0x3961</cni-8301>
-    </network>
-    <network id="n440">
-      <name>Discovery Travel and Adventure</name>
-      <cni-8301>0x3962</cni-8301>
-    </network>
-    <network id="n441">
-      <name>Discovery Science</name>
-      <cni-8301>0x3963</cni-8301>
-    </network>
-    <network id="n442">
-      <name>FOX Kids</name>
-      <cni-8301>0x3985</cni-8301>
-    </network>
-    <network id="n443">
-      <name>FOX Kids +1</name>
-      <cni-8301>0x3987</cni-8301>
-    </network>
-    <network id="n444">
-      <name>GAY TV</name>
-      <cni-8301>0x3939</cni-8301>
-    </network>
-    <network id="n226">
-      <name>Italia 1</name>
-      <cni-8301>0xFA06</cni-8301>
-    </network>
-    <network id="n445">
-      <name>LA7</name>
-      <cni-8301>0x3988</cni-8301>
     </network>
     <network id="n446">
       <name>MTV Italia</name>
@@ -1554,61 +1691,61 @@
       <name>MTV Hits</name>
       <cni-8301>0x3935</cni-8301>
     </network>
-    <network id="n227">
-      <name>RAI 1</name>
-      <cni-8301>0x3901</cni-8301>
+    <network id="n232">
+      <name>RTV38</name>
+      <cni-8301>0x3938</cni-8301>
     </network>
-    <network id="n228">
-      <name>RAI 2</name>
-      <cni-8301>0x3902</cni-8301>
+    <network id="n444">
+      <name>GAY TV</name>
+      <cni-8301>0x3939</cni-8301>
     </network>
-    <network id="n229">
-      <name>RAI 3</name>
-      <cni-8301>0x3903</cni-8301>
+    <network id="n527">
+      <name>Video Italia</name>
+      <cni-8301>0x3940</cni-8301>
     </network>
-    <network id="n230">
-      <name>Rete 4</name>
-      <cni-8301>0xFA04</cni-8301>
+    <network id="n467">
+      <name>SAT 2000</name>
+      <cni-8301>0x3941</cni-8301>
     </network>
-    <network id="n231">
-      <name>Rete A</name>
-      <cni-8301>0x3904</cni-8301>
+    <network id="n550">
+      <name>Jimmy</name>
+      <cni-8301>0x3942</cni-8301>
+      <cni-8302>0x1542</cni-8302>
     </network>
-    <network id="n449">
-      <name>RaiNews24</name>
-      <cni-8301>0x3920</cni-8301>
+    <network id="n551">
+      <name>Planet</name>
+      <cni-8301>0x3943</cni-8301>
+      <cni-8302>0x1543</cni-8302>
     </network>
-    <network id="n450">
-      <name>Rai Med</name>
-      <cni-8301>0x3921</cni-8301>
+    <network id="n552">
+      <name>Cartoon Network</name>
+      <cni-8301>0x3944</cni-8301>
+      <cni-8302>0x1544</cni-8302>
     </network>
-    <network id="n451">
-      <name>Rai Sport</name>
-      <cni-8301>0x3922</cni-8301>
+    <network id="n553">
+      <name>Boomerang</name>
+      <cni-8301>0x3945</cni-8301>
+      <cni-8302>0x1545</cni-8302>
     </network>
-    <network id="n452">
-      <name>Rai Educational</name>
-      <cni-8301>0x3923</cni-8301>
+    <network id="n554">
+      <name>CNN International</name>
+      <cni-8301>0x3946</cni-8301>
+      <cni-8302>0x1546</cni-8302>
     </network>
-    <network id="n453">
-      <name>Rai Edu Lab</name>
-      <cni-8301>0x3924</cni-8301>
+    <network id="n555">
+      <name>Cartoon Network +1</name>
+      <cni-8301>0x3947</cni-8301>
+      <cni-8302>0x1547</cni-8302>
     </network>
-    <network id="n454">
-      <name>Rai Nettuno 1</name>
-      <cni-8301>0x3925</cni-8301>
+    <network id="n556">
+      <name>Sky Sports 3</name>
+      <cni-8301>0x3948</cni-8301>
+      <cni-8302>0x1548</cni-8302>
     </network>
-    <network id="n455">
-      <name>Rai Nettuno 2</name>
-      <cni-8301>0x3926</cni-8301>
-    </network>
-    <network id="n456">
-      <name>Camera Deputati</name>
-      <cni-8301>0x3927</cni-8301>
-    </network>
-    <network id="n457">
-      <name>Rai Mosaico</name>
-      <cni-8301>0x3928</cni-8301>
+    <network id="n557">
+      <name>Sky Diretta Gol</name>
+      <cni-8301>0x3949</cni-8301>
+      <cni-8302>0x1549</cni-8302>
     </network>
     <network id="n458">
       <name>RaiSat Album</name>
@@ -1642,49 +1779,96 @@
       <name>RaiSat G. Rosso interattivo</name>
       <cni-8301>0x3957</cni-8301>
     </network>
-    <network id="n232">
-      <name>RTV38</name>
-      <cni-8301>0x3938</cni-8301>
+    <network id="n558">
+      <name>SCI FI CHANNEL</name>
+      <cni-8301>0x3960</cni-8301>
+      <cni-8302>0x1560</cni-8302>
     </network>
-    <network id="n466">
-      <name>Sailing Channel</name>
-      <cni-8301>0x39B1</cni-8301>
+    <network id="n439">
+      <name>Discovery Civilisations</name>
+      <cni-8301>0x3961</cni-8301>
     </network>
-    <network id="n233">
-      <name>Tele+1</name>
-      <cni-8301>0x3997</cni-8301>
+    <network id="n440">
+      <name>Discovery Travel and Adventure</name>
+      <cni-8301>0x3962</cni-8301>
     </network>
-    <network id="n234">
-      <name>Tele+2</name>
-      <cni-8301>0x3998</cni-8301>
+    <network id="n441">
+      <name>Discovery Science</name>
+      <cni-8301>0x3963</cni-8301>
     </network>
-    <network id="n235">
-      <name>Tele+3</name>
-      <cni-8301>0x3999</cni-8301>
+    <network id="n562">
+      <name>Sky Meteo24</name>
+      <cni-8301>0x3968</cni-8301>
+      <cni-8302>0x1568</cni-8302>
     </network>
-    <network id="n236">
-      <name>TMC</name>
-      <cni-8301>0xFA08</cni-8301>
+    <network id="n563">
+      <name>Sky Cinema 2</name>
+      <cni-8301>0x3970</cni-8301>
     </network>
-    <network id="n237">
-      <name>TRS TV</name>
-      <cni-8301>0x3910</cni-8301>
+    <network id="n564">
+      <name>Sky Cinema 3</name>
+      <cni-8301>0x3971</cni-8301>
     </network>
-    <network id="n527">
-      <name>Video Italia</name>
-      <cni-8301>0x3940</cni-8301>
+    <network id="n565">
+      <name>Sky Cinema Autore</name>
+      <cni-8301>0x3972</cni-8301>
     </network>
-    <network id="n467">
-      <name>SAT 2000</name>
-      <cni-8301>0x3941</cni-8301>
+    <network id="n566">
+      <name>Sky Cinema Max</name>
+      <cni-8301>0x3973</cni-8301>
     </network>
-    <network id="n468">
-      <name>VIDEOLINA</name>
-      <cni-8301>0x39CA</cni-8301>
+    <network id="n567">
+      <name>Sky Cinema 16:9</name>
+      <cni-8301>0x3974</cni-8301>
+    </network>
+    <network id="n568">
+      <name>Sky Sports 2</name>
+      <cni-8301>0x3975</cni-8301>
+    </network>
+    <network id="n569">
+      <name>Sky TG24</name>
+      <cni-8301>0x3976</cni-8301>
+    </network>
+    <network id="n570">
+      <name>Fox</name>
+      <cni-8301>0x3977</cni-8301>
+      <cni-8302>0x1577</cni-8302>
+    </network>
+    <network id="n571">
+      <name>Foxlife</name>
+      <cni-8301>0x3978</cni-8301>
+      <cni-8302>0x1578</cni-8302>
+    </network>
+    <network id="n572">
+      <name>National Geographic Channel</name>
+      <cni-8301>0x3979</cni-8301>
+      <cni-8302>0x1579</cni-8302>
+    </network>
+    <network id="n573">
+      <name>A1</name>
+      <cni-8301>0x3980</cni-8301>
+      <cni-8302>0x1580</cni-8302>
+    </network>
+    <network id="n574">
+      <name>History Channel</name>
+      <cni-8301>0x3981</cni-8301>
+      <cni-8302>0x1581</cni-8302>
+    </network>
+    <network id="n442">
+      <name>FOX Kids</name>
+      <cni-8301>0x3985</cni-8301>
     </network>
     <network id="n469">
       <name>PEOPLE TV - RETE 7</name>
       <cni-8301>0x3986</cni-8301>
+    </network>
+    <network id="n443">
+      <name>FOX Kids +1</name>
+      <cni-8301>0x3987</cni-8301>
+    </network>
+    <network id="n445">
+      <name>LA7</name>
+      <cni-8301>0x3988</cni-8301>
     </network>
     <network id="n470">
       <name>PrimaTV</name>
@@ -1693,6 +1877,11 @@
     <network id="n471">
       <name>SportItalia</name>
       <cni-8301>0x398A</cni-8301>
+    </network>
+    <network id="n576">
+      <name>STUDIO UNIVERSAL</name>
+      <cni-8301>0x3990</cni-8301>
+      <cni-8302>0x1590</cni-8302>
     </network>
     <network id="n472">
       <name>Marcopolo</name>
@@ -1709,6 +1898,254 @@
     <network id="n475">
       <name>Leonardo</name>
       <cni-8301>0x3994</cni-8301>
+    </network>
+    <network id="n577">
+      <name>SUPERPIPPA CHANNEL</name>
+      <cni-8301>0x3996</cni-8301>
+      <cni-8302>0x1596</cni-8302>
+    </network>
+    <network id="n233">
+      <name>Tele+1</name>
+      <cni-8301>0x3997</cni-8301>
+    </network>
+    <network id="n234">
+      <name>Tele+2</name>
+      <cni-8301>0x3998</cni-8301>
+    </network>
+    <network id="n235">
+      <name>Tele+3</name>
+      <cni-8301>0x3999</cni-8301>
+    </network>
+    <network id="n580">
+      <name>Sky Calcio 8</name>
+      <cni-8301>0x39A0</cni-8301>
+      <cni-8302>0x15A0</cni-8302>
+    </network>
+    <network id="n581">
+      <name>Sky Calcio 9</name>
+      <cni-8301>0x39A1</cni-8301>
+      <cni-8302>0x15A1</cni-8302>
+    </network>
+    <network id="n582">
+      <name>Sky Calcio 10</name>
+      <cni-8301>0x39A2</cni-8301>
+      <cni-8302>0x15A2</cni-8302>
+    </network>
+    <network id="n583">
+      <name>Sky Calcio 11</name>
+      <cni-8301>0x39A3</cni-8301>
+      <cni-8302>0x15A3</cni-8302>
+    </network>
+    <network id="n584">
+      <name>Sky Calcio 12</name>
+      <cni-8301>0x39A4</cni-8301>
+      <cni-8302>0x15A4</cni-8302>
+    </network>
+    <network id="n585">
+      <name>Sky Calcio 13</name>
+      <cni-8301>0x39A5</cni-8301>
+      <cni-8302>0x15A5</cni-8302>
+    </network>
+    <network id="n586">
+      <name>Sky Calcio 14</name>
+      <cni-8301>0x39A6</cni-8301>
+      <cni-8302>0x15A6</cni-8302>
+    </network>
+    <network id="n587">
+      <name>Telesanterno</name>
+      <cni-8301>0x39A7</cni-8301>
+      <cni-8302>0x15A7</cni-8302>
+    </network>
+    <network id="n588">
+      <name>Telecentro</name>
+      <cni-8301>0x39A8</cni-8301>
+      <cni-8302>0x15A8</cni-8302>
+    </network>
+    <network id="n589">
+      <name>Telestense</name>
+      <cni-8301>0x39A9</cni-8301>
+      <cni-8302>0x15A9</cni-8302>
+    </network>
+    <network id="n590">
+      <name>Disney Channel +1</name>
+      <cni-8301>0x39B0</cni-8301>
+      <cni-8302>0x15B0</cni-8302>
+    </network>
+    <network id="n466">
+      <name>Sailing Channel</name>
+      <cni-8301>0x39B1</cni-8301>
+    </network>
+    <network id="n592">
+      <name>Disney Channel</name>
+      <cni-8301>0x39B2</cni-8301>
+      <cni-8302>0x15B2</cni-8302>
+    </network>
+    <network id="n593">
+      <name>7 Gold-Sestra Rete</name>
+      <cni-8301>0x39B3</cni-8301>
+      <cni-8302>0x15B3</cni-8302>
+    </network>
+    <network id="n594">
+      <name>Rete 8-VGA</name>
+      <cni-8301>0x39B4</cni-8301>
+      <cni-8302>0x15B4</cni-8302>
+    </network>
+    <network id="n595">
+      <name>Nuovarete</name>
+      <cni-8301>0x39B5</cni-8301>
+      <cni-8302>0x15B5</cni-8302>
+    </network>
+    <network id="n596">
+      <name>Radio Italia TV</name>
+      <cni-8301>0x39B6</cni-8301>
+      <cni-8302>0x15B6</cni-8302>
+    </network>
+    <network id="n597">
+      <name>Rete 7</name>
+      <cni-8301>0x39B7</cni-8301>
+      <cni-8302>0x15B7</cni-8302>
+    </network>
+    <network id="n598">
+      <name>E! Entertainment Television</name>
+      <cni-8301>0x39B8</cni-8301>
+      <cni-8302>0x15B8</cni-8302>
+    </network>
+    <network id="n599">
+      <name>Toon Disney</name>
+      <cni-8301>0x39B9</cni-8301>
+      <cni-8302>0x15B9</cni-8302>
+    </network>
+    <network id="n600">
+      <name>Bassano TV</name>
+      <cni-8301>0x39C7</cni-8301>
+      <cni-8302>0x15C7</cni-8302>
+    </network>
+    <network id="n601">
+      <name>ESPN Classic Sport</name>
+      <cni-8301>0x39C8</cni-8301>
+      <cni-8302>0x15C8</cni-8302>
+    </network>
+    <network id="n468">
+      <name>VIDEOLINA</name>
+      <cni-8301>0x39CA</cni-8301>
+    </network>
+    <network id="n603">
+      <name>Mediaset Premium 1</name>
+      <cni-8301>0x39D2</cni-8301>
+      <cni-8302>0x15D2</cni-8302>
+    </network>
+    <network id="n604">
+      <name>Mediaset Premium 2</name>
+      <cni-8301>0x39D3</cni-8301>
+      <cni-8302>0x15D3</cni-8302>
+    </network>
+    <network id="n605">
+      <name>Mediaset Premium 3</name>
+      <cni-8301>0x39D4</cni-8301>
+      <cni-8302>0x15D4</cni-8302>
+    </network>
+    <network id="n606">
+      <name>Mediaset Premium 4</name>
+      <cni-8301>0x39D5</cni-8301>
+      <cni-8302>0x15D5</cni-8302>
+    </network>
+    <network id="n607">
+      <name>Mediaset Premium 5</name>
+      <cni-8301>0x39D1</cni-8301>
+      <cni-8302>0x15D1</cni-8302>
+    </network>
+    <network id="n608">
+      <name>BOING</name>
+      <cni-8301>0x39D6</cni-8301>
+      <cni-8302>0x15D6</cni-8302>
+    </network>
+    <network id="n609">
+      <name>Playlist Italia</name>
+      <cni-8301>0x39D7</cni-8301>
+      <cni-8302>0x15D7</cni-8302>
+    </network>
+    <network id="n610">
+      <name>MATCH MUSIC</name>
+      <cni-8301>0x39D8</cni-8301>
+      <cni-8302>0x15D8</cni-8302>
+    </network>
+    <network id="n611">
+      <name>National Geographic +1</name>
+      <cni-8301>0x39E1</cni-8301>
+      <cni-8302>0x15E1</cni-8302>
+    </network>
+    <network id="n612">
+      <name>Histroy Channel +1</name>
+      <cni-8301>0x39E2</cni-8301>
+      <cni-8302>0x15E2</cni-8302>
+    </network>
+    <network id="n613">
+      <name>Sky TV</name>
+      <cni-8301>0x39E3</cni-8301>
+      <cni-8302>0x15E3</cni-8302>
+    </network>
+    <network id="n614">
+      <name>GXT</name>
+      <cni-8301>0x39E4</cni-8301>
+      <cni-8302>0x15E4</cni-8302>
+    </network>
+    <network id="n615">
+      <name>Playhouse Disney</name>
+      <cni-8301>0x39E5</cni-8301>
+      <cni-8302>0x15E5</cni-8302>
+    </network>
+    <network id="n616">
+      <name>Sky Canale 224</name>
+      <cni-8301>0x39E6</cni-8301>
+      <cni-8302>0x15E6</cni-8302>
+    </network>
+    <network id="n617">
+      <name>Teleradiocity</name>
+      <cni-8301>0x39F1</cni-8301>
+    </network>
+    <network id="n618">
+      <name>Teleradiocity Genova</name>
+      <cni-8301>0x39F2</cni-8301>
+    </network>
+    <network id="n619">
+      <name>Teleradiocity Lombardia</name>
+      <cni-8301>0x39F3</cni-8301>
+    </network>
+    <network id="n620">
+      <name>Telestar Piemonte</name>
+      <cni-8301>0x39F4</cni-8301>
+    </network>
+    <network id="n621">
+      <name>Telestar Liguria</name>
+      <cni-8301>0x39F5</cni-8301>
+    </network>
+    <network id="n622">
+      <name>Telestar Lombardia</name>
+      <cni-8301>0x39F6</cni-8301>
+    </network>
+    <network id="n623">
+      <name>Italia 8 Piemonte</name>
+      <cni-8301>0x39F7</cni-8301>
+    </network>
+    <network id="n624">
+      <name>Italia 8 Lombardia</name>
+      <cni-8301>0x39F8</cni-8301>
+    </network>
+    <network id="n230">
+      <name>Rete 4</name>
+      <cni-8301>0xFA04</cni-8301>
+    </network>
+    <network id="n225">
+      <name>Canale 5</name>
+      <cni-8301>0xFA05</cni-8301>
+    </network>
+    <network id="n226">
+      <name>Italia 1</name>
+      <cni-8301>0xFA06</cni-8301>
+    </network>
+    <network id="n236">
+      <name>TMC</name>
+      <cni-8301>0xFA08</cni-8301>
     </network>
   </country>
 
@@ -1727,10 +2164,6 @@
     <cni-8301>0x3100</cni-8301>
     <cni-8302>0x4800</cni-8302>
     <cni-pdc-b>0x3800</cni-pdc-b>
-    <network id="n476">
-      <name>Animal Planet Benelux</name>
-      <cni-8301>0x3123</cni-8301>
-    </network>
     <network id="n239">
       <name>Nederland 1</name>
       <cni-8301>0x3101</cni-8301>
@@ -1767,6 +2200,12 @@
       <cni-8302>0x4806</cni-8302>
       <cni-pdc-b>0x3806</cni-pdc-b>
     </network>
+    <network id="n625">
+      <name>RTL 7</name>
+      <cni-8301>0x3147</cni-8301>
+      <cni-8302>0x4847</cni-8302>
+      <cni-pdc-b>0x3847</cni-pdc-b>
+    </network>
     <network id="n528">
       <name>The BOX</name>
       <cni-8301>0x3120</cni-8301>
@@ -1780,6 +2219,14 @@
     <network id="n478">
       <name>Nickelodeon</name>
       <cni-8301>0x3122</cni-8301>
+    </network>
+    <network id="n476">
+      <name>Animal Planet Benelux</name>
+      <cni-8301>0x3123</cni-8301>
+    </network>
+    <network id="n626">
+      <name>TALPA TV</name>
+      <cni-8301>0x3124</cni-8301>
     </network>
     <network id="n479">
       <name>NET5</name>
@@ -1804,6 +2251,10 @@
     <network id="n484">
       <name>MTV NL</name>
       <cni-8301>0x3132</cni-8301>
+    </network>
+    <network id="n627">
+      <name>RNN7</name>
+      <cni-8301>0x3137</cni-8301>
     </network>
   </country>
 
@@ -1837,6 +2288,10 @@
     <name>Poland</name>
     <country-code>PL</country-code>
     <cni-8301>0x4800</cni-8301>
+    <network id="n628">
+      <name>Animal Planet</name>
+      <cni-8301>0x4831</cni-8301>
+    </network>
     <network id="n486">
       <name>Discovery Poland</name>
       <cni-8301>0x4830</cni-8301>
@@ -1964,11 +2419,11 @@
       <cni-8302>0x35A1</cni-8302>
       <cni-pdc-b>0x3521</cni-pdc-b>
     </network>
-    <network id="n260">
-      <name>STV2</name>
-      <cni-8301>0x42A2</cni-8301>
-      <cni-8302>0x35A2</cni-8302>
-      <cni-pdc-b>0x3522</cni-pdc-b>
+    <network id="n263">
+      <name>STV1 B. Bystrica</name>
+      <cni-8301>0x42A5</cni-8301>
+      <cni-8302>0x35A5</cni-8302>
+      <cni-pdc-b>0x3525</cni-pdc-b>
     </network>
     <network id="n261">
       <name>STV1 Kosice</name>
@@ -1976,23 +2431,23 @@
       <cni-8302>0x35A3</cni-8302>
       <cni-pdc-b>0x3523</cni-pdc-b>
     </network>
-    <network id="n262">
-      <name>STV2 Kosice</name>
-      <cni-8301>0x42A4</cni-8301>
-      <cni-8302>0x35A4</cni-8302>
-      <cni-pdc-b>0x3524</cni-pdc-b>
-    </network>
-    <network id="n263">
-      <name>STV1 B. Bystrica</name>
-      <cni-8301>0x42A5</cni-8301>
-      <cni-8302>0x35A5</cni-8302>
-      <cni-pdc-b>0x3525</cni-pdc-b>
+    <network id="n260">
+      <name>STV2</name>
+      <cni-8301>0x42A2</cni-8301>
+      <cni-8302>0x35A2</cni-8302>
+      <cni-pdc-b>0x3522</cni-pdc-b>
     </network>
     <network id="n264">
       <name>STV2 B. Bystrica</name>
       <cni-8301>0x42A6</cni-8301>
       <cni-8302>0x35A6</cni-8302>
       <cni-pdc-b>0x3526</cni-pdc-b>
+    </network>
+    <network id="n262">
+      <name>STV2 Kosice</name>
+      <cni-8301>0x42A4</cni-8301>
+      <cni-8302>0x35A4</cni-8302>
+      <cni-pdc-b>0x3524</cni-pdc-b>
     </network>
   </country>
 
@@ -2012,13 +2467,13 @@
       <name>SLO2</name>
       <cni-8301>0xAAE2</cni-8301>
     </network>
-    <network id="n268">
-      <name>TLM</name>
-      <cni-8301>0xAAE4</cni-8301>
-    </network>
     <network id="n269">
       <name>SLO3</name>
       <cni-8301>0xAAF1</cni-8301>
+    </network>
+    <network id="n268">
+      <name>TLM</name>
+      <cni-8301>0xAAE4</cni-8301>
     </network>
   </country>
 
@@ -2073,6 +2528,11 @@
     <network id="n505">
       <name>CCV</name>
       <cni-8301>0x3405</cni-8301>
+    </network>
+    <network id="n630">
+      <name>Tele5</name>
+      <cni-8301>0xE500</cni-8301>
+      <cni-8302>0x1FE5</cni-8302>
     </network>
   </country>
 
