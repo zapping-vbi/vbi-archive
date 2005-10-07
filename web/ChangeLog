@@ -1,3 +1,8 @@
+2005-10-07    <mschimek@users.sf.net>
+
+	* htdocs/zvbi-0.3/networks.xml: Updated from TR 101 231 EBU
+	  rev. 2005-09.
+
 2005-01-01    <mschimek@users.sf.net>
 
 	* cgi-bin, lib: Twiki update.
