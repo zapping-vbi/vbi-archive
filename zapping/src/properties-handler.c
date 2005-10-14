@@ -1016,11 +1016,6 @@ mw_setup		(GtkWidget	*page)
   GtkWidget *w;
   gboolean active;
 
-  /* Save the geometry through sessions */
-  w = lookup_widget(page, "checkbutton2");
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),
-    zconf_get_boolean(NULL, "/zapping/options/main/keep_geometry"));
-
   /* Show tooltips */
   w = lookup_widget (page, "checkbutton14");
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(w),
@@ -1084,11 +1079,6 @@ mw_apply		(GtkWidget	*page)
   GtkWidget *widget;
   gboolean top;
   gboolean active;
-
-  widget = lookup_widget(page, "checkbutton2"); /* keep geometry */
-  zconf_set_boolean(gtk_toggle_button_get_active(
-		 GTK_TOGGLE_BUTTON(widget)),
-		    "/zapping/options/main/keep_geometry");
 
   widget = lookup_widget(page, "checkbutton14"); /* show tooltips */
   top = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
