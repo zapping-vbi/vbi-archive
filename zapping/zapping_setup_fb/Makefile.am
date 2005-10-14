@@ -3,8 +3,8 @@
 
 INCLUDES = \
 	-I$(top_srcdir) \
-	$(COMMON_INCLUDES) \
-	@PG_CFLAGS@
+	@COMMON_INCLUDES@ \
+	@DEFAULT_CFLAGS@
 
 bin_PROGRAMS = zapping_setup_fb
 bin_SCRIPTS = zapping_fix_overlay
