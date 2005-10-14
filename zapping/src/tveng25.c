@@ -1668,10 +1668,7 @@ get_capture_format		(tveng_device_info *	info)
 		ivtv_v4l2_format_fix (info, &format);
 	}
 
-	/* Error ignored. */
-	image_format_from_format (info, &info->capture.format, &format);
-
-	return TRUE;
+	return image_format_from_format (info, &info->capture.format, &format);
 }
 
 static tv_bool
@@ -2340,6 +2337,9 @@ unmap_xbuffers			(tveng_device_info *	info,
 	unsigned int i;
 	tv_bool success;
 
+	if (NULL == p_info->buffers)
+		return TRUE;
+
 	success = TRUE;
 
 	for (i = info->capture.n_buffers; i-- > 0;) {
@@ -2358,7 +2358,7 @@ unmap_xbuffers			(tveng_device_info *	info,
 	}
 
 	memset (p_info->buffers, 0,
-		info->capture.n_buffers * sizeof (* p_info->buffers));
+		info->capture.n_buffers * sizeof (p_info->buffers[0]));
 
 	free (p_info->buffers);
 
@@ -2416,7 +2416,7 @@ map_xbuffers			(tveng_device_info *	info,
 				    info->fd,
 				    (off_t) b->vb.m.offset);
 
-		if ((void *) -1 == data)
+		if (MAP_FAILED == data)
 			goto failure;
 
 		b->cb.data = data;
@@ -2740,6 +2740,7 @@ reopen_ivtv_capture_device	(tveng_device_info *	info,
 	snprintf (name, sizeof (name), "%.*s%lu",
 		  i, info->file_name, num + 32);
 
+	/* XXX see zapping_setup_fb for a safer version. */
 	fd = device_open (info->log_fp, name, flags, 0);
 
 	if (-1 == fd) {
@@ -2796,6 +2797,7 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
   if (0 != strcmp ((char *) p_info->caps.driver, "sn9c102"))
     flags |= O_NONBLOCK;
 
+  /* XXX see zapping_setup_fb for a safer version. */
   info -> fd = device_open(info->log_fp, info -> file_name, flags, 0);
   if (-1 == info -> fd)
     {

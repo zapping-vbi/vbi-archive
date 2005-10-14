@@ -185,7 +185,7 @@ requested page has arrived.</long>
    <type>bool</type>
    <default>1</default>
    <locale name="C">
-    <short>The Teletext search text is a regular expression.</short>
+    <short>Interpret the Teletext search text as regular expression.</short>
    </locale>
   </schema>
   <schema>

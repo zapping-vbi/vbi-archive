@@ -2600,7 +2600,7 @@ map_xbuffers			(tveng_device_info *	info)
 					   info->fd,
 					   (off_t) 0);
 
-	if ((void *) -1 == p_info->mapped_addr) {
+	if (MAP_FAILED == p_info->mapped_addr) {
 		info->tveng_errno = errno;
 		t_error("mmap()", info);
 
@@ -2792,6 +2792,7 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
 	if (!(info->node.device = strdup (info->file_name)))
 		goto failure;
 
+  /* XXX see zapping_setup_fb for a safer version. */
   info -> fd = device_open (info->log_fp, info -> file_name, flags, 0);
   if (-1 == info -> fd)
     {

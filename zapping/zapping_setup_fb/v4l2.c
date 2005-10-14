@@ -2,7 +2,7 @@
  *  Zapping (TV viewer for the Gnome Desktop)
  *
  * Copyright (C) 2000 Iñaki García Etxebarria
- * Copyright (C) 2003 Michael H. Schimek
+ * Copyright (C) 2003, 2005 Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,59 +19,71 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.10 2005-07-16 21:14:02 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.11 2005-10-14 23:40:14 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-
 #include "zapping_setup_fb.h"
 
 #ifdef ENABLE_V4L
 
-#include <assert.h>
-
 #include "common/videodev2.h" /* V4L2 header file */
 #include "common/_videodev2.h"
 
-#define v4l2_ioctl(fd, cmd, arg)					\
+#define xioctl(fd, cmd, arg)						\
   (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
-   device_ioctl (log_fp, fprint_v4l2_ioctl_arg, fd, cmd, arg))
+   device_ioctl (device_log_fp, fprint_v4l2_ioctl_arg, fd, cmd, arg))
 
+/* Attn: device_name may be NULL, device_fd may be -1. */
 int
 setup_v4l2			(const char *		device_name,
+				 int			device_fd,
 				 const tv_overlay_buffer *buffer)
 {
   int fd;
   struct v4l2_capability cap;
 
-  buffer = buffer;
+  buffer = buffer; /* unused */
 
-  message (2, "Opening video device.\n");
+  fd = device_open_safer (device_name, device_fd, /* major */ 81, O_RDWR);
+  if (-1 == fd)
+    return -1; /* failed */
 
-  if (-1 == (fd = device_open_safer (device_name, 81, O_RDWR)))
-    return -1;
+  message (/* verbosity */ 2,
+	   "Querying device capabilities.\n");
 
-  message (2, "Querying device capabilities.\n");
-
-  if (0 == v4l2_ioctl (fd, VIDIOC_QUERYCAP, &cap))
+  if (-1 == xioctl (fd, VIDIOC_QUERYCAP, &cap))
     {
-      errmsg ("VIDIOC_QUERYCAP ioctl failed,\n  probably not a V4L2 device");
-      close (fd);
-      return -1;
+      int saved_errno = errno;
+
+      device_close (device_log_fp, fd);
+
+      if (EINVAL == saved_errno)
+	{
+	  message (/* verbosity */ 2,
+		   "Not a V4L2 0.20 device.\n");
+
+	  errno = EINVAL;
+	  return -2; /* unknown API */
+	} 
+      else
+	{
+	  errno = saved_errno;
+	  return -1; /* failed */
+	}
     }
+
+  device_close (device_log_fp, fd);
 
   /* V4L2 0.20 is obsolete, superseded by V4L2 of Linux 2.6. */
 
-  errmsg ("V4L2 0.20 API not supported");
+  message (/* verbosity */ 2,
+	   "V4L2 0.20 API is no longer supported.\n");
 
-  close (fd);
-
-  return 0; /* failed */
+  errno = EINVAL;
+  return -2; /* unknown API (may talk V4L) */
 }
 
 #else /* !ENABLE_V4L */
@@ -80,7 +92,11 @@ int
 setup_v4l2			(const char *		device_name,
 				 const tv_overlay_buffer *buffer)
 {
-  return -1; /* try other */
+  message (/* verbosity */ 2,
+	   "No V4L2 0.20 support compiled in.\n");
+
+  errno = EINVAL;
+  return -2; /* unknown API */
 }
 
 #endif /* !ENABLE_V4L */

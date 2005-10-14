@@ -19,7 +19,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preferences.c,v 1.1 2005-09-01 01:40:53 mschimek Exp $ */
+/* $Id: preferences.c,v 1.2 2005-10-14 23:40:13 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include "common/intl-priv.h"
 #include "src/zgconf.h"

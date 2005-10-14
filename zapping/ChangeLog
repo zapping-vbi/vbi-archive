@@ -1,3 +1,60 @@
+2005-10-14    <mschimek@users.sf.net>
+
+	* src/fullscreen.c (start_fullscreen): Fixed the bug misplacing the
+	  main window by window frame size when returning from fullscreen
+	  mode.
+	* glade/zapping.glade2, src/properties-handler.c (mw_setup,
+	  mw_apply): Removed 'Save window geometry' option.
+	* src/main.c: Removed the hack restoring the window geometry. Now
+	  Zapping restores the old window size if the session manager
+	  didn't do it already.
+	* src/main.c (main): Added GnomeClient (session) callbacks.
+
+2005-10-13    <mschimek@users.sf.net>
+
+	* src/tvengemu.c (get_overlay_buffer): Didn't return data.
+	* src/zmisc.c (zmisc_switch_mode): Replaced ShowBox() by
+	  shiny new z_show_non_modal_message_dialog().
+	* src/cmd.c (switch_mode): Fixed double error message.
+	* glade/zapping.glade2, plugins/mpeg/mpeg_properties.glade2,
+	  plugins/screenshot/screenshot.glade2:
+	  Use FileChooser for all FileEntries.
+
+2005-10-12    <mschimek@users.sf.net>
+
+	* zapping_setup_fb/zapping_setup_fb.c,
+	  zapping_setup_fb/zapping_setup_fb.h: Replaced message and errmsg
+	  macros by functions.
+	* zapping_setup_fb/zapping_setup_fb.c: Brushed up progress and error
+	  messages. Localized error messages.
+	(device_open_safer): Open device by name or fd. Replaced stat/open
+	  by open/fstat to prevent race.
+	(long_options): Added -c/--child to return localized UTF-8 error
+	  messages back to parent process on stderr and suppress other
+	  messages. Added -f/--fd to use a file descriptor to access
+	  the video device.
+	* zapping_setup_fb/v4l25.c (setup_v4l25),
+	* zapping_setup_fb/v4l2.c (setup_v4l2),
+	* zapping_setup_fb/v4l.c (setup_v4l): Open device by name or fd.
+	  Brushed up progress and error messages. Localized error messages.
+	* zapping_setup_fb/Makefile.am (INCLUDES): Added DEFAULT_CFLAGS to
+	  define GETTEXT_PACKAGE and PACKAGE_LOCAL_DIR.
+	* po/POTFILES.in: Added zapping_setup_fb.
+	* src/tveng.c (tv_set_overlay_buffer): Pass info->fd to
+	  zapping_setup_fb instead of temporarily closing the device.
+	  Use a pipe to read back error messages on stderr and present
+	  them to the user.
+
+2005-10-11    <mschimek@users.sf.net>
+
+	* configure.in: Added check for ISO C99 __VA_ARGS__.
+	(GCC_VERSION): Evaluate to false if not GCC.
+	
+2005-10-10    <mschimek@users.sf.net>
+
+	* configure.in: Improved the ambiguous "checking for SIMD
+	  support" messages. 3DNow check used -mmmx instead of -m3dnow.
+
 2005-08-25    <mschimek@users.sf.net>
 
 	* src/keyboard.c (on_selection_changed): Fixed crash on clicking

@@ -1,6 +1,10 @@
 Known bugs in Zapping, don't report them
 ----------------------------------------
 
+Zapping 0.10:
+* Cannot switch to capture mode when VIDIOC_G_FMT fails (e.g. after
+  bttv PALETTE_RAW capturing).
+
 Zapping 0.9:
 * bktr interface needs more work.
   - opening ttx (new window) changes video capture size.
