@@ -326,6 +326,8 @@ set_overlay_buffer		(tveng_device_info *	info,
 static tv_bool
 get_overlay_buffer		(tveng_device_info *	info _unused_)
 {
+	info->overlay.buffer = P_INFO (info)->overlay_buffer;
+
 	return TRUE;
 }
 
