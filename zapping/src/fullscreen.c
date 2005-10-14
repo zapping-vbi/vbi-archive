@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.44 2005-09-01 01:30:45 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.45 2005-10-14 23:34:55 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -800,9 +800,9 @@ start_fullscreen		(display_mode		dmode,
       goto failure;
     }
 
-  gdk_window_get_origin (GTK_WIDGET (zapping)->window,
-			 &old_mw_x,
-			 &old_mw_y);
+  gdk_window_get_root_origin (GTK_WIDGET (zapping)->window,
+			      &old_mw_x,
+			      &old_mw_y);
 
   gtk_widget_hide (GTK_WIDGET (zapping));
 
