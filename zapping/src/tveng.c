@@ -3033,6 +3033,37 @@ tv_get_overlay_buffer		(tveng_device_info *	info)
 		RETURN_UNTVLOCK (NULL);
 }
 
+static int
+read_file_fd			(char *			buffer,
+				 ssize_t		size,
+				 int			fd)
+{
+	ssize_t done, actual;
+
+	assert (size > 1);
+
+	--size;
+	done = 0;
+
+	/* Read until EOF. */
+	while (0 != (actual = read (fd, buffer + done, size - done))) {
+		if (-1 == actual) {
+			if (EINTR != errno)
+				return -1; /* failed */
+		} else {
+			done += actual;
+		}
+	}
+
+	/* Make sure we have a NUL terminated string
+	   if this is a text file. */
+	buffer[done] = 0;
+
+	return 0; /* success */
+}
+
+#define ZSFB_NAME "zapping_setup_fb"
+
 /* If zapping_setup_fb must be called it will get display_name and
    screen_number as parameters. If display_name is NULL it will default
    to the DISPLAY env. screen_number is intended to choose a Xinerama
@@ -3044,9 +3075,11 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 				 const tv_overlay_buffer *target)
 {
 	const char *argv[20];
-	char buf1[16];
-	char buf2[16];
+	char buf[3][16];
+	unsigned int argc;
 	pid_t pid;
+	int mypipe[2];
+	char errmsg[256];
 	int status;
 	int r;
 
@@ -3082,135 +3115,186 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 					 (info, target));
 	}
 
-	/* Delegate to suid root zapping_setup_fb helper program. */
+	/* Delegate to suid root ZSFB_NAME helper program. */
 
-	{
-		unsigned int argc;
-		int i;
+	argc = 0;
 
-		argc = 0;
+	argv[argc++] = ZSFB_NAME;
 
-		argv[argc++] = "zapping_setup_fb";
+	argv[argc++] = "-c";
 
-		argv[argc++] = "-d";
-		argv[argc++] = info->file_name;
+	snprintf (buf[0], sizeof (buf[0]), "%d", info->fd);
+	argv[argc++] = "-f";
+	argv[argc++] = buf[0];
 
-		if (display_name) {
-			argv[argc++] = "-D";
-			argv[argc++] = display_name;
-		}
-
-		if (screen_number >= 0) {
-			snprintf (buf1, sizeof (buf1), "%d", screen_number);
-			argv[argc++] = "-S";
-			argv[argc++] = buf1;
-		}
-
-		if (-1 != info->bpp) {
-			snprintf (buf2, sizeof (buf2), "%d", info->bpp);
-			argv[argc++] = "--bpp";
-			argv[argc++] = buf2;
-		}
-
-		i = MIN (info->zapping_setup_fb_verbosity, 2);
-		while (i-- > 0)
-			argv[argc++] = "-v";
-
-		argv[argc] = NULL;
+	if (NULL != display_name) {
+		argv[argc++] = "-D";
+		argv[argc++] = display_name;
 	}
 
-	{
-		gboolean dummy;
-		/* FIXME need a safer solution. */
-		/* Could temporarily switch to control attach_mode. */
-		assert (NULL != info->file_name);
-		p_tveng_stop_everything (info, &dummy);
-		device_close (info->log_fp, info->fd);
-		info->fd = -1;
+	if (screen_number >= 0) {
+		snprintf (buf[1], sizeof (buf[1]), "%d", screen_number);
+		argv[argc++] = "-S";
+		argv[argc++] = buf[1];
 	}
 
-	switch ((pid = fork ())) {
+	if (-1 != info->bpp) {
+		snprintf (buf[2], sizeof (buf[2]), "%d", info->bpp);
+		argv[argc++] = "-b";
+		argv[argc++] = buf[2];
+	}
+
+	argv[argc++] = NULL;
+
+	assert (argc <= N_ELEMENTS (argv));
+
+	mypipe[0] = -1;
+	mypipe[1] = -1;
+
+	if (-1 == pipe (mypipe))
+		goto fork_error;
+
+	fflush (stderr);
+
+	pid = fork ();
+
+	switch (pid) {
 	case -1: /* error */
 		info->tveng_errno = errno;
-		t_error("fork()", info);
-		goto failure;
+		goto fork_error;
 
 	case 0: /* in child */
-	  	/* Try in $PATH. Note this might be a consolehelper link. */
-	  	r = execvp ("zapping_setup_fb", (char **) argv);
+	{
+		int saved_errno;
 
-		if (-1 == r && ENOENT == errno) {
-			/* Try the zapping_setup_fb install path.
-			   Might fail due to missing SUID root, hence
+		close (mypipe[0]); /* unused */
+		mypipe[0] = -1;
+
+		/* Redirect error message to pipe. */
+		if (-1 == dup2 (mypipe[1], STDERR_FILENO))
+			_exit (2);
+
+		/* Try in $PATH. Note this might be a consolehelper link.
+		   Exit status 0 on success, 1 on error. */
+		execvp (ZSFB_NAME, (char **) argv);
+
+		/* When execvp returns it failed. */
+		if (ENOENT == errno) {
+			/* File not found. Try the zapping_setup_fb install
+			   path. May fail due to missing SUID root, hence
 			   second choice. */
-		        r = execvp (PACKAGE_ZSFB_DIR "/zapping_setup_fb",
-				    (char **) argv);
-
-			if (-1 == r && ENOENT == errno)
-				_exit (2);
+		        execvp (PACKAGE_ZSFB_DIR "/" ZSFB_NAME,
+				(char **) argv);
 		}
 
-		_exit (3); /* zapping setup_fb on error returns 1 */
+		switch (saved_errno = errno) {
+		case ENOENT:
+			fprintf (stderr,
+				 _("%s not found in %s "
+				   "or the executable search path."),
+				 ZSFB_NAME, PACKAGE_ZSFB_DIR);
+			break;
+
+		default:
+			fprintf (stderr,
+				 _("Cannot execute %s.\n%s."),
+				 ZSFB_NAME, strerror (saved_errno));
+			break;
+		}
+
+		_exit (3);
+	}
 
 	default: /* in parent */
-		while (-1 == (r = waitpid (pid, &status, 0))
-		       && EINTR == errno)
-			;
 		break;
 	}
 
-	{
-		/* FIXME need a safer solution. */
-		info->fd = device_open (info->log_fp, info->file_name,
-					O_RDWR, 0);
-		assert (-1 != info->fd);
+	close (mypipe[1]); /* unused */
+	mypipe[1] = -1;
+
+	r = read_file_fd (errmsg, sizeof (errmsg), mypipe[0]);
+
+	close (mypipe[0]);
+	mypipe[0] = -1;
+
+	if (-1 == r) {
+		while (-1 == waitpid (pid, &status, 0)
+		       && EINTR == errno)
+			;
+
+		info->tveng_errno = errno;
+		goto fork_error;
 	}
+
+	while (-1 == (r = waitpid (pid, &status, 0))
+	       && EINTR == errno)
+		;
 
 	if (-1 == r) {
 		info->tveng_errno = errno;
-		t_error ("waitpid", info);
-		goto failure;
+		goto fork_error;
 	}
 
 	if (!WIFEXITED (status)) {
 		info->tveng_errno = errno;
-		tv_error_msg (info, _("Cannot execute zapping_setup_fb."));
-		goto failure;
+		goto fork_error;
 	}
 
 	switch (WEXITSTATUS (status)) {
-	case 0: /* ok */
+	case 0: /* zapping_setup_fb success */
 		if (!info->overlay.get_buffer (info))
 			goto failure;
 
-		if (!validate_overlay_buffer (target, &info->overlay.buffer)) {
-			tv_error_msg (info, _("zapping_setup_fb failed."));
-			goto failure;
-		}
+		if (!validate_overlay_buffer (target, &info->overlay.buffer))
+			goto zsfb_failed;
 
 		break;
 
 	case 1: /* zapping_setup_fb failure */
-		info->tveng_errno = -1;
-		tv_error_msg (info, _("zapping_setup_fb failed."));
+		info->tveng_errno = 0;
+		/* TRANSLATORS: Program name, error message. */
+		tv_error_msg (info, _("%s failed.\n%s"),
+			      ZSFB_NAME, errmsg);
 		goto failure;
 
-	case 2: /* zapping_setup_fb ENOENT */
-		info->tveng_errno = ENOENT;
-		tv_error_msg (info, _("zapping_setup_fb not found in \"%s\""
-				      " or executable search path."),
-			      PACKAGE_ZSFB_DIR);
+	case 2: /* dup2() failed */
+		goto fork_error;
+
+	case 3: /* execvp() failed */
+		info->tveng_errno = 0;
+		tv_error_msg (info, "%s", errmsg);
 		goto failure;
 
 	default:
-		info->tveng_errno = -1;
-		tv_error_msg (info, _("Unknown error in zapping_setup_fb."));
-	failure:
-		RETURN_UNTVLOCK (FALSE);
+		info->tveng_errno = 0;
+		/* TRANSLATORS: Program name. */
+		tv_error_msg (info, _("Unknown error in %s."),
+			      ZSFB_NAME);
+		goto failure;
 	}
 
  success:
 	RETURN_UNTVLOCK (TRUE);
+
+ fork_error:
+	/* TRANSLATORS: Program name, error message. */
+	tv_error_msg (info, _("Cannot execute %s.\n%s."),
+		      ZSFB_NAME, strerror (info->tveng_errno));
+	goto failure;
+
+ zsfb_failed:
+	/* TRANSLATORS: Program name. */
+	tv_error_msg (info, _("%s failed."), ZSFB_NAME);
+	goto failure;
+
+ failure:
+	if (-1 != mypipe[0])
+		close (mypipe[0]);
+
+	if (-1 != mypipe[1])
+		close (mypipe[1]);
+
+	RETURN_UNTVLOCK (FALSE);
 }
 
 static tv_bool
