@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cmd.c,v 1.17 2005-08-04 01:40:52 mschimek Exp $ */
+/* $Id: cmd.c,v 1.18 2005-10-14 23:36:51 mschimek Exp $ */
 
 /**
  * Provides the functionality in the Python interface of Zapping.
@@ -108,9 +108,10 @@ switch_mode			(display_mode dmode,
   if (-1 == zmisc_switch_mode (dmode, cmode, zapping->info,
 			       /* warnings */ TRUE))
     {
-      ShowBox ("%s",
-	       GTK_MESSAGE_ERROR,
-	       tv_get_errstr(zapping->info));
+      if (0) /* already done by zmisc_switch_mode() ? */
+	ShowBox ("%s",
+		 GTK_MESSAGE_ERROR,
+		 tv_get_errstr(zapping->info));
       return FALSE;
     }
 
