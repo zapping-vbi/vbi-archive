@@ -73,10 +73,12 @@ dnl ===========================================================================
 dnl GCC_VERSION(min_version, max_version, action_if_true, action_if_false)
 AC_DEFUN([GCC_VERSION], [
   AC_EGREP_CPP([6177459036], [
-    #define GCC_VERSION \
-      (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
-    #if $1 <= GCC_VERSION && GCC_VERSION < $2
-      6177459036
+    #ifdef __GNUC__
+    #  define GCC_VERSION \
+         (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+    #  if $1 <= GCC_VERSION && GCC_VERSION < $2
+         6177459036
+    #  endif
     #endif
     ], [$3], [$4])
   ])
@@ -98,7 +100,7 @@ dnl ---------------------------------------------------------------------------
 SIMD_SUPPORT=""
 
 AC_DEFUN([CHECK_SIMD], [
-  AC_MSG_CHECKING(for $1 support)
+  AC_MSG_CHECKING(if $CC supports $1)
   SAVE_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $2"
   HAVE_$1="yes"
@@ -128,7 +130,7 @@ AC_DEFUN([CHECK_SIMD], [
   fi
   if test x$HAVE_$1 = xyes; then
     SIMD_SUPPORT="${SIMD_SUPPORT}$1 "
-    AC_DEFINE(HAVE_$1, 1, [Define if CC supports $1 extensions])
+    AC_DEFINE(HAVE_$1, 1, [Define if $CC supports $1 extensions])
   fi
   AM_CONDITIONAL(HAVE_$1, test $HAVE_$1 = yes)
   CFLAGS="$SAVE_CFLAGS"]
@@ -136,7 +138,7 @@ AC_DEFUN([CHECK_SIMD], [
 
 dnl x86 and x86_64
 CHECK_SIMD(MMX, [-mmmx], [mmintrin.h], [_mm_setzero_si64 ()])
-CHECK_SIMD(3DNOW, [-mmmx], [mm3dnow.h], [_m_femms ()])
+CHECK_SIMD(3DNOW, [-m3dnow], [mm3dnow.h], [_m_femms ()])
 CHECK_SIMD(SSE, [-msse], [xmmintrin.h], [_mm_setzero_ps ()])
 CHECK_SIMD(SSE2, [-msse2], [emmintrin.h], [_mm_setzero_pd ()])
 CHECK_SIMD(SSE3, [-msse3], [pmmintrin.h], [_mm_lddqu_si128 (0x1000)])
@@ -191,6 +193,34 @@ AC_CHECK_LIB(pthread, pthread_create,,[
     ])
   ])
 ])
+
+dnl ---------------------------------------------------------------------------
+dnl Flavours of varargs macros
+dnl ---------------------------------------------------------------------------
+
+# Stolen from glib package.
+
+HAVE_ISO_C_VARIADIC_MACROS="no"
+AC_MSG_CHECKING(for ISO C99 variadic macros)
+AC_TRY_COMPILE([], [
+  int a (int p1, int p2, int p3);
+  #define call_a(...) a(1,__VA_ARGS__)
+  call_a(2,3);
+  ], HAVE_ISO_C_VARIADIC="yes"
+  AC_DEFINE(HAVE_ISO_C_VARIADIC_MACROS, 1,
+    [Define if $CC supports __VA_ARGS__]))
+AC_MSG_RESULT($HAVE_ISO_C_VARIADIC_MACROS)
+
+HAVE_GNU_C_VARIADIC_MACROS="no"
+AC_MSG_CHECKING(for GNU C variadic macros)
+AC_TRY_COMPILE([], [
+  int a (int p1, int p2, int p3);
+  #define call_a(params...) a(1,params)
+  call_a(2,3);
+  ], HAVE_GNU_C_VARIADIC_MACROS="yes"
+  AC_DEFINE(HAVE_GNU_C_VARIADIC_MACROS, 1,
+    [Define if $CC supports GNU C variadic macros]))
+AC_MSG_RESULT($HAVE_GNU_C_VARIADIC_MACROS)
 
 dnl ---------------------------------------------------------------------------
 
