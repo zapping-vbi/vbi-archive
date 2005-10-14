@@ -77,3 +77,7 @@ src/zspinslider.c
 src/zvbi.c
 zapping.desktop.in
 zapping.schemas.in
+zapping_setup_fb/zapping_setup_fb.c
+zapping_setup_fb/v4l.c
+zapping_setup_fb/v4l2.c
+zapping_setup_fb/v4l25.c
