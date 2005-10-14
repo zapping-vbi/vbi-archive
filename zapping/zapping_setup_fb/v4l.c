@@ -2,7 +2,7 @@
  *  Zapping (TV viewer for the Gnome Desktop)
  *
  * Copyright (C) 2000 Iñaki García Etxebarria
- * Copyright (C) 2003 Michael H. Schimek
+ * Copyright (C) 2003, 2005 Michael H. Schimek
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l.c,v 1.11 2005-02-25 18:10:32 mschimek Exp $ */
+/* $Id: v4l.c,v 1.12 2005-10-14 23:38:01 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -29,57 +29,69 @@
 
 #ifdef ENABLE_V4L
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <assert.h>
+#include "common/intl-priv.h"
 
 #include "common/videodev.h"
 #include "common/_videodev.h"
 
-#define v4l_ioctl(fd, cmd, arg)						\
+#define xioctl(fd, cmd, arg)						\
   (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
-   device_ioctl (log_fp, fprint_v4l_ioctl_arg, fd, cmd, arg))
+   device_ioctl (device_log_fp, fprint_v4l_ioctl_arg, fd, cmd, arg))
 
+/* Attn: device_name may be NULL, device_fd may be -1. */
 int
 setup_v4l			(const char *		device_name,
+				 int			device_fd,
 				 const tv_overlay_buffer *buffer)
 {
   int fd;
   struct video_capability caps;
   struct video_buffer fb;
   const tv_pixel_format *pf;
+  int saved_errno;
 
-  message (2, "Opening video device.\n");
+  fd = device_open_safer (device_name, device_fd, /* major */ 81, O_RDWR);
+  if (-1 == fd)
+    return -1; /* failed */
 
-  if (-1 == (fd = device_open_safer (device_name, 81, O_RDWR)))
-    return -1;
+  message (/* verbosity */ 2,
+	   "Querying device capabilities.\n");
 
-  message (2, "Querying device capabilities.\n");
-
-  if (-1 == v4l_ioctl (fd, VIDIOCGCAP, &caps))
+  if (-1 == xioctl (fd, VIDIOCGCAP, &caps))
     {
-      errmsg ("VIDIOCGCAP ioctl failed,\n  probably not a V4L device");
-      close (fd);
-      return -1;
+      saved_errno = errno;
+
+      if (EINVAL != saved_errno)
+	goto failure;
+
+      device_close (device_log_fp, fd);
+
+      message (/* verbosity */ 2,
+	       "Not a V4L device.\n");
+
+      errno = EINVAL;
+      return -2; /* unknown API */
     }
 
-  message (1, "Using V4L interface.\n");
+  message (/* verbosity */ 1,
+	   "Using V4L interface.\n");
 
-  message (2, "Checking overlay capability.\n");
+  message (/* verbosity */ 2,
+	   "Checking overlay capability.\n");
 
   if (!(caps.type & VID_TYPE_OVERLAY))
     {
-      message (1, "Device '%s' does not support video overlay.\n",
-	       device_name);
+      errmsg (_("The device does not support video overlay."));
+      saved_errno = EINVAL;
       goto failure;
     }
 
-  message (2, "Getting current FB parameters.\n");
+  message (/* verbosity */ 2,
+	   "Getting current frame buffer parameters.\n");
 
-  if (-1 == v4l_ioctl (fd, VIDIOCGFBUF, &fb))
+  if (-1 == xioctl (fd, VIDIOCGFBUF, &fb))
     {
-      errmsg ("VIDIOCGFBUF ioctl failed");
+      saved_errno = errno;
       goto failure;
     }
 
@@ -96,40 +108,43 @@ setup_v4l			(const char *		device_name,
 
   fb.bytesperline	= buffer->format.bytes_per_line[0];
 
-  message (2, "Setting new FB parameters.\n");
+  message (/* verbosity */ 2,
+	   "Setting new frame buffer parameters.\n");
 
   /* This ioctl is privileged because it sets up
      DMA to a random (video memory) address. */
   {
-    int success;
-    int saved_errno;
+    int result;
 
-    if (!restore_root_privileges ())
-      goto failure;
+    if (-1 == restore_root_privileges ())
+      {
+	saved_errno = errno;
+	goto failure;
+      }
 
-    success = ioctl (fd, VIDIOCSFBUF, &fb);
+    result = ioctl (fd, VIDIOCSFBUF, &fb);
     saved_errno = errno;
 
+    /* Aborts on error. */
     drop_root_privileges ();
 
-    if (-1 == success)
+    if (-1 == result)
       {
-	errno = saved_errno;
-
-        errmsg ("VIDIOCSFBUF ioctl failed");
-
-        if (EPERM == saved_errno && ROOT_UID != euid)
+        if (EPERM == saved_errno
+	    && ROOT_UID != euid)
 	  privilege_hint ();
 
-      failure:
-	close (fd);
-        return 0;
+	goto failure;
       }
   }
 
-  close (fd);
+  device_close (device_log_fp, fd);
+  return 0; /* success */
 
-  return 1;
+ failure:
+  device_close (device_log_fp, fd);
+  errno = saved_errno;
+  return -1; /* failed */
 }
 
 #else /* !ENABLE_V4L */
@@ -138,7 +153,11 @@ int
 setup_v4l			(const char *		device_name,
 				 const tv_overlay_buffer *buffer)
 {
-  return -1;
+  message (/* verbosity */ 2,
+	   "No V4L support compiled in.\n");
+
+  errno = EINVAL;
+  return -2; /* unknown API */
 }
 
 #endif /* !ENABLE_V4L */
