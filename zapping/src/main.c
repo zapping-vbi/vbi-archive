@@ -62,6 +62,7 @@ char *program_invocation_short_name;
 
 Zapping *		zapping;
 
+static GnomeClient *	session;
 
 /*** END OF GLOBAL STUFF ***/
 
@@ -91,7 +92,6 @@ startup_teletext(void)
 #ifdef HAVE_LIBZVBI
   if (NULL == _teletext_view_new /* have Teletext plugin */)
     gtk_action_group_set_visible (zapping->teletext_action_group, FALSE);
-
   if (NULL == _subtitle_view_new /* have Subtitle plugin */)
     gtk_action_group_set_visible (zapping->subtitle_action_group, FALSE);
 
@@ -118,34 +118,59 @@ startup_teletext(void)
 #endif
 }
 
-/*
-  Called 0.5s after the main window is created, should solve all the
-  problems with geometry restoring.
-
-  XXX replace by session management
-*/
-static
-gint resize_timeout		( gpointer ignored  _unused_)
+static gboolean
+session_save			(GnomeClient *		client,
+				 gint			phase,
+				 GnomeSaveStyle		save_style,
+				 gboolean		shutting_down,
+				 GnomeInteractStyle	interact_style,
+				 gboolean		fast,
+				 gpointer		user_data)
 {
-  gint x, y, w, h; /* Saved geometry */
+  GList *p;
+  gchar **argv;
+  guint argc;
+  gboolean success;
 
-  zconf_get_int (&x, "/zapping/internal/callbacks/x");
-  zconf_get_int (&y, "/zapping/internal/callbacks/y");
-  zconf_get_int (&w, "/zapping/internal/callbacks/w");
-  zconf_get_int (&h, "/zapping/internal/callbacks/h");
+  phase = phase;
+  save_style = save_style;
+  shutting_down = shutting_down;
+  interact_style = interact_style;
+  fast = fast;
 
-  printv("Restoring geometry: <%d,%d> <%d x %d>\n", x, y, w, h);
+  argv = g_malloc0 (4 * sizeof (gchar *));
+  argc = 0;
 
-  if (w == 0 || h == 0)
+  argv[argc++] = user_data; /* main() argv[0] */
+
+  gnome_client_set_clone_command (client, argc, argv);
+  gnome_client_set_restart_command (client, argc, argv);
+
+  success = TRUE;
+
+  for (p = g_list_first (plugin_list); p; p = p->next)
     {
-      gdk_window_resize(GTK_WIDGET (zapping)->window, 320, 200);
-    }
-  else
-    {
-      gdk_window_move_resize(GTK_WIDGET (zapping)->window, x, y, w, h);
+      struct plugin_info *pi;
+
+      /* Shutdown while recording etc no good. */ 
+      pi = (struct plugin_info *) p->data;
+      success &= plugin_running (pi);
     }
 
-  return FALSE;
+  /* libgnomeui 2.8 bug: ignores return value. */
+  client->save_successfull = success;
+
+  return success;
+}
+
+static void
+session_die			(GnomeClient *		client,
+				 gpointer		user_data)
+{
+  client = client;
+  user_data = user_data;
+
+  on_python_command1 (GTK_WIDGET (zapping), "zapping.quit()");
 }
 
 #include "pixmaps/brightness.h"
@@ -555,12 +580,16 @@ int main(int argc, char * argv[])
                       argc, argv,
                       GNOME_PARAM_APP_DATADIR, PACKAGE_DATA_DIR,
                       GNOME_PARAM_POPT_TABLE, options,
+		      GNOME_CLIENT_PARAM_SM_CONNECT, TRUE,
 		      NULL);
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
   program_invocation_name = argv[0];
   program_invocation_short_name = g_get_prgname();
 #endif
+
+  session = gnome_master_client ();
+  g_assert (NULL != session);
 
   gconf_client = gconf_client_get_default ();
   g_assert (NULL != gconf_client);
@@ -576,7 +605,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.205 2005-09-01 01:33:15 mschimek Exp $",
+	 "$Id: main.c,v 1.206 2005-10-14 23:35:52 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
@@ -860,6 +889,25 @@ int main(int argc, char * argv[])
   startup_subtitle();
   D();
   zapping = ZAPPING (zapping_new ());
+    {
+      GnomeClientFlags flags;
+
+      flags = gnome_client_get_flags (session);
+
+      /* When started by the session manager we automatically get our
+	 previous size and position. */
+      if (!(flags & GNOME_CLIENT_RESTARTED))
+	{
+	  gint width;
+	  gint height;
+
+	  zconf_get_int (&width, "/zapping/internal/callbacks/w");
+	  zconf_get_int (&height, "/zapping/internal/callbacks/h");
+
+	  gtk_window_set_default_size (GTK_WINDOW (zapping), width, height);
+	  D();
+	}
+    }
   gtk_widget_show(GTK_WIDGET (zapping));
   zapping->info = info;
   D();
@@ -943,18 +991,17 @@ int main(int argc, char * argv[])
 
   if (!command)
     {
-      gtk_widget_show(GTK_WIDGET (zapping));
       D();
       printv("switching to mode %d (%d)\n",
 	     zcg_int (NULL, "capture_mode"), OLD_TVENG_CAPTURE_READ);
       D();
-      resize_timeout(NULL);
-      /* Sets the coords to the previous values, if the users wants to */
-      if (zcg_bool(NULL, "keep_geometry"))
-	g_timeout_add (500, (GSourceFunc) resize_timeout, NULL);
-      D();
       restore_last_capture_mode ();
       D();
+      printv("session manager\n");
+      g_signal_connect (session, "save-yourself",
+			G_CALLBACK (session_save), argv[0]); 
+      g_signal_connect (session, "die",
+			G_CALLBACK (session_die), NULL); 
       printv("going into main loop...\n");
       gtk_main();
     }
@@ -1201,10 +1248,6 @@ static gboolean startup_zapping(gboolean load_plugins,
   startup_cmd ();
   startup_properties();
   D();
-
-  /* Sets defaults for zconf */
-  zcc_bool(TRUE, "Save and restore zapping geometry (non ICCM compliant)", 
-	   "keep_geometry");
 
   zcc_bool(TRUE, "Show tooltips", "show_tooltips");
   zcc_bool(TRUE, "Resize by fixed increments", "fixed_increments");
