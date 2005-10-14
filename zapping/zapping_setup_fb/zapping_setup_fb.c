@@ -32,19 +32,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <sys/stat.h>
 #ifdef HAVE_GETOPT_LONG
 #  include <getopt.h>
 #endif
-#include <sys/stat.h>
 #include <assert.h>
 
 #include <X11/Xlib.h>
 
+#include "common/intl-priv.h"
 #include "zapping_setup_fb.h"
 
-static const char *	zsfb_version		= "zapping_setup_fb 0.12";
+static const char *	zsfb_version		= "zapping_setup_fb 0.13";
 static const char *	default_device_name	= "/dev/video0";
-static const int	max_verbosity		= 3;
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 char *			program_invocation_name;
@@ -53,10 +53,64 @@ char *			program_invocation_short_name;
 
 unsigned int		uid;
 unsigned int		euid;
+
+#define VERBOSITY_CHILD_PROCESS -1
+#define VERBOSITY_MIN 0
+#define VERBOSITY_MAX 3
+
 int			verbosity		= 1;
-/* legacy verbosity value, used in libtv/screen.c */
+
+/* Legacy verbosity value, used in libtv/screen.c. */
 int			debug_msg		= 0;
-FILE *			log_fp			= NULL;
+
+/* Log V4L/V4L2 driver responses. */
+FILE *			device_log_fp		= NULL;
+
+void
+message				(int			level,
+				 const char *		template,
+				 ...)
+{
+  if (VERBOSITY_CHILD_PROCESS == verbosity)
+    return;
+
+  assert (level >= VERBOSITY_MIN
+	  && level <= VERBOSITY_MAX);
+
+  if (verbosity >= level)
+    {
+      va_list ap;
+
+      va_start (ap, template);
+      vfprintf (stderr, template, ap);
+      va_end (ap);
+    }
+}
+
+void
+error_message			(const char *		file,
+				 unsigned int		line,
+				 const char *		template,
+				 ...)
+{
+  va_list ap;
+
+  va_start (ap, template);
+
+  if (VERBOSITY_CHILD_PROCESS == verbosity)
+    {
+      vfprintf (stderr, template, ap);
+    }
+  else if (verbosity > 0)
+    {
+      fprintf (stderr, "%s:%s:%u: ",
+	       program_invocation_short_name, file, line);
+      vfprintf (stderr, template, ap);
+      fputc ('\n', stderr);
+    }
+
+  va_end (ap);
+}
 
 #include "common/device.c"	/* generic device access routines */ 
 
@@ -66,54 +120,134 @@ FILE *			log_fp			= NULL;
 
 int
 device_open_safer		(const char *		device_name,
+				 int			device_fd,
 				 int			major_number,
 				 int			flags)
 {
   struct stat st;
   int fd;
 
-  /* Sanity checks */
-
-  if (strchr (device_name, '.'))
+  if (NULL != device_name)
     {
-      message (1, "Device name '%s' rejected, has dots.\n", device_name);
-      return -1;
-    }
-
-  if (strncmp (device_name, "/dev/", 5))
-    {
-      message (1, "Device name '%s' rejected, must start with '/dev/'.\n",
-	       device_name);
-      return -1;
-    }
-
-  if (major_number != 0)
-    {
-      if (-1 == stat (device_name, &st))
+      if (strchr (device_name, '.'))
 	{
-	  errmsg ("Cannot stat device '%s'", device_name);
+	  errmsg (_("Device name %s is unsafe, contains dots."),
+		  device_name);
+	  errno = EINVAL;
+	  return -1;
+	}
+
+      if (strncmp (device_name, "/dev/", 5))
+	{
+	  errmsg (_("Device name %s is unsafe, "
+		    "does not begin with /dev/."),
+		  device_name);
+	  errno = EINVAL;
+	  return -1;
+	}
+
+      message (/* verbosity */ 1,
+	       "Opening device %s.\n", device_name);
+
+      flags |= O_NOCTTY;
+      flags &= ~(O_CREAT | O_EXCL | O_TRUNC);
+
+      fd = device_open (device_log_fp, device_name, flags, 0600);
+      if (-1 == fd)
+	{
+	  int saved_errno = errno;
+
+	  /* TRANSLATORS: File name, error message. */
+	  errmsg (_("Cannot open device %s. %s."),
+		  device_name, strerror (saved_errno));
+
+	  errno = saved_errno;
+	  return -1;
+	}
+
+      if (-1 == fstat (fd, &st))
+	{
+	  int saved_errno = errno;
+
+	  device_close (device_log_fp, fd);
+	  fd = -1;
+
+	  /* TRANSLATORS: File name, error message. */
+	  errmsg (_("Cannot identify %s. %s."),
+		  device_name, strerror (saved_errno));
+
+	  errno = saved_errno;
 	  return -1;
 	}
 
       if (!S_ISCHR (st.st_mode))
 	{
-	  message (1, "'%s' is not a character device file.\n", device_name);
+	  device_close (device_log_fp, fd);
+	  fd = -1;
+
+	  errmsg (_("%s is not a device."),
+		  device_name);
+
+	  errno = ENODEV;
 	  return -1;
 	}
 
-      if (major_number != major (st.st_rdev))
+      if (0 != major_number)
 	{
-	  message (1, "'%s' has suspect major number %d, expected %d.\n",
-		   device_name, major (st.st_rdev), major_number);
-	  return -1;
+	  if (major_number != major (st.st_rdev))
+	    {
+	      device_close (device_log_fp, fd);
+	      fd = -1;
+
+	      errmsg (_("%s is not a video device."),
+		      device_name);
+
+	      errno = ENODEV;
+	      return -1;
+	    }
 	}
     }
-
-  message (2, "Opening device '%s'.\n", device_name);
-
-  if (-1 == (fd = device_open (log_fp, device_name, flags, 0600)))
+  else if (-1 != device_fd)
     {
-      errmsg ("Cannot open device '%s'", device_name);
+      /* Expect EBADF. */
+      if (-1 == fstat (device_fd, &st))
+	{
+	  int saved_errno = errno;
+
+	  errmsg (_("Cannot identify file descriptor %d. %s."),
+		  device_fd, strerror (saved_errno));
+	  errno = saved_errno;
+	  return -1;
+	}
+
+      if (!S_ISCHR (st.st_mode))
+	{
+	  errmsg (_("File descriptor %d is not a device."),
+		  device_fd);
+	  errno = ENODEV;
+	  return -1;
+	}
+
+      if (0 != major_number)
+	{
+	  if (major_number != major (st.st_rdev))
+	    {
+	      errmsg (_("File descriptor %d is not a video device."),
+		      device_fd);
+	      errno = ENODEV;
+	      return -1;
+	    }
+	}
+
+      message (/* verbosity */ 1,
+	       "Using device by file descriptor %d.\n",
+	       device_fd);
+
+      fd = device_fd;
+    }
+  else
+    {
+      assert (0);
     }
 
   return fd;
@@ -124,23 +258,26 @@ drop_root_privileges		(void)
 {
   if (ROOT_UID == euid && ROOT_UID != uid)
     {
-      message (2, "Dropping root privileges\n");
+      message (/* verbosity */ 2,
+	       "Dropping root privileges\n");
 
       if (-1 == seteuid (uid))
         {
-	  errmsg ("Cannot drop root privileges "
-		  "despite uid=%d, euid=%d\nAborting.", uid, euid);
+	  errmsg (_("Cannot drop root privileges despite "
+		    "running with UID %d, EUID %d."),
+		  uid, euid);
+
 	  exit (EXIT_FAILURE);
         }
     }
   else if (ROOT_UID == uid)
     {
-#if 0 /* cannot distinguish between root and consolehelper */
-      message (1, "You should not run %s as root,\n"
-	       "better use consolehelper, sudo, su or set the "
-	       "SUID flag with chmod +s.\n",
-	       program_invocation_name);
-#endif
+      if (0) /* cannot distinguish between root and consolehelper */
+	message (/* verbosity */ 1,
+		 "You should not run %s as root,\n"
+		 "better use consolehelper, sudo, su or set the "
+		 "SUID flag with chmod +s.\n",
+		 program_invocation_name);
     }
 }
 
@@ -149,21 +286,27 @@ restore_root_privileges		(void)
 {
   if (ROOT_UID == euid && ROOT_UID != uid)
     {
-      message (2, "Restoring root privileges\n");
+      message (/* verbosity */ 2,
+	       "Restoring root privileges\n");
 
       if (-1 == seteuid (euid))
         {
-	  errmsg ("Cannot restore root privileges "
-		  "despite uid=%d, euid=%d", uid, euid);
-	  return FALSE;
+	  int saved_errno = errno;
+
+	  errmsg (_("Cannot restore root privileges despite "
+		    "running with UID %d, EUID %d."),
+		  uid, euid);
+
+	  errno = saved_errno;
+	  return -1; /* failed */
         }
     }
 
-  return TRUE;
+  return 0; /* success */
 }
 
 static const char
-short_options [] = "b:d:D:hqS:vV";
+short_options [] = "b:cd:f:hqvD:S:V";
 
 #ifdef HAVE_GETOPT_LONG
 
@@ -171,37 +314,43 @@ static const struct option
 long_options [] =
 {
   { "bpp",		required_argument,	0, 'b' },
+  { "child",		no_argument,		0, 'c' },
   { "device",		required_argument,	0, 'd' },
-  { "display",		required_argument,	0, 'D' },
+  { "fd",		required_argument,	0, 'f' },
   { "help",		no_argument,		0, 'h' },
   { "quiet",		no_argument,		0, 'q' },
-  { "screen",		required_argument,	0, 'S' },
   { "usage",		no_argument,		0, 'h' },
   { "verbose",		no_argument,		0, 'v' },
+  { "display",		required_argument,	0, 'D' },
+  { "screen",		required_argument,	0, 'S' },
   { "version",		no_argument,		0, 'V' },
 };
 
 #else
-
 #  define getopt_long(ac, av, s, l, i) getopt (ac, av, s)
-
 #endif
 
 static void
 usage				(FILE *			fp)
 {
+  if (VERBOSITY_CHILD_PROCESS == verbosity)
+    return;
+
   fprintf (fp,
 	   "Usage: %s [OPTIONS]\n"
 	   "Available options:\n"
-	   " -b, --bpp x           - Color depth, bits per pixel on "
-	   "said display\n"
-	   " -d, --device name     - The video device to open, default %s\n"
-	   " -D, --display name    - The X display to use\n"
-	   " -h, --help, --usage   - Show this message\n"
-	   " -q, --quiet           - Decrement verbosity level\n"
-	   " -S, --screen number   - X screen to use (Xinerama)\n"
-	   " -v, --verbose         - Increment verbosity level\n"
-	   " -V, --version         - Print the program version and exit\n"
+	   " -b, --bpp x          Color depth hint, bits per pixel on "
+	   "                       display in question (24 or 32)\n"
+	   " -c, --child          Return localized error messages in UTF-8\n"
+	   "                       encoding to parent process on stderr\n"
+	   " -d, --device name    The video device to open, default %s\n"
+	   " -f, --fd number      Access video device by file descriptor\n"
+	   " -h, --help, --usage  Print this message\n"
+	   " -q, --quiet          Decrement verbosity level\n"
+	   " -v, --verbose        Increment verbosity level\n"
+	   " -D, --display name   The X display to use\n"
+	   " -S, --screen number  The X screen to use (Xinerama)\n"
+	   " -V, --version        Print the program version and exit\n"
 	   "",
 	   program_invocation_name,
 	   default_device_name);
@@ -212,6 +361,7 @@ main				(int			argc,
 				 char **		argv)
 {
   const char *device_name;
+  int device_fd;
   const char *display_name;
   int screen_number;
   int bpp_arg;
@@ -223,31 +373,36 @@ main				(int			argc,
   program_invocation_short_name = argv[0];
 #endif
 
-  /* Make sure fd's 0 1 2 are open, otherwise
-     we might end up sending error messages to
-     the device file. */
+  /* Make sure fds 0 1 2 are open, otherwise we might end up sending
+     error messages to the device file. */
   {
-    int i, n;
+    int flags;
+    int fd;
 
-    for (i = 0; i < 3; i++)
-      if (-1 == fcntl (i, F_GETFL, &n))
+    for (fd = 0; fd <= 2; ++fd)
+      if (-1 == fcntl (fd, F_GETFL, &flags))
 	exit (EXIT_FAILURE);
   }
 
-  /* Drop root privileges until we need them */
+  /* Drop root privileges until we need them. */
 
   uid = getuid ();
   euid = geteuid ();
 
   drop_root_privileges ();
 
-  /* Parse arguments */
+  /* Parse arguments. */
 
   device_name = default_device_name;
-  display_name = getenv ("DISPLAY");
-  screen_number = -1; /* default */
+  device_fd = -1;
 
-  bpp_arg = -1;
+  display_name = getenv ("DISPLAY");
+  screen_number = -1; /* use default screen of display */
+
+  bpp_arg = -1; /* unknown bpp */
+
+  assert (verbosity >= VERBOSITY_MIN
+	  && verbosity <= VERBOSITY_MAX);
 
   for (;;)
     {
@@ -269,19 +424,43 @@ main				(int			argc,
 	      break;
 
 	    default:
-	      message (1, "Invalid bpp argument %d. Expected "
-		       "24 or 32.\n", bpp_arg);
+	      errmsg (_("Invalid bpp argument %d. Expected 24 or 32."),
+		      bpp_arg);
 	      goto failure;
 	    }
 	  
 	  break;
 
+	case 'c':
+#ifdef ENABLE_NLS
+	  bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
+	  bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+	  textdomain (GETTEXT_PACKAGE);
+#endif
+	  verbosity = VERBOSITY_CHILD_PROCESS;
+
+	  break;
+
 	case 'd':
 	  device_name = strdup (optarg);
+	  device_fd = -1;
 	  break;
 
 	case 'D':
 	  display_name = strdup (optarg);
+	  break;
+
+	case 'f':
+	  device_name = NULL;
+	  device_fd = strtol (optarg, NULL, 0);
+
+	  if (device_fd <= 2)
+	    {
+	      errmsg (_("Invalid device file descriptor %d."),
+		      device_fd);
+	      exit (EXIT_FAILURE);
+	    }
+
 	  break;
 
 	case 'h':
@@ -289,8 +468,8 @@ main				(int			argc,
 	  exit (EXIT_SUCCESS);
 
 	case 'q':
-	  if (verbosity > 0)
-	    verbosity--;
+	  if (verbosity > VERBOSITY_MIN)
+	    --verbosity;
 	  break;
 
 	case 'S':
@@ -298,46 +477,50 @@ main				(int			argc,
 	  break;
 
 	case 'v':
-	  if (verbosity < max_verbosity)
-	    verbosity++;
+	  if (verbosity < VERBOSITY_MAX)
+	    ++verbosity;
 	  break;
 
 	case 'V':
-	  message (0, "%s\n", zsfb_version);
+	  printf ("%s\n", zsfb_version);
 	  exit (EXIT_SUCCESS);
 
 	default:
-	  /* getopt_long prints option name when unknown or arg missing */
+	  /* getopt(_long) prints option name when unknown or arg missing. */
 	  usage (stderr);
 	  goto failure;
 	}
     }
 
   if (verbosity >= 2)
-    debug_msg = 1; /* log X access */
+    debug_msg = 1;
 
   if (verbosity >= 3)
-    log_fp = stderr; /* log ioctls */
+    device_log_fp = stderr;
 
-  message (1, "(C) 2000-2004 Iñaki G. Etxebarria, Michael H. Schimek.\n"
+  message (/* verbosity */ 1,
+	   "(C) 2000-2005 Iñaki G. Etxebarria, Michael H. Schimek.\n"
 	   "This program is freely redistributable under the terms\n"
 	   "of the GNU General Public License.\n\n");
 
-  message (1, "Using video device '%s', display '%s', screen %d.\n",
+  message (/* verbosity */ 1,
+	   "Using video device '%s', display '%s', screen %d.\n",
 	   device_name, display_name, screen_number);
 
-  message (1, "Querying frame buffer parameters from X server.\n");
+  message (/* verbosity */ 1,
+	   "Querying frame buffer parameters from X server.\n");
 
   screens = tv_screen_list_new (display_name, bpp_arg);
-  if (!screens)
+  if (NULL == screens)
     {
-      message (1, "No screens found.\n");
+      errmsg (_("No screens found."));
       goto failure;
     }
 
   for (xs = screens; xs; xs = xs->next)
     {
-      message (2, "Screen %d:\n"
+      message (/* verbosity */ 2,
+	       "Screen %d:\n"
 	       "  position               %u, %u - %u, %u\n"
 	       "  frame buffer address   0x%lx\n"
 	       "  frame buffer size      %ux%u pixels, 0x%lx bytes\n"
@@ -363,6 +546,8 @@ main				(int			argc,
       display = XOpenDisplay (display_name);
       if (NULL == display)
 	{
+	  errmsg (_("Cannot open display %s."),
+		  display_name);
 	  goto failure;
 	}
 
@@ -375,42 +560,56 @@ main				(int			argc,
     if (xs->screen_number == screen_number)
       break;
 
-  if (!xs)
+  if (NULL == xs)
     {
-      message (1, "Screen %d not found.\n",
-	       screen_number);
+      errmsg (_("Screen %d not found."),
+	      screen_number);
       goto failure;
     }
 
   if (!tv_screen_is_target (xs))
     {
-      message (1, "DMA not possible on screen %d.\n",
-	       xs->screen_number);
+      errmsg (_("DMA is not possible on screen %d."),
+	      xs->screen_number);
       goto failure;
     }
 
-  do
-    {
-      if (1 == setup_v4l25 (device_name, &xs->target))
-	break;
+  {
+    int result;
 
-      if (1 == setup_v4l2 (device_name, &xs->target))
-	break;
+    result = setup_v4l25 (device_name, device_fd, &xs->target);
+    if (-2 == result) /* not Linux 2.6 V4L2 */
+      {
+	result = setup_v4l2 (device_name, device_fd, &xs->target);
+	if (-2 == result) /* not V4L2 0.20 */
+	  {
+	    result = setup_v4l (device_name, device_fd, &xs->target);
+	    if (-2 == result) /* not V4L */
+	      {
+		if (NULL != device_name)
+		  errmsg (_("%s is not a V4L or V4L2 device."),
+			  device_name);
+		else if (-1 != device_fd)
+		  errmsg (_("File descriptor %d is not a V4L or V4L2 device."),
+			  device_fd);
 
-      if (1 == setup_v4l (device_name, &xs->target))
-	break;
+		goto failure;
+	      }
+	  }
+      }
 
+    if (result < 0)
       goto failure;
-    }
-  while (0);
+  }
 
-  message (1, "Setup completed.\n");
+  message (/* verbosity */ 1,
+	   "Setup completed.\n");
 
   return EXIT_SUCCESS;
 
  failure:
-  message (1, "Setup failed. %s\n",
-	   (verbosity <= 1) ? "Try -vv for details." : "");
+  message (/* verbosity */ 1,
+	   "Setup failed.  Try -v or -vv for more details.\n");
 
   return EXIT_FAILURE;
 }
