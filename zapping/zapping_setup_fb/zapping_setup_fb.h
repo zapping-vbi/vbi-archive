@@ -19,7 +19,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping_setup_fb.h,v 1.7 2005-02-25 18:09:30 mschimek Exp $ */
+/* $Id: zapping_setup_fb.h,v 1.8 2005-10-14 23:37:39 mschimek Exp $ */
+
+#ifndef ZAPPING_SETUP_FB_H
+#define ZAPPING_SETUP_FB_H
 
 #include <stdio.h>
 #include <string.h>
@@ -30,28 +33,16 @@
 
 #define ROOT_UID 0
 
-#define STF2(x) #x
-#define STF1(x) STF2(x)
-
-/* NB ##args is a GCC ext but ##__VA_ARGS__ is not bw compat */
-
-#define errmsg(template, args...)					\
-do {									\
-  if (verbosity > 0)							\
-    fprintf (stderr, "%s:" __FILE__ ":" STF1(__LINE__) ": "		\
-	     template ": %d, %s.\n",					\
-	     program_invocation_short_name , ##args,			\
-	     errno, strerror (errno));					\
-} while (0)
-
-#define message(level, template, args...)				\
-do {									\
-  if ((int) level <= verbosity)						\
-    fprintf (stderr, template , ##args);				\
-} while (0)
+#ifdef HAVE_GNU_C_VARIADIC_MACROS
+#  define errmsg(template, args...)					\
+     error_message (__FILE__, __LINE__, template , ##args)
+#else
+#  error Compiler doesn't support GNU C variadic macros
+#endif
 
 #define privilege_hint()						\
-  message (1, "%s must run with root privileges.\n"			\
+  message (/* verbosity */ 1,						\
+	   "%s must run with root privileges.\n"			\
 	   "Try consolehelper, sudo, su or set the SUID flag with "	\
 	   "chmod +s.\n", program_invocation_name);
 
@@ -60,24 +51,46 @@ extern char *           program_invocation_short_name;
 extern int		verbosity;
 extern unsigned int	uid;
 extern unsigned int	euid;
-extern FILE *		log_fp;
+extern FILE *		device_log_fp;
 
 extern void
 drop_root_privileges		(void);
 extern int
 restore_root_privileges		(void);
 
+extern void
+message				(int			level,
+				 const char *		template,
+				 ...)
+  __attribute__ ((format (printf, 2, 3)));
+
+extern void
+error_message			(const char *		file,
+				 unsigned int		line,
+				 const char *		template,
+				 ...)
+  __attribute__ ((nonnull (1), format (printf, 3, 4)));
+
 extern int
 device_open_safer		(const char *		device_name,
+				 int			device_fd,
 				 int			major_number,
 				 int			flags);
 
 extern int
 setup_v4l	 		(const char *		device_name,
-				 const tv_overlay_buffer *buffer);
+				 int			device_fd,
+				 const tv_overlay_buffer *buffer)
+  __attribute__ ((nonnull (3)));
 extern int
 setup_v4l2	 		(const char *		device_name,
-				 const tv_overlay_buffer *buffer);
+				 int			device_fd,
+				 const tv_overlay_buffer *buffer)
+  __attribute__ ((nonnull (3)));
 extern int
 setup_v4l25	 		(const char *		device_name,
-				 const tv_overlay_buffer *buffer);
+				 int			device_fd,
+				 const tv_overlay_buffer *buffer)
+  __attribute__ ((nonnull (3)));
+
+#endif /* ZAPPING_SETUP_FB_H */
