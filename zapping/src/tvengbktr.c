@@ -1260,8 +1260,12 @@ set_format			(struct private_tvengbktr_device_info *p_info,
 }
 
 /*
- *  Overlay
- */
+    Overlay
+
+    Be VERY careful here. The bktr driver lets any application which
+    has access permission DMA video data to any memory address, and
+    barely checks the parameters.
+*/
 
 static tv_bool
 set_overlay_buffer		(tveng_device_info *	info,
@@ -1312,7 +1316,8 @@ set_clips			(struct private_tvengbktr_device_info *p_info,
 		   We scale by 1/2 and merge clips which overlap now. */
 		for (clip = v->vector; clip < end; ++clip) {
 			if (!tv_clip_vector_add_clip_xy
-			    (&vec, clip->x1, clip->y1 >> 1,
+			    (&vec,
+			     clip->x1, clip->y1 >> 1,
 			     clip->x2, (clip->y2 + 1) >> 1))
 				goto failure;
 		}
@@ -1424,7 +1429,8 @@ set_overlay_window		(tveng_device_info *	info,
 		return FALSE;
 	}
 
-	/* XXX addr must be dword aligned? */
+	/* XXX addr must be dword aligned? Presently tveng.c
+	   enforces this. */
 
 	start_line = wy1 * (int) bf->bytes_per_line[0];
 	start_byte = (wx1 * (int) p_info->ovl_bits_per_pixel) / 8;
@@ -1961,8 +1967,7 @@ p_tvengbktr_open_device_file(int flags,
       info->caps.flags =
 	TVENG_CAPS_TUNER |
 	TVENG_CAPS_TELETEXT |
-#warning Overlay temporarily disabled
-/*	TVENG_CAPS_OVERLAY | */
+	TVENG_CAPS_OVERLAY |
 	TVENG_CAPS_CLIPPING;
       info->caps.channels = 5;
       info->caps.audios = 0;
@@ -2101,15 +2106,11 @@ tvengbktr_attach_device (const char* device_file,
 
 	CLEAR (info->overlay);
 
-/* Temporarily disabled.
-
 	info->overlay.set_buffer = set_overlay_buffer;
 	info->overlay.get_buffer = get_overlay_buffer;
 	info->overlay.set_window_clipvec = set_overlay_window;
 	info->overlay.get_window = get_overlay_window;
 	info->overlay.enable = enable_overlay;
-
-*/
 
 	CLEAR (info->capture);
 
