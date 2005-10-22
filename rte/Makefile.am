@@ -21,3 +21,9 @@ EXTRA_DIST = config.rpath  BUGS rte.spec.in rte.spec depcomp
 DISTCLEANFILES = site_def.h
 
 ACLOCAL_AMFLAGS = -I m4
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = rte-0.5.pc
+
+dist-hook:
+	chown -R 500:100 $(distdir)

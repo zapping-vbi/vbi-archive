@@ -70,7 +70,7 @@ on_channel_key_press		(GtkWidget *	widget,
  */
 void
 z_set_main_title		(tveng_tuned_channel	*channel,
-				 gchar *default_name);
+				 const gchar *default_name);
 extern gboolean
 zconf_get_controls		(tveng_tuned_channel *	channel,
 				 const gchar *		path);

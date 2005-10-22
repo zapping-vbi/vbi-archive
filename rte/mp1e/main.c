@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.43 2004-10-22 00:58:15 mschimek Exp $ */
+/* $Id: main.c,v 1.44 2005-10-22 15:53:07 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -331,13 +331,20 @@ break_sequence(void)
 
 	incr_file_name();
 
-	do
-		outFileFD = open(outFile,
-				 O_CREAT | O_TRUNC | O_WRONLY | O_LARGEFILE,
-			      /* O_CREAT | O_EXCL | O_WRONLY | O_LARGEFILE, */
-				 S_IRUSR | S_IWUSR | S_IRGRP
-				 | S_IWGRP | S_IROTH | S_IWOTH);
-	while (outFileFD == -1 && errno == EINTR);
+	do {
+#ifdef HAVE_LARGEFILE64
+		outFileFD = open64 (outFile, O_CREAT | O_TRUNC |
+				    O_WRONLY | O_LARGEFILE,
+				    S_IRUSR | S_IWUSR |
+				    S_IRGRP | S_IWGRP |
+				    S_IROTH | S_IWOTH);
+#else
+		outFileFD = open (outFile, O_CREAT | O_TRUNC | O_WRONLY,
+				  S_IRUSR | S_IWUSR |
+				  S_IRGRP | S_IWGRP |
+				  S_IROTH | S_IWOTH);
+#endif
+	} while (outFileFD == -1 && errno == EINTR);
 
 	if (outFileFD == -1)
 		switch (errno) {
@@ -715,13 +722,22 @@ main(int ac, char **av)
 	if (outFile[0]) {
 		/* increment file name instead of overwriting files?
 		   for now compatibility rules */
-		do
-			outFileFD = open(outFile,
-					 O_CREAT | O_TRUNC | O_WRONLY | O_LARGEFILE,
-				      /* O_CREAT | O_EXCL | O_WRONLY | O_LARGEFILE, */
-					 S_IRUSR | S_IWUSR | S_IRGRP
-					 | S_IWGRP | S_IROTH | S_IWOTH);
-		while (outFileFD == -1 && errno == EINTR);
+		do {
+#ifdef HAVE_LARGEFILE64
+			outFileFD = open64 (outFile,
+					    O_CREAT | O_TRUNC |
+					    O_WRONLY | O_LARGEFILE,
+					    S_IRUSR | S_IWUSR |
+					    S_IRGRP | S_IWGRP |
+					    S_IROTH | S_IWOTH);
+#else
+			outFileFD = open (outFile,
+					  O_CREAT | O_TRUNC | O_WRONLY,
+					  S_IRUSR | S_IWUSR |
+					  S_IRGRP | S_IWGRP |
+					  S_IROTH | S_IWOTH);
+#endif
+		} while (outFileFD == -1 && errno == EINTR);
 
 		ASSERT("open output file '%s'", outFileFD != -1, outFile);
 	}

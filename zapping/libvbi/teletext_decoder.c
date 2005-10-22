@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.10 2005-09-01 01:40:52 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.11 2005-10-22 15:48:33 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -3614,8 +3614,8 @@ decode_packet_8_30		(vbi3_teletext_decoder *	td,
 			if (0 == cn->network.cni_8301) {
 				/* First CNI, assume no channel change. */
 
-				vbi3_network_set_cni
-					(&cn->network, VBI3_CNI_TYPE_8301, cni);
+				vbi3_network_set_cni (&cn->network,
+						      VBI3_CNI_TYPE_8301, cni);
 
 				cn->confirm_cni_8301 = 0;
 

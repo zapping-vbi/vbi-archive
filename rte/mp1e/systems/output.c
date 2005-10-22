@@ -22,8 +22,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <errno.h>
 #include <assert.h>
 #include "../video/mpeg.h"
@@ -60,11 +62,18 @@ output_stdout(struct multiplexer *mux,
 
 			snprintf (buf, 255, "part-%03d.mpg", ++part);
 
-			outFileFD = open(buf, O_CREAT | O_WRONLY |
-					 O_TRUNC | O_LARGEFILE,
-					 S_IRUSR | S_IWUSR | S_IRGRP |
-					 S_IWGRP | S_IROTH | S_IWOTH);
-
+#ifdef HAVE_LARGEFILE64
+			outFileFD = open64 (buf, O_CREAT | O_WRONLY |
+					    O_TRUNC | O_LARGEFILE,
+					    S_IRUSR | S_IWUSR |
+					    S_IRGRP | S_IWGRP |
+					    S_IROTH | S_IWOTH);
+#else
+			outFileFD = open (buf, O_CREAT | O_WRONLY | O_TRUNC,
+					  S_IRUSR | S_IWUSR |
+					  S_IRGRP | S_IWGRP |
+					  S_IROTH | S_IWOTH);
+#endif
 			count = 0;
 		}
 

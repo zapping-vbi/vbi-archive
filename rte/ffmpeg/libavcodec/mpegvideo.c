@@ -1563,14 +1563,20 @@ static void copy_context_after_encode(MpegEncContext *d, MpegEncContext *s, int 
         d->block_last_index[i]= s->block_last_index[i];
 }
 
+struct temp {
+    //FIXME check that this is ALLWAYS large enogh for a MB
+    UINT8 bit_buf[7][3000];
+    MpegEncContext best_s, backup_s;
+};
 
 static void encode_picture(MpegEncContext *s, int picture_number)
 {
     int mb_x, mb_y, last_gob, pdif = 0;
     int i;
     int bits;
-    MpegEncContext best_s, backup_s;
-    UINT8 bit_buf[7][3000]; //FIXME check that this is ALLWAYS large enogh for a MB
+    struct temp *t;
+
+    t = malloc (sizeof (*t));
 
     s->picture_number = picture_number;
 
@@ -1758,7 +1764,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                 int next_block=0;
                 pb= s->pb;
 
-                copy_context_before_encode(&backup_s, s, -1);
+                copy_context_before_encode(&t->backup_s, s, -1);
 
                 if(mb_type&MB_TYPE_INTER){
                     s->mv_dir = MV_DIR_FORWARD;
@@ -1766,7 +1772,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     s->mb_intra= 0;
                     s->mv[0][0][0] = s->p_mv_table[xy][0];
                     s->mv[0][0][1] = s->p_mv_table[xy][1];
-                    init_put_bits(&s->pb, bit_buf[1], 3000, NULL, NULL);
+                    init_put_bits(&s->pb, t->bit_buf[1], 3000, NULL, NULL);
                     s->block= s->blocks[next_block];
                     s->last_bits= 0; //done in copy_context_before_encode but we skip that here
 
@@ -1775,13 +1781,13 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     if(d<dmin){
                         flush_put_bits(&s->pb);
                         dmin=d;
-                        copy_context_after_encode(&best_s, s, MB_TYPE_INTER);
+                        copy_context_after_encode(&t->best_s, s, MB_TYPE_INTER);
                         best=1;
                         next_block^=1;
                     }
                 }
                 if(mb_type&MB_TYPE_INTER4V){                 
-                    copy_context_before_encode(s, &backup_s, MB_TYPE_INTER4V);
+                    copy_context_before_encode(s, &t->backup_s, MB_TYPE_INTER4V);
                     s->mv_dir = MV_DIR_FORWARD;
                     s->mv_type = MV_TYPE_8X8;
                     s->mb_intra= 0;
@@ -1789,7 +1795,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                         s->mv[0][i][0] = s->motion_val[s->block_index[i]][0];
                         s->mv[0][i][1] = s->motion_val[s->block_index[i]][1];
                     }
-                    init_put_bits(&s->pb, bit_buf[2], 3000, NULL, NULL);
+                    init_put_bits(&s->pb, t->bit_buf[2], 3000, NULL, NULL);
                     s->block= s->blocks[next_block];
 
                     encode_mb(s, 0, 0);
@@ -1797,19 +1803,19 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     if(d<dmin){
                         flush_put_bits(&s->pb);
                         dmin=d;
-                        copy_context_after_encode(&best_s, s, MB_TYPE_INTER4V);
+                        copy_context_after_encode(&t->best_s, s, MB_TYPE_INTER4V);
                         best=2;
                         next_block^=1;
                     }
                 }
                 if(mb_type&MB_TYPE_FORWARD){
-                    copy_context_before_encode(s, &backup_s, MB_TYPE_FORWARD);
+                    copy_context_before_encode(s, &t->backup_s, MB_TYPE_FORWARD);
                     s->mv_dir = MV_DIR_FORWARD;
                     s->mv_type = MV_TYPE_16X16;
                     s->mb_intra= 0;
                     s->mv[0][0][0] = s->b_forw_mv_table[xy][0];
                     s->mv[0][0][1] = s->b_forw_mv_table[xy][1];
-                    init_put_bits(&s->pb, bit_buf[3], 3000, NULL, NULL);
+                    init_put_bits(&s->pb, t->bit_buf[3], 3000, NULL, NULL);
                     s->block= s->blocks[next_block];
 
                     encode_mb(s, s->mv[0][0][0], s->mv[0][0][1]);
@@ -1817,19 +1823,19 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     if(d<dmin){
                         flush_put_bits(&s->pb);
                         dmin=d;
-                        copy_context_after_encode(&best_s, s, MB_TYPE_FORWARD);
+                        copy_context_after_encode(&t->best_s, s, MB_TYPE_FORWARD);
                         best=3;
                         next_block^=1;
                     }
                 }
                 if(mb_type&MB_TYPE_BACKWARD){
-                    copy_context_before_encode(s, &backup_s, MB_TYPE_BACKWARD);
+                    copy_context_before_encode(s, &t->backup_s, MB_TYPE_BACKWARD);
                     s->mv_dir = MV_DIR_BACKWARD;
                     s->mv_type = MV_TYPE_16X16;
                     s->mb_intra= 0;
                     s->mv[1][0][0] = s->b_back_mv_table[xy][0];
                     s->mv[1][0][1] = s->b_back_mv_table[xy][1];
-                    init_put_bits(&s->pb, bit_buf[4], 3000, NULL, NULL);
+                    init_put_bits(&s->pb, t->bit_buf[4], 3000, NULL, NULL);
                     s->block= s->blocks[next_block];
 
                     encode_mb(s, s->mv[1][0][0], s->mv[1][0][1]);
@@ -1837,13 +1843,13 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     if(d<dmin){
                         flush_put_bits(&s->pb);
                         dmin=d;
-                        copy_context_after_encode(&best_s, s, MB_TYPE_BACKWARD);
+                        copy_context_after_encode(&t->best_s, s, MB_TYPE_BACKWARD);
                         best=4;
                         next_block^=1;
                     }
                 }
                 if(mb_type&MB_TYPE_BIDIR){
-                    copy_context_before_encode(s, &backup_s, MB_TYPE_BIDIR);
+                    copy_context_before_encode(s, &t->backup_s, MB_TYPE_BIDIR);
                     s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD;
                     s->mv_type = MV_TYPE_16X16;
                     s->mb_intra= 0;
@@ -1851,7 +1857,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     s->mv[0][0][1] = s->b_bidir_forw_mv_table[xy][1];
                     s->mv[1][0][0] = s->b_bidir_back_mv_table[xy][0];
                     s->mv[1][0][1] = s->b_bidir_back_mv_table[xy][1];
-                    init_put_bits(&s->pb, bit_buf[5], 3000, NULL, NULL);
+                    init_put_bits(&s->pb, t->bit_buf[5], 3000, NULL, NULL);
                     s->block= s->blocks[next_block];
 
                     encode_mb(s, 0, 0);
@@ -1859,13 +1865,13 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     if(d<dmin){
                         flush_put_bits(&s->pb);
                         dmin=d;
-                        copy_context_after_encode(&best_s, s, MB_TYPE_BIDIR);
+                        copy_context_after_encode(&t->best_s, s, MB_TYPE_BIDIR);
                         best=5;
                         next_block^=1;
                     }
                 }
                 if(mb_type&MB_TYPE_DIRECT){
-                    copy_context_before_encode(s, &backup_s, MB_TYPE_DIRECT);
+                    copy_context_before_encode(s, &t->backup_s, MB_TYPE_DIRECT);
                     s->mv_dir = MV_DIR_FORWARD | MV_DIR_BACKWARD | MV_DIRECT;
                     s->mv_type = MV_TYPE_16X16; //FIXME
                     s->mb_intra= 0;
@@ -1873,7 +1879,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     s->mv[0][0][1] = s->b_direct_forw_mv_table[xy][1];
                     s->mv[1][0][0] = s->b_direct_back_mv_table[xy][0];
                     s->mv[1][0][1] = s->b_direct_back_mv_table[xy][1];
-                    init_put_bits(&s->pb, bit_buf[6], 3000, NULL, NULL);
+                    init_put_bits(&s->pb, t->bit_buf[6], 3000, NULL, NULL);
                     s->block= s->blocks[next_block];
 
                     encode_mb(s, s->b_direct_mv_table[xy][0], s->b_direct_mv_table[xy][1]);
@@ -1881,19 +1887,19 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     if(d<dmin){
                         flush_put_bits(&s->pb);
                         dmin=d;
-                        copy_context_after_encode(&best_s, s, MB_TYPE_DIRECT);
+                        copy_context_after_encode(&t->best_s, s, MB_TYPE_DIRECT);
                         best=6;
                         next_block^=1;
                     }
                 }
                 if(mb_type&MB_TYPE_INTRA){
-                    copy_context_before_encode(s, &backup_s, MB_TYPE_INTRA);
+                    copy_context_before_encode(s, &t->backup_s, MB_TYPE_INTRA);
                     s->mv_dir = MV_DIR_FORWARD;
                     s->mv_type = MV_TYPE_16X16;
                     s->mb_intra= 1;
                     s->mv[0][0][0] = 0;
                     s->mv[0][0][1] = 0;
-                    init_put_bits(&s->pb, bit_buf[0], 3000, NULL, NULL);
+                    init_put_bits(&s->pb, t->bit_buf[0], 3000, NULL, NULL);
                     s->block= s->blocks[next_block];
                    
                     encode_mb(s, 0, 0);
@@ -1901,7 +1907,7 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     if(d<dmin){
                         flush_put_bits(&s->pb);
                         dmin=d;
-                        copy_context_after_encode(&best_s, s, MB_TYPE_INTRA);
+                        copy_context_after_encode(&t->best_s, s, MB_TYPE_INTRA);
                         best=0;
                         next_block^=1;
                     }
@@ -1909,8 +1915,8 @@ static void encode_picture(MpegEncContext *s, int picture_number)
                     if(s->h263_pred || s->h263_aic)
                         s->mbintra_table[mb_x + mb_y*s->mb_width]=1;
                 }
-                copy_context_after_encode(s, &best_s, -1);
-                copy_bits(&pb, bit_buf[best], dmin);
+                copy_context_after_encode(s, &t->best_s, -1);
+                copy_bits(&pb, t->bit_buf[best], dmin);
                 s->pb= pb;
                 s->last_bits= get_bit_count(&s->pb);
             } else {
@@ -2010,6 +2016,8 @@ static void encode_picture(MpegEncContext *s, int picture_number)
         s->ptr_lastgob = pbBufPtr(&s->pb);
         //fprintf(stderr,"\nGOB: %2d size: %d (last)", s->gob_number, pdif);
     }
+
+    free (t);
 }
 
 static int dct_quantize_c(MpegEncContext *s, 

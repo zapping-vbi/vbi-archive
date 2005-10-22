@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-03-17 03:52+0100\n"
+"POT-Creation-Date: 2005-10-20 04:10+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -37,7 +37,7 @@ msgstr ""
 
 #: mp1e/video/mpeg1.c:2565 mp1e/video/mpeg1.c:2587 mp1e/video/mpeg1.c:2592
 #: mp1e/video/mpeg1.c:2602 mp1e/video/mpeg1.c:2960 mp1e/audio/mp2.c:1187
-#: mp1e/b_mp1e.c:448 mp1e/b_mp1e.c:498 mp1e/b_mp1e.c:508 mp1e/b_mp1e.c:1104
+#: mp1e/b_mp1e.c:449 mp1e/b_mp1e.c:499 mp1e/b_mp1e.c:509 mp1e/b_mp1e.c:1105
 #: ffmpeg/b_ffmpeg.c:676 ffmpeg/b_ffmpeg.c:1457 ffmpeg/b_ffmpeg.c:1881
 #: divx4linux/b_divx4linux.c:636 divx4linux/b_divx4linux.c:1059
 msgid "Out of memory."
@@ -205,49 +205,49 @@ msgid ""
 "not all MPEG video and audio players support MPEG-2 audio."
 msgstr ""
 
-#: mp1e/b_mp1e.c:206
+#: mp1e/b_mp1e.c:207
 msgid "Insufficient resources to start video encoding thread.\n"
 msgstr ""
 
-#: mp1e/b_mp1e.c:219
+#: mp1e/b_mp1e.c:220
 msgid "Insufficient resources to start audio encoding thread.\n"
 msgstr ""
 
-#: mp1e/b_mp1e.c:272
+#: mp1e/b_mp1e.c:273
 msgid "Insufficient resources to start codec thread.\n"
 msgstr ""
 
-#: mp1e/b_mp1e.c:292
+#: mp1e/b_mp1e.c:293
 msgid "Insufficient resources to start context thread.\n"
 msgstr ""
 
-#: mp1e/b_mp1e.c:943 ffmpeg/b_ffmpeg.c:1546
+#: mp1e/b_mp1e.c:944 ffmpeg/b_ffmpeg.c:1546
 #, c-format
 msgid "Cannot create new codec instance '%s'. %s"
 msgstr ""
 
-#: mp1e/b_mp1e.c:947 ffmpeg/b_ffmpeg.c:1551
+#: mp1e/b_mp1e.c:948 ffmpeg/b_ffmpeg.c:1551
 #, c-format
 msgid "Cannot create new codec instance '%s'."
 msgstr ""
 
-#: mp1e/b_mp1e.c:1012 ffmpeg/b_ffmpeg.c:1726
+#: mp1e/b_mp1e.c:1013 ffmpeg/b_ffmpeg.c:1726
 msgid "MPEG-1 Program Stream"
 msgstr ""
 
-#: mp1e/b_mp1e.c:1022
+#: mp1e/b_mp1e.c:1023
 msgid "MPEG-1 VCD Program Stream"
 msgstr ""
 
-#: mp1e/b_mp1e.c:1032 ffmpeg/b_ffmpeg.c:1700
+#: mp1e/b_mp1e.c:1033 ffmpeg/b_ffmpeg.c:1700
 msgid "MPEG Video Elementary Stream"
 msgstr ""
 
-#: mp1e/b_mp1e.c:1042 ffmpeg/b_ffmpeg.c:1643
+#: mp1e/b_mp1e.c:1043 ffmpeg/b_ffmpeg.c:1643
 msgid "MPEG Audio Elementary Stream"
 msgstr ""
 
-#: mp1e/b_mp1e.c:1224
+#: mp1e/b_mp1e.c:1225
 msgid ""
 "MP1E backend requires MMX but the CPU type is unknown, backend disabled."
 msgstr ""

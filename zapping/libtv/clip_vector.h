@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clip_vector.h,v 1.2 2005-01-31 07:13:06 mschimek Exp $ */
+/* $Id: clip_vector.h,v 1.3 2005-10-22 15:48:33 mschimek Exp $ */
 
 #ifndef __ZTV_CLIP_VECTOR_H__
 #define __ZTV_CLIP_VECTOR_H__
@@ -57,6 +57,11 @@ typedef struct {
 	unsigned int		size;
 	unsigned int		capacity;
 } tv_clip_vector;
+
+extern void
+_tv_clip_vector_dump		(const tv_clip_vector *	vector,
+				 FILE *			fp)
+  __attribute__ ((_tv_nonnull (1, 2)));
 
 extern uint8_t *
 tv_clip_vector_to_clip_mask	(tv_clip_vector *	vector,

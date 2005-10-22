@@ -1,5 +1,5 @@
 ## Process this file with automake to produce Makefile.in
-## $Id: Makefile.am,v 1.17 2005-06-29 21:27:31 mschimek Exp $
+## $Id: Makefile.am,v 1.18 2005-10-22 15:53:07 mschimek Exp $
 
 INCLUDES = -D_GNU_SOURCE -D_REENTRANT -include $(top_builddir)/config.h \
 	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
@@ -34,6 +34,7 @@ EXTRA_DIST = mp1e.lsm.in mp1e.spec.in $(man_MANS) BUGS b_mp1e.h rte
 dist-hook:
 	for file in b_mp1e.c; do \
 		rm -rf $(distdir)/$$file; done
+	chown -R 500:100 $(distdir)
 
 bin_PROGRAMS = mp1e
 

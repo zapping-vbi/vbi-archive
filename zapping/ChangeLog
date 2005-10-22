@@ -1,3 +1,43 @@
+2005-10-22    <mschimek@users.sf.net>
+
+	* src/v4linterface.c (kp_enter): Numeric keypad channel number
+	  entering, try nth channel if channel name lookup failed.
+	* src/zmisc.c (start_teletext): Didn't connect the video window
+	  status bar to Teletext view.
+
+2005-10-21    <mschimek@users.sf.net>
+
+	* configure.in, plugins/mpeg/Makefile.am: Use librte on FreeBSD,
+	  works now.
+	* src/fullscreen.c (osd_model_changed): Used wrong window to
+	  calculate clip vector.
+	* src/fullscreen.c (start_fullscreen),
+	  src/overlay.c (start_overlay): zconf_get_source() call was missing
+	  to restore settings which are reset at device open(). Required
+	  for bktr.
+	* src/capture.c (capture_start): Didn't call
+	  on_capture_canvas_allocate, so the capture size wasn't adjusted
+	  to the window size from the beginning.
+	* src/tvengbktr.c (p_tvengbktr_open_device_file):
+	(tvengbktr_attach_device): Reenabled overlay support.
+
+2005-10-18    <mschimek@users.sf.net>
+
+	* zapping.schemas.in: show_dheight missing.
+
+	* libvbi/network-table.h: Updated.
+	* plugins/teletext/view.c (export_action): g_free() fix.
+	* libvbi/Makefile.am (libvbi_la_SOURCES): Added vps.c, vps.h.
+	* libvbi/vps.c, libvbi/vps.h: Added from libzvbi 0.3 branch.
+	* libvbi/vbi_decoder.c: Enabled VPS decoding.
+	* src/zvbi.c: Restored network identification.
+
+	* configure.in: Added lrint check. List deinterlace plugin only if
+	  we build the V4L2 interface, doesn't work with V4L and bktr yet.
+	* plugins/subtitle/view.c: Added lrint substitute.
+	* plugins/Makefile.am (SUBDIRS): Build deinterlace module only
+	  if we build the V4L2 interface, doesn't work with V4L and bktr yet.
+
 2005-10-14    <mschimek@users.sf.net>
 
 	* src/fullscreen.c (start_fullscreen): Fixed the bug misplacing the

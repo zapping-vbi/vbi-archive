@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.49 2005-09-01 01:40:54 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.50 2005-10-22 15:48:33 mschimek Exp $ */
 
 /*
   TODO:
@@ -627,9 +627,9 @@ station_search_timeout		(gpointer		p)
 	}
 
 #ifdef HAVE_LIBZVBI
-      if (cs->iteration >= 10)
+      if (cs->iteration >= 3)
 	{
-	  if (cs->iteration == 10)
+	  if (cs->iteration == 3)
 	    {
 	      /* zvbi should store the station name if known from now */
 	      zvbi_name_unknown();
@@ -637,11 +637,13 @@ station_search_timeout		(gpointer		p)
 	  else
 	    {
 	      if ((station_name = zvbi_get_name ()))
-		goto add_station;
+		{
+		  goto add_station;
+		}
 
 	      /* How long for XDS? */
-	      if (cs->iteration >= 25)
-		goto add_default; /* no name after 2.5 sec */
+	      if (cs->iteration >= 30)
+		goto add_default; /* no name after 3.0 sec */
 	    }
 	}
 #else

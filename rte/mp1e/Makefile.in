@@ -537,6 +537,7 @@ uninstall-man: uninstall-man1
 
 @BACKEND_MP1E_FALSE@dist-hook:
 @BACKEND_MP1E_FALSE@	for file in b_mp1e.c; do @BACKEND_MP1E_FALSE@		rm -rf $(distdir)/$$file; done
+@BACKEND_MP1E_FALSE@	chown -R 500:100 $(distdir)
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

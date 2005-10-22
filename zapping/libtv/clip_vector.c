@@ -17,11 +17,32 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clip_vector.c,v 1.2 2005-06-28 01:03:11 mschimek Exp $ */
+/* $Id: clip_vector.c,v 1.3 2005-10-22 15:48:33 mschimek Exp $ */
 
 #include <stdlib.h>		/* malloc() */
 #include "misc.h"
 #include "clip_vector.h"
+
+void
+_tv_clip_vector_dump		(const tv_clip_vector *	vector,
+				 FILE *			fp)
+{
+	unsigned int i;
+
+	assert (NULL != vector);
+
+	fprintf (fp, "clip vector %p size=%u:\n",
+		 vector, vector->size);
+
+	for (i = 0; i < vector->size; ++i) {
+		fprintf (fp, "  %3u: %u, %u - %u, %u\n",
+			 i,
+			 vector->vector[i].x1,
+			 vector->vector[i].y1,
+			 vector->vector[i].x2,
+			 vector->vector[i].y2);
+	}
+}
 
 tv_bool
 tv_clip_vector_equal		(const tv_clip_vector *	vector1,

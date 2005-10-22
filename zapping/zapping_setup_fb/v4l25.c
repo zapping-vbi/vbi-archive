@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.13 2005-10-14 23:40:14 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.14 2005-10-22 15:48:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -89,7 +89,7 @@ setup_v4l25			(const char *		device_name,
     }
 
   message (/* verbosity */ 2,
-	   "Getting current frame buffer parameters.");
+	   "Getting current frame buffer parameters.\n");
   
   if (-1 == xioctl (fd, VIDIOC_G_FBUF, &fb))
     {

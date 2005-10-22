@@ -1812,7 +1812,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=rte
- VERSION=0.5.6
+ VERSION=0.5.7
 
 
 cat >>confdefs.h <<_ACEOF
@@ -1961,7 +1961,7 @@ fi
 	for k in m4 ; do ACLOCAL="$ACLOCAL -I $k" ; done
 
 
-LIBRTE_SO_VERSION=1:3:0
+LIBRTE_SO_VERSION=1:4:0
 
 
 test -z "`echo $CFLAGS | grep -e -g`" && CFLAGS="-O2 $CFLAGS"
@@ -22671,7 +22671,7 @@ else
 fi
 
 
-                                                                                ac_config_files="$ac_config_files Makefile m4/Makefile po/Makefile.in doc/Makefile doc/Doxyfile src/Makefile test/Makefile rte.spec"
+                                                                                          ac_config_files="$ac_config_files Makefile m4/Makefile po/Makefile.in doc/Makefile doc/Doxyfile src/Makefile test/Makefile rte.spec rte-0.5.pc"
 
 
 cat >confcache <<\_ACEOF
@@ -23297,6 +23297,7 @@ do
   "src/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
   "test/Makefile" ) CONFIG_FILES="$CONFIG_FILES test/Makefile" ;;
   "rte.spec" ) CONFIG_FILES="$CONFIG_FILES rte.spec" ;;
+  "rte-0.5.pc" ) CONFIG_FILES="$CONFIG_FILES rte-0.5.pc" ;;
   "depfiles" ) CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
   "default-1" ) CONFIG_COMMANDS="$CONFIG_COMMANDS default-1" ;;
   "config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;

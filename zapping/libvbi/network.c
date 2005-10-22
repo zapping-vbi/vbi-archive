@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.6 2005-06-28 19:15:34 mschimek Exp $ */
+/* $Id: network.c,v 1.7 2005-10-22 15:48:33 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -659,7 +659,7 @@ vbi3_network_destroy		(vbi3_network *		nk)
  * nothing if @a dst and @a src are the same.
  *
  * @returns
- * @c FALSE on failure (out of memory), with @a dst unmodified.
+ * @c FALSE on failure (out of memory), leaving @a dst unmodified.
  */
 vbi3_bool
 vbi3_network_set			(vbi3_network *		dst,

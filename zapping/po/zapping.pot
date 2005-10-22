@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-10-15 01:16+0200\n"
+"POT-Creation-Date: 2005-10-22 01:23+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -31,7 +31,7 @@ msgstr ""
 msgid "Advanced"
 msgstr ""
 
-#: glade/zapping.glade2.h:4 src/audio.c:532 src/audio.c:537 src/tveng.c:4533
+#: glade/zapping.glade2.h:4 src/audio.c:532 src/audio.c:537 src/tveng.c:4538
 msgid "Audio"
 msgstr ""
 
@@ -88,7 +88,7 @@ msgid "Device name:"
 msgstr ""
 
 #: glade/zapping.glade2.h:19 src/audio.c:542 src/properties-handler.c:1319
-#: src/zvbi.c:2577
+#: src/zvbi.c:2556
 msgid "Devices"
 msgstr ""
 
@@ -250,7 +250,7 @@ msgstr ""
 msgid "Title _bar contents:"
 msgstr ""
 
-#: glade/zapping.glade2.h:59 src/zvbi.c:2572
+#: glade/zapping.glade2.h:59 src/zvbi.c:2551
 msgid "VBI"
 msgstr ""
 
@@ -1111,7 +1111,7 @@ msgstr ""
 msgid "Preview"
 msgstr ""
 
-#: plugins/screenshot/screenshot.glade2.h:8 plugins/teletext/view.c:2761
+#: plugins/screenshot/screenshot.glade2.h:8 plugins/teletext/view.c:2767
 msgid "S_ubtitles"
 msgstr ""
 
@@ -1223,7 +1223,7 @@ msgid ""
 msgstr ""
 
 #: plugins/subtitle/preferences.c:399
-msgid "_Shrink double height characters"
+msgid "_Show double height characters"
 msgstr ""
 
 #. TRANSLATORS:
@@ -1274,15 +1274,15 @@ msgstr ""
 msgid "Quality/speed trade-off when scaling and anti-aliasing the page."
 msgstr ""
 
-#: plugins/subtitle/view.c:1691 src/subtitle.c:321
+#: plugins/subtitle/view.c:1701 src/subtitle.c:321
 msgid "_Disable"
 msgstr ""
 
-#: plugins/subtitle/view.c:1693
+#: plugins/subtitle/view.c:1703
 msgid "_Reset position"
 msgstr ""
 
-#: plugins/subtitle/view.c:1695 plugins/teletext/window.c:810
+#: plugins/subtitle/view.c:1705 plugins/teletext/window.c:810
 msgid "_Encoding"
 msgstr ""
 
@@ -1416,7 +1416,7 @@ msgstr ""
 msgid "Page memory is empty"
 msgstr ""
 
-#: plugins/teletext/search.c:342 plugins/teletext/view.c:3254
+#: plugins/teletext/search.c:342 plugins/teletext/view.c:3260
 msgid "Search page memory"
 msgstr ""
 
@@ -1465,113 +1465,113 @@ msgstr ""
 msgid "Reveal concealed text"
 msgstr ""
 
-#: plugins/teletext/view.c:842
+#: plugins/teletext/view.c:846
 #, c-format
 msgid " Page %x"
 msgstr ""
 
-#: plugins/teletext/view.c:846
+#: plugins/teletext/view.c:850
 #, c-format
 msgid " Subpage %x"
 msgstr ""
 
-#: plugins/teletext/view.c:1455
+#: plugins/teletext/view.c:1459
 #, c-format
 msgid "Loading page %X..."
 msgstr ""
 
-#: plugins/teletext/view.c:1457
+#: plugins/teletext/view.c:1461
 #, c-format
 msgid "Loading page %X.%02X..."
 msgstr ""
 
-#: plugins/teletext/view.c:2368
+#: plugins/teletext/view.c:2372
 msgid "Selection copied to clipboard"
 msgstr ""
 
-#: plugins/teletext/view.c:2450
+#: plugins/teletext/view.c:2454
 msgid "No page loaded"
 msgstr ""
 
-#: plugins/teletext/view.c:2463
+#: plugins/teletext/view.c:2467
 msgid "Selecting - press Shift key for table mode"
 msgstr ""
 
-#: plugins/teletext/view.c:2621
+#: plugins/teletext/view.c:2627
 msgid "Subtitle index"
 msgstr ""
 
-#: plugins/teletext/view.c:2628
+#: plugins/teletext/view.c:2634
 msgid "Now and Next"
 msgstr ""
 
-#: plugins/teletext/view.c:2634
+#: plugins/teletext/view.c:2640
 msgid "Current program"
 msgstr ""
 
-#: plugins/teletext/view.c:2640
+#: plugins/teletext/view.c:2646
 msgid "Program Index"
 msgstr ""
 
-#: plugins/teletext/view.c:2646
+#: plugins/teletext/view.c:2652
 msgid "Program Schedule"
 msgstr ""
 
 #. TRANSLATORS: Schedule changes and the like.
-#: plugins/teletext/view.c:2654
+#: plugins/teletext/view.c:2660
 msgid "Program Warning"
 msgstr ""
 
-#: plugins/teletext/view.c:2715
+#: plugins/teletext/view.c:2721
 msgid "_Open"
 msgstr ""
 
-#: plugins/teletext/view.c:2721
+#: plugins/teletext/view.c:2727
 msgid "Open in _New Window"
 msgstr ""
 
-#: plugins/teletext/view.c:2732
+#: plugins/teletext/view.c:2738
 msgid "_Open Link"
 msgstr ""
 
-#: plugins/teletext/view.c:2743 plugins/teletext/window.c:805
+#: plugins/teletext/view.c:2749 plugins/teletext/window.c:805
 msgid "_New Window"
 msgstr ""
 
-#: plugins/teletext/view.c:2749
+#: plugins/teletext/view.c:2755
 msgid "_Save as..."
 msgstr ""
 
-#: plugins/teletext/view.c:2755
+#: plugins/teletext/view.c:2761
 msgid "S_earch..."
 msgstr ""
 
-#: plugins/teletext/view.c:2767 plugins/teletext/window.c:812
+#: plugins/teletext/view.c:2773 plugins/teletext/window.c:812
 #: src/zapping.c:467
 msgid "_Bookmarks"
 msgstr ""
 
-#: plugins/teletext/view.c:3246
+#: plugins/teletext/view.c:3252
 msgid "_Go"
 msgstr ""
 
-#: plugins/teletext/view.c:3248
+#: plugins/teletext/view.c:3254
 msgid "Previous page in history"
 msgstr ""
 
-#: plugins/teletext/view.c:3250
+#: plugins/teletext/view.c:3256
 msgid "Next page in history"
 msgstr ""
 
-#: plugins/teletext/view.c:3251
+#: plugins/teletext/view.c:3257
 msgid "Index"
 msgstr ""
 
-#: plugins/teletext/view.c:3252
+#: plugins/teletext/view.c:3258
 msgid "Go to the index page"
 msgstr ""
 
-#: plugins/teletext/view.c:3256
+#: plugins/teletext/view.c:3262
 msgid "Save this page to a file"
 msgstr ""
 
@@ -1582,19 +1582,19 @@ msgid "_Received"
 msgstr ""
 
 #: plugins/teletext/window.c:349 src/v4linterface.c:1316
-#: src/v4linterface.c:2440
+#: src/v4linterface.c:2443
 msgid "Unnamed"
 msgstr ""
 
-#: plugins/teletext/window.c:571 src/zvbi.c:228
+#: plugins/teletext/window.c:571 src/zvbi.c:221
 msgid " (Latin)"
 msgstr ""
 
-#: plugins/teletext/window.c:573 src/zvbi.c:230
+#: plugins/teletext/window.c:573 src/zvbi.c:223
 msgid " (Cyrillic)"
 msgstr ""
 
-#: plugins/teletext/window.c:616 src/zvbi.c:245
+#: plugins/teletext/window.c:616 src/zvbi.c:238
 msgid "_Automatic"
 msgstr ""
 
@@ -1645,7 +1645,7 @@ msgstr ""
 msgid "Cannot stop capturing while recording."
 msgstr ""
 
-#: src/capture.c:1074
+#: src/capture.c:1077
 #, c-format
 msgid "Cannot start capturing: %s"
 msgstr ""
@@ -1655,114 +1655,114 @@ msgstr ""
 msgid "Channel: %s   Found: %u"
 msgstr ""
 
-#: src/channel_editor.c:713
+#: src/channel_editor.c:715
 msgid "Searching..."
 msgstr ""
 
-#: src/channel_editor.c:1450
+#: src/channel_editor.c:1452
 msgid "Select the frequency table used in your country"
 msgstr ""
 
-#: src/channel_editor.c:1594
+#: src/channel_editor.c:1596
 msgid "Ch. Name"
 msgstr ""
 
-#: src/channel_editor.c:1599
+#: src/channel_editor.c:1601
 msgid "Freq (MHz)"
 msgstr ""
 
 #. append
-#: src/channel_editor.c:1652
+#: src/channel_editor.c:1654
 msgid "Channel name"
 msgstr ""
 
 #. append
-#: src/channel_editor.c:1656
+#: src/channel_editor.c:1658
 msgid "Video input"
 msgstr ""
 
 #. append
-#: src/channel_editor.c:1660
+#: src/channel_editor.c:1662
 msgid "RF Channel"
 msgstr ""
 
 #. append
-#: src/channel_editor.c:1664
+#: src/channel_editor.c:1666
 msgid "Video standard"
 msgstr ""
 
 #. append
-#: src/channel_editor.c:1668 src/keyboard.c:444
+#: src/channel_editor.c:1670 src/keyboard.c:444
 msgid "Accelerator"
 msgstr ""
 
-#: src/channel_editor.c:1683
+#: src/channel_editor.c:1685
 msgid "Do not change input"
 msgstr ""
 
-#: src/channel_editor.c:1707
+#: src/channel_editor.c:1709
 msgid "Do not change standard"
 msgstr ""
 
-#: src/channel_editor.c:1746
+#: src/channel_editor.c:1748
 msgid "Channel editor"
 msgstr ""
 
-#: src/channel_editor.c:1770
+#: src/channel_editor.c:1772
 msgid "Region"
 msgstr ""
 
-#: src/channel_editor.c:1806
+#: src/channel_editor.c:1808
 msgid "Automatic station _search"
 msgstr ""
 
-#: src/channel_editor.c:1812
+#: src/channel_editor.c:1814
 msgid ""
 "Select a suitable frequency table, then click here to search through all "
 "channels in the table and add the received stations to the channel list."
 msgstr ""
 
-#: src/channel_editor.c:1818
+#: src/channel_editor.c:1820
 msgid "Add all _channels"
 msgstr ""
 
-#: src/channel_editor.c:1825
+#: src/channel_editor.c:1827
 msgid "Add all channels in the frequency table to the channel list."
 msgstr ""
 
-#: src/channel_editor.c:1829
+#: src/channel_editor.c:1831
 msgid "_Import XawTV configuration"
 msgstr ""
 
-#: src/channel_editor.c:1856
+#: src/channel_editor.c:1858
 msgid "Channel List"
 msgstr ""
 
-#: src/channel_editor.c:1891
+#: src/channel_editor.c:1893
 msgid "Edit channel"
 msgstr ""
 
-#: src/channel_editor.c:1908
+#: src/channel_editor.c:1910
 msgid "Name:"
 msgstr ""
 
-#: src/channel_editor.c:1917
+#: src/channel_editor.c:1919
 msgid "Video input:"
 msgstr ""
 
-#: src/channel_editor.c:1928
+#: src/channel_editor.c:1930
 msgid "Fine tuning:"
 msgstr ""
 
-#: src/channel_editor.c:1934
+#: src/channel_editor.c:1936
 msgid "MHz"
 msgstr ""
 
-#: src/channel_editor.c:1945
+#: src/channel_editor.c:1947
 msgid "Video standard:"
 msgstr ""
 
-#: src/channel_editor.c:1956
+#: src/channel_editor.c:1958
 msgid "Accelerator:"
 msgstr ""
 
@@ -2204,7 +2204,7 @@ msgstr ""
 msgid "Do not change"
 msgstr ""
 
-#: src/properties-handler.c:1159 src/tveng.c:4544
+#: src/properties-handler.c:1159 src/tveng.c:4549
 msgid "Automatic"
 msgstr ""
 
@@ -2352,13 +2352,13 @@ msgstr ""
 msgid "V Saturation"
 msgstr ""
 
-#: src/tveng.c:3193
+#: src/tveng.c:3195
 #, c-format
 msgid "%s not found in %s or the executable search path."
 msgstr ""
 
 #. TRANSLATORS: Program name, error message.
-#: src/tveng.c:3200 src/tveng.c:3281
+#: src/tveng.c:3202 src/tveng.c:3283
 #, c-format
 msgid ""
 "Cannot execute %s.\n"
@@ -2366,7 +2366,7 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS: Program name, error message.
-#: src/tveng.c:3256
+#: src/tveng.c:3258
 #, c-format
 msgid ""
 "%s failed.\n"
@@ -2374,26 +2374,26 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS: Program name.
-#: src/tveng.c:3271
+#: src/tveng.c:3273
 #, c-format
 msgid "Unknown error in %s."
 msgstr ""
 
 #. TRANSLATORS: Program name.
-#: src/tveng.c:3287
+#: src/tveng.c:3289
 #, c-format
 msgid "%s failed."
 msgstr ""
 
-#: src/tveng.c:4551
+#: src/tveng.c:4556
 msgid "Mono"
 msgstr ""
 
-#: src/tveng.c:4558
+#: src/tveng.c:4563
 msgid "Stereo"
 msgstr ""
 
-#: src/tveng.c:4566
+#: src/tveng.c:4571
 msgid "Language 2"
 msgstr ""
 
@@ -2428,7 +2428,7 @@ msgstr ""
 msgid "Controls"
 msgstr ""
 
-#: src/v4linterface.c:1307 src/zmisc.c:1806
+#: src/v4linterface.c:1307 src/zmisc.c:1808
 msgid "Unknown"
 msgstr ""
 
@@ -2440,21 +2440,21 @@ msgstr ""
 msgid "No standard"
 msgstr ""
 
-#: src/v4linterface.c:2330
+#: src/v4linterface.c:2333
 msgid "Video standards"
 msgstr ""
 
-#: src/v4linterface.c:2350
+#: src/v4linterface.c:2353
 msgid "Audio inputs"
 msgstr ""
 
-#: src/v4linterface.c:2370
+#: src/v4linterface.c:2373
 msgid "Video inputs"
 msgstr ""
 
 #. TRANSLATORS: This is displayed in the channel menu when
 #. the channel list is empty.
-#: src/v4linterface.c:2468
+#: src/v4linterface.c:2471
 msgid "No channels"
 msgstr ""
 
@@ -2578,90 +2578,90 @@ msgstr ""
 msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr ""
 
-#: src/zmisc.c:658
+#: src/zmisc.c:660
 msgid "Could not switch to capture mode"
 msgstr ""
 
-#: src/zmisc.c:680 src/zmisc.c:697
+#: src/zmisc.c:682 src/zmisc.c:699
 msgid "Could not switch to overlay mode"
 msgstr ""
 
-#: src/zmisc.c:681 src/zmisc.c:732
+#: src/zmisc.c:683 src/zmisc.c:734
 msgid "Video overlay has been disabled."
 msgstr ""
 
-#: src/zmisc.c:713
+#: src/zmisc.c:715
 msgid "Could not switch to Teletext mode"
 msgstr ""
 
-#: src/zmisc.c:714
+#: src/zmisc.c:716
 msgid "VBI has been disabled, or it doesn't work."
 msgstr ""
 
-#: src/zmisc.c:731 src/zmisc.c:760
+#: src/zmisc.c:733 src/zmisc.c:762
 msgid "Could not switch to fullscreen mode"
 msgstr ""
 
-#: src/zmisc.c:1026
+#: src/zmisc.c:1028
 msgid "Hide the statusbar"
 msgstr ""
 
-#: src/zmisc.c:1238
+#: src/zmisc.c:1240
 #, c-format
 msgid "%s is not a directory."
 msgstr ""
 
-#: src/zmisc.c:1280
+#: src/zmisc.c:1282
 msgid "Could not create directory"
 msgstr ""
 
-#: src/zmisc.c:1281
+#: src/zmisc.c:1283
 #, c-format
 msgid ""
 "Could not create %s.\n"
 "%s"
 msgstr ""
 
-#: src/zmisc.c:2001
+#: src/zmisc.c:2003
 msgid "Device:"
 msgstr ""
 
-#: src/zmisc.c:2002
+#: src/zmisc.c:2004
 msgid "Driver:"
 msgstr ""
 
-#: src/zmisc.c:2003
+#: src/zmisc.c:2005
 msgid "Device file:"
 msgstr ""
 
-#: src/zmisc.c:2349
+#: src/zmisc.c:2351
 #, c-format
 msgid "Overwrite %s?"
 msgstr ""
 
-#: src/zmisc.c:2354
+#: src/zmisc.c:2356
 msgid "_Overwrite"
 msgstr ""
 
-#: src/zmisc.c:2362
+#: src/zmisc.c:2364
 #, c-format
 msgid "%s is a directory."
 msgstr ""
 
-#: src/zmisc.c:2377
+#: src/zmisc.c:2379
 #, c-format
 msgid "%s is a special file"
 msgstr ""
 
-#: src/zmisc.c:2381
+#: src/zmisc.c:2383
 msgid "Continue"
 msgstr ""
 
-#: src/zmisc.c:2659
+#: src/zmisc.c:2661
 msgid "Could not open help file"
 msgstr ""
 
-#: src/zmisc.c:2692
+#: src/zmisc.c:2694
 msgid "Could not open URL"
 msgstr ""
 
@@ -2669,41 +2669,41 @@ msgstr ""
 msgid "Reset"
 msgstr ""
 
-#: src/zvbi.c:1043
+#: src/zvbi.c:1036
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr ""
 
-#: src/zvbi.c:1046
+#: src/zvbi.c:1039
 #, c-format
 msgid " Teletext Page %x"
 msgstr ""
 
-#: src/zvbi.c:1047
+#: src/zvbi.c:1040
 msgid "Open this page with Zapzilla"
 msgstr ""
 
-#: src/zvbi.c:1446
+#: src/zvbi.c:1426
 msgid "PES file read error"
 msgstr ""
 
-#: src/zvbi.c:1665
+#: src/zvbi.c:1645
 msgid "VBI interface timeout"
 msgstr ""
 
-#: src/zvbi.c:1697
+#: src/zvbi.c:1677
 msgid "VBI interface: Failed to read from the device"
 msgstr ""
 
-#: src/zvbi.c:1775 src/zvbi.c:2045 src/zvbi.c:2154
+#: src/zvbi.c:1755 src/zvbi.c:2025 src/zvbi.c:2133
 msgid "VBI initialization failed"
 msgstr ""
 
-#: src/zvbi.c:2100
+#: src/zvbi.c:2079
 msgid "Cannot open PES file"
 msgstr ""
 
-#: src/zvbi.c:2155
+#: src/zvbi.c:2134
 #, c-format
 msgid "%s is no VBI device."
 msgstr ""
@@ -2856,6 +2856,10 @@ msgid "Show a toolbar in the main window."
 msgstr ""
 
 #: zapping.schemas.in.h:33
+msgid "Show double height characters in Teletext subtitles."
+msgstr ""
+
+#: zapping.schemas.in.h:34
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Teletext viewer may not display the correct font or national characters. You "
@@ -2865,50 +2869,50 @@ msgid ""
 "greek_and_turkish, arabic, hebrew_and_arabic."
 msgstr ""
 
-#: zapping.schemas.in.h:34
+#: zapping.schemas.in.h:35
 msgid "Switch to full capture size for screenshot."
 msgstr ""
 
-#: zapping.schemas.in.h:35
+#: zapping.schemas.in.h:36
 msgid "Teletext implementation level."
 msgstr ""
 
-#: zapping.schemas.in.h:36
+#: zapping.schemas.in.h:37
 msgid "Teletext implementation level. Valid values: 1, 1.5, 2.5, 3.5."
 msgstr ""
 
-#: zapping.schemas.in.h:37
+#: zapping.schemas.in.h:38
 msgid "Teletext page scaling quality."
 msgstr ""
 
-#: zapping.schemas.in.h:38
+#: zapping.schemas.in.h:39
 msgid "Text brightness, valid values range from 0 to 255."
 msgstr ""
 
-#: zapping.schemas.in.h:39
+#: zapping.schemas.in.h:40
 msgid "Text contrast, valid values range from -128 to 127."
 msgstr ""
 
-#: zapping.schemas.in.h:40
+#: zapping.schemas.in.h:41
 msgid "The Teletext search is case insensitive."
 msgstr ""
 
-#: zapping.schemas.in.h:41
+#: zapping.schemas.in.h:42
 msgid ""
 "This is the time in milliseconds Zapping will wait between pointer movements "
 "and blanking the pointer when over the video. A value of zero disables this "
 "feature."
 msgstr ""
 
-#: zapping.schemas.in.h:42
+#: zapping.schemas.in.h:43
 msgid "Time to wait until blanking the pointer."
 msgstr ""
 
-#: zapping.schemas.in.h:43
+#: zapping.schemas.in.h:44
 msgid "Update the clock in the Teletext page header."
 msgstr ""
 
-#: zapping.schemas.in.h:44
+#: zapping.schemas.in.h:45
 msgid ""
 "When your CPU is too slow to use the desired deinterlace mode you can reduce "
 "the horizontal resolution. Valid values: low, medium, high."

@@ -63,8 +63,6 @@ zvbi_get_model			(void);
    NULL. The returned value should be g_free'ed. */
 gchar *
 zvbi_get_name			(void);
-gchar *
-zvbi_get_current_network_name	(void);
 /* Clears the station_name_known flag. Useful when you are changing
    freqs fast and you want to know the current station */
 void

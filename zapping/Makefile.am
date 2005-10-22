@@ -65,7 +65,10 @@ DISTCLEANFILES = \
 distcleancheck_listfiles = \
 	find . -name site_def.h -prune -o -type f -print
 
-# make uninstall leaves a scrollkeeper contents skeleton in pkglocalstatedir
-# behind make distuninstallcheck shall ignore.
+# make uninstall leaves a scrollkeeper contents skeleton in pkglocalstatedir.
+# make distuninstallcheck shall ignore that.
 distuninstallcheck_listfiles = \
 	find . -name scrollkeeper -prune -o -type f -print
+
+dist-hook:
+	chown -R 500:100 $(distdir)

@@ -3034,7 +3034,7 @@ tv_get_overlay_buffer		(tveng_device_info *	info)
 }
 
 static int
-read_file_fd			(char *			buffer,
+read_file_from_fd		(char *			buffer,
 				 ssize_t		size,
 				 int			fd)
 {
@@ -3042,14 +3042,16 @@ read_file_fd			(char *			buffer,
 
 	assert (size > 1);
 
-	--size;
+	--size; /* space for NUL */
 	done = 0;
 
 	/* Read until EOF. */
+	/* XXX may block forever. */
 	while (0 != (actual = read (fd, buffer + done, size - done))) {
 		if (-1 == actual) {
 			if (EINTR != errno)
 				return -1; /* failed */
+			/* XXX EAGAIN possible? */
 		} else {
 			done += actual;
 		}
@@ -3212,7 +3214,7 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 	close (mypipe[1]); /* unused */
 	mypipe[1] = -1;
 
-	r = read_file_fd (errmsg, sizeof (errmsg), mypipe[0]);
+	r = read_file_from_fd (errmsg, sizeof (errmsg), mypipe[0]);
 
 	close (mypipe[0]);
 	mypipe[0] = -1;
@@ -3401,6 +3403,10 @@ init_overlay_window		(tveng_device_info *	info,
 			 w->height);
 }
 
+/* Be VERY careful here. The bktr driver lets any application which
+   has access permission DMA video data to any memory address, and
+   barely checks the parameters. */
+
 static const tv_window *
 p_tv_set_overlay_window		(tveng_device_info *	info,
 				 const tv_window *	window,
@@ -3489,19 +3495,8 @@ p_tv_set_overlay_window		(tveng_device_info *	info,
 		assert (clip->y2 <= win.height);
 	}
 
-	if (0) {
-		const tv_clip *clip;
-		const tv_clip *end;
-
-		end = vec.vector + vec.size;
-
-		for (clip = vec.vector; clip < end; ++clip) {
-			fprintf (stderr, "clip %u: %u, %u - %u, %u\n",
-				 clip - vec.vector,
-				 clip->x1, clip->y1,
-				 clip->x2, clip->y2);
-		}
-	}
+	if (0)
+		_tv_clip_vector_dump (&vec, stderr);
 
 	if (!tv_clip_vector_set (&info->overlay.clip_vector,
 				 clip_vector))

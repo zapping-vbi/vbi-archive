@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preferences.c,v 1.2 2005-10-14 23:40:13 mschimek Exp $ */
+/* $Id: preferences.c,v 1.3 2005-10-22 15:48:33 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -396,8 +396,8 @@ instance_init			(GTypeInstance *	instance,
 		      "additional hint."));
 
   attach_check_button (&prefs->table, row++,
-		       _("_Shrink double height characters"),
-		       GCONF_DIR "/shrink_double", FALSE, NULL);
+		       _("_Show double height characters"),
+		       GCONF_DIR "/show_dheight", TRUE, NULL);
 
   /* TRANSLATORS:
      Closed Caption is a captioning system used mainly in the USA,
@@ -488,7 +488,7 @@ instance_init			(GTypeInstance *	instance,
 					  GCONF_DIR "/background",
 					  GCONF_DIR "/pad",
 					  GCONF_DIR "/roll",
-					  GCONF_DIR "/shrink_double",
+					  GCONF_DIR "/show_dheight",
 					  NULL);
   if (!prefs->change_set || error)
     {

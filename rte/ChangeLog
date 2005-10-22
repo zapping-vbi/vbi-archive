@@ -1,3 +1,15 @@
+2005-10-21    <mschimek@users.sf.net>
+
+	* Makefile.am (pkgconfig_DATA): Added rte-0.5.pc.
+	* configure.in (AC_OUTPUT): Added rte-0.5.pc.
+	* rte-0.5.pc.in: Added.
+
+2005-10-20    <mschimek@users.sf.net>
+
+	* ffmpeg/libavcodec/mpegvideo.c (encode_picture): Fixed stack
+	  overflow on FreeBSD 4.x.
+	* configure.in: Bumped version number to 0.5.7.
+
 2005-03-16    <mschimek@users.sf.net>
 
 	* Release 0.5.6.
