@@ -55,6 +55,10 @@
 #  define ENABLE_BKTR 0
 #endif
 
+#ifndef HAVE_LRINT
+#  define lrint(x) ((long)(x))
+#endif
+
 #define IS_CAPTION_PGNO(pgno) ((pgno) <= 8)
 
 #ifdef HAVE_LIBZVBI
@@ -68,7 +72,7 @@ static ZModel *		vbi_model;	/* notify clients about the
 
 static gboolean		station_name_known = FALSE;
 static gchar		station_name[256];
-vbi_network		current_network; /* current network info */
+static vbi3_network	current_network; /* current network info */
 vbi_program_info	program_info[2]; /* current and next program */
 
 /* Returns the global vbi object, or NULL if vbi isn't enabled or
@@ -89,43 +93,32 @@ zvbi_get_model			(void)
 gchar *
 zvbi_get_name			(void)
 {
-  if (!station_name_known || !vbi)
+  if (!vbi || !station_name_known || !station_name)
     return NULL;
 
-  return g_convert (station_name, NUL_TERMINATED,
-		    "ISO-8859-1", "UTF-8",
-		    NULL, NULL, NULL);
-}
-
-gchar *
-zvbi_get_current_network_name	(void)
-{
-  gchar *name;
-
-  if (*current_network.name)
-    {
-      name = (gchar *) current_network.name;
-      /* FIXME the nn encoding should be UTF-8, but isn't
-	 really defined. g_convert returns NULL on failure. */
-      name = g_convert (name, strlen (name),
-			"UTF-8", "ISO-8859-1",
-			NULL, NULL, NULL);
-      return name;
-    }
-  else
-    {
-      return NULL;
-    }
+  return g_strdup (station_name);
 }
 
 void
 zvbi_name_unknown		(void)
 {
+  const tv_video_standard *vs;
+  guint scanning;
+
   station_name_known = FALSE;
 
-  /* FIXME nk, videostd_set */
+  /* XXX */
+  scanning = 625;
+  if ((vs = tv_cur_video_standard (zapping->info)))
+    if (vs->videostd_set & TV_VIDEOSTD_SET_525_60)
+      scanning = 525;
+
+  /* FIXME nk */
   if (vbi)
-    vbi3_decoder_reset (vbi, /* nk */ NULL, /* videostd_set */ 0);
+    vbi3_decoder_reset (vbi, /* nk */ NULL,
+			(525 == scanning) ?
+			VBI3_VIDEOSTD_SET_525_60 :
+			VBI3_VIDEOSTD_SET_625_50);
 }
 
 gboolean
@@ -1061,25 +1054,16 @@ acknowledge_trigger		(vbi_link *		link)
   g_free(buffer);
 }
 
+#endif /* 0 */
+
 static void
 update_main_title		(void)
 {
   tveng_tuned_channel *channel;
-  gchar *name = NULL;
+  const gchar *name;
 
-  if (*current_network.name)
-    {
-      name = current_network.name;
-      /* FIXME the nn encoding should be UTF-8, but isn't
-	 really defined. g_convert returns NULL on failure. */
-      name = g_convert (name, strlen (name),
-			"UTF-8", "ISO-8859-1",
-			NULL, NULL, NULL);
-    }
-  else
-    {
-      /* switch away from known network */
-    }
+  /* Can be NULL. */
+  name = current_network.name;
 
   channel = tveng_tuned_channel_nth (global_channel_list,
 				     cur_tuned_channel);
@@ -1087,9 +1071,9 @@ update_main_title		(void)
     z_set_main_title (NULL, name);
   else if (!channel->name)
     z_set_main_title (channel, name);
-
-  g_free (name);
 }
+
+#if 0
 
 static gint
 trigger_timeout			(gint			client_id)
@@ -1124,7 +1108,6 @@ trigger_timeout			(gint			client_id)
 
 #endif /* 0 */
 
-static pthread_mutex_t	network_mutex;
 static pthread_mutex_t	prog_info_mutex;
 
 double			zvbi_ratio = 4.0 / 3.0;
@@ -1205,52 +1188,49 @@ static vbi3_bool
 main_event_handler		(const vbi3_event *	ev,
 				 void *			user_data)
 {
-  /* VBI3_EVENT_PAGE_TYPE -- nothing to do here (yet). But we must
-     request the event to enable CC/TTX decoding to collect subtitle
-     information which will appear in pop-up menus et al. */
-
   ev = ev;
   user_data = user_data;
 
-  return FALSE; /* pass on */
-
-#if 0 /* later */
   switch (ev->type) {
-
-  case VBI_EVENT_NETWORK:
-    pthread_mutex_lock(&network_mutex);
-
-    memcpy(&current_network, &ev->ev.network, sizeof(vbi_network));
-
-    if (*current_network.name)
+  case VBI3_EVENT_NETWORK:
+    vbi3_network_set (&current_network, ev->network);
+    if (NULL != current_network.name)
       {
 	g_strlcpy(station_name, current_network.name, 255);
-	station_name[255] = 0;
 	station_name_known = TRUE;
       }
-    else if (*current_network.call)
+    else if (0 != current_network.call_sign[0])
       {
-	g_strlcpy(station_name, current_network.call, 255);
-	station_name[255] = 0;
+	g_strlcpy(station_name, current_network.call_sign, 255);
 	station_name_known = TRUE;
       }
     else
       {
 	station_name_known = FALSE;
       }
-
-    /* notify_clients_generic (TTX_NETWORK_CHANGE); */
-    pthread_mutex_unlock(&network_mutex);
-
+    update_main_title ();
     break;
 
+    /* VBI3_EVENT_PAGE_TYPE -- nothing to do here (yet). But we must
+       request the event to enable CC/TTX decoding to collect subtitle
+       information which will appear in pop-up menus et al. */
+
+  default:
+    break;
+  }
+
+  return FALSE; /* pass on */
+
+#if 0 /* later */
+  switch (ev->type) {
+
 #if 0 /* temporarily disabled */
-  case VBI_EVENT_TRIGGER:
+  case VBI3_EVENT_TRIGGER:
     notify_clients_trigger (ev->ev.trigger);
     break;
 #endif
 
-  case VBI_EVENT_ASPECT:
+  case VBI3_EVENT_ASPECT:
     if (zconf_get_int(NULL, "/zapping/options/main/ratio") == 3)
       zvbi_ratio = ev->ev.aspect.ratio;
     break;
@@ -2061,11 +2041,10 @@ allocate_vbi_decoder		(void)
 				/* videostd_set */ 0)))
     goto failure;
 
-  /* Send all events to our main event handler:
-     VBI3_EVENT_PAGE_TYPE -- notify about subtitle changes. */
   if (!vbi3_decoder_add_event_handler
       (vbi,
-       (VBI3_EVENT_PAGE_TYPE),
+       (VBI3_EVENT_NETWORK |   /* network name changed */
+	VBI3_EVENT_PAGE_TYPE), /* subtitle changes */
        main_event_handler, /* user_data */ NULL))
     goto failure;
 
@@ -2589,8 +2568,9 @@ shutdown_zvbi			(void)
 
   zvbi_stop (/* destroy_decoder */ TRUE);
 
+  vbi3_network_destroy (&current_network);
+
   pthread_mutex_destroy (&prog_info_mutex);
-  pthread_mutex_destroy (&network_mutex);
 
   D();
 
@@ -2649,10 +2629,9 @@ startup_zvbi			(void)
   vbi_reset_prog_info (&program_info[1]);
 #endif
 
-  pthread_mutex_init (&network_mutex, NULL);
   pthread_mutex_init (&prog_info_mutex, NULL);
 
-  CLEAR (current_network);
+  vbi3_network_init (&current_network);
 
   pes.timeout_id = NO_SOURCE_ID;
 
