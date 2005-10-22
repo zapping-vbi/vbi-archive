@@ -2,9 +2,13 @@
 
 SUBDIRS = \
 	alirc \
-	deinterlace \
 	screenshot \
 	mpeg
+
+# Presently it works only with V4L2 drivers.
+if BUILD_DEINTERLACE_PLUGIN
+SUBDIRS += deinterlace
+endif
 
 # Need libzvbi 0.2.x to build this module.
 if HAVE_LIBZVBI
