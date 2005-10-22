@@ -432,6 +432,8 @@ start_teletext			(void)
 
   zapping_view_appbar (zapping, TRUE);
 
+  view->appbar = zapping->appbar;
+
   gtk_widget_hide (GTK_WIDGET (zapping->video));
 
   gtk_widget_queue_resize (GTK_WIDGET (zapping));
