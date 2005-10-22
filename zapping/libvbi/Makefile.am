@@ -56,6 +56,7 @@ libvbi_la_SOURCES = \
 	top_title.c top_title.h \
 	ure.c ure.h \
 	vbi_decoder.c vbi_decoder.h vbi_decoder-priv.h \
+	vps.c vps.h \
 	vt.h
 
 exp-gfx.c: wstfont2.xbm ccfont3.xbm
