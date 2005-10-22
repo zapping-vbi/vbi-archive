@@ -1065,6 +1065,9 @@ capture_start			(tveng_device_info *	info,
 
   video_init (window, window->style->black_gc);
 
+  /* Trigger initial on_capture_canvas_allocate call. */
+  gtk_widget_queue_resize (window);
+
   return TRUE;
 
  failure:
