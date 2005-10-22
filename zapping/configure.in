@@ -14,6 +14,7 @@ AM_PROG_CC_STDC
 AC_HEADER_STDC
 AM_PROG_AS
 
+AC_CHECK_FUNCS(lrint)
 AC_CHECK_FUNCS(strlcpy)
 AC_CHECK_FUNCS(strndup)
 AC_CHECK_FUNCS(asprintf)
@@ -63,8 +64,9 @@ test -e site_def.h || cat <<EOF >site_def.h
 EOF
 
 dnl These are the plugins we can build, depending on the libs we find.
-dnl Screenshot and (parts of) deinterlace can compile unconditional.
-PLUGINS_TO_BUILD="deinterlace screenshot" dnl "template lirc"
+dnl Screenshot can compile unconditional.
+PLUGINS_TO_BUILD="screenshot"
+dnl "template lirc"
 
 dnl ===========================================================================
 dnl Compile checks
@@ -132,7 +134,7 @@ AC_DEFUN([CHECK_SIMD], [
     SIMD_SUPPORT="${SIMD_SUPPORT}$1 "
     AC_DEFINE(HAVE_$1, 1, [Define if $CC supports $1 extensions])
   fi
-  AM_CONDITIONAL(HAVE_$1, test $HAVE_$1 = yes)
+  AM_CONDITIONAL(HAVE_$1, test "x$HAVE_$1" = "xyes")
   CFLAGS="$SAVE_CFLAGS"]
   AC_MSG_RESULT($HAVE_$1))
 
@@ -256,6 +258,7 @@ if test "x$enable_v4l" = "xyes"; then
   AC_DEFINE(ENABLE_V4L, 1, [Define to build with V4L support])
   VIDEO_SUPPORT="${VIDEO_SUPPORT}V4L V4L2 "
   NEED_ZSFB=yes
+  PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD deinterlace"
 fi
 
 dnl ---------------------------------------------------------------------------
@@ -321,6 +324,8 @@ AC_SUBST(ZSFB_GROUP)
 dnl ---------------------------------------------------------------------------
 
 test "x$VIDEO_SUPPORT" = "x" && VIDEO_SUPPORT="none"
+
+AM_CONDITIONAL(BUILD_DEINTERLACE_PLUGIN, test "x$enable_v4l" = "xyes")
 
 dnl ===========================================================================
 dnl Audio device checks
@@ -680,22 +685,17 @@ dnl ---------------------------------------------------------------------------
 dnl RTE library (mpeg plugin, real time a/v encoding)
 dnl ---------------------------------------------------------------------------
 
-dnl Doesn't work reliable on FreeBSD
-if test "x$enable_bktr" != "xyes"; then
-  SAVE_LIBS=$LIBS
-  HAVE_RTE="0.5"
-  AC_CHECK_LIB(rte, rte_parameters_set,, [HAVE_RTE="no"])
-  AC_EGREP_HEADER(rte_parameters_set, librte.h,, [HAVE_RTE="no"])
-  if test "x$HAVE_RTE" != "xno"; then
-    PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD record"
-    AC_DEFINE(HAVE_LIBRTE, 1, [Define if RTE lib 0.5 is present])
-    RTE_LIB="-lrte"
-  fi
-  AC_SUBST(RTE_LIB)
-  LIBS="$SAVE_LIBS"
-else
-  HAVE_RTE="disabled"
+SAVE_LIBS=$LIBS
+HAVE_RTE="yes"
+AC_CHECK_LIB(rte, rte_parameters_set,, [HAVE_RTE="no"])
+AC_EGREP_HEADER(rte_parameters_set, librte.h,, [HAVE_RTE="no"])
+if test "x$HAVE_RTE" != "xno"; then
+  PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD record"
+  AC_DEFINE(HAVE_LIBRTE, 1, [Define if RTE lib 0.5 is present])
+  RTE_LIBS="-lrte"
 fi
+AC_SUBST(RTE_LIBS)
+LIBS="$SAVE_LIBS"
 
 dnl ---------------------------------------------------------------------------
 dnl lirc_client library (remote controls)
