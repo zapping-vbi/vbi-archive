@@ -1372,7 +1372,7 @@ gchar *substitute_keywords	(gchar		*string,
 
 void
 z_set_main_title	(tveng_tuned_channel	*channel,
-			 gchar *default_name)
+			 const gchar *default_name)
 {
   tveng_tuned_channel ch;
   gchar *buffer = NULL;
@@ -1639,13 +1639,16 @@ kp_enter			(gint			txl)
 {
   tveng_tuned_channel *tc;
 
+  tc = NULL;
+
   if (!isdigit (kp_chsel_buf[0]) || txl >= 1)
     tc = tveng_tuned_channel_by_rf_name (global_channel_list, kp_chsel_buf);
-  else
+
+  if (NULL == tc)
     tc = tveng_tuned_channel_nth (global_channel_list,
 				  strtoul (kp_chsel_buf, NULL, 0));
 
-  if (tc)
+  if (NULL == tc)
     z_switch_channel (tc, zapping->info);
 }
 
