@@ -22,14 +22,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.20 2005-09-01 01:34:29 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.21 2005-10-22 15:47:08 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>		/* malloc() */
 #include "vbi_decoder-priv.h"
 #include "misc.h"
+#include "vps.h"
 #ifndef ZAPPING8
-#  include "vps.h"
 #  include "wss.h"
 #endif
 
@@ -215,8 +215,6 @@ internal_reset			(vbi3_decoder *		vbi,
 	}
 }
 
-#ifndef ZAPPING8
-
 static void
 cni_change			(vbi3_decoder *		vbi,
 				 vbi3_cni_type		type,
@@ -361,6 +359,8 @@ decode_vps			(vbi3_decoder *		vbi,
 		return TRUE;
 	}
 
+#ifndef ZAPPING8
+
 	if ((vbi->handlers.event_mask & VBI3_EVENT_PROG_ID)
 	    && vbi->reset_time <= 0.0 /* not suspended */) {
 		vbi3_program_id pid;
@@ -394,8 +394,12 @@ decode_vps			(vbi3_decoder *		vbi,
 		}
 	}
 
+#endif /* !ZAPPING8 */
+
 	return TRUE;
 }
+
+#ifndef ZAPPING8
 
 static void
 aspect_event			(vbi3_decoder *		vbi,
@@ -501,11 +505,11 @@ vbi3_decoder_feed		(vbi3_decoder *		vbi,
 			all_success &= vbi3_caption_decoder_feed
 				(&vbi->cc, sliced->data,
 				 sliced->line, vbi->timestamp);
-#ifndef ZAPPING8
 		} else if ((sliced->id & VBI3_SLICED_VPS)
 			   && (0 == sliced->line || 16 == sliced->line)) {
 			vbi->timestamp_vps = vbi->timestamp;
 			all_success &= decode_vps (vbi, sliced->data);
+#ifndef ZAPPING8
 		} else if ((sliced->id & VBI3_SLICED_WSS_625)
 			   && (0 == sliced->line || 23 == sliced->line)) {
 			vbi3_aspect_ratio aspect;
