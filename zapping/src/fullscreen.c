@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.45 2005-10-14 23:34:55 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.46 2005-10-22 15:45:20 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -158,7 +158,7 @@ osd_model_changed			(ZModel	*	ignored1 _unused_,
 
   tv_clip_vector_init (&clip_vector);
 
-  gdk_window = GTK_BIN (black_window)->child->window;
+  gdk_window = drawing_area->window;
 
   w = tv_cur_overlay_window (info);
 
@@ -553,6 +553,8 @@ start_fullscreen		(display_mode		dmode,
 	  goto failure;
 	}
 
+      zconf_get_sources (zapping->info, /* mute */ FALSE);
+
       if (tv_get_controller (zapping->info) != TVENG_CONTROLLER_XV &&
 	  (tv_get_caps (zapping->info)->flags & TVENG_CAPS_CHROMAKEY))
 	{
@@ -604,6 +606,8 @@ start_fullscreen		(display_mode		dmode,
 		  GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
 	  goto failure;
 	}
+
+      zconf_get_sources (zapping->info, /* mute */ FALSE);
 
       break;
 
