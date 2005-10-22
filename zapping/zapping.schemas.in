@@ -790,6 +790,16 @@ tests.</long>
     <short>Text contrast, valid values range from -128 to 127.</short>
    </locale>
   </schema>
+  <schema>
+   <key>/schemas/apps/zapping/plugins/subtitle/show_dheight</key>
+   <applyto>/apps/zapping/plugins/subtitle/show_dheight</applyto>
+   <owner>Zapping</owner>
+   <type>bool</type>
+   <default>1</default>
+   <locale name="C">
+    <short>Show double height characters in Teletext subtitles.</short>
+   </locale>
+  </schema>
 
  </schemalist>
 </gconfschemafile>
