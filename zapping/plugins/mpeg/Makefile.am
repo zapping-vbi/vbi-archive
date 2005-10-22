@@ -5,7 +5,7 @@ plugindir = $(PLUGIN_DEFAULT_DIR)
 plugin_LTLIBRARIES = libmpeg.zapping.la
 
 libmpeg_zapping_la_SOURCES = mpeg.c options.c mpeg.h
-libmpeg_zapping_la_LIBADD = $(RTE_LIB)
+libmpeg_zapping_la_LIBADD = $(RTE_LIBS)
 
 pkgdata_DATA = mpeg_properties.glade2
 
