@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.17 2005-09-01 01:30:05 mschimek Exp $ */
+/* $Id: view.c,v 1.18 2005-10-22 15:46:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -38,6 +38,10 @@
 #include "main.h"
 #include "view.h"
 #include "src/remote.h"
+
+#ifndef HAVE_LRINT
+#  define lrint(x) ((long)(x))
+#endif
 
 #define BLINK_CYCLE 300 /* ms */
 
@@ -2490,7 +2494,7 @@ export_action			(GtkAction *		action _unused_,
 
   g_assert (view->pg && view->pg->pgno >= 0x100);
 
-  if ((name = zvbi_get_current_network_name ()))
+  if ((name = zvbi_get_name ()))
     {
       guint i;
 
@@ -2499,6 +2503,8 @@ export_action			(GtkAction *		action _unused_,
 	  name[i] = '_';
 
       dialog = export_dialog_new (view->pg, name, view->reveal);
+
+      g_free (name);
     }
   else
     {
