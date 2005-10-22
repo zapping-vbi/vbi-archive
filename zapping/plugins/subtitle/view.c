@@ -18,7 +18,11 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.1 2005-09-01 01:31:32 mschimek Exp $ */
+/* $Id: view.c,v 1.2 2005-10-22 15:47:31 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <gnome.h>
 #include <math.h>
@@ -38,6 +42,10 @@
 below video: e.g. video area += 20 % height,
 then add 20 % to subtitle rel_y.
 */
+
+#ifndef HAVE_LRINT
+#  define lrint(x) ((long)(x))
+#endif
 
 #define GCONF_DIR "/apps/zapping/plugins/subtitle"
 
@@ -59,6 +67,8 @@ static guint			signals[N_SIGNALS];
 static GdkCursor *		cursor_normal;
 static GdkCursor *		cursor_link;
 
+/* User options. */
+
 static vbi3_charset_code	default_charset		= 0;
 static GdkInterpType		interp_type		= GDK_INTERP_BILINEAR;
 static gint			brightness		= 128;
@@ -67,7 +77,7 @@ static vbi3_rgba		default_foreground	= -1;
 static vbi3_rgba		default_background	= 0;
 static gboolean			padding			= TRUE;
 static gboolean			roll			= TRUE;
-static gboolean			shrink_double		= FALSE;
+static gboolean			show_dheight		= TRUE;
 
 static void
 realloc_unscaled		(SubtitleView *		view,
@@ -1302,7 +1312,7 @@ load_page_			(SubtitleView *		view,
   vbi3_page_unref (view->show_pg);
   view->show_pg = NULL;
 
-  if (shrink_double && IS_TELETEXT_PAGE (pg))
+  if (!show_dheight && IS_TELETEXT_PAGE (pg))
     shrink_double_height (pg);
 
   change_opacity (pg, VBI3_OPAQUE);
@@ -1585,7 +1595,7 @@ caption_reload_notify		(GConfClient *		client,
 }
 
 static void
-shrink_double_notify		(GConfClient *		client,
+show_dheight_notify		(GConfClient *		client,
 				 guint			cnxn_id,
 				 GConfEntry *		entry,
 				 gpointer		user_data)
@@ -1595,7 +1605,7 @@ shrink_double_notify		(GConfClient *		client,
   entry = entry;
   user_data = user_data;
 
-  if (z_gconf_get_bool (&shrink_double, GCONF_DIR "/shrink_double"))
+  if (z_gconf_get_bool (&show_dheight, GCONF_DIR "/show_dheight"))
     {
       GList *p;
 
@@ -2397,7 +2407,8 @@ class_init			(gpointer		g_class,
 
   z_gconf_notify_add (GCONF_DIR "/roll", roll_notify, NULL);
 
-  z_gconf_notify_add (GCONF_DIR "/shrink_double", shrink_double_notify, NULL);
+  z_gconf_notify_add (GCONF_DIR "/show_dheight",
+		      show_dheight_notify, NULL);
 }
 
 GType
