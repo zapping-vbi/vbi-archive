@@ -37,6 +37,7 @@
 #include "osd.h"
 #include "globals.h"
 #include "zvideo.h"
+#include "v4linterface.h"
 
 /* This code clips DMA overlay into video memory against X window
    boundaries. Which is really the job of the X server, but without
@@ -711,7 +712,7 @@ start_overlay			(void)
   tv_info.timeout_id		= NO_SOURCE_ID;
 
   /* Make sure we use an Xv adaptor which can render into da->window.
-     (Won't help with X.org but it's the right thing to do.) */
+     (Doesn't matter with X.org but it's the right thing to do.) */
   tveng_close_device(zapping->info);
   if (-1 == tveng_attach_device
       (zcg_char (NULL, "video_device"),
@@ -722,6 +723,8 @@ start_overlay			(void)
 	      GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
       goto failure;
     }
+
+  zconf_get_sources (zapping->info, /* mute */ FALSE);
 
   tv_info.needs_cleaning =
     (tv_get_controller (zapping->info) != TVENG_CONTROLLER_XV);
