@@ -2,6 +2,8 @@
 <!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
 "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
   <!ENTITY app "<application>Zapping</application>">
+  <!ENTITY cmd "<command>zapping</command>">
+  <!ENTITY version "0.10">
 ]>
 <refentry id="zapping">
   <refmeta>
@@ -11,7 +13,7 @@
 
   <refnamediv>
     <refname>zapping</refname>
-    <refpurpose>a TV viewer for the Gnome environment</refpurpose>
+    <refpurpose>a Gnome TV and Teletext viewer</refpurpose>
   </refnamediv>
 
   <refsynopsisdiv>
@@ -32,7 +34,8 @@
       <arg>--no-xv-video</arg>
       <arg>-v, --no-xv</arg>
       <arg>--xv-image-port <replaceable>NUMBER</replaceable></arg>
-      <arg>--xv-port <replaceable>NUMBER</replaceable>, --xv-video-port <replaceable>NUMBER</replaceable></arg>
+      <arg>--xv-port <replaceable>NUMBER</replaceable>,
+      --xv-video-port <replaceable>NUMBER</replaceable></arg>
       <arg>-y, --yuv-format <replaceable>STRING</replaceable></arg>
       <arg>-z, --no-zsfb</arg>
     </cmdsynopsis>
@@ -41,7 +44,12 @@
   <refsect1 id="description">
     <title>Description</title>
 
-    <para>&app; is a program to watch TV on a computer, within the Gnome environment. You can take screenshots and record video and audio. &app; has a Teletext viewer built in and supports Closed Caption and Teletext subtitles. It is extensible through plugins. For more information open the Gnome help and choose Applications -> Sound and Video -> Zapping.</para>
+    <para>&app; is a program to watch TV on a computer, within the
+    Gnome environment. You can take screenshots and record video and
+    audio. &app; has a Teletext viewer built in and supports Closed
+    Caption and Teletext subtitles. For more information open the
+    Gnome help and choose Applications -> Multimedia ->
+    Zapping.  This manual page refers to &cmd; version &version;.</para>
   </refsect1>
 
   <refsect1 id="options">
@@ -50,16 +58,29 @@
     <variablelist>
 
       <varlistentry>
-	<term><option>-b, --bpp <replaceable>NUMBER</replaceable></option></term>
+	<term><option>-b, --bpp
+	<replaceable>NUMBER</replaceable></option></term>
 	<listitem>
-	  <para>Color depth of the X display. In TrueColor mode (24 or 32 bits per pixel) you might get a very distorted image that spreads all around the desktop. This usually means &app; could not correctly determine the color depth, which can be given here.</para>
+	  <para>Color depth of the X display. In TrueColor mode (24 or
+	  32 bits per pixel) you might get a very distorted image that
+	  spreads all around the desktop. This usually means &app;
+	  could not correctly determine the color depth, which can be
+	  given here.</para> 
 	</listitem>
       </varlistentry>
 
       <varlistentry>
-	<term><option>-c, --command <replaceable>COMMAND</replaceable></option></term>
+	<term><option>-c, --command
+	<replaceable>COMMAND</replaceable></option></term> 
 	<listitem>
-	  <para>Execute the given command and exit. This was intended to create a sort of batch mode. Currently only one command is implemented. In the future this option will probably be replaced by a lightweight tool to control &app; remotely. The <option>set_channel</option> command allows to change the channel by giving the channel name or RF channel number, for example:</para>
+	  <para>Execute the given command and exit. This was intended
+	  to create a sort of batch mode, you may want to use <citerefentry>
+	      <refentrytitle>zapping_remote</refentrytitle>
+	      <manvolnum>1</manvolnum>
+	    </citerefentry> instead. Only one command is
+	  implemented. The <option>set_channel</option> command allows
+	  to change the channel by giving the channel name or RF
+	  channel number, for example:</para>
 	  <programlisting>
 zapping -c "set_channel BBC"
 </programlisting>
@@ -69,49 +90,70 @@ zapping -c "set_channel BBC"
       <varlistentry>
 	<term><option>--console-errors</option></term>
 	<listitem>
-	  <para>Redirect the error messages to the console, useful for bug reports.</para>
+	  <para>Redirect the error messages to the console, useful for
+	  bug reports.</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
-	<term><option>--cpu-features</option></term>
+	<term><option>--cpu-features</option>
+        <replaceable>FEATURES</replaceable></term>
 	<listitem>
-	  <para>Override the CPU detection for tests. Possible features are: mmx, 3dnow, sse, sse2, altivec.</para>
+	  <para>Override the CPU detection for tests. Possible
+	  features are: none, mmx, 3dnow, sse, sse2, sse3,
+	  altivec. When your CPU does not support the given features
+	  &app; may crash.</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
 	<term><option>-d, --debug</option></term>
 	<listitem>
-	  <para>Print debug messages on standard output. You should include this information when submitting a bug report, as it can help to trace the problem.</para>
+	  <para>Print debug messages on standard output. You should
+	  include this information when submitting a bug report, as it
+	  can help to trace the problem.</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
-	<term><option>--device <replaceable>FILENAME</replaceable></option></term>
+	<term><option>--device
+	<replaceable>FILENAME</replaceable></option></term>
 	<listitem>
-	  <para>Kernel video device to use, usually <filename>/dev/video</filename>.</para>
+	  <para>Kernel video device to use, usually
+	  <filename>/dev/video</filename>. You can specify
+	  <filename>emulator</filename> for tests.</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
 	<term><option>--dword-align</option></term>
 	<listitem>
-	  <para>Forces doubleword alignment of the video in overlay mode. Can help when the image is distorted at certain sizes but looks fine at others.</para>
+	  <para>Forces doubleword alignment of the video in overlay
+	  mode. Can help when the image is distorted at certain sizes
+	  but looks fine at others.</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
-	<term><option>-n, --tunerless-norm <replaceable>STRING</replaceable></option></term>
+	<term><option>-n, --tunerless-norm
+	<replaceable>STRING</replaceable></option></term>
 	<listitem>
-	  <para>This option has no function but is recognized for compatibility with earlier versions of &app;. It determined the video standard to be used when your TV card has no tuner, one of NTSC, PAL or SECAM.</para>
+	  <para>This option has no function but is recognized for
+	  compatibility with earlier versions of &app;. It determined
+	  the video standard to be used when your TV card has no
+	  tuner, one of NTSC, PAL or SECAM.</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
 	<term><option>--no-overlay, --remote</option></term>
 	<listitem>
-	  <para>Do not overlay video. The <option>--remote</option> option refers to the X display. Overlay is only possible if the graphics card connects to the same bus as the TV card.</para>
+	  <para>Do not overlay video. The <option>--remote</option>
+	  option refers to the X display. Overlay is only possible if
+	  the graphics card and TV card are plugged into the same
+	  computer. Capture mode is possible on a remote display (on
+	  another computer or in a nested display) but requires a high
+	  network bandwidth.</para>
 	</listitem>
       </varlistentry>
 
@@ -125,7 +167,11 @@ zapping -c "set_channel BBC"
       <varlistentry>
 	<term><option>--no-vbi</option></term>
 	<listitem>
-	  <para>Do not capture and decode VBI data, i.e. Teletext, Subtitles, Closed Caption and station names.</para>
+	  <para>Do not capture and decode VBI data, i.e. Teletext,
+	  Subtitles, Closed Caption and station names. This option is
+	  intended for tests and applies only to the current
+	  session. To override it or disable VBI support permanently
+	  see the Devices -> VBI section in the &app; preferences.</para>
 	</listitem>
       </varlistentry>
 
@@ -139,42 +185,60 @@ zapping -c "set_channel BBC"
       <varlistentry>
 	<term><option>--no-xv-image</option></term>
 	<listitem>
-	  <para>Do not use the XVideo extension for hardware image scaling.</para>
+	  <para>Do not use the XVideo extension for hardware image
+	  scaling.</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
 	<term><option>-v, --no-xv</option></term>
 	<listitem>
-	  <para>Do not use the XVideo extension for video overlay or hardware image scaling.</para>
+	  <para>Do not use the XVideo extension for video overlay or
+	  hardware image scaling.</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
-	<term><option>--xv-image-port <replaceable>NUMBER</replaceable></option></term>
+	<term><option>--xv-image-port
+	<replaceable>NUMBER</replaceable></option></term>
 	<listitem>
-	  <para>Number of the XVideo port to use for hardware image scaling.</para>
+	  <para>Number of the XVideo port to use for hardware image
+	  scaling. Zapping lists the available ports with the
+	  <option>-d</option> option.</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
-	<term><option>--xv-port <replaceable>NUMBER</replaceable>, --xv-video-port <replaceable>NUMBER</replaceable></option></term>
+	<term><option>--xv-port <replaceable>NUMBER</replaceable>,
+	--xv-video-port	<replaceable>NUMBER</replaceable></option></term>
 	<listitem>
-	  <para>Number of the XVideo port (similar to a device) to use for video overlay.</para>
+	  <para>Number of the XVideo port (similar to a device) to use
+	  for video overlay. Zapping lists the available ports with the
+	  <option>-d</option> option.</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
-	<term><option>-y, --yuv-format <replaceable>STRING</replaceable></option></term>
+	<term><option>-y, --yuv-format
+	<replaceable>STRING</replaceable></option></term>
 	<listitem>
-	  <para>This option has no function but is recognized for compatibility with earlier versions of &app;. It determined the pixel format in capture mode when XVideo hardware image scaling was available, either YUYV or YVU420.</para>
+	  <para>This option has no function but is recognized for
+	  compatibility with earlier versions of &app;. It determined
+	  the pixel format in capture mode when XVideo hardware image
+	  scaling was available, either YUYV or YVU420.</para>
 	</listitem>
       </varlistentry>
 
       <varlistentry>
 	<term><option>-z, --no-zsfb</option></term>
 	<listitem>
-	  <para>This option has no function but is recognized for compatibility with earlier versions of &app;. It used to prevent execution of <command>zapping_setup_fb</command>(1) on startup.</para>
+	  <para>This option has no function but is recognized for
+	  compatibility with earlier versions of &app;. It used to
+	  prevent the execution of <citerefentry>
+	      <refentrytitle>zapping_setup_fb</refentrytitle>
+	      <manvolnum>1</manvolnum>
+	    </citerefentry> on startup. Now &app; calls the helper
+	  application only if necessary.</para>
 	</listitem>
       </varlistentry>
 
@@ -184,20 +248,38 @@ zapping -c "set_channel BBC"
   <refsect1 id="see-also">
     <title>See also</title>
 
-    <para><command>zapping_setup_fb</command>(1)</para>
+    <para><citerefentry>
+	<refentrytitle>zapping_remote</refentrytitle>
+        <manvolnum>1</manvolnum>
+      </citerefentry>, <citerefentry>
+	<refentrytitle>zapping_setup_fb</refentrytitle>
+        <manvolnum>1</manvolnum>
+      </citerefentry></para>
   </refsect1>
 
   <refsect1 id="authors">
     <title>Authors</title>
-    <para>&app; was written by Iñaki García Etxebarria, Michael H. Schimek (mschimek@users.sourceforge.net) and many contributors.</para>
-    <para>This manual page was written by Michael H. Schimek based on work by Christian Marillat.</para>
+    <para>&app; was written by Iñaki García Etxebarria, Michael
+    H. Schimek (mschimek@users.sourceforge.net) and many
+    contributors.</para>
+    <para>This manual page was written by Michael H. Schimek based on
+    work by Christian Marillat.</para>
   </refsect1>
 
   <refsect1 id="contact">
     <title>Contact</title>
 
     <para>&app; homepage: http://zapping.sourceforge.net</para>
-    <para>Please report bugs with the &app; bug tracker http://sourceforge.net/tracker/?group_id=2599 or mail us at zapping-misc@lists.sourceforge.net . Patches are even more appreciated.</para>
+    <para>Please report bugs with the &app; bug tracker
+    http://sourceforge.net/tracker/?group_id=2599 or mail us at
+    zapping-misc@lists.sourceforge.net</para>
   </refsect1>
 
 </refentry>
+<!--
+Local Variables:
+mode: sgml
+coding: utf-8
+indent-tabs-mode: nil
+End:
+ -->
