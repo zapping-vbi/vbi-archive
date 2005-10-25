@@ -212,21 +212,24 @@ EndSection
     <sect2 id="zapping-caption">
       <title>Caption / Subtitles</title>
 
-      <para>Zapping supports Closed Caption and Teletext subtitles. Strictly speaking caption is an aid for the hard of hearing while subtitles help viewers understand programs in foreign languages. Technically there is no difference, for simplicity we only refer to subtitles here.</para>
+      <para>Zapping supports Closed Caption and Teletext subtitles. Strictly speaking caption is an aid for the hard of hearing while subtitles help viewers understand programs in foreign languages. Technically there is no difference, so for simplicity we only refer to subtitles here.</para>
       <para>To enable subtitles choose the desired channel, page or language from the context menu <menuchoice>
 	  <guimenu>Subtitles</guimenu>
 	</menuchoice> submenu. To disable subtitles choose <menuchoice>
 	  <guimenu>Subtitles</guimenu>
 	  <guisubmenu>Disable</guisubmenu>
 	</menuchoice>. You can also click on the <guilabel>Subtitles</guilabel> button in the toolbar to enable or disable subtitles. When enabled, Zapping displays the Closed Caption channel or Teletext subtitle page last chosen on this channel.</para>
-      <para>Closed Caption channels are always listed in the menu, if transmitted. Teletext subtitle pages might not be listed if the station fails to transmit a subtitle link. To choose a Teletext subtitle page manually start Teletext, go to the desired page and click on the <guilabel>Subtitles</guilabel> button in the toolbar.</para>
-      <para>Presently it is not possible to record subtitles, this is planned for a later date.</para>
+      <para>Closed Caption channels are always listed in the menu if transmitted. Teletext subtitle pages may not be listed if the station fails to transmit a subtitle link. To choose a Teletext subtitle page manually start Teletext, go to the desired page and click on the <guilabel>Subtitles</guilabel> button in the toolbar.</para>
+      <para>When Zapping displays subtitles you can drag them to a different position with the left mouse button. To resize subtitles hold the <keycap>Shift</keycap> key down or drag with the middle mouse button.</para>
+      <para>Clicking on subtitles with the right mouse button opens a context menu where you can disable the subtitles or choose another language. With the <menuchoice>
+	  <guimenu>Encoding</guimenu>
+	</menuchoice> submenu you can override the character encoding of Teletext subtitles, which is sometimes incorrectly transmitted.</para>
     </sect2>
 
     <sect2 id="zapping-screenshot">
       <title>Take a screenshot</title>
       <para>To take a screenshot click on the <guilabel>Screenshot</guilabel> button in the toolbar or press the <keycap>S</keycap> key. A dialog will open where you can choose a file name, image format and compression quality if applicable.</para>
-      <para>The deinterlace option can remove interlace artefacts on the fly. It makes no sense to deinterlace scaled images, so the option is only available if the image height is 480 or 576 pixels.</para>
+      <para>The deinterlace option can remove interlace artefacts on the fly. It makes no sense to deinterlace scaled images, so the option is only available if the image height is 480 or 576 pixels. At your discretion screenshots may or may not contain the displayed subtitles.</para>
       <para>Screenshots are only possible if your TV card and its driver supports video capturing.</para>
     </sect2>
 
