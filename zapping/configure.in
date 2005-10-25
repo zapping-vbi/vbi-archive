@@ -585,7 +585,13 @@ AC_SUBST(PACKAGE_LIBS)
 AC_PATH_PROG(GDK_PIXBUF_CSOURCE, gdk-pixbuf-csource)
 test -z "$GDK_PIXBUF_CSOURCE" && AC_MSG_ERROR([
 *** To create icons we need the gdk-pixbuf-csource tool
-*** which is installed from GTK+ 2.0's gdk-pixbuf package.
+*** which is part of GTK+ 2.0's gdk-pixbuf package.
+])
+
+AC_PATH_PROG([GLIB_GENMARSHAL], [glib-genmarshal])
+test -z "$GLIB_GENMARSHAL" && AC_MSG_ERROR([
+*** To compile Zapping we need the glib-genmarshal tool
+*** which is part of GTK+ 2.0's glib package.
 ])
 
 dnl ---------------------------------------------------------------------------
