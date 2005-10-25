@@ -1,3 +1,5 @@
+## Process this file with automake to produce Makefile.in
+
 PIXMAPS = \
 	gnome-digital-camera.png \
 	gnome-grecord.png \
@@ -66,19 +68,22 @@ IMAGES = \
 	gnome-television.png
 
 pixmapdir = $(datadir)/pixmaps/zapping
-pixmap_DATA = $(PIXMAPS) $(IMAGES)
 
-EXTRA_DIST = $(pixmap_DATA) $(BUILTIN_PIXMAPS)
+pixmap_DATA = \
+	$(PIXMAPS) \
+	$(IMAGES)
 
 BUILT_SOURCES = $(BUILTIN_PIXMAPS:.png=.h)
+
+EXTRA_DIST = \
+	$(pixmap_DATA) \
+	$(BUILTIN_PIXMAPS)
 
 noinst_HEADERS = $(BUILT_SOURCES)
 
 CLEANFILES = $(BUILT_SOURCES)
 
-%.h: @GDK_PIXBUF_CSOURCE@
-
-%.h: %.png Makefile.am
+%.h: %.png
 	echo -e "\n/* Generated file, do not edit! */\n" > $@
 	@GDK_PIXBUF_CSOURCE@ --struct --build-list \
 	  `echo $(<F) | sed -e 's%[^[:alnum:]]%_%g'` $< | \

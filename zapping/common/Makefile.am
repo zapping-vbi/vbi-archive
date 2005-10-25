@@ -1,3 +1,5 @@
+## Process this file with automake to produce Makefile.in
+
 noinst_LIBRARIES = libcommon.a
 
 libcommon_a_SOURCES = \
@@ -26,8 +28,15 @@ EXTRA_DIST = \
 	$(structpr) \
 	$(BUILT_SOURCES)
 
-INCLUDES = $(DEFAULT_CFLAGS) $(UNICODE_CFLAGS) @COMMON_INCLUDES@ \
-	-I$(srcdir) @PG_CFLAGS@
+AM_CFLAGS = \
+	@DEFAULT_CFLAGS@ \
+	$(UNICODE_CFLAGS)
+
+INCLUDES = \
+	-I$(srcdir) \
+	@COMMON_INCLUDES@
+
+if MAINTAINER_MODE
 
 _videodev.h: Makefile.am $(structpr) videodev.h
 	$(srcdir)/$(structpr) <$(srcdir)/videodev.h \
@@ -84,9 +93,9 @@ _videodev2.h: Makefile.am $(structpr) videodev2.h
 	v4l2_captureparm.capturemode=V4L2_MODE_ \
 	v4l2_zoomcap.capability=V4L2_ZOOM_ \
 	v4l2_standard.colorstandard=V4L2_COLOR_STD_, \
-				    V4L2_COLOR_STD_PAL:colorstandard_data.pal, \
-				    V4L2_COLOR_STD_NTSC:colorstandard_data.ntsc, \
-				    V4L2_COLOR_STD_SECAM:colorstandard_data.secam \
+			    V4L2_COLOR_STD_PAL:colorstandard_data.pal, \
+			    V4L2_COLOR_STD_NTSC:colorstandard_data.ntsc, \
+			    V4L2_COLOR_STD_SECAM:colorstandard_data.secam \
 	v4l2_standard.transmission=V4L2_TRANSM_STD_ \
 	v4l2_enumstd=R \
 	v4l2_enumstd.index=WR \
@@ -139,7 +148,8 @@ _videodev2.h: Makefile.am $(structpr) videodev2.h
 # XXX v4l2_timecode.flags has V4L2_TC_USERBITS_field subset.
 _videodev25.h: Makefile.am $(structpr) videodev25.h
 	$(srcdir)/$(structpr) <$(srcdir)/videodev25.h \
-	"v4l2_fract={ fprintf (fp, \"%u/%u\", t->numerator, t->denominator); }" \
+	"v4l2_fract={ fprintf (fp, \"%u/%u\", \
+	                       t->numerator, t->denominator); }" \
 	printfn=fprint_v4l25_ioctl_arg \
 	v4l2_capability.driver=string \
 	v4l2_capability.card=string \
@@ -226,3 +236,5 @@ _pwc-ioctl.h: Makefile.am $(structpr) pwc-ioctl.h
 	printfn=fprint_pwc_ioctl_arg \
 	pwc_whitebalance.mode=PWC_WB_ \
 	> $@
+
+endif

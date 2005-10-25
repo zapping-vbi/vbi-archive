@@ -2,12 +2,12 @@
 
 noinst_LTLIBRARIES = libvbi.la
 
-# This is only a subset of libvbi 0.3, compile accordingly.
-AM_CFLAGS = -DZAPPING8
-
 BUILT_SOURCES = \
 	wstfont2.xbm \
 	ccfont3.xbm
+
+MAINTAINERCLEANFILES = \
+	fontgen
 
 EXTRA_DIST = \
 	$(BUILT_SOURCES) \
@@ -15,15 +15,14 @@ EXTRA_DIST = \
 	wstfont2.pbm \
 	ccfont3.pbm
 
-CLEANFILES = \
-	$(BUILT_SOURCES) \
-	fontgen
-
-INCLUDES = \
-	-I$(top_srcdir) \
+# ZAPPING8: this is only a subset of libzvbi 0.3, compile accordingly.
+AM_CFLAGS = \
 	-D_GNU_SOURCE \
 	-D_REENTRANT \
+	-DZAPPING8 \
 	$(UNICODE_CFLAGS)
+
+INCLUDES = -I$(top_srcdir)
 
 libvbi_la_SOURCES = \
 	bcd.c bcd.h \
@@ -59,16 +58,19 @@ libvbi_la_SOURCES = \
 	vps.c vps.h \
 	vt.h
 
-exp-gfx.c: wstfont2.xbm ccfont3.xbm
+exp-gfx.$(OBJEXT): wstfont2.xbm ccfont3.xbm
 
-wstfont2.xbm: wstfont2.pbm Makefile.am
-	$(MAKE) $(AM_MAKEFLAGS) fontgen$(EXEEXT)
+if MAINTAINER_MODE
+
+wstfont2.xbm: wstfont2.pbm Makefile.am fontgen$(EXEEXT)
 	$(top_builddir)/libvbi/fontgen$(EXEEXT) xbm wstfont2 10 < $< > $@
-ccfont3.xbm: ccfont3.pbm Makefile.am
-	$(MAKE) $(AM_MAKEFLAGS) fontgen$(EXEEXT)
+
+ccfont3.xbm: ccfont3.pbm Makefile.am fontgen$(EXEEXT)
 	$(top_builddir)/libvbi/fontgen$(EXEEXT) xbm ccfont3 13 < $< > $@
 
-# must prevent link conflict with libvbi 0.2
+endif
+
+# Must prevent link conflict with libzvbi 0.2.
 great_rename:
 	for file in *.c *.h; do \
 	  sed "s/vbi_/vbi3_/g;s/VBI_/VBI3_/g" <$$file >tmp; \
