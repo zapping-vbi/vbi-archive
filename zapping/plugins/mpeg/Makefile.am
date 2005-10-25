@@ -1,16 +1,8 @@
 ## Process this file with automake to produce Makefile.in
 
-plugindir = $(PLUGIN_DEFAULT_DIR)
+plugindir = @PLUGIN_DEFAULT_DIR@
 
 plugin_LTLIBRARIES = libmpeg.zapping.la
-
-libmpeg_zapping_la_SOURCES = mpeg.c options.c mpeg.h
-libmpeg_zapping_la_LIBADD = $(RTE_LIBS)
-
-pkgdata_DATA = mpeg_properties.glade2
-
-INCLUDES = -I$(top_srcdir) $(COMMON_INCLUDES) \
-	$(PLUGIN_DEFAULT_FLAGS) @PG_CFLAGS@ -DZAPPING8
 
 PIXMAPS = \
 	record.png \
@@ -21,12 +13,15 @@ PIXMAPS = \
 	time.png \
 	volume.png
 
-EXTRA_DIST = mpeg_properties.glade2 $(PIXMAPS)
 BUILT_SOURCES = pixmaps.h
-noinst_HEADERS = $(BUILT_SOURCES)
+
 CLEANFILES = $(BUILT_SOURCES)
 
-pixmaps.h: @GDK_PIXBUF_CSOURCE@
+EXTRA_DIST = \
+	$(PIXMAPS) \
+	mpeg_properties.glade2
+
+pkgdata_DATA = mpeg_properties.glade2
 
 pixmaps.h: $(PIXMAPS)
 	echo -e "\n/* Generated file, do not edit! */\n" > $@
@@ -34,3 +29,18 @@ pixmaps.h: $(PIXMAPS)
 	  @GDK_PIXBUF_CSOURCE@ --struct --build-list \
 	    `echo $$fi | sed -e 's%[^[:alnum:]]%_%g'` $(srcdir)/$$fi >> $@; \
 	done
+
+AM_CFLAGS = \
+	@PLUGIN_DEFAULT_FLAGS@ \
+	-DZAPPING8
+
+INCLUDES = \
+	-I$(top_srcdir) \
+	@COMMON_INCLUDES@
+
+libmpeg_zapping_la_SOURCES = \
+	mpeg.c mpeg.h \
+	options.c \
+	pixmaps.h
+
+libmpeg_zapping_la_LIBADD = $(RTE_LIBS)

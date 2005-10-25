@@ -2,14 +2,17 @@
 
 SUBDIRS = DI_GreedyH DI_Misc test
 
+plugindir = @PLUGIN_DEFAULT_DIR@
+
+plugin_LTLIBRARIES = libdeinterlace.zapping.la
+
+AM_CFLAGS = \
+	@PLUGIN_DEFAULT_FLAGS@ \
+	-DZAPPING8
+
 INCLUDES = \
 	-I$(top_srcdir) \
-	-DZAPPING8 \
-	@COMMON_INCLUDES@ \
-	@PLUGIN_DEFAULT_FLAGS@
-
-plugindir = @PLUGIN_DEFAULT_DIR@
-plugin_LTLIBRARIES = libdeinterlace.zapping.la
+	@COMMON_INCLUDES@
 
 libdeinterlace_zapping_la_SOURCES = \
 	DS_ApiCommon.h \

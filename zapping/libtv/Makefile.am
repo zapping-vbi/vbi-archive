@@ -2,12 +2,12 @@
 
 noinst_LTLIBRARIES = libtv.la
 
-INCLUDES = \
-	-I$(top_srcdir) \
+AM_CFLAGS = \
 	-D_REENTRANT \
 	-DUNTESTED_SIMD=1 \
-	@X_CFLAGS@ \
-	@PG_CFLAGS@
+	@X_CFLAGS@
+
+INCLUDES = -I$(top_srcdir)
 
 libtv_la_SOURCES = \
 	callback.c callback.h \

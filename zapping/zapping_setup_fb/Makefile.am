@@ -1,15 +1,38 @@
 ## Process this file with automake to produce Makefile.in
 ## Note $(DESTDIR)$(sbindir) also encoded in src/Makefile.am
 
-INCLUDES = \
-	-I$(top_srcdir) \
-	@COMMON_INCLUDES@ \
-	@DEFAULT_CFLAGS@
-
 bin_PROGRAMS = zapping_setup_fb
 bin_SCRIPTS = zapping_fix_overlay
 
-EXTRA_DIST = zapping_setup_fb.pam zapping_fix_overlay.in
+EXTRA_DIST = \
+	zapping_setup_fb.pam \
+	zapping_fix_overlay.in
+
+AM_CFLAGS = @DEFAULT_CFLAGS@
+
+INCLUDES = \
+	-I$(top_srcdir) \
+	@COMMON_INCLUDES@
+
+zapping_setup_fb_SOURCES = \
+	zapping_setup_fb.c zapping_setup_fb.h \
+	v4l.c \
+	v4l2.c \
+	v4l25.c
+
+zapping_setup_fb_LDADD = \
+	$(top_builddir)/libtv/libtv.la \
+	@X_LIBS@ \
+	-lX11 \
+	-lXext \
+	$(X_XINERAMA_LIBS) \
+	$(X_XF86DGA_LIBS) \
+	$(X_EXTRA_LIBS)
+
+zsfb.capps:
+	echo USER=root >$@
+	echo SESSION=TRUE >>$@
+	echo PROGRAM=$(sbindir)/zapping_setup_fb >>$@
 
 DISTCLEANFILES = zsfb.capps
 
@@ -47,23 +70,3 @@ else
 ## changed it...
 	rm -f $(DESTDIR)$(sysconfdir)/pam.d/zapping_setup_fb
 endif
-
-zapping_setup_fb_SOURCES = \
-	zapping_setup_fb.c zapping_setup_fb.h \
-	v4l.c \
-	v4l2.c \
-	v4l25.c
-
-zapping_setup_fb_LDADD = \
-	$(top_builddir)/libtv/libtv.la \
-	$(X_LIBS) \
-	-lX11 \
-	-lXext \
-	$(X_XINERAMA_LIBS) \
-	$(X_XF86DGA_LIBS) \
-	$(X_EXTRA_LIBS)
-
-zsfb.capps:
-	echo USER=root >$@
-	echo SESSION=TRUE >>$@
-	echo PROGRAM=$(sbindir)/zapping_setup_fb >>$@
