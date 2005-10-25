@@ -15,9 +15,9 @@ PKG_NAME="zapping"
     exit 1
 }
 
-if which gnome-autogen.sh >/dev/null 2>&1; then
-  USE_GNOME2_MACROS=1 . gnome-autogen.sh
-else
+#if which gnome-autogen.sh >/dev/null 2>&1; then
+#  USE_GNOME2_MACROS=1 . gnome-autogen.sh
+#else
 
 # Plan B. Copied from gnome-common to eliminate a Gnome CVS
 # dependency on distros without gnome-common package.
@@ -436,7 +436,7 @@ for configure_ac in $configure_files; do
     fi
 done
 
-conf_flags="--enable-maintainer-mode"
+conf_flags="" # "--enable-maintainer-mode"
 
 if test x$NOCONFIGURE = x; then
     printbold Running $srcdir/configure $conf_flags "$@" ...
@@ -448,4 +448,4 @@ fi
 
 # End of Plan B copied from gnome-common
 
-fi
+#fi
