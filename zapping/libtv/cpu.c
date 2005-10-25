@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.c,v 1.2 2005-06-28 01:10:44 mschimek Exp $ */
+/* $Id: cpu.c,v 1.3 2005-10-25 09:24:15 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -50,6 +50,7 @@ static struct {
 	const char *		name;
 	cpu_feature_set		feature;
 } features [] = {
+	{ "none",		0 },
 	{ "tsc",		CPU_FEATURE_TSC },
 	{ "cmov",		CPU_FEATURE_CMOV },
 	{ "mmx",		CPU_FEATURE_MMX },
