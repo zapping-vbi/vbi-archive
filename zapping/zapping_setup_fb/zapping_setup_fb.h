@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping_setup_fb.h,v 1.8 2005-10-14 23:37:39 mschimek Exp $ */
+/* $Id: zapping_setup_fb.h,v 1.9 2005-10-25 09:25:35 mschimek Exp $ */
 
 #ifndef ZAPPING_SETUP_FB_H
 #define ZAPPING_SETUP_FB_H
@@ -37,7 +37,7 @@
 #  define errmsg(template, args...)					\
      error_message (__FILE__, __LINE__, template , ##args)
 #else
-#  error Compiler doesn't support GNU C variadic macros
+#  error Compiler does not support GNU C variadic macros
 #endif
 
 #define privilege_hint()						\
@@ -45,6 +45,12 @@
 	   "%s must run with root privileges.\n"			\
 	   "Try consolehelper, sudo, su or set the SUID flag with "	\
 	   "chmod +s.\n", program_invocation_name);
+
+#if (__GNUC__ == 3 && __GNUC_MINOR__ >= 3) || __GNUC__ >= 4
+#  define _zsfb_nonnull(args...) nonnull(args)
+#else
+#  define _zsfb_nonnull(args...)
+#endif
 
 extern char *           program_invocation_name;
 extern char *           program_invocation_short_name;
@@ -69,7 +75,7 @@ error_message			(const char *		file,
 				 unsigned int		line,
 				 const char *		template,
 				 ...)
-  __attribute__ ((nonnull (1), format (printf, 3, 4)));
+  __attribute__ ((_zsfb_nonnull (1), format (printf, 3, 4)));
 
 extern int
 device_open_safer		(const char *		device_name,
@@ -81,16 +87,16 @@ extern int
 setup_v4l	 		(const char *		device_name,
 				 int			device_fd,
 				 const tv_overlay_buffer *buffer)
-  __attribute__ ((nonnull (3)));
+  __attribute__ ((_zsfb_nonnull (3)));
 extern int
 setup_v4l2	 		(const char *		device_name,
 				 int			device_fd,
 				 const tv_overlay_buffer *buffer)
-  __attribute__ ((nonnull (3)));
+  __attribute__ ((_zsfb_nonnull (3)));
 extern int
 setup_v4l25	 		(const char *		device_name,
 				 int			device_fd,
 				 const tv_overlay_buffer *buffer)
-  __attribute__ ((nonnull (3)));
+  __attribute__ ((_zsfb_nonnull (3)));
 
 #endif /* ZAPPING_SETUP_FB_H */

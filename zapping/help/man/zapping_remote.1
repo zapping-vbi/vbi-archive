@@ -21,12 +21,10 @@
 .SH NAME
 zapping_remote \- sends commands to a running instance of Zapping
 .SH "SYNOPSIS"
-.ad l
-.hy 0
-.HP 15
-\fBzapping_remote\fR [\-h] [\-d\ \fINAME\fR] [\-i\ \fIID\fR] [\-v] [\-x] [command]
-.ad
-.hy
+
+.nf
+\fBzapping_remote\fR [-h] [-d \fINAME\fR] [-i \fIID\fR] [-v] [-x] [command]
+.fi
 
 .SH "DESCRIPTION"
 
@@ -34,29 +32,29 @@ zapping_remote \- sends commands to a running instance of Zapping
 \fBzapping_remote\fR is a small program to send Python commands to a running instance of Zapping\&. See the Zapping documentation for a list of commands\&.
 
 .PP
-When the \-x option is given \fBzapping_remote\fR can also send XawTV commands, see the xawtv\-remote manual page for details\&. Zapping also responds to xawtv\-remote\&.
+When the -x option is given \fBzapping_remote\fR can also send Xawtv commands, see the \fBxawtv-remote\fR(1) manual page for details\&. Zapping also responds to \fBxawtv-remote\fR\&. This manual page refers to \fBzapping_remote\fR version 0\&.10\&.
 
 .SH "OPTIONS"
 
 .TP
-\fB\-h\fR
-Print usage information\&.
+\fB-h\fR
+Prints usage information on stdout, then terminates the program\&.
 
 .TP
-\fB\-d \fINAME\fR\fR
+\fB-d \fINAME\fR\fR
 The X display to use\&.
 
 .TP
-\fB\-i \fIID\fR\fR
-The ID of the Zapping or Xawtv main window\&. When omitted find it automatically\&.
+\fB-i \fIID\fR\fR
+The ID of the Zapping or Xawtv main window\&. When omitted \fBzapping_remote\fR tries to find it automatically\&.
 
 .TP
-\fB\-v \fINUMBER\fR\fR
+\fB-v \fINUMBER\fR\fR
 Debug level, default 0\&.
 
 .TP
-\fB\-x\fR
-Switch to a xawtv\-remote compatible mode, to send Xawtv instead of Python commands\&.
+\fB-x\fR
+Switches to a \fBxawtv-remote\fR compatible mode, sending Xawtv instead of Python commands\&.
 
 .SH "BUGS"
 
@@ -66,7 +64,7 @@ None known\&.
 .SH "SEE ALSO"
 
 .PP
-\fBzapping\fR(1)
+\fBzapping\fR(1), \fBzapping_setup_fb\fR(1)
 
 .SH "AUTHORS"
 

@@ -19,54 +19,67 @@
 ..
 .TH "ZAPPING_SETUP_FB" 1 "" "" ""
 .SH NAME
-zapping_setup_fb \- sets up the Framebuffer for Zapping
+zapping_setup_fb \- prepares V4L/V4L2 driver for overlay
 .SH "SYNOPSIS"
-.ad l
-.hy 0
-.HP 17
-\fBzapping_setup_fb\fR [\-?,\ \-\-help] [\-\-bpp\ \fINUMBER\fR] [\-\-device\ \fIFILENAME\fR] [\-\-display\ \fINAME\fR] [\-\-quiet] [\-\-usage] [\-\-verbose] [\-\-version]
-.ad
-.hy
+
+.nf
+\fBzapping_setup_fb\fR [-?, -h, --help, --usage] [-b, --bpp \fINUMBER\fR] [-c, --child]
+                 [-d, --device \fIFILENAME\fR] [-D, --display \fINAME\fR] [-f,
+                 --fd] [-q, --quiet] [-S, --screen \fISCREEN NUMBER\fR] [-v,
+                 --verbose] [-V, --version]
+.fi
 
 .SH "DESCRIPTION"
 
 .PP
-\fBzapping_setup_fb\fR is a small program intended to be installed as suid root that sets up the Framebuffer\&. If you have pam installed, it can be pam'ified too\&.
+\fBzapping_setup_fb\fR is a small program to prepare Video For Linux (V4L) or Video For Linux Two (V4L2) video capture drivers for video overlay\&. It must be executed by \fBpam\fR(8) with root privileges, or owned by root with the set-user-ID bit set (see \fBchmod\fR(1))\&. This manual page refers to \fBzapping_setup_fb\fR version 0\&.13\&.
 
-.SH "PURPOSE"
+.SH "BACKGROUND"
 
 .PP
-Overlaying TV in the video ram requires the driver to know the destination address in memory\&. To set this value root permissions are needed, this is why \fBzapping_setup_fb\fR needs this level of privileges\&. I've tried to make it secure, but better don't trust it very much\&.
+To enable video overlay V4L and V4L2 drivers need to know the screen memory address\&. For security reasons only the system administrator can program this address\&. \fBzapping\fR(1) delegates the task to this helper application\&.
 
 .SH "OPTIONS"
 
 .TP
-\fB\-?, \-\-help, \-\-usage\fR
-Print usage information\&.
+\fB-?, -h, --help, --usage\fR
+Prints usage information on stdout, then terminates the program\&.
 
 .TP
-\fB\-\-bpp \fINUMBER\fR\fR
-Current X bpp\&.
+\fB-b, --bpp \fINUMBER\fR\fR
+Color depth hint, the number of bits per pixel on the display in question, either 24 or 32\&. Usually \fBzapping_setup_fb\fR can determine this number automatically\&.
 
 .TP
-\fB\-\-device \fIFILENAME\fR\fR
-The video device to open, \fI/dev/video0\fR by default\&.
+\fB-c, --child\fR
+Zapping sets this flag when executing \fBzapping_setup_fb\fR as child process to enable the output of localized error messages in UTF-8 encoding on stderr\&.
 
 .TP
-\fB\-\-display \fINAME\fR\fR
-The X display to use\&.
+\fB-d, --device \fIFILENAME\fR\fR
+The video capture device to open, by default \fI/dev/video0\fR\&.
 
 .TP
-\fB\-\-quiet\fR
+\fB-D, --display \fINAME\fR\fR
+The X display to use\&. Defaults to the name defined by the \fBDISPLAY\fR environment variable\&.
+
+.TP
+\fB-f, --fd \fINUMBER\fR\fR
+Zapping uses this option when executing \fBzapping_setup_fb\fR as child process to access the video capture driver by this shared file descriptor instead of opening the device file by name\&.
+
+.TP
+\fB-q, --quiet\fR
 Decrements the verbosity level\&.
 
 .TP
-\fB\-\-verbose\fR
+\fB-S, --screen \fINUMBER\fR\fR
+The X screen to use (Xinerama), defaults to 0\&.
+
+.TP
+\fB-v, --verbose\fR
 Increments the verbosity level\&.
 
 .TP
-\fB\-\-version\fR
-Shows the program version\&.
+\fB-V, --version\fR
+Prints the version of \fBzapping_setup_fb\fR on stdout, then terminates the program\&.
 
 .SH "BUGS"
 
@@ -76,12 +89,12 @@ None known\&.
 .SH "SEE ALSO"
 
 .PP
-\fBzapping\fR(1)
+\fBzapping\fR(1), \fBzapping_remote\fR(1), \fBpam\fR(8)
 
 .SH "AUTHORS"
 
 .PP
-Zapping was written by Iñaki García Etxebarria, Michael H\&. Schimek (mschimek@users\&.sourceforge\&.net) and many contributors\&.
+Zapping and \fBzapping_setup_fb\fR were written by Iñaki García Etxebarria, Michael H\&. Schimek (mschimek@users\&.sourceforge\&.net) and many contributors\&.
 
 .PP
 This manual page was written by Michael H\&. Schimek based on work by Christian Marillat\&.

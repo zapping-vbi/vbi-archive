@@ -1,3 +1,28 @@
+2005-10-24    <mschimek@users.sf.net>
+
+	* configure.in: Added check for glib-genmarshal, required by
+	  src/Makefile.am.
+	* src/Makefile.am, zapping_setup_fb/Makefile.am,
+	  plugins/template/Makefile.am, plugins/teletext/Makefile.am,
+	  plugins/subtitle/Makefile.am, plugins/mpeg/Makefile.am,
+	  plugins/lirc/Makefile.am, plugins/deinterlace/Makefile.am,
+	  plugins/alirc/Makefile.am, libtv/Makefile.am, help/Makefile.am:
+	  Cleaned up.
+	* pixmaps/Makefile.am, libvbi/Makefile.am, common/Makefile.am:
+	  Build BUILT_SOURCES only in maintainer mode, cleaned up.
+	* help/man/Makefile.am: Build manuals only in maintainer mode.
+	* autogen.sh: Don't fall back to gnome-autogen.sh because it
+	  always enables maintainer mode.
+
+	* help/C/zapping.xml: Added move/resize and context menu
+	  descriptions to the subtitle section. Added note about subtitles
+	  to the screenshot section.
+	* help/C/settings.xml: Added Devices/VBI and Plugins/Subtitles
+	  section. Added explanation of recording plugin VBI preferences.
+	* libtv/cpu.c (features): Added 'none'.
+	* help/man/zapping.xml, help/man/zapping_remote.xml,
+	  help/man/zapping_setup_fb.xml: Updated.
+
 2005-10-22    <mschimek@users.sf.net>
 
 	* src/v4linterface.c (kp_enter): Numeric keypad channel number

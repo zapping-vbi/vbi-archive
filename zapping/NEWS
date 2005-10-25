@@ -22,8 +22,7 @@ This version of Zapping improves caption and subtitle support.
   automatically adjusts to keep all text visible. Size and position are
   remembered in the configuration, separately for windowed and
   fullscreen mode.
-- Roll-up Closed Caption updates with each character received and
-  rolls smoothly.
+- Roll-up Closed Caption updates in real time and rolls smoothly.
 - The subtitle languages menu now uses radio menu items to indicate
   the current language.
 - Users can override the character encoding of individual Teletext pages,
@@ -71,7 +70,7 @@ Fixes:
   Zapping closed the VBI device.
 - Capture mode error dialogs appeared twice.
 - Overlay didn't work with the built-in video device emulator.
-- A bug displaced the main window when leaving the fullscreen mode. 
+- A bug displaced the main window when leaving the fullscreen mode.
 
 Dependencies:
 
