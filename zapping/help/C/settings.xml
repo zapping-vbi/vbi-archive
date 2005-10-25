@@ -60,6 +60,25 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
       <para>and so on. Click on the down arrow of the device file entry to see a list of devices found by Zapping.</para>
     </sect2>
 
+    <sect2 id="zapping-settings-vbi-device">
+      <title>VBI Device</title>
+
+      <para>In this section you can select the source of Teletext and Closed Caption data. The DVB PES format is used for digital TV VBI transmissions in Europe. Zapping does not support digital TV yet, but it can read DVB files. For normal operation however you should choose a kernel device. Common device names are:</para>
+      <simplelist type="vert">
+        <member><filename>/dev/vbi</filename></member>
+        <member><filename>/dev/vbi0</filename></member>
+        <member><filename>/dev/vbi1</filename></member>
+        <member><filename>/dev/vbi2</filename></member>
+      </simplelist>
+      <para>And on Linux only:
+      <simplelist type="vert">
+        <member><filename>/dev/v4l/vbi</filename></member>
+        <member><filename>/dev/v4l/vbi0</filename></member>
+      </simplelist>
+      <para>The VBI device name should match the video device name. When for example the video device is <filename>/dev/video2</filename> or <filename>/dev/bktr2</filename> the corresponding VBI device is usually <filename>/dev/vbi2</filename>.</para>
+      <para>A VBI proxy allows two or more applications to read from the same VBI device, for example Zapping and Nextvepg. When this option is selected Zapping will access the chosen VBI device through the proxy, or directly if the proxy is not installed or is not running. The proxy is a service of the ZVBI library, currently it works only on Linux.</para>
+    </sect2>
+
     <sect2 id="zapping-settings-main">
       <title>Main Window</title>
 
@@ -322,6 +341,54 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
       <title>Recording plugin</title>
 
       <para>In this section you can create different named recording configurations.</para>
+      <sect3 id="zapping-settings-recording-vbi">
+        <title>Caption and subtitle recording</title>
+
+        <para>Zapping can record caption and subtitles as text files. To enable this select <guilabel>Subtitle file</guilabel> and the desired format and encoding. The name of the file will be the same as that of the audio/video file, with an appropriate extension (for example <filename>.sub</filename> for the MPSub format).</para>
+        <para>The <guilable>Update live caption at line breaks</guilable> option applies to real time Closed Caption, which does not appear page by page on the screen but as typed by the captioner. Zapping records the caption accordingly. However when this option is selected caption will appear line by line when played back, which may look better.</para>
+        <para>You can record the displayed subtitles or one channel or page of your choice. Closed Caption channels are numbered 1-8, Teletext pages 100-899. Multilingual recording is not supported yet.</para>
+    </sect2>
+
+    <sect2 id="zapping-settings-teletext">
+      <title>Subtitle plugin</title>
+      <variablelist>
+        <varlistentry>
+          <term><guilabel>Teletext default encoding</guilabel></term>
+          <listitem>
+            <para>Some stations fail to transmit a complete character set code, so the Teletext subtitle viewer may not display the correct font or national characters. You can select your geographical region as an additional hint.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><guilabel>Show double height characters</guilabel></term>
+          <listitem>
+            <para>Often Teletext subtitles are transmitted with double height characters. They may be more readable but also cover a larger area of the screen. When this option is selected Zapping shows Teletext subtitles as transmitted, otherwise it converts the subtitles to normal height.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><guilabel>Closed Caption foreground and background color</guilabel></term>
+          <listitem>
+            <para>With these settings you can override the default white on black color of Closed Caption. They have no effect when the station transmits other colors.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><guilabel>Roll live caption</guilabel></term>
+          <listitem>
+            <para>When this option is selected real time caption rolls smoothly, otherwise it rolls line by line. In overlay mode smooth rolling would flicker excessively, is therefore always disabled.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><guilabel>Brightness and contrast</guilabel></term>
+          <listitem>
+            <para>These values change the brightness and contrast of caption and subtitles.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><guilabel>Scaling</guilabel></term>
+          <listitem>
+            <para>You can freely resize subtitles. There are different ways to scale the image, some give better visual results, others are faster.</para>
+          </listitem>
+        </varlistentry>
+      </variablelist>
     </sect2>
 
     <sect2 id="zapping-settings-screenshot">
