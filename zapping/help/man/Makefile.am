@@ -5,13 +5,14 @@ MANUALS = \
 	zapping_remote.xml \
 	zapping_setup_fb.xml
 
-# XXX zapping_setup_fb.1 needs to be installed only if we NEED_ZSFB
 man_MANS = $(MANUALS:.xml=.1)
 
 EXTRA_DIST = $(man_MANS) $(MANUALS)
 
+if MAINTAINER_MODE
+
 if BUILD_MAN
-%.1: %.xml
+%.1: %.xml Makefile.am
 	@XSLTPROC@ -nonet "http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl" $<
 else
 # $(man_MANS) are in CVS and source tarball, so BUILD_MAN is necessary
@@ -21,6 +22,8 @@ else
 	echo stylesheets are missing. Rerun autogen.sh or configure
 	echo when you have them.
 	exit 1
+endif
+
 endif
 
 xmlcheck: $(MANUALS)
