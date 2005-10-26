@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(zapping, 0.10pre,
+AC_INIT(zapping, 0.10cvs,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
 AC_CONFIG_SRCDIR(configure.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
@@ -595,7 +595,7 @@ test -z "$GLIB_GENMARSHAL" && AC_MSG_ERROR([
 ])
 
 dnl ---------------------------------------------------------------------------
-dnl VBI decoding library
+dnl VBI capture and decoding library
 dnl ---------------------------------------------------------------------------
 
 HAVE_ZVBI="no"
@@ -611,10 +611,13 @@ if test "x$with_zvbi" = "xyes"; then
      HAVE_ZVBI="yes"
      AC_SUBST(ZVBI_CFLAGS)
      AC_SUBST(ZVBI_LIBS)],
-    [echo "*** Could not find libzvbi >= $REQUIRED_ZVBI_VERSION."
-     echo "*** The library is required for Teletext, caption/subtitles"
-     echo "*** and OSD.  The latest version is available from"
-     echo "*** http://zapping.sourceforge.net.  To compile Zapping without"
+    [echo -n "*** Could not find libzvbi >= $REQUIRED_ZVBI_VERSION. "
+     echo "The library is required" 
+     echo "*** for Teletext, caption/subtitles and OSD. If you are sure"
+     echo "*** libzvbi $REQUIRED_ZVBI_VERSION is installed, try"
+     echo "*** ./configure PKG_CONFIG_PATH=/usr/local/lib/pkgconfig ..."
+     echo "*** The latest version of libzvbi is available from"
+     echo "*** http://zapping.sourceforge.net. To compile Zapping without"
      echo "*** libzvbi run ./configure --without-zvbi"
      exit 1])
 fi
@@ -784,7 +787,7 @@ if test "x$SCROLLKEEPER_CONFIG" = "xno"; then
   tarball from http://scrollkeeper.sourceforge.net])
 fi
 
-dnl For test scripts.
+dnl For build test scripts.
 AC_ARG_ENABLE(rebuild-man,
   AC_HELP_STRING([--enable-rebuild-man], [Rebuild manual pages (auto).]),,
   [enableval=auto])
@@ -810,13 +813,13 @@ dnl ---------------------------------------------------------------------------
 
 dnl Compilation flags
 
-# Warnings are not enabled by default, they must be added to CFLAGS
-# at configure or autogen.sh time by the maintainer.
-WARN_CFLAGS="-W -Wall -Wunused -Wmissing-prototypes -Wmissing-declarations \
-  -Wdeclaration-after-statement -Wundef -Wendif-labels -Wshadow \
-  -Wfloat-equal -Wpointer-arith -Wwrite-strings \
-  -Wbad-function-cast -Wcast-qual -Wcast-align \
-  -Winline -Wconversion" # -Wpadded
+dnl Warnings are not enabled by default, they must be added to CFLAGS
+dnl at configure or autogen.sh time by the maintainer.
+dnl WARN_CFLAGS="-W -Wall -Wunused -Wmissing-prototypes \
+dnl   -Wmissing-declarations -Wdeclaration-after-statement -Wundef \
+dnl   -Wendif-labels -Wshadow -Wfloat-equal -Wpointer-arith -Wwrite-strings \
+dnl   -Wbad-function-cast -Wcast-qual -Wcast-align \
+dnl   -Winline -Wconversion" # -Wpadded
 
 dnl XXX maintainer only, see list
 dnl DEPR_CFLAGS="\
@@ -829,16 +832,18 @@ dnl "
 
 dnl Note $prefix and derived variables must not be expanded in
 dnl configure but only in Makefiles. They are, in fact, undefined
-dnl at this point.
+dnl at this point. Defaults:
+dnl prefix=/usr/local      eprefix=/usr/local
+dnl datadir=$prefix/share  sbindir=$eprefix/sbin
 DIR_CFLAGS="\
   -DPACKAGE_DATA_DIR=\\\"\${datadir}\\\" \
   -DPACKAGE_LOCALE_DIR=\\\"\${datadir}/locale\\\" \
   -DPACKAGE_PIXMAPS_DIR=\\\"\${datadir}/pixmaps/\${PACKAGE}\\\"\
   -DPACKAGE_LIB_DIR=\\\"\${prefix}/lib/\${PACKAGE}\\\" \
-  -DPACKAGE_ZSFB_DIR=\\\"\${DESTDIR}\${sbindir}\\\" \
+  -DPACKAGE_ZSFB_DIR=\\\"\${sbindir}\\\" \
 "
 
-DEFAULT_CFLAGS="-D_GNU_SOURCE $DEPR_CFLAGS $X_CFLAGS $DIR_CFLAGS"
+DEFAULT_CFLAGS="-D_GNU_SOURCE $X_CFLAGS $DIR_CFLAGS"
 AC_SUBST(DEFAULT_CFLAGS)
 
 PACKAGE_PIXMAPS_DIR="\${prefix}/\${DATADIRNAME}/pixmaps/\${PACKAGE}"
@@ -889,7 +894,6 @@ help/man/Makefile
 help/C/Makefile
 test/Makefile
 ])
-
 
 dnl ---------------------------------------------------------------------------
 

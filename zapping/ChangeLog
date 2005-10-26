@@ -1,3 +1,15 @@
+2005-10-26    <mschimek@users.sf.net>
+
+	* Prerelease 0.10cvs.
+
+2005-10-26    <mschimek@users.sf.net>
+
+	* src/main.c (startup_zapping): Compile zconf_get_ttx_encodings
+	  call only if we HAVE_LIBZVBI.
+	* src/fullscreen.c (fullscreen_activate_subtitles): Compile only
+	  if we HAVE_LIBZVBI.
+	* configure.in: Removed DESTDIR prefix from -DPACKAGE_ZSFB_DIR.
+
 2005-10-24    <mschimek@users.sf.net>
 
 	* configure.in: Added check for glib-genmarshal, required by

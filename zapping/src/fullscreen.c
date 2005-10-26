@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.46 2005-10-22 15:45:20 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.47 2005-10-26 21:54:32 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -295,6 +295,7 @@ fullscreen_activate_subtitles	(gboolean		active)
 
   if (active)
     {
+#ifdef HAVE_LIBZVBI
       if (_subtitle_view_new)
 	{
 	  if (!subtitles)
@@ -335,6 +336,7 @@ fullscreen_activate_subtitles	(gboolean		active)
 					   w->x, w->y, w->width, w->height);
 	    }
 	}
+#endif /* HAVE_LIBZVBI */
     }
   else
     {

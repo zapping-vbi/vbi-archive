@@ -605,7 +605,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.206 2005-10-14 23:35:52 mschimek Exp $",
+	 "$Id: main.c,v 1.207 2005-10-26 21:54:32 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
@@ -1331,8 +1331,10 @@ static gboolean startup_zapping(gboolean load_plugins,
       /* Error ignored. */
       zconf_get_controls (tc, buffer);
 
+#ifdef HAVE_LIBZVBI
       /* Error ignored. */
       zconf_get_ttx_encodings (tc, buffer);
+#endif
 
       tveng_tuned_channel_insert (&global_channel_list, tc,
 				  /* position */ G_MAXINT);

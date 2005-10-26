@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2005-10-22 01:23+0200\n"
+"POT-Creation-Date: 2005-10-26 23:42+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -31,7 +31,7 @@ msgstr ""
 msgid "Advanced"
 msgstr ""
 
-#: glade/zapping.glade2.h:4 src/audio.c:532 src/audio.c:537 src/tveng.c:4538
+#: glade/zapping.glade2.h:4 src/audio.c:532 src/audio.c:537 src/tveng.c:4528
 msgid "Audio"
 msgstr ""
 
@@ -2204,7 +2204,7 @@ msgstr ""
 msgid "Do not change"
 msgstr ""
 
-#: src/properties-handler.c:1159 src/tveng.c:4549
+#: src/properties-handler.c:1159 src/tveng.c:4539
 msgid "Automatic"
 msgstr ""
 
@@ -2385,15 +2385,15 @@ msgstr ""
 msgid "%s failed."
 msgstr ""
 
-#: src/tveng.c:4556
+#: src/tveng.c:4546
 msgid "Mono"
 msgstr ""
 
-#: src/tveng.c:4563
+#: src/tveng.c:4553
 msgid "Stereo"
 msgstr ""
 
-#: src/tveng.c:4571
+#: src/tveng.c:4561
 msgid "Language 2"
 msgstr ""
 
