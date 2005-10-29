@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2005-10-26 23:42+0200\n"
-"PO-Revision-Date: 2005-02-08 15:35+0100\n"
+"PO-Revision-Date: 2005-10-29 15:21+0200\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -82,11 +82,11 @@ msgstr "Controlador:"
 
 #: glade/zapping.glade2.h:16
 msgid "DVB PES File"
-msgstr ""
+msgstr "Fichero DVB PES"
 
 #: glade/zapping.glade2.h:17
 msgid "DVB _PES File"
-msgstr ""
+msgstr "Fichero DVB _PES"
 
 #: glade/zapping.glade2.h:18
 msgid "Device name:"
@@ -122,9 +122,8 @@ msgid "Interlaced (window size)"
 msgstr "Entrelazado (tamaño de la ventana)"
 
 #: glade/zapping.glade2.h:26
-#, fuzzy
 msgid "Kernel VBI device"
-msgstr "_Dispositivo del núcleo"
+msgstr "Dispositivo VBI del núcleo"
 
 #: glade/zapping.glade2.h:27
 msgid "Kernel _device"
@@ -264,7 +263,7 @@ msgstr "Contenidos de la _barra de título:"
 
 #: glade/zapping.glade2.h:59 src/zvbi.c:2551
 msgid "VBI"
-msgstr ""
+msgstr "VBI"
 
 # src/v4l2interface.c:344
 #: glade/zapping.glade2.h:60 src/main.c:199 src/properties-handler.c:1306
@@ -343,9 +342,8 @@ msgid "_Mute on exit"
 msgstr "_Silenciar al terminar"
 
 #: glade/zapping.glade2.h:78
-#, fuzzy
 msgid "_No VBI services"
-msgstr "Dispositivo de VBI"
+msgstr "_Sin servicios VBI"
 
 #: glade/zapping.glade2.h:79
 msgid "_No audio recording"
@@ -365,7 +363,7 @@ msgstr "_Iniciar Zapping sin sonido"
 
 #: glade/zapping.glade2.h:83
 msgid "_Use VBI Proxy if available"
-msgstr ""
+msgstr "_Utilizar el proxy VBI si está disponible"
 
 #: glade/zapping.glade2.h:84
 msgid "seconds"
@@ -564,14 +562,14 @@ msgstr "Codificación"
 
 #: libvbi/exp-sub.c:171
 msgid "Font face"
-msgstr ""
+msgstr "Tipografía"
 
 #. TRANSLATORS:
 #. Caption is an aid for the hearing impaired,
 #. subtitles for foreign language viewers.
 #: libvbi/exp-sub.c:1534
 msgid "MPlayer caption/subtitle file"
-msgstr ""
+msgstr "Fichero de subtítulos de MPlayer"
 
 #. TRANSLATORS:
 #. Styles like bold, italic, underlined, etc.
@@ -580,25 +578,25 @@ msgstr ""
 msgid ""
 "QuickTime Text caption/subtitle file preserving text styles, justification "
 "and color"
-msgstr ""
+msgstr "Fichero de subtítulos Quicktime Text manteniendo los estilos de texto, la justificación y el color"
 
 #: libvbi/exp-sub.c:1583
 msgid "RealText caption/subtitle file preserving text styles and color"
-msgstr ""
+msgstr "Fichero de subtítulos RealText manteniendo los estilos de texto y el color"
 
 #: libvbi/exp-sub.c:1606
 msgid ""
 "SAMI 1.0 caption/subtitle file preserving text styles, justification and "
 "color"
-msgstr ""
+msgstr "Fichero de subtítulos SAMI 1.0 manteniendo los estilos de texto, la justificación y el color"
 
 #: libvbi/exp-sub.c:1630
 msgid "SubRip caption/subtitle file"
-msgstr ""
+msgstr "Fichero de subtítulos SubRip"
 
 #: libvbi/exp-sub.c:1652
 msgid "SubViewer 2.x caption/subtitle file"
-msgstr ""
+msgstr "Fichero de subtítulos SubViewer 2.x"
 
 #. TRANSLATORS: Terminal control codes menu
 #: libvbi/exp-txt.c:112
@@ -948,7 +946,7 @@ msgstr "Grabar audio y vídeo."
 
 #: plugins/mpeg/mpeg_properties.glade2.h:1
 msgid "-"
-msgstr ""
+msgstr "-"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:2
 msgid "Capture _height:"
@@ -959,9 +957,8 @@ msgid "Capture _width:"
 msgstr "A_ncho de la captura:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:4
-#, fuzzy
 msgid "Co_dec:"
-msgstr "_Codec:"
+msgstr "Co_dec:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:5
 #: plugins/screenshot/screenshot.glade2.h:3
@@ -974,11 +971,11 @@ msgstr "_Formato"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:8
 msgid "Record _all subtitles"
-msgstr ""
+msgstr "Grabar _todos los subtítulos"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:9
 msgid "Record this channel or _page:"
-msgstr ""
+msgstr "Grabar este canal o _página:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:10
 msgid "Save _as:"
@@ -989,9 +986,8 @@ msgid "_Audio"
 msgstr "_Audio"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:12
-#, fuzzy
 msgid "_Caption and Subtitles"
-msgstr "_Subtítulos"
+msgstr "_Texto y Subtítulos"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:13
 msgid "_Codec:"
@@ -1007,7 +1003,7 @@ msgstr "_Eliminar"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:16
 msgid "_Embedded in the video file:"
-msgstr ""
+msgstr "_En el fichero de vídeo:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:17
 #: plugins/screenshot/screenshot.glade2.h:13
@@ -1019,9 +1015,8 @@ msgid "_New"
 msgstr "_Nueva"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:19
-#, fuzzy
 msgid "_No caption or subtitle recording"
-msgstr "_Sin grabación de audio"
+msgstr "_Sin grabación de subtítulos"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:20
 msgid "_Pause"
@@ -1033,24 +1028,23 @@ msgstr "_Grabar"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:22
 msgid "_Record the displayed caption or subtitles"
-msgstr ""
+msgstr "_Grabar los subtítulos mostrados"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:23
 msgid "_Stop"
 msgstr "_Parar"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:24
-#, fuzzy
 msgid "_Subtitle file:"
-msgstr "Índice de subtítulos"
+msgstr "Ficheros de _subtítulos:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:25
 msgid "_Superimposed onto the picture"
-msgstr ""
+msgstr "_Sobre la imagen"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:26
 msgid "_Update live caption at line breaks"
-msgstr ""
+msgstr "_Actualizar el subtítulo en los saltos de línea"
 
 # src/v4l2interface.c:344
 #: plugins/mpeg/mpeg_properties.glade2.h:27 src/zapping.c:470
@@ -1199,9 +1193,8 @@ msgid "Subtitles"
 msgstr "Subtítulos"
 
 #: plugins/subtitle/main.c:89
-#, fuzzy
 msgid "Subtitle plugin"
-msgstr "Índice de subtítulos"
+msgstr "Plugin de subtítulos"
 
 #: plugins/subtitle/preferences.c:55 plugins/teletext/preferences.c:57
 msgid "Western and Central Europe"
@@ -1253,29 +1246,23 @@ msgid "Hyper (slow, high quality)"
 msgstr "Hyper (lento, gran calidad)"
 
 #: plugins/subtitle/preferences.c:386
-#, fuzzy
 msgid "<b>Teletext</b>"
-msgstr "Teletexto"
+msgstr "<b>Teletexto</b>"
 
 #: plugins/subtitle/preferences.c:388 plugins/teletext/preferences.c:303
 msgid "_Default encoding:"
 msgstr "_Codificación por defecto:"
 
 #: plugins/subtitle/preferences.c:392
-#, fuzzy
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Subtitle viewer may not display the correct font or national characters. You "
 "can select your geographical region here as an additional hint."
-msgstr ""
-"Algunos canales no transmiten un identificador de idioma apropiado, así que "
-"puede que el Teletexto no represente adecuadamente la fuente o los "
-"caracteres nacionales. Puedes seleccionar aquí tu zona geográfica como una "
-"ayuda adicional."
+msgstr "Algunos canales no transmiten un identificador de idioma apropiado, así que puede que el visor de Teletexto no represente adecuadamente la fuente o los caracteres nacionales. Puedes seleccionar aquí tu zona geográfica como una ayuda adicional."
 
 #: plugins/subtitle/preferences.c:399
 msgid "_Show double height characters"
-msgstr ""
+msgstr "_Mostrar caracteres de altura doble"
 
 #. TRANSLATORS:
 #. Closed Caption is a captioning system used mainly in the USA,
@@ -1283,31 +1270,27 @@ msgstr ""
 #. caption and subtitle transmissions.
 #: plugins/subtitle/preferences.c:406
 msgid "<b>Closed Caption</b>"
-msgstr ""
+msgstr "<b>Closed Caption</b>"
 
 #: plugins/subtitle/preferences.c:408
-#, fuzzy
 msgid "_Foreground:"
-msgstr "Color de _primer plano:"
+msgstr "_Primer plano:"
 
 #: plugins/subtitle/preferences.c:410
-#, fuzzy
 msgid "Closed Caption foreground color"
-msgstr "Color de _primer plano:"
+msgstr "Color de _primer plano de Closed Caption:"
 
 #: plugins/subtitle/preferences.c:413
-#, fuzzy
 msgid "_Background:"
-msgstr "_Fondo"
+msgstr "_Fondo:"
 
 #: plugins/subtitle/preferences.c:415
-#, fuzzy
 msgid "Closed Caption background color"
-msgstr "Color de _fondo:"
+msgstr "Color de fondo de Closed Caption"
 
 #: plugins/subtitle/preferences.c:424
 msgid "_Roll live caption"
-msgstr ""
+msgstr "_Subtítulos dinámicos"
 
 #: plugins/subtitle/preferences.c:427 plugins/teletext/preferences.c:368
 msgid "<b>Display</b>"
@@ -1336,9 +1319,8 @@ msgid "_Disable"
 msgstr "_Dishabilitar"
 
 #: plugins/subtitle/view.c:1703
-#, fuzzy
 msgid "_Reset position"
-msgstr "_Resolución:"
+msgstr "_Restaurar la posición"
 
 #: plugins/subtitle/view.c:1705 plugins/teletext/window.c:810
 msgid "_Encoding"
@@ -1709,9 +1691,8 @@ msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr "<span foreground=\"yellow\">Audio encendido</span>"
 
 #: src/capture.c:895
-#, fuzzy
 msgid "Cannot stop capturing while recording."
-msgstr "No se puede empezar a capturar: %s"
+msgstr "No se puede para la captura mientras se graba."
 
 #: src/capture.c:1077
 #, c-format
@@ -2038,7 +2019,7 @@ msgstr "CMD"
 
 #: src/main.c:549
 msgid "Override CPU detection"
-msgstr ""
+msgstr "Especificar la CPU manualmente"
 
 #: src/main.c:638
 msgid "Sorry, but there is no module support in GLib"
@@ -2098,7 +2079,7 @@ msgstr "Zapping no puede crear la configuración"
 
 #: src/mixer.c:97
 msgid "The soundcard mixer is not configured."
-msgstr ""
+msgstr "EL mezclador de sonido no está configurado."
 
 #: src/osd.c:601
 msgid "Please choose a font for OSD in preferences."
@@ -2471,20 +2452,18 @@ msgid "V Saturation"
 msgstr "Saturación V"
 
 #: src/tveng.c:3195
-#, fuzzy, c-format
+#, c-format
 msgid "%s not found in %s or the executable search path."
-msgstr ""
-"zapping_setup_fb no se encontró en \"%s\" o la ruta de búsqueda de "
-"ejecutables."
+msgstr "%s no se encuentra en %s o en la ruta de búsqueda de ejecutables."
 
 #. TRANSLATORS: Program name, error message.
 #: src/tveng.c:3202 src/tveng.c:3283
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Cannot execute %s.\n"
 "%s."
 msgstr ""
-"No se puede abrir %s:\n"
+"No se puede ejecutar %s.\n"
 "%s"
 
 #. TRANSLATORS: Program name, error message.
@@ -2494,18 +2473,20 @@ msgid ""
 "%s failed.\n"
 "%s"
 msgstr ""
+"%s falló.\n"
+"%s"
 
 #. TRANSLATORS: Program name.
 #: src/tveng.c:3273
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown error in %s."
-msgstr "Error desconocido."
+msgstr "Error desconocido en %s."
 
 #. TRANSLATORS: Program name.
 #: src/tveng.c:3289
 #, c-format
 msgid "%s failed."
-msgstr ""
+msgstr "%s falló."
 
 #: src/tveng.c:4546
 msgid "Mono"
@@ -2708,35 +2689,28 @@ msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Zapzilla no puede crear la configuración"
 
 #: src/zmisc.c:660
-#, fuzzy
 msgid "Could not switch to capture mode"
-msgstr "No se pudo cambiar al modo de captura YUYV %u x %u."
+msgstr "No se pudo cambiar al modo de captura"
 
 #: src/zmisc.c:682 src/zmisc.c:699
-#, fuzzy
 msgid "Could not switch to overlay mode"
-msgstr "No se pudo cambiar al modo de captura YUYV %u x %u."
+msgstr "No se pudo cambiar al modo overlay"
 
 #: src/zmisc.c:683 src/zmisc.c:734
-#, fuzzy
 msgid "Video overlay has been disabled."
-msgstr "VBI ha sido dishabilitado"
+msgstr "El overlay de vídeo ha sido dishabilitado."
 
 #: src/zmisc.c:715
-#, fuzzy
 msgid "Could not switch to Teletext mode"
-msgstr "Activar modo Teletexto"
+msgstr "No se puedo cambiar al modo de Teletexto"
 
 #: src/zmisc.c:716
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI ha sido dishabilitado, o no funciona."
 
 #: src/zmisc.c:733 src/zmisc.c:762
-#, fuzzy
 msgid "Could not switch to fullscreen mode"
-msgstr ""
-"No se puede iniciar el overlay a pantalla completa.\n"
-"%s"
+msgstr "No se pudo cambiar al modo de pantalla completa"
 
 #: src/zmisc.c:1028
 msgid "Hide the statusbar"
@@ -2748,16 +2722,17 @@ msgid "%s is not a directory."
 msgstr "%s no es un directorio."
 
 #: src/zmisc.c:1282
-#, fuzzy
 msgid "Could not create directory"
-msgstr "No se puede crear el directorio %s"
+msgstr "No se puede crear el directorio"
 
 #: src/zmisc.c:1283
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Could not create %s.\n"
 "%s"
-msgstr "No se puede crear %s: %s."
+msgstr ""
+"No se puede crear %s.\n"
+"%s"
 
 #: src/zmisc.c:2003
 msgid "Device:"
@@ -2822,7 +2797,7 @@ msgstr "Abrir esta página con Zapzilla"
 
 #: src/zvbi.c:1426
 msgid "PES file read error"
-msgstr ""
+msgstr "Error al leer el fichero PES"
 
 #: src/zvbi.c:1645
 msgid "VBI interface timeout"
@@ -2833,25 +2808,21 @@ msgid "VBI interface: Failed to read from the device"
 msgstr "Interfaz VBI: Fallo al leer del dispositivo"
 
 #: src/zvbi.c:1755 src/zvbi.c:2025 src/zvbi.c:2133
-#, fuzzy
 msgid "VBI initialization failed"
-msgstr ""
-"La inicialización VBI falló.\n"
-"%s"
+msgstr "La inicialización VBI falló"
 
 #: src/zvbi.c:2079
-#, fuzzy
 msgid "Cannot open PES file"
-msgstr "No se pudo abrir el fichero de ayuda"
+msgstr "No se pudo abrir el fichero PES"
 
 #: src/zvbi.c:2134
-#, fuzzy, c-format
+#, c-format
 msgid "%s is no VBI device."
-msgstr "%s no es un directorio."
+msgstr "%s no es un dispositivo VBI."
 
 #: zapping.desktop.in.h:1
 msgid "Lets you watch TV in a window"
-msgstr ""
+msgstr "Le permite ver TV en una ventana"
 
 #: zapping.desktop.in.h:2
 msgid "Zapping TV Viewer"
@@ -2860,155 +2831,164 @@ msgstr "Zapping Pantalla de TV"
 #: zapping.schemas.in.h:1
 msgid "Adds spaces around words in Closed Caption text to improve legibility."
 msgstr ""
+"Añade espacios alrededor de las palabras en el texto de Closed Caption\n"
+"para mejorar la legibilidad."
 
 #: zapping.schemas.in.h:2
-#, fuzzy
 msgid "Caption/subtitle scaling quality."
-msgstr "Historia - Siguiente"
+msgstr "Calidad del escalado de los subtítulos."
 
 #: zapping.schemas.in.h:3
 msgid "Closed Caption default background color."
-msgstr ""
+msgstr "Color de fondo por defecto para Closed Caption."
 
 #: zapping.schemas.in.h:4
 msgid "Closed Caption default foreground color."
-msgstr ""
+msgstr "Color de primer plano por defecto para Closed Caption."
 
 #: zapping.schemas.in.h:5
 msgid "Default Teletext character set."
-msgstr ""
+msgstr "Conjunto de caracteres por defecto para el Teletexto."
 
 #: zapping.schemas.in.h:6
 msgid ""
 "Default Teletext home page, usually 100. Valid values range from 100 to 899."
 msgstr ""
+"Página de inicio para el teletexto por defecto, normalmente 100. Los\n"
+"valores válidos van de 100 a 899."
 
 #: zapping.schemas.in.h:7
-#, fuzzy
 msgid "Default Teletext home page."
-msgstr "Sólo se pueden exportar páginas de Teletexto."
+msgstr "Página de inicio del Teletexto por defecto."
 
 #: zapping.schemas.in.h:8
 msgid ""
 "Default background color of Closed Caption text (#RRGGBB), default #000000."
 msgstr ""
+"Color de fondo por defecto para el texto Closed Caption (#RRGGBB), por\n"
+"defecto #000000."
 
 #: zapping.schemas.in.h:9
 msgid ""
 "Default foreground color of Closed Caption text (#RRGGBB), default #FFFFFF."
 msgstr ""
+"Color de primer plano por defecto para el texto Closed Caption (#RRGGBB),\n"
+"por defecto #FFFFFF."
 
 #: zapping.schemas.in.h:10
-#, fuzzy
 msgid "Deinterlace option."
-msgstr "Plugin de desentrelazado"
+msgstr "Opción de desentrelazado."
 
 #: zapping.schemas.in.h:11
 msgid "Display delay of second field (0.0 to 1.0 of one frame period)."
-msgstr ""
+msgstr "Demora para mostrar el segundo campo (de 0.0 a 1.0 del período de un cuadro)."
 
 #: zapping.schemas.in.h:12
 msgid ""
 "Enable navigation elements in the bottom row of the Teletext page. Valid "
 "values: disabled, flof_top1 (FLOF or TOP style 1), flof_top2 (TOP style 2)."
 msgstr ""
+"Habilita los elementos de navegación en la fila inferior de la página\n"
+"de teletexto. Los valores válidos son: disabled, flof_top1 (estilo 1\n"
+"de TOP o FLOF), flof_top2 (estilo 2 TOP)."
 
 #: zapping.schemas.in.h:13
 msgid "Enable navigation elements."
-msgstr ""
+msgstr "Habilitar los elementos de navegación."
 
 #: zapping.schemas.in.h:14
 msgid "Enable smooth rolling of real time Closed Caption."
-msgstr ""
+msgstr "Habilitar movimiento suave del Closed Caption en tiempo real."
 
 #: zapping.schemas.in.h:15
 msgid "Enables slow MMX and 3DNow! optimized functions for tests."
-msgstr ""
+msgstr "Habilita las funciones optimizadas para MMX y 3DNow! lentas para las pruebas."
 
 #: zapping.schemas.in.h:16
 msgid "Greedy (high motion) deinterlace test mode."
-msgstr ""
+msgstr "Modo de pruebas de desentrelazado Greedy (mucho movimiento)."
 
 #: zapping.schemas.in.h:17
 msgid "Horizontal image resolution in deinterlace mode."
-msgstr ""
+msgstr "Resolución horizontal de la imagen en modo de desentrelazado."
 
 #: zapping.schemas.in.h:18
 msgid "Interpret the Teletext search text as regular expression."
-msgstr ""
+msgstr "Interpretar el texto de búsqueda de Teletexto como una expresión regular."
 
 #: zapping.schemas.in.h:19
 msgid "Keep the main window above other windows."
-msgstr ""
+msgstr "Mantener la ventana principal sobre las otras ventanas."
 
 #: zapping.schemas.in.h:20
 msgid "Maximum number of networks in the Teletext page cache."
-msgstr ""
+msgstr "Número máximo de emisoras en la caché de Teletexto."
 
 #: zapping.schemas.in.h:21
 msgid "Maximum size of the Teletext page cache in bytes."
-msgstr ""
+msgstr "Tamaño máximo de la caché de teletexto en bytes."
 
 #: zapping.schemas.in.h:22
 msgid "Pad Closed Caption text with spaces."
-msgstr ""
+msgstr "Rellenar el texto Closed Caption con espacios."
 
 #: zapping.schemas.in.h:23
-#, fuzzy
 msgid ""
 "Quality/speed trade-off when scaling and anti-aliasing Teletext pages. Valid "
 "values: nearest, tiles, bilinear, hyper."
-msgstr "Relación calidad/velocidad al redimensionar y suavizar la página."
+msgstr ""
+"Relación calidad/velocidad al redimensionar y suavizar la página. Los\n"
+"valores válidos son: nearest, tiles, bilinear e hyper."
 
 #: zapping.schemas.in.h:24
-#, fuzzy
 msgid ""
 "Quality/speed trade-off when scaling and anti-aliasing caption/subtitles. "
 "Valid values: nearest, tiles, bilinear, hyper."
-msgstr "Relación calidad/velocidad al redimensionar y suavizar la página."
+msgstr ""
+"Relación calidad/velocidad al redimensionar y suavizar los subtítulos.\n"
+"Los valores válidos son: nearest, tiles, bilinear e hyper."
 
 #: zapping.schemas.in.h:25
 msgid "Reverse the temporal field order."
-msgstr ""
+msgstr "Invertir el orden temporal de los campos."
 
 #: zapping.schemas.in.h:26
-#, fuzzy
 msgid "Roll Teletext page numbers."
-msgstr "Página de Teletexto %x"
+msgstr "Cambiar los números de página de Teletexto."
 
 #: zapping.schemas.in.h:27
 msgid ""
 "Roll the Teletext page number in the page header until the requested page "
 "has arrived."
 msgstr ""
+"Cambiar el número de página de Teletexto en la cabecera de la página\n"
+"hasta que la página pedida llegue."
 
 #: zapping.schemas.in.h:28
 msgid "Search all channels in the Teletext page memory."
-msgstr ""
+msgstr "Buscar en todos los canales en la memoria de Teletexto."
 
 #: zapping.schemas.in.h:29
 msgid "Show a menu bar in the main window."
-msgstr ""
+msgstr "Mostrar un menu en la ventana principal."
 
 #: zapping.schemas.in.h:30
 msgid "Show a status bar in Teletext windows."
-msgstr ""
+msgstr "Mostrar una barra de estado en las ventanas de Teletexto."
 
 #: zapping.schemas.in.h:31
-#, fuzzy
 msgid "Show a toolbar in Teletext windows."
-msgstr "Abrir una nueva ventana de Teletexto"
+msgstr "Mostrar una barra de herramientas en las ventanas de Teletexto."
 
 #: zapping.schemas.in.h:32
 msgid "Show a toolbar in the main window."
-msgstr ""
+msgstr "Mostrar una barra de herramientas en la ventana principal."
 
 #: zapping.schemas.in.h:33
 msgid "Show double height characters in Teletext subtitles."
-msgstr ""
+msgstr "Mostrar caracteres de doble altura en los subtítulos de Teletexto."
 
 #: zapping.schemas.in.h:34
-#, fuzzy
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Teletext viewer may not display the correct font or national characters. You "
@@ -3017,41 +2997,41 @@ msgid ""
 "western_europe_and_turkey, central_and_southeast_europe, cyrillic, "
 "greek_and_turkish, arabic, hebrew_and_arabic."
 msgstr ""
-"Algunos canales no transmiten un identificador de idioma apropiado, así que "
-"puede que el Teletexto no represente adecuadamente la fuente o los "
-"caracteres nacionales. Puedes seleccionar aquí tu zona geográfica como una "
-"ayuda adicional."
+"Algunos canales no transmiten un identificador de idioma apropiado,\n"
+"así que puede que el visor de Teletexto no represente adecuadamente la\n"
+"fuente o los caracteres nacionales. Puedes seleccionar aquí tu zona\n"
+"geográfica como una ayuda adicional. Los valores válidos son\n"
+"western_and_central_europe, eastern_europe,\n"
+"western_europe_and_turkey, central_and_southeast_europe, cyrillic,\n"
+"greek_and_turkish, arabic, hebrew_and_arabic."
 
 #: zapping.schemas.in.h:35
 msgid "Switch to full capture size for screenshot."
-msgstr ""
+msgstr "Cambiar a resolución completa para las capturas de imagen."
 
 #: zapping.schemas.in.h:36
-#, fuzzy
 msgid "Teletext implementation level."
-msgstr "_Implementación de Teletexto:"
+msgstr "Nivel de la implementación de Teletexto."
 
 #: zapping.schemas.in.h:37
 msgid "Teletext implementation level. Valid values: 1, 1.5, 2.5, 3.5."
-msgstr ""
+msgstr "Nivel de la implementación de Teletexto. Valores válidos: 1, 1.5, 2.5, 3.5."
 
 #: zapping.schemas.in.h:38
-#, fuzzy
 msgid "Teletext page scaling quality."
-msgstr "Historia - Siguiente"
+msgstr "Calidad del escalado del teletexto."
 
 #: zapping.schemas.in.h:39
 msgid "Text brightness, valid values range from 0 to 255."
-msgstr ""
+msgstr "Brillo del texto, los valores válidos van de 0 a 255."
 
 #: zapping.schemas.in.h:40
 msgid "Text contrast, valid values range from -128 to 127."
-msgstr ""
+msgstr "Contraste del texto, los valores válidos van de -128 a 127."
 
 #: zapping.schemas.in.h:41
-#, fuzzy
 msgid "The Teletext search is case insensitive."
-msgstr "Buscar sin distinguir _mayúsculas y minúsculas"
+msgstr "La búsqueda de Teletexto no distingue mayúsculas y minúsculas."
 
 #: zapping.schemas.in.h:42
 msgid ""
@@ -3059,396 +3039,127 @@ msgid ""
 "and blanking the pointer when over the video. A value of zero disables this "
 "feature."
 msgstr ""
+"Esto es en tiempo en milisegundos que Zapping esperará entre detectar\n"
+"un movimiento del puntero y ocultar el puntero sobre el vídeo. Un\n"
+"valor de 0 deshabilita este comportamiento."
 
 #: zapping.schemas.in.h:43
 msgid "Time to wait until blanking the pointer."
-msgstr ""
+msgstr "Tiempo a esperar antes de ocultar el puntero."
 
 #: zapping.schemas.in.h:44
 msgid "Update the clock in the Teletext page header."
-msgstr ""
+msgstr "Actualizar el reloj en la cabecera de vídeo."
 
 #: zapping.schemas.in.h:45
 msgid ""
 "When your CPU is too slow to use the desired deinterlace mode you can reduce "
 "the horizontal resolution. Valid values: low, medium, high."
 msgstr ""
+"Cuando su CPU es demasiado lenta para utilizar el modo de\n"
+"desentrelazado pedido, puede reducir la resolución horizontal. Los\n"
+"valores válidos son low, medium y high."
 
 #: zapping_setup_fb/zapping_setup_fb.c:134
 #, c-format
 msgid "Device name %s is unsafe, contains dots."
-msgstr ""
+msgstr "El nombre de dispositivo %s es inseguro, contiene puntos."
 
 #: zapping_setup_fb/zapping_setup_fb.c:142
 #, c-format
 msgid "Device name %s is unsafe, does not begin with /dev/."
-msgstr ""
+msgstr "El nombre de dispositivo %s es inseguro, no comienza con /dev/."
 
 #. TRANSLATORS: File name, error message.
 #: zapping_setup_fb/zapping_setup_fb.c:161
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot open device %s. %s."
-msgstr ""
-"No se puede abrir %s:\n"
-"%s"
+msgstr "No se puede abrir el dispositivo %s. %s."
 
 #. TRANSLATORS: File name, error message.
 #: zapping_setup_fb/zapping_setup_fb.c:176
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot identify %s. %s."
-msgstr ""
-"No se puede abrir %s:\n"
-"%s"
+msgstr "No se puede identificar %s. %s."
 
 #: zapping_setup_fb/zapping_setup_fb.c:188
-#, fuzzy, c-format
+#, c-format
 msgid "%s is not a device."
-msgstr "%s no es un directorio."
+msgstr "%s no es un dispositivo."
 
 #: zapping_setup_fb/zapping_setup_fb.c:202
-#, fuzzy, c-format
+#, c-format
 msgid "%s is not a video device."
-msgstr "%s no es un directorio."
+msgstr "%s no es un dispositivo de vídeo."
 
 #: zapping_setup_fb/zapping_setup_fb.c:217
 #, c-format
 msgid "Cannot identify file descriptor %d. %s."
-msgstr ""
+msgstr "No se puede identificar el descriptor de fichero %d. %s."
 
 #: zapping_setup_fb/zapping_setup_fb.c:225
 #, c-format
 msgid "File descriptor %d is not a device."
-msgstr ""
+msgstr "El descriptor de fichero %d no es un dispositivo."
 
 #: zapping_setup_fb/zapping_setup_fb.c:235
 #, c-format
 msgid "File descriptor %d is not a video device."
-msgstr ""
+msgstr "El descriptor de fichero %d no es un dispositivo de vídeo."
 
 #: zapping_setup_fb/zapping_setup_fb.c:266
 #, c-format
 msgid "Cannot drop root privileges despite running with UID %d, EUID %d."
 msgstr ""
+"No se puede renunciar a los privilegios de root a pesar de tener\n"
+"UID %d, EUID %d."
 
 #: zapping_setup_fb/zapping_setup_fb.c:296
 #, c-format
 msgid "Cannot restore root privileges despite running with UID %d, EUID %d."
 msgstr ""
+"No se pueden readquirir los privilegios de root a pesar de ejecutarse\n"
+"con UID %d, EUID %d."
 
 #: zapping_setup_fb/zapping_setup_fb.c:427
 #, c-format
 msgid "Invalid bpp argument %d. Expected 24 or 32."
-msgstr ""
+msgstr "Argumento de bpp %d inválido. Se esperaba 24 o 32."
 
 #: zapping_setup_fb/zapping_setup_fb.c:459
 #, c-format
 msgid "Invalid device file descriptor %d."
-msgstr ""
+msgstr "Descriptor de fichero %d inválido."
 
 #: zapping_setup_fb/zapping_setup_fb.c:516
 msgid "No screens found."
-msgstr ""
+msgstr "No se encontraron pantallas."
 
 #: zapping_setup_fb/zapping_setup_fb.c:549
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot open display %s."
-msgstr ""
-"No se puede abrir %s:\n"
-"%s"
+msgstr "No se puede abrir el display %s."
 
 #: zapping_setup_fb/zapping_setup_fb.c:565
 #, c-format
 msgid "Screen %d not found."
-msgstr ""
+msgstr "Pantalla %d no encontrada."
 
 #: zapping_setup_fb/zapping_setup_fb.c:572
 #, c-format
 msgid "DMA is not possible on screen %d."
-msgstr ""
+msgstr "No es posible hacer DMA en la pantalla %d."
 
 #: zapping_setup_fb/zapping_setup_fb.c:590
-#, fuzzy, c-format
+#, c-format
 msgid "%s is not a V4L or V4L2 device."
-msgstr "%s no es un directorio."
+msgstr "%s no es un dispositivo V4L o V4L2."
 
 #: zapping_setup_fb/zapping_setup_fb.c:593
 #, c-format
 msgid "File descriptor %d is not a V4L or V4L2 device."
-msgstr ""
+msgstr "El descriptor de fichero %d no es un dispositivo V4L o V4L2."
 
 #: zapping_setup_fb/v4l.c:84 zapping_setup_fb/v4l25.c:86
-#, fuzzy
 msgid "The device does not support video overlay."
-msgstr ""
-"No se puede iniciar el overlay de vídeo.\n"
-"%s"
-
-#~ msgid "Save window _geometry (some WM's don't like it)"
-#~ msgstr "Guardar la _geometría de la ventana"
-
-#~ msgid "Select the VBI device"
-#~ msgstr "Selecciona el dispositivo VBI"
-
-#~ msgid "VBI options"
-#~ msgstr "Opciones VBI"
-
-#~ msgid "_Enable VBI decoding"
-#~ msgstr "_Habilitar decodificación VBI"
-
-#~ msgid "*"
-#~ msgstr "*"
-
-#~ msgid "VBI Options"
-#~ msgstr "Opciones VBI"
-
-#~ msgid "Interactive TV"
-#~ msgstr "TV Interactiva"
-
-#~ msgid "General"
-#~ msgstr "General"
-
-#~ msgid "Cannot execute zapping_setup_fb."
-#~ msgstr "No se pudo ejecutar zapping_setup_fb."
-
-#~ msgid "zapping_setup_fb failed."
-#~ msgstr "zapping_setup_fb falló."
-
-#~ msgid "Unknown error in zapping_setup_fb."
-#~ msgstr "Error desconocido en zapping_setup_fb."
-
-#~ msgid "Ran out of memory."
-#~ msgstr "Se quedó sin memoria disponible."
-
-#~ msgid ""
-#~ "This probably means that the required driver isn't loaded. Add to your /"
-#~ "etc/modules.conf the line:\n"
-#~ "alias char-major-81-224 bttv (replace bttv by the name of your video "
-#~ "driver)\n"
-#~ "and with mknod create /dev/vbi0 appropriately. If this doesn't work, you "
-#~ "can disable VBI in Settings/Preferences/VBI options/Enable VBI decoding."
-#~ msgstr ""
-#~ "Esto probablemente significa que el controlador requerido no está "
-#~ "cargado.\n"
-#~ "Añade a tu /etc/modules.conf la línea:\n"
-#~ "alias char-major-81-224 bttv (reemplaza bttv con el nombre de tu\n"
-#~ "controlador de video)\n"
-#~ "y crea /dev/vbi0 apropiadamente con mknod. Si esto no funciona, puedes\n"
-#~ "desactivar VBI en Configuración/Preferencias/Opciones VBI/Habilitar\n"
-#~ "decodificación VBI"
-
-#~ msgid "Out of resources to start a new thread."
-#~ msgstr "Sin recursos para crear un nuevo hilo."
-
-#~ msgid "Filter"
-#~ msgstr "Filtro"
-
-#~ msgid "Colorkey"
-#~ msgstr "Colorkey"
-
-#~ msgid "Greedy 2 Frame Chroma Threshold"
-#~ msgstr "Umbral de color Greedy 2 cuadros"
-
-#~ msgid "Teletext Page %x.%x"
-#~ msgstr "Página de Teletexto %x.%x"
-
-#~ msgid "Teletext Page %x"
-#~ msgstr "Página de Teletexto %x"
-
-# src/interface.c:247
-#~ msgid "No control codes"
-#~ msgstr "Sin códigos de control"
-
-#~ msgid "Below normal"
-#~ msgstr "Por debajo de lo normal"
-
-#~ msgid "Above normal"
-#~ msgstr "Por encima de lo normal"
-
-#~ msgid "Toolbar"
-#~ msgstr "Barra de herramientas"
-
-#, fuzzy
-#~ msgid "Statusbar"
-#~ msgstr "Barra de _Estado"
-
-#~ msgid ""
-#~ "Cannot create destination directory:\n"
-#~ "%s\n"
-#~ "%s"
-#~ msgstr ""
-#~ "No se puede crear el directorio destino:\n"
-#~ "%s\n"
-#~ "%s"
-
-#~ msgid ""
-#~ "Cannot create directory:\n"
-#~ "%s\n"
-#~ "%s"
-#~ msgstr ""
-#~ "No se puede crear el directorio:\n"
-#~ "%s\n"
-#~ "%s"
-
-#~ msgid "Text Color"
-#~ msgstr "Color del texto"
-
-#~ msgid "Tiles (slightly slower, somewhat better)"
-#~ msgstr "Losetas (algo más lento, algo mejor)"
-
-#~ msgid "Bilinear (good quality but slow)"
-#~ msgstr "Bilineal (buena calidad pero lento)"
-
-#~ msgid "Hyper (best quality but CPU intensive)"
-#~ msgstr "Hyper (la mejor calidad pero el más lento)"
-
-#~ msgid "_Interpolation type:"
-#~ msgstr "_Tipo de interpolación:"
-
-#~ msgid "Text export failed"
-#~ msgstr "Fallo al exportar a texto"
-
-#~ msgid "_Colors..."
-#~ msgstr "_Colores..."
-
-#~ msgid "Alternate 1"
-#~ msgstr "Alternativo 1"
-
-#~ msgid "Alternate 2"
-#~ msgstr "Alternativo 2"
-
-#~ msgid "Sorry, but \"%s\" cannot do select() on file descriptors"
-#~ msgstr ""
-#~ "\"%s\" no permite hacer select() en descriptores de ficheros, lo siento"
-
-#~ msgid "The path must start with /"
-#~ msgstr "La ruta ha de comenzar por /"
-
-#~ msgid "No Audio"
-#~ msgstr "Sin audio"
-
-#~ msgid "Stereo Surround"
-#~ msgstr "Estéreo surround"
-
-#~ msgid "Simulated Stereo"
-#~ msgstr "Estéreo simulado"
-
-#~ msgid "Video Descriptions"
-#~ msgstr "Descripciones del vídeo"
-
-#~ msgid "Non-program Audio"
-#~ msgstr "Audio fuera de programa"
-
-#~ msgid "Special Effects"
-#~ msgstr "Efectos especiales"
-
-#~ msgid "Data Service"
-#~ msgstr "Servicio de datos"
-
-#~ msgid "_Search"
-#~ msgstr "_Buscar"
-
-#~ msgid "_Back"
-#~ msgstr "_Atrás"
-
-#~ msgid "_Forward"
-#~ msgstr "A_delante"
-
-#~ msgid "_Home"
-#~ msgstr "Índice"
-
-#~ msgid "Show menu"
-#~ msgstr "Mostrar el menu"
-
-# src/interface.c:247
-#~ msgid "Show toolbar"
-#~ msgstr "Mostrar la barra de herramientas"
-
-#~ msgid "Show Menu and Toolbar"
-#~ msgstr "Mostrar el Menu y la Barra de Herramientas"
-
-#~ msgid "Keep Window on Top"
-#~ msgstr "Mantener la ventana encima del resto"
-
-#~ msgid "No XFree86 DGA extension.\n"
-#~ msgstr "Sin extensión DGA en XFree86.\n"
-
-#~ msgid "Preview will not work: %s"
-#~ msgstr "Overlay no funcionará: %s"
-
-#~ msgid ""
-#~ "Open this link with the predetermined Web browser.\n"
-#~ "You can configure this in the GNOME Control Center, under Handlers/Url "
-#~ "Navigator"
-#~ msgstr ""
-#~ "Abrir este vínculo con el navegador predeterminado.\n"
-#~ "Puedes configurar esto en el Centro de Control GNOME, bajo\n"
-#~ "Manejadores/Navegador de URLs"
-
-#~ msgid "LIRC plugin"
-#~ msgstr "Plugin de LIRC"
-
-#~ msgid ""
-#~ "This plugin enables the usage of LIRC, the Linux Infrared Remote Control."
-#~ msgstr "Este plugin permite utlizar LIRC, Control de Infrarrojos de Linux."
-
-#~ msgid "This plugin enables the usage of LIRC."
-#~ msgstr "Este plugin permite utilizar LIRC."
-
-#~ msgid "LIRC"
-#~ msgstr "LIRC"
-
-#~ msgid "Button"
-#~ msgstr "Botón"
-
-#~ msgid "Action"
-#~ msgstr "Acción"
-
-#~ msgid "Button:"
-#~ msgstr "Botón:"
-
-#~ msgid "Action:"
-#~ msgstr "Acción:"
-
-# src/interface.c:362
-#~ msgid "channel up"
-#~ msgstr "canal arriba"
-
-# src/interface.c:405
-#~ msgid "channel down"
-#~ msgstr "canal abajo"
-
-# src/interface.c:362
-#~ msgid "set channel"
-#~ msgstr "cambiar al canal"
-
-#~ msgid "power off"
-#~ msgstr "apagar"
-
-#~ msgid "1"
-#~ msgstr "1"
-
-#~ msgid "Add"
-#~ msgstr "Añadir"
-
-#~ msgid "Delete"
-#~ msgstr "Eliminar"
-
-#~ msgid ""
-#~ "The first option lets you specify where screenshots are to be\n"
-#~ "saved. The file name will be: dir/shot[1,2,3,...].ext\n"
-#~ "\n"
-#~ "The command will be executed after saving the screenshot,\n"
-#~ "with the environmental variables $SCREENSHOT_PATH, $CHANNEL_ALIAS,\n"
-#~ "$CHANNEL_ID, $CURRENT_STANDARD, $CURRENT_INPUT set to their\n"
-#~ "correct value.\n"
-#~ "\n"
-#~ msgstr ""
-#~ "La primera opción, el directorio, te permite especificar dónde\n"
-#~ "se grabará los screenshots. El nombre de fichero será:\n"
-#~ "save_dir/shot[1,2,3,...].ext\n"
-#~ "\n"
-#~ "El comando se ejecutará tras grabar el screenshot,\n"
-#~ "con las variables de entorno $SCREENSHOT_PATH, $CHANNEL_ALIAS,\n"
-#~ "$CHANNEL_ID, $CURRENT_STANDARD, $CURRENT_INPUT ajustadas a\n"
-#~ "su valor correcto.\n"
-#~ "\n"
+msgstr "El dispositivo no soporta overlay de vídeo."
