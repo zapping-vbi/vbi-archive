@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2005-10-26 23:42+0200\n"
-"PO-Revision-Date: 2005-10-29 15:21+0200\n"
+"PO-Revision-Date: 2005-10-29 16:57+0200\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -155,7 +155,7 @@ msgstr "NTSC"
 
 #: glade/zapping.glade2.h:34
 msgid "No Display"
-msgstr "Sin Display"
+msgstr "Sin notificaciones"
 
 #: glade/zapping.glade2.h:35
 msgid "OK, let's go on"
@@ -235,7 +235,7 @@ msgstr "Selecciona el dispositivo V4L"
 # src/interface.c:247
 #: glade/zapping.glade2.h:53
 msgid "Show _tooltips"
-msgstr "Mostrarlos _tooltips"
+msgstr "Mostrar _tooltips"
 
 #: glade/zapping.glade2.h:54
 msgid "Status Bar"
@@ -314,7 +314,7 @@ msgstr "_Fichero:"
 
 #: glade/zapping.glade2.h:71
 msgid "_Display mode:"
-msgstr "Modo del _Display:"
+msgstr "Modo de las notificaciones:"
 
 # src/v4l2interface.c:146
 #: glade/zapping.glade2.h:72
@@ -790,7 +790,7 @@ msgstr "Scaler Bob"
 
 #: plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:955
 msgid "Search Effort"
-msgstr "Esfuerzo en la Búsqueda"
+msgstr "Esfuerzo en la búsqueda"
 
 #: plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:961
 msgid "Use Strange Bob"
@@ -894,7 +894,7 @@ msgstr "_Balance de los campos:"
 # src/frequencies.c:817
 #: plugins/deinterlace/preferences.c:708 src/eggcellrendererkeys.c:222
 msgid "Disabled"
-msgstr "Dishabilitado"
+msgstr "Inhabilitado"
 
 #: plugins/mpeg/mpeg.c:846
 #, c-format
@@ -1316,7 +1316,7 @@ msgstr "Relación calidad/velocidad al redimensionar y suavizar la página."
 # src/frequencies.c:817
 #: plugins/subtitle/view.c:1701 src/subtitle.c:321
 msgid "_Disable"
-msgstr "_Dishabilitar"
+msgstr "_Inhabilitar"
 
 #: plugins/subtitle/view.c:1703
 msgid "_Reset position"
@@ -1776,9 +1776,7 @@ msgstr "_Busqueda automática de canales"
 msgid ""
 "Select a suitable frequency table, then click here to search through all "
 "channels in the table and add the received stations to the channel list."
-msgstr ""
-"Selecciona tu país y pulsa aquí para buscar los canales recibidos\n"
-"entre los canales presentes en la tabla de frecuencias."
+msgstr "Selecciona tu país y pulsa aquí para buscar los canales recibidos entre los canales presentes en la tabla de frecuencias."
 
 # src/v4l2interface.c:146
 #: src/channel_editor.c:1820
@@ -2611,7 +2609,7 @@ msgstr "Canal Arriba"
 
 #: src/zapping.c:433
 msgid "Switch to higher channel"
-msgstr "Cambiar a un canal superior"
+msgstr "Cambiar al canal superior"
 
 #: src/zapping.c:434
 msgid "Ch. Down"
@@ -2619,7 +2617,7 @@ msgstr "Canal Abajo"
 
 #: src/zapping.c:435
 msgid "Switch to lower channel"
-msgstr "Cambiar a un canal inferior"
+msgstr "Cambiar al canal inferior"
 
 # src/v4l2interface.c:344
 #: src/zapping.c:437
@@ -2698,7 +2696,7 @@ msgstr "No se pudo cambiar al modo overlay"
 
 #: src/zmisc.c:683 src/zmisc.c:734
 msgid "Video overlay has been disabled."
-msgstr "El overlay de vídeo ha sido dishabilitado."
+msgstr "El overlay de vídeo ha sido inhabilitado."
 
 #: src/zmisc.c:715
 msgid "Could not switch to Teletext mode"
@@ -2706,7 +2704,7 @@ msgstr "No se puedo cambiar al modo de Teletexto"
 
 #: src/zmisc.c:716
 msgid "VBI has been disabled, or it doesn't work."
-msgstr "VBI ha sido dishabilitado, o no funciona."
+msgstr "VBI ha sido inhabilitado, o no funciona."
 
 #: src/zmisc.c:733 src/zmisc.c:762
 msgid "Could not switch to fullscreen mode"
