@@ -16,6 +16,7 @@ DISTCLEANFILES = $(omffile).out
 
 dist-hook: app-dist-hook
 
+# This finds errors missed by scrollkeeper-update (make install).
 xmlcheck: $(entities)
 	SP_CHARSET_FIXED=YES \
 	SP_ENCODING=XML \

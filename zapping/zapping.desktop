@@ -19,5 +19,5 @@ StartupNotify=true
 Categories=GNOME;Application;Multimedia;AudioVideo;Video;TV;
 X-GNOME-Bugzilla-Bugzilla=GNOME
 X-GNOME-Bugzilla-Product=Zapping
-X-GNOME-Bugzilla-Version=0.10pre
+X-GNOME-Bugzilla-Version=0.10cvs
 X-GNOME-Bugzilla-Component=general
