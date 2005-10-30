@@ -609,7 +609,8 @@ main				(int			argc,
 
  failure:
   message (/* verbosity */ 1,
-	   "Setup failed.  Try -v or -vv for more details.\n");
+	   "Setup failed. Try %s -v or -vv for more details.\n",
+	   program_invocation_name);
 
   return EXIT_FAILURE;
 }
