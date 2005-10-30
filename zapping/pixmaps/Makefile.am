@@ -81,8 +81,6 @@ EXTRA_DIST = \
 
 noinst_HEADERS = $(BUILT_SOURCES)
 
-CLEANFILES = $(BUILT_SOURCES)
-
 %.h: %.png
 	echo -e "\n/* Generated file, do not edit! */\n" > $@
 	@GDK_PIXBUF_CSOURCE@ --struct --build-list \

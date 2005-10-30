@@ -15,8 +15,6 @@ PIXMAPS = \
 
 BUILT_SOURCES = pixmaps.h
 
-CLEANFILES = $(BUILT_SOURCES)
-
 EXTRA_DIST = \
 	$(PIXMAPS) \
 	mpeg_properties.glade2
