@@ -70,7 +70,7 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
         <member><filename>/dev/vbi1</filename></member>
         <member><filename>/dev/vbi2</filename></member>
       </simplelist>
-      <para>And on Linux only:
+      <para>And on Linux only:</para>
       <simplelist type="vert">
         <member><filename>/dev/v4l/vbi</filename></member>
         <member><filename>/dev/v4l/vbi0</filename></member>
@@ -345,11 +345,12 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
         <title>Caption and subtitle recording</title>
 
         <para>Zapping can record caption and subtitles as text files. To enable this select <guilabel>Subtitle file</guilabel> and the desired format and encoding. The name of the file will be the same as that of the audio/video file, with an appropriate extension (for example <filename>.sub</filename> for the MPSub format).</para>
-        <para>The <guilable>Update live caption at line breaks</guilable> option applies to real time Closed Caption, which does not appear page by page on the screen but as typed by the captioner. Zapping records the caption accordingly. However when this option is selected caption will appear line by line when played back, which may look better.</para>
+        <para>The <guilabel>Update live caption at line breaks</guilabel> option applies to real time Closed Caption, which does not appear page by page on the screen but as typed by the captioner. Zapping records the caption accordingly. However when this option is selected caption will appear line by line when played back, which may look better.</para>
         <para>You can record the displayed subtitles or one channel or page of your choice. Closed Caption channels are numbered 1-8, Teletext pages 100-899. Multilingual recording is not supported yet.</para>
+      </sect3>
     </sect2>
 
-    <sect2 id="zapping-settings-teletext">
+    <sect2 id="zapping-settings-subtitle">
       <title>Subtitle plugin</title>
       <variablelist>
         <varlistentry>
