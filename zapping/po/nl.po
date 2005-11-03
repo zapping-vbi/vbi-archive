@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2005-10-26 23:42+0200\n"
-"PO-Revision-Date: 2005-08-16 16:58+0200\n"
+"PO-Revision-Date: 2005-10-28 02:49+0200\n"
 "Last-Translator: Guus Bonnema <abonnema@xs4all.nl>\n"
 "Language-Team: Dutch\n"
 "MIME-Version: 1.0\n"
@@ -90,11 +90,11 @@ msgstr "Huidige controller:"
 
 #: glade/zapping.glade2.h:16
 msgid "DVB PES File"
-msgstr ""
+msgstr "DVB PES bestand"
 
 #: glade/zapping.glade2.h:17
 msgid "DVB _PES File"
-msgstr ""
+msgstr "DVB _PES Bestand"
 
 #: glade/zapping.glade2.h:18
 msgid "Device name:"
@@ -130,9 +130,8 @@ msgid "Interlaced (window size)"
 msgstr "Interlaced (venstergrootte)"
 
 #: glade/zapping.glade2.h:26
-#, fuzzy
 msgid "Kernel VBI device"
-msgstr "Kernel _device (apparaat)"
+msgstr "Kernel VBI device (apparaat)"
 
 #: glade/zapping.glade2.h:27
 msgid "Kernel _device"
@@ -272,7 +271,7 @@ msgstr "Inhoud titel _bar:"
 
 #: glade/zapping.glade2.h:59 src/zvbi.c:2551
 msgid "VBI"
-msgstr ""
+msgstr "VBI"
 
 # src/v4l2interface.c:344
 #: glade/zapping.glade2.h:60 src/main.c:199 src/properties-handler.c:1306
@@ -351,9 +350,8 @@ msgid "_Mute on exit"
 msgstr "_Geluid uit bij afsluiten"
 
 #: glade/zapping.glade2.h:78
-#, fuzzy
 msgid "_No VBI services"
-msgstr "Naam van het VBI-apparaat"
+msgstr "Geen VBI diensten"
 
 #: glade/zapping.glade2.h:79
 msgid "_No audio recording"
@@ -373,7 +371,7 @@ msgstr "_Zapping opstarten zonder geluid"
 
 #: glade/zapping.glade2.h:83
 msgid "_Use VBI Proxy if available"
-msgstr ""
+msgstr "_gebruik VBI proxy, indien mogelijk"
 
 #: glade/zapping.glade2.h:84
 msgid "seconds"
@@ -570,14 +568,14 @@ msgstr "Codering"
 
 #: libvbi/exp-sub.c:171
 msgid "Font face"
-msgstr ""
+msgstr "Font type"
 
 #. TRANSLATORS:
 #. Caption is an aid for the hearing impaired,
 #. subtitles for foreign language viewers.
 #: libvbi/exp-sub.c:1534
 msgid "MPlayer caption/subtitle file"
-msgstr ""
+msgstr "MPlayer (sub)titel bestand"
 
 #. TRANSLATORS:
 #. Styles like bold, italic, underlined, etc.
@@ -586,25 +584,25 @@ msgstr ""
 msgid ""
 "QuickTime Text caption/subtitle file preserving text styles, justification "
 "and color"
-msgstr ""
+msgstr "QuickTime Tekst (sub)titel bestand met behoud van tekst style, uitlijning en kleur"
 
 #: libvbi/exp-sub.c:1583
 msgid "RealText caption/subtitle file preserving text styles and color"
-msgstr ""
+msgstr "RealText (sub)titel bestand met behoud van tekst style en kleur"
 
 #: libvbi/exp-sub.c:1606
 msgid ""
 "SAMI 1.0 caption/subtitle file preserving text styles, justification and "
 "color"
-msgstr ""
+msgstr "SAMI 1.0 (sub)titel bestand met behoud van tekst style, uitlijning en kleur"
 
 #: libvbi/exp-sub.c:1630
 msgid "SubRip caption/subtitle file"
-msgstr ""
+msgstr "SubRip (sub)titel bestand"
 
 #: libvbi/exp-sub.c:1652
 msgid "SubViewer 2.x caption/subtitle file"
-msgstr ""
+msgstr "SubViewer 2.x (sub)titel bestand"
 
 #. TRANSLATORS: Terminal control codes menu
 #: libvbi/exp-txt.c:112
@@ -950,7 +948,7 @@ msgstr "Opnemen van beeld en geluid"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:1
 msgid "-"
-msgstr ""
+msgstr "-"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:2
 msgid "Capture _height:"
@@ -961,9 +959,8 @@ msgid "Capture _width:"
 msgstr "Opname _breedte:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:4
-#, fuzzy
 msgid "Co_dec:"
-msgstr "_Codec:"
+msgstr "Co_dec:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:5
 #: plugins/screenshot/screenshot.glade2.h:3
@@ -976,11 +973,11 @@ msgstr "_Bestandsformaat"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:8
 msgid "Record _all subtitles"
-msgstr ""
+msgstr "Opnemen van _alle subtitels"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:9
 msgid "Record this channel or _page:"
-msgstr ""
+msgstr "Neem deze _pagina of kanaal op"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:10
 msgid "Save _as:"
@@ -991,9 +988,8 @@ msgid "_Audio"
 msgstr "_Audio"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:12
-#, fuzzy
 msgid "_Caption and Subtitles"
-msgstr "_Ontertitels"
+msgstr "_Titels en ontertitels"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:13
 msgid "_Codec:"
@@ -1009,7 +1005,7 @@ msgstr "_Verwijder"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:16
 msgid "_Embedded in the video file:"
-msgstr ""
+msgstr "_Ingebed in het video bestand:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:17
 #: plugins/screenshot/screenshot.glade2.h:13
@@ -1021,9 +1017,8 @@ msgid "_New"
 msgstr "_Nieuw"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:19
-#, fuzzy
 msgid "_No caption or subtitle recording"
-msgstr "_Geen audio opname"
+msgstr "_Geen opname van titel of ondertitel"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:20
 msgid "_Pause"
@@ -1035,24 +1030,23 @@ msgstr "_Opnemen"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:22
 msgid "_Record the displayed caption or subtitles"
-msgstr ""
+msgstr "_Opnemen van de getoonde (sub)titel"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:23
 msgid "_Stop"
 msgstr "_Stop"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:24
-#, fuzzy
 msgid "_Subtitle file:"
-msgstr "Ondertitelingspagina"
+msgstr "Ondertitelingsbestand"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:25
 msgid "_Superimposed onto the picture"
-msgstr ""
+msgstr "_over het plaatje heen gelegd"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:26
 msgid "_Update live caption at line breaks"
-msgstr ""
+msgstr "_update live caption bij regeleinden"
 
 # src/v4l2interface.c:344
 #: plugins/mpeg/mpeg_properties.glade2.h:27 src/zapping.c:470
@@ -1203,9 +1197,8 @@ msgid "Subtitles"
 msgstr "Ondertiteling"
 
 #: plugins/subtitle/main.c:89
-#, fuzzy
 msgid "Subtitle plugin"
-msgstr "Ondertitelingsindex"
+msgstr "Ondertitel plugin"
 
 #: plugins/subtitle/preferences.c:55 plugins/teletext/preferences.c:57
 msgid "Western and Central Europe"
@@ -1257,62 +1250,51 @@ msgid "Hyper (slow, high quality)"
 msgstr "Hyper (slow, hoge kwaliteit)"
 
 #: plugins/subtitle/preferences.c:386
-#, fuzzy
 msgid "<b>Teletext</b>"
-msgstr "Teletekst"
+msgstr "<b>Teletekst</b>"
 
 #: plugins/subtitle/preferences.c:388 plugins/teletext/preferences.c:303
 msgid "_Default encoding:"
 msgstr "Default codering:"
 
 #: plugins/subtitle/preferences.c:392
-#, fuzzy
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Subtitle viewer may not display the correct font or national characters. You "
 "can select your geographical region here as an additional hint."
-msgstr ""
-"Sommige zenders geven geen volledige taalcode mee, waardoor het mogelijk is "
-"dat teletekst niet de juiste lettertypen of vreemde tekens toont. Voer hier "
-"de geografische regio in om te gebruiken als extra hint."
+msgstr "Sommige zenders geven geen volledige taalcode mee, waardoor het mogelijk is dat teletekst niet de juiste lettertypen of vreemde tekens toont. Voer hier de geografische regio in om te gebruiken als extra hint."
 
 #: plugins/subtitle/preferences.c:399
 msgid "_Show double height characters"
-msgstr ""
+msgstr "_Toon dubbele hoogte karakters"
 
 #. TRANSLATORS:
 #. Closed Caption is a captioning system used mainly in the USA,
 #. and on VHS/LD/DVD in other countries. Europe uses Teletext for
 #. caption and subtitle transmissions.
 #: plugins/subtitle/preferences.c:406
-#, fuzzy
 msgid "<b>Closed Caption</b>"
-msgstr "C_losed Caption"
+msgstr "<b>Closed Caption</b>"
 
 #: plugins/subtitle/preferences.c:408
-#, fuzzy
 msgid "_Foreground:"
-msgstr "Voorgrond"
+msgstr "_Voorgrond"
 
 #: plugins/subtitle/preferences.c:410
-#, fuzzy
 msgid "Closed Caption foreground color"
-msgstr "Aangenomen voorgrondkleur van terminal"
+msgstr "Closed Caption voorgrondkleur"
 
 #: plugins/subtitle/preferences.c:413
-#, fuzzy
 msgid "_Background:"
-msgstr "_Achtergrond"
+msgstr "_Achtergrond:"
 
 #: plugins/subtitle/preferences.c:415
-#, fuzzy
 msgid "Closed Caption background color"
-msgstr "Aangenomen achtergrondkleur van terminal"
+msgstr "Closed Caption achtergrondkleur"
 
 #: plugins/subtitle/preferences.c:424
-#, fuzzy
 msgid "_Roll live caption"
-msgstr "C_losed Caption"
+msgstr "_Rol live (sub)titels"
 
 #: plugins/subtitle/preferences.c:427 plugins/teletext/preferences.c:368
 msgid "<b>Display</b>"
@@ -1342,9 +1324,8 @@ msgid "_Disable"
 msgstr "Uitschakelen"
 
 #: plugins/subtitle/view.c:1703
-#, fuzzy
 msgid "_Reset position"
-msgstr "_Resolutie:"
+msgstr "_Reset positie"
 
 #: plugins/subtitle/view.c:1705 plugins/teletext/window.c:810
 msgid "_Encoding"
@@ -2107,7 +2088,7 @@ msgstr "Zapping kon het configuratiebestand niet aanmaken"
 
 #: src/mixer.c:97
 msgid "The soundcard mixer is not configured."
-msgstr ""
+msgstr "De soundcard mixer is niet ingesteld."
 
 #: src/osd.c:601
 msgid "Please choose a font for OSD in preferences."
@@ -2479,39 +2460,41 @@ msgid "V Saturation"
 msgstr "V Verzadiging"
 
 #: src/tveng.c:3195
-#, fuzzy, c-format
+#, c-format
 msgid "%s not found in %s or the executable search path."
-msgstr "zapping_setup_fb niet gevonden in \"%s\" of in search path."
+msgstr "%s niet gevonden in %s of in executable search path."
 
 #. TRANSLATORS: Program name, error message.
 #: src/tveng.c:3202 src/tveng.c:3283
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Cannot execute %s.\n"
 "%s."
 msgstr ""
-"Kan '%s' niet openen: \n"
+"Kan '%s' niet uitvoeren. \n"
 "%s."
 
 #. TRANSLATORS: Program name, error message.
 #: src/tveng.c:3258
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "%s failed.\n"
 "%s"
-msgstr "Exporteren naar %s mislukt: %s"
+msgstr ""
+"%s mislukt. \n"
+"%s"
 
 #. TRANSLATORS: Program name.
 #: src/tveng.c:3273
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown error in %s."
-msgstr "Onbekende fout"
+msgstr "Onbekende fout in %s."
 
 #. TRANSLATORS: Program name.
 #: src/tveng.c:3289
-#, fuzzy, c-format
+#, c-format
 msgid "%s failed."
-msgstr "%s opgeslagen"
+msgstr "%s is niet geslaagd."
 
 #: src/tveng.c:4546
 msgid "Mono"
@@ -2712,35 +2695,28 @@ msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Zapzilla kon het configuratiebestand niet aanmaken"
 
 #: src/zmisc.c:660
-#, fuzzy
 msgid "Could not switch to capture mode"
-msgstr "Overgang naar capture formaat YUYV %u x %u lukte niet."
+msgstr "Overgang naar capture formaat lukte niet."
 
 #: src/zmisc.c:682 src/zmisc.c:699
-#, fuzzy
 msgid "Could not switch to overlay mode"
-msgstr "Ga naar venster overlay mode"
+msgstr "Overgang naar overlay mode mislukt"
 
 #: src/zmisc.c:683 src/zmisc.c:734
-#, fuzzy
 msgid "Video overlay has been disabled."
-msgstr "VBI is uitgeschakeld"
+msgstr "Video overlay is uitgeschakeld"
 
 #: src/zmisc.c:715
-#, fuzzy
 msgid "Could not switch to Teletext mode"
-msgstr "Ga naar teletekst mode"
+msgstr "Kon niet naar teletekst mode overschakelen"
 
 #: src/zmisc.c:716
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI is uitgeschakeld of functioneert niet correct."
 
 #: src/zmisc.c:733 src/zmisc.c:762
-#, fuzzy
 msgid "Could not switch to fullscreen mode"
-msgstr ""
-"Kan fullscreen overlay niet starten\n"
-"%s"
+msgstr "Kon niet naar fullscreen mode overschakelen"
 
 #: src/zmisc.c:1028
 msgid "Hide the statusbar"
@@ -2752,16 +2728,17 @@ msgid "%s is not a directory."
 msgstr "%s is geen directory"
 
 #: src/zmisc.c:1282
-#, fuzzy
 msgid "Could not create directory"
-msgstr "Kon directory '%s' niet aanmaken"
+msgstr "Kon directory niet aanmaken"
 
 #: src/zmisc.c:1283
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Could not create %s.\n"
 "%s"
-msgstr "Kon '%s' niet aanmaken: %s"
+msgstr ""
+"Kon '%s' niet aanmaken: \n"
+"%s"
 
 #: src/zmisc.c:2003
 msgid "Device:"
@@ -2826,7 +2803,7 @@ msgstr "Open deze pagina met Zapzilla"
 
 #: src/zvbi.c:1426
 msgid "PES file read error"
-msgstr ""
+msgstr "PES bestand leesfout"
 
 #: src/zvbi.c:1645
 msgid "VBI interface timeout"
@@ -2837,25 +2814,21 @@ msgid "VBI interface: Failed to read from the device"
 msgstr "VBI-interface: Leesfout"
 
 #: src/zvbi.c:1755 src/zvbi.c:2025 src/zvbi.c:2133
-#, fuzzy
 msgid "VBI initialization failed"
-msgstr ""
-"initialisatie van VBI mislukt\n"
-"%s"
+msgstr "initialisatie van VBI mislukt"
 
 #: src/zvbi.c:2079
-#, fuzzy
 msgid "Cannot open PES file"
-msgstr "Kon help file niet openen"
+msgstr "Kon PES file niet openen"
 
 #: src/zvbi.c:2134
-#, fuzzy, c-format
+#, c-format
 msgid "%s is no VBI device."
-msgstr "%s (%s) is geen VBI-apparaat.\n"
+msgstr "%s is geen VBI-apparaat."
 
 #: zapping.desktop.in.h:1
 msgid "Lets you watch TV in a window"
-msgstr ""
+msgstr "Laat je TV kijken in een window"
 
 #: zapping.desktop.in.h:2
 msgid "Zapping TV Viewer"
@@ -2863,22 +2836,19 @@ msgstr "Zapping TV Tuner"
 
 #: zapping.schemas.in.h:1
 msgid "Adds spaces around words in Closed Caption text to improve legibility."
-msgstr ""
+msgstr "Voegt spaties toe rond woorden in Closed Caption om de leesbaarheid te vergroten."
 
 #: zapping.schemas.in.h:2
-#, fuzzy
 msgid "Caption/subtitle scaling quality."
-msgstr "Teletekst pagina schaalverander kwaliteit."
+msgstr "(Sub)titel schaal kwaliteit."
 
 #: zapping.schemas.in.h:3
-#, fuzzy
 msgid "Closed Caption default background color."
-msgstr "Aangenomen achtergrondkleur van terminal"
+msgstr "Closed Caption achtergrondkleur."
 
 #: zapping.schemas.in.h:4
-#, fuzzy
 msgid "Closed Caption default foreground color."
-msgstr "Aangenomen voorgrondkleur van terminal"
+msgstr "Closed Caption voorgrondkleur."
 
 #: zapping.schemas.in.h:5
 msgid "Default Teletext character set."
@@ -2896,12 +2866,12 @@ msgstr "Standaard teletekst home page"
 #: zapping.schemas.in.h:8
 msgid ""
 "Default background color of Closed Caption text (#RRGGBB), default #000000."
-msgstr ""
+msgstr "Default achtergrond kleur van Closed Caption tekst (#RRGGBB), default #000000."
 
 #: zapping.schemas.in.h:9
 msgid ""
 "Default foreground color of Closed Caption text (#RRGGBB), default #FFFFFF."
-msgstr ""
+msgstr "Default voorgrond kleur van Closed Caption text (#RRGGBB), default #FFFFFF."
 
 #: zapping.schemas.in.h:10
 msgid "Deinterlace option."
@@ -2925,7 +2895,7 @@ msgstr "Inschakelen navigatie elementen."
 
 #: zapping.schemas.in.h:14
 msgid "Enable smooth rolling of real time Closed Caption."
-msgstr ""
+msgstr "Inschakelen soepel scrollen van real time Closed Caption."
 
 #: zapping.schemas.in.h:15
 msgid "Enables slow MMX and 3DNow! optimized functions for tests."
@@ -2940,9 +2910,8 @@ msgid "Horizontal image resolution in deinterlace mode."
 msgstr "Horizontale beeldresulutie in deinterlace mode."
 
 #: zapping.schemas.in.h:18
-#, fuzzy
 msgid "Interpret the Teletext search text as regular expression."
-msgstr "De teletekst zoektekst is een reguliere expressie."
+msgstr "Interpreteer de teletekst zoektekst als een reguliere expressie."
 
 #: zapping.schemas.in.h:19
 msgid "Keep the main window above other windows."
@@ -2958,7 +2927,7 @@ msgstr "Maximale grootte van de teletext pagina cache in bytes."
 
 #: zapping.schemas.in.h:22
 msgid "Pad Closed Caption text with spaces."
-msgstr ""
+msgstr "Verleng Closed Caption tekst met spaties."
 
 #: zapping.schemas.in.h:23
 msgid ""
@@ -2969,13 +2938,10 @@ msgstr ""
 "de pagina. Valide waarden: nearest, tiles, bilinear, hyper."
 
 #: zapping.schemas.in.h:24
-#, fuzzy
 msgid ""
 "Quality/speed trade-off when scaling and anti-aliasing caption/subtitles. "
 "Valid values: nearest, tiles, bilinear, hyper."
-msgstr ""
-"Kwaliteit/snelheid afweging bij het schalen en gebruik van anti-aliasing op "
-"de pagina. Valide waarden: nearest, tiles, bilinear, hyper."
+msgstr "Kwaliteit/snelheid afweging bij het schalen en gebruik van anti-aliasing op de (sub)titels. Valide waarden: nearest, tiles, bilinear, hyper."
 
 #: zapping.schemas.in.h:25
 msgid "Reverse the temporal field order."
@@ -3015,7 +2981,7 @@ msgstr "Toon een toolbar in het hoofdvenster."
 
 #: zapping.schemas.in.h:33
 msgid "Show double height characters in Teletext subtitles."
-msgstr ""
+msgstr "Toon dubbele hoogte karakters in Teletekst subtitels."
 
 #: zapping.schemas.in.h:34
 msgid ""
@@ -3090,111 +3056,102 @@ msgstr ""
 #: zapping_setup_fb/zapping_setup_fb.c:134
 #, c-format
 msgid "Device name %s is unsafe, contains dots."
-msgstr ""
+msgstr "Apparaat naam %s is niet veilig: het bevat puntjes."
 
 #: zapping_setup_fb/zapping_setup_fb.c:142
 #, c-format
 msgid "Device name %s is unsafe, does not begin with /dev/."
-msgstr ""
+msgstr "Apparaat naam %s is niet veilig, het begint niet met /dev/."
 
 #. TRANSLATORS: File name, error message.
 #: zapping_setup_fb/zapping_setup_fb.c:161
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot open device %s. %s."
-msgstr ""
-"Kan '%s' niet openen: \n"
-"%s."
+msgstr "Kan apparaat '%s' niet openen: %s."
 
 #. TRANSLATORS: File name, error message.
 #: zapping_setup_fb/zapping_setup_fb.c:176
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot identify %s. %s."
-msgstr ""
-"Kan '%s' niet openen: \n"
-"%s."
+msgstr "Kan '%s' niet vinden: %s."
 
 #: zapping_setup_fb/zapping_setup_fb.c:188
-#, fuzzy, c-format
+#, c-format
 msgid "%s is not a device."
-msgstr "%s is geen directory"
+msgstr "%s is geen device (apparaat)."
 
 #: zapping_setup_fb/zapping_setup_fb.c:202
-#, fuzzy, c-format
+#, c-format
 msgid "%s is not a video device."
-msgstr "%s (%s) is geen VBI-apparaat.\n"
+msgstr "%s is geen video-apparaat."
 
 #: zapping_setup_fb/zapping_setup_fb.c:217
 #, c-format
 msgid "Cannot identify file descriptor %d. %s."
-msgstr ""
+msgstr "Kan bestands descriptor %d niet identificeren: %s."
 
 #: zapping_setup_fb/zapping_setup_fb.c:225
 #, c-format
 msgid "File descriptor %d is not a device."
-msgstr ""
+msgstr "Bestands descriptor %d is geen apparaat."
 
 #: zapping_setup_fb/zapping_setup_fb.c:235
 #, c-format
 msgid "File descriptor %d is not a video device."
-msgstr ""
+msgstr "Bestands descriptor %d is geen video apparaat."
 
 #: zapping_setup_fb/zapping_setup_fb.c:266
 #, c-format
 msgid "Cannot drop root privileges despite running with UID %d, EUID %d."
-msgstr ""
+msgstr "Kan root privileges niet droppen, ondanks dat we UID %d gebruiken en EUID %d."
 
 #: zapping_setup_fb/zapping_setup_fb.c:296
 #, c-format
 msgid "Cannot restore root privileges despite running with UID %d, EUID %d."
-msgstr ""
+msgstr "Kan root privileges niet herstellen, ondanks dat we UID %d en EUID %d gebruiken."
 
 #: zapping_setup_fb/zapping_setup_fb.c:427
 #, c-format
 msgid "Invalid bpp argument %d. Expected 24 or 32."
-msgstr ""
+msgstr "Ongeldig bpp argument %d. Verwachtte 24 of 32."
 
 #: zapping_setup_fb/zapping_setup_fb.c:459
 #, c-format
 msgid "Invalid device file descriptor %d."
-msgstr ""
+msgstr "Ongeldig apparaat bestands descriptor %d."
 
 #: zapping_setup_fb/zapping_setup_fb.c:516
 msgid "No screens found."
-msgstr ""
+msgstr "Geen schermen gevonden."
 
 #: zapping_setup_fb/zapping_setup_fb.c:549
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot open display %s."
-msgstr ""
-"Kan '%s' niet openen: \n"
-"%s."
+msgstr "Kan display %s niet openen."
 
 #: zapping_setup_fb/zapping_setup_fb.c:565
 #, c-format
 msgid "Screen %d not found."
-msgstr ""
+msgstr "Scherm %d niet gevonden."
 
 #: zapping_setup_fb/zapping_setup_fb.c:572
 #, c-format
 msgid "DMA is not possible on screen %d."
-msgstr ""
+msgstr "DMA niet mogelijk op scherm %d."
 
 #: zapping_setup_fb/zapping_setup_fb.c:590
-#, fuzzy, c-format
+#, c-format
 msgid "%s is not a V4L or V4L2 device."
-msgstr "%s (%s) is geen VBI-apparaat.\n"
+msgstr "%s is geen V4L of V4L2 apparaat."
 
 #: zapping_setup_fb/zapping_setup_fb.c:593
-#, fuzzy, c-format
+#, c-format
 msgid "File descriptor %d is not a V4L or V4L2 device."
-msgstr "%s (%s) is geen VBI-apparaat.\n"
+msgstr "bestands descriptor %d is geen valide V4L of V4L2 apparaat."
 
 #: zapping_setup_fb/v4l.c:84 zapping_setup_fb/v4l25.c:86
-#, fuzzy
 msgid "The device does not support video overlay."
-msgstr ""
-"Kan video overlay niet starten.\n"
-"%s"
+msgstr "Het apparaat ondersteunt geen video overlay."
 
 #~ msgid "Save window _geometry (some WM's don't like it)"
 #~ msgstr ""
