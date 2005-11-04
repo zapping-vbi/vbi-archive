@@ -1,5 +1,5 @@
 #!/bin/sh
-#$Id: prepare_web.sh,v 1.23 2005-09-13 02:31:35 mschimek Exp $
+#$Id: prepare_web.sh,v 1.24 2005-11-04 18:28:13 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
@@ -33,6 +33,8 @@ cd cgi-bin
 chmod a+rx attach changes edit manage oops \
   passwd preview rdiff register rename save search statistics \
   upload view viewfile
+# Registration no longer required
+cat <<SKIP >/dev/null
 cat <<EOF >.htaccess
 SetHandler cgi-script
 
@@ -83,6 +85,9 @@ ErrorDocument 401 /cgi-bin/oops/TWiki/TWikiRegistration?template=oopsauth
 </Files>
 EOF
 chmod a+r .htaccess setlib.cfg
+SKIP
+rm .htaccess
+chmod a+r setlib.cfg
 cd -
 
 chmod a+rX htdocs
