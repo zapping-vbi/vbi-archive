@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: prepare_dox.sh,v 1.9 2004-04-30 02:15:46 mschimek Exp $
+# $Id: prepare_dox.sh,v 1.10 2005-11-04 18:28:39 mschimek Exp $
 #
 # This checks out a copy of the module, runs doxygen, puts
 # the generated files online and cleans up.
@@ -33,6 +33,7 @@ test -e htdocs/doc || mkdir htdocs/doc
 rm -rf htdocs/doc/$2
 cp -r $1/doc/html htdocs/doc/$2
 chmod a-x htdocs/doc/$2/*
+chmod a+rX htdocs/doc -R
 
 # Generate search index.
 #cd htdocs/doc/$2

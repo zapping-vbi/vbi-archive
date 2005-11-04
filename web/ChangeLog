@@ -1,3 +1,8 @@
+2005-11-04    <mschimek@users.sf.net>
+
+	* prepare_web.sh: Registration no longer required to edit
+	  TWiki pages.
+
 2005-10-07    <mschimek@users.sf.net>
 
 	* htdocs/zvbi-0.3/networks.xml: Updated from TR 101 231 EBU
