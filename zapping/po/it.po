@@ -1,21 +1,21 @@
 # translation of zapping.po to Italian
 # Zapping (a Gnome TV viewer) / Zapping (Visualizzatore TV per Gnome)
 # Zapping italian translation
-# Pino Toscano <toscano.pino@tiscali.it>, 2002, 2003, 2004, 2005.
 #
+# Pino Toscano <toscano.pino@tiscali.it>, 2002, 2003, 2004, 2005.
 msgid ""
 msgstr ""
 "Project-Id-Version: zapping\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2005-10-26 23:42+0200\n"
-"PO-Revision-Date: 2005-03-03 10:54+0100\n"
+"PO-Revision-Date: 2005-11-09 16:14+0100\n"
 "Last-Translator: Pino Toscano <toscano.pino@tiscali.it>\n"
-"Language-Team: Italian <kde-i18n-it@kde.org>\n"
+"Language-Team: Italian <en@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: KBabel 1.9.1\n"
+"X-Generator: KBabel 1.11\n"
 
 #: glade/zapping.glade2.h:1
 msgid "320x240"
@@ -81,11 +81,11 @@ msgstr "Controller corrente:"
 
 #: glade/zapping.glade2.h:16
 msgid "DVB PES File"
-msgstr ""
+msgstr "File DVB PES"
 
 #: glade/zapping.glade2.h:17
 msgid "DVB _PES File"
-msgstr ""
+msgstr "File DVB _PES"
 
 #: glade/zapping.glade2.h:18
 msgid "Device name:"
@@ -121,9 +121,8 @@ msgid "Interlaced (window size)"
 msgstr "Interlacciato (dimensione della finestra)"
 
 #: glade/zapping.glade2.h:26
-#, fuzzy
 msgid "Kernel VBI device"
-msgstr "_Dispositivo del kernel"
+msgstr "Dispositivo VBI del kernel"
 
 #: glade/zapping.glade2.h:27
 msgid "Kernel _device"
@@ -259,7 +258,7 @@ msgstr "Contenuti della _barra del titolo:"
 
 #: glade/zapping.glade2.h:59 src/zvbi.c:2551
 msgid "VBI"
-msgstr ""
+msgstr "VBI"
 
 #: glade/zapping.glade2.h:60 src/main.c:199 src/properties-handler.c:1306
 #: src/properties-handler.c:1314
@@ -335,9 +334,8 @@ msgid "_Mute on exit"
 msgstr "Silenzioso all'_uscita"
 
 #: glade/zapping.glade2.h:78
-#, fuzzy
 msgid "_No VBI services"
-msgstr "Dispositivo VBI"
+msgstr "_Nessun servizio VBI"
 
 #: glade/zapping.glade2.h:79
 msgid "_No audio recording"
@@ -357,7 +355,7 @@ msgstr "Avvia Zapping _silenzioso"
 
 #: glade/zapping.glade2.h:83
 msgid "_Use VBI Proxy if available"
-msgstr ""
+msgstr "_Usa proxy VBI se disponibile"
 
 #: glade/zapping.glade2.h:84
 msgid "seconds"
@@ -557,7 +555,7 @@ msgstr "Codifica"
 
 #: libvbi/exp-sub.c:171
 msgid "Font face"
-msgstr ""
+msgstr "Tipo di carattere"
 
 #. TRANSLATORS:
 #. Caption is an aid for the hearing impaired,
@@ -635,8 +633,7 @@ msgid "VTX"
 msgstr "VTX"
 
 #: libvbi/exp-vtx.c:136
-msgid ""
-"Export this page as VTX file, the format used by VideoteXt and vbidecode"
+msgid "Export this page as VTX file, the format used by VideoteXt and vbidecode"
 msgstr ""
 "Esporta questa pagina come file VTX, il formato usato da VideoteXt e "
 "vbidecode"
@@ -938,7 +935,7 @@ msgstr "Registra video e audio."
 
 #: plugins/mpeg/mpeg_properties.glade2.h:1
 msgid "-"
-msgstr ""
+msgstr "-"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:2
 msgid "Capture _height:"
@@ -949,9 +946,8 @@ msgid "Capture _width:"
 msgstr "_Larghezza della cattura:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:4
-#, fuzzy
 msgid "Co_dec:"
-msgstr "_Codec:"
+msgstr "Co_dec:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:5
 #: plugins/screenshot/screenshot.glade2.h:3
@@ -964,11 +960,11 @@ msgstr "Formato d_el file"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:8
 msgid "Record _all subtitles"
-msgstr ""
+msgstr "Registr_a tutti i sottotitoli"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:9
 msgid "Record this channel or _page:"
-msgstr ""
+msgstr "Registra questo canale o questa _pagina:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:10
 msgid "Save _as:"
@@ -981,7 +977,7 @@ msgstr "_Audio"
 #: plugins/mpeg/mpeg_properties.glade2.h:12
 #, fuzzy
 msgid "_Caption and Subtitles"
-msgstr "_Sottotitoli"
+msgstr "Sottotitoli"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:13
 msgid "_Codec:"
@@ -997,7 +993,7 @@ msgstr "_Elimina"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:16
 msgid "_Embedded in the video file:"
-msgstr ""
+msgstr "_Integrati nel file video:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:17
 #: plugins/screenshot/screenshot.glade2.h:13
@@ -1030,13 +1026,12 @@ msgid "_Stop"
 msgstr "_Ferma"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:24
-#, fuzzy
 msgid "_Subtitle file:"
-msgstr "Indice dei sottotitoli"
+msgstr "File dei _sottotitoli:"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:25
 msgid "_Superimposed onto the picture"
-msgstr ""
+msgstr "_Sovraimpressi al filmato"
 
 #: plugins/mpeg/mpeg_properties.glade2.h:26
 msgid "_Update live caption at line breaks"
@@ -1187,9 +1182,8 @@ msgid "Subtitles"
 msgstr "Sottotitoli"
 
 #: plugins/subtitle/main.c:89
-#, fuzzy
 msgid "Subtitle plugin"
-msgstr "Indice dei sottotitoli"
+msgstr "Plugin per i sottotitoli"
 
 #: plugins/subtitle/preferences.c:55 plugins/teletext/preferences.c:57
 msgid "Western and Central Europe"
@@ -1240,23 +1234,21 @@ msgid "Hyper (slow, high quality)"
 msgstr "Iper (lento, alta qualità)"
 
 #: plugins/subtitle/preferences.c:386
-#, fuzzy
 msgid "<b>Teletext</b>"
-msgstr "Televideo"
+msgstr "<b>Televideo</b>"
 
 #: plugins/subtitle/preferences.c:388 plugins/teletext/preferences.c:303
 msgid "_Default encoding:"
 msgstr "Co_difica predefinita:"
 
 #: plugins/subtitle/preferences.c:392
-#, fuzzy
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Subtitle viewer may not display the correct font or national characters. You "
 "can select your geographical region here as an additional hint."
 msgstr ""
 "Alcune stazioni non trasmettono un identificatore di lingua completo, così "
-"il visualizzatore del Televideo non può visualizzare correttamente i "
+"il visualizzatore dei sottotitoli non può visualizzare correttamente i "
 "caratteri nazionali. Puoi selezionare qui la tua regione geografica come "
 "aiuto addizionale."
 
@@ -1273,9 +1265,8 @@ msgid "<b>Closed Caption</b>"
 msgstr ""
 
 #: plugins/subtitle/preferences.c:408
-#, fuzzy
 msgid "_Foreground:"
-msgstr "Colore di _primo piano:"
+msgstr "_Primo piano:"
 
 #: plugins/subtitle/preferences.c:410
 #, fuzzy
@@ -1283,9 +1274,8 @@ msgid "Closed Caption foreground color"
 msgstr "Colore di _primo piano:"
 
 #: plugins/subtitle/preferences.c:413
-#, fuzzy
 msgid "_Background:"
-msgstr "_Sfondo"
+msgstr "_Sfondo:"
 
 #: plugins/subtitle/preferences.c:415
 #, fuzzy
@@ -1321,9 +1311,8 @@ msgid "_Disable"
 msgstr "_Disabilita"
 
 #: plugins/subtitle/view.c:1703
-#, fuzzy
 msgid "_Reset position"
-msgstr "_Risoluzione:"
+msgstr "_Ripristina posizione:"
 
 #: plugins/subtitle/view.c:1705 plugins/teletext/window.c:810
 msgid "_Encoding"
@@ -1778,8 +1767,7 @@ msgstr "Aggiungi tutti i _canali"
 
 #: src/channel_editor.c:1827
 msgid "Add all channels in the frequency table to the channel list."
-msgstr ""
-"Aggiungi tutti i canali della tavola delle frequenze alla lista dei canali."
+msgstr "Aggiungi tutti i canali della tavola delle frequenze alla lista dei canali."
 
 #: src/channel_editor.c:1831
 msgid "_Import XawTV configuration"
@@ -2006,7 +1994,7 @@ msgstr "CMD"
 
 #: src/main.c:549
 msgid "Override CPU detection"
-msgstr ""
+msgstr "Sovrascrivi il rilevamento della CPU"
 
 #: src/main.c:638
 msgid "Sorry, but there is no module support in GLib"
@@ -2066,11 +2054,11 @@ msgstr "Spiacente, Zapping non può creare la conigurazione"
 
 #: src/mixer.c:97
 msgid "The soundcard mixer is not configured."
-msgstr ""
+msgstr "Il mixer della scheda sonora non è configurato."
 
 #: src/osd.c:601
 msgid "Please choose a font for OSD in preferences."
-msgstr "Scegliere un carattere per OSD nelle preferenze."
+msgstr "Scegliere un carattere per l'OSD nelle preferenze."
 
 #: src/osd.c:604
 #, c-format
@@ -2078,15 +2066,15 @@ msgid ""
 "The configured font \"%s\" cannot be loaded, please select another one in "
 "preferences\n"
 msgstr ""
-"Impossibile caricare il carattere configurato \"%s\", selezionarne un altro "
-"nelle preferenze\n"
+"Impossibile caricare il tipo carattere configurato \"%s\", selezionarne un "
+"altro nelle preferenze\n"
 
 #: src/osd.c:614
 msgid ""
 "No font could be loaded, please make sure\n"
 "your system is properly configured."
 msgstr ""
-"Non è stato possibile caricare alcun carattere,\n"
+"Non è stato possibile caricare alcun tipo carattere,\n"
 "assicurarsi di aver configurato correttamente il sistema."
 
 #: src/oss.c:179
@@ -2429,19 +2417,19 @@ msgid "V Saturation"
 msgstr "Saturazione V"
 
 #: src/tveng.c:3195
-#, fuzzy, c-format
+#, c-format
 msgid "%s not found in %s or the executable search path."
-msgstr ""
-"zapping_setup_fb non trovato in \"%s\" o nel percorso di ricerca degli "
-"eseguibili."
+msgstr "%s non trovato in %s o nel percorso di ricerca degli eseguibili."
 
 #. TRANSLATORS: Program name, error message.
 #: src/tveng.c:3202 src/tveng.c:3283
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Cannot execute %s.\n"
 "%s."
-msgstr "Impossibile creare %s. %s."
+msgstr ""
+"Impossibile eseguire %s.\n"
+"%s."
 
 #. TRANSLATORS: Program name, error message.
 #: src/tveng.c:3258
@@ -2450,18 +2438,20 @@ msgid ""
 "%s failed.\n"
 "%s"
 msgstr ""
+"%s fallito.\n"
+"%s"
 
 #. TRANSLATORS: Program name.
 #: src/tveng.c:3273
-#, fuzzy, c-format
+#, c-format
 msgid "Unknown error in %s."
-msgstr "Errore sconosciuto."
+msgstr "Errore sconosciuto in %s."
 
 #. TRANSLATORS: Program name.
 #: src/tveng.c:3289
 #, c-format
 msgid "%s failed."
-msgstr ""
+msgstr "%s fallito."
 
 #: src/tveng.c:4546
 msgid "Mono"
@@ -2657,34 +2647,28 @@ msgid "Sorry, Zapzilla is unable to create the config tree"
 msgstr "Spiacente, Zapzilla non può creare la configurazione"
 
 #: src/zmisc.c:660
-#, fuzzy
 msgid "Could not switch to capture mode"
-msgstr "Impossibile passare al formato di cattura YUYV %u x %u."
+msgstr "Impossibile passare al formato di cattura"
 
 #: src/zmisc.c:682 src/zmisc.c:699
-#, fuzzy
 msgid "Could not switch to overlay mode"
-msgstr "Impossibile passare al formato di cattura YUYV %u x %u."
+msgstr "Impossibile passare alla modalità di overlay"
 
 #: src/zmisc.c:683 src/zmisc.c:734
 msgid "Video overlay has been disabled."
-msgstr ""
+msgstr "L'overlay video è stato disabilitato."
 
 #: src/zmisc.c:715
-#, fuzzy
 msgid "Could not switch to Teletext mode"
-msgstr "Attiva la modalità Televideo"
+msgstr "Impossibile passare alla modalità Televideo"
 
 #: src/zmisc.c:716
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI è stato disabilitato, o non funziona."
 
 #: src/zmisc.c:733 src/zmisc.c:762
-#, fuzzy
 msgid "Could not switch to fullscreen mode"
-msgstr ""
-"Impossibile avviare l'overlay a tutto schermo.\n"
-"%s"
+msgstr "Impossibile passare alla modalità a tutto schermo"
 
 #: src/zmisc.c:1028
 msgid "Hide the statusbar"
@@ -2696,16 +2680,17 @@ msgid "%s is not a directory."
 msgstr "%s non è una directory."
 
 #: src/zmisc.c:1282
-#, fuzzy
 msgid "Could not create directory"
-msgstr "Impossibile creare la directory %s"
+msgstr "Impossibile creare la directory"
 
 #: src/zmisc.c:1283
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "Could not create %s.\n"
 "%s"
-msgstr "Impossibile creare %s. %s."
+msgstr ""
+"Impossibile creare %s.\n"
+"%s."
 
 #: src/zmisc.c:2003
 msgid "Device:"
@@ -2752,7 +2737,7 @@ msgstr "Impossibile aprire l'URL"
 
 #: src/zspinslider.c:306 src/zspinslider.c:310
 msgid "Reset"
-msgstr ""
+msgstr "Ripristina"
 
 #: src/zvbi.c:1036
 #, c-format
@@ -2770,7 +2755,7 @@ msgstr "Apri questa pagina con Zapzilla"
 
 #: src/zvbi.c:1426
 msgid "PES file read error"
-msgstr ""
+msgstr "Errore di lettura del file PES"
 
 #: src/zvbi.c:1645
 msgid "VBI interface timeout"
@@ -2781,25 +2766,21 @@ msgid "VBI interface: Failed to read from the device"
 msgstr "Interfaccia VBI: Lettura dal dispositivo fallita"
 
 #: src/zvbi.c:1755 src/zvbi.c:2025 src/zvbi.c:2133
-#, fuzzy
 msgid "VBI initialization failed"
-msgstr ""
-"Inizializzazione VBI fallita.\n"
-"%s"
+msgstr "Inizializzazione VBI fallita"
 
 #: src/zvbi.c:2079
-#, fuzzy
 msgid "Cannot open PES file"
-msgstr "Impossibile aprire il file d'aiuto"
+msgstr "Impossibile aprire il file PES"
 
 #: src/zvbi.c:2134
-#, fuzzy, c-format
+#, c-format
 msgid "%s is no VBI device."
-msgstr "%s non è una directory."
+msgstr "%s non è un dispositivo VBI."
 
 #: zapping.desktop.in.h:1
 msgid "Lets you watch TV in a window"
-msgstr ""
+msgstr "Ti permette di vedere la TV in una finestra"
 
 #: zapping.desktop.in.h:2
 msgid "Zapping TV Viewer"
@@ -2827,8 +2808,7 @@ msgid "Default Teletext character set."
 msgstr "Insieme di caratteri predefinito del televideo."
 
 #: zapping.schemas.in.h:6
-msgid ""
-"Default Teletext home page, usually 100. Valid values range from 100 to 899."
+msgid "Default Teletext home page, usually 100. Valid values range from 100 to 899."
 msgstr ""
 "Pagina d'avvio predefinita del televideo, di solito 100. I valori validi "
 "variano da 100 a 899."
@@ -2838,13 +2818,11 @@ msgid "Default Teletext home page."
 msgstr "Pagina d'avvio predefinita del televideo."
 
 #: zapping.schemas.in.h:8
-msgid ""
-"Default background color of Closed Caption text (#RRGGBB), default #000000."
+msgid "Default background color of Closed Caption text (#RRGGBB), default #000000."
 msgstr ""
 
 #: zapping.schemas.in.h:9
-msgid ""
-"Default foreground color of Closed Caption text (#RRGGBB), default #FFFFFF."
+msgid "Default foreground color of Closed Caption text (#RRGGBB), default #FFFFFF."
 msgstr ""
 
 #: zapping.schemas.in.h:10
@@ -2886,9 +2864,8 @@ msgid "Horizontal image resolution in deinterlace mode."
 msgstr ""
 
 #: zapping.schemas.in.h:18
-#, fuzzy
 msgid "Interpret the Teletext search text as regular expression."
-msgstr "Il testo di ricerca del televideo è un'espressione regolare."
+msgstr "Interpreta il testo di ricerca del Televideo come espressione regolare."
 
 #: zapping.schemas.in.h:19
 msgid "Keep the main window above other windows."
@@ -2987,8 +2964,7 @@ msgstr "Livello di implementazione del televideo."
 
 #: zapping.schemas.in.h:37
 msgid "Teletext implementation level. Valid values: 1, 1.5, 2.5, 3.5."
-msgstr ""
-"Livello di implementazione del televideo. Valori validi: 1, 1.5, 2.5, 3.5."
+msgstr "Livello di implementazione del televideo. Valori validi: 1, 1.5, 2.5, 3.5."
 
 #: zapping.schemas.in.h:38
 #, fuzzy
@@ -3013,6 +2989,9 @@ msgid ""
 "and blanking the pointer when over the video. A value of zero disables this "
 "feature."
 msgstr ""
+"Questo è il tempo in millisecondi durante il quale Zapping attenderà "
+"eventuali movimenti del puntatore e lo nasconderà quando si trova sul video. "
+"Un valore di zero disabilita questa funzione."
 
 #: zapping.schemas.in.h:43
 msgid "Time to wait until blanking the pointer."
@@ -3034,49 +3013,49 @@ msgstr ""
 #: zapping_setup_fb/zapping_setup_fb.c:134
 #, c-format
 msgid "Device name %s is unsafe, contains dots."
-msgstr ""
+msgstr "Il nome del dispositivo %s non è sicuro, contiene puntini."
 
 #: zapping_setup_fb/zapping_setup_fb.c:142
 #, c-format
 msgid "Device name %s is unsafe, does not begin with /dev/."
-msgstr ""
+msgstr "Il nome del dispositivo %s non è sicuro, non inizia per /dev/."
 
 #. TRANSLATORS: File name, error message.
 #: zapping_setup_fb/zapping_setup_fb.c:161
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot open device %s. %s."
-msgstr "Impossibile ottenere la struttura delle informazioni del dispositivo"
+msgstr "Impossibile aprire il dispositivo %s. %s."
 
 #. TRANSLATORS: File name, error message.
 #: zapping_setup_fb/zapping_setup_fb.c:176
-#, fuzzy, c-format
+#, c-format
 msgid "Cannot identify %s. %s."
-msgstr "Impossibile creare il file %s: %s\n"
+msgstr "Impossibile identificare %s: %s."
 
 #: zapping_setup_fb/zapping_setup_fb.c:188
-#, fuzzy, c-format
+#, c-format
 msgid "%s is not a device."
-msgstr "%s non è una directory."
+msgstr "%s non è un dispositivo."
 
 #: zapping_setup_fb/zapping_setup_fb.c:202
-#, fuzzy, c-format
+#, c-format
 msgid "%s is not a video device."
-msgstr "%s non è una directory."
+msgstr "%s non è un dispositivo video."
 
 #: zapping_setup_fb/zapping_setup_fb.c:217
 #, c-format
 msgid "Cannot identify file descriptor %d. %s."
-msgstr ""
+msgstr "Impossibile identificare il descrittore di file %d. %s."
 
 #: zapping_setup_fb/zapping_setup_fb.c:225
 #, c-format
 msgid "File descriptor %d is not a device."
-msgstr ""
+msgstr "Il descrittore di file %d non è un dispositivo."
 
 #: zapping_setup_fb/zapping_setup_fb.c:235
 #, c-format
 msgid "File descriptor %d is not a video device."
-msgstr ""
+msgstr "Il descrittore di file %d non è un dispositivo video."
 
 #: zapping_setup_fb/zapping_setup_fb.c:266
 #, c-format
@@ -3091,7 +3070,7 @@ msgstr ""
 #: zapping_setup_fb/zapping_setup_fb.c:427
 #, c-format
 msgid "Invalid bpp argument %d. Expected 24 or 32."
-msgstr ""
+msgstr "Argomento %d non valido di bpp. Atteso 24 o 32."
 
 #: zapping_setup_fb/zapping_setup_fb.c:459
 #, c-format
@@ -3100,100 +3079,34 @@ msgstr ""
 
 #: zapping_setup_fb/zapping_setup_fb.c:516
 msgid "No screens found."
-msgstr ""
+msgstr "Nessuno schermo trovato."
 
 #: zapping_setup_fb/zapping_setup_fb.c:549
 #, c-format
 msgid "Cannot open display %s."
-msgstr ""
+msgstr "Impossibile aprire il display %s."
 
 #: zapping_setup_fb/zapping_setup_fb.c:565
 #, c-format
 msgid "Screen %d not found."
-msgstr ""
+msgstr "Schermo %d non trovato."
 
 #: zapping_setup_fb/zapping_setup_fb.c:572
 #, c-format
 msgid "DMA is not possible on screen %d."
-msgstr ""
+msgstr "Il DMA non è possibile sullo schermo %d."
 
 #: zapping_setup_fb/zapping_setup_fb.c:590
-#, fuzzy, c-format
+#, c-format
 msgid "%s is not a V4L or V4L2 device."
-msgstr "%s non è una directory."
+msgstr "%s non è un dispositivo V4L o V4L2."
 
 #: zapping_setup_fb/zapping_setup_fb.c:593
 #, c-format
 msgid "File descriptor %d is not a V4L or V4L2 device."
-msgstr ""
+msgstr "Il descrittore di file %d non è un dispositivo V4L o V4L2."
 
 #: zapping_setup_fb/v4l.c:84 zapping_setup_fb/v4l25.c:86
-#, fuzzy
 msgid "The device does not support video overlay."
-msgstr ""
-"Impossibile avviare l'overlay video.\n"
-"%s"
+msgstr "Il dispositivo non supporta l'overlay video."
 
-#~ msgid "Save window _geometry (some WM's don't like it)"
-#~ msgstr "Salva _geometria della finestra (alcuni WM non lo accettano)"
-
-#~ msgid "Select the VBI device"
-#~ msgstr "Seleziona il dispositivo VBI"
-
-#~ msgid "VBI options"
-#~ msgstr "Opzioni VBI"
-
-#~ msgid "_Enable VBI decoding"
-#~ msgstr "Abilita d_ecodifica VBI"
-
-#~ msgid "*"
-#~ msgstr "*"
-
-#~ msgid "VBI Options"
-#~ msgstr "Opzioni VBI"
-
-#~ msgid "Interactive TV"
-#~ msgstr "TV interattiva"
-
-#~ msgid "General"
-#~ msgstr "Generale"
-
-#~ msgid "Cannot execute zapping_setup_fb."
-#~ msgstr "Impossibile eseguire zapping_setup_fb."
-
-#~ msgid "zapping_setup_fb failed."
-#~ msgstr "zapping_setup_fb fallito."
-
-#~ msgid "Unknown error in zapping_setup_fb."
-#~ msgstr "Errore sconosciuto in zapping_setup_fb."
-
-#~ msgid "Ran out of memory."
-#~ msgstr "Senza memoria disponibile."
-
-#~ msgid ""
-#~ "This probably means that the required driver isn't loaded. Add to your /"
-#~ "etc/modules.conf the line:\n"
-#~ "alias char-major-81-224 bttv (replace bttv by the name of your video "
-#~ "driver)\n"
-#~ "and with mknod create /dev/vbi0 appropriately. If this doesn't work, you "
-#~ "can disable VBI in Settings/Preferences/VBI options/Enable VBI decoding."
-#~ msgstr ""
-#~ "Ciò probabilmente significa che il driver richiesto non è caricato. "
-#~ "Aggiungi al file /etc/modules.conf la linea:\n"
-#~ "alias char-major-81-224 bttv (sostituisci bttv con il nome del tuo driver "
-#~ "video)\n"
-#~ "e con mknod crea opportunamente /dev/vbi0. Se ciò non funziona, è "
-#~ "possibile disabilitare il VBI in Opzioni/Preferenze/Opzioni VBI/Abilita "
-#~ "decodifica VBI."
-
-#~ msgid "Out of resources to start a new thread."
-#~ msgstr "Senza risorse per creare un nuovo thread."
-
-#~ msgid "Filter"
-#~ msgstr "Filtro"
-
-#~ msgid "Colorkey"
-#~ msgstr "Chiave di colore"
-
-#~ msgid "Greedy 2 Frame Chroma Threshold"
-#~ msgstr "Greedy 2 Frame Chroma Threshold"
