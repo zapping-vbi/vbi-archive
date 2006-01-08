@@ -277,8 +277,9 @@ vbi3_cache_purge			(vbi3_cache *		ca)
 
 	assert (NULL != ca);
 
-	FOR_ALL_NODES (cn, cn1, &ca->networks, node)
+	FOR_ALL_NODES (cn, cn1, &ca->networks, node) {
 		delete_network (ca, cn);
+	}
 }
 
 static void
@@ -407,14 +408,16 @@ recycle_network			(vbi3_cache *		ca)
 	/* We absorb the last recently used cache_network
 	   without references. */
 
-	FOR_ALL_NODES_REVERSE (cn, cn1, &ca->networks, node)
+	FOR_ALL_NODES_REVERSE (cn, cn1, &ca->networks, node) {
 		if (0 == cn->ref_count
-		    && 0 == cn->n_referenced_pages)
-			break;
+		    && 0 == cn->n_referenced_pages) {
+			goto found;
+		}
+	}
 
-	if (NULL == cn->node.pred)
-		return NULL;
+	return NULL;
 
+ found:
 	if (cn->n_pages > 0)
 		delete_all_pages (ca, cn);
 
@@ -1653,11 +1656,11 @@ vbi3_cache_delete		(vbi3_cache *		ca)
 
 	vbi3_cache_purge (ca);
 
-	if (!empty_list (&ca->referenced)) {
+	if (!is_empty (&ca->referenced)) {
 		debug ("Some cached pages still referenced, memory leaks");
 	}
 
-	if (!empty_list (&ca->networks)) {
+	if (!is_empty (&ca->networks)) {
 		debug ("Some cached networks still referenced, memory leaks");
 	}
 

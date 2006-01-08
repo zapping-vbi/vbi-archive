@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" 
 "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd" [
-  <!ENTITY appversion		"0.9">
+  <!ENTITY appversion		"0.10">
   <!ENTITY manrevision		"0.3">
   <!ENTITY date			"2005-02-18">
 
@@ -18,7 +18,7 @@
 
 <article id="index" lang="en">
   <articleinfo> 
-    <title>Zapping Manual &manrevision;</title>       
+    <title>Zapping &appversion; User Manual</title>       
 
     <copyright> 
       <year>2004</year>
@@ -63,7 +63,10 @@
   <sect1 id="zapping-introduction"> 
     <title>Introduction</title>
 
-    <para>With the Zapping application you can watch TV, take screenshots and record video and audio. Zapping has a deinterlacer and a Teletext viewer built in and supports Closed Caption and Teletext subtitles.</para>
+    <para>With the Zapping application you can watch TV, take
+screenshots and record video and audio. Zapping has a deinterlacer and
+a Teletext viewer built in and supports Closed Caption and Teletext
+subtitles.</para>
 
     <para>This document describes version &appversion; of Zapping.</para>
   </sect1>
@@ -77,26 +80,51 @@
       <title>Installation</title>
 
       <para>Which hardware is supported by Zapping?</para>
-      <para>Zapping does not talk to hardware directly, it uses drivers already installed on your system. Hardware thus supported includes <emphasis>analog</emphasis> TV cards, graphic cards with video capture capability, both with and without tuner, and some USB cameras. Sorry I cannot usually answer if a particular brand and model will work.</para>
+      <para>Zapping does not talk to hardware directly, it uses
+drivers already installed on your computer. Hardware thus supported
+includes <emphasis>analog</emphasis> TV cards, graphic cards with
+video capture capability, both with and without tuner, and some USB
+cameras.</para>
 
       <variablelist>
 	<varlistentry>
 	  <term>Video4Linux or Video4Linux2 kernel drivers</term>
 	  <listitem>
-	    <para>Zapping can capture video, capture VBI (Teletext and Closed Caption) data and overlay video if this is supported by your driver. For installation and configuration of the driver please consult V4L or driver documentation.</para>
-	    <para>When the driver and your TV card supports video overlay the appearance can be improved by enabling the XFree86 V4L/XVideo interface driver. If it has not been done already, open the file <filename>/etc/X11/XF86Config</filename> and add <userinput>Load "v4l"</userinput> to the module section:</para>
+	    <para>Zapping can capture video, VBI (Teletext and Closed
+Caption) data and overlay video if this is supported by your driver.
+For installation and configuration of the driver please consult V4L or
+driver documentation.</para>
+	    <para>When the driver and your TV card supports video
+overlay the appearance can be improved by enabling the XFree86
+V4L/XVideo interface driver. If it has not been done already, open the
+file <filename>/etc/X11/XF86Config</filename> and add <userinput>Load
+"v4l"</userinput> to the module section:</para>
 	    <programlisting>
 Section "Module"
         &hellip;
         Load  "v4l"
 EndSection
 </programlisting>
+            <para>Alternatively Zapping can use the XFree86 DGA
+extension. You may have to comment out this line:</para>
+            <programlisting>
+Section "Module"
+        &hellip;
+#      Option  "omit xfree86-dga"
+EndSection
+</programlisting>
+            <para>Unfortunately on some graphics card the v4l module
+and DGA do not work very well or at all when 3D graphics support
+(OpenGL, DRI) is enabled.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
 	  <term>BKTR kernel driver (FreeBSD)</term>
 	  <listitem>
-	    <para>Zapping can capture video, capture VBI (Teletext and Closed Caption) data and overlay video with this driver. For installation and configuration of the driver please consult the FreeBSD handbook.</para>
+	    <para>Zapping can capture video, VBI (Teletext and Closed
+Caption) data and overlay video with this driver. For installation and
+configuration of the driver please consult the FreeBSD
+handbook.</para>
 	  </listitem>
 	</varlistentry>
 	<varlistentry>
@@ -136,7 +164,7 @@ EndSection
       <para>When you start Zapping, the following window is displayed.</para>
 
       <figure id="zapping-figure"> 
-	<title>Zapping</title> 
+	<title>Zapping window</title> 
 	<screenshot>
 	  <mediaobject> 
 	    <imageobject>
@@ -170,10 +198,10 @@ EndSection
     <sect2 id="zapping-video-modes">
       <title>Video Modes</title>
 
-      <para>Zapping can work in windowed, fullscreen or background mode. In each mode it can show Teletext, captured images or it can overlay video. What is the difference?</para>
-      <para>In capture mode Zapping programs your TV card to store images in main memory. This permits screenshots, deinterlacing and video recording. It is also quite CPU intensive because to display video Zapping must further pass the images to the X server which programs the graphics processor to convert the images from YUV to RGB format, scale them, and copy them into screen memory.</para>
+      <para>Zapping can work in windowed, fullscreen or background mode. In each mode it can show Teletext, capture images or it can overlay video. What is the difference between capture and overlay mode?</para>
+      <para>In capture mode Zapping programs your TV card to store images in main memory. This permits screenshots, deinterlacing and video recording. It is also quite CPU intensive because to display video Zapping must copy the images to the X server which programs the graphics processor to convert the images from YUV to RGB format, scale them, and copy them into screen memory.</para>
       <para>In overlay mode the TV card stores the images directly in screen memory. This is a more efficient display method, but now Zapping cannot access the images. When you try to take a screenshot, activate deinterlacing or recording in this mode it will switch back to capture mode, if supported by your TV card.</para>
-      <para>The available PCI bus bandwidth limits the image size in overlay mode. When the window or screen is larger than 768&times;576 pixels you will see a black border around the image. To avoid this Zapping can automatically <link linkend="zapping-settings-video-options">reduce the screen resolution</link> in fullscreen mode, or you can switch to capture mode. Capture mode is not limited if your graphics card supports image scaling.</para>
+      <para>The available PCI bus bandwidth limits the image size in overlay mode. When the window or screen is larger than 768&times;576 pixels you will see a black border around the image. To avoid this Zapping can automatically <link linkend="zapping-settings-video-options">reduce the screen resolution</link> in fullscreen mode, or you can switch to capture mode. Capture mode is not limited if your graphics card supports hardware image scaling.</para>
 
       <para>To switch between modes choose the mode from the <menuchoice>
 	  <guimenu>View</guimenu>
@@ -212,25 +240,55 @@ EndSection
     <sect2 id="zapping-caption">
       <title>Caption / Subtitles</title>
 
-      <para>Zapping supports Closed Caption and Teletext subtitles. Strictly speaking caption is an aid for the hard of hearing while subtitles help viewers understand programs in foreign languages. Technically there is no difference, so for simplicity we only refer to subtitles here.</para>
-      <para>To enable subtitles choose the desired channel, page or language from the context menu <menuchoice>
+      <para>Caption is an aid for the hard of hearing while subtitles help viewers understand programs in foreign languages. Technically there is no difference, so we use these terms interchangeably in this document.</para>
+      <para>Zapping supports Closed Caption and Teletext subtitles.
+Closed Caption is common in the USA and can also be found on DVDs and
+other media. Teletext subtitles are mainly broadcast in Europe.</para>
+      <para>Zapping supports multiple languages. These are transmitted
+on different Closed Caption "channels" or on different Teletext pages.
+Whenever possible Zapping displays language names instead of channel
+or page numbers.</para>
+      <para>To enable subtitles choose the desired channel, page or
+language from the context menu <menuchoice>
 	  <guimenu>Subtitles</guimenu>
-	</menuchoice> submenu. To disable subtitles choose <menuchoice>
+	</menuchoice> submenu. To disable subtitles choose
+<menuchoice>
 	  <guimenu>Subtitles</guimenu>
 	  <guisubmenu>Disable</guisubmenu>
-	</menuchoice>. You can also click on the <guilabel>Subtitles</guilabel> button in the toolbar to enable or disable subtitles. When enabled, Zapping displays the Closed Caption channel or Teletext subtitle page last chosen on this channel.</para>
-      <para>Closed Caption channels are always listed in the menu if transmitted. Teletext subtitle pages may not be listed if the station fails to transmit a subtitle link. To choose a Teletext subtitle page manually start Teletext, go to the desired page and click on the <guilabel>Subtitles</guilabel> button in the toolbar.</para>
-      <para>When Zapping displays subtitles you can drag them to a different position with the left mouse button. To resize subtitles hold the <keycap>Shift</keycap> key down or drag with the middle mouse button.</para>
-      <para>Clicking on subtitles with the right mouse button opens a context menu where you can disable the subtitles or choose another language. With the <menuchoice>
+	</menuchoice>. You can also click on the
+<guilabel>Subtitles</guilabel> button in the toolbar to enable or
+disable subtitles.</para>
+      <para>Closed Caption channels are always listed in the menu if
+transmitted, Teletext subtitles only if the station transmits
+subtitle links. To choose a Teletext subtitle page manually switch to
+Teletext mode, go to the desired page and click on the
+<guilabel>Subtitles</guilabel> button in the toolbar.</para>
+      <para>When Zapping displays subtitles you can drag them to a
+different position with the left mouse button. To resize subtitles
+hold the <keycap>Shift</keycap> key down or drag with the middle mouse
+button.</para>
+      <para>Clicking on subtitles with the right mouse button opens a
+context menu where you can disable the subtitles or choose another
+language. With the <menuchoice>
 	  <guimenu>Encoding</guimenu>
-	</menuchoice> submenu you can override the character encoding of Teletext subtitles, which is sometimes incorrectly transmitted.</para>
+	</menuchoice> submenu you can override the character encoding
+of Teletext subtitles, which is sometimes incorrectly
+transmitted.</para>
     </sect2>
 
     <sect2 id="zapping-screenshot">
       <title>Take a screenshot</title>
-      <para>To take a screenshot click on the <guilabel>Screenshot</guilabel> button in the toolbar or press the <keycap>S</keycap> key. A dialog will open where you can choose a file name, image format and compression quality if applicable.</para>
-      <para>The deinterlace option can remove interlace artefacts on the fly. It makes no sense to deinterlace scaled images, so the option is only available if the image height is 480 or 576 pixels. At your discretion screenshots may or may not contain the displayed subtitles.</para>
-      <para>Screenshots are only possible if your TV card and its driver supports video capturing.</para>
+      <para>To take a screenshot click on the
+<guilabel>Screenshot</guilabel> button in the toolbar or press the
+<keycap>S</keycap> key. A dialog will open where you can choose a file
+name, image format and compression quality if applicable.</para>
+      <para>The deinterlace option can remove interlace artefacts on
+the fly. It makes no sense to deinterlace scaled images, so the option
+is only available if the image height is 480 or 576 pixels. At your
+discretion screenshots may or may not contain the displayed
+subtitles.</para>
+      <para>Screenshots are only possible if your TV card and its
+driver supports video capturing.</para>
     </sect2>
 
     <sect2 id="zapping-record">

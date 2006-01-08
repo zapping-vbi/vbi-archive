@@ -70,23 +70,28 @@ zimage *zimage_new (tv_pixfmt pixfmt,
 		    guint w, guint h)
 {
   guint i;
+
   for (i=0; i<n_backends; i++)
-    if (backends[i].pixfmt == pixfmt)
-      {
-	zimage *zimage = backends[i].backend.image_new (pixfmt, w, h);
-	if (zimage)
-	  {
-	    private_zimage *pz = (private_zimage*)zimage;
+    {
+      if (backends[i].pixfmt == pixfmt)
+	{
+	  zimage *zimage;
 
-	    printv ("zimage_new %p using video backend %s\n",
-		    zimage, backends[i].backend.name);
+	  zimage = backends[i].backend.image_new (pixfmt, w, h);
+	  if (zimage)
+	    {
+	      private_zimage *pz = (private_zimage*)zimage;
 
-	    pz->refcount = 1;
-	    pz->backend = i;
+	      printv ("zimage_new %p using video backend %s\n",
+		      zimage, backends[i].backend.name);
 
-	    return zimage;
-	  }
-      }
+	      pz->refcount = 1;
+	      pz->backend = i;
+
+	      return zimage;
+	    }
+	}
+    }
 
   /* The video_mem backend should always succeed. */
   g_assert_not_reached ();

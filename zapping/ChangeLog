@@ -1,3 +1,33 @@
+2006-01-07    <mschimek@users.sf.net>
+
+	* src/x11stuff.c (x11_force_expose, x11_window_viewable,
+	  wm_hints_detect, x11_vidmode_list_new, find_xscreensaver_window,
+	  x11_xvideo_dump): Temporarily override the default
+	  xlib error handler so we don't abort on errors.
+	* libtv/screen.c (dga_query, xinerama_query, tv_screen_list_new,
+	  pixfmt_from_dga_modes): Temporarily override the default
+	  xlib error handler so we don't abort on errors. The dga_query()
+	  change is supposed to fix feature request #1395190.
+	
+2005-12-21    <mschimek@users.sf.net>
+
+	* libvbi/dlist.h: Fixed spurious crashes due to a pointer
+	  aliasing bug.
+
+2005-11-29    <mschimek@users.sf.net>
+
+	* src/Makefile.am (zapping_LDADD): Added PNG_LIBS (libvbi).
+
+2005-11-23    <mschimek@users.sf.net>
+
+	* configure.in: Added check for -lXmu. 
+	* src/Makefile.am (bin_PROGRAMS): Compile zapping_remote only
+	  if we have -lXmu.
+
+2005-11-21    <mschimek@users.sf.net>
+
+	* help/C/zapping-C.omf: Corrected document description.
+
 2005-10-30    <mschimek@users.sf.net>
 
 	* zapping_setup_fb/zapping_setup_fb.c: Say try -vv which app.

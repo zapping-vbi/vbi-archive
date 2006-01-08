@@ -62,7 +62,6 @@ RATING_US = \
 	rating_tv_us_66.png rating_tv_us_67.png
 
 IMAGES = \
-	logo.png \
 	vt_loading1.jpeg \
 	vt_loading2.jpeg \
 	gnome-television.png

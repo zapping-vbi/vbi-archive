@@ -1,6 +1,6 @@
 /*
- *  Copyright (C) 2001-2004 Michael H. Schimek
  *  Copyright (C) 2000-2003 Iñaki García Etxebarria
+ *  Copyright (C) 2001-2006 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: screen.c,v 1.7 2005-01-19 04:13:57 mschimek Exp $ */
+/* $Id: screen.c,v 1.8 2006-01-08 05:25:31 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -62,11 +62,13 @@ tv_screen_list_find		(const tv_screen *	list,
 		lx2 = list->x + list->width;
 		ly2 = list->y + list->height;
 
-		if (x2 <= (int) list->x || x >= lx2)
+		if (x2 <= (int) list->x || x >= lx2) {
 			continue;
+		}
 
-		if (y2 <= (int) list->y || y >= ly2)
+		if (y2 <= (int) list->y || y >= ly2) {
 			continue;
+		}
 
 		n = (MIN (x2, lx2) - MAX (x, (int) list->x))
 			* (MIN (y2, ly2) - MAX (y, (int) list->y));
@@ -92,6 +94,23 @@ tv_screen_list_delete		(tv_screen *		list)
 	}
 }
 
+/* Reflect all errors back to the program through the procedural
+   interface. The default error handler terminates the program. */
+static int
+my_error_handler		(Display *		display,
+				 XErrorEvent *		error)
+{
+	display = display;
+
+	printv ("X Error: serial=%lu error=%lu request=%lu minor=%lu\n",
+		(unsigned long) error->serial,
+		(unsigned long) error->error_code,
+		(unsigned long) error->request_code,
+		(unsigned long) error->minor_code);
+
+	return 0; /* ignored */
+}
+
 #ifdef HAVE_XINERAMA_EXTENSION
 
 /* Where is this documented? */
@@ -101,6 +120,7 @@ static tv_bool
 xinerama_query			(tv_screen **		list,
 				 Display *		display)
 {
+	XErrorHandler old_error_handler;
 	int event_base;
 	int error_base;
 	int major_version;
@@ -113,16 +133,18 @@ xinerama_query			(tv_screen **		list,
 	assert (NULL != list);
 	assert (NULL != display);
 
+	old_error_handler = XSetErrorHandler (my_error_handler);
+
 	*list = NULL;
 
 	if (!XineramaQueryExtension (display, &event_base, &error_base)) {
 		printv ("Xinerama extension not available\n");
-		return TRUE;
+		goto success;
 	}
 
 	if (!XineramaQueryVersion (display, &major_version, &minor_version)) {
 		printv ("Xinerama extension not usable\n");
-		return FALSE;
+		goto failure;
 	}
 
 	printv ("Xinerama base %d, %d, version %d.%d\n",
@@ -131,18 +153,18 @@ xinerama_query			(tv_screen **		list,
 
 	if (1 != major_version)	{
 		printv ("Unknown Xinerama version\n");
-		return FALSE;
+		goto failure;
 	}
 
 	if (!XineramaIsActive (display)) {
 		printv ("Xinerama inactive\n");
-		return TRUE;
+		goto success;
 	}
 
 	screen_info = XineramaQueryScreens (display, &n_screens);
-	if (!screen_info) {
+	if (NULL == screen_info) {
 		printv ("XineramaQueryScreens() failed\n");
-		return FALSE;
+		goto failure;
 	}
 
 	next = list;
@@ -150,13 +172,14 @@ xinerama_query			(tv_screen **		list,
 	for (i = 0; i < n_screens; ++i) {
 		tv_screen *xs;
 
-		if (!(xs = calloc (1, sizeof (*xs)))) {
+		xs = calloc (1, sizeof (*xs));
+		if (NULL == xs) {
 			tv_screen_list_delete (*list);
 			*list = NULL;
 
 			XFree (screen_info);
 
-			return FALSE;
+			goto failure;
 		}
 
 		xs->screen_number = screen_info[i].screen_number;
@@ -172,7 +195,15 @@ xinerama_query			(tv_screen **		list,
 
 	XFree (screen_info);
 
+ success:
+	XSetErrorHandler (old_error_handler);
+
 	return TRUE;
+
+ failure:
+	XSetErrorHandler (old_error_handler);
+
+	return FALSE;
 }
 
 #else /* !HAVE_XINERAMA_EXTENSION */
@@ -203,6 +234,7 @@ pixfmt_from_visuals		(Display *		display,
 				 int			bpp_hint)
 {
 	tv_pixel_format format;
+	XErrorHandler old_error_handler;
 	Visual *default_visual;
 	XVisualInfo *visuals;
 	XVisualInfo *v;
@@ -212,39 +244,48 @@ pixfmt_from_visuals		(Display *		display,
 
 	CLEAR (format);
 
+	old_error_handler = XSetErrorHandler (my_error_handler);
+
 	default_visual = XDefaultVisual (display, screen_number);
 
-	if (TV_SCREEN_DGA_DEBUG)
+	if (TV_SCREEN_DGA_DEBUG) {
 		printv ("PFD default visual id=%d\n",
 			(int) default_visual->visualid);
+	}
 
 	templ.screen = screen_number;
 	visuals = XGetVisualInfo (display, VisualScreenMask, &templ, &n_items);
+	if (NULL == visuals) {
+		printv ("PFD XGetVisualInfo() failed\n");
+		goto failure;
+	}
 
 	v = NULL;
 
 	for (i = 0; i < n_items; ++i) {
-		if (TV_SCREEN_DGA_DEBUG)
+		if (TV_SCREEN_DGA_DEBUG) {
 			printv ("PFD visuals[%u]: id=%d class=%u depth=%u\n",
 				i, (int) visuals[i].visualid,
 				visuals[i].class,
 				visuals[i].depth);
+		}
 
-		if (TrueColor != visuals[i].class)
+		if (TrueColor != visuals[i].class) {
 			continue;
+		}
 
 		if (visuals[i].visualid == default_visual->visualid) {
-			if (v) /* huh? */
+			if (NULL != v) /* huh? */
 				break;
 
 			v = &visuals[i];
 		}
 	}
 
-	if (!v || i < n_items) {
+	if (NULL == v || i < n_items) {
 		XFree (visuals);
 		printv ("PFD: No appropriate X visual available\n");
-		return TV_PIXFMT_UNKNOWN;
+		goto failure;
 	}
 
 	/* v->depth counts RGB bits, not alpha. */
@@ -280,31 +321,36 @@ pixfmt_from_visuals		(Display *		display,
 			f = NULL;
 			
 			for (i = 0; i < n_items; ++i) {
-				if (TV_SCREEN_DGA_DEBUG)
+				if (TV_SCREEN_DGA_DEBUG) {
 					printv ("PFD formats[%u]: "
 						"depth=%u bpp=%u\n",
 						i, formats[i].depth,
 						formats[i].bits_per_pixel);
+				}
 
 				if ((unsigned int) formats[i].depth
-				    != format.color_depth)
+				    != format.color_depth) {
 					continue;
+				}
 
-				if (formats[i].bits_per_pixel < 24)
+				if (formats[i].bits_per_pixel < 24) {
 					break;
+				}
 
-				if (f && (f->bits_per_pixel !=
-					  formats[i].bits_per_pixel))
+				if (NULL != f
+				    && (f->bits_per_pixel !=
+					formats[i].bits_per_pixel)) {
 					break;
+				}
 
 				f = &formats[i];
 			}
 
-			if (!f || i < n_items) {
+			if (NULL == f || i < n_items) {
 				XFree (formats);
 				printv ("PFD: Unknown frame buffer "
 					"bits per pixel\n");
-				return TV_PIXFMT_UNKNOWN;
+				goto failure;
 			}
 
 			format.bits_per_pixel = f->bits_per_pixel;
@@ -318,16 +364,24 @@ pixfmt_from_visuals		(Display *		display,
 	format.big_endian = (MSBFirst == XImageByteOrder (display));
 
 	format.pixfmt = tv_pixel_format_to_pixfmt (&format);
-	if (TV_PIXFMT_UNKNOWN != format.pixfmt)
-		return format.pixfmt;
+	if (TV_PIXFMT_UNKNOWN == format.pixfmt) {
+		goto failure;
+	}
 
+	XSetErrorHandler (old_error_handler);
+
+	return format.pixfmt;
+
+ failure:
 	printv ("PFD: Unknown frame buffer format\n");
+
+	XSetErrorHandler (old_error_handler);
 
 	return TV_PIXFMT_UNKNOWN;
 }
 
 static tv_bool
-display_pixfmt			(tv_screen *		list,
+get_display_pixfmt		(tv_screen *		list,
 				 Display *		display,
 				 int			bpp_hint)
 {
@@ -338,12 +392,14 @@ display_pixfmt			(tv_screen *		list,
 	screen_number = XDefaultScreen (display);
 
 	pixfmt = pixfmt_from_visuals (display, screen_number, bpp_hint);
-	if (TV_PIXFMT_UNKNOWN == pixfmt)
+	if (TV_PIXFMT_UNKNOWN == pixfmt) {
 		return FALSE;
+	}
 
-	for (; list; list = list->next)
+	for (; list; list = list->next) {
 		list->target.format.pixel_format =
 			tv_pixel_format_from_pixfmt (pixfmt);
+	}
 
 	return TRUE;
 }
@@ -357,19 +413,24 @@ static tv_pixfmt
 pixfmt_from_dga_modes		(Display *		display,
 				 int			screen_number)
 {
+	XErrorHandler old_error_handler;
 	XDGAMode *modes;
 	XDGAMode *m;
 	int n_items;
 	int i;
 
+	old_error_handler = XSetErrorHandler (my_error_handler);
+
 	modes = XDGAQueryModes (display, screen_number, &n_items);
-	if (!modes)
-		return TV_PIXFMT_UNKNOWN;
+	if (NULL == modes) {
+		printv ("XDGAQueryModes() failed\n");
+		goto failure;
+	}
 
 	m = NULL;
 
 	for (i = 0; i < n_items; ++i) {
-		if (TV_SCREEN_DGA_DEBUG)
+		if (TV_SCREEN_DGA_DEBUG) {
 			printv ("DGA modes[%u]: class=%d depth=%d "
 				"bpp=%d red=0x%lx green=0x%lx "
 				"blue=0x%lx order=%d\n",
@@ -381,18 +442,20 @@ pixfmt_from_dga_modes		(Display *		display,
 				modes[i].greenMask,
 				modes[i].blueMask,
 				(int) modes[i].byteOrder);
+		}
 
-		if (!m && TrueColor == modes[i].visualClass)
+		if (NULL == m && TrueColor == modes[i].visualClass) {
 			m = &modes[i];
+		}
 
-		if (modes[i].depth != modes[0].depth ||
-		    modes[i].bitsPerPixel != modes[0].bitsPerPixel) {
+		if (modes[i].depth != modes[0].depth
+		    || modes[i].bitsPerPixel != modes[0].bitsPerPixel) {
 			/* Will the real depth please stand up. */
 			break;
 		}
 	}
 
-	if (m && i >= n_items) {
+	if (NULL != m && i >= n_items) {
 		tv_pixel_format format;
 
 		CLEAR (format);
@@ -409,6 +472,9 @@ pixfmt_from_dga_modes		(Display *		display,
 		format.pixfmt = tv_pixel_format_to_pixfmt (&format);
 		if (TV_PIXFMT_UNKNOWN != format.pixfmt) {
 			XFree (modes);
+
+			XSetErrorHandler (old_error_handler);
+
 			return format.pixfmt;
 		}
 	}
@@ -416,6 +482,9 @@ pixfmt_from_dga_modes		(Display *		display,
 	XFree (modes);
 
 	printv ("DGA: Ambiguous modes\n");
+
+ failure:
+	XSetErrorHandler (old_error_handler);
 
 	return TV_PIXFMT_UNKNOWN;
 }
@@ -425,6 +494,7 @@ dga_query			(tv_screen *		list,
 				 Display *		display,
 				 int			bpp_hint)
 {
+	XErrorHandler old_error_handler;
 	int event_base;
 	int error_base;
 	int major_version;
@@ -435,14 +505,16 @@ dga_query			(tv_screen *		list,
 	assert (NULL != list);
 	assert (NULL != display);
 
+	old_error_handler = XSetErrorHandler (my_error_handler);
+
 	if (!XF86DGAQueryExtension (display, &event_base, &error_base)) {
 		printv ("DGA extension not available\n");
-		return display_pixfmt (list, display, bpp_hint);
+		goto return_pixfmts_from_visuals;
 	}
 
 	if (!XF86DGAQueryVersion (display, &major_version, &minor_version)) {
 		printv ("DGA extension not usable\n");
-		return display_pixfmt (list, display, bpp_hint);
+		goto return_pixfmts_from_visuals;
 	}
 
 	printv ("DGA base %d, %d, version %d.%d\n",
@@ -452,7 +524,7 @@ dga_query			(tv_screen *		list,
 	if (1 != major_version
 	    && 2 != major_version) {
 		printv ("Unknown DGA version\n");
-		return display_pixfmt (list, display, bpp_hint);
+		goto return_pixfmts_from_visuals;
 	}
 
 	/* Screen from XOpenDisplay() name. */
@@ -460,15 +532,18 @@ dga_query			(tv_screen *		list,
 
 	pixfmt = TV_PIXFMT_UNKNOWN;
 
-	if (bpp_hint <= 0 && major_version >= 2)
+	if (bpp_hint <= 0 && major_version >= 2) {
 		pixfmt = pixfmt_from_dga_modes (display, screen_number);
+	}
 
-	if (TV_PIXFMT_UNKNOWN == pixfmt)
+	if (TV_PIXFMT_UNKNOWN == pixfmt) {
 		pixfmt = pixfmt_from_visuals (display,
 					      screen_number, bpp_hint);
+	}
 
-	if (TV_PIXFMT_UNKNOWN == pixfmt)
-		return FALSE;
+	if (TV_PIXFMT_UNKNOWN == pixfmt) {
+		goto failure;
+	}
 
 	for (; list; list = list->next)	{
 		int flags;
@@ -503,7 +578,7 @@ dga_query			(tv_screen *		list,
 			continue;
 		}
 
-		if (TV_SCREEN_DGA_DEBUG)
+		if (TV_SCREEN_DGA_DEBUG) {
 			printv ("DGA screen %d: "
 				"start=%p width=%d "
 				"banksize=%d (0x%x) "
@@ -512,6 +587,7 @@ dga_query			(tv_screen *		list,
 				(void *) start, width,
 				banksize, banksize,
 				memsize, memsize);
+		}
 
 		list->target.base = start;
 
@@ -528,7 +604,19 @@ dga_query			(tv_screen *		list,
 			list->height * list->target.format.bytes_per_line[0];
 	}
 
+	XSetErrorHandler (old_error_handler);
+
 	return TRUE;
+
+ return_pixfmts_from_visuals:
+	XSetErrorHandler (old_error_handler);
+
+	return get_display_pixfmt (list, display, bpp_hint);
+
+ failure:
+	XSetErrorHandler (old_error_handler);
+
+	return FALSE;
 }
 
 #else /* !HAVE_DGA_EXTENSION */
@@ -543,10 +631,10 @@ dga_query			(tv_screen *		list,
 
 	printv ("DGA extension support not compiled in\n");
 
-	/* We cannot overlay without DGA but we still need
+	/* We cannot overlay without DGA but we still want
 	   the pixel format of the screen(s) to choose an
-	   optimal capture format. */
-	return display_pixfmt (list, display, bpp_hint);
+	   optimal capture or blit format. */
+	return get_display_pixfmt (list, display, bpp_hint);
 }
 
 #endif /* !HAVE_DGA_EXTENSION */
@@ -555,43 +643,52 @@ tv_screen *
 tv_screen_list_new		(const char *		display_name,
 				 int			bpp_hint)
 {
+	XErrorHandler old_error_handler;
 	Display *display;
 	tv_screen *list;
 
 	assert (NULL != display_name);
+
+	list = NULL;
+
+	old_error_handler = XSetErrorHandler (my_error_handler);
 
 	display = XOpenDisplay (display_name);
 
 	if (NULL == display) {
 		printv ("%s: Cannot open display '%s'\n",
 			__FUNCTION__, display_name);
-		return NULL;
+		goto failure;
 	}
-
-	list = NULL;
 
 	if (!xinerama_query (&list, display)) {
 		goto failure;
 	}
 
-	if (!list) {
+	if (NULL == list) {
 		Window root;
 		XWindowAttributes wa;
 
 		/* Have no Xinerama. */
 
-		if (!(list = calloc (1, sizeof (*list)))) {
+		list = calloc (1, sizeof (*list));
+		if (NULL == list) {
+			printv ("%s: Out of memory\n",
+				__FUNCTION__);
 			goto failure;
 		}
 
 		/* Root window of XDefaultScreen (display). */
 		root = XDefaultRootWindow (display);
 
-		XGetWindowAttributes (display, root, &wa);
+		if (Success != XGetWindowAttributes (display, root, &wa)) {
+			printv ("%s: Cannot determine size of root window\n",
+				__FUNCTION__);
+			goto failure;
+		}
 
-		if (0)
-			printv ("DGA root width=%u height=%u\n",
-				wa.width, wa.height);
+		printv ("%s: root width=%u height=%u\n",
+			__FUNCTION__, wa.width, wa.height);
 
 		/* Screen from XOpenDisplay() name. */
 		list->screen_number = XDefaultScreen (display);
@@ -603,17 +700,14 @@ tv_screen_list_new		(const char *		display_name,
 	}
 
 	if (!dga_query (list, display, bpp_hint)) {
-		goto failure;
+	failure:
+		tv_screen_list_delete (list);
+		list = NULL;
 	}
 
 	XCloseDisplay (display);
 
+	XSetErrorHandler (old_error_handler);
+
 	return list;
-
- failure:
-	tv_screen_list_delete (list);
-
-	XCloseDisplay (display);
-
-	return NULL;
 }

@@ -10,22 +10,21 @@
       <title>Video Device</title>
 
       <para>In this section you can select the device file name of
-the kernel device to be used in <link linkend="zapping-video-modes">capture mode</link>. On Linux common names are:</para>
-      <simplelist type="vert">
-        <member><filename>/dev/video</filename></member>
-        <member><filename>/dev/video0</filename></member>
-        <member><filename>/dev/video1</filename></member>
-        <member><filename>/dev/video2</filename></member>
-        <member><filename>/dev/v4l/video</filename></member>
-        <member><filename>/dev/v4l/video0</filename></member>
-      </simplelist>
-      <para>On FreeBSD:</para>
-      <simplelist type="vert">
-        <member><filename>/dev/bktr</filename></member>
-        <member><filename>/dev/bktr0</filename></member>
-        <member><filename>/dev/bktr1</filename></member>
-        <member><filename>/dev/bktr2</filename></member>
-      </simplelist>
+the kernel device to be used in <link linkend="zapping-video-modes">capture mode</link>. On Linux common names are:<!-- simplelist not working? -->
+      <itemizedlist>
+        <listitem><para><filename>/dev/video</filename></para></listitem>
+        <listitem><para><filename>/dev/video0</filename></para></listitem>
+        <listitem><para><filename>/dev/video1</filename></para></listitem>
+        <listitem><para><filename>/dev/video2</filename></para></listitem>
+        <listitem><para><filename>/dev/v4l/video</filename></para></listitem>
+        <listitem><para><filename>/dev/v4l/video0</filename></para></listitem>
+      </itemizedlist></para>
+      <para>On FreeBSD: <itemizedlist>
+        <listitem><para><filename>/dev/bktr</filename></para></listitem>
+        <listitem><para><filename>/dev/bktr0</filename></para></listitem>
+        <listitem><para><filename>/dev/bktr1</filename></para></listitem>
+        <listitem><para><filename>/dev/bktr2</filename></para></listitem>
+      </itemizedlist></para>
       <para>Changes will take place after you quit and restart Zapping.</para>
       <para>There is no dialog to select an XVideo device, Zapping uses the first device it finds. This will be corrected in a future version.</para>
     </sect2>
@@ -34,13 +33,11 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
       <title>Audio Device</title>
 
       <para>Here you can select an audio device to <link linkend="zapping-record">record sound</link>. Usually a kernel device is the best choice. If your TV card has audio sampling hardware and the driver supports this, you can also select the TV card as recording device. This will free the soundcard to record from other sources.</para>
-      <para>Common kernel device names are:</para>
-      <simplelist type="vert">
-        <member><filename>/dev/dsp</filename></member>
-        <member><filename>/dev/dsp0</filename></member>
-        <member><filename>/dev/dsp1</filename></member>
-      </simplelist>
-      <para>and so on. Click on the down arrow of the device file entry to see a list of devices found by Zapping.</para>
+      <para>Common kernel device names are: <itemizedlist>
+        <listitem><para><filename>/dev/dsp</filename></para></listitem>
+        <listitem><para><filename>/dev/dsp0</filename></para></listitem>
+        <listitem><para><filename>/dev/dsp1</filename></para></listitem>
+      </itemizedlist> and so on. Click on the down arrow of the device file entry to see a list of devices found by Zapping.</para>
       <para>If the audio output of your TV card connects to an audio input of your soundcard, or when your TV card has no audio capabilities, you will want to select <guilabel>Control volume with soundcard mixer</guilabel>. This has two advantages:</para>
       <itemizedlist>
         <listitem>
@@ -51,32 +48,40 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
         </listitem>
       </itemizedlist>
       <para>When you select a kernel device as audio recording device, you should also enable this option to determine the correct audio input line.</para>
-      <para>Common mixer device names are:</para>
-      <simplelist type="vert">
-        <member><filename>/dev/mixer</filename></member>
-        <member><filename>/dev/mixer0</filename></member>
-        <member><filename>/dev/mixer1</filename></member>
-      </simplelist>
-      <para>and so on. Click on the down arrow of the device file entry to see a list of devices found by Zapping.</para>
+      <para>Common mixer device names are: <itemizedlist>
+        <listitem><para><filename>/dev/mixer</filename></para></listitem>
+        <listitem><para><filename>/dev/mixer0</filename></para></listitem>
+        <listitem><para><filename>/dev/mixer1</filename></para></listitem>
+      </itemizedlist> and so on. Click on the down arrow of the device file entry to see a list of devices found by Zapping.</para>
     </sect2>
 
     <sect2 id="zapping-settings-vbi-device">
       <title>VBI Device</title>
 
-      <para>In this section you can select the source of Teletext and Closed Caption data. The DVB PES format is used for digital TV VBI transmissions in Europe. Zapping does not support digital TV yet, but it can read DVB files. For normal operation however you should choose a kernel device. Common device names are:</para>
-      <simplelist type="vert">
-        <member><filename>/dev/vbi</filename></member>
-        <member><filename>/dev/vbi0</filename></member>
-        <member><filename>/dev/vbi1</filename></member>
-        <member><filename>/dev/vbi2</filename></member>
-      </simplelist>
-      <para>And on Linux only:</para>
-      <simplelist type="vert">
-        <member><filename>/dev/v4l/vbi</filename></member>
-        <member><filename>/dev/v4l/vbi0</filename></member>
-      </simplelist>
-      <para>The VBI device name should match the video device name. When for example the video device is <filename>/dev/video2</filename> or <filename>/dev/bktr2</filename> the corresponding VBI device is usually <filename>/dev/vbi2</filename>.</para>
-      <para>A VBI proxy allows two or more applications to read from the same VBI device, for example Zapping and Nextvepg. When this option is selected Zapping will access the chosen VBI device through the proxy, or directly if the proxy is not installed or is not running. The proxy is a service of the ZVBI library, currently it works only on Linux.</para>
+      <para>In this section you can select the source of Teletext and
+Closed Caption data. The DVB PES format is used for digital TV VBI
+transmissions in Europe. Zapping does not support digital TV yet, but
+it can read DVB files. For normal operation however you should choose
+a kernel device. Common device names are: <itemizedlist>
+          <listitem><para><filename>/dev/vbi</filename></para></listitem>
+          <listitem><para><filename>/dev/vbi0</filename></para></listitem>
+          <listitem><para><filename>/dev/vbi1</filename></para></listitem>
+          <listitem><para><filename>/dev/vbi2</filename></para></listitem>
+      </itemizedlist></para>
+      <para>And on Linux only: <itemizedlist>
+          <listitem><para><filename>/dev/v4l/vbi</filename></para></listitem>
+          <listitem><para><filename>/dev/v4l/vbi0</filename></para></listitem>
+      </itemizedlist></para>
+      <para>The VBI device name should match the video device name.
+When for example the video device is <filename>/dev/video2</filename>
+or <filename>/dev/bktr2</filename> the corresponding VBI device is
+usually <filename>/dev/vbi2</filename>.</para>
+      <para>A VBI proxy allows two or more applications to read from
+the same VBI device, for example Zapping and Nextvepg. When this
+option is selected Zapping will access the chosen VBI device through
+the proxy, or directly if the proxy is not installed or is not
+running. The proxy is a service of the ZVBI library, currently it
+works only on Linux.</para>
     </sect2>
 
     <sect2 id="zapping-settings-main">
@@ -279,17 +284,23 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
         <varlistentry>
           <term><guilabel>Device file</guilabel></term>
           <listitem>
-            <para>A dedicated kernel device is necessary to capture VBI data. If this is supported by your TV card and its driver, you can select the VBI device here. Common names are:</para>
-            <simplelist type="vert">
-              <member><filename>/dev/vbi</filename></member>
-              <member><filename>/dev/vbi0</filename></member>
-              <member><filename>/dev/vbi1</filename></member>
-              <member><filename>/dev/vbi2</filename></member>
-              <member><filename>/dev/v4l/vbi</filename></member>
-              <member><filename>/dev/v4l/vbi0</filename></member>
-            </simplelist>
-            <para>The device should correspond to the selected kernel video device. Zapping will try to find it automatically, but this may fail. Changes will take place after you quit and restart Zapping.</para>
-            <para>XVideo does not support VBI data capturing. You will be able to use VBI services only if your device also has a kernel driver.</para>
+            <para>A dedicated kernel device is necessary to capture
+VBI data. If this is supported by your TV card and its driver, you can
+select the VBI device here. Common names are: <itemizedlist>
+                <listitem><para><filename>/dev/vbi</filename></para></listitem>
+                <listitem><para><filename>/dev/vbi0</filename></para></listitem>
+                <listitem><para><filename>/dev/vbi1</filename></para></listitem>
+                <listitem><para><filename>/dev/vbi2</filename></para></listitem>
+                <listitem><para><filename>/dev/v4l/vbi</filename></para></listitem>
+                <listitem><para><filename>/dev/v4l/vbi0</filename></para></listitem>
+            </itemizedlist></para>
+            <para>The device should correspond to the selected kernel
+video device. Zapping will try to find it automatically, but this may
+fail. Changes will take place after you quit and restart
+Zapping.</para>
+            <para>XVideo does not support VBI data capturing. You will
+be able to use VBI services only if your device also has a kernel
+driver.</para>
           </listitem>
         </varlistentry>
       </variablelist>
@@ -301,7 +312,10 @@ the kernel device to be used in <link linkend="zapping-video-modes">capture mode
         <varlistentry>
           <term><guilabel>Teletext implementation</guilabel></term>
           <listitem>
-            <para>The Teletext standard knows different implementation levels. The built-in Teletext browser supports them all, but you can choose to see pages as displayed by simpler decoders. Note most stations still only transmit at the basic levels 1.0 or 1.5.</para>
+            <para>The Teletext standard knows different implementation
+levels. The built-in Teletext browser supports them all, but you can
+choose to see pages as displayed by simpler decoders. Note most
+stations still only transmit at the basic levels 1.0 or 1.5.</para>
           </listitem>
         </varlistentry>
         <varlistentry>

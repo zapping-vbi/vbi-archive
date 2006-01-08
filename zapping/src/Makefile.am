@@ -1,8 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 
-bin_PROGRAMS = \
-	zapping \
-	zapping_remote
+bin_PROGRAMS = zapping
+
+if HAVE_XMU
+bin_PROGRAMS += zapping_remote
+endif
 
 BUILT_SOURCES = \
 	zmarshalers.c \
@@ -112,6 +114,7 @@ zapping_LDADD = \
 	@X_XF86VMODE_LIBS@ \
 	@X_XV_LIBS@ \
 	@ZVBI_LIBS@ \
+	@PNG_LIBS@ \
 	@ARTS_LIBS@ \
 	@ESD_LIBS@ \
 	@LIBXML_LIBS@
@@ -124,7 +127,7 @@ zapping_remote_SOURCES = \
 zapping_remote_LDADD = \
 	@X_LIBS@ \
 	-lX11 \
-	-lXmu
+        @X_XMU_LIBS@
 
 # No zapzilla in this version. When it returns this rule should be
 # replaced by install-exec-local instead of overriding install-bin.

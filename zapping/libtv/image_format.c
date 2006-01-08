@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.13 2005-07-16 21:12:25 mschimek Exp $ */
+/* $Id: image_format.c,v 1.14 2006-01-08 05:25:31 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -616,10 +616,10 @@ copy_block1_generic		(void *			dst,
 				 unsigned long		dst_bytes_per_line,
 				 unsigned long		src_bytes_per_line)
 {
-	unsigned long dst_padding;
-	unsigned long src_padding;
 	uint8_t *d;
 	const uint8_t *s;
+	unsigned long dst_padding;
+	unsigned long src_padding;
 
 	dst_padding = dst_bytes_per_line - width * 1;
 	src_padding = src_bytes_per_line - width * 1;
@@ -640,6 +640,10 @@ copy_block1_generic		(void *			dst,
 	}
 }
 
+#define offset(start, format, plane, row)				\
+	((start) + (format)->offset[plane]				\
+	 + (row) * (format)->bytes_per_line[plane])
+
 /*
  * XXX unchecked
  */
@@ -655,6 +659,8 @@ tv_copy_image			(void *			dst_image,
 	const uint8_t *s;
 	unsigned int width;
 	unsigned int height;
+	unsigned int y0 = 0;
+	unsigned int y1 = -1;
 
 	assert (NULL != dst_image);
 	assert (NULL != dst_format);
@@ -680,42 +686,47 @@ tv_copy_image			(void *			dst_image,
 	width = MIN (dst_format->width, src_format->width); 
 	height = MIN (dst_format->height, src_format->height); 
 
+	y1 = MIN (y1, height);
+
+	if (y0 > y1)
+		return FALSE;
+
+	height = y1 - y0;
+
+	assert (width > 0);
+	assert (height > 0);
+
 	pf = dst_format->pixel_format;
 
 	if (TV_PIXFMT_IS_PLANAR (pf->pixfmt)) {
 		unsigned int uv_width;
 		unsigned int uv_height;
+		unsigned int uv_y0;
 
 		uv_width = width >> pf->uv_hshift;
 		uv_height = height >> pf->uv_vshift;
+		uv_y0 = y0 >> pf->uv_vshift;
 
-		copy_block (d + dst_format->offset[0],
-			    s + src_format->offset[0],
-			    width, height,
-			    dst_format->bytes_per_line[0],
-			    src_format->bytes_per_line[0]);
-
-		copy_block (d + dst_format->offset[1],
-			    s + src_format->offset[1],
+		copy_block (offset (d, dst_format, 1, uv_y0),
+			    offset (s, src_format, 1, uv_y0),
 			    uv_width, uv_height,
 			    dst_format->bytes_per_line[1],
 			    src_format->bytes_per_line[1]);
 
 		if (TV_PIXFMT_NV12 != pf->pixfmt) {
-			copy_block (d + dst_format->offset[2],
-				    s + src_format->offset[2],
+			copy_block (offset (d, dst_format, 2, uv_y0),
+				    offset (s, src_format, 2, uv_y0),
 				    uv_width, uv_height,
 				    dst_format->bytes_per_line[2],
 				    src_format->bytes_per_line[2]);
 		}
-
-		return TRUE;
+	} else {
+		width = (width * pf->bits_per_pixel) >> 3;
 	}
 
-	copy_block (d + dst_format->offset[0],
-		    s + src_format->offset[0],
-		    (width * pf->bits_per_pixel) >> 3,
-		    height,
+	copy_block (offset (d, dst_format, 0, y0),
+		    offset (s, src_format, 0, y0),
+		    width, height,
 		    dst_format->bytes_per_line[0],
 		    src_format->bytes_per_line[0]);
 

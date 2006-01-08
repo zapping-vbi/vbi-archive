@@ -2926,8 +2926,7 @@
   <property name="skip_pager_hint">False</property>
   <property name="type_hint">GDK_WINDOW_TYPE_HINT_NORMAL</property>
   <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
-  <property name="logo">logo.png</property>
-  <property name="copyright" translatable="yes">Copyright (C) 2000-2003 the contributors
+  <property name="copyright" translatable="yes">Copyright (C) 2000-2005 the contributors
 </property>
   <property name="comments" translatable="yes">TV viewer for the Gnome environment</property>
   <property name="authors">Michael H. Schimek

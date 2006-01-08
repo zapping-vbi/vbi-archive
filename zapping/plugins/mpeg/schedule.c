@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: schedule.c,v 1.4 2005-01-08 14:54:24 mschimek Exp $ */
+/* $Id: schedule.c,v 1.5 2006-01-08 05:25:31 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -30,15 +30,21 @@
 /* future */
 
 /*
+   Schedule dialog: Listview with columns
+    0 Status: Image ! - conflict, oo - recording, J - done, X - missed
+    1 Title: TextEntry
+    2 Channel: ComboBox
+    3 Start: GnomeDate w/time
+    4 End: like GnomeDate w/o date, or +hh:mm
+   (5 VPS/PDC: TextEntry)
+    6 Repeat: ComboBox (No, Daily, Mon-Fri, Mon-Sat, Weekly, Bi-Weekly, Monthly)
+   (7 Format: ComboBox)
+   (8 File (or Dir): GnomeFileEntry)
 
- * Schedule dialog:
-  - Set End date same as Start when entered, time blank, accept syntax +hh:mm
-  - Code sets Station, Start and End, VPS/PDC defaults to Start time (hhmm),
-    rest same as last entered
+  - ShowView/VideoPlus? Entering the number sets Channel, Start & End,
+    VPS/PDC same as Start, rest same as last entered
   - Add option Skip Commercials when plugin available (more?)
   - Add file name?
-  - Permit overlapping times on a first served basis, consider future support
-    for multiple devices
  * TTX context on program pages (VPT): Add to schedule. Callback? Event?
  * XDS program info pages (context or else?): Add to schedule. Callback? Event?
  * Rec window: add Record this until..., Record next until...

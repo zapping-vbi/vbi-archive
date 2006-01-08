@@ -10,6 +10,19 @@ Zapping 0.10:
 * Capturing is restarted on a video input or standard change because
   size limits may change, but overlay is not.
 * Fullscreen DMA overlay doesn't clip.
+* Teletext bookmark editing window translation is incomplete.
+* Teletext TOP menu lists pages which aren't cached, and sometimes doesn't
+  open the page (while typing the page number by hand works).
+* --device emulator, Screenshot toolbutton, PPM -> JPEG,
+  deinterlace: forward, crash.
+* Doesn't save the video standard on exit?
+* Something's wrong w/channel changes by nkp. Try 1, 2, 3, 4.
+* On startup after a standard change V4L2 does not reset cropping
+  parameters and the image format.
+* tveng25.c doesn't VIDIOC_S_PRIORITY.
+* The black display on capturemode=0 is confusing. Show a JPEG instead.
+* Check what happens when tuner ioctls fail (e.g. wrong driver option card=n).
+* Can we prevent a problem similar to that reported by Tony 2005-12-29?
 
 Zapping 0.9:
 * src/tveng1.c/p_tveng1_dequeue/CSYNC hangs with bttv when changing video

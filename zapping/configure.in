@@ -8,18 +8,14 @@ AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
 AM_MAINTAINER_MODE
 AM_CONFIG_HEADER(config.h)
 
-AC_ISC_POSIX
 AC_PROG_CC
+AC_ISC_POSIX
 AM_PROG_CC_STDC
 AC_HEADER_STDC
 AM_PROG_AS
 
-AC_CHECK_FUNCS(lrint)
-AC_CHECK_FUNCS(strlcpy)
-AC_CHECK_FUNCS(strndup)
-AC_CHECK_FUNCS(asprintf)
-AC_CHECK_FUNCS(getopt_long)
-AC_CHECK_FUNCS(program_invocation_name)
+AC_CHECK_FUNCS([lrint strlcpy strndup asprintf getopt_long])
+AC_CHECK_FUNCS([program_invocation_name])
 
 AC_DISABLE_STATIC
 AM_PROG_LIBTOOL
@@ -56,6 +52,7 @@ test -e site_def.h || cat <<EOF >site_def.h
 /* #define X11STUFF_VIDMODE_DEBUG 1 */
 /* #define X11STUFF_SCREENSAVER_DEBUG 1 */
 /* #define XAWTV_CONFIG_TEST 1 */
+/* #define ZAPPING_CRASH_TEST 1 */
 /* #define ZMISC_TOOLTIP_WARNING 1 */
 /* #define ZVBI_CAPTION_DEBUG 1 */
 /* #define ZVBI_CAPTURE_THREAD_DEBUG 1 */
@@ -191,7 +188,9 @@ AC_CHECK_LIB(pthread, pthread_create,,[
   AC_TRY_LINK(, pthread_create();,,[
     LDFLAGS="$LDFLAGS -pthread"
     AC_TRY_LINK(, pthread_create();,,[
-      AC_MSG_ERROR([Unable to link pthread functions])
+      AC_MSG_FAILURE([
+*** Unable to link pthread functions. Please report this bug.
+      ])
     ])
   ])
 ])
@@ -403,7 +402,9 @@ dnl ===========================================================================
 
 AC_PATH_XTRA
 if test "x$X_CFLAGS" = "x-DX_DISPLAY_MISSING"; then
-  AC_MSG_ERROR(cannot find X11)
+  AC_MSG_FAILURE([
+*** Cannot find X11.
+  ])
 fi
 
 AC_SUBST(X_CFLAGS)
@@ -413,18 +414,33 @@ AC_SUBST(X_LIBS)
 
 dnl Macros and other pieces stolen from JWZ's xscreensaver package.
 
+dnl header.h, action-if-found, action-if-not, #include <other>
 AC_DEFUN([CHECK_X_HEADER], [
   SAVE_CPPFLAGS="$CPPFLAGS"
   CPPFLAGS="$CPPFLAGS $X_CFLAGS"
   AC_CHECK_HEADER([$1],[$2],[$3],[$4])
   CPPFLAGS="$SAVE_CPPFLAGS"])
 
+dnl -lib, function, action-if-found, action-if-not, -Lother
 AC_DEFUN([CHECK_X_LIB], [
   SAVE_CPPFLAGS="$CPPFLAGS"
   SAVE_LDFLAGS="$LDFLAGS"
   CPPFLAGS="$CPPFLAGS $X_CFLAGS"
   LDFLAGS="$LDFLAGS $X_LIBS $X_EXTRA_LIBS"
   AC_CHECK_LIB([$1],[$2],[$3],[$4],[$5])
+  CPPFLAGS="$SAVE_CPPFLAGS"
+  LDFLAGS="$SAVE_LDFLAGS"])
+
+dnl header.h, rary, function, action-if-found, action-if-not,
+dnl #include <other>, -Lother
+AC_DEFUN([CHECK_X_BOTH], [
+  SAVE_CPPFLAGS="$CPPFLAGS"
+  SAVE_LDFLAGS="$LDFLAGS"
+  CPPFLAGS="$CPPFLAGS $X_CFLAGS"
+  LDFLAGS="$LDFLAGS $X_LIBS $X_EXTRA_LIBS"
+  AC_CHECK_HEADER([$1],[
+    AC_CHECK_LIB([$2],[$3],[$4],[$5],[$7])],
+    [$5],[$6])
   CPPFLAGS="$SAVE_CPPFLAGS"
   LDFLAGS="$SAVE_LDFLAGS"])
 
@@ -469,16 +485,13 @@ AC_ARG_WITH(xf86dga-ext,
   [with_dga="$withval"], [with_dga=yes])
 
 if test "x$with_dga" = "xyes"; then
-  CHECK_X_HEADER(X11/extensions/xf86dga.h, [HAVE_DGA=yes],,
-    [#include <X11/Xlib.h>])
-  if test "x$HAVE_DGA" = "xyes"; then
-    CHECK_X_LIB(Xxf86dga, XF86DGAQueryExtension,
-      [X_XF86DGA_LIBS="-lXxf86dga"], [HAVE_DGA=no], [-lXext])
-  fi
-  if test "x$HAVE_DGA" = "xyes"; then
-    AC_DEFINE(HAVE_DGA_EXTENSION, 1, [Define if present])
-    AC_SUBST(X_XF86DGA_LIBS)
-  fi
+  CHECK_X_BOTH([X11/extensions/xf86dga.h], [Xxf86dga],
+    [XF86DGAQueryExtension],
+    [HAVE_DGA=yes
+     AC_DEFINE(HAVE_DGA_EXTENSION, 1, [Define if present])
+     X_XF86DGA_LIBS="-lXxf86dga"
+     AC_SUBST(X_XF86DGA_LIBS)],,
+    [#include <X11/Xlib.h>], [-lXext])
 fi
 
 dnl ---------------------------------------------------------------------------
@@ -493,20 +506,17 @@ AC_ARG_WITH(xf86vmode-ext,
   [with_vidmode="$withval"], [with_vidmode=yes])
 
 if test "x$with_vidmode" = "xyes"; then
-  CHECK_X_HEADER(X11/extensions/xf86vmode.h, [HAVE_VIDMODE=yes],,
-    [#include <X11/Xlib.h>])
-  if test "x$HAVE_VIDMODE" = "xyes"; then
-    CHECK_X_LIB(Xxf86vm, XF86VidModeGetViewPort,
-      [X_XF86VMODE_LIBS="-lXxf86vm"], [HAVE_VIDMODE=no], [-lXext])
-  fi
-  if test "x$HAVE_VIDMODE" = "xyes"; then
-    AC_DEFINE(HAVE_VIDMODE_EXTENSION, 1, [Define if present])
-    AC_SUBST(X_XF86VMODE_LIBS)
-  fi
+  CHECK_X_BOTH([X11/extensions/xf86vmode.h], [Xxf86vm],
+    [XF86VidModeGetViewPort],
+    [HAVE_VIDMODE=yes
+     AC_DEFINE(HAVE_VIDMODE_EXTENSION, 1, [Define if present])
+     X_XF86VMODE_LIBS="-lXxf86vm"
+     AC_SUBST(X_XF86VMODE_LIBS)],,
+    [#include <X11/Xlib.h>], [-lXext])
 fi
 
 dnl ---------------------------------------------------------------------------
-dnl Xv extension (video windows and hardware scaler)
+dnl XVideo extension (video windows and hardware scaler)
 dnl ---------------------------------------------------------------------------
 
 HAVE_XV=no
@@ -517,17 +527,14 @@ AC_ARG_WITH(xv-ext,
   [with_xv="$withval"], [with_xv=yes])
 
 if test "x$with_xv" = "xyes"; then
-  CHECK_X_HEADER(X11/extensions/Xv.h, [HAVE_XV=yes],,
-    [#include <X11/Xlib.h>])
-  if test "x$HAVE_XV" = "xyes"; then
-    CHECK_X_LIB(Xv, XvShmPutImage, [X_XV_LIBS="-lXv"],
-      [HAVE_XV=no], [-lXext])
-  fi
-  if test "x$HAVE_XV" = "xyes"; then
-    AC_DEFINE(HAVE_XV_EXTENSION, 1, [Define if present])
-    VIDEO_SUPPORT="${VIDEO_SUPPORT}XVideo "
-    AC_SUBST(X_XV_LIBS)
-  fi
+  CHECK_X_BOTH([X11/extensions/Xv.h], [Xv],
+    [XvShmPutImage],
+    [HAVE_XV=yes
+     AC_DEFINE(HAVE_XV_EXTENSION, 1, [Define if present])
+     X_XV_LIBS="-lXv"
+     AC_SUBST(X_XV_LIBS)
+     VIDEO_SUPPORT="${VIDEO_SUPPORT}XVideo "],,
+    [#include <X11/Xlib.h>], [-lXext])
 fi
 
 dnl ---------------------------------------------------------------------------
@@ -543,28 +550,55 @@ AC_ARG_WITH(xinerama-ext,
 
 if test "x$with_xinerama" = "xyes"; then
   # XFree86 implementation
-  CHECK_X_HEADER(X11/extensions/Xinerama.h, [
-    CHECK_X_LIB(Xinerama, XineramaQueryExtension, [
-      HAVE_XINERAMA=XFree86;
-      AC_DEFINE(HAVE_XFREE86_XINERAMA_EXTENSION, 1, [Define if present])
-      X_XINERAMA_LIBS="-lXinerama"],
-      [true], [-lXext])],,
-    [#include <X11/Xlib.h>])
+  CHECK_X_BOTH([X11/extensions/Xinerama.h], [Xinerama],
+    [XineramaQueryExtension],
+    [HAVE_XINERAMA="XFree86"
+     AC_DEFINE(HAVE_XFREE86_XINERAMA_EXTENSION, 1, [Define if present])
+     X_XINERAMA_LIBS="-lXinerama"],,
+    [#include <X11/Xlib.h>], [-lXext])
+
   if test "x$HAVE_XINERAMA" = "xno"; then
     # Solaris implementation
-    CHECK_X_HEADER(X11/extensions/xinerama.h, [
-      CHECK_X_LIB(Xext, XineramaGetInfo, [
-        HAVE_XINERAMA=Solaris;
-        AC_DEFINE(HAVE_SOLARIS_XINERAMA_EXTENSION, 1, [Define if present])
-        X_XINERAMA_LIBS="-lXinerama"],
-      [true], [-lXext])],,
-    [#include <X11/Xlib.h>])
+    CHECK_X_BOTH([X11/extensions/xinerama.h], [Xext],
+      [XineramaGetInfo],
+      [HAVE_XINERAMA="Solaris"
+       AC_DEFINE(HAVE_SOLARIS_XINERAMA_EXTENSION, 1, [Define if present])
+       X_XINERAMA_LIBS=""],,
+      [#include <X11/Xlib.h>], [-lXext])
   fi
+
   if test "x$HAVE_XINERAMA" != "xno"; then
     AC_DEFINE(HAVE_XINERAMA_EXTENSION, 1, [Define if present])
     AC_SUBST(X_XINERAMA_LIBS)
   fi
 fi
+
+dnl ---------------------------------------------------------------------------
+dnl Xmu (zapping_remote)
+dnl ---------------------------------------------------------------------------
+
+HAVE_XMU=no
+
+AC_ARG_WITH(zapping-remote,
+  AC_HELP_STRING([--with-zapping-remote],
+    [Build the zapping_remote tool (yes).]),
+  [with_zapping_remote="$withval"], [with_zapping_remote=yes])
+
+if test "x$with_zapping_remote" = "xyes"; then
+  CHECK_X_BOTH([X11/Xmu/WinUtil.h], [Xmu], [XmuClientWindow],
+    [HAVE_XMU="yes"
+     X_XMU_LIBS="-lXmu"
+     AC_SUBST(X_XMU_LIBS)],
+    [AC_MSG_FAILURE([
+*** To build zapping_remote (a command line tool to send a Zapping
+*** process Python commands), we need libXmu which should be part of
+*** the X11 (Xorg or XFree86) devel package. To compile Zapping
+*** without zapping_remote run ./configure --without-zapping-remote
+     ])],
+    [#include <X11/Xlib.h>], [-lXext])
+fi
+
+AM_CONDITIONAL(HAVE_XMU, test "x$HAVE_XMU" = "xyes")
 
 dnl ===========================================================================
 dnl Libraries
@@ -577,19 +611,22 @@ dnl ---------------------------------------------------------------------------
 GNOME_COMPILE_WARNINGS
 AM_GCONF_SOURCE_2
 
-pkg_modules="gtk+-2.0 >= 2.4 libgnomeui-2.0 libglade-2.0 gconf-2.0"
-PKG_CHECK_MODULES(PACKAGE, [$pkg_modules])
+PKG_CHECK_MODULES(PACKAGE, [
+  gtk+-2.0 >= 2.4
+  libgnomeui-2.0
+  libglade-2.0
+  gconf-2.0])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
 
 AC_PATH_PROG(GDK_PIXBUF_CSOURCE, gdk-pixbuf-csource)
-test -z "$GDK_PIXBUF_CSOURCE" && AC_MSG_ERROR([
+test -z "$GDK_PIXBUF_CSOURCE" && AC_MSG_FAILURE([
 *** To create icons we need the gdk-pixbuf-csource tool
 *** which is part of GTK+ 2.0's gdk-pixbuf package.
 ])
 
 AC_PATH_PROG([GLIB_GENMARSHAL], [glib-genmarshal])
-test -z "$GLIB_GENMARSHAL" && AC_MSG_ERROR([
+test -z "$GLIB_GENMARSHAL" && AC_MSG_FAILURE([
 *** To compile Zapping we need the glib-genmarshal tool
 *** which is part of GTK+ 2.0's glib package.
 ])
@@ -680,15 +717,15 @@ dnl PNG library (Teletext PNG export)
 dnl ---------------------------------------------------------------------------
 
 HAVE_PNG="yes"
-PNG_LIB=""
+PNG_LIBS=""
 
 AC_CHECK_LIB(png, png_destroy_write_struct,
-	 PNG_LIB="-lpng -lz -lm", HAVE_PNG="no", -lz -lm)
+	 PNG_LIBS="-lpng -lz -lm", HAVE_PNG="no", -lz -lm)
 if test "x$HAVE_PNG" = "xyes"; then
   AC_DEFINE(HAVE_LIBPNG, 1, [Define if PNG lib is present])
 fi
 
-AC_SUBST(PNG_LIB)
+AC_SUBST(PNG_LIBS)
 
 dnl ---------------------------------------------------------------------------
 dnl RTE library (mpeg plugin, real time a/v encoding)
@@ -754,7 +791,9 @@ fi
 AC_MSG_RESULT($LIBXML_VERSION)
 
 if test "x$HAVE_LIBXML" = "xno"; then
-  AC_MSG_ERROR([This version of Zapping requires libxml2])
+  AC_MSG_FAILURE([
+*** This version of Zapping requires libxml2.
+  ])
 fi
 
 AC_SUBST(LIBXML_CFLAGS)
@@ -782,9 +821,12 @@ AC_SUBST(SCROLLKEEPER_BUILD_REQUIRED)
 
 AC_PATH_PROG(SCROLLKEEPER_CONFIG, [scrollkeeper-config], [no])
 if test "x$SCROLLKEEPER_CONFIG" = "xno"; then
-  AC_MSG_ERROR([Couldn't find scrollkeeper-config. Download the
-  appropriate package for your distribution or get the source
-  tarball from http://scrollkeeper.sourceforge.net])
+  AC_MSG_FAILURE([
+*** Couldn't find scrollkeeper-config. Scrollkeeper is required to
+*** install the Zapping documentation. Download the appropriate
+*** package for your distribution or get the source tarball from
+*** http://scrollkeeper.sourceforge.net
+  ])
 fi
 
 dnl For build test scripts.
@@ -803,7 +845,10 @@ if test "x$enableval" != "xno"; then
       [DocBook XSL Stylesheets],, [BUILD_MAN=no])
   fi
   if test "x$enableval" = "xyes" -a "x$BUILD_MAN" = "xno"; then
-    AC_MSG_FAILURE([Cannot rebuild manual pages.]);
+    AC_MSG_FAILURE([
+*** Cannot rebuild the Zapping manual pages because DocBook
+*** files are missing.
+    ]);
   fi
 fi
 

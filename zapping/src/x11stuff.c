@@ -56,6 +56,8 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
+#define INTERN_ATOM(name) \
+  _XA ## name = XInternAtom (display, #name, /* only_if_exists */ False)
 
 /*
  * Returns a pointer to the data contained in the given GdkImage
@@ -115,6 +117,28 @@ x11_display_name (void)
 }
 
 
+/* Reflect all errors back to the program through the procedural
+   interface. The default error handler terminates the program.
+   XXX This code is not reentrant. */
+
+static unsigned long		error_code;
+
+static int
+my_error_handler		(Display *		display,
+				 XErrorEvent *		error)
+{
+  display = display;
+
+  error_code = error->error_code;
+
+  printv ("X Error: serial=%lu error=%lu request=%lu minor=%lu\n",
+	  (unsigned long) error->serial,
+	  (unsigned long) error->error_code,
+	  (unsigned long) error->request_code,
+	  (unsigned long) error->minor_code);
+
+  return 0; /* ignored */
+}
 
 /*
  * Maps and unmaps a window of the given (screen) geometry, thus
@@ -123,23 +147,32 @@ x11_display_name (void)
 void
 x11_force_expose(gint x, gint y, guint w, guint h)
 {
+  XErrorHandler old_error_handler;
+  Display *dpy = GDK_DISPLAY();
   XSetWindowAttributes xswa;
   Window win;
   unsigned long mask;
+
+  old_error_handler = XSetErrorHandler (my_error_handler);
 
   xswa.override_redirect = TRUE;
   xswa.backing_store = NotUseful;
   xswa.save_under = FALSE;
   mask = ( CWSaveUnder | CWBackingStore | CWOverrideRedirect );
 
-  win = XCreateWindow(GDK_DISPLAY(), GDK_ROOT_WINDOW(), x, y, w, h, 
+  win = XCreateWindow(dpy, GDK_ROOT_WINDOW(), x, y, w, h, 
 		      0, CopyFromParent, InputOutput, CopyFromParent,
 		      mask, &xswa);
 
-  XMapWindow(GDK_DISPLAY(), win);
-  XUnmapWindow(GDK_DISPLAY(), win);
+  if (0 != win)
+    {
+      XMapWindow(dpy, win);
+      XUnmapWindow(dpy, win);
+	
+      XDestroyWindow(dpy, win);
+    }
 
-  XDestroyWindow(GDK_DISPLAY(), win);
+  XSetErrorHandler (old_error_handler);
 }
 
 #if 0
@@ -162,6 +195,7 @@ _x11_force_expose(gint x, gint y, gint w, gint h)
   /* enter error-ignore mode */
   olderror = XSetErrorHandler(xerror);
   for (i=0; i<nchildren; i++) {
+// XXX 0==failure
     XGetWindowAttributes(dpy, children[i], &wts);
     if (!(wts.map_state & IsViewable))
       continue;
@@ -194,11 +228,21 @@ _x11_force_expose(gint x, gint y, gint w, gint h)
 gboolean
 x11_window_viewable(GdkWindow *window)
 {
+  XErrorHandler old_error_handler;
   XWindowAttributes wts;
 
-  XGetWindowAttributes(GDK_DISPLAY(), GDK_WINDOW_XWINDOW(window), &wts);
+  wts.map_state = 0;
 
-  return ((wts.map_state & IsViewable) ? TRUE : FALSE);
+  old_error_handler = XSetErrorHandler (my_error_handler);
+
+  XGetWindowAttributes (GDK_DISPLAY (),
+			GDK_WINDOW_XWINDOW (window),
+			&wts);
+
+  XSetErrorHandler (old_error_handler);
+
+  /* Viewable or XGetWindowAttributes() failed. */
+  return !!(wts.map_state & IsViewable);
 }
 
 
@@ -207,22 +251,8 @@ x11_window_viewable(GdkWindow *window)
 	Window property & event helpers
 */
 
-/* FIXME not reentrant, add mutex or someth */
-static XErrorHandler	old_error_handler	= 0;
-static Bool		bad_window		= False;
-
-static int
-bad_window_handler		(Display *		display,
-				 XErrorEvent *		error)
-{
-  if (error->error_code == BadWindow)
-    bad_window = True;
-  else if (old_error_handler)
-    return old_error_handler (display, error);
-
-  return 0;
-}
-
+/* Call with my_error_handler, otherwise
+   XGetWindowProperty() may abort(). */
 static int
 get_window_property		(Display *		display,
 				 Window			window,
@@ -231,24 +261,24 @@ get_window_property		(Display *		display,
 				 unsigned long *	nitems_return,
 				 void **		prop_return)
 {
-  int status;
+  Status status;
   Atom type;
   int format;
   unsigned long bytes_after;
 
-  bad_window = False;
-  
+  error_code = Success;
+
   status = XGetWindowProperty (display, window, property,
                     	       0, (65536 / sizeof (long)),
 			       False, req_type,
 			       &type, &format,
 			       nitems_return, &bytes_after,
 			       (unsigned char **) prop_return);
-  if (bad_window)
+  if (BadWindow == error_code)
     {
       status = BadWindow;
     }
-  else if (status == Success)
+  else if (Success == status)
     {
       if (type == None)
         status = BadAtom;
@@ -316,8 +346,8 @@ gtk_window_send_x11_event	(GtkWindow *		window,
 	WindowManager hints for stay-on-top option
 */
 
-/* A function not directly supported by Gnome/Gtk+: Tell the window manager
-   to keep our (video) window above all other windows. */
+/* A function not directly supported by Gnome/Gtk+ 2.4: Tell the window
+   manager to keep our (video) window above all other windows. */
 
 #ifndef X11STUFF_WM_HINTS_DEBUG
 #define X11STUFF_WM_HINTS_DEBUG 1
@@ -477,19 +507,22 @@ gnome_below			(GtkWindow *		window,
 gboolean
 wm_hints_detect			(void)
 {
+  XErrorHandler old_error_handler;
   Display *display;
   Window root;
 
   display = gdk_x11_get_default_xdisplay ();
   g_assert (display != 0);
 
+  old_error_handler = XSetErrorHandler (my_error_handler);
+
   root = DefaultRootWindow (display);
 
-  _XA_NET_SUPPORTED		= XInternAtom (display, "_NET_SUPPORTED", False);
-  _XA_NET_WM_STATE		= XInternAtom (display, "_NET_WM_STATE", False);
-  _XA_NET_WM_STATE_FULLSCREEN	= XInternAtom (display, "_NET_WM_STATE_FULLSCREEN", False);
-  _XA_NET_WM_STATE_ABOVE	= XInternAtom (display, "_NET_WM_STATE_ABOVE", False);
-  _XA_NET_WM_STATE_BELOW	= XInternAtom (display, "_NET_WM_STATE_BELOW", False);
+  INTERN_ATOM (_NET_SUPPORTED);
+  INTERN_ATOM (_NET_WM_STATE);
+  INTERN_ATOM (_NET_WM_STATE_FULLSCREEN);
+  INTERN_ATOM (_NET_WM_STATE_ABOVE);
+  INTERN_ATOM (_NET_WM_STATE_BELOW);
 
   /* Netwm compliant */
 
@@ -525,6 +558,8 @@ wm_hints_detect			(void)
 		x11_window_fullscreen = net_wm_fullscreen;
 		x11_window_below = net_wm_below;
 
+		XSetErrorHandler (old_error_handler);
+
 		gdk_add_client_message_filter
 		  (gdk_x11_xatom_to_atom (_XA_NET_WM_STATE),
 		   wm_event_handler, 0);
@@ -540,10 +575,8 @@ wm_hints_detect			(void)
 	printv ("  ... nothing useful\n");
       }
 
-    _XA_WIN_SUPPORTING_WM_CHECK	=
-      XInternAtom (display, "_WIN_SUPPORTING_WM_CHECK", False);
-    _XA_WIN_LAYER		=
-      XInternAtom (display, "_WIN_LAYER", False);
+    INTERN_ATOM (_WIN_SUPPORTING_WM_CHECK);
+    INTERN_ATOM (_WIN_LAYER);
   }
 
   /* Gnome compliant */
@@ -557,27 +590,33 @@ wm_hints_detect			(void)
     if (Success == get_window_property (display, root,
 					_XA_WIN_SUPPORTING_WM_CHECK,
 					AnyPropertyType, &nitems, &args))
-      if (nitems > 0)
-	{
-	  printv ("WM supports _WIN_SUPPORTING_WM_CHECK\n");
+      {
+	if (nitems > 0)
+	  {
+	    printv ("WM supports _WIN_SUPPORTING_WM_CHECK\n");
 
-	  /* FIXME: check capabilities */
+	    /* FIXME: check capabilities */
 
-	  XFree (args);
+	    XFree (args);
 
-	  x11_window_on_top = gnome_window_on_top;
-	  x11_window_fullscreen = gnome_fullscreen;
-	  x11_window_below = gnome_below;
+	    x11_window_on_top = gnome_window_on_top;
+	    x11_window_fullscreen = gnome_fullscreen;
+	    x11_window_below = gnome_below;
 
-	  gdk_add_client_message_filter
-	    (gdk_x11_xatom_to_atom (_XA_WIN_LAYER),
-	     wm_event_handler, 0);
+	    XSetErrorHandler (old_error_handler);
 
-	  return TRUE;
-	}
+	    gdk_add_client_message_filter
+	      (gdk_x11_xatom_to_atom (_XA_WIN_LAYER),
+	       wm_event_handler, 0);
+
+	    return TRUE;
+	  }
+      }
   }
 
   printv ("No WM hints\n");
+
+  XSetErrorHandler (old_error_handler);
 
   return FALSE;
 }
@@ -658,6 +697,7 @@ x11_vidmode_info *
 x11_vidmode_list_new		(const char *		display_name,
 				 int			screen_number)
 {
+  XErrorHandler old_error_handler;
   Display *display;
   int event_base;
   int error_base;
@@ -668,7 +708,11 @@ x11_vidmode_list_new		(const char *		display_name,
   x11_vidmode_info *list;
   int i;
 
-  if (display_name)
+  display = GDK_DISPLAY ();
+
+  old_error_handler = XSetErrorHandler (my_error_handler);
+
+  if (NULL != display_name)
     {
       display = XOpenDisplay (display_name);
 
@@ -676,12 +720,8 @@ x11_vidmode_list_new		(const char *		display_name,
 	{
 	  printv ("%s: Cannot open display '%s'\n",
 		  __FUNCTION__, display_name);
-	  return NULL;
+	  goto failure;
 	}
-    }
-  else
-    {
-      display = GDK_DISPLAY ();
     }
 
   if (-1 == screen_number)
@@ -690,13 +730,13 @@ x11_vidmode_list_new		(const char *		display_name,
   if (!XF86VidModeQueryExtension (display, &event_base, &error_base))
     {
       printv ("XF86VidMode extension not available\n");
-      return NULL;
+      goto failure;
     }
 
   if (!XF86VidModeQueryVersion (display, &major_version, &minor_version))
     {
       printv ("XF86VidMode extension not usable\n");
-      return NULL;
+      goto failure;
     }
 
   printv ("XF86VidMode base %d, %d, version %d.%d\n",
@@ -706,18 +746,18 @@ x11_vidmode_list_new		(const char *		display_name,
   if (2 != major_version)
     {
       printv ("Unknown XF86VidMode version\n");
-      return NULL;
+      goto failure;
     }
 
   /* This lists all ModeLines in XF86Config and all default modes,
      except those exceeding monitor limits and the virtual screen size,
-     as logged in /var/log/X[Free86]*.log */
+     as logged in /var/log/X[Org|Free86]*.log */
   if (!XF86VidModeGetAllModeLines (display, screen_number,
 				   &mode_count, &mode_info))
     {
       if (X11STUFF_VIDMODE_DEBUG)
 	printv ("No mode lines\n");
-      return NULL;
+      goto failure;
     }
 
   list = NULL;
@@ -805,7 +845,14 @@ x11_vidmode_list_new		(const char *		display_name,
 
   XFree (mode_info);
 
+  XSetErrorHandler (old_error_handler);
+
   return list;
+
+ failure:
+  XSetErrorHandler (old_error_handler);
+
+  return NULL;
 }
 
 /**
@@ -833,13 +880,16 @@ x11_vidmode_by_name		(const x11_vidmode_info *list,
 
   for (i = 0; i < 3; i++)
     {
+      char *cont;
+
       while (isspace (*name))
         ++name;
 
       if (0 == *name || !isdigit (*name))
         break;
 
-      val[i] = strtoul (name, (char **) &name, 0);
+      val[i] = strtoul (name, &cont, 0);
+      name = cont;
 
       while (isspace (*name))
         ++name;
@@ -915,7 +965,7 @@ x11_vidmode_current		(const x11_vidmode_info *list)
     }
 
   for (vm = vl; vm; vm = CONST_PARENT (vm->pub.next, struct vidmode, pub))
-    if (   vm->info.dotclock	== dot_clock
+    if (   vm->info.dotclock	== (unsigned int) dot_clock
 	&& vm->info.hdisplay	== mode_line.hdisplay
 	&& vm->info.hsyncstart	== mode_line.hsyncstart
 	&& vm->info.hsyncend	== mode_line.hsyncend
@@ -1102,7 +1152,7 @@ x11_vidmode_switch		(const x11_vidmode_info *vlist,
     {
       warp = 1;
     }
-  else if (vs->_old.pt.x > px + vm->width - 16)
+  else if (vs->_old.pt.x > px + (int) vm->width - 16)
     {
       px += vm->width - 16;
       warp = 1;
@@ -1116,7 +1166,7 @@ x11_vidmode_switch		(const x11_vidmode_info *vlist,
     {
       warp = 1;
     }
-  else if (vs->_old.pt.y > py + vm->height - 16)
+  else if (vs->_old.pt.y > py + (int) vm->height - 16)
     {
       py += vm->height - 16;
       warp = 1;
@@ -1332,8 +1382,8 @@ x11_vidmode_restore		(const x11_vidmode_info *list,
 */
 
 static Atom _XA_SCREENSAVER_VERSION;
-static Atom _XA_SCREENSAVER;
-static Atom _XA_DEACTIVATE;
+static Atom _XASCREENSAVER;
+static Atom _XADEACTIVATE;
 
 static gboolean		screensaver_enabled;
 static unsigned int	screensaver_level;
@@ -1345,22 +1395,26 @@ static gboolean
 find_xscreensaver_window	(Display *		display,
 				 Window *		window_return)
 {
+  XErrorHandler old_error_handler;
   Window root = RootWindowOfScreen (DefaultScreenOfDisplay (display));
   Window root2, parent, *kids;
   unsigned int nkids;
   unsigned int i;
+  gboolean r;
+
+  r = FALSE;
+
+  /* We're walking the list of root-level windows, trying to find
+     the one that has a particular property on it. We need to trap
+     BadWindow errors while doing this, because it's possible that
+     a window might get deleted in the meantime.  (That window won't
+     have been the one we're looking for.) */
+  old_error_handler = XSetErrorHandler (my_error_handler);
 
   if (!XQueryTree (display, root, &root2, &parent, &kids, &nkids)
       || root != root2 || parent
       || !kids || nkids == 0)
-    return FALSE;
-
-  /* We're walking the list of root-level windows and trying to find
-     the one that has a particular property on it.  We need to trap
-     BadWindow errors while doing this, because it's possible that
-     some random window might get deleted in the meantime.  (That
-     window won't have been the one we're looking for.) */
-  old_error_handler = XSetErrorHandler (bad_window_handler);
+    goto failure;
 
   for (i = 0; i < nkids; i++)
     {
@@ -1376,55 +1430,60 @@ find_xscreensaver_window	(Display *		display,
 	  /* FIXME not true; anything to free here?
 	  assert (0 == nitems); */
 
-	  XSetErrorHandler (old_error_handler);
           *window_return = kids[i];
-          XFree (kids);
-	  return TRUE;
+	  r = TRUE;
+
+	  break;
 	}
     }
 
+ failure:
   XSetErrorHandler (old_error_handler);
-  XFree (kids);
 
-  return FALSE;
+  if (NULL != kids) {
+    XFree (kids);
+  }
+
+  return r;
 }
 
-/* Here we reset the idle counter at regular intervals,
-   an inconvenience outweight by a number of advantages:
-   No need to remember and restore saver states. It works
-   nicely with other apps because no synchronization is
-   neccessary. When we unexpectedly bite the dust, the
-   screensaver kicks in as usual, no cleanup necessary. */
+/* Here we reset the idle counter at regular intervals, an inconvenience
+   outweight by a number of advantages: No need to remember and restore
+   saver states. It works nicely with other apps because no synchronization
+   is neccessary. When we unexpectedly bite the dust, the screensaver kicks
+   in as usual, no cleanup necessary. */
 static gboolean
 screensaver_timeout		(gpointer		unused _unused_)
 {
   Display *display = GDK_DISPLAY ();
   Window window;
-  gboolean xss;
+  gboolean have_xss;
 
   /* xscreensaver is a client, it may come and go at will. */
-  xss = find_xscreensaver_window (display, &window);
+  have_xss = find_xscreensaver_window (display, &window);
 
   if (X11STUFF_SCREENSAVER_DEBUG)
-    printv ("screensaver_timeout() xss=%d dpms=%d\n", xss, dpms_usable);
-
-  if (xss)
     {
-      /* xscreensaver overrides the X savers, so it takes
-	 priority here. This call unblanks the display and/or
-	 re-starts the idle counter. Error ignored, response ignored. */
-      send_event (display, window, _XA_SCREENSAVER, (long) _XA_DEACTIVATE, 0);
+      printv ("screensaver_timeout() have_xss=%d dpms=%d\n",
+	      have_xss, dpms_usable);
     }
-  /* xscreensaver 4.06 doesn't appear to call XForceScreenSaver() on
-     _XA_DEACTIVATE when DPMS was enabled, only when MIT or SGI
-     screensaver extensions are used, so we're forced to do it anyway.*/ 
+
+  if (!have_xss)
+    {
+      /* xscreensaver overrides the X savers, so it takes priority here.
+	 This call unblanks the display and/or restarts the idle counter.
+	 Error ignored, response ignored. */
+      send_event (display, window, _XASCREENSAVER, (long) _XADEACTIVATE, 0);
+    }
+  /* xscreensaver 4.06 appears to call XForceScreenSaver() on
+     _XADEACTIVATE when DPMS was enabled only when the MIT or SGI
+     screensaver extensions are used, so we always call it ourselves. */
   /* else */
     {
-      /* Restart the idle counter, this impacts the internal
-	 saver, MIT-SCREEN-SAVER extension and DPMS extension
-	 idle counter (in XFree86 4.2). Curiously it forces
-	 the monitor back on after blanking by the internal
-	 saver, but not after DPMS blanking. */
+      /* Restart the idle counter, this affects the internal saver,
+	 MIT-SCREEN-SAVER extension and DPMS extension idle counter (in
+	 XFree86 4.2). Curiously it forces the monitor back on after
+	 blanking by the internal saver, but not after DPMS blanking. */
       XForceScreenSaver (display, ScreenSaverReset);
 
 #ifdef HAVE_DPMS_EXTENSION
@@ -1441,8 +1500,10 @@ screensaver_timeout		(gpointer		unused _unused_)
 			(int) power_level, (int) state);
 
 	      if (power_level != DPMSModeOn)
-		/* Error ignored */
-		DPMSForceLevel (display, DPMSModeOn);
+		{
+		  /* Error ignored */
+		  DPMSForceLevel (display, DPMSModeOn);
+		}
 	    }
 	}
 
@@ -1561,9 +1622,9 @@ x11_screensaver_init		(void)
   int major_version, minor_version;
 #endif
 
-  _XA_SCREENSAVER_VERSION = XInternAtom (display, "_SCREENSAVER_VERSION", False);
-  _XA_SCREENSAVER	  = XInternAtom (display, "SCREENSAVER", False);
-  _XA_DEACTIVATE	  = XInternAtom (display, "DEACTIVATE", False);
+  INTERN_ATOM (_SCREENSAVER_VERSION);
+  INTERN_ATOM (SCREENSAVER);
+  INTERN_ATOM (DEACTIVATE);
 
   screensaver_enabled	  = FALSE;
   screensaver_level	  = X11_SCREENSAVER_ON;
@@ -1674,9 +1735,12 @@ x11_xv_image_format_to_pixfmt	(const XvImageFormatValues *format)
 				 format->guid[2],
 				 format->guid[3]);
 
-		for (i = 0; i < N_ELEMENTS (fourcc_mapping); ++i)
-			if (fourcc_mapping[i].fourcc == fourcc)
+		for (i = 0; i < N_ELEMENTS (fourcc_mapping); ++i) {
+			if (fourcc_mapping[i].fourcc == fourcc) {
 				return fourcc_mapping[i].pixfmt;
+			}
+		}
+
 	} else if (XvRGB == format->type) {
 		tv_pixel_format pixel_format;
 
@@ -1694,6 +1758,7 @@ x11_xv_image_format_to_pixfmt	(const XvImageFormatValues *format)
 
 		pixel_format.pixfmt =
 		  tv_pixel_format_to_pixfmt (&pixel_format);
+
 		if (TV_PIXFMT_UNKNOWN != pixel_format.pixfmt)
 			return pixel_format.pixfmt;
 	}
@@ -1714,7 +1779,8 @@ xv_image_format_dump		(const XvImageFormatValues *format,
 	unsigned int i;
 	tv_pixfmt pixfmt;
 
-	fprintf (stderr, "    XvImageFormat [%u]:\n"
+	fprintf (stderr,
+		 "    XvImageFormat [%u]:\n"
 		 "      id                0x%x ('%c%c%c%c')\n"
 		 "      guid              ",
 		 index,
@@ -1724,10 +1790,11 @@ xv_image_format_dump		(const XvImageFormatValues *format,
 		 printable (((unsigned int) format->id) >> 16),
 		 printable (((unsigned int) format->id) >> 24));
 
-	for (i = 0; i < 16; ++i)
+	for (i = 0; i < 16; ++i) {
 		fprintf (stderr, "%02x%s",
 			 format->guid[i] & 0xFF,
 			 (0x2A8 & (1 << i)) ? "-" : "");
+	}
 
 	fprintf (stderr, "\n"
 		 "      type              %s\n"
@@ -1777,8 +1844,9 @@ xv_image_format_dump		(const XvImageFormatValues *format,
 
 	fprintf (stderr, "      component_order   ");
 
-	for (i = 0; i < sizeof (format->component_order); ++i)
+	for (i = 0; i < sizeof (format->component_order); ++i) {
 		fputc (printable (format->component_order[i]), stderr);
+	}
 
 	fprintf (stderr, "\n"
 		 "      scanline_order    %s\n",
@@ -1810,7 +1878,8 @@ xv_adaptor_info_dump		(const XvAdaptorInfo *	adaptor,
 	unsigned int count;
 	unsigned int i;
 
-	fprintf (stderr, "XvAdaptorInfo [%u]:\n"
+	fprintf (stderr, 
+		 "XvAdaptorInfo [%u]:\n"
 		 "  name         \"%s\"\n"
 		 "  base_id      0x%x\n"
 		 "  num_ports    %u\n"
@@ -1823,7 +1892,7 @@ xv_adaptor_info_dump		(const XvAdaptorInfo *	adaptor,
 	type = adaptor->type;
 	count = 0;
 
-	for (i = 0; i < N_ELEMENTS (adaptor_types); ++i)
+	for (i = 0; i < N_ELEMENTS (adaptor_types); ++i) {
 		if (type & adaptor_types[i].mask) {
 			fprintf (stderr, "%s%s",
 				 count ? "|" : "",
@@ -1831,9 +1900,11 @@ xv_adaptor_info_dump		(const XvAdaptorInfo *	adaptor,
 			type &= ~adaptor_types[i].mask;
 			++count;
 		}
+	}
 
-	if (type != 0)
+	if (type != 0) {
 		fprintf (stderr, "%s0x%x", count ? "|" : "", type);
+	}
 
 	fprintf (stderr, "\n"
 		 "  num_formats  %u\n",
@@ -1861,6 +1932,7 @@ xv_adaptor_dump			(Display *		display,
 
 	for (i = 0; i < adaptor->num_ports; ++i) {
 		XvPortID xvport;
+		unsigned int size;
 
 		fprintf (stderr, "  Port [%u]\n", i);
 
@@ -1873,10 +1945,11 @@ xv_adaptor_dump			(Display *		display,
 		if (NULL == pImageFormats[1] || 0 == nImageFormats[1])
 			continue;
 
+		size = sizeof (*pImageFormats[0]) * nImageFormats[0];
+
 		if (nImageFormats[0] == nImageFormats[1]
-		    && 0 == memcmp (pImageFormats[0], pImageFormats[1],
-				    sizeof (*pImageFormats[0])
-				    * nImageFormats[0])) {
+		    && 0 == memcmp (pImageFormats[0],
+				    pImageFormats[1], size)) {
 			fprintf (stderr, "    %u formats as above\n",
 				 nImageFormats[1]);
 		} else {
@@ -1904,6 +1977,7 @@ xv_adaptor_dump			(Display *		display,
 void
 x11_xvideo_dump			(void)
 {
+  XErrorHandler old_error_handler;
   Display *display;
   unsigned int version;
   unsigned int revision;
@@ -1917,13 +1991,15 @@ x11_xvideo_dump			(void)
 
   display = GDK_DISPLAY ();
 
+  old_error_handler = XSetErrorHandler (my_error_handler);
+
   if (Success != XvQueryExtension (display,
 				   &version, &revision,
 				   &major_opcode,
 				   &event_base, &error_base))
     {
       printv ("XVideo extension not available\n");
-      return;
+      goto finish;
     }
 
   printv ("XVideo opcode %d, base %d, %d, version %d.%d\n",
@@ -1934,7 +2010,7 @@ x11_xvideo_dump			(void)
   if (version < 2 || (version == 2 && revision < 2))
     {
       printv ("XVideo extension not usable\n");
-      return;
+      goto finish;
     }
 
   root = DefaultRootWindow (display);
@@ -1942,7 +2018,7 @@ x11_xvideo_dump			(void)
   if (Success != XvQueryAdaptors (display, root, &nAdaptors, &pAdaptors))
     {
       printv ("XvQueryAdaptors failed\n");
-      return;
+      goto finish;
     }
 
   if (nAdaptors > 0)
@@ -1956,6 +2032,9 @@ x11_xvideo_dump			(void)
     {
       printv ("No XVideo adaptors\n");
     }
+
+ finish:
+  XSetErrorHandler (old_error_handler);
 }
 
 #else /* !HAVE_XV_EXTENSION */
@@ -1984,45 +2063,54 @@ children_clips			(tv_clip_vector *	vector,
 				 int			parent_x,
 				 int			parent_y)
 {
+	XErrorHandler old_error_handler;
 	Window root;
 	Window parent;
 	Window *children;
-	unsigned int nchildren;
+	unsigned int n_children;
 	unsigned int i;
+	tv_bool r;
 
-	if (!XQueryTree (display, window, &root, &parent,
-			 &children, &nchildren))
-		return FALSE;
-
-	if (nchildren == 0)
-		return TRUE;
-
-	for (i = 0; i < nchildren; ++i)
-		if (children[i] == stack_level)
-			break;
-
-	if (i == nchildren)
-		i = 0;
-	else
-		++i;
+	children = NULL;
+	r = FALSE;
 
 	/* We need to trap BadWindow errors while traversing the
 	   list of windows because they might get deleted in the
 	   meantime. */
-	old_error_handler = XSetErrorHandler (bad_window_handler);
+	old_error_handler = XSetErrorHandler (my_error_handler);
 
-	for (; i < nchildren; ++i) {
+	if (!XQueryTree (display, window, &root, &parent,
+			 &children, &n_children))
+		goto failure;
+
+	if (0 == n_children)
+		goto success;
+
+	for (i = 0; i < n_children; ++i)
+		if (children[i] == stack_level)
+			break;
+
+	if (i == n_children)
+		i = 0;
+	else
+		++i;
+
+	for (; i < n_children; ++i) {
 		XWindowAttributes wts;
 		int x1, y1;
 		int x2, y2;
     
-		bad_window = FALSE;
+		error_code = Success;
     
-		XGetWindowAttributes (display, children[i], &wts);
-    
-		if (bad_window)
-			continue;
-    
+		if (Success != XGetWindowAttributes (display,
+						     children[i], &wts)) {
+			if (BadWindow == error_code) {
+				continue;
+			} else {
+				goto failure;
+			}
+		}
+
 		if (!(wts.map_state & IsViewable))
 			continue;
 		
@@ -2040,14 +2128,20 @@ children_clips			(tv_clip_vector *	vector,
 						 MAX (y1, 0),
 						 MIN (x2, (int) width),
 						 MIN (y2, (int) height)))
-			return FALSE;
+			goto failure;
+	}
+
+ success:
+	r = TRUE;
+
+ failure:
+	if (NULL != children) {
+		XFree (children);
 	}
 
 	XSetErrorHandler (old_error_handler);
 
-	XFree ((char *) children);
-
-	return TRUE;
+	return r;
 }
 
 /*
@@ -2176,4 +2270,3 @@ x11_window_clip_vector		(tv_clip_vector *	vector,
 	return children_clips (vector, display, root, window,
 			       x, y, width, height, 0, 0);
 }
-

@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.c,v 1.13 2005-09-01 01:33:38 mschimek Exp $ */
+/* $Id: zapping.c,v 1.14 2006-01-08 05:25:31 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -90,6 +90,15 @@ background_action		(GtkAction *		action _unused_,
 				 Zapping *		z)
 {
   on_python_command1 (GTK_WIDGET (z), "zapping.switch_mode('background')");
+}
+
+static void
+crash_action			(GtkAction *		action _unused_,
+				 Zapping *		z)
+{
+	/* Testing bug-buddy interaction. */
+
+	*((int *) 1) = 0;
 }
 
 #if 0 /* Ok that's nice, but how can we SET current?
@@ -402,6 +411,10 @@ controls_action			(GtkAction *		action _unused_,
 static GtkActionEntry
 generic_actions [] = {
   { "FileSubmenu", NULL, N_("_File"), NULL, NULL, NULL },
+#ifdef ZAPPING_CRASH_TEST
+  { "Crash", GTK_STOCK_DISCONNECT, "_Crash", NULL, NULL,
+    G_CALLBACK (crash_action) },
+#endif
   { "Quit", GTK_STOCK_QUIT, NULL, NULL, NULL, G_CALLBACK (quit_action) },
   { "EditSubmenu", NULL, N_("_Edit"), NULL, NULL, NULL },
   { "Preferences", GTK_STOCK_PREFERENCES, NULL, NULL,
@@ -489,6 +502,9 @@ ui_description =
 "<ui>"
 " <menubar name='MainMenu'>"
 "  <menu action='FileSubmenu'>"
+#ifdef ZAPPING_CRASH_TEST
+"   <menuitem action='Crash'/>"
+#endif
 "   <menuitem action='Quit'/>"
 "  </menu>"
 "  <menu action='EditSubmenu'>"

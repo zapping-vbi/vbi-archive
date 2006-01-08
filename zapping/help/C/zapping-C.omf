@@ -1,17 +1,17 @@
 <?xml version="1.0" standalone="no"?>
 <omf>
-    <resource>
-        <creator>Michael Schimek</creator>
-        <title>Zapping TV and Teletext Viewer</title>
-        <date>2003-12-06</date>
-        <version identifier="0.1" date="2003-12-06"/>
-        <subject category="GNOME|Applications|Sound and Video"/>
-        <description>Zapping User Manual</description>
-        <type>manual</type>
-        <format mime="text/xml" dtd="-//OASIS//DTD DocBook XML V4.1.2//EN"/>
-        <identifier url="zapping.xml"/>
-        <language code="C"/>
-	<relation seriesid="01944b24-27d6-11d8-85e1-ccb9f50e493c"/>
-	<rights type="GNU FDL" license.version="1.1" holder="Michael Schimek"/>
-    </resource>
+  <resource>
+    <creator>Michael Schimek</creator>
+    <title>Zapping TV and Teletext Viewer</title>
+    <date>2005-11-21</date>
+    <version identifier="0.3" date="2005-11-21"/>
+    <subject category="GNOME|Applications|Sound and Video"/>
+    <description>User manual for the Zapping application</description>
+    <type>manual</type>
+    <format mime="text/xml" dtd="-//OASIS//DTD DocBook XML V4.1.2//EN"/>
+    <identifier url="zapping.xml"/>
+    <language code="C"/>
+    <relation seriesid="01944b24-27d6-11d8-85e1-ccb9f50e493c"/>
+    <rights type="GNU FDL" license.version="1.1" holder="Michael Schimek"/>
+  </resource>
 </omf>
