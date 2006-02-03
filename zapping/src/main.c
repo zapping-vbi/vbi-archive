@@ -79,7 +79,8 @@ on_zapping_key_press			(GtkWidget	*widget,
 					 GdkEventKey	*event,
 					 gpointer	*user_data)
 {
-  return on_user_key_press (widget, event, user_data)
+  return on_channel_enter (widget, event, user_data)
+    || on_user_key_press (widget, event, user_data)
     || on_picture_size_key_press (widget, event, user_data)
     || on_channel_key_press (widget, event, user_data);
 }
@@ -605,7 +606,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.207 2005-10-26 21:54:32 mschimek Exp $",
+	 "$Id: main.c,v 1.208 2006-02-03 18:23:15 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();

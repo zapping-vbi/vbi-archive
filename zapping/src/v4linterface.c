@@ -581,7 +581,8 @@ on_control_window_key_press	(GtkWidget *		widget,
       break;
     }
 
-  return on_user_key_press (widget, event, user_data)
+  return on_channel_enter (widget, event, user_data)
+    || on_user_key_press (widget, event, user_data)
     || on_picture_size_key_press (widget, event, user_data)
     || on_channel_key_press (widget, event, user_data);
 }
@@ -1504,7 +1505,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
 }
 
 static void
-select_channel (guint num_channel)
+select_channel			(guint			num_channel)
 {
   tveng_tuned_channel * channel =
     tveng_tuned_channel_nth (global_channel_list, num_channel);
@@ -1517,101 +1518,6 @@ select_channel (guint num_channel)
     }
 
   z_switch_channel(channel, zapping->info);
-}
-
-static PyObject*
-py_channel_up			(PyObject *self _unused_,
-				 PyObject *args _unused_)
-{
-  guint num_channels = tveng_tuned_channel_num(global_channel_list);
-  guint new_channel;
-
-  if (num_channels == 0) /* If there are no tuned channels stop
-			    processing */
-    py_return_none;
-
-  new_channel = cur_tuned_channel + 1;
-  if (new_channel >= num_channels)
-    new_channel = 0;
-
-  select_channel(new_channel);
-
-  py_return_none;
-}
-
-static PyObject *
-py_channel_down			(PyObject *self _unused_,
-				 PyObject *args _unused_)
-{
-  gint num_channels = tveng_tuned_channel_num(global_channel_list);
-  gint new_channel;
-
-  if (num_channels == 0) /* If there are no tuned channels stop
-			    processing */
-    py_return_none;
-
-  new_channel = cur_tuned_channel - 1;
-  if (new_channel < 0)
-    new_channel = num_channels - 1;
-  
-  select_channel(new_channel);
-
-  py_return_none;
-}
-
-/*
- *  Select a channel by index into the the channel list.
- */
-static PyObject*
-py_set_channel				(PyObject *self _unused_,
-					 PyObject *args)
-{
-  gint num_channels;
-  gint i;
-  int ok = ParseTuple (args, "i", &i);
-
-  if (!ok)
-    py_return_false;
-
-  num_channels = tveng_tuned_channel_num(global_channel_list);
-
-  if (i >= 0 && i < num_channels)
-    {
-      select_channel((guint) i);
-      py_return_true;
-    }
-
-  py_return_false;
-}
-
-/*
- *  Select a channel by station name ("MSNBCBS", "Linux TV", ...),
- *  when not found by channel name ("5", "S7", ...)
- */
-static PyObject*
-py_lookup_channel			(PyObject *self _unused_,
-					 PyObject *args)
-{
-  tveng_tuned_channel *tc;
-  char *name;
-  int ok = ParseTuple (args, "s", &name);
-
-  if (!ok)
-    py_return_false;
-
-  if ((tc = tveng_tuned_channel_by_name (global_channel_list, name)))
-    {
-      z_switch_channel(tc, zapping->info);
-      py_return_true;
-    }
-
-  if ((tc = tveng_tuned_channel_by_rf_name (global_channel_list, name)))
-    {
-      z_switch_channel(tc, zapping->info);
-      py_return_true;
-    }
-
-  py_return_false;
 }
 
 static gchar			kp_chsel_buf[8];
@@ -1634,8 +1540,8 @@ channel_txl			(void)
   return txl;
 }
 
-static void
-kp_enter			(gint			txl)
+static tveng_tuned_channel *
+entered_channel			(gint			txl)
 {
   tveng_tuned_channel *tc;
 
@@ -1648,8 +1554,153 @@ kp_enter			(gint			txl)
     tc = tveng_tuned_channel_nth (global_channel_list,
 				  strtoul (kp_chsel_buf, NULL, 0));
 
+  return tc;
+}
+
+static guint
+cur_channel_num			(void)
+{
+  if (0 != kp_chsel_buf[0])
+    {
+      tveng_tuned_channel *tc;
+
+      if (kp_timeout_id > 0)
+	g_source_remove (kp_timeout_id);
+
+      kp_timeout_id = NO_SOURCE_ID;
+
+      tc = entered_channel (channel_txl ());
+
+      kp_chsel_buf[0] = 0;
+      kp_chsel_prefix = 0;
+
+      if (NULL != tc)
+	return tc->index;
+    }
+
+  return cur_tuned_channel;
+}
+
+static PyObject *
+py_channel_up			(PyObject *		self,
+				 PyObject *		args)
+{
+  guint n_channels;
+  guint new_channel;
+
+  self = self;
+  args = args;
+
+  n_channels = tveng_tuned_channel_num (global_channel_list);
+  if (0 == n_channels)
+    py_return_none;
+
+  new_channel = cur_channel_num () + 1;
+  if (new_channel >= n_channels)
+    new_channel = 0;
+
+  select_channel (new_channel);
+
+  py_return_none;
+}
+
+static PyObject *
+py_channel_down			(PyObject *		self,
+				 PyObject *		args)
+{
+  guint n_channels;
+  guint cur_channel;
+  guint new_channel;
+
+  self = self;
+  args = args;
+
+  n_channels = tveng_tuned_channel_num (global_channel_list);
+  if (0 == n_channels)
+    py_return_none;
+
+  cur_channel = cur_channel_num ();
+  if (cur_channel > 0)
+    new_channel = cur_channel - 1;
+  else
+    new_channel = n_channels - 1;
+
+  select_channel (new_channel);
+
+  py_return_none;
+}
+
+/* Select a channel by index into the the channel list. */
+static PyObject *
+py_set_channel			(PyObject *		self,
+				 PyObject *		args)
+{
+  gint n_channels;
+  gint i;
+
+  self = self;
+
+  if (!ParseTuple (args, "i", &i))
+    py_return_false;
+
+  n_channels = tveng_tuned_channel_num (global_channel_list);
+  if (i >= 0 && i < n_channels)
+    {
+      select_channel ((guint) i);
+      py_return_true;
+    }
+
+  py_return_false;
+}
+
+/* Select a channel by station name ("MSNBCBS", "Linux TV", ...),
+   when not found by channel name ("5", "S7", ...) */
+static PyObject *
+py_lookup_channel		(PyObject *		self,
+				 PyObject *		args)
+{
+  tveng_tuned_channel *tc;
+  char *name;
+
+  self = self;
+
+  if (!ParseTuple (args, "s", &name))
+    py_return_false;
+
+  tc = tveng_tuned_channel_by_name (global_channel_list, name);
+
   if (NULL == tc)
-    z_switch_channel (tc, zapping->info);
+    tc = tveng_tuned_channel_by_rf_name (global_channel_list, name);
+
+  if (NULL == tc)
+    py_return_false;
+
+  if (0 != kp_chsel_buf[0])
+    {
+      if (kp_timeout_id > 0)
+	g_source_remove (kp_timeout_id);
+
+      kp_timeout_id = NO_SOURCE_ID;
+
+      kp_chsel_buf[0] = 0;
+      kp_chsel_prefix = 0;
+    }
+
+  z_switch_channel (tc, zapping->info);
+
+  py_return_true;
+}
+
+static void
+kp_enter			(gint			txl)
+{
+  tveng_tuned_channel *tc;
+
+  tc = entered_channel (txl);
+  if (NULL == tc)
+    return;
+
+  z_switch_channel (tc, zapping->info);
 }
 
 static void
@@ -1823,6 +1874,17 @@ kp_key_press			(GdkEventKey *		event,
     }
 
   return FALSE; /* don't know, pass it on */
+}
+
+gboolean
+on_channel_enter			(GtkWidget *	widget _unused_,
+					 GdkEventKey *	event,
+					 gpointer	user_data _unused_)
+{
+  if (0 == kp_chsel_buf[0])
+    return FALSE;
+
+  return kp_key_press (event, channel_txl ());
 }
 
 /*

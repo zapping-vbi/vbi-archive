@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.47 2005-10-26 21:54:32 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.48 2006-02-03 18:23:25 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -93,7 +93,8 @@ on_key_press			(GtkWidget *		widget,
     }
 #endif
 
-  return on_user_key_press (widget, event, NULL)
+  return on_channel_enter (widget, event, NULL)
+    || on_user_key_press (widget, event, NULL)
     || on_channel_key_press (widget, event, NULL);
 }
 
