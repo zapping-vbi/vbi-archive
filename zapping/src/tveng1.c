@@ -554,15 +554,21 @@ init_audio			(struct private_tveng1_device_info *p_info)
 	CLEAR (audio);
 
 	if (-1 == xioctl_may_fail (&p_info->info, VIDIOCGAUDIO, &audio)) {
-		if (EINVAL == errno)
-			return TRUE; /* no audio? */
+		switch (errno) {
+		case EINVAL:
+		case ENODEV:
+			/* Tim: rivatv driver returns ENODEV when the card
+			   has no audio. */
+			return TRUE; /* success, no audio support */
 
-		ioctl_failure (&p_info->info,
-			       __FILE__,
-			       __PRETTY_FUNCTION__,
-			       __LINE__,
-			       "VIDIOCGAUDIO");
-		return FALSE;
+		default:
+			ioctl_failure (&p_info->info,
+				       __FILE__,
+				       __PRETTY_FUNCTION__,
+				       __LINE__,
+				       "VIDIOCGAUDIO");
+			return FALSE;
+		}
 	}
 
 	old_mode = audio.mode;
@@ -1100,15 +1106,21 @@ get_audio_control_list		(tveng_device_info *	info)
 	tv_bool rewrite;
 
 	if (-1 == xioctl_may_fail (info, VIDIOCGAUDIO, &audio)) {
-		if (EINVAL == errno)
-			return TRUE; /* no audio support */
+		switch (errno) {
+		case EINVAL:
+		case ENODEV:
+			/* Tim: rivatv driver returns ENODEV when the card
+			   has no audio. */
+			return TRUE; /* success, no audio support */
 
-		ioctl_failure (info,
-			       __FILE__,
-			       __PRETTY_FUNCTION__,
-			       __LINE__,
-			       "VIDIOCGAUDIO");
-		return FALSE;
+		default:
+			ioctl_failure (info,
+				       __FILE__,
+				       __PRETTY_FUNCTION__,
+				       __LINE__,
+				       "VIDIOCGAUDIO");
+			return FALSE;
+		}
 	}
 
 	rewrite = FALSE;
