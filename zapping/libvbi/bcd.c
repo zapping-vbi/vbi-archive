@@ -1,7 +1,7 @@
 /*
  *  libzvbi - BCD arithmetic for Teletext page numbers
  *
- *  Copyright (C) 2001, 2002, 2003 Michael H. Schimek
+ *  Copyright (C) 2001-2003 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.c,v 1.3 2005-06-28 01:11:54 mschimek Exp $ */
+/* $Id: bcd.c,v 1.4 2006-02-03 18:22:53 mschimek Exp $ */
 
 #include "bcd.h"
 #include "misc.h"		/* unlikely() */
@@ -37,48 +37,48 @@
  * as ten's complement, for example -1 as 0xF999&nbsp;9999, assumed
  * sizeof(int) is four. Their precision as signed packed bcd value
  * is VBI3_BCD_MIN .. VBI3_BCD_MAX, as two's complement
- * binary VBI3_BCD_DEC_MIN ... VBI3_BCD_DEC_MAX. That is -10 ** n ...
+ * binary VBI3_BCD_BIN_MIN ... VBI3_BCD_BIN_MAX. That is -10 ** n ...
  * (10 ** n) - 1, where n = 2 * sizeof(int) - 1.
  */
 
 /**
  * @ingroup BCD
- * @param dec Binary number.
+ * @param bin Binary number.
  * 
  * Converts a two's complement binary to a signed packed bcd value.
- * The argument @a dec must be in range VBI3_BCD_DEC_MIN ...
- * VBI3_BCD_DEC_MAX. Other values yield an undefined result.
+ * The argument @a bin must be in range VBI3_BCD_BIN_MIN ...
+ * VBI3_BCD_BIN_MAX. Other values yield an undefined result.
  * 
  * @return
  * BCD number.
  */
 int
-vbi3_dec2bcd			(int			dec)
+vbi3_bin2bcd			(int			bin)
 {
 	int t = 0;
 
 	/* XXX might try x87 bcd for large values. */
 
 	/* Teletext page numbers are unsigned. */
-	if (unlikely (dec < 0)) {
+	if (unlikely (bin < 0)) {
 		t |= VBI3_BCD_MIN;
-		dec += -VBI3_BCD_DEC_MIN;
+		bin += -VBI3_BCD_BIN_MIN;
 	}
 
 	/* Most common case 2-4 digits, as in Teletext
 	   page and subpage numbers. */
 
-	t += (dec % 10) << 0; dec /= 10;
-	t += (dec % 10) << 4; dec /= 10;
-	t += (dec % 10) << 8; dec /= 10;
-	t += (dec % 10) << 12;
+	t += (bin % 10) << 0; bin /= 10;
+	t += (bin % 10) << 4; bin /= 10;
+	t += (bin % 10) << 8; bin /= 10;
+	t += (bin % 10) << 12;
 
-	if (unlikely (dec >= 10)) {
+	if (unlikely (bin >= 10)) {
 		unsigned int i;
 
 		for (i = 16; i < sizeof (int) * 8; i += 4) {
-			dec /= 10;
-			t += (dec % 10) << i;
+			bin /= 10;
+			t += (bin % 10) << i;
 		}
 	}
 
@@ -96,7 +96,7 @@ vbi3_dec2bcd			(int			dec)
  * contains hex digits 0xA ... 0xF, except for the sign nibble.
  */
 int
-vbi3_bcd2dec			(int			bcd)
+vbi3_bcd2bin			(int			bcd)
 {
 	int s;
 	int t;
@@ -107,7 +107,7 @@ vbi3_bcd2dec			(int			bcd)
 	if (unlikely (bcd < 0)) {
 		/* Cannot negate minimum. */
 		if (unlikely (VBI3_BCD_MIN == bcd))
-			return VBI3_BCD_DEC_MIN;
+			return VBI3_BCD_BIN_MIN;
 
 		bcd = vbi3_neg_bcd (bcd);
 	}
