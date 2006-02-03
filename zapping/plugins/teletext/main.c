@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.14 2005-09-01 01:29:48 mschimek Exp $ */
+/* $Id: main.c,v 1.15 2006-02-03 18:24:42 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -99,8 +99,8 @@ py_ttx_open_new			(PyObject *		self _unused_,
 
   if (view && view->pg)
     {
-      page = vbi3_bcd2dec (view->pg->pgno);
-      subpage = vbi3_bcd2dec (view->pg->subno & 0xFF);
+      page = vbi3_bcd2bin (view->pg->pgno);
+      subpage = vbi3_bcd2bin (view->pg->subno & 0xFF);
     }
   else
     {
@@ -118,14 +118,14 @@ py_ttx_open_new			(PyObject *		self _unused_,
     g_error ("zapping.ttx_open_new(|ii)");
 
   if (page >= 100 && page <= 899)
-    pgno = vbi3_dec2bcd (page);
+    pgno = vbi3_bin2bcd (page);
   else
     py_return_false;
 
   if (subpage < 0)
     subno = VBI3_ANY_SUBNO;
   else if ((guint) subpage <= 99)
-    subno = vbi3_dec2bcd (subpage);
+    subno = vbi3_bin2bcd (subpage);
   else
     py_return_false;
 

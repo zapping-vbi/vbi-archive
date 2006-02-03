@@ -576,7 +576,7 @@ cache_network_get_ttx_page_stat	(const cache_network *	cn,
 	else if (ps1->subcode >= 0x80)
 		ps->subpages	= 0; /* non-standard (clock etc) */
 	else
-		ps->subpages	= vbi3_bcd2dec (ps1->subcode);
+		ps->subpages	= vbi3_bcd2bin (ps1->subcode);
 
 	ps->subno_min	= (vbi3_subno) ps1->subno_min;
 	ps->subno_max	= (vbi3_subno) ps1->subno_max;

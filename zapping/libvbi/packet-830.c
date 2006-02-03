@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.c,v 1.4 2005-01-31 07:21:34 mschimek Exp $ */
+/* $Id: packet-830.c,v 1.5 2006-02-03 18:24:42 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -101,7 +101,7 @@ vbi3_decode_teletext_8301_local_time
 	if (!vbi3_is_bcd (bcd))
 		return FALSE;
 
-	mjd = vbi3_bcd2dec (bcd);
+	mjd = vbi3_bcd2bin (bcd);
 
 	bcd = (+ (buffer[15] << 16)
 	       + (buffer[16] << 8)

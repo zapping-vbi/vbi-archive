@@ -25,8 +25,6 @@ Outstanding issues for future releases
   picture. Even better with OpenGL animations.
 * keyboard: there are too many conflicts between the Zapping
   and Xawtv mapping, better add an option to prefs.
-* Suppress mute function of keypad enter when entering
-  channel number.
 * Xawtv import considers ~/.xawtv but not /etc/X11/xawtvrc, see
   man xawtvrc.
 * Examine interaction with change display from gtk-demo.
@@ -42,8 +40,6 @@ Outstanding issues for future releases
 * After "add all channels" in the channel editor Zapping
   should scan for station names.
 * UYVY in mpeg plugin.
-* Channel up/down should finish channel number entering
-  on keypad or (a)lirc.
 * Prefs building takes longer and longer, it's annoying.
 * Maybe Zapping should support all xawtv command line options?
 * We need an Xv overlay port menu.

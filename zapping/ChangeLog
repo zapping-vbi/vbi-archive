@@ -1,3 +1,17 @@
+2006-02-03    <mschimek@users.sf.net>
+
+	* src/tveng1.c (init_audio, get_audio_control_list): Zapping
+	  didn't work with rivatv driver because VIDIOCGAUDIO returned
+	  unexpected errno ENODEV. Patch by Tim.
+	* src/xawtv.c (property_get_string), libtv/screen.c
+	  (tv_screen_list_new): Fixed XGetWindowAttributes return code check.
+	* libvbi/bcd.c, libvbi/bdc.h: Renamed vbi3_dec2bcd to bin2bcd,
+	  vbi3_bcd2dec to bcd2bin.
+	* src/v4linterface.c (on_control_window_key_press, channel_txl),
+	  src/main.c (on_zapping_key_press), src/fullscreen.c (on_key_press):
+	  Fixed entering of channel numbers on the numeric keypad. Pg-up/down
+	  now completes channel number entering like nk-enter.
+
 2006-01-07    <mschimek@users.sf.net>
 
 	* src/x11stuff.c (x11_force_expose, x11_window_viewable,

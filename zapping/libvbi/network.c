@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.7 2005-10-22 15:48:33 mschimek Exp $ */
+/* $Id: network.c,v 1.8 2006-02-03 18:24:42 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -75,7 +75,7 @@ cni_pdc_a_to_vps		(unsigned int		cni)
 		if (!vbi3_is_bcd ((int) cni & 0xFFF))
 			return 0;
 
-		n = vbi3_bcd2dec ((int) cni & 0xFFF);
+		n = vbi3_bcd2bin ((int) cni & 0xFFF);
 
 		switch (n) {
 		case 100 ... 163:
@@ -108,12 +108,12 @@ cni_vps_to_pdc_a		(unsigned int		cni)
 		switch (cni & 0xFF) {
 		case 0xC0 ... 0xFF:
 			cni = ((cni << 4) & 0xF000) + 0x10000
-				+ vbi3_dec2bcd ((int)(cni & 0xFF) - 0xC0 + 100);
+				+ vbi3_bin2bcd ((int)(cni & 0xFF) - 0xC0 + 100);
 			break;
 
 		case 0x80 ... 0xBF:
 			cni = ((cni << 4) & 0xF000) + 0x10000
-				+ vbi3_dec2bcd ((int)(cni & 0xFF) - 0x80 + 200);
+				+ vbi3_bin2bcd ((int)(cni & 0xFF) - 0x80 + 200);
 			break;
 
 		default:

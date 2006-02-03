@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: screen.c,v 1.8 2006-01-08 05:25:31 mschimek Exp $ */
+/* $Id: screen.c,v 1.9 2006-02-03 18:24:41 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -681,7 +681,7 @@ tv_screen_list_new		(const char *		display_name,
 		/* Root window of XDefaultScreen (display). */
 		root = XDefaultRootWindow (display);
 
-		if (Success != XGetWindowAttributes (display, root, &wa)) {
+		if (!XGetWindowAttributes (display, root, &wa)) {
 			printv ("%s: Cannot determine size of root window\n",
 				__FUNCTION__);
 			goto failure;

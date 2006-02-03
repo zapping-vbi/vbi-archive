@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.2 2005-10-22 15:47:31 mschimek Exp $ */
+/* $Id: view.c,v 1.3 2006-02-03 18:24:42 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -2023,7 +2023,7 @@ decimal_subno			(vbi3_subno		subno)
   if (0 == subno || (guint) subno > 0x99)
     return -1; /* any */
   else
-    return vbi3_bcd2dec (subno);
+    return vbi3_bcd2bin (subno);
 }
 
 static void

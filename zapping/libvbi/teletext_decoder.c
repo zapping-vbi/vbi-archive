@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.11 2005-10-22 15:48:33 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.12 2006-02-03 18:24:42 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -1155,7 +1155,7 @@ decode_mpt_ex_page		(vbi3_teletext_decoder *	td,
 					continue;
 				}
 
-				pn.subno = vbi3_dec2bcd (pn.subno & 0x7F);
+				pn.subno = vbi3_bin2bcd (pn.subno & 0x7F);
 
 				if (TELETEXT_DECODER_LOG) {
 					log ("MPT-EX %3u: ",
@@ -1254,7 +1254,7 @@ mip_page_stat			(cache_network *	cn,
 
 	case 0x02 ... 0x4F: /* VBI3_NORMAL_PAGE with 2 ... 79 subpages */
 		page_type = VBI3_NORMAL_PAGE;
-		subcode = vbi3_dec2bcd (code);
+		subcode = vbi3_bin2bcd (code);
 		break;
 
 	case 0x50 ... 0x51: /* normal page */
@@ -1336,7 +1336,7 @@ mip_page_stat			(cache_network *	cn,
 
 	case 0x82 ... 0xCF: /* VBI3_PROGR_SCHEDULE with 2 ... 79 subpages */
 		page_type = VBI3_PROGR_SCHEDULE;
-		subcode = vbi3_dec2bcd (code & 0x7F);
+		subcode = vbi3_bin2bcd (code & 0x7F);
 		break;
 
 	case 0xE2:	    /* Page format CA, undefined number of subpages. */
