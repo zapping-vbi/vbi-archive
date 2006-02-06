@@ -886,6 +886,8 @@ extern const tv_window *
 tv_cur_overlay_window		(tveng_device_info *	info);
 extern const tv_window *
 tv_get_overlay_window		(tveng_device_info *	info);
+extern const tv_clip_vector *
+tv_cur_overlay_clipvec		(tveng_device_info *	info);
 extern const tv_window *
 tv_set_overlay_window_clipvec	(tveng_device_info *	info,
 				 const tv_window *	window,
