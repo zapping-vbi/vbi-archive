@@ -1376,6 +1376,48 @@ pixfmt_to_pixelformat		(tv_pixfmt		pixfmt)
 	Overlay
 */
 
+static unsigned int
+tv_to_v4l2_chromakey		(unsigned int		chromakey)
+{
+	switch (Z_BYTE_ORDER) {
+	case Z_LITTLE_ENDIAN:
+		/* XXX correct? 0xAARRGGBB */
+		return chromakey & 0xFFFFFF;
+
+	case Z_BIG_ENDIAN:
+		/* XXX correct? 0xBBGGRRAA */
+		return (((chromakey & 0xFF) << 24) |
+			((chromakey & 0xFF00) << 8) |
+			((chromakey & 0xFF0000) >> 8));
+
+	default:
+		assert (0);
+	}
+
+	return 0;
+}
+
+static unsigned int
+v4l2_to_tv_chromakey		(unsigned int		chromakey)
+{
+	switch (Z_BYTE_ORDER) {
+	case Z_LITTLE_ENDIAN:
+		/* XXX correct? 0xAARRGGBB */
+		return chromakey & 0xFFFFFF;
+
+	case Z_BIG_ENDIAN:
+		/* XXX correct? 0xBBGGRRAA */
+		return (((chromakey & 0xFF00) << 8) |
+			((chromakey & 0xFF0000) >> 8) |
+			((chromakey & 0xFF000000) >> 24));
+
+	default:
+		assert (0);
+	}
+
+	return 0;
+}
+
 static tv_bool
 get_overlay_buffer		(tveng_device_info *	info)
 {
@@ -1415,7 +1457,8 @@ get_overlay_buffer		(tveng_device_info *	info)
 	return TRUE;
 }
 
-/* XXX should have set_overlay_buffer with EPERM check in tveng.c */
+/* XXX we should support set_overlay_buffer with an EPERM check in tveng.c,
+   so we don't have to run zapping_setup_fb when the user is privileged. */
 
 static tv_bool
 get_overlay_window		(tveng_device_info *	info)
@@ -1437,15 +1480,20 @@ get_overlay_window		(tveng_device_info *	info)
 	info->overlay.window.width	= format.fmt.win.w.width;
 	info->overlay.window.height	= format.fmt.win.w.height;
 
-	/* Clips cannot be read back, we assume no change. */
+	/* Clips cannot be read back, we assume no change.
+	   tveng.c takes care of info->overlay.clip_vector. */
+
+	info->overlay.chromakey =
+		v4l2_to_tv_chromakey (format.fmt.win.chromakey);
 
 	return TRUE;
 }
 
 static tv_bool
-set_overlay_window_clipvec	(tveng_device_info *	info,
+set_overlay_window		(tveng_device_info *	info,
 				 const tv_window *	w,
-				 const tv_clip_vector *	v)
+				 const tv_clip_vector *	v,
+				 unsigned int		chromakey)
 {
 	struct private_tveng25_device_info * p_info = P_INFO (info);
 	struct v4l2_format format;
@@ -1457,7 +1505,7 @@ set_overlay_window_clipvec	(tveng_device_info *	info,
 		unsigned int i;
 
 		clips = malloc (v->size * sizeof (*clips));
-		if (!clips) {
+		if (NULL == clips) {
 			info->tveng_errno = ENOMEM;
 			t_error("malloc", info);
 			return FALSE;
@@ -1467,7 +1515,7 @@ set_overlay_window_clipvec	(tveng_device_info *	info,
 		tc = v->vector;
 
 		for (i = 0; i < v->size; ++i) {
-			vc->next	= vc + 1;
+			vc->next	= vc + 1; /* just in case */
 			vc->c.left	= tc->x1;
 			vc->c.top	= tc->y1;
 			vc->c.width	= tc->x2 - tc->x1;
@@ -1494,7 +1542,7 @@ set_overlay_window_clipvec	(tveng_device_info *	info,
 	format.fmt.win.clips		= clips;
 	format.fmt.win.clipcount	= v->size;
 
-	format.fmt.win.chromakey	= p_info->chroma;
+	format.fmt.win.chromakey	= tv_to_v4l2_chromakey (chromakey);
 
 	if (p_info->buffers)
 		unmap_xbuffers (info, /* ignore_errors */ TRUE);
@@ -1513,6 +1561,9 @@ set_overlay_window_clipvec	(tveng_device_info *	info,
 	info->overlay.window.width	= format.fmt.win.w.width;
 	info->overlay.window.height	= format.fmt.win.w.height;
 
+	info->overlay.chromakey =
+		v4l2_to_tv_chromakey (format.fmt.win.chromakey);
+
 	return TRUE;
 }
 
@@ -1527,38 +1578,12 @@ enable_overlay			(tveng_device_info *	info,
 		unmap_xbuffers (info, /* ignore_errors */ TRUE);
 
 	if (0 == xioctl (info, VIDIOC_OVERLAY, &value)) {
-		usleep (50000);
+		/* Caller shall use a timer instead. */
+		/* usleep (50000); */
 		return TRUE;
 	} else {
 		return FALSE;
 	}
-}
-
-static tv_bool
-set_overlay_window_chromakey	(tveng_device_info *	info,
-				 const tv_window *	window,
-				 unsigned int		chromakey)
-{
-  struct private_tveng25_device_info * p_info =
-    (struct private_tveng25_device_info*) info;
-  tv_clip_vector vec;
-
-  p_info->chroma = chromakey;
-
-  CLEAR (vec);
-
-  return set_overlay_window_clipvec (info, window, &vec);
-}
-
-static tv_bool
-get_overlay_chromakey		(tveng_device_info *	info)
-{
-  struct private_tveng25_device_info * p_info =
-    (struct private_tveng25_device_info*) info;
-
-  info->overlay.chromakey = p_info->chroma;
-
-  return TRUE;
 }
 
 /*
@@ -3022,13 +3047,10 @@ int tveng25_attach_device(const char* device_file,
 	CLEAR (info->overlay);
 
 	if (info->caps.flags & TVENG_CAPS_OVERLAY) {
+		/* TODO: set_buffer. */
 		info->overlay.get_buffer = get_overlay_buffer;
-		info->overlay.set_window_clipvec =
-			set_overlay_window_clipvec;
+		info->overlay.set_window = set_overlay_window;
 		info->overlay.get_window = get_overlay_window;
-		info->overlay.set_window_chromakey =
-			set_overlay_window_chromakey;
-		info->overlay.get_chromakey = get_overlay_chromakey;
 		info->overlay.enable = enable_overlay;
 
 		if (!get_overlay_buffer (info))

@@ -332,10 +332,18 @@ get_overlay_buffer		(tveng_device_info *	info _unused_)
 }
 
 static tv_bool
-set_overlay_window_clipvec	(tveng_device_info *	info _unused_,
-				 const tv_window *	w _unused_,
-				 const tv_clip_vector *	v _unused_)
+set_overlay_window		(tveng_device_info *	info,
+				 const tv_window *	w,
+				 const tv_clip_vector *	v,
+				 unsigned int		chromakey)
 {
+	v = v;
+
+	/* Set & get. tveng.c takes care of info->overlay.clip_vector. */
+
+	info->overlay.window = *w;
+	info->overlay.chromakey = chromakey;
+
 	return TRUE;
 }
 
@@ -343,27 +351,6 @@ static tv_bool
 get_overlay_window		(tveng_device_info *	info _unused_)
 {
 	return TRUE;
-}
-
-static tv_bool
-set_overlay_window_chromakey	(tveng_device_info *	info,
-				 const tv_window *	w _unused_,
-				 unsigned int		chromakey)
-{
-  struct private_tvengemu_device_info *p_info = P_INFO (info);
-
-  p_info -> chromakey = chromakey;
-  return TRUE;
-}
-
-static tv_bool
-get_overlay_chromakey		(tveng_device_info *info)
-{
-  struct private_tvengemu_device_info * p_info =
-    (struct private_tvengemu_device_info*) info;
-
-  info->overlay.chromakey = p_info -> chromakey;
-  return TRUE;
 }
 
 static tv_bool
@@ -448,10 +435,8 @@ int tvengemu_attach_device(const char* device_file,
 
   info->overlay.set_buffer = set_overlay_buffer;
   info->overlay.get_buffer = get_overlay_buffer;
-  info->overlay.set_window_clipvec = set_overlay_window_clipvec;
+  info->overlay.set_window = set_overlay_window;
   info->overlay.get_window = get_overlay_window;
-  info->overlay.set_window_chromakey = set_overlay_window_chromakey;
-  info->overlay.get_chromakey = get_overlay_chromakey;
   info->overlay.enable = enable_overlay;
 
   CLEAR (info->capture);

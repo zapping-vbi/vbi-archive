@@ -1395,7 +1395,8 @@ enable_overlay			(tveng_device_info *	info,
 static tv_bool
 set_overlay_window		(tveng_device_info *	info,
 				 const tv_window *	w,
-				 const tv_clip_vector *	v)
+				 const tv_clip_vector *	v,
+				 unsigned int		chromakey)
 {
 	struct private_tvengbktr_device_info *p_info = P_INFO (info);
 	const tv_image_format *bf;
@@ -2108,7 +2109,7 @@ tvengbktr_attach_device (const char* device_file,
 
 	info->overlay.set_buffer = set_overlay_buffer;
 	info->overlay.get_buffer = get_overlay_buffer;
-	info->overlay.set_window_clipvec = set_overlay_window;
+	info->overlay.set_window = set_overlay_window;
 	info->overlay.get_window = get_overlay_window;
 	info->overlay.enable = enable_overlay;
 

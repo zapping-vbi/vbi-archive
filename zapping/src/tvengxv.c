@@ -370,7 +370,8 @@ p_tvengxv_open_device(tveng_device_info *info,
 static tv_bool
 set_overlay_xwindow		(tveng_device_info *	info,
 				 Window			window,
-				 GC			gc)
+				 GC			gc,
+				 unsigned int		chromakey)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 
@@ -378,6 +379,20 @@ set_overlay_xwindow		(tveng_device_info *	info,
 
 	p_info->window = window;
 	p_info->gc = gc;
+
+	if (p_info->xa_colorkey != None) {
+		if (io_debug_msg > 0) {
+			fprintf (stderr, "XvSetPortAttribute "
+				 "XA_COLORKEY 0x%x\n", chromakey);
+		}
+
+		XvSetPortAttribute (info->display,
+				    p_info->port,
+				    p_info->xa_colorkey,
+				    (int) chromakey);
+
+		return TRUE;
+	}
 
 	return TRUE;
 }
@@ -442,31 +457,7 @@ enable_overlay			(tveng_device_info *	info,
 }
 
 static tv_bool
-set_overlay_window_chromakey (tveng_device_info *info,
-			      const tv_window *w _unused_,
-			      unsigned int chromakey)
-{
-	struct private_tvengxv_device_info *p_info = P_INFO (info);
-
-	if (p_info->xa_colorkey != None) {
-		if (io_debug_msg > 0) {
-			fprintf (stderr, "XvSetPortAttribute "
-				 "XA_COLORKEY 0x%x\n", chromakey);
-		}
-
-		XvSetPortAttribute (info->display,
-				    p_info->port,
-				    p_info->xa_colorkey,
-				    (int) chromakey);
-
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-static tv_bool
-get_overlay_chromakey (tveng_device_info *info)
+get_overlay_window (tveng_device_info *info)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 	int result;
@@ -1283,7 +1274,7 @@ int tvengxv_attach_device(const char* device_file _unused_,
 		  p_info->freq_min = at[i].min_value;
 		  continue;
 	  } else if (!strcmp("XV_COLORKEY", at[i].name)) {
-		  info->caps.flags = TVENG_CAPS_CHROMAKEY;
+		  info->caps.flags |= TVENG_CAPS_CHROMAKEY;
 
 		  p_info->xa_colorkey = XInternAtom (dpy, "XV_COLORKEY", False);
 		  p_info->colorkey_max = at[i].max_value;
@@ -1367,8 +1358,7 @@ int tvengxv_attach_device(const char* device_file _unused_,
 	CLEAR (info->overlay);
 
 	info->overlay.set_xwindow = set_overlay_xwindow;
-	info->overlay.set_window_chromakey = set_overlay_window_chromakey;
-	info->overlay.get_chromakey = get_overlay_chromakey;
+	info->overlay.get_window = get_overlay_window;
 	info->overlay.enable = enable_overlay;
 
 	CLEAR (info->capture);

@@ -252,7 +252,7 @@ struct overlay_device {
 
   	tv_clip_vector		clip_vector; /* 2 b removed */
 
-	unsigned int		chromakey;
+	unsigned int		chromakey; /* 0xAARRGGBB */
 
 	tv_bool			active; /* XXX internal */
 
@@ -261,22 +261,22 @@ struct overlay_device {
 					 const tv_overlay_buffer *buffer);
 	tv_bool			(* get_buffer)
 					(tveng_device_info *	info);
-	tv_bool			(* set_window_clipvec)
+
+	/* chromakey: 0xAARRGGBB. */
+	tv_bool			(* set_window)
        					(tveng_device_info *	info,
 					 const tv_window *	window,
-					 const tv_clip_vector *	vector);
-	tv_bool			(* set_window_chromakey)
-					(tveng_device_info *	info,
-					 const tv_window *	window,
+					 const tv_clip_vector *	vector,
 					 unsigned int		chromakey);
+	/* Reads window and chromakey from the driver. */
+	tv_bool			(* get_window)
+					(tveng_device_info *	info);
+	/* XVideo drivers. */
 	tv_bool			(* set_xwindow)
 					(tveng_device_info *	info,
 					 Window			window,
-					 GC			gc);
-	tv_bool			(* get_window)
-					(tveng_device_info *	info);
-	tv_bool			(* get_chromakey)
-					(tveng_device_info *	info);
+					 GC			gc,
+					 unsigned int		chromakey);
 	tv_bool			(* enable)
 					(tveng_device_info *	info,
 					 tv_bool		enable);
