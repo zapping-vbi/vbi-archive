@@ -245,9 +245,6 @@ struct private_tveng1_device_info
 #endif
   int audio_mode; /* auto, mono, stereo, ... */
 
-  uint32_t chroma; /* Pixel value for the chromakey */
-  uint32_t r, g, b; /* 0-65535 components for the chroma */
-
   /* OV511 camera */
   int ogb_fd;
 
@@ -394,6 +391,48 @@ pixfmt_to_palette		(tveng_device_info *	info,
 
 	default:			return 0;
 	}
+}
+
+static unsigned int
+tv_to_v4l_chromakey		(unsigned int		chromakey)
+{
+	switch (Z_BYTE_ORDER) {
+	case Z_LITTLE_ENDIAN:
+		/* XXX correct? 0xAARRGGBB */
+		return chromakey & 0xFFFFFF;
+
+	case Z_BIG_ENDIAN:
+		/* XXX correct? 0xBBGGRRAA */
+		return (((chromakey & 0xFF) << 24) |
+			((chromakey & 0xFF00) << 8) |
+			((chromakey & 0xFF0000) >> 8));
+
+	default:
+		assert (0);
+	}
+
+	return 0;
+}
+
+static unsigned int
+v4l_to_tv_chromakey		(unsigned int		chromakey)
+{
+	switch (Z_BYTE_ORDER) {
+	case Z_LITTLE_ENDIAN:
+		/* XXX correct? 0xAARRGGBB */
+		return chromakey & 0xFFFFFF;
+
+	case Z_BIG_ENDIAN:
+		/* XXX correct? 0xBBGGRRAA */
+		return (((chromakey & 0xFF00) << 8) |
+			((chromakey & 0xFF0000) >> 8) |
+			((chromakey & 0xFF000000) >> 24));
+
+	default:
+		assert (0);
+	}
+
+	return 0;
 }
 
 /* V4L prohibits multiple opens. In panel mode (no i/o, access to
@@ -1916,7 +1955,6 @@ get_video_input_list		(tveng_device_info *	info)
 	return FALSE;
 }
 
-
 /* Struct video_picture and video_window determine parameters
    for capturing and overlay. */
 static tv_bool
@@ -1951,10 +1989,15 @@ get_capture_and_overlay_parameters
 
 	/* Current overlay window. */
 
-	info->overlay.window.x = window.x;
-	info->overlay.window.y = window.y;
-	info->overlay.window.width = window.width;
-	info->overlay.window.height = window.height;
+	info->overlay.window.x		= window.x;
+	info->overlay.window.y		= window.y;
+	info->overlay.window.width	= window.width;
+	info->overlay.window.height	= window.height;
+
+	/* Overlay clips cannot be read back, we assume no change.
+	   tveng.c takes care of info->overlay.clip_vector. */
+
+	info->overlay.chromakey = v4l_to_tv_chromakey (window.chromakey);
 
 	update_control_set (info, &pict, &window, NULL,
 			    PICT_CONTROLS | WINDOW_CONTROLS);
@@ -2013,39 +2056,6 @@ get_overlay_buffer		(tveng_device_info *	info)
 	return FALSE;
 }
 
-
-
-/*
-  According to the V4L spec we should return a host order RGB32
-  value. Using the pixel value directly would make much more sense,
-  not to mention "host order RGB32" doesn't mean anything till you
-  define what RGB32 means :-)
-  Hope this works, i have no way of testing apart from feedback.
-*/
-static uint32_t calc_chroma (tveng_device_info * info)
-{
-  struct private_tveng1_device_info * p_info =
-    (struct private_tveng1_device_info*) info;
-  uint32_t r, g, b, pixel;
-
-  r = p_info->r;
-  g = p_info->g;
-  b = p_info->b;
-
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-  /* ARGB */
-  pixel = (r<<16) + (g<<8) + b;
-#elif __BYTE_ORDER == __BIG_ENDIAN
-  /* ABGR or BGRA ??? Try with BGRA */
-  pixel = (b<<24) + (g<<16) + (r<<8);
-#else /* pdp endian */
-  /* GBAR */
-  pixel = (g<<24) + (b<<16) + r;
-#endif
-
-  return pixel;
-}
-
 /*
   Sets the preview window dimensions to the given window.
   Success doesn't mean that the requested dimensions are used, maybe
@@ -2053,9 +2063,10 @@ static uint32_t calc_chroma (tveng_device_info * info)
   info   : Device we are controlling
 */
 static tv_bool
-set_overlay_window_clipvec	(tveng_device_info *	info,
+set_overlay_window		(tveng_device_info *	info,
 				 const tv_window *	w,
-				 const tv_clip_vector *	v)
+				 const tv_clip_vector *	v,
+				 unsigned int		chromakey)
 {
 	struct video_window window;
 	struct video_clip *clips;
@@ -2066,7 +2077,7 @@ set_overlay_window_clipvec	(tveng_device_info *	info,
 		unsigned int i;
 
 		clips = malloc (v->size * sizeof (*clips));
-		if (!clips) {
+		if (NULL == clips) {
 			info->tveng_errno = errno;
 			t_error("malloc", info);
 			return FALSE;
@@ -2076,6 +2087,7 @@ set_overlay_window_clipvec	(tveng_device_info *	info,
 		tc = v->vector;
 
 		for (i = 0; i < v->size; ++i) {
+			vc->next	= vc + 1; /* just in case */
 			vc->x		= tc->x1;
 			vc->y		= tc->y1;
 			vc->width	= tc->x2 - tc->x1;
@@ -2083,6 +2095,8 @@ set_overlay_window_clipvec	(tveng_device_info *	info,
 			++vc;
 			++tc;
 		}
+
+		vc[-1].next = NULL;
 	} else {
 		clips = NULL;
 	}
@@ -2098,10 +2112,7 @@ set_overlay_window_clipvec	(tveng_device_info *	info,
 	window.clips		= clips;
 	window.clipcount	= v->size;
 
-	window.chromakey	= calc_chroma (info); /* XXX check this */
-
-	/* Up to the caller to call _on */
-	p_tv_enable_overlay (info, FALSE);
+	window.chromakey	= tv_to_v4l_chromakey (chromakey);
 
 	if (-1 == xioctl (info, VIDIOCSWIN, &window)) {
 		free (clips);
@@ -2109,6 +2120,8 @@ set_overlay_window_clipvec	(tveng_device_info *	info,
 	}
 
 	free (clips);
+
+	/* Actual window size. */
 
 	if (-1 == xioctl (info, VIDIOCGWIN, &window))
 		return FALSE;
@@ -2118,7 +2131,10 @@ set_overlay_window_clipvec	(tveng_device_info *	info,
 	info->overlay.window.width	= window.width;
 	info->overlay.window.height	= window.height;
 
-	/* Clips cannot be read back, we assume no change. */
+	/* Clips cannot be read back, we assume no change.
+	   tveng.c takes care of info->overlay.clip_vector. */
+
+	info->overlay.chromakey = v4l_to_tv_chromakey (window.chromakey);
 
 	return TRUE;
 }
@@ -2126,7 +2142,7 @@ set_overlay_window_clipvec	(tveng_device_info *	info,
 static tv_bool
 get_overlay_window		(tveng_device_info *	info)
 {
-  return get_capture_and_overlay_parameters (info);
+	return get_capture_and_overlay_parameters (info);
 }
 
 static tv_bool
@@ -2136,52 +2152,12 @@ enable_overlay			(tveng_device_info *	info,
 	int value = on;
 
 	if (0 == xioctl (info, VIDIOCCAPTURE, &value)) {
-		usleep (50000);
+		/* Caller shall use a timer instead. */
+		/* usleep (50000); */
 		return TRUE;
 	} else {
 		return FALSE;
 	}
-}
-
-static tv_bool
-set_overlay_window_chromakey	(tveng_device_info *	info,
-				 const tv_window *	window,
-				 unsigned int		chromakey)
-{
-  struct private_tveng1_device_info * p_info =
-    (struct private_tveng1_device_info*) info;
-  XColor color;
-  Display *dpy = info->display;
-  tv_clip_vector vec;
-
-  color.pixel = chromakey;
-  XQueryColor (dpy, DefaultColormap(dpy, DefaultScreen(dpy)),
-	       &color);
-
-  p_info->chroma = chromakey;
-  p_info->r = color.red>>8;
-  p_info->g = color.green>>8;
-  p_info->b = color.blue>>8;
-
-  CLEAR (vec);
-
-  return set_overlay_window_clipvec (info, window, &vec);
-}
-
-static tv_bool
-get_overlay_chromakey		(tveng_device_info *info)
-{
-  struct private_tveng1_device_info * p_info =
-    (struct private_tveng1_device_info*) info;
-
-  /* We aren't returning the chromakey currently used by the driver,
-     but the one previously set. The reason for this is that it is
-     unclear whether calc_chroma works correctly or not, and that
-     color precision could be lost during the V4L->X conversion. In
-     other words, this is prolly good enough. */
-  info->overlay.chromakey = p_info->chroma;
-
-  return TRUE;
 }
 
 static int
@@ -3139,12 +3115,9 @@ int tveng1_attach_device(const char* device_file,
   CLEAR (info->overlay);
 
   info->overlay.get_buffer = get_overlay_buffer;
-  info->overlay.set_window_clipvec = set_overlay_window_clipvec;
+  info->overlay.set_window = set_overlay_window;
   info->overlay.get_window = get_overlay_window;
-  info->overlay.set_window_chromakey = set_overlay_window_chromakey;
-  info->overlay.get_chromakey = get_overlay_chromakey;
   info->overlay.enable = enable_overlay;
-
 
   /* Set up the palette according to the one present in the system */
   error = info->current_bpp;
