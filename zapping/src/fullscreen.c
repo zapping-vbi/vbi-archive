@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.48 2006-02-03 18:23:25 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.49 2006-02-06 04:48:29 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -744,9 +744,12 @@ start_fullscreen		(display_mode		dmode,
 	  while (gtk_events_pending ())
 	    gtk_main_iteration ();
 
-	  if (!tv_set_overlay_xwindow (zapping->info,
-				       GDK_WINDOW_XWINDOW (drawing_area->window),
-				       GDK_GC_XGC (drawing_area->style->white_gc)))
+#warning chroma_key missing.
+	  if (!tv_set_overlay_xwindow
+	      (zapping->info,
+	       GDK_WINDOW_XWINDOW (drawing_area->window),
+	       GDK_GC_XGC (drawing_area->style->white_gc),
+	       /* chroma_key */ 0))
 	    goto failure;
 
 	  /* For OSD. */
