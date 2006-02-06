@@ -44,6 +44,7 @@
 #include "globals.h"
 #include "zvideo.h"
 #include "eggcellrendererkeys.h"
+#include "zgconf.h"
 
 /* Property handlers for the different pages */
 /* Device info */
@@ -1127,6 +1128,7 @@ video_setup		(GtkWidget	*page)
 {
   GtkWidget *widget;
   gboolean active;
+
 #if 0
   /* Verbosity value passed to zapping_setup_fb */
   widget = lookup_widget(page, "spinbutton1");
@@ -1216,6 +1218,24 @@ video_setup		(GtkWidget	*page)
 
 #endif
 
+  {
+    gchar *str;
+
+    if (z_gconf_get_string (&str, "/apps/zapping/window/chroma_key_color"))
+      {
+	GdkColor color;
+
+	if (string_to_color (&color, str))
+	  {
+	    widget = lookup_widget(page, "colorbutton1");
+	    gtk_color_button_set_color (GTK_COLOR_BUTTON (widget),
+					&color);
+	  }
+
+	g_free (str);
+      }
+  }
+
   widget = lookup_widget (page, "general-video-fixed-inc");
   active = zconf_get_boolean (NULL, "/zapping/options/main/fixed_increments");
   gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), active);
@@ -1285,6 +1305,16 @@ video_apply		(GtkWidget	*page)
 		 "/zapping/options/capture/xvsize");
 
 #endif
+
+  {
+    GdkColor color;
+
+    widget = lookup_widget (page, "colorbutton1");
+    gtk_color_button_get_color (GTK_COLOR_BUTTON (widget), &color);
+
+    /* XXX error ignored. */
+    z_gconf_set_color ("/apps/zapping/window/chroma_key_color", &color);
+  }
 
   widget = lookup_widget (page, "general-video-fixed-inc");
   active = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (widget));
