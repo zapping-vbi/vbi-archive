@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zvideo.c,v 1.7 2005-09-01 01:40:54 mschimek Exp $ */
+/* $Id: zvideo.c,v 1.8 2006-02-06 04:49:36 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -583,7 +583,7 @@ events				(GtkWidget *		widget,
     case GDK_MOTION_NOTIFY:
       /* Note there is a VidMode event, but we already get this event
 	 when the VidMode changed, by Ctrl-Alt-nk+/- anyway. Why this
-	 happens I can only speculate. Well, it is a desired sideeffect
+	 happens I can only speculate. Well, it is a desired side effect
 	 in fullscreen mode, connecting to the cursor-blanked signal to
 	 recenter the video. */
 

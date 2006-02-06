@@ -147,7 +147,7 @@ x11_xv_image_format_to_pixfmt	(const XvImageFormatValues *format);
 
 #endif
 
-extern void
+extern gboolean
 x11_xvideo_dump			(void);
 
 /* Clipping */

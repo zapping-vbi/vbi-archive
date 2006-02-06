@@ -56,10 +56,12 @@ void
 z_switch_channel		(tveng_tuned_channel	*channel,
 				 tveng_device_info	*info);
 
-
+gboolean
+on_channel_enter		(GtkWidget *	widget,
+				 GdkEventKey *	event,
+				 gpointer	user_data);
 gboolean
 channel_key_press		(GdkEventKey *		event);
-
 gboolean
 on_channel_key_press		(GtkWidget *	widget,
 				 GdkEventKey *	event,

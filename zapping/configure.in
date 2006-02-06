@@ -38,9 +38,11 @@ test -e site_def.h || cat <<EOF >site_def.h
 /* #define KEYBOARD_KEY_LOG 1 */
 /* #define OSD_TEST 1 */
 /* #define OSS_LOG_FP stderr */
-/* #define OVERLAY_CHROMA_TEST 1 */
 /* #define OVERLAY_LOG_FP stderr */
 /* #define OVERLAY_EVENT_LOG_FP stderr */
+/* #define OVERLAY_DUMP_CLIPS 1 */
+/* #define OVERLAY_CHROMA_TEST 1 */
+/* #define OVERLAY_COLORMAP_FAILURE_TEST 1 */
 /* #define REMOTE_COMMAND_LOG 1 */
 /* #define TV_SCREEN_DGA_DEBUG 1 */
 /* #define TVENG_MIXER_VOLUME_DEBUG 1 */

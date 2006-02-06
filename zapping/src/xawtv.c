@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.c,v 1.13 2005-09-01 01:28:09 mschimek Exp $ */
+/* $Id: xawtv.c,v 1.14 2006-02-06 04:49:36 mschimek Exp $ */
 
 /*
    XawTV compatibility functions:
@@ -948,18 +948,18 @@ property_get_string		(GdkWindow *		window,
   /* GDK 2.6 gdk_property_get() documentation advises
      use of XGetWindowProperty() because function is fubar. */
 
-  if (Success != XGetWindowProperty (GDK_WINDOW_XDISPLAY (window),
-				     GDK_WINDOW_XWINDOW (window),
-				     xatom,
-				     /* long_offset */ 0 / sizeof (long),
-				     /* long_length */ 65536 / sizeof (long),
-				     /* delete */ True,
-				     /* req_type */ XA_STRING,
-				     &actual_type,
-				     &actual_format,
-				     &nitems,
-				     &bytes_after,
-				     &prop))
+  if (!XGetWindowProperty (GDK_WINDOW_XDISPLAY (window),
+			   GDK_WINDOW_XWINDOW (window),
+			   xatom,
+			   /* long_offset */ 0 / sizeof (long),
+			   /* long_length */ 65536 / sizeof (long),
+			   /* delete */ True,
+			   /* req_type */ XA_STRING,
+			   &actual_type,
+			   &actual_format,
+			   &nitems,
+			   &bytes_after,
+			   &prop))
     return NULL;
 
   if (0 == nitems)

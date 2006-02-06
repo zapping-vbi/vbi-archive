@@ -1,3 +1,24 @@
+2005-02-06    <mschimek@users.sf.net>
+
+	* Prerelease 0.10cvs1.
+
+2006-02-06    <mschimek@users.sf.net>
+
+	* src/zmisc.h, src/zmisc.c (z_set_window_bg_black): Added.
+	* src/tvengxv.c, src/tvengemu.c, src/tvengbktr.c,
+	  src/tveng_private.h, src/tveng1.c, src/tveng25.c: Merged chroma
+	  key accessor functions into overlay window functions.
+	* src/tveng1.c (get_capture_and_overlay_parameters): Didn't read
+	  back the current chroma key.
+	(set_overlay_window_chromakey): Removed color key to X display color
+	  translation. Higher level code must do that.
+	* src/tveng.h: tv_set_overlay_xwindow now also takes a chroma key.
+	* src/tveng.c (tv_set_overlay_window_chromakey):
+	  Restored and added screen boundary clips to prevent a system
+	  crash when the driver is broken.
+	* src/overlay.c: Restored chroma-key overlay and cleaned up.
+	  Changed chroma key color from blue to pink.
+
 2006-02-03    <mschimek@users.sf.net>
 
 	* src/tveng1.c (init_audio, get_audio_control_list): Zapping

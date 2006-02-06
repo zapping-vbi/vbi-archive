@@ -261,30 +261,20 @@ get_window_property		(Display *		display,
 				 unsigned long *	nitems_return,
 				 void **		prop_return)
 {
-  Status status;
   Atom type;
   int format;
   unsigned long bytes_after;
 
   error_code = Success;
 
-  status = XGetWindowProperty (display, window, property,
-                    	       0, (65536 / sizeof (long)),
-			       False, req_type,
-			       &type, &format,
-			       nitems_return, &bytes_after,
-			       (unsigned char **) prop_return);
-  if (BadWindow == error_code)
-    {
-      status = BadWindow;
-    }
-  else if (Success == status)
-    {
-      if (type == None)
-        status = BadAtom;
-    }
+  XGetWindowProperty (display, window, property,
+		      0, (65536 / sizeof (long)),
+		      False, req_type,
+		      &type, &format,
+		      nitems_return, &bytes_after,
+		      (unsigned char **) prop_return);
 
-  return status;
+  return error_code;
 }
 
 static void
@@ -776,16 +766,11 @@ x11_vidmode_list_new		(const char *		display_name,
 	}
 
       valid = XF86VidModeValidateModeLine (display, screen_number, m);
-
-#if 0
       /* For some reason this flags modes as invalid which actually
          have been accepted at X server startup and can be selected
          with Ctrl-Alt-nk+/-. x11_vidmode_switch() needs all
 	 selectable modes listed, so we ignore this. */
-      if (Success == valid)
-#else
-      if (1)
-#endif
+      if (1 || valid)
 	{
 	  /* XXX flags: see xvidtune.c; special treatment of
 	     V_INTERLACE/V_DBLSCAN necessary? */
@@ -1974,7 +1959,7 @@ xv_adaptor_dump			(Display *		display,
 		XFree (pImageFormats[0]);
 }
 
-void
+gboolean
 x11_xvideo_dump			(void)
 {
   XErrorHandler old_error_handler;
@@ -1988,6 +1973,9 @@ x11_xvideo_dump			(void)
   XvAdaptorInfo *pAdaptors;
   unsigned int nAdaptors;
   unsigned int i;
+  gboolean r;
+
+  r = FALSE;
 
   display = GDK_DISPLAY ();
 
@@ -1999,7 +1987,7 @@ x11_xvideo_dump			(void)
 				   &event_base, &error_base))
     {
       printv ("XVideo extension not available\n");
-      goto finish;
+      goto failure;
     }
 
   printv ("XVideo opcode %d, base %d, %d, version %d.%d\n",
@@ -2010,7 +1998,7 @@ x11_xvideo_dump			(void)
   if (version < 2 || (version == 2 && revision < 2))
     {
       printv ("XVideo extension not usable\n");
-      goto finish;
+      goto failure;
     }
 
   root = DefaultRootWindow (display);
@@ -2018,7 +2006,7 @@ x11_xvideo_dump			(void)
   if (Success != XvQueryAdaptors (display, root, &nAdaptors, &pAdaptors))
     {
       printv ("XvQueryAdaptors failed\n");
-      goto finish;
+      goto failure;
     }
 
   if (nAdaptors > 0)
@@ -2033,16 +2021,22 @@ x11_xvideo_dump			(void)
       printv ("No XVideo adaptors\n");
     }
 
- finish:
+  r = TRUE;
+
+ failure:
   XSetErrorHandler (old_error_handler);
+
+  return r;
 }
 
 #else /* !HAVE_XV_EXTENSION */
 
-void
+gboolean
 x11_xvideo_dump			(void)
 {
-	fprintf (stderr, "XVideo extension support not compiled in\n");
+  fprintf (stderr, "XVideo extension support not compiled in\n");
+
+  return FALSE;
 }
 
 #endif /* !HAVE_XV_EXTENSION */
@@ -2102,13 +2096,12 @@ children_clips			(tv_clip_vector *	vector,
     
 		error_code = Success;
     
-		if (Success != XGetWindowAttributes (display,
-						     children[i], &wts)) {
-			if (BadWindow == error_code) {
-				continue;
-			} else {
-				goto failure;
-			}
+		XGetWindowAttributes (display, children[i], &wts);
+
+		if (BadWindow == error_code) {
+			continue;
+		} else if (Success != error_code) {
+			goto failure;
 		}
 
 		if (!(wts.map_state & IsViewable))
