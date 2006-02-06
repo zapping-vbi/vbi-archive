@@ -800,6 +800,16 @@ tests.</long>
     <short>Show double height characters in Teletext subtitles.</short>
    </locale>
   </schema>
+  <schema>
+   <key>/schemas/apps/zapping/window/chroma_key_color</key>
+   <applyto>/apps/zapping/window/chroma_key_color</applyto>
+   <owner>Zapping</owner>
+   <type>string</type>
+   <default>#FFCCCC</default>
+   <locale name="C">
+    <short>Color for chroma-key overlay (#RRGGBB), default #FFCCCC.</short>
+   </locale>
+  </schema>
 
  </schemalist>
 </gconfschemafile>
