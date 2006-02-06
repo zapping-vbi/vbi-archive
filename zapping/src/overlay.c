@@ -38,6 +38,7 @@
 #include "globals.h"
 #include "zvideo.h"
 #include "v4linterface.h"
+#include "zgconf.h"
 
 /* This code implements video overlay. It supports three methods:
 
@@ -63,9 +64,11 @@
 */
 
 /* TODO:
-   + Special mode for devices without clipping. Hint: think twice.
+   + Special mode for devices without clipping.
+      Attn: disable OSD and subtitles.
    + Matte option (clip out WSS, GCR).
    + Source rectangle, if supported by hardware (e.g. zoom function).
+   + Perhaps integrate this code into zvideo.c.
  */
 
 #ifndef OVERLAY_LOG_FP
@@ -86,16 +89,13 @@
 
 #define CLEAR_TIMEOUT 50 /* ms for the clear window timeout */
 
-/* Preliminary. */
-#define CHROMA_KEY 0xCCCCFF /* 0xBBGGRR */
-
 enum mode {
   XVIDEO_OVERLAY = 1,
   CHROMA_KEY_OVERLAY,
   CLIP_OVERLAY,
 };
 
-static struct {
+struct context {
   /** The screen containing video_window (Xinerama). */
   const tv_screen *	screen;
 
@@ -125,6 +125,7 @@ static struct {
 
   GdkColormap *		colormap;
   GdkColor		chroma_key_color;
+  guint			chroma_key_color_cnxn_id;
 
   GdkEventMask		old_root_events;
   GdkEventMask		old_main_events;
@@ -147,14 +148,13 @@ static struct {
   tv_clip_vector	cur_vector;
   tv_clip_vector	tmp_vector;
 
-  /* XXX is same as zapping->info.overlay.clip_vector? */ 
-  tv_clip_vector	set_vector;
-
   gboolean		clean_screen;
   gboolean		geometry_changed;
 
   guint			timeout_id;
-} tv_info;
+};
+
+static struct context tv_info;
 
 static __inline__ tv_bool
 tv_window_equal			(const tv_window *	window1,
@@ -167,16 +167,17 @@ tv_window_equal			(const tv_window *	window1,
 }
 
 static void
-get_clips			(tv_clip_vector *	vector)
+get_clips			(const struct context *	c,
+				 tv_clip_vector *	vector)
 {
   if (!x11_window_clip_vector
       (vector,
-       GDK_WINDOW_XDISPLAY (tv_info.video_window->window),
-       GDK_WINDOW_XID (tv_info.video_window->window),
-       tv_info.overlay_rect.x,
-       tv_info.overlay_rect.y,
-       tv_info.overlay_rect.width,
-       tv_info.overlay_rect.height))
+       GDK_WINDOW_XDISPLAY (c->video_window->window),
+       GDK_WINDOW_XID (c->video_window->window),
+       c->overlay_rect.x,
+       c->overlay_rect.y,
+       c->overlay_rect.width,
+       c->overlay_rect.height))
     g_assert_not_reached ();
 
   if (OVERLAY_DUMP_CLIPS)
@@ -215,36 +216,29 @@ expose_window_clip_vector	(const tv_window *	window,
 }
 
 static void
-expose_screen			(void)
+expose_screen			(struct context *	c)
 {
-  tv_info.clean_screen = FALSE;
+  c->clean_screen = FALSE;
 
-  x11_force_expose ((gint) tv_info.screen->x,
-		    (gint) tv_info.screen->y,
-		    tv_info.screen->width,
-		    tv_info.screen->height);
+  x11_force_expose ((gint) c->screen->x,
+		    (gint) c->screen->y,
+		    c->screen->width,
+		    c->screen->height);
 }
 
 static gboolean
-set_window			(void)
+set_overlay_rect		(struct context *	c)
 {
-  if (tv_set_overlay_window_clipvec (tv_info.info,
-				     &tv_info.overlay_rect,
-				     &tv_info.cur_vector))
-    {
-      tv_clip_vector_set (&tv_info.set_vector, &tv_info.cur_vector);
-      return TRUE;
-    }
-
-  return FALSE;
+  return (NULL != tv_set_overlay_window_clipvec (c->info,
+						 &c->overlay_rect,
+						 &c->cur_vector));
 }
 
 static gboolean
 obscured_timeout		(gpointer		user_data)
 {
+  struct context *c = user_data;
   const tv_window *window;
-
-  user_data = user_data;
 
   if (OVERLAY_LOG_FP)
     fprintf (OVERLAY_LOG_FP, "obscured_timeout\n");
@@ -252,11 +246,11 @@ obscured_timeout		(gpointer		user_data)
   /* The window changed from fully or partially visible
      to fully obscured. */
 
-  window = tv_cur_overlay_window (tv_info.info);
+  window = tv_cur_overlay_window (c->info);
 
-  if (tv_info.clean_screen)
+  if (c->clean_screen)
     {
-      expose_screen ();
+      expose_screen (c);
     }
   else
     {
@@ -266,15 +260,16 @@ obscured_timeout		(gpointer		user_data)
 			window->height);
     }
 
-  tv_clip_vector_clear (&tv_info.cur_vector);
+  tv_clip_vector_clear (&c->cur_vector);
 
   /* XXX error ignored */
-  tv_clip_vector_add_clip_xy (&tv_info.cur_vector,
-			      0, 0, window->width, window->height);
+  tv_clip_vector_add_clip_xy (&c->cur_vector,
+			      /* x, y */ 0, 0,
+			      window->width, window->height);
 
-  tv_info.geometry_changed = TRUE;
+  c->geometry_changed = TRUE;
 
-  tv_info.timeout_id = NO_SOURCE_ID;
+  c->timeout_id = NO_SOURCE_ID;
 
   return FALSE; /* remove timeout */
 }
@@ -282,7 +277,7 @@ obscured_timeout		(gpointer		user_data)
 static gboolean
 visible_timeout			(gpointer		user_data)
 {
-  user_data = user_data;
+  struct context *c = user_data;
 
   if (OVERLAY_LOG_FP)
     fprintf (OVERLAY_LOG_FP, "visible_timeout\n");
@@ -297,69 +292,70 @@ visible_timeout			(gpointer		user_data)
      partially obscured. */
 
   /* XXX error ignored */
-  get_clips (&tv_info.tmp_vector);
+  get_clips (c, &c->tmp_vector);
 
-  if (!tv_clip_vector_equal (&tv_info.cur_vector,
-			     &tv_info.tmp_vector))
+  if (!tv_clip_vector_equal (&c->cur_vector, &c->tmp_vector))
     {
       /* Delay until the situation stabilizes. */
 
       if (OVERLAY_LOG_FP)
 	fprintf (OVERLAY_LOG_FP, "visible_timeout: delay\n");
 
-      SWAP (tv_info.cur_vector, tv_info.tmp_vector);
+      SWAP (c->cur_vector, c->tmp_vector);
 
-      tv_info.geometry_changed = TRUE;
+      c->geometry_changed = TRUE;
 
       return TRUE; /* call again */
     }
 
+  SWAP (c->cur_vector, c->tmp_vector);
+
   /* Resume overlay. */
 
-  if (tv_info.geometry_changed)
+  if (c->geometry_changed)
     {
       const tv_screen *xs;
       guint retry_count;
 
-      tv_info.geometry_changed = FALSE;
+      c->geometry_changed = FALSE;
 
       if (OVERLAY_LOG_FP)
 	fprintf (OVERLAY_LOG_FP, "visible_timeout: geometry change\n");
 
       xs = tv_screen_list_find (screens,
-				    tv_info.mw_x + tv_info.vw_x,
-				    tv_info.mw_y + tv_info.vw_y,
-				    (guint) tv_info.vw_width,
-				    (guint) tv_info.vw_height);
+				c->mw_x + c->vw_x,
+				c->mw_y + c->vw_y,
+				(guint) c->vw_width,
+				(guint) c->vw_height);
       if (!xs)
 	xs = screens;
 
-      if (tv_info.screen != xs)
+      if (c->screen != xs)
 	{
 	  /* Moved to other screen (Xinerama). */
 
-	  tv_info.screen = xs;
-	  if (!z_set_overlay_buffer (tv_info.info,
-				     tv_info.screen,
-				     tv_info.video_window->window))
+	  c->screen = xs;
+	  if (!z_set_overlay_buffer (c->info,
+				     c->screen,
+				     c->video_window->window))
 	    goto finish; /* XXX */
 	}
 
       /* Other windows may have received expose events before we
 	 were able to turn off the overlay. Resend expose
 	 events for those regions which should be clean now. */
-      if (tv_info.clean_screen)
-	expose_screen ();
+      if (c->clean_screen)
+	expose_screen (c);
       else
-	expose_window_clip_vector (tv_cur_overlay_window (tv_info.info),
-				   &tv_info.set_vector);
+	expose_window_clip_vector (tv_cur_overlay_window (c->info),
+				   tv_cur_overlay_clipvec (c->info));
 
       /* Desired overlay bounds */
 
-      tv_info.overlay_rect.x		= tv_info.mw_x + tv_info.vw_x;
-      tv_info.overlay_rect.y		= tv_info.mw_y + tv_info.vw_y;
-      tv_info.overlay_rect.width	= tv_info.vw_width;
-      tv_info.overlay_rect.height	= tv_info.vw_height;
+      c->overlay_rect.x	= c->mw_x + c->vw_x;
+      c->overlay_rect.y	= c->mw_y + c->vw_y;
+      c->overlay_rect.width = c->vw_width;
+      c->overlay_rect.height = c->vw_height;
 
       retry_count = 5;
 
@@ -371,120 +367,130 @@ visible_timeout			(gpointer		user_data)
 	    goto finish; /* XXX */
 
 	  /* XXX error ignored */
-	  set_window ();
+	  set_overlay_rect (c);
 
-	  w = tv_cur_overlay_window (tv_info.info);
+	  w = tv_cur_overlay_window (c->info);
 
-	  if (tv_window_equal (&tv_info.overlay_rect, w))
+	  if (tv_window_equal (&c->overlay_rect, w))
 	    break;
 
 	  /* The driver modified the overlay bounds (alignment, limits),
 	     we must update the clips. */
 
-	  tv_info.overlay_rect.x      = w->x;
-	  tv_info.overlay_rect.y      = w->y;
-	  tv_info.overlay_rect.width  = w->width;
-	  tv_info.overlay_rect.height = w->height;
+	  c->overlay_rect.x      = w->x;
+	  c->overlay_rect.y      = w->y;
+	  c->overlay_rect.width  = w->width;
+	  c->overlay_rect.height = w->height;
 
 	  /* XXX error ignored */
-	  get_clips (&tv_info.tmp_vector);
+	  get_clips (c, &c->cur_vector);
 	}
     }
-  else if (tv_info.clean_screen)
+  else if (c->clean_screen)
     {
-      expose_screen ();
+      expose_screen (c);
     }
 
   if (!OVERLAY_CHROMA_TEST)
     {
       /* XXX error ignored */
-      tv_enable_overlay (tv_info.info, TRUE);
+      tv_enable_overlay (c->info, TRUE);
     }
 
  finish:
-  tv_info.timeout_id = NO_SOURCE_ID;
+  c->timeout_id = NO_SOURCE_ID;
+
   return FALSE; /* remove timeout */
 }
 
 static void
-stop_timeout			(void)
+stop_timeout			(struct context *	c)
 {
-  if (tv_info.timeout_id > 0)
-    g_source_remove (tv_info.timeout_id);
+  if (c->timeout_id > 0)
+    g_source_remove (c->timeout_id);
 
-  tv_info.timeout_id = NO_SOURCE_ID;
+  c->timeout_id = NO_SOURCE_ID;
 }
 
 static void
-restart_timeout			(void)
+restart_timeout			(struct context *	c)
 {
   if (OVERLAY_LOG_FP)
     fprintf (OVERLAY_LOG_FP, "restart_timeout\n");
 
-  tv_enable_overlay (tv_info.info, FALSE);
+  tv_enable_overlay (c->info, FALSE);
 
-  stop_timeout ();
+  stop_timeout (c);
 
-  if (GDK_VISIBILITY_FULLY_OBSCURED == tv_info.visibility)
+  if (GDK_VISIBILITY_FULLY_OBSCURED == c->visibility)
     {
-      tv_info.timeout_id =
-	g_timeout_add (CLEAR_TIMEOUT,
-		       (GSourceFunc) obscured_timeout, &tv_info);
+      c->timeout_id = g_timeout_add (CLEAR_TIMEOUT,
+				     (GSourceFunc) obscured_timeout,
+				     c);
     }
   else
     {
-      tv_info.timeout_id =
-	g_timeout_add (CLEAR_TIMEOUT,
-		       (GSourceFunc) visible_timeout, &tv_info);
+      c->timeout_id = g_timeout_add (CLEAR_TIMEOUT,
+				     (GSourceFunc) visible_timeout,
+				     c);
     }
 }
 
 static gboolean
-reconfigure			(void)
+reconfigure			(struct context *	c)
 {
-  switch (tv_info.mode)
+  switch (c->mode)
     {
-    case CLIP_OVERLAY:
-      tv_info.geometry_changed = TRUE;
-      tv_info.clean_screen = TRUE; /* see root_filter() */
+      unsigned int color;
 
-      if (GDK_VISIBILITY_FULLY_OBSCURED != tv_info.visibility)
-	restart_timeout ();
+    case CLIP_OVERLAY:
+      c->geometry_changed = TRUE;
+      c->clean_screen = TRUE; /* see root_filter() */
+
+      if (GDK_VISIBILITY_FULLY_OBSCURED != c->visibility)
+	restart_timeout (c);
 
       break;
 
     case CHROMA_KEY_OVERLAY:
-      /* Implied: tv_enable_overlay (tv_info.info, FALSE); */
+      /* Implied: tv_enable_overlay (c->info, FALSE); */
 
-      if (tv_info.colormap)
-	{
-	  /* Restore background color (chroma key). XXX the X server
-	     should do this automatically, did we we disabled that
-	     somewhere to avoid flicker in capture mode? */
-	  gdk_window_clear_area (tv_info.video_window->window,
-				 /* x, y */ 0, 0,
-				 tv_info.vw_width,
-				 tv_info.vw_height);
-	}
+      /* Restore background color (chroma key). XXX the X server
+	 should do this automatically, did we we disabled that
+	 somewhere to avoid flicker in capture mode? */
+      gdk_window_clear_area (c->video_window->window,
+			     /* x, y */ 0, 0,
+			     c->vw_width,
+			     c->vw_height);
 
-      tv_info.overlay_rect.x = tv_info.mw_x + tv_info.vw_x;
-      tv_info.overlay_rect.y = tv_info.mw_y + tv_info.vw_y;
-      tv_info.overlay_rect.width = tv_info.vw_width;
-      tv_info.overlay_rect.height = tv_info.vw_height;
+      c->overlay_rect.x = c->mw_x + c->vw_x;
+      c->overlay_rect.y = c->mw_y + c->vw_y;
+      c->overlay_rect.width = c->vw_width;
+      c->overlay_rect.height = c->vw_height;
 
       if (0)
 	fprintf (stderr, "reconfigure overlay_rect: %ux%u+%d+%d\n",
-		 tv_info.overlay_rect.width,
-		 tv_info.overlay_rect.height,
-		 tv_info.overlay_rect.x,
-		 tv_info.overlay_rect.y);
+		 c->overlay_rect.width,
+		 c->overlay_rect.height,
+		 c->overlay_rect.x,
+		 c->overlay_rect.y);
 
-      if (!tv_set_overlay_window_chromakey (tv_info.info,
-					    &tv_info.overlay_rect,
-					    CHROMA_KEY))
+      if (OVERLAY_CHROMA_TEST)
+	{
+	  /* Show me the chroma key color. */
+	  c->overlay_rect.width /= 2;
+	}
+
+      color = ((c->chroma_key_color.red >> 8) |
+	       (c->chroma_key_color.green & 0xFF00) |
+	       ((c->chroma_key_color.blue & 0xFF00) << 8));
+
+      if (!tv_set_overlay_window_chromakey (c->info,
+					    &c->overlay_rect,
+					    color))
 	return FALSE;
 
-      if (!tv_enable_overlay (tv_info.info, TRUE))
+      if (!tv_enable_overlay (c->info, TRUE))
 	return FALSE;
 
       break;
@@ -494,15 +500,15 @@ reconfigure			(void)
 	 the video_window origin, we only have to adjust the
 	 overlay size. */
 
-      tv_enable_overlay (tv_info.info, FALSE);
+      tv_enable_overlay (c->info, FALSE);
 
-      if (tv_info.colormap)
+      if (c->colormap)
 	{
 	  /* Restore background color (chroma key). */
-	  gdk_window_clear_area (tv_info.video_window->window,
+	  gdk_window_clear_area (c->video_window->window,
 				 /* x, y */ 0, 0,
-				 tv_info.vw_width,
-				 tv_info.vw_height);
+				 c->vw_width,
+				 c->vw_height);
 	}
 
       /* XXX set overlay rectangle here, currently the XVideo
@@ -510,7 +516,7 @@ reconfigure			(void)
 
       /* XXX off/on is inefficient, XVideo drivers
 	 do that automatically. */
-      if (!tv_enable_overlay (tv_info.info, TRUE))
+      if (!tv_enable_overlay (c->info, TRUE))
 	return FALSE;
 
       break;
@@ -524,9 +530,9 @@ on_video_window_event		(GtkWidget *		widget,
 				 GdkEvent *		event,
 				 gpointer		user_data)
 {
-  user_data = user_data;
+  struct context *c = user_data;
 
-  g_assert (widget == tv_info.video_window);
+  g_assert (widget == c->video_window);
 
   if (OVERLAY_EVENT_LOG_FP)
     fprintf (OVERLAY_EVENT_LOG_FP,
@@ -539,20 +545,20 @@ on_video_window_event		(GtkWidget *		widget,
       /* Size, position, stacking order changed. Note position
          is relative to the parent window. */
 
-      if (tv_info.vw_width != (guint) event->configure.width
-	  || tv_info.vw_height != (guint) event->configure.height
-	  || tv_info.vw_x != (gint) event->configure.x
-	  || tv_info.vw_y != (gint) event->configure.y)
+      if (c->vw_width != (guint) event->configure.width
+	  || c->vw_height != (guint) event->configure.height
+	  || c->vw_x != (gint) event->configure.x
+	  || c->vw_y != (gint) event->configure.y)
 	{
 	  /* XXX really mw relative? */
-	  tv_info.vw_x = event->configure.x; 
-	  tv_info.vw_y = event->configure.y;
+	  c->vw_x = event->configure.x; 
+	  c->vw_y = event->configure.y;
 	      
-	  tv_info.vw_width = event->configure.width;
-	  tv_info.vw_height = event->configure.height;
+	  c->vw_width = event->configure.width;
+	  c->vw_height = event->configure.height;
 
 	  /* XXX error ignored. */
-	  reconfigure ();
+	  reconfigure (c);
 	}
 
       break;
@@ -560,10 +566,10 @@ on_video_window_event		(GtkWidget *		widget,
     case GDK_VISIBILITY_NOTIFY:
       /* Visibility state changed: obscured, partially or fully visible. */
 
-      if (CLIP_OVERLAY == tv_info.mode)
+      if (CLIP_OVERLAY == c->mode)
 	{
-	  tv_info.visibility = event->visibility.state;
-	  restart_timeout ();
+	  c->visibility = event->visibility.state;
+	  restart_timeout (c);
 	}
 
       break;
@@ -579,10 +585,10 @@ on_video_window_event		(GtkWidget *		widget,
 		 event->expose.area.x + event->expose.area.width - 1,
 		 event->expose.area.y + event->expose.area.height - 1);
 
-      if (CLIP_OVERLAY == tv_info.mode)
+      if (CLIP_OVERLAY == c->mode)
 	{
-	  tv_info.geometry_changed = TRUE;
-	  restart_timeout ();
+	  c->geometry_changed = TRUE;
+	  restart_timeout (c);
 	}
 
       break;
@@ -599,9 +605,9 @@ on_main_window_event		(GtkWidget *		widget,
 				 GdkEvent *		event,
 				 gpointer		user_data)
 {
-  user_data = user_data;
+  struct context *c = user_data;
 
-  g_assert (widget == tv_info.main_window);
+  g_assert (widget == c->main_window);
 
   if (OVERLAY_EVENT_LOG_FP)
     fprintf (OVERLAY_EVENT_LOG_FP,
@@ -614,19 +620,19 @@ on_main_window_event		(GtkWidget *		widget,
       /* Size, position, stacking order changed. Note position
          is relative to the parent window. */
 
-      switch (tv_info.mode)
+      switch (c->mode)
 	{
 	case CLIP_OVERLAY:
 	case CHROMA_KEY_OVERLAY:
-	  if (tv_info.mw_x != event->configure.x
-	      || tv_info.mw_y != event->configure.y)
+	  if (c->mw_x != event->configure.x
+	      || c->mw_y != event->configure.y)
 	    {
 	      /* XXX really root relative? */
-	      tv_info.mw_x = event->configure.x;
-	      tv_info.mw_y = event->configure.y;
+	      c->mw_x = event->configure.x;
+	      c->mw_y = event->configure.y;
 
 	      /* XXX error ignored. */
-	      reconfigure ();
+	      reconfigure (c);
 	    }
 
 	  break;
@@ -641,10 +647,10 @@ on_main_window_event		(GtkWidget *		widget,
       /* Window was rolled up or minimized. For some reason no
 	 visibility events are sent in this case. */
 
-      if (CLIP_OVERLAY == tv_info.mode)
+      if (CLIP_OVERLAY == c->mode)
 	{
-	  tv_info.visibility = GDK_VISIBILITY_FULLY_OBSCURED;
-	  restart_timeout ();
+	  c->visibility = GDK_VISIBILITY_FULLY_OBSCURED;
+	  restart_timeout (c);
 	}
 
       break;
@@ -658,10 +664,13 @@ on_main_window_event		(GtkWidget *		widget,
 
 static GdkFilterReturn
 root_filter			(GdkXEvent *		gdkxevent,
-				 GdkEvent *		unused _unused_,
-				 gpointer		data _unused_)
+				 GdkEvent *		gdkevent,
+				 gpointer		user_data)
 {
+  struct context *c = user_data;
   XEvent *event = (XEvent *) gdkxevent;
+
+  gdkevent = gdkevent;
 
   if (OVERLAY_EVENT_LOG_FP)
     {
@@ -710,7 +719,7 @@ root_filter			(GdkXEvent *		gdkxevent,
       fprintf (OVERLAY_EVENT_LOG_FP, "root_filter: %s\n", s);
     }
 
-  if (tv_info.visibility != GDK_VISIBILITY_PARTIAL)
+  if (c->visibility != GDK_VISIBILITY_PARTIAL)
     return GDK_FILTER_CONTINUE;
 
   switch (event->type)
@@ -724,7 +733,7 @@ root_filter			(GdkXEvent *		gdkxevent,
 
 	if (TRUE)
 	  {
-	    tv_info.clean_screen = TRUE;
+	    c->clean_screen = TRUE;
 	  }
 	else
 	  {
@@ -735,7 +744,7 @@ root_filter			(GdkXEvent *		gdkxevent,
 
 	    ev = &event->xconfigure;
 
-	    win = tv_cur_overlay_window (tv_info.info);
+	    win = tv_cur_overlay_window (c->info);
 
 	    evx2 = ev->x + ev->width;
 	    evy2 = ev->y + ev->height;
@@ -753,7 +762,7 @@ root_filter			(GdkXEvent *		gdkxevent,
 	      }
 	  }
 
-	restart_timeout ();
+	restart_timeout (c);
 
 	break;
       }
@@ -767,33 +776,38 @@ root_filter			(GdkXEvent *		gdkxevent,
 
 /* The osd pieces have changed, avoid flicker if not needed. */
 static void
-on_osd_model_changed		(ZModel *		osd_model _unused_,
-				 gpointer		ignored _unused_)
+on_osd_model_changed		(ZModel *		osd_model,
+				 gpointer		user_data)
 {
-  if (CLIP_OVERLAY == tv_info.mode
-      && GDK_VISIBILITY_FULLY_OBSCURED != tv_info.visibility)
+  struct context *c = user_data;
+
+  osd_model = osd_model;
+
+  if (CLIP_OVERLAY == c->mode
+      && GDK_VISIBILITY_FULLY_OBSCURED != c->visibility)
     {
-      tv_info.visibility = GDK_VISIBILITY_PARTIAL;
-      restart_timeout ();
+      c->visibility = GDK_VISIBILITY_PARTIAL;
+      restart_timeout (c);
     }
 }
 
 static void
-terminate			(void)
+terminate			(struct context *	c)
 {
-  stop_timeout ();
+  stop_timeout (c);
 
-  tv_enable_overlay (tv_info.info, FALSE);
+  tv_enable_overlay (c->info, FALSE);
 
-  if (CLIP_OVERLAY == tv_info.mode)
+  if (CLIP_OVERLAY == c->mode)
     {
-      usleep (CLEAR_TIMEOUT * 10);
+      usleep (CLEAR_TIMEOUT * 1000);
 
-      if (tv_info.clean_screen)
-	expose_screen ();
+      if (c->clean_screen)
+	expose_screen (c);
       else
-	expose_window_clip_vector (tv_cur_overlay_window (tv_info.info),
-				   &tv_info.set_vector);
+	expose_window_clip_vector (tv_cur_overlay_window (c->info),
+				   tv_cur_overlay_clipvec (c->info));
+
     }
 }
 
@@ -802,11 +816,12 @@ on_main_window_delete_event	(GtkWidget *		widget,
 				 GdkEvent *		event,
 				 gpointer		user_data)
 {
+  struct context *c = user_data;
+
   widget = widget;
   event = event;
-  user_data = user_data;
 
-  terminate ();
+  terminate (c);
 
   return FALSE; /* pass on */
 }
@@ -816,19 +831,21 @@ event_function			(GtkWidget *		widget,
 				 GdkEvent  *		event,
 				 gpointer		user_data);
 
-static GdkEventMask
-event_signal_disconnect		(GtkWidget *		widget,
+static void
+event_signal_disconnect		(struct context *	c,
+				 GtkWidget *		widget,
 				 event_function *	callback,
 				 GdkEventMask		old_events)
 {
-  g_signal_handlers_disconnect_matched (G_OBJECT (widget),
-					(G_SIGNAL_MATCH_FUNC |
-					 G_SIGNAL_MATCH_DATA),
-					/* signal_id */ 0,
-					/* detail */ 0,
-					/* closure */ NULL,
-					G_CALLBACK (callback),
-					/* data */ NULL);
+  if (NULL != callback)
+    g_signal_handlers_disconnect_matched (G_OBJECT (widget),
+					  (G_SIGNAL_MATCH_FUNC |
+					   G_SIGNAL_MATCH_DATA),
+					  /* signal_id */ 0,
+					  /* detail */ 0,
+					  /* closure */ NULL,
+					  G_CALLBACK (callback),
+					  /* user_data */ c);
 
   gdk_window_set_events (widget->window, old_events);
 }
@@ -836,123 +853,170 @@ event_signal_disconnect		(GtkWidget *		widget,
 void
 stop_overlay			(void)
 {
-  g_assert (tv_info.main_window != NULL);
+  struct context *c = &tv_info;
+
+  g_assert (c->main_window != NULL);
 
   /* XXX no const limit please */
-  z_video_set_max_size (Z_VIDEO (tv_info.video_window), 16384, 16384);
+  z_video_set_max_size (Z_VIDEO (c->video_window), 16384, 16384);
 
-  switch (tv_info.mode)
+  switch (c->mode)
     {
     case CLIP_OVERLAY:
-      gdk_window_set_events (tv_info.root_window,
-			     tv_info.old_root_events);
+      gdk_window_set_events (c->root_window,
+			     c->old_root_events);
 
-      gdk_window_remove_filter (tv_info.root_window, root_filter, NULL);
+      gdk_window_remove_filter (c->root_window,
+				root_filter,
+				/* user_data */ c);
 
       g_signal_handlers_disconnect_matched
 	(G_OBJECT (osd_model),
-	 G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
-	 0, 0, NULL, G_CALLBACK (on_osd_model_changed), NULL);
+	 (G_SIGNAL_MATCH_FUNC |
+	  G_SIGNAL_MATCH_DATA),
+	 /* signal_id */ 0,
+	 /* detail */ 0,
+	 /* closure */ NULL,
+	 G_CALLBACK (on_osd_model_changed),
+	 /* user_data */ c);
 
-      /* fall through */
+      event_signal_disconnect (c, c->main_window,
+			       on_main_window_event,
+			       c->old_main_events);
+
+      event_signal_disconnect (c, c->video_window,
+			       on_video_window_event,
+			       c->old_video_events);
+
+      break;
 
     case CHROMA_KEY_OVERLAY:
-      event_signal_disconnect (tv_info.main_window,
+      event_signal_disconnect (c, c->main_window,
 			       on_main_window_event,
-			       tv_info.old_main_events);
+			       c->old_main_events);
 
       /* fall through */
 
     case XVIDEO_OVERLAY:
-      event_signal_disconnect (tv_info.video_window,
+      event_signal_disconnect (c, c->video_window,
 			       on_video_window_event,
-			       tv_info.old_video_events);
+			       c->old_video_events);
+
+      if (0 != c->chroma_key_color_cnxn_id)
+	z_gconf_notify_remove (c->chroma_key_color_cnxn_id);
+
+      break;
     }
 
-  terminate ();
+  terminate (c);
 
-  if (tv_info.colormap)
+  if (c->colormap)
     {
-      gdk_colormap_free_colors (tv_info.colormap,
-				&tv_info.chroma_key_color, 1);
+      gdk_colormap_free_colors (c->colormap,
+				&c->chroma_key_color, 1);
 
-      g_object_unref (G_OBJECT (tv_info.colormap));
-      tv_info.colormap = NULL;
+      g_object_unref (G_OBJECT (c->colormap));
+      c->colormap = NULL;
 
-      z_set_window_bg_black (tv_info.video_window);
+      z_set_window_bg_black (c->video_window);
     }
 
-  tv_clip_vector_destroy (&tv_info.set_vector);
-  tv_clip_vector_destroy (&tv_info.tmp_vector);
-  tv_clip_vector_destroy (&tv_info.cur_vector);
+  tv_clip_vector_destroy (&c->tmp_vector);
+  tv_clip_vector_destroy (&c->cur_vector);
 
-  tv_set_capture_mode (tv_info.info, CAPTURE_MODE_NONE);
+  tv_set_capture_mode (c->info, CAPTURE_MODE_NONE);
 
-  CLEAR (tv_info);
+  CLEAR (*c);
 }
 
 static gboolean
-set_window_bg			(void)
+chroma_key_color_from_config	(struct context *	c)
+{
+  /* Factory default if the config is inaccessible
+     or the string is malformed. */
+  c->chroma_key_color.pixel = 0;
+  c->chroma_key_color.red = 0xFFFF;
+  c->chroma_key_color.green = 0xCCCC;
+  c->chroma_key_color.blue = 0xCCCC;
+
+  /* XXX error message please. */
+  return z_gconf_get_color (&c->chroma_key_color,
+			    "/apps/zapping/window/chroma_key_color");
+}
+
+static gboolean
+set_window_bg			(struct context *	c)
 {
   if (!(OVERLAY_CHROMA_TEST
 	|| (tv_get_caps (zapping->info)->flags & TVENG_CAPS_CHROMAKEY)))
     {
-      z_set_window_bg_black (tv_info.video_window);
+      z_set_window_bg_black (c->video_window);
 
       return TRUE;
     }
 
-  if (tv_info.colormap)
+  if (c->colormap)
     {
-      gdk_colormap_free_colors (tv_info.colormap,
-				&tv_info.chroma_key_color, 1);
+      gdk_colormap_free_colors (c->colormap,
+				&c->chroma_key_color, 1);
     }
   else
     {
-      tv_info.colormap = gdk_colormap_get_system ();
+      c->colormap = gdk_colormap_get_system ();
     }
 
-  CLEAR (tv_info.chroma_key_color);
-
-  tv_info.chroma_key_color.red = CHROMA_KEY & 0xFF;
-  tv_info.chroma_key_color.red |= tv_info.chroma_key_color.red << 8;
-  tv_info.chroma_key_color.green = CHROMA_KEY & 0xFF00;
-  tv_info.chroma_key_color.green |= tv_info.chroma_key_color.green >> 8;
-  tv_info.chroma_key_color.blue = (CHROMA_KEY & 0xFF0000) >> 16;
-  tv_info.chroma_key_color.blue |= tv_info.chroma_key_color.blue << 8;
-
   if (!OVERLAY_COLORMAP_FAILURE_TEST
-      && gdk_colormap_alloc_color (tv_info.colormap,
-				   &tv_info.chroma_key_color,
+      && gdk_colormap_alloc_color (c->colormap,
+				   &c->chroma_key_color,
 				   /* writable */ FALSE,
 				   /* or_best_match */ TRUE))
     {
-      z_set_window_bg (tv_info.video_window, &tv_info.chroma_key_color);
+      z_set_window_bg (c->video_window, &c->chroma_key_color);
 
       return TRUE;
     }
   else
     {
-      g_object_unref (G_OBJECT (tv_info.colormap));
-      tv_info.colormap = NULL;
+      g_object_unref (G_OBJECT (c->colormap));
+      c->colormap = NULL;
 
-      z_set_window_bg_black (tv_info.video_window);
+      z_set_window_bg_black (c->video_window);
 
       z_show_non_modal_message_dialog
 	(GTK_WINDOW (zapping), GTK_MESSAGE_ERROR,
 	 _("No chroma-key color"),
 	 _("Could not allocate the color #%2X%2X%2X for chroma-keying. "
 	   "Try to select another color.\n"),
-	 CHROMA_KEY & 0xFF,
-	 (CHROMA_KEY >> 8) & 0xFF,
-	 (CHROMA_KEY >> 16) & 0xFF);
+	 c->chroma_key_color.red >> 8,
+	 c->chroma_key_color.green >> 8,
+	 c->chroma_key_color.blue >> 8);
 
       return FALSE;
     }
 }
 
+static void
+chroma_key_color_notify		(GConfClient *		client,
+				 guint			cnxn_id,
+				 GConfEntry *		entry,
+				 gpointer		user_data)
+{
+  struct context *c = user_data;
+
+  client = client;
+  entry = entry;
+
+  c->chroma_key_color_cnxn_id = cnxn_id;
+
+  /* Error ignored, will continue with default. */
+  chroma_key_color_from_config (c);
+
+  set_window_bg (c);
+}
+
 static GdkEventMask
-event_signal_connect		(GtkWidget *		widget,
+event_signal_connect		(struct context *	c,
+				 GtkWidget *		widget,
 				 event_function *	callback,
 				 GdkEventMask		new_events)
 {
@@ -960,7 +1024,8 @@ event_signal_connect		(GtkWidget *		widget,
 
   if (NULL != callback)
     g_signal_connect (G_OBJECT (widget), "event",
-		      G_CALLBACK (callback), /* user_data */ NULL);
+		      G_CALLBACK (callback),
+		      /* user_data */ c);
 
   old_events = gdk_window_get_events (widget->window);
   gdk_window_set_events (widget->window, old_events | new_events);
@@ -969,56 +1034,57 @@ event_signal_connect		(GtkWidget *		widget,
 }
 
 gboolean
-start_overlay			(void)
+start_overlay			(GtkWidget *		main_window,
+				 GtkWidget *		video_window)
 {
+  struct context *c = &tv_info;
   Window xwindow;
   gint width;
   gint height;
 
-  tv_info.main_window = GTK_WIDGET (zapping);
-  tv_info.video_window = GTK_WIDGET (zapping->video);
+  c->main_window = main_window;
+  c->video_window = video_window;
 
   /* XXX no const limit please */
   z_video_set_max_size (zapping->video, 768, 576);
 
-  tv_info.info = zapping->info;
+  c->info = zapping->info;
 
   gdk_window_get_origin (GTK_WIDGET (zapping)->window,
-			 &tv_info.mw_x, &tv_info.mw_y);
+			 &c->mw_x, &c->mw_y);
 
   gdk_window_get_geometry (GTK_WIDGET (zapping->video)->window,
-			   &tv_info.vw_x, &tv_info.vw_y,
+			   &c->vw_x, &c->vw_y,
 			   &width, &height,
 			   /* depth */ NULL);
 
-  tv_info.vw_width = width;
-  tv_info.vw_height = height;
+  c->vw_width = width;
+  c->vw_height = height;
 
-  tv_info.screen = tv_screen_list_find (screens,
-					tv_info.mw_x + tv_info.vw_x,
-					tv_info.mw_y + tv_info.vw_y,
-					(guint) tv_info.vw_width,
-					(guint) tv_info.vw_height);
-  if (!tv_info.screen)
-    tv_info.screen = screens;
+  c->screen = tv_screen_list_find (screens,
+				   c->mw_x + c->vw_x,
+				   c->mw_y + c->vw_y,
+				   (guint) c->vw_width,
+				   (guint) c->vw_height);
+  if (!c->screen)
+    c->screen = screens;
 
-  CLEAR (tv_info.overlay_rect);
+  CLEAR (c->overlay_rect);
 
-  tv_clip_vector_init (&tv_info.cur_vector);
-  tv_clip_vector_init (&tv_info.tmp_vector);
-  tv_clip_vector_init (&tv_info.set_vector);
+  tv_clip_vector_init (&c->cur_vector);
+  tv_clip_vector_init (&c->tmp_vector);
 
-  tv_info.visibility		= GDK_VISIBILITY_PARTIAL; /* assume worst */
+  c->visibility = GDK_VISIBILITY_PARTIAL; /* assume worst */
 
-  tv_info.clean_screen		= FALSE;
-  tv_info.geometry_changed	= TRUE;
+  c->clean_screen = FALSE;
+  c->geometry_changed = TRUE;
 
-  tv_info.timeout_id		= NO_SOURCE_ID;
+  c->timeout_id = NO_SOURCE_ID;
 
   /* Make sure we use an XVideo adaptor which can render into
      da->window. (Doesn't matter with X.org but it's the right thing
      to do.) */
-  xwindow = GDK_WINDOW_XWINDOW (tv_info.video_window->window);
+  xwindow = GDK_WINDOW_XWINDOW (c->video_window->window);
 
   tveng_close_device (zapping->info);
 
@@ -1039,95 +1105,116 @@ start_overlay			(void)
 
   if (OVERLAY_CHROMA_TEST)
     {
-      tv_info.mode = CHROMA_KEY_OVERLAY;
+      c->mode = CHROMA_KEY_OVERLAY;
     }
   else if (TVENG_CONTROLLER_XV == tv_get_controller (zapping->info))
     {
-      tv_info.mode = XVIDEO_OVERLAY;
+      c->mode = XVIDEO_OVERLAY;
     }
   else
     {
       if (tv_get_caps (zapping->info)->flags & TVENG_CAPS_CHROMAKEY)
 	{
-	  tv_info.mode = CHROMA_KEY_OVERLAY;
+	  c->mode = CHROMA_KEY_OVERLAY;
 	}
       else
 	{
-	  tv_info.mode = CLIP_OVERLAY;
+	  c->mode = CLIP_OVERLAY;
 	}
     }
 
-  switch (tv_info.mode)
+  switch (c->mode)
     {
-      GdkEventMask events;
       GC xgc;
+      unsigned int color;
 
     case XVIDEO_OVERLAY:
-      xwindow = GDK_WINDOW_XWINDOW (tv_info.video_window->window);
-      xgc = GDK_GC_XGC (tv_info.video_window->style->white_gc);
+      xwindow = GDK_WINDOW_XWINDOW (c->video_window->window);
+      xgc = GDK_GC_XGC (c->video_window->style->white_gc);
 
-      if (!tv_set_overlay_xwindow (tv_info.info, xwindow, xgc, CHROMA_KEY))
+      /* Error ignored, will continue with default. */
+      chroma_key_color_from_config (c);
+
+      color = ((c->chroma_key_color.red >> 8) |
+	       (c->chroma_key_color.green & 0xFF00) |
+	       ((c->chroma_key_color.blue & 0xFF00) << 8));
+
+      if (!tv_set_overlay_xwindow (c->info, xwindow, xgc, color))
 	goto failure;
 
-      /* Error ignored so the user can try another chroma key. */
-      set_window_bg ();
+      /* Calls chroma_key_color_notify on success. On failure we
+	 set the window background once and continue. */
+      if (!z_gconf_notify_add ("/apps/zapping/window/chroma_key_color",
+			       chroma_key_color_notify,
+			       /* user_data */ c))
+	chroma_key_color_notify (/* client */ NULL,
+				 /* cnxn_id */ 0,
+				 /* entry */ NULL,
+				 /* user_data */ c);
 
       /* Disable double buffering just in case, will help when a
 	 XV driver doesn't provide XV_COLORKEY but requires the colorkey
 	 not to be overwritten */
-      gtk_widget_set_double_buffered (tv_info.video_window, FALSE);
+      gtk_widget_set_double_buffered (c->video_window, FALSE);
 
       /* Update on video_window size change. */
-      tv_info.old_video_events =
-	event_signal_connect (tv_info.video_window,
+      c->old_video_events =
+	event_signal_connect (c, c->video_window,
 			      on_video_window_event,
 			      GDK_CONFIGURE);
 
       /* Start overlay, XXX error ignored. */
-      reconfigure ();
+      reconfigure (c);
     
       break;
 
     case CHROMA_KEY_OVERLAY:
       if (!z_set_overlay_buffer (zapping->info,
-				 tv_info.screen,
-				 tv_info.video_window->window))
+				 c->screen,
+				 c->video_window->window))
 	goto failure;
 
-      /* Error ignored so the user can try another chroma key. */
-      set_window_bg ();
+      /* See above. */
+      if (!z_gconf_notify_add ("/apps/zapping/window/chroma_key_color",
+			       chroma_key_color_notify,
+			       /* user_data */ c))
+	chroma_key_color_notify (/* client */ NULL,
+				 /* cnxn_id */ 0,
+				 /* entry */ NULL,
+				 /* user_data */ c);
 
       /* Update overlay on video_window size and position change. We
 	 must connect to main_window as well because the video_window
 	 GDK_CONFIGURE event notifies only about main_window, not
 	 root_window relative position changes. */
 
-      tv_info.old_video_events =
-	event_signal_connect (tv_info.video_window,
+      c->old_video_events =
+	event_signal_connect (c, c->video_window,
 			      on_video_window_event,
 			      GDK_CONFIGURE);
 
-      tv_info.old_main_events =
-	event_signal_connect (tv_info.main_window,
+      c->old_main_events =
+	event_signal_connect (c, c->main_window,
 			      on_main_window_event,
 			      GDK_CONFIGURE);
 
       /* Start overlay, XXX error ignored. */
-      reconfigure ();
+      reconfigure (c);
 
       break;
 
     case CLIP_OVERLAY:
       if (!z_set_overlay_buffer (zapping->info,
-				 tv_info.screen,
+				 c->screen,
 				 GTK_WIDGET (zapping->video)->window))
 	goto failure;
 
       g_signal_connect (G_OBJECT (osd_model), "changed",
-			G_CALLBACK (on_osd_model_changed), NULL);
+			G_CALLBACK (on_osd_model_changed),
+			/* user_data */ c);
 
-      tv_info.old_video_events =
-	event_signal_connect (tv_info.video_window,
+      c->old_video_events =
+	event_signal_connect (c, c->video_window,
 			      on_video_window_event,
 			      (GDK_VISIBILITY_NOTIFY_MASK |
 			       GDK_CONFIGURE |
@@ -1139,8 +1226,8 @@ start_overlay			(void)
 	 changes. GDK_UNMAP, but no visibility event, is sent
 	 after the window was rolled up or minimized. */
 
-      tv_info.old_main_events =
-	event_signal_connect (tv_info.main_window,
+      c->old_main_events =
+	event_signal_connect (c, c->main_window,
 			      on_main_window_event,
 			      (GDK_UNMAP |
 			       GDK_CONFIGURE));
@@ -1148,26 +1235,28 @@ start_overlay			(void)
       /* There is no GDK_OBSCURED event, we must monitor all child
 	 windows of the root window. E.g. drop-down menus. */
 
-      tv_info.root_window = gdk_get_default_root_window ();
+      c->root_window = gdk_get_default_root_window ();
 
-      gdk_window_add_filter (tv_info.root_window,
-			     root_filter, /* user_data */ NULL);
+      gdk_window_add_filter (c->root_window,
+			     root_filter,
+			     /* user_data */ c);
 
-      tv_info.old_root_events = gdk_window_get_events (tv_info.root_window);
-      gdk_window_set_events (tv_info.root_window,
-			     (tv_info.old_root_events |
+      c->old_root_events = gdk_window_get_events (c->root_window);
+      gdk_window_set_events (c->root_window,
+			     (c->old_root_events |
 			      GDK_STRUCTURE_MASK |
 			      GDK_SUBSTRUCTURE_MASK));
 
       /* Start overlay. */
 
-      restart_timeout ();
+      restart_timeout (c);
 
       break;
     }
 
   g_signal_connect (G_OBJECT (zapping), "delete-event",
-		    G_CALLBACK (on_main_window_delete_event), NULL);
+		    G_CALLBACK (on_main_window_delete_event),
+		    /* user_data */ c);
 
   zapping->display_mode = DISPLAY_MODE_WINDOW;
   zapping->display_window = GTK_WIDGET (zapping->video);
