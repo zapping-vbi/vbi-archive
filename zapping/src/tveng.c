@@ -2954,7 +2954,7 @@ int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
    This function checks if the programmed (dma) and required (dga)
    overlay targets match. */
 static tv_bool
-validate_overlay_buffer		(const tv_overlay_buffer *dga,
+verify_overlay_buffer		(const tv_overlay_buffer *dga,
 				 const tv_overlay_buffer *dma)
 {
 	unsigned long dga_end;
@@ -3066,10 +3066,14 @@ read_file_from_fd		(char *			buffer,
 
 #define ZSFB_NAME "zapping_setup_fb"
 
-/* If zapping_setup_fb must be called it will get display_name and
-   screen_number as parameters. If display_name is NULL it will default
-   to the DISPLAY env. screen_number is intended to choose a Xinerama
-   screen, can be -1 to get the default. */
+/**
+ * This function set the overlay buffer, where images will be stored.
+ * When this operation is privileged we run the zapping_setup_fb
+ * helper application and pass display_name and screen_number as
+ * parameters. If display_name is NULL it will default
+ * to the DISPLAY environment variable. screen_number is intended to
+ * choose a Xinerama screen, can be -1 to get the default.
+ */
 tv_bool
 tv_set_overlay_buffer		(tveng_device_info *	info,
 				 const char *		display_name,
@@ -3099,13 +3103,13 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	TVLOCK;
 
-  tv_clear_error (info);
+	tv_clear_error (info);
 
 	/* We can save a lot work if the target is already
 	   initialized. */
 
 	if (info->overlay.get_buffer (info)) {
-		if (validate_overlay_buffer (target, &info->overlay.buffer))
+		if (verify_overlay_buffer (target, &info->overlay.buffer))
 			goto success;
 
 		/* We can save a lot work if the driver supports
@@ -3174,22 +3178,25 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 		/* Redirect error message to pipe. */
 		if (-1 == dup2 (mypipe[1], STDERR_FILENO))
-			_exit (2);
+			_exit (2); /* tell parent */
 
-		/* Try in $PATH. Note this might be a consolehelper link.
+		/* Try in $PATH. Note this might be a consolehelper symlink.
 		   Exit status 0 on success, 1 on error. */
 		execvp (ZSFB_NAME, (char **) argv);
 
 		/* When execvp returns it failed. */
+
 		if (ENOENT == errno) {
 			/* File not found. Try the zapping_setup_fb install
-			   path. May fail due to missing SUID root, hence
-			   second choice. */
+			   path. Second choice because this works only if
+			   zapping_setup_fb has been set SUID root. */
 		        execvp (PACKAGE_ZSFB_DIR "/" ZSFB_NAME,
 				(char **) argv);
 		}
 
-		switch (saved_errno = errno) {
+		saved_errno = errno;
+
+		switch (saved_errno) {
 		case ENOENT:
 			fprintf (stderr,
 				 _("%s not found in %s "
@@ -3204,7 +3211,7 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 			break;
 		}
 
-		_exit (3);
+		_exit (3); /* tell parent */
 	}
 
 	default: /* in parent */
@@ -3247,7 +3254,7 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 		if (!info->overlay.get_buffer (info))
 			goto failure;
 
-		if (!validate_overlay_buffer (target, &info->overlay.buffer))
+		if (!verify_overlay_buffer (target, &info->overlay.buffer))
 			goto zsfb_failed;
 
 		break;
@@ -3303,18 +3310,18 @@ static tv_bool
 overlay_window_visible		(const tveng_device_info *info,
 				 const tv_window *	w)
 {
-	if (w->x > (int)(info->overlay.buffer.x
-			 + info->overlay.buffer.format.width))
+	if (unlikely (w->x > (int)(info->overlay.buffer.x
+				   + info->overlay.buffer.format.width)))
 		return FALSE;
 
-	if ((w->x + w->width) <= info->overlay.buffer.x)
+	if (unlikely ((w->x + w->width) <= info->overlay.buffer.x))
 		return FALSE;
 
-	if (w->y > (int)(info->overlay.buffer.y
-			 + info->overlay.buffer.format.height))
+	if (unlikely (w->y > (int)(info->overlay.buffer.y
+				   + info->overlay.buffer.format.height)))
 		return FALSE;
 
-	if ((w->y + w->height) <= info->overlay.buffer.y)
+	if (unlikely ((w->y + w->height) <= info->overlay.buffer.y))
 		return FALSE;
 
 	return TRUE;
@@ -3324,31 +3331,27 @@ const tv_window *
 tv_cur_overlay_window		(tveng_device_info *	info)
 {
 	assert (NULL != info);
+
 	return &info->overlay.window;
 }
 
-/*
-  Gets the current overlay window parameters.
-  Returns -1 on error, and any other value on success.
-  info   : The device to use
-*/
 const tv_window *
 tv_get_overlay_window		(tveng_device_info *	info)
 {
 	assert (NULL != info);
 
-  if (TVENG_CONTROLLER_NONE == info->current_controller)
-    return NULL;
+	if (TVENG_CONTROLLER_NONE == info->current_controller)
+		return NULL;
 
-  REQUIRE_IO_MODE (NULL);
+	REQUIRE_IO_MODE (NULL);
 
-  TVLOCK;
+	TVLOCK;
 
-  tv_clear_error (info);
+	tv_clear_error (info);
 
-  if (info->current_controller != TVENG_CONTROLLER_XV
-      && !overlay_window_visible (info, &info->overlay.window))
-    RETURN_UNTVLOCK (&info->overlay.window);
+	if (info->current_controller != TVENG_CONTROLLER_XV
+	    && !overlay_window_visible (info, &info->overlay.window))
+		RETURN_UNTVLOCK (&info->overlay.window);
 
 	if (info->overlay.get_window) {
 		if (info->overlay.get_window (info))
@@ -3357,9 +3360,9 @@ tv_get_overlay_window		(tveng_device_info *	info)
 			RETURN_UNTVLOCK (NULL);
 	}
 
-  TVUNSUPPORTED;
-  UNTVLOCK;
-  return NULL;
+	TVUNSUPPORTED;
+	UNTVLOCK;
+	return NULL;
 }
 
 static void
@@ -3385,7 +3388,7 @@ init_overlay_window		(tveng_device_info *	info,
 			      info->caps.minheight,
 			      info->caps.maxheight);
 
-	if (0)
+	if (0) {
 		fprintf (stderr,
 			 "buffer %u, %u - %u, %u\n"
 			 "window %d, %d - %d, %d (%u x %u)\n",
@@ -3401,85 +3404,78 @@ init_overlay_window		(tveng_device_info *	info,
 			 w->y + w->height,
 			 w->width,
 			 w->height);
+	}
 }
 
 /* Be VERY careful here. The bktr driver lets any application which
    has access permission DMA video data to any memory address, and
    barely checks the parameters. */
 
-static const tv_window *
-p_tv_set_overlay_window		(tveng_device_info *	info,
-				 const tv_window *	window,
-				 const tv_clip_vector *	clip_vector)
+static tv_bool
+add_boundary_clips		(tveng_device_info *	info,
+				 tv_clip_vector *	vec,
+				 const tv_window *	win)
+				 
 {
-	tv_window win;
-	tv_clip_vector vec;
 	int bx2;
 	int by2;
 
-  if (TVENG_CONTROLLER_NONE == info->current_controller)
-    return NULL;
+	if (unlikely (win->x < (int) info->overlay.buffer.x)) {
+		unsigned int obscured_width = info->overlay.buffer.x - win->x;
 
-  REQUIRE_IO_MODE (NULL);
-  REQUIRE_SUPPORT (info->overlay.set_window_clipvec, NULL);
-
-	win = *window;
-
-	init_overlay_window (info, &win);
-
-	if (!overlay_window_visible (info, &win)) {
-		info->overlay.window = win;
-		return &info->overlay.window; /* nothing to do */
-	}
-
-	/* Make sure we clip against overlay buffer bounds. */
-
-	if (clip_vector) {
-		if (!tv_clip_vector_copy (&vec, clip_vector))
-			goto failure;
-	} else {
-		tv_clip_vector_init (&vec);
-	}
-
-	if (win.x < (int) info->overlay.buffer.x)
 		if (!tv_clip_vector_add_clip_xy
-		    (&vec, 0, 0, info->overlay.buffer.x - win.x, win.height))
-			goto failure;
+		    (vec, 0, 0, obscured_width, win->height))
+			return FALSE;
+	}
 
 	bx2 = info->overlay.buffer.x + info->overlay.buffer.format.width;
 
-	if ((win.x + (int) win.width) > bx2)
-		if (!tv_clip_vector_add_clip_xy
-		    (&vec, (unsigned int)(bx2 - win.x), 0,
-		     win.width, win.height))
-			goto failure;
+	if (unlikely ((win->x + (int) win->width) > bx2)) {
+		unsigned int visible_width = bx2 - win->x;
 
-	if (win.y < (int) info->overlay.buffer.y)
 		if (!tv_clip_vector_add_clip_xy
-		    (&vec, 0, 0, win.width, info->overlay.buffer.y - win.y))
-			goto failure;
+		    (vec, visible_width, 0, win->width, win->height))
+			return FALSE;
+	}
+
+	if (unlikely (win->y < (int) info->overlay.buffer.y)) {
+		unsigned int obscured_height = info->overlay.buffer.y - win->y;
+
+		if (!tv_clip_vector_add_clip_xy
+		    (vec, 0, 0, win->width, obscured_height))
+			return FALSE;
+	}
 
 	by2 = info->overlay.buffer.y + info->overlay.buffer.format.height;
 
-	if ((win.y + (int) win.height) > by2)
-		if (!tv_clip_vector_add_clip_xy
-		    (&vec, 0, (unsigned int)(by2 - win.y),
-		     win.width, win.height))
-			goto failure;
+	if (unlikely ((win->y + (int) win->height) > by2)) {
+		unsigned int visible_height = by2 - win->y;
 
+		if (!tv_clip_vector_add_clip_xy
+		    (vec, 0, visible_height, win->width, win->height))
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+static void
+verify_clip_vector		(tv_clip_vector *	vec,
+				 tv_window *		win)
+{
 	/* Make sure clips are within bounds and in proper order. */
 
-	if (vec.size > 1) {
+	if (vec->size > 1) {
 		const tv_clip *clip;
 		const tv_clip *end;
 
-		end = vec.vector + vec.size - 1;
+		end = vec->vector + vec->size - 1;
 
-		for (clip = vec.vector; clip < end; ++clip) {
+		for (clip = vec->vector; clip < end; ++clip) {
 			assert (clip->x1 < clip->x2);
 			assert (clip->y1 < clip->y2);
-			assert (clip->x2 <= win.width);
-			assert (clip->y2 <= win.height);
+			assert (clip->x2 <= win->width);
+			assert (clip->y2 <= win->height);
 
 			if (clip->y1 == clip[1].y1) {
 				assert (clip->y2 == clip[1].y2);
@@ -3491,63 +3487,112 @@ p_tv_set_overlay_window		(tveng_device_info *	info,
 
 		assert (clip->x1 < clip->x2);
 		assert (clip->y1 < clip->y2);
-		assert (clip->x2 <= win.width);
-		assert (clip->y2 <= win.height);
+		assert (clip->x2 <= win->width);
+		assert (clip->y2 <= win->height);
+	}
+}
+
+static const tv_window *
+p_tv_set_overlay_window		(tveng_device_info *	info,
+				 const tv_window *	window,
+				 const tv_clip_vector *	clip_vector)
+{
+	tv_window win;
+	tv_clip_vector new_vec;
+	tv_clip_vector safe_vec;
+
+	if (TVENG_CONTROLLER_NONE == info->current_controller)
+		return NULL;
+
+	REQUIRE_IO_MODE (NULL);
+	REQUIRE_SUPPORT (info->overlay.set_window, NULL);
+
+	win = *window;
+
+	init_overlay_window (info, &win);
+
+	if (!overlay_window_visible (info, &win)) {
+		info->overlay.window = win;
+		return &info->overlay.window; /* nothing to do */
 	}
 
-	if (0)
-		_tv_clip_vector_dump (&vec, stderr);
+	if (NULL != clip_vector) {
+		if (!tv_clip_vector_copy (&new_vec, clip_vector))
+			return NULL;
 
-	if (!tv_clip_vector_set (&info->overlay.clip_vector,
-				 clip_vector))
+		if (!tv_clip_vector_copy (&safe_vec, clip_vector)) {
+			tv_clip_vector_destroy (&new_vec);
+			return NULL;
+		}
+	} else {
+		tv_clip_vector_init (&new_vec);
+		tv_clip_vector_init (&safe_vec);
+	}
+
+	/* Make sure we clip against overlay buffer bounds. */
+
+	if (!add_boundary_clips (info, &safe_vec, &win))
 		goto failure;
+
+	verify_clip_vector (&safe_vec, &win);
+
+	if (0)
+		_tv_clip_vector_dump (&safe_vec, stderr);
 
 	if (info->overlay.active)
 	  if (!p_tv_enable_overlay (info, FALSE))
 	    goto failure;
 
-	if (!info->overlay.set_window_clipvec (info, &win, &vec))
+	if (!info->overlay.set_window (info, &win, &safe_vec,
+				       info->overlay.chromakey))
 		goto failure;
 
-	tv_clip_vector_destroy (&vec);
+	tv_clip_vector_destroy (&safe_vec);
+
+	tv_clip_vector_destroy (&info->overlay.clip_vector);
+	info->overlay.clip_vector = new_vec;
 
 	return &info->overlay.window;
 
  failure:
-	tv_clip_vector_destroy (&vec);
+	tv_clip_vector_destroy (&safe_vec);
+	tv_clip_vector_destroy (&new_vec);
 
 	return NULL;
 }
 
-/*
-  Sets the preview window dimensions to the given window.
-  Returns -1 on error, something else on success.
-  Success doesn't mean that the requested dimensions are used, maybe
-  they are different, check the returned fields to see if they are suitable
-  info   : Device we are controlling
-
-  clip_vector: Invisible regions of window, coordinates relative
-  to window->x, y. can be NULL.
-
-  The current chromakey value is used, the caller doesn't need to fill
-  it in.
-*/
+/**
+ * info: Device we are controlling
+ * window: The area you want to overlay, with coordinates relative to
+ *   the current overlay buffer.
+ * clip_vector: Invisible regions of the window (where it is obscured by
+ *   other windows etc) with coordinates relative to window->x, y. No clips
+ *   are required for regions outside the overlay buffer. clip_vector can
+ *   be NULL.
+ *
+ * Sets the overlay window dimensions and clips.
+ *
+ * Returns NULL on error, a pointer to the actual overlay window on
+ * success. It may differ from the requested dimensions due to hardware
+ * limitations and other reasons. Should be verified before enabling
+ * overlay.
+ */
 const tv_window *
 tv_set_overlay_window_clipvec	(tveng_device_info *	info,
 				 const tv_window *	window,
 				 const tv_clip_vector *	clip_vector)
 {
-  assert (NULL != info);
+	assert (NULL != info);
 
-  if (TVENG_CONTROLLER_NONE == info->current_controller)
-    return NULL;
+	if (TVENG_CONTROLLER_NONE == info->current_controller)
+		return NULL;
 
-  REQUIRE_IO_MODE (NULL);
+	REQUIRE_IO_MODE (NULL);
 
-  TVLOCK;
-  tv_clear_error (info);
+	TVLOCK;
+	tv_clear_error (info);
 
-  RETURN_UNTVLOCK (p_tv_set_overlay_window (info, window, clip_vector));
+	RETURN_UNTVLOCK (p_tv_set_overlay_window (info, window, clip_vector));
 }
 
 tv_bool
@@ -3568,17 +3613,17 @@ tv_get_overlay_chromakey	(tveng_device_info *	info,
 {
 	assert (NULL != info);
 
-  if (TVENG_CONTROLLER_NONE == info->current_controller)
-    return FALSE;
+	if (TVENG_CONTROLLER_NONE == info->current_controller)
+		return FALSE;
 
-  REQUIRE_IO_MODE (FALSE);
-  REQUIRE_SUPPORT (info->overlay.get_chromakey, FALSE);
+	REQUIRE_IO_MODE (FALSE);
+	REQUIRE_SUPPORT (info->overlay.get_window, FALSE);
 
-  TVLOCK;
+	TVLOCK;
+	
+	tv_clear_error (info);
 
-  tv_clear_error (info);
-
-	if (!info->overlay.get_chromakey (info))
+	if (!info->overlay.get_window (info))
 		RETURN_UNTVLOCK (FALSE);
 
 	if (chromakey)
@@ -3587,24 +3632,39 @@ tv_get_overlay_chromakey	(tveng_device_info *	info,
 	RETURN_UNTVLOCK (TRUE);
 }
 
+/**
+ * info: Device we are controlling
+ * window: The area you want to overlay, with coordinates relative to
+ *   the current overlay buffer.
+ * chromakey: The device shall display video where overlay buffer pixels
+ *   have this color (0xRRGGBB).
+ *
+ * Sets the overlay window dimensions and chromakey.
+ *
+ * Returns NULL on error, a pointer to the actual overlay window on
+ * success. It may differ from the requested dimensions due to hardware
+ * limitations and other reasons. Should be verified before enabling
+ * overlay.
+ */
 const tv_window *
 tv_set_overlay_window_chromakey	(tveng_device_info *	info,
 				 const tv_window *	window,
 				 unsigned int		chromakey)
 {
 	tv_window win;
+	tv_clip_vector safe_vec;
 
-  assert (NULL != info);
+	assert (NULL != info);
 
-  if (TVENG_CONTROLLER_NONE == info->current_controller)
-    return NULL;
+	if (TVENG_CONTROLLER_NONE == info->current_controller)
+		return NULL;
 
-  REQUIRE_IO_MODE (NULL);
-  REQUIRE_SUPPORT (info->overlay.set_window_chromakey, NULL);
+	REQUIRE_IO_MODE (NULL);
+	REQUIRE_SUPPORT (info->overlay.set_window, NULL);
 
-  TVLOCK;
+	TVLOCK;
 
-  tv_clear_error (info);
+	tv_clear_error (info);
 
 	win = *window;
 
@@ -3619,27 +3679,50 @@ tv_set_overlay_window_chromakey	(tveng_device_info *	info,
 	  if (!p_tv_enable_overlay (info, FALSE))
 	    goto failure;
 
-	fprintf (stderr, "set_window_chromakey incomplete\n");
-	exit (1);
-	/* XXX check if save to DMA without clips. */
+	/* Calculate boundary clips in case the driver DMAs instead
+	   of chromakeys the image. */
 
-	if (!info->overlay.set_window_chromakey (info, &win, chromakey))
-		goto failure;
+	tv_clip_vector_init (&safe_vec);
 
-	info->overlay.chromakey = chromakey;
+	if (!add_boundary_clips (info, &safe_vec, &win))
+		goto failure2;
+
+	verify_clip_vector (&safe_vec, &win);
+
+	if (0)
+		_tv_clip_vector_dump (&safe_vec, stderr);
+
+	if (!info->overlay.set_window (info, &win, &safe_vec, chromakey))
+		goto failure2;
+
+	tv_clip_vector_destroy (&safe_vec);
 
 	RETURN_UNTVLOCK (&info->overlay.window);
 
- failure:
-	UNTVLOCK;
+ failure2:
+	tv_clip_vector_destroy (&safe_vec);
 
-	return NULL;
+ failure:
+	RETURN_UNTVLOCK (NULL);
 }
 
+/**
+ * info: Device we are controlling (XVideo only).
+ * window: Place the video in this window.
+ * gc: Use this graphics context.
+ * chromakey: The device, if it works that way, shall display video where
+ *   window pixels have this color (0xRRGGBB).
+ *
+ * Selects the window for XVideo PutVideo(). The video dimension will be
+ * the same as the window dimensions.
+ *
+ * Returns FALSE on error. XXX hardware limitations? zoom?
+ */
 tv_bool
 tv_set_overlay_xwindow		(tveng_device_info *	info,
 				 Window			window,
-				 GC			gc)
+				 GC			gc,
+				 unsigned int		chromakey)
 {
 	assert (NULL != info);
 	assert (0 != window);
@@ -3650,9 +3733,10 @@ tv_set_overlay_xwindow		(tveng_device_info *	info,
 
 	TVLOCK;
 
-  tv_clear_error (info);
+	tv_clear_error (info);
 
-	RETURN_UNTVLOCK (info->overlay.set_xwindow (info, window, gc));
+	RETURN_UNTVLOCK (info->overlay.set_xwindow
+			 (info, window, gc, chromakey));
 }
 
 tv_bool
@@ -3689,8 +3773,8 @@ p_tv_enable_overlay		(tveng_device_info *	info,
 			return FALSE;
 
 		for (xs = screens; xs; xs = xs->next)
-			if (validate_overlay_buffer (&xs->target,
-						     &info->overlay.buffer))
+			if (verify_overlay_buffer (&xs->target,
+						   &info->overlay.buffer))
 				break;
 
 		if (!xs) {
@@ -3719,7 +3803,8 @@ tv_enable_overlay		(tveng_device_info *	info,
 	assert (NULL != info);
 
 	TVLOCK;
-  tv_clear_error (info);
+
+	tv_clear_error (info);
 
 	RETURN_UNTVLOCK (p_tv_enable_overlay (info, enable));
 }
