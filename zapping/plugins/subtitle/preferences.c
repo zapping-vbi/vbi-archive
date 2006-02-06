@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preferences.c,v 1.3 2005-10-22 15:48:33 mschimek Exp $ */
+/* $Id: preferences.c,v 1.4 2006-02-06 18:13:08 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -174,57 +174,16 @@ static gboolean
 get_color			(vbi3_rgba *		rgba,
 				 const gchar *		key)
 {
-  gchar *str;
-  gchar *s;
-  gboolean r;
-  guint value;
-  guint i;
+  GdkColor color;
 
-  if (!z_gconf_get_string (&str, key))
+  if (!z_gconf_get_color (&color, key))
     return FALSE;
 
-  s = str;
-  r = FALSE;
+  *rgba = (((color.red & 0xFF00) >> 8) |
+	   (color.green & 0xFF00) |
+	   ((color.blue & 0xFF00) << 8));
 
-  while (g_ascii_isspace (*s))
-    ++s;
-
-  if ('#' != *s++)
-    goto failure;
-
-  while (g_ascii_isspace (*s))
-    ++s;
-
-  value = 0;
-
-  for (i = 0; i < 6; ++i)
-    {
-      if (g_ascii_isdigit (*s))
-	value = value * 16 + (*s - '0');
-      else if (g_ascii_isxdigit (*s))
-	value = value * 16 + ((*s - ('A' - 0xA)) & 0xF);
-      else
-	goto failure;
-
-      ++s;
-    }
-
-  while (g_ascii_isspace (*s))
-    ++s;
-
-  if (0 == *s)
-    {
-      r = TRUE;
-
-      *rgba = (((value & 0xFF) << 16) |
-	       ((value & 0xFF00) << 0) |
-	       ((value & 0xFF0000) >> 16));
-    }
-
- failure:
-  g_free (str);
-
-  return r;
+  return TRUE;
 }
 
 static void
