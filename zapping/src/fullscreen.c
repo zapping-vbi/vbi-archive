@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.49 2006-02-06 04:48:29 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.50 2006-02-06 18:13:17 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -47,6 +47,7 @@
 #include "zstack.h"
 #include "plugins/subtitle/view.h"
 #include "subtitle.h"
+#include "overlay.h"
 
 extern gboolean was_fullscreen;
 
@@ -140,42 +141,6 @@ on_scroll_event			(GtkWidget *		widget,
     }
 
   return FALSE; /* pass on */
-}
-
-/* Called when OSD changes the geometry of the pieces */
-static void
-osd_model_changed			(ZModel	*	ignored1 _unused_,
-					 tveng_device_info *info)
-{
-  const tv_window *w;
-  tv_clip_vector clip_vector;
-  GdkWindow *gdk_window;
-
-  if (tv_get_controller (info) == TVENG_CONTROLLER_XV ||
-      !black_window || !black_window->window)
-    return;
-
-  tv_enable_overlay (info, FALSE);
-
-  tv_clip_vector_init (&clip_vector);
-
-  gdk_window = drawing_area->window;
-
-  w = tv_cur_overlay_window (info);
-
-  x11_window_clip_vector (&clip_vector,
-			  GDK_WINDOW_XDISPLAY (gdk_window),
-			  GDK_WINDOW_XID (gdk_window),
-			  w->x,
-			  w->y,
-			  w->width,
-			  w->height);
-
-  tv_set_overlay_window_clipvec (info, w, &clip_vector);
-
-  tv_clip_vector_destroy (&clip_vector);
-
-  tv_enable_overlay (info, TRUE);
 }
 
 static void
@@ -366,13 +331,7 @@ stop_fullscreen			(void)
   switch (tv_get_capture_mode (zapping->info))
     {
     case CAPTURE_MODE_OVERLAY:
-      /* Error ignored */
-      tv_enable_overlay (zapping->info, FALSE);
-
-      g_signal_handlers_disconnect_matched
-	(G_OBJECT (osd_model), G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
-	 0, 0, NULL, G_CALLBACK (osd_model_changed), zapping->info);
-
+      stop_overlay ();
       break;
 
     case CAPTURE_MODE_READ:
@@ -381,7 +340,7 @@ stop_fullscreen			(void)
       break;
 
     case CAPTURE_MODE_TELETEXT:
-      /* Nuk nuk. */
+      /* Nothing to do. */
       break;
 
     default:
@@ -542,59 +501,7 @@ start_fullscreen		(display_mode		dmode,
   switch (cmode)
     {
     case CAPTURE_MODE_OVERLAY:
-      /* Make sure we use an Xv adaptor which can render into da->window.
-	 (Won't help with X.org but it's the right thing to do.) */
-      tveng_close_device(zapping->info);
-
-      if (-1 == tveng_attach_device (zcg_char (NULL, "video_device"),
-				     GDK_WINDOW_XWINDOW (drawing_area->window),
-				     TVENG_ATTACH_XV,
-				     zapping->info))
-	{
-	  ShowBox("Overlay mode not available:\n%s",
-		  GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
-	  goto failure;
-	}
-
-      zconf_get_sources (zapping->info, /* mute */ FALSE);
-
-      if (tv_get_controller (zapping->info) != TVENG_CONTROLLER_XV &&
-	  (tv_get_caps (zapping->info)->flags & TVENG_CAPS_CHROMAKEY))
-	{
-	  chroma.blue = 0xffff;
-      
-	  if (gdk_colormap_alloc_color(gdk_colormap_get_system(), &chroma,
-				       FALSE, TRUE))
-	    {
-	      z_set_window_bg (drawing_area, &chroma);
-	      
-	      gdk_colormap_free_colors (gdk_colormap_get_system(), &chroma, 1);
-	    }
-	  else
-	    {
-	      ShowBox("Couldn't allocate chromakey, chroma won't work",
-		      GTK_MESSAGE_WARNING);
-	    }
-	}
-      else if (tv_get_controller (zapping->info) == TVENG_CONTROLLER_XV)
-	{
-	  GdkColor chroma;
-	  unsigned int chromakey;
-	  
-	  CLEAR (chroma);
-	  
-	  if (tv_get_overlay_chromakey (zapping->info, &chromakey))
-	    {
-	      chroma.pixel = chromakey;
-	      z_set_window_bg (drawing_area, &chroma);
-	    }
-	}
-
-      /* Disable double buffering just in case, will help when a
-	 XV driver doesn't provide XV_COLORKEY but requires the colorkey
-	 not to be overwritten */
-      gtk_widget_set_double_buffered (drawing_area, FALSE);
-
+      /* Nothing to do. */
       break;
 
     case CAPTURE_MODE_READ:
@@ -737,58 +644,7 @@ start_fullscreen		(display_mode		dmode,
   switch (cmode)
     {
     case CAPTURE_MODE_OVERLAY:
-      /* XXX */
-      if (tv_get_controller (zapping->info) == TVENG_CONTROLLER_XV)
-	{
-	  /* Wait until da has the desired size. */
-	  while (gtk_events_pending ())
-	    gtk_main_iteration ();
-
-#warning chroma_key missing.
-	  if (!tv_set_overlay_xwindow
-	      (zapping->info,
-	       GDK_WINDOW_XWINDOW (drawing_area->window),
-	       GDK_GC_XGC (drawing_area->style->white_gc),
-	       /* chroma_key */ 0))
-	    goto failure;
-
-	  /* For OSD. */
-	  tv_overlay_hack (zapping->info, vx, vy, (int) vwidth, (int) vheight);
-	}
-      else
-	{
-	  tv_window window;
-	  const tv_window *w;
-
-	  if (!z_set_overlay_buffer (zapping->info, xs, drawing_area->window))
-	    goto failure;
-
-	  CLEAR (w);
-
-	  window.x = vx;
-	  window.y = vy;
-	  window.width = vwidth;
-	  window.height = vheight;
-
-	  /* Set new capture dimensions */
-	  if (!tv_set_overlay_window_clipvec (zapping->info, &window, NULL))
-	    goto failure;
-
-	  w = tv_cur_overlay_window (zapping->info);
-	  if (w->width != vwidth
-	      || w->height != vheight)
-	    {
-	      window.x = (xs->width - w->width) >> 1;
-	      window.y = (xs->height - w->height) >> 1;
-
-	      if (!tv_set_overlay_window_clipvec
-		  (zapping->info, &window, NULL))
-		goto failure;
-	    }
-	}
-
-      /* Start preview */
-      if (!tv_enable_overlay (zapping->info, TRUE))
+      if (!start_overlay (black_window, drawing_area))
 	goto failure;
 
       break;
@@ -803,7 +659,7 @@ start_fullscreen		(display_mode		dmode,
       break;
 
     case CAPTURE_MODE_TELETEXT:
-      /* Nuk nuk. */
+      /* Nothing to do. */
       break;
 
     default:
@@ -840,26 +696,11 @@ start_fullscreen		(display_mode		dmode,
 
   switch (cmode)
     {
-      const tv_window *w;
-
     case CAPTURE_MODE_OVERLAY:
-      w = tv_cur_overlay_window (zapping->info);
-
-      if (tv_get_controller (zapping->info) != TVENG_CONTROLLER_XV)
-	{
-	  osd_set_coords (drawing_area,
-			  w->x, w->y, (gint) w->width, (gint) w->height);
-	}
-      else
-	{
-	  /* wrong because Xv may pad to this size (DMA hw limit) */
-	  osd_set_coords (drawing_area,
-			  w->x, w->y, (gint) w->width, (gint) w->height);
-	}
-
-      g_signal_connect (G_OBJECT (osd_model), "changed",
-			G_CALLBACK (osd_model_changed), zapping->info);
-
+      /* XXX wrong because XvPutImage may pad to this size (DMA hw limit) */
+      osd_set_coords (drawing_area,
+		      /* x, y */ 0, 0,
+		      vwidth, vheight);
       break;
 
     case CAPTURE_MODE_READ:
@@ -867,7 +708,7 @@ start_fullscreen		(display_mode		dmode,
       break;
 
     case CAPTURE_MODE_TELETEXT:
-      /* Nuk nuk. */
+      /* Nothing to do. */
       break;
 
     default:
