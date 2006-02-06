@@ -9,7 +9,6 @@ Zapping 0.10:
   capture mode) and the hash doesn't match.
 * Capturing is restarted on a video input or standard change because
   size limits may change, but overlay is not.
-* Fullscreen DMA overlay doesn't clip.
 * Teletext bookmark editing window translation is incomplete.
 * Teletext TOP menu lists pages which aren't cached, and sometimes doesn't
   open the page (while typing the page number by hand works).
@@ -24,9 +23,6 @@ Zapping 0.10:
 * Can we prevent a problem similar to that reported by Tony 2005-12-29?
 * Check why attaching a device fails when tveng1.c/VIDIOCGAUDIO returns
   an unexpected errno.
-* Windowed overlay: tveng.c:3477: verify_clip_vector: Assertion
-  `clip->x2 <= win->width' failed after moving the window beyond a screen
-  boundary and back.
 
 Zapping 0.9:
 * src/tveng1.c/p_tveng1_dequeue/CSYNC hangs with bttv when changing video

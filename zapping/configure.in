@@ -653,7 +653,7 @@ if test "x$with_zvbi" = "xyes"; then
     [echo -n "*** Could not find libzvbi >= $REQUIRED_ZVBI_VERSION. "
      echo "The library is required" 
      echo "*** for Teletext, caption/subtitles and OSD. If you are sure"
-     echo "*** libzvbi $REQUIRED_ZVBI_VERSION is installed, try"
+     echo "*** libzvbi $REQUIRED_ZVBI_VERSION or later is installed, try"
      echo "*** ./configure PKG_CONFIG_PATH=/usr/local/lib/pkgconfig ..."
      echo "*** The latest version of libzvbi is available from"
      echo "*** http://zapping.sourceforge.net. To compile Zapping without"

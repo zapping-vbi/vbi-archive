@@ -22,6 +22,7 @@
 extern void
 stop_overlay			(void);
 extern gboolean
-start_overlay			(void);
+start_overlay			(GtkWidget *		main_window,
+				 GtkWidget *		video_window);
 
 #endif /* overlay.h */

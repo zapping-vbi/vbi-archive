@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.8 2006-02-03 18:24:42 mschimek Exp $ */
+/* $Id: network.c,v 1.9 2006-02-06 18:14:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -27,7 +27,7 @@
 #include <ctype.h>		/* isdigit() */
 #include <assert.h>
 #include "misc.h"		/* CLEAR() */
-#include "bcd.h"		/* vbi3_is_bcd(), vbi3_bcd2dec() */
+#include "bcd.h"		/* vbi3_is_bcd(), vbi3_bcd2bin() */
 #include "conv.h"		/* _vbi3_strdup_locale_utf8() */
 #include "network.h"
 #include "network-table.h"

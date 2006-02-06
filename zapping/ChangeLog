@@ -4,6 +4,29 @@
 
 2006-02-06    <mschimek@users.sf.net>
 
+	* src/overlay.c: Monitor config for chroma_key_color change and
+	  apply it to the window.
+	* src/zgconf.h, src/zgconf.c (z_gconf_notify_remove,
+	  z_gconf_set_color, z_gconf_get_color): Added.
+	* src/properties-handler.c (video_setup, video_apply): New chroma
+	  key colorbutton.
+	* glade/zapping.glade2: Added chroma-key colorbutton in
+	  preferences/video.
+	* zapping.schemas.in: Added chroma_key_color.
+	* plugins/subtitle/view.c (get_color),
+	  plugins/subtitle/preferences.c (get_color): Use new
+	  string_to_color() helper.
+	* src/zgconf.h, src/zgconf.c (string_to_color): Added.
+	* src/fullscreen.c: Replaced overlay code by overlay.c calls.
+	  Restores chroma-key overlay and clipping.
+	* src/tveng.h, src/tveng.c (tv_cur_overlay_clipvec): Added.
+	* src/overlay.c: Replaced set_vector copy by
+	  zapping->info.overlay.clip_vector.
+	(visible_timeout): Used wrong clip vector during
+	  set_overlay_window retry, causing an assertion failure.
+
+2006-02-06    <mschimek@users.sf.net>
+
 	* src/zmisc.h, src/zmisc.c (z_set_window_bg_black): Added.
 	* src/tvengxv.c, src/tvengemu.c, src/tvengbktr.c,
 	  src/tveng_private.h, src/tveng1.c, src/tveng25.c: Merged chroma

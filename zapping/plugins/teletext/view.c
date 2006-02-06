@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.19 2006-02-03 18:24:42 mschimek Exp $ */
+/* $Id: view.c,v 1.20 2006-02-06 18:14:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1787,7 +1787,7 @@ py_ttx_subpage_incr		(PyObject *		self _unused_,
 	subno = view->pg->subno;
     }
 
-  subno = vbi3_add_bcd (subno, vbi3_dec2bcd (value)) & 0xFF;
+  subno = vbi3_add_bcd (subno, vbi3_bin2bcd (value)) & 0xFF;
 
   view->load_page (view, &view->req.network, view->req.pgno, subno);
 
@@ -1803,7 +1803,7 @@ default_home_pgno		(void)
   if (z_gconf_get_int (&value, GCONF_DIR "/home_page"))
     value = SATURATE (value, 100, 899);
 
-  return vbi3_dec2bcd (value);
+  return vbi3_bin2bcd (value);
 }
 
 static void

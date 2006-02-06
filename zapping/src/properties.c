@@ -138,6 +138,17 @@ color_set_bridge (GtkWidget	*widget,
   page_modified(dialog, page_id);
 }
 
+static void
+color_set_bridge2 (GtkWidget	*widget,
+		  gpointer	page_id_ptr)
+{
+  GtkDialog *dialog = GTK_DIALOG
+    (g_object_get_data(G_OBJECT(widget), "modify_page_dialog"));
+  gint page_id = GPOINTER_TO_INT(page_id_ptr);
+
+  page_modified(dialog, page_id);
+}
+
 /**
  * Makes modifications on the widgets descending from widget trigger a
  * page_modifed call.
@@ -175,7 +186,7 @@ autoconnect_modify		(GtkDialog	*dialog,
 		       GINT_TO_POINTER(page_id));
     }
   else if (GTK_IS_ENTRY(widget))
-    {
+        {
       g_signal_connect(G_OBJECT(widget), "changed",
 		       G_CALLBACK(modify_page),
 		       GINT_TO_POINTER(page_id));      
@@ -211,6 +222,12 @@ autoconnect_modify		(GtkDialog	*dialog,
       g_signal_connect(G_OBJECT(widget),
 		       "value-changed",
 		       G_CALLBACK(modify_page),
+		       GINT_TO_POINTER(page_id));
+    }
+  else if (GTK_IS_COLOR_BUTTON(widget))
+    {    
+      g_signal_connect(G_OBJECT(widget), "color-set",
+		       G_CALLBACK(color_set_bridge2),
 		       GINT_TO_POINTER(page_id));
     }
 

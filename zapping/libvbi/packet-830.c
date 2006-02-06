@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.c,v 1.5 2006-02-03 18:24:42 mschimek Exp $ */
+/* $Id: packet-830.c,v 1.6 2006-02-06 18:14:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -25,7 +25,7 @@
 
 #include <assert.h>
 
-#include "bcd.h"		/* vbi3_bcd2dec() */
+#include "bcd.h"		/* vbi3_bcd2bin() */
 #include "hamm.h"		/* vbi3_rev16p(), vbi3_iham8() */
 #include "packet-830.h"
 
