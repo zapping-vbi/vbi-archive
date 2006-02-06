@@ -341,6 +341,8 @@ z_change_menuitem			 (GtkWidget	*widget,
 extern void
 z_set_window_bg			(GtkWidget *		widget,
 				 GdkColor *		color);
+extern void
+z_set_window_bg_black		(GtkWidget *		widget);
 
 /**
  * Restores the mode before the last switch_mode.

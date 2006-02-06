@@ -478,6 +478,16 @@ z_set_window_bg			(GtkWidget *		widget,
   gdk_window_process_updates (widget->window, /* children */ FALSE);
 }
 
+void
+z_set_window_bg_black		(GtkWidget *		widget)
+{
+  GdkColor color;
+
+  CLEAR (color);
+
+  z_set_window_bg (widget, &color);
+}
+
 int
 zmisc_restore_previous_mode(tveng_device_info * info)
 {
@@ -531,13 +541,7 @@ zmisc_stop (tveng_device_info *info)
       break;
     }
 
-  {
-    GdkColor color;
-
-    CLEAR (color);
-
-    z_set_window_bg (GTK_WIDGET (zapping->video), &color);
-  }
+  z_set_window_bg_black (GTK_WIDGET (zapping->video));
 
   return TRUE;
 }
