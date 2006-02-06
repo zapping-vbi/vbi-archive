@@ -903,7 +903,8 @@ tv_set_overlay_window_chromakey	(tveng_device_info *	info,
 extern tv_bool
 tv_set_overlay_xwindow		(tveng_device_info *	info,
 				 Window			window,
-				 GC			gc);
+				 GC			gc,
+				 unsigned int		chroma_key);
 extern tv_bool
 tv_enable_overlay		(tveng_device_info *	info,
 				 tv_bool		enable);
