@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zgconf.h,v 1.4 2005-01-08 14:54:29 mschimek Exp $ */
+/* $Id: zgconf.h,v 1.5 2006-02-06 18:11:45 mschimek Exp $ */
 
 #ifndef Z_GCONF_H
 #define Z_GCONF_H
@@ -67,6 +67,8 @@ extern gboolean
 z_gconf_get_string_enum		(gint *			enum_value,
 				 const gchar *		gconf_key,
 				 const GConfEnumStringPair *lookup_table);
+extern void
+z_gconf_notify_remove		(guint			cnxn_id);
 extern gboolean
 z_gconf_notify_add		(const gchar *		key,
 				 GConfClientNotifyFunc	func,
@@ -103,5 +105,14 @@ extern GtkWidget *
 z_gconf_combo_box_new		(const gchar **		menu,
 				 const gchar *		key,
 				 const GConfEnumStringPair *lookup_table);
+extern gboolean
+string_to_color			(GdkColor *		color,
+				 const gchar *		string);
+extern gboolean
+z_gconf_set_color		(const gchar *		key,
+				 const GdkColor *	color);
+extern gboolean
+z_gconf_get_color		(GdkColor *		color,
+				 const gchar *		string);
 
 #endif /* Z_GCONF_H */

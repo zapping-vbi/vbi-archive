@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zgconf.c,v 1.5 2005-10-14 23:40:14 mschimek Exp $ */
+/* $Id: zgconf.c,v 1.6 2006-02-06 18:12:13 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -114,7 +114,7 @@ z_gconf_handle_get_error	(const gchar *		key,
   else if (!warned)
     {
       g_warning ("GConf key '%s' is unset and has no default. "
-		 "Schemas incomplete or not installed?\n",
+		 "Zapping schemas incomplete or not installed?\n",
 		 key);
 
       warned = TRUE;
@@ -218,6 +218,12 @@ Z_GCONF_SET (bool, gboolean)
 Z_GCONF_SET (int, gint)
 Z_GCONF_SET (float, gdouble)
 Z_GCONF_SET (string, const gchar *)
+
+void
+z_gconf_notify_remove		(guint			cnxn_id)
+{
+  gconf_client_notify_remove (gconf_client, cnxn_id);
+}
 
 /* Like gconf_client_notify_add(), but uses our default GConfClient
    and prints diagnostic messages on failure (the function is not really
@@ -825,4 +831,101 @@ z_gconf_combo_box_new		(const gchar **		menu,
 			    G_CALLBACK (notify_destroy), n);
 
   return GTK_WIDGET (n->n.object);
+}
+
+gboolean
+string_to_color			(GdkColor *		color,
+				 const gchar *		string)
+{
+  gchar *s;
+  gboolean r;
+  guint value;
+  guint i;
+
+  g_return_val_if_fail (NULL != color, FALSE);
+  g_return_val_if_fail (NULL != string, FALSE);
+
+  s = string;
+  r = FALSE;
+
+  while (g_ascii_isspace (*s))
+    ++s;
+
+  if ('#' != *s++)
+    goto failure;
+
+  while (g_ascii_isspace (*s))
+    ++s;
+
+  value = 0;
+
+  for (i = 0; i < 6; ++i)
+    {
+      if (g_ascii_isdigit (*s))
+	value = value * 16 + (*s - '0');
+      else if (g_ascii_isxdigit (*s))
+	value = value * 16 + ((*s - ('A' - 0xA)) & 0xF);
+      else
+	goto failure;
+
+      ++s;
+    }
+
+  while (g_ascii_isspace (*s))
+    ++s;
+
+  if (0 != *s)
+    goto failure;
+
+  r = TRUE;
+
+  color->pixel = 0;
+  color->red = (value & 0xFF0000) >> 8;
+  color->red |= color->red >> 8;
+  color->green = value & 0xFF00;
+  color->green |= color->green >> 8;
+  color->blue = value & 0xFF;
+  color->blue |= color->blue << 8;
+
+ failure:
+  return r;
+}
+
+extern gboolean
+z_gconf_set_color		(const gchar *		key,
+				 const GdkColor *	color)
+{
+  gchar *str;
+  gboolean success;
+
+  g_return_val_if_fail (key != NULL, FALSE);
+  g_return_val_if_fail (color != NULL, FALSE);
+
+  str = g_strdup_printf ("#%02X%02X%02X",
+			 color->red >> 8,
+			 color->green >> 8,
+			 color->blue >> 8);
+
+  success = z_gconf_set_string (key, str);
+
+  g_free (str);
+
+  return success;
+}
+
+extern gboolean
+z_gconf_get_color		(GdkColor *		color,
+				 const gchar *		key)
+{
+  gchar *str;
+  gboolean success;
+
+  if (!z_gconf_get_string (&str, key))
+    return FALSE;
+
+  success = string_to_color (color, str);
+
+  g_free (str);
+
+  return success;
 }
