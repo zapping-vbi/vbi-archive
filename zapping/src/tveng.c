@@ -3365,6 +3365,14 @@ tv_get_overlay_window		(tveng_device_info *	info)
 	return NULL;
 }
 
+const tv_clip_vector *
+tv_cur_overlay_clipvec		(tveng_device_info *	info)
+{
+	assert (NULL != info);
+
+	return &info->overlay.clip_vector;
+}
+
 static void
 init_overlay_window		(tveng_device_info *	info,
 				 tv_window *		w)
