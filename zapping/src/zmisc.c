@@ -688,7 +688,8 @@ zmisc_switch_mode(display_mode new_dmode,
 	goto failure;
       }
 
-      if (start_overlay ())
+      if (start_overlay (GTK_WIDGET (zapping),
+			 GTK_WIDGET (zapping->video)))
 	{
 	  zconf_get_sources (info, /* mute */ FALSE);
 
