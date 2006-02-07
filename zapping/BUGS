@@ -23,6 +23,8 @@ Zapping 0.10:
 * Can we prevent a problem similar to that reported by Tony 2005-12-29?
 * Check why attaching a device fails when tveng1.c/VIDIOCGAUDIO returns
   an unexpected errno.
+* Check if the video device fd passing to a zapping_setup_fb child process,
+  and the stderr pipe work properly through consolehelper.
 
 Zapping 0.9:
 * src/tveng1.c/p_tveng1_dequeue/CSYNC hangs with bttv when changing video

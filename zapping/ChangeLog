@@ -1,3 +1,8 @@
+2006-02-07    <mschimek@users.sf.net>
+
+	* src/tveng.c (tv_set_overlay_buffer): Negotiation of the frame
+	  buffer format is no longer required for chroma-key overlay.
+
 2005-02-06    <mschimek@users.sf.net>
 
 	* Prerelease 0.10cvs1.
