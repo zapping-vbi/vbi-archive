@@ -3066,8 +3066,19 @@ read_file_from_fd		(char *			buffer,
 
 #define ZSFB_NAME "zapping_setup_fb"
 
+static tv_bool
+supports_only_chromakey_overlay	(tveng_device_info *	info)
+{
+	return ((info->caps.flags
+		 & (TVENG_CAPS_OVERLAY |
+		    TVENG_CAPS_CHROMAKEY |
+		    TVENG_CAPS_CLIPPING))
+		== (TVENG_CAPS_OVERLAY |
+		    TVENG_CAPS_CHROMAKEY));
+}
+
 /**
- * This function set the overlay buffer, where images will be stored.
+ * This function sets the overlay buffer, where images will be stored.
  * When this operation is privileged we run the zapping_setup_fb
  * helper application and pass display_name and screen_number as
  * parameters. If display_name is NULL it will default
@@ -3105,20 +3116,37 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	tv_clear_error (info);
 
-	/* We can save a lot work if the target is already
-	   initialized. */
+	/* We can save a lot work if the driver is already
+	   initialized for this target. */
 
 	if (info->overlay.get_buffer (info)) {
 		if (verify_overlay_buffer (target, &info->overlay.buffer))
 			goto success;
 
-		/* We can save a lot work if the driver supports
-		   set_overlay directly. TODO: Test if we actually have
-		   access permission. */
+		if (supports_only_chromakey_overlay (info)) {
+			if (info->overlay.buffer.base == target->base) {
+				/* Close enough. E.g. rivatv 0.8.6 doesn't
+				   return other information. */
 
-		if (info->overlay.set_buffer)
-			RETURN_UNTVLOCK (info->overlay.set_buffer 
-					 (info, target));
+				info->overlay.buffer.x = 0;
+				info->overlay.buffer.y = 0;
+				info->overlay.buffer.format = target->format;
+
+				goto success;
+			}
+		}
+
+		/* We can still save a lot of work if the driver supports
+		   set_overlay directly and this app has the required
+		   privileges. */
+		if (info->overlay.set_buffer) {
+			tv_bool success;
+
+			success = info->overlay.set_buffer (info, target);
+
+			if (success || EPERM != errno)
+				RETURN_UNTVLOCK (success);
+		}
 	}
 
 	/* Delegate to suid root ZSFB_NAME helper program. */
@@ -3254,10 +3282,22 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 		if (!info->overlay.get_buffer (info))
 			goto failure;
 
-		if (!verify_overlay_buffer (target, &info->overlay.buffer))
-			goto zsfb_failed;
+		if (verify_overlay_buffer (target, &info->overlay.buffer))
+			break;
 
-		break;
+		if (supports_only_chromakey_overlay (info)) {
+			if (info->overlay.buffer.base != target->base)
+				goto wrong_address;
+
+			/* See above. */
+			info->overlay.buffer.x = 0;
+			info->overlay.buffer.y = 0;
+			info->overlay.buffer.format = target->format;
+
+			break;
+		}
+
+		goto zsfb_failed;
 
 	case 1: /* zapping_setup_fb failure */
 		info->tveng_errno = 0;
@@ -3294,6 +3334,10 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
  zsfb_failed:
 	/* TRANSLATORS: Program name. */
 	tv_error_msg (info, _("%s failed."), ZSFB_NAME);
+	goto failure;
+
+ wrong_address:
+	tv_error_msg (info, _("Cannot overlay on this screen."));
 	goto failure;
 
  failure:
