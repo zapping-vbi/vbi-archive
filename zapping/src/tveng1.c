@@ -709,6 +709,8 @@ set_audio_mode			(tveng_device_info *	info,
 	struct private_tveng1_device_info *p_info = P_INFO (info);
 	struct video_audio audio;
 
+	CLEAR (audio);
+
 	if (-1 == xioctl (&p_info->info, VIDIOCGAUDIO, &audio))
 		return FALSE;
 
@@ -846,6 +848,8 @@ get_control			(tveng_device_info *	info,
 		control_set = p_info->all_controls;
 
 	if (control_set & PICT_CONTROLS) {
+		CLEAR (pict);
+
 		if (-1 == xioctl (info, VIDIOCGPICT, &pict))
 			goto failure;
 
@@ -853,6 +857,8 @@ get_control			(tveng_device_info *	info,
 	}
 
 	if (control_set & WINDOW_CONTROLS) {
+		CLEAR (window);	
+
 		if (-1 == xioctl (info, VIDIOCGWIN, &window))
 			goto failure;
 
@@ -860,6 +866,8 @@ get_control			(tveng_device_info *	info,
 	}
 
 	if (control_set & AUDIO_CONTROLS) {
+		CLEAR (audio);
+
 		if (-1 == xioctl (info, VIDIOCGAUDIO, &audio))
 			goto failure;
 
@@ -902,6 +910,8 @@ set_control			(tveng_device_info *	info,
 	if (c->id & PICT_CONTROLS) {
 		struct video_picture pict;
 
+		CLEAR (pict);
+
 		if (-1 == xioctl (info, VIDIOCGPICT, &pict))
 			goto failure;
 
@@ -942,6 +952,8 @@ set_control			(tveng_device_info *	info,
 	} else if (c->id & WINDOW_CONTROLS) {
 		struct video_window window;
 		unsigned int new_flags;
+
+		CLEAR (window);
 
 		if (-1 == xioctl (info, VIDIOCGWIN, &window))
 			goto failure;
@@ -986,6 +998,8 @@ set_control			(tveng_device_info *	info,
 		struct video_audio audio;
 		unsigned int rx_mode;
 		tv_bool no_read;
+
+		CLEAR (audio);
 
 		if (-1 == xioctl (info, VIDIOCGAUDIO, &audio))
 			goto failure;
@@ -1126,6 +1140,8 @@ get_video_control_list		(tveng_device_info *	info)
 {
 	struct video_picture pict;
 
+	CLEAR (pict);
+
 	if (-1 == xioctl (info, VIDIOCGPICT, &pict))
 		return FALSE;
 
@@ -1143,6 +1159,8 @@ get_audio_control_list		(tveng_device_info *	info)
 	struct private_tveng1_device_info *p_info = P_INFO (info);
 	struct video_audio audio;
 	tv_bool rewrite;
+
+	CLEAR (audio);
 
 	if (-1 == xioctl_may_fail (info, VIDIOCGAUDIO, &audio)) {
 		switch (errno) {
@@ -1218,6 +1236,8 @@ get_pwc_control_list		(tveng_device_info *	info)
 {
 	struct private_tveng1_device_info *p_info = P_INFO (info);
 	struct video_window window;
+
+	CLEAR (window);
 
 	if (-1 == xioctl (info, VIDIOCGWIN, &window))
 		return FALSE;
@@ -1683,6 +1703,8 @@ get_tuner_frequency		(tveng_device_info *	info,
 	if (info->panel.cur_video_input == l) {
 		int r;
 
+		freq = 0;
+
 		if (TVENG_ATTACH_CONTROL == info->attach_mode) {
 			if (!panel_open (info))
 				return FALSE;
@@ -1726,6 +1748,8 @@ set_tuner_frequency		(tveng_device_info *	info,
 	if (TVENG_ATTACH_CONTROL == info->attach_mode)
 		if (!panel_open (info))
 			return FALSE;
+
+	old_freq = 0;
 
 	if (0 == xioctl (info, VIDIOCGFREQ, &old_freq))
 		if (old_freq == new_freq)
@@ -1845,6 +1869,8 @@ tuner_bounds			(tveng_device_info *	info,
 {
 	struct video_tuner tuner;
 	unsigned long freq;
+
+	CLEAR (tuner);
 
 	tuner.tuner = vi->tuner;
 
@@ -2005,10 +2031,6 @@ get_capture_and_overlay_parameters
 	return TRUE;
 }
 
-
-
-
-
 /*
  *  Overlay
  */
@@ -2017,43 +2039,45 @@ static tv_bool
 get_overlay_buffer		(tveng_device_info *	info)
 {
 	struct video_buffer buffer;
-  
+	tv_pixfmt pixfmt;
+
+	CLEAR (info->overlay.buffer);
+
 	if (!(info->caps.flags & TVENG_CAPS_OVERLAY))
-		goto failure;
+		return FALSE;
+
+	CLEAR (buffer);
 
 	if (-1 == xioctl (info, VIDIOCGFBUF, &buffer))
-		goto failure;
+		return FALSE;
 
-	info->overlay.buffer.base = (unsigned long) buffer.base;
+	/* rivatv 0.8.6 bug: Doesn't provide this information, but for
+	   chroma-key overlay we can live without it. */
+	if (0 == (buffer.width
+		  | buffer.height
+		  | buffer.depth)) {
+		info->overlay.buffer.base = (unsigned long) buffer.base;
+		return TRUE;
+	}
+
+	pixfmt = pig_depth_to_pixfmt ((unsigned int) buffer.depth);
 
 	if (!tv_image_format_init (&info->overlay.buffer.format,
 				   (unsigned int) buffer.width,
 				   (unsigned int) buffer.height,
-				   0,
-				   pig_depth_to_pixfmt ((unsigned) buffer.depth),
-				   TV_COLSPC_UNKNOWN))
-		goto failure;
-
-	assert ((unsigned) buffer.bytesperline
-		>= info->overlay.buffer.format.bytes_per_line[0]);
-
-	if ((unsigned) buffer.bytesperline
-	    > info->overlay.buffer.format.bytes_per_line[0]) {
-		assert (TV_PIXFMT_IS_PACKED
-			(info->overlay.buffer.format.pixel_format->pixfmt));
-
-		info->overlay.buffer.format.bytes_per_line[0] =
-		  buffer.bytesperline;
-		info->overlay.buffer.format.size =
-		  buffer.bytesperline * buffer.height;
+				   (unsigned int) buffer.bytesperline,
+				   pixfmt,
+				   TV_COLSPC_UNKNOWN)) {
+		tv_error_msg (info, _("Driver %s returned an unknown or "
+			      "invalid frame buffer format."),
+			      info->node.label);
+		info->tveng_errno = EINVAL;
+		return FALSE;
 	}
 
+	info->overlay.buffer.base = (unsigned long) buffer.base;
+
 	return TRUE;
-
- failure:
-	CLEAR (info->overlay.buffer);
-
-	return FALSE;
 }
 
 /*
@@ -2789,6 +2813,8 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
       goto failure;
     }
 
+  CLEAR (caps);
+
   /* We check the capabilities of this video device */
   if (-1 == xioctl(info, VIDIOCGCAP, &caps))
     goto failure;
@@ -2891,6 +2917,8 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
 		    || strstr (info->caps.name, "BT")) {
 			int version;
 			int dummy;
+
+			dummy = -1;
 
 			version = bttv_xioctl_may_fail (info, BTTV_VERSION,
 							&dummy);
