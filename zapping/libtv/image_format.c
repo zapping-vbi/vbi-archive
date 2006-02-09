@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.14 2006-01-08 05:25:31 mschimek Exp $ */
+/* $Id: image_format.c,v 1.15 2006-02-09 06:38:52 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -83,12 +83,18 @@ tv_image_format_init		(tv_image_format *	format,
 		height = (height + vres) & ~vres;
 	}
 
+	min_bpl = (width * pf->bits_per_pixel + 7) >> 3;
+
+	if (0 == bytes_per_line) {
+		bytes_per_line = min_bpl;
+	} else if (bytes_per_line < min_bpl) {
+		return FALSE;
+	}
+
 	format->width = width;
 	format->height = height;
 
-	min_bpl = (width * pf->bits_per_pixel + 7) >> 3;
-
-	format->bytes_per_line[0] = MAX (bytes_per_line, min_bpl);
+	format->bytes_per_line[0] = bytes_per_line;
 
 	format->offset[0] = 0;
 
