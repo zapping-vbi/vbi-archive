@@ -3095,7 +3095,7 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 	char buf[3][16];
 	unsigned int argc;
 	pid_t pid;
-	int mypipe[2];
+	int stderr_pipe[2];
 	char errmsg[256];
 	int status;
 	int r;
@@ -3182,10 +3182,10 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	assert (argc <= N_ELEMENTS (argv));
 
-	mypipe[0] = -1;
-	mypipe[1] = -1;
+	stderr_pipe[0] = -1;
+	stderr_pipe[1] = -1;
 
-	if (-1 == pipe (mypipe))
+	if (-1 == pipe (stderr_pipe))
 		goto fork_error;
 
 	fflush (stderr);
@@ -3201,11 +3201,11 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 	{
 		int saved_errno;
 
-		close (mypipe[0]); /* unused */
-		mypipe[0] = -1;
+		close (stderr_pipe[0]); /* unused */
+		stderr_pipe[0] = -1;
 
 		/* Redirect error message to pipe. */
-		if (-1 == dup2 (mypipe[1], STDERR_FILENO))
+		if (-1 == dup2 (stderr_pipe[1], STDERR_FILENO))
 			_exit (2); /* tell parent */
 
 		/* Try in $PATH. Note this might be a consolehelper symlink.
@@ -3246,13 +3246,13 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 		break;
 	}
 
-	close (mypipe[1]); /* unused */
-	mypipe[1] = -1;
+	close (stderr_pipe[1]); /* unused */
+	stderr_pipe[1] = -1;
 
-	r = read_file_from_fd (errmsg, sizeof (errmsg), mypipe[0]);
+	r = read_file_from_fd (errmsg, sizeof (errmsg), stderr_pipe[0]);
 
-	close (mypipe[0]);
-	mypipe[0] = -1;
+	close (stderr_pipe[0]);
+	stderr_pipe[0] = -1;
 
 	if (-1 == r) {
 		while (-1 == waitpid (pid, &status, 0)
@@ -3341,11 +3341,11 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 	goto failure;
 
  failure:
-	if (-1 != mypipe[0])
-		close (mypipe[0]);
+	if (-1 != stderr_pipe[0])
+		close (stderr_pipe[0]);
 
-	if (-1 != mypipe[1])
-		close (mypipe[1]);
+	if (-1 != stderr_pipe[1])
+		close (stderr_pipe[1]);
 
 	RETURN_UNTVLOCK (FALSE);
 }
