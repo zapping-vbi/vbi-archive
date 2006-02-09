@@ -324,6 +324,7 @@ long_options [] =
   { "display",		required_argument,	0, 'D' },
   { "screen",		required_argument,	0, 'S' },
   { "version",		no_argument,		0, 'V' },
+  { 0, 0, 0, 0 }
 };
 
 #else
@@ -392,6 +393,13 @@ main				(int			argc,
   drop_root_privileges ();
 
   /* Parse arguments. */
+
+  if (0) {
+    unsigned int i;
+    
+    for (i = 0; i < argc; ++i)
+      fprintf (stderr, "argv[%u]='%s'\n", i, argv[i]);
+  }
 
   device_name = default_device_name;
   device_fd = -1;
