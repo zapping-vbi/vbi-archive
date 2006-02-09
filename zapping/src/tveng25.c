@@ -1424,6 +1424,8 @@ get_overlay_buffer		(tveng_device_info *	info)
 	struct v4l2_framebuffer fb;
 	tv_pixfmt pixfmt;
 
+	CLEAR (info->overlay.buffer);
+
 	CLEAR (fb);
 
 	if (-1 == xioctl (info, VIDIOC_G_FBUF, &fb))
@@ -1431,28 +1433,20 @@ get_overlay_buffer		(tveng_device_info *	info)
 
 	/* XXX fb.capability, fb.flags ignored */
 
-	CLEAR (info->overlay.buffer);
-
-	pixfmt = pixelformat_to_pixfmt (fb.fmt.pixelformat);
-	if (TV_PIXFMT_UNKNOWN == pixfmt)
-		return TRUE;
-
-	info->overlay.buffer.format.pixel_format =
-		tv_pixel_format_from_pixfmt (pixfmt);
+	if (!tv_image_format_init (&info->overlay.buffer.format,
+				   fb.fmt.width,
+				   fb.fmt.height,
+				   fb.fmt.bytesperline,
+				   pixelformat_to_pixfmt (fb.fmt.pixelformat),
+				   TV_COLSPC_UNKNOWN)) {
+		tv_error_msg (info, _("Driver %s returned an unknown or "
+			      "invalid frame buffer format."),
+			      info->node.label);
+		info->tveng_errno = EINVAL;
+		return FALSE;
+	}
 
 	info->overlay.buffer.base = (unsigned long) fb.base;
-
-	info->overlay.buffer.format.width		= fb.fmt.width;
-	info->overlay.buffer.format.height		= fb.fmt.height;
-
-	info->overlay.buffer.format.bytes_per_line[0]	= fb.fmt.bytesperline;
-
-	if (0 == fb.fmt.sizeimage) {
-		info->overlay.buffer.format.size =
-			fb.fmt.bytesperline * fb.fmt.height;
-	} else {
-		info->overlay.buffer.format.size = fb.fmt.sizeimage;
-	}
 
 	return TRUE;
 }
