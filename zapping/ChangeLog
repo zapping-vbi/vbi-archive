@@ -1,3 +1,18 @@
+2006-02-09    <mschimek@users.sf.net>
+
+	* zapping_setup_fb/zapping_setup_fb.c (long_options): Array
+	  lacked a terminating 0, resulting in a segfault when unknown
+	  options were given.
+	* src/tveng25.c (get_overlay_buffer): Return a useful error
+	  string when the frame buffer format is invalid.
+	* src/tveng1.c: Always clear structs before calling ioctl(),
+	  in case the driver is broken.
+	(get_overlay_buffer): Ignore invalid frame buffer format returned
+	  rivatv driver. Return a useful error string when the format
+	  is invalid.
+	* libtv/image_format.c (tv_image_format_init): Fail if the
+	  requested bytes_per_line is non-zero and too small.
+
 2006-02-07    <mschimek@users.sf.net>
 
 	* src/tveng.c (tv_set_overlay_buffer): Negotiation of the frame
