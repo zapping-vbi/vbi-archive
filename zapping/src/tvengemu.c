@@ -403,6 +403,9 @@ int tvengemu_attach_device(const char* device_file,
   assert (NULL != device_file);
   assert (NULL != info);
 
+  memset ((char *) p_info + sizeof (p_info->info), 0,
+	  sizeof (*p_info) - sizeof (*info));
+
   if (-1 != info->fd)
     tveng_close_device (info);
 

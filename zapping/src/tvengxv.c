@@ -1170,6 +1170,9 @@ int tvengxv_attach_device(const char* device_file _unused_,
 
   assert (NULL != info);
 
+  memset ((char *) p_info + sizeof (p_info->info), 0,
+	  sizeof (*p_info) - sizeof (*info));
+
   if (info->disable_xv_video || disable_overlay)
     {
       info->tveng_errno = -1;
