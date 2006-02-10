@@ -16,6 +16,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#include "site_def.h"
+
 /*
   This is the library in charge of simplyfying Video Access API (I
   don't want to use thirteen lines of code with ioctl's every time I
@@ -134,8 +136,16 @@ fprint_bttv_ioctl_arg		(FILE *			fp,
    factory reset, user settings, bayer format, decompression.
 */
 
+#ifndef TVENG1_RIVATV_TEST
+#  define TVENG1_RIVATV_TEST 0
+#endif
 
-
+/* These drivers need special attention. */
+enum driver {
+	DRIVER_BTTV = 1,
+	DRIVER_PWC,
+	DRIVER_RIVATV
+};
 
 struct video_input {
 	tv_video_line		pub;
@@ -248,6 +258,9 @@ struct private_tveng1_device_info
   /* OV511 camera */
   int ogb_fd;
 
+	/* See set_overlay_buffer(). */
+	tv_image_format		overlay_buffer_format;
+
 	/* Info about mapped buffers. */
 	void *			mapped_addr;
 	struct video_mbuf	mbuf;
@@ -280,8 +293,7 @@ struct private_tveng1_device_info
 	tv_bool			audio_mode_reads_rx;
 	tv_bool			channel_norm_usable;
 
-	tv_bool			bttv_driver;
-	tv_bool			pwc_driver;
+	enum driver		driver;
 };
 
 #define P_INFO(p) PARENT (p, struct private_tveng1_device_info, info)
@@ -592,6 +604,9 @@ init_audio			(struct private_tveng1_device_info *p_info)
 
 	CLEAR (audio);
 
+	if (TVENG1_RIVATV_TEST)
+		return TRUE;
+
 	if (-1 == xioctl_may_fail (&p_info->info, VIDIOCGAUDIO, &audio)) {
 		switch (errno) {
 		case EINVAL:
@@ -619,7 +634,7 @@ init_audio			(struct private_tveng1_device_info *p_info)
 	capability = 0;
 
 	p_info->audio_mode_reads_rx =
-		(p_info->bttv_driver || !SINGLE_BIT (audio.mode));
+		(DRIVER_BTTV == p_info->driver || !SINGLE_BIT (audio.mode));
 
 	/* To determine capabilities let's see which modes we can select. */
 	for (mode = 1; mode <= (VIDEO_SOUND_LANG2 << 1); mode <<= 1) {
@@ -710,6 +725,9 @@ set_audio_mode			(tveng_device_info *	info,
 	struct video_audio audio;
 
 	CLEAR (audio);
+
+	if (TVENG1_RIVATV_TEST)
+		return FALSE;
 
 	if (-1 == xioctl (&p_info->info, VIDIOCGAUDIO, &audio))
 		return FALSE;
@@ -1283,7 +1301,7 @@ get_control_list		(tveng_device_info *	info)
 	if (!get_audio_control_list (info))
 		return FALSE;
 
-	if (p_info->pwc_driver) {
+	if (DRIVER_PWC == p_info->driver) {
 		if (!get_pwc_control_list (info))
 			return FALSE;
 	}
@@ -1304,8 +1322,10 @@ channel_norm_test		(tveng_device_info *	info)
 	tv_video_line *l;
 	unsigned int old_norm;
 	unsigned int new_norm;
+	tv_bool success;
 
-	if (P_INFO (info)->bttv_driver)
+	if (DRIVER_BTTV == P_INFO (info)->driver
+	    || DRIVER_RIVATV == P_INFO (info)->driver)
 		return TRUE;
 
 	for_all (l, info->panel.video_inputs)
@@ -1329,12 +1349,18 @@ channel_norm_test		(tveng_device_info *	info)
 	if (-1 == xioctl (info, VIDIOCSCHAN, &channel))
 		return FALSE;
 
-	if (channel.norm != new_norm)
-		return FALSE;
+	if (0 == xioctl (info, VIDIOCGCHAN, &channel)) {
+		success = (channel.norm == new_norm);
+	} else {
+		success = FALSE;
+	}
 
 	channel.norm = old_norm;
 
-	return (0 == xioctl (info, VIDIOCSCHAN, &channel));
+	if (-1 == xioctl (info, VIDIOCSCHAN, &channel))
+		return FALSE;
+
+	return success;
 }
 
 static tv_bool
@@ -1613,7 +1639,7 @@ get_video_standard_list		(tveng_device_info *	info)
 	if (!info->panel.cur_video_input)
 		return TRUE;
 
-	if (P_INFO (info)->bttv_driver) {
+	if (DRIVER_BTTV == P_INFO (info)->driver) {
 		if (info->panel.video_standards)
 			return TRUE; /* invariable */
 
@@ -1625,7 +1651,7 @@ get_video_standard_list		(tveng_device_info *	info)
 	if (IS_TUNER_LINE (info->panel.cur_video_input)) {
 		/* For API compatibility bttv's VIDICGTUNER reports
 		   only PAL, NTSC, SECAM. */
-		if (P_INFO (info)->bttv_driver) {
+		if (DRIVER_BTTV == P_INFO (info)->driver) {
 			/* XXX perhaps we can probe supported standards? */
 			flags = (unsigned int) ~0;
 		} else {
@@ -1663,8 +1689,35 @@ get_video_standard_list		(tveng_device_info *	info)
 		s->norm = i;
 	}
 
-	if (get_video_standard (info))
+	if (TVENG1_RIVATV_TEST) {
+		struct video_channel channel;
+
+		CLEAR (channel);
+
+		if (0 == xioctl (info, VIDIOCGCHAN, &channel)) {
+			channel.norm = VIDEO_MODE_AUTO;
+
+			/* Error ignored. */
+			xioctl (info, VIDIOCSCHAN, &channel);
+		}
+	}
+
+	if (get_video_standard (info)) {
+		if (NULL == info->panel.cur_video_standard) {
+			tv_video_standard *s;
+
+			/* VIDEO_MODE_AUTO is bad. For VBI capturing
+			   and recording should distinguish at least
+			   between NTSC and PAL/SECAM. */
+
+			s = info->panel.video_standards; /* first */
+
+			/* Error ignored. */
+			set_video_standard (info, s);
+		}
+
 		return TRUE;
+	}
 
  failure:
 	free_video_standard_list (&info->panel.video_standards);
@@ -1932,6 +1985,9 @@ get_video_input_list		(tveng_device_info *	info)
 
 		switch (channel.type) {
 		case VIDEO_TYPE_TV:
+			if (TVENG1_RIVATV_TEST)
+				continue;
+
 			type = TV_VIDEO_LINE_TYPE_TUNER;
 			break;
 
@@ -1965,13 +2021,6 @@ get_video_input_list		(tveng_device_info *	info)
 			if (!tuner_bounds (info, vi))
 				goto failure;
 		}
-	}
-
-	if (info->panel.video_inputs) {
-		/* There is no ioctl to query the current video input,
-		   we can only reset to a known channel. */
-		if (!set_video_input (info, info->panel.video_inputs))
-			goto failure;
 	}
 
 	return TRUE;
@@ -2038,6 +2087,7 @@ get_capture_and_overlay_parameters
 static tv_bool
 get_overlay_buffer		(tveng_device_info *	info)
 {
+	struct private_tveng1_device_info *p_info = P_INFO (info);
 	struct video_buffer buffer;
 	tv_pixfmt pixfmt;
 
@@ -2051,33 +2101,68 @@ get_overlay_buffer		(tveng_device_info *	info)
 	if (-1 == xioctl (info, VIDIOCGFBUF, &buffer))
 		return FALSE;
 
-	/* rivatv 0.8.6 bug: Doesn't provide this information, but for
-	   chroma-key overlay we can live without it. */
-	if (0 == (buffer.width
-		  | buffer.height
-		  | buffer.depth)) {
-		info->overlay.buffer.base = (unsigned long) buffer.base;
+	info->overlay.buffer.base = (unsigned long) buffer.base;
+
+	/* rivatv 0.8.6 bug: Doesn't provide format information
+	   which is required for safety checks and clipping. */
+	if (DRIVER_RIVATV == p_info->driver) {
+		info->overlay.buffer.format = p_info->overlay_buffer_format;
 		return TRUE;
 	}
 
 	pixfmt = pig_depth_to_pixfmt ((unsigned int) buffer.depth);
 
 	if (!tv_image_format_init (&info->overlay.buffer.format,
-				   (unsigned int) buffer.width,
-				   (unsigned int) buffer.height,
-				   (unsigned int) buffer.bytesperline,
-				   pixfmt,
-				   TV_COLSPC_UNKNOWN)) {
+				  (unsigned int) buffer.width,
+				  (unsigned int) buffer.height,
+				  (unsigned int) buffer.bytesperline,
+				  pixfmt,
+				  TV_COLSPC_UNKNOWN)) {
 		tv_error_msg (info, _("Driver %s returned an unknown or "
-			      "invalid frame buffer format."),
+				      "invalid frame buffer format."),
 			      info->node.label);
+
 		info->tveng_errno = EINVAL;
-		return FALSE;
 	}
 
-	info->overlay.buffer.base = (unsigned long) buffer.base;
-
 	return TRUE;
+}
+
+static tv_bool
+set_overlay_buffer		(tveng_device_info *	info,
+				 const tv_overlay_buffer *target)
+{
+	struct private_tveng1_device_info *p_info = P_INFO (info);
+	struct video_buffer buffer;
+	const tv_pixel_format *pf;
+
+	if (!(info->caps.flags & TVENG_CAPS_OVERLAY))
+		return FALSE;
+
+	/* rivatv 0.8.6: Has no effect, so it's pointless to collect
+	   an EPERM and try zapping_setup_fb. */
+	if (DRIVER_RIVATV == p_info->driver) {
+		P_INFO (info)->overlay_buffer_format = target->format;
+		return get_overlay_buffer (info);
+	}
+
+	buffer.base = (void *) target->base;
+	buffer.width = target->format.width;
+	buffer.height = target->format.height;
+
+	pf = target->format.pixel_format;
+
+	if (32 == pf->bits_per_pixel)
+		buffer.depth = 32; /* depth 24 bpp 32 */
+	else
+		buffer.depth = pf->color_depth; /* 15, 16, 24 */
+
+	buffer.bytesperline = target->format.bytes_per_line[0];
+
+	if (-1 == xioctl (info, VIDIOCSFBUF, &buffer))
+		return FALSE;
+
+	return get_overlay_buffer (info);
 }
 
 /*
@@ -2785,6 +2870,48 @@ ov511_get_button_state		(tveng_device_info	*info)
   return (button_state - '0');
 }
 
+static void
+identify_driver			(tveng_device_info	*info)
+{
+	struct private_tveng1_device_info *p_info = P_INFO (info);
+	struct pwc_probe probe;
+
+	CLEAR (probe);
+
+	if (0 == pwc_xioctl_may_fail (info, VIDIOCPWCPROBE, &probe)) {
+		if (0 == strncmp (info->caps.name,
+				  probe.name,
+				  MIN (sizeof (info->caps.name),
+				       sizeof (probe.name)))) {
+			p_info->driver = DRIVER_PWC;
+			return;
+		}
+	}
+
+	if (strstr (info->caps.name, "rivatv")) {
+		p_info->driver = DRIVER_RIVATV;
+		return;
+	}
+
+	/* Rather poor, but we must not send a private
+	   ioctl to innocent drivers. */
+	if (strstr (info->caps.name, "bt")
+	    || strstr (info->caps.name, "BT")) {
+		int version;
+		int dummy;
+
+		dummy = -1;
+
+		version = bttv_xioctl_may_fail (info, BTTV_VERSION, &dummy);
+		if (-1 != version) {
+			p_info->driver = DRIVER_BTTV;
+			return;
+		}
+	}
+
+	p_info->driver = 0;
+}
+
 /*
   Return fd for the device file opened. Checks if the device is a
   valid video device. -1 on error.
@@ -2891,47 +3018,17 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
   p_info->buffers = NULL;
   p_info->first_queued = NULL;
 
-	p_info->pwc_driver = FALSE;
-
-	{
-		struct pwc_probe probe;
-
-		CLEAR (probe);
-
-		if (0 == pwc_xioctl_may_fail (info, VIDIOCPWCPROBE, &probe)) {
-			if (0 == strncmp (info->caps.name,
-					  probe.name,
-					  MIN (sizeof (info->caps.name),
-					       sizeof (probe.name)))) {
-				p_info->pwc_driver = TRUE;
-			}
-		}
-	}
-
-	p_info->bttv_driver = FALSE;
-
-	if (!p_info->pwc_driver) {
-		/* Rather poor, but we must not send a private
-		   ioctl to innocent drivers. */
-		if (strstr (info->caps.name, "bt")
-		    || strstr (info->caps.name, "BT")) {
-			int version;
-			int dummy;
-
-			dummy = -1;
-
-			version = bttv_xioctl_may_fail (info, BTTV_VERSION,
-							&dummy);
-			if (version != -1)
-				p_info->bttv_driver = TRUE;
-		}
+	if (TVENG1_RIVATV_TEST) {
+		info->caps.flags = (TVENG_CAPS_CAPTURE |
+				    TVENG_CAPS_OVERLAY |
+				    TVENG_CAPS_CHROMAKEY);
+		p_info->driver = DRIVER_RIVATV;
+	} else {
+		identify_driver (info);
 	}
 
   /* This tries to fill the fb_info field */
   get_overlay_buffer (info);
-
-  /* Set some flags for this device */
-  fcntl( info -> fd, F_SETFD, FD_CLOEXEC );
 
 	{
 		struct sigaction sa;
@@ -2955,8 +3052,6 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
 #else
   p_info->mute_flag_readable	= TRUE;
 #endif
-
-  p_info->channel_norm_usable	= channel_norm_test (info);
 
   /* Everything seems to be OK with this device */
   return (info -> fd);
@@ -3049,6 +3144,9 @@ int tveng1_attach_device(const char* device_file,
   assert (NULL != device_file);
   assert (NULL != info);
 
+  memset ((char *) p_info + sizeof (p_info->info), 0,
+	  sizeof (*p_info) - sizeof (*info));
+
   if (-1 != info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
 
@@ -3114,8 +3212,18 @@ int tveng1_attach_device(const char* device_file,
 	info->panel.video_standards = NULL;
 	info->panel.cur_video_standard = NULL;
 
-	/* XXX error */
-	get_video_input_list (info);
+	/* XXX error ignored */
+	if (get_video_input_list (info)) {
+		p_info->channel_norm_usable = channel_norm_test (info);
+
+		if (info->panel.video_inputs) {
+			/* There is no ioctl to query the current
+			   video input, we can only reset to a
+			   known channel. */
+			/* XXX error ignored */
+			set_video_input (info, info->panel.video_inputs);
+		}
+	}
 
 	if (!init_audio (P_INFO (info)))
 		return -1;
@@ -3142,6 +3250,7 @@ int tveng1_attach_device(const char* device_file,
 
   CLEAR (info->overlay);
 
+  info->overlay.set_buffer = set_overlay_buffer;
   info->overlay.get_buffer = get_overlay_buffer;
   info->overlay.set_window = set_overlay_window;
   info->overlay.get_window = get_overlay_window;
