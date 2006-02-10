@@ -1433,6 +1433,8 @@ get_overlay_buffer		(tveng_device_info *	info)
 
 	/* XXX fb.capability, fb.flags ignored */
 
+	info->overlay.buffer.base = (unsigned long) fb.base;
+
 	if (!tv_image_format_init (&info->overlay.buffer.format,
 				   fb.fmt.width,
 				   fb.fmt.height,
@@ -1440,13 +1442,11 @@ get_overlay_buffer		(tveng_device_info *	info)
 				   pixelformat_to_pixfmt (fb.fmt.pixelformat),
 				   TV_COLSPC_UNKNOWN)) {
 		tv_error_msg (info, _("Driver %s returned an unknown or "
-			      "invalid frame buffer format."),
+				      "invalid frame buffer format."),
 			      info->node.label);
-		info->tveng_errno = EINVAL;
-		return FALSE;
-	}
 
-	info->overlay.buffer.base = (unsigned long) fb.base;
+		info->tveng_errno = EINVAL;
+	}
 
 	return TRUE;
 }
@@ -2940,6 +2940,9 @@ int tveng25_attach_device(const char* device_file,
 
   assert (device_file != NULL);
   assert (info != NULL);
+
+  memset ((char *) p_info + sizeof (p_info->info), 0,
+	  sizeof (*p_info) - sizeof (*info));
 
   if (-1 != info -> fd) /* If the device is already attached, detach it */
     tveng_close_device(info);
