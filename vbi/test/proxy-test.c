@@ -25,6 +25,9 @@
  *    for a list of possible options.
  *
  *  $Log: not supported by cvs2svn $
+ *  Revision 1.16  2004/12/31 06:05:20  mschimek
+ *  *** empty log message ***
+ *
  *  Revision 1.15  2004/11/07 10:52:47  mschimek
  *  *** empty log message ***
  *
@@ -69,7 +72,7 @@
  */
 
 static const char
-rcsid [] = "$Id: proxy-test.c,v 1.16 2004-12-31 06:05:20 mschimek Exp $";
+rcsid [] = "$Id: proxy-test.c,v 1.17 2006-02-10 06:25:38 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -350,7 +353,7 @@ static const unsigned char unhamTab[256] =
    0x08, 0xff, 0xff, 0x05, 0xff, 0x0e, 0x0d, 0xff,
    0xff, 0x0e, 0x0f, 0xff, 0x0e, 0x0e, 0xff, 0x0e
 };
-#define UnHam84Byte(P,V)   (( *(V) = ((int)unhamTab[*((unsigned char *)(P))] | ((int)unhamTab[*(((unsigned char *)(P))+1)] << 4)) ) >= 0 )
+#define UnHam84Byte(P,V)   (( *(V) = ((int)unhamTab[*((const unsigned char *)(P))] | ((int)unhamTab[*(((const unsigned char *)(P))+1)] << 4)) ) >= 0 )
 
 /* ---------------------------------------------------------------------------
 ** Decode a teletext data line
