@@ -55,6 +55,10 @@
 #include "zmisc.h"
 #include "../common/device.h"
 
+#ifndef TVENG1_RIVATV_TEST
+#  define TVENG1_RIVATV_TEST 0
+#endif
+
 /* int rc = 0; */
 
 /* XXX recursive callbacks not good, think again. */
@@ -282,10 +286,14 @@ clone_controls			(tv_control **		list,
 
 typedef void (*tveng_controller)(struct tveng_module_info *info);
 static tveng_controller tveng_controllers[] = {
+#if TVENG1_RIVATV_TEST
+  tveng1_init_module,
+#else
   tvengxv_init_module,
   tveng25_init_module,
   tveng1_init_module,
   tvengbktr_init_module,
+#endif
 };
 
 
@@ -704,7 +712,8 @@ int tveng_attach_device(const char* device_file,
 	fprintf (stderr, "Video standards:\n");
 
 	for (s = info->panel.video_standards, i = 0; s; s = s->_next, ++i)
-	  fprintf (stderr, "  %d) '%s'  0x%llx %dx%d  %.2f  %u  hash: %x\n",
+	  fprintf (stderr,
+		   "  %d) '%s'  0x%" PRIx64 " %dx%d  %.2f  %u  hash: %x\n",
 		   i, s->label, s->videostd_set,
 		   s->frame_width, s->frame_height,
 		   s->frame_rate, s->frame_ticks, s->hash);
@@ -1399,7 +1408,7 @@ tv_set_video_standard_by_id	(tveng_device_info *	info,
 		if (ts->videostd_set & videostd_set) {
 			if (ts) {
 				info->tveng_errno = -1;
-				tv_error_msg (info, "Ambiguous id %llx",
+				tv_error_msg (info, "Ambiguous id %" PRIx64,
 					      videostd_set);
 				RETURN_UNTVLOCK (FALSE);
 			}
@@ -3066,17 +3075,6 @@ read_file_from_fd		(char *			buffer,
 
 #define ZSFB_NAME "zapping_setup_fb"
 
-static tv_bool
-supports_only_chromakey_overlay	(tveng_device_info *	info)
-{
-	return ((info->caps.flags
-		 & (TVENG_CAPS_OVERLAY |
-		    TVENG_CAPS_CHROMAKEY |
-		    TVENG_CAPS_CLIPPING))
-		== (TVENG_CAPS_OVERLAY |
-		    TVENG_CAPS_CHROMAKEY));
-}
-
 /**
  * This function sets the overlay buffer, where images will be stored.
  * When this operation is privileged we run the zapping_setup_fb
@@ -3096,6 +3094,7 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 	unsigned int argc;
 	pid_t pid;
 	int stderr_pipe[2];
+	int old_flags;
 	char errmsg[256];
 	int status;
 	int r;
@@ -3116,36 +3115,23 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	tv_clear_error (info);
 
-	/* We can save a lot work if the driver is already
+	/* We can save a lot of work if the driver is already
 	   initialized for this target. */
+	if (info->overlay.get_buffer (info)
+	    && verify_overlay_buffer (target, &info->overlay.buffer))
+		RETURN_UNTVLOCK (TRUE);
 
-	if (info->overlay.get_buffer (info)) {
-		if (verify_overlay_buffer (target, &info->overlay.buffer))
-			goto success;
-
-		if (supports_only_chromakey_overlay (info)) {
-			if (info->overlay.buffer.base == target->base) {
-				/* Close enough. E.g. rivatv 0.8.6 doesn't
-				   return other information. */
-
-				info->overlay.buffer.x = 0;
-				info->overlay.buffer.y = 0;
-				info->overlay.buffer.format = target->format;
-
-				goto success;
-			}
+	/* We can still save a lot of work if the driver supports
+	   set_overlay directly and this app has the required
+	   privileges. */
+	if (info->overlay.set_buffer) {
+		if (info->overlay.set_buffer (info, target)) {
+			RETURN_UNTVLOCK (verify_overlay_buffer
+					 (target, &info->overlay.buffer));
 		}
 
-		/* We can still save a lot of work if the driver supports
-		   set_overlay directly and this app has the required
-		   privileges. */
-		if (info->overlay.set_buffer) {
-			tv_bool success;
-
-			success = info->overlay.set_buffer (info, target);
-
-			if (success || EPERM != errno)
-				RETURN_UNTVLOCK (success);
+		if (EPERM != errno) {
+			RETURN_UNTVLOCK (FALSE);
 		}
 	}
 
@@ -3189,6 +3175,15 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 		goto fork_error;
 
 	fflush (stderr);
+
+	/* Just in case. XXX error ignored. */
+	old_flags = fcntl (info->fd, F_GETFD, 0);
+	if (-1 != old_flags
+	    && (old_flags & FD_CLOEXEC)) {
+		old_flags &= ~FD_CLOEXEC;
+		/* XXX error ignored. */
+		fcntl (info->fd, F_SETFD, old_flags);
+	}
 
 	pid = fork ();
 
@@ -3282,22 +3277,10 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 		if (!info->overlay.get_buffer (info))
 			goto failure;
 
-		if (verify_overlay_buffer (target, &info->overlay.buffer))
-			break;
+		if (!verify_overlay_buffer (target, &info->overlay.buffer))
+			goto zsfb_failed;
 
-		if (supports_only_chromakey_overlay (info)) {
-			if (info->overlay.buffer.base != target->base)
-				goto wrong_address;
-
-			/* See above. */
-			info->overlay.buffer.x = 0;
-			info->overlay.buffer.y = 0;
-			info->overlay.buffer.format = target->format;
-
-			break;
-		}
-
-		goto zsfb_failed;
+		break;
 
 	case 1: /* zapping_setup_fb failure */
 		info->tveng_errno = 0;
@@ -3322,7 +3305,6 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 		goto failure;
 	}
 
- success:
 	RETURN_UNTVLOCK (TRUE);
 
  fork_error:
@@ -3334,10 +3316,6 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
  zsfb_failed:
 	/* TRANSLATORS: Program name. */
 	tv_error_msg (info, _("%s failed."), ZSFB_NAME);
-	goto failure;
-
- wrong_address:
-	tv_error_msg (info, _("Cannot overlay on this screen."));
 	goto failure;
 
  failure:
@@ -3358,14 +3336,14 @@ overlay_window_visible		(const tveng_device_info *info,
 				   + info->overlay.buffer.format.width)))
 		return FALSE;
 
-	if (unlikely ((w->x + w->width) <= info->overlay.buffer.x))
+	if (unlikely ((int)(w->x + w->width) <= (int) info->overlay.buffer.x))
 		return FALSE;
 
 	if (unlikely (w->y > (int)(info->overlay.buffer.y
 				   + info->overlay.buffer.format.height)))
 		return FALSE;
 
-	if (unlikely ((w->y + w->height) <= info->overlay.buffer.y))
+	if (unlikely ((int)(w->y + w->height) <= (int) info->overlay.buffer.y))
 		return FALSE;
 
 	return TRUE;
@@ -3515,15 +3493,20 @@ static void
 verify_clip_vector		(tv_clip_vector *	vec,
 				 tv_window *		win)
 {
+	const tv_clip *clip;
+	const tv_clip *end;
+
 	/* Make sure clips are within bounds and in proper order. */
 
-	if (vec->size > 1) {
-		const tv_clip *clip;
-		const tv_clip *end;
+	if (0 == vec->size)
+		return;
 
+	clip = vec->vector;
+
+	if (vec->size > 1) {
 		end = vec->vector + vec->size - 1;
 
-		for (clip = vec->vector; clip < end; ++clip) {
+		for (; clip < end; ++clip) {
 			assert (clip->x1 < clip->x2);
 			assert (clip->y1 < clip->y2);
 			assert (clip->x2 <= win->width);
@@ -3536,12 +3519,12 @@ verify_clip_vector		(tv_clip_vector *	vec,
 				assert (clip->y2 <= clip[1].y2);
 			}
 		}
-
-		assert (clip->x1 < clip->x2);
-		assert (clip->y1 < clip->y2);
-		assert (clip->x2 <= win->width);
-		assert (clip->y2 <= win->height);
 	}
+
+	assert (clip->x1 < clip->x2);
+	assert (clip->y1 < clip->y2);
+	assert (clip->x2 <= win->width);
+	assert (clip->y2 <= win->height);
 }
 
 static const tv_window *
@@ -3564,7 +3547,12 @@ p_tv_set_overlay_window		(tveng_device_info *	info,
 	init_overlay_window (info, &win);
 
 	if (!overlay_window_visible (info, &win)) {
+		if (info->overlay.active)
+			if (!p_tv_enable_overlay (info, FALSE))
+				goto failure;
+
 		info->overlay.window = win;
+
 		return &info->overlay.window; /* nothing to do */
 	}
 
@@ -3592,8 +3580,8 @@ p_tv_set_overlay_window		(tveng_device_info *	info,
 		_tv_clip_vector_dump (&safe_vec, stderr);
 
 	if (info->overlay.active)
-	  if (!p_tv_enable_overlay (info, FALSE))
-	    goto failure;
+		if (!p_tv_enable_overlay (info, FALSE))
+			goto failure;
 
 	if (!info->overlay.set_window (info, &win, &safe_vec,
 				       info->overlay.chromakey))
@@ -3723,13 +3711,14 @@ tv_set_overlay_window_chromakey	(tveng_device_info *	info,
 	init_overlay_window (info, &win);
 
 	if (!overlay_window_visible (info, &win)) {
-		info->overlay.window = win;
-		return &info->overlay.window; /* nothing to do */
-	}
+		if (info->overlay.active)
+			if (!p_tv_enable_overlay (info, FALSE))
+				goto failure;
 
-	if (info->overlay.active)
-	  if (!p_tv_enable_overlay (info, FALSE))
-	    goto failure;
+		info->overlay.window = win;
+
+		RETURN_UNTVLOCK (&info->overlay.window); /* nothing to do */
+	}
 
 	/* Calculate boundary clips in case the driver DMAs instead
 	   of chromakeys the image. */
@@ -3739,10 +3728,18 @@ tv_set_overlay_window_chromakey	(tveng_device_info *	info,
 	if (!add_boundary_clips (info, &safe_vec, &win))
 		goto failure2;
 
+	if (0)
+		fprintf (stderr, "win.width=%u height=%u\n",
+			 win.width, win.height);
+
 	verify_clip_vector (&safe_vec, &win);
 
 	if (0)
 		_tv_clip_vector_dump (&safe_vec, stderr);
+
+	if (info->overlay.active)
+		if (!p_tv_enable_overlay (info, FALSE))
+			goto failure2;
 
 	if (!info->overlay.set_window (info, &win, &safe_vec, chromakey))
 		goto failure2;
@@ -4785,8 +4782,8 @@ append_video_standard		(tv_video_standard **	list,
 		   PAL DK 0xe0, no bug.
 		if (l->videostd_set & ts->videostd_set)
 			fprintf (stderr, "WARNING: TVENG: Video standard "
-				 "set collision between %s (0x%llx) "
-				 "and %s (0x%llx)\n",
+				 "set collision between %s (0x%" PRIx64 ") "
+				 "and %s (0x%" PRIx64 ")\n",
 				 l->label, l->videostd_set,
 				 ts->label, videostd_set);
 		*/
