@@ -1,3 +1,37 @@
+2005-02-10    <mschimek@users.sf.net>
+
+	* Prerelease 0.10cvs2.
+
+2006-02-10    <mschimek@users.sf.net>
+
+	* src/overlay.c (stop_overlay): Didn't disconnect from zapping
+	  delete event.
+	* src/tvengxv.c (tvengxv_attach_device),
+	  src/tvengemu.c (tvengemu_attach_device): 
+	  src/tvengbktr.c (tvengbktr_attach_device),
+	  src/tveng25.c (tveng25_attach_device),
+	  src/tveng1.c (tveng1_attach_device): Clear the private part of
+	  tveng_device_info. tveng25 interface crashed due to data left
+	  over from a previous failed tveng1_attach_device() call.
+	* src/tveng.c (verify_clip_vector): Didn't check the last
+	  clip in a vector.
+	(overlay_window_visible): Fixed a signedness bug.
+	(p_tv_set_overlay_window): Didn't disable overlay when the
+	  window became invisible.
+	(tv_set_overlay_window_chromakey): Didn't disable overlay when
+	  the window became invisible.
+	* src/tveng1.c (channel_norm_test): Incorrectly assumed VIDIOCSCHAN
+	  returns parameters, not really testing anything.
+	(p_tveng1_open_device_file): Used to set FD_CLOEXEC which is
+	  precisely what we not want when calling zapping_setup_fb.
+	(get_video_standard_list): Select PAL if the current standard is
+	  AUTO.
+	(get_overlay_buffer): Always return a buffer format, we need it to
+	  clip against screen boundaries. 
+	(set_overlay_buffer): Added.
+	(identify_driver): Added check for rivatv driver for a work-around
+	  in set/get_overlay_buffer().
+
 2006-02-09    <mschimek@users.sf.net>
 
 	* zapping_setup_fb/zapping_setup_fb.c (long_options): Array
