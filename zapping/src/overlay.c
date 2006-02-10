@@ -857,8 +857,15 @@ stop_overlay			(void)
 
   g_assert (c->main_window != NULL);
 
-  /* XXX no const limit please */
-  z_video_set_max_size (Z_VIDEO (c->video_window), 16384, 16384);
+  g_signal_handlers_disconnect_matched
+	  (G_OBJECT (zapping),
+	   (G_SIGNAL_MATCH_FUNC |
+	    G_SIGNAL_MATCH_DATA),
+	   /* signal_id */ 0,
+	   /* detail */ 0,
+	   /* closure */ NULL,
+	   G_CALLBACK (on_main_window_delete_event),
+	   /* user_data */ c);
 
   switch (c->mode)
     {
@@ -925,6 +932,9 @@ stop_overlay			(void)
   tv_clip_vector_destroy (&c->cur_vector);
 
   tv_set_capture_mode (c->info, CAPTURE_MODE_NONE);
+
+  /* XXX no const limit please */
+  z_video_set_max_size (Z_VIDEO (c->video_window), 16384, 16384);
 
   CLEAR (*c);
 }
