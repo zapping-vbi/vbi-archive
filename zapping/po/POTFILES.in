@@ -10,15 +10,15 @@ libvbi/exp-vtx.c
 libvbi/teletext.c
 plugins/alirc/alirc.c
 plugins/deinterlace/DI_GreedyH/DI_GreedyH.c
-plugins/deinterlace/DI_Misc/DI_Adaptive.c
-plugins/deinterlace/DI_Misc/DI_BlendedClip.c
+#plugins/deinterlace/DI_Misc/DI_Adaptive.c
+#plugins/deinterlace/DI_Misc/DI_BlendedClip.c
 plugins/deinterlace/DI_Misc/DI_Bob.c
 plugins/deinterlace/DI_Misc/DI_EvenOnly.c
 plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c
 plugins/deinterlace/DI_Misc/DI_Greedy.c
 plugins/deinterlace/DI_Misc/DI_MoComp2.c
 plugins/deinterlace/DI_Misc/DI_OddOnly.c
-plugins/deinterlace/DI_Misc/DI_OldGame.c
+#plugins/deinterlace/DI_Misc/DI_OldGame.c
 plugins/deinterlace/DI_Misc/DI_ScalerBob.c
 plugins/deinterlace/DI_Misc/DI_TomsMoComp.c
 plugins/deinterlace/DI_Misc/DI_TwoFrame.c
@@ -69,7 +69,7 @@ src/tvengxv.c
 src/v4linterface.c
 #src/video_xv.c
 src/zapping.c
-src/zapzilla.c
+#src/zapzilla.c
 src/zconf.c
 src/zgconf.c
 src/zmisc.c
