@@ -1,9 +1,15 @@
 2005-02-10    <mschimek@users.sf.net>
 
+	* zapping.schemas.in: Missing deinterlace/method.
+
+2005-02-10    <mschimek@users.sf.net>
+
 	* Prerelease 0.10cvs2.
 
 2006-02-10    <mschimek@users.sf.net>
 
+	* po/POTFILES.in: DI_Adaptive.c, DI_BlendedClip.c, DI_OldGame,
+	  src/zapzilla.c not used/distributed this time.
 	* src/overlay.c (stop_overlay): Didn't disconnect from zapping
 	  delete event.
 	* src/tvengxv.c (tvengxv_attach_device),
