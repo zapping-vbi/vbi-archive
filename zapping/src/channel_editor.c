@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.50 2005-10-22 15:48:33 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.51 2006-02-25 17:34:03 mschimek Exp $ */
 
 /*
   TODO:
@@ -1584,7 +1584,7 @@ create_freq_treeview		(channel_editor *	ce)
 
   ce->freq_selection = gtk_tree_view_get_selection (ce->freq_treeview);
   gtk_tree_selection_set_mode (ce->freq_selection, GTK_SELECTION_SINGLE);
-  CONNECT (freq_selection, changed);
+  /* Don't connect here, see below. */
 
   current_rf_channel_table (ce, &ch, NULL);
   ce->freq_model = create_freq_list_model (&ch);
@@ -1640,7 +1640,7 @@ create_channel_treeview		(channel_editor *	ce)
   */
   ce->channel_selection = gtk_tree_view_get_selection (ce->channel_treeview);
   gtk_tree_selection_set_mode (ce->channel_selection, GTK_SELECTION_MULTIPLE);
-  CONNECT (channel_selection, changed);
+  /* Don't connect "changed" signal here, see below. */
 
   ce->channel_model = create_channel_list_model (global_channel_list); /* XXX */
   gtk_tree_view_set_model (ce->channel_treeview,
@@ -1727,7 +1727,7 @@ create_channel_editor		(void)
   struct channel_editor *ce;
   const tv_video_line *l;
 
-  ce = g_malloc (sizeof (*ce));
+  ce = g_malloc0 (sizeof (*ce));
 
   ce->old_channel_list = tveng_tuned_channel_list_new (global_channel_list);
 
@@ -1878,9 +1878,9 @@ create_channel_editor		(void)
 	    gtk_widget_show (vbox);
 	    gtk_box_pack_start (GTK_BOX (hbox), vbox, FALSE, FALSE, 0);
 	    
-	    BUTTON (channel_up,	  GTK_STOCK_GO_UP,   FALSE);
-	    BUTTON (channel_down,	  GTK_STOCK_GO_DOWN, FALSE);
-	    BUTTON (channel_add,	  GTK_STOCK_ADD,     TRUE);
+	    BUTTON (channel_up,	    GTK_STOCK_GO_UP,   FALSE);
+	    BUTTON (channel_down,   GTK_STOCK_GO_DOWN, FALSE);
+	    BUTTON (channel_add,    GTK_STOCK_ADD,     TRUE);
 	    BUTTON (channel_remove, GTK_STOCK_REMOVE,  FALSE);
 	  }
 	}
@@ -2003,6 +2003,10 @@ create_channel_editor		(void)
 			G_CALLBACK (on_ok_clicked), ce);
     }
   }
+
+  /* Must not fire until the dialog is ready. */
+  CONNECT (channel_selection, changed);
+  CONNECT (freq_selection, changed);
 
   return GTK_WIDGET (ce->channel_editor);
 }
