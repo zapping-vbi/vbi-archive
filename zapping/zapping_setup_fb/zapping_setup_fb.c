@@ -115,17 +115,19 @@ error_message			(const char *		file,
 #include "common/device.c"	/* generic device access routines */ 
 
 #ifndef major
-#  define major(dev)  (((dev) >> 8) & 0xff)
+#  define major(dev) ((unsigned int)(((dev) >> 8) & 0xff))
 #endif
 
-int
-device_open_safer		(const char *		device_name,
+zsfb_status
+device_open_safer		(int *			fd,
+				 const char *		device_name,
 				 int			device_fd,
-				 int			major_number,
-				 int			flags)
+				 unsigned int		major_number,
+				 unsigned int		flags)
 {
   struct stat st;
-  int fd;
+
+  assert (NULL != fd);
 
   if (NULL != device_name)
     {
@@ -134,7 +136,7 @@ device_open_safer		(const char *		device_name,
 	  errmsg (_("Device name %s is unsafe, contains dots."),
 		  device_name);
 	  errno = EINVAL;
-	  return -1;
+	  return ZSFB_BAD_DEVICE_NAME;
 	}
 
       if (strncmp (device_name, "/dev/", 5))
@@ -143,7 +145,7 @@ device_open_safer		(const char *		device_name,
 		    "does not begin with /dev/."),
 		  device_name);
 	  errno = EINVAL;
-	  return -1;
+	  return ZSFB_BAD_DEVICE_NAME;
 	}
 
       message (/* verbosity */ 1,
@@ -152,8 +154,8 @@ device_open_safer		(const char *		device_name,
       flags |= O_NOCTTY;
       flags &= ~(O_CREAT | O_EXCL | O_TRUNC);
 
-      fd = device_open (device_log_fp, device_name, flags, 0600);
-      if (-1 == fd)
+      *fd = device_open (device_log_fp, device_name, flags, 0600);
+      if (-1 == *fd)
 	{
 	  int saved_errno = errno;
 
@@ -162,54 +164,53 @@ device_open_safer		(const char *		device_name,
 		  device_name, strerror (saved_errno));
 
 	  errno = saved_errno;
-	  return -1;
+	  return ZSFB_OPEN_ERROR;
 	}
 
-      if (-1 == fstat (fd, &st))
+      if (-1 == fstat (*fd, &st))
 	{
 	  int saved_errno = errno;
 
-	  device_close (device_log_fp, fd);
-	  fd = -1;
+	  device_close (device_log_fp, *fd);
+	  *fd = -1;
 
 	  /* TRANSLATORS: File name, error message. */
 	  errmsg (_("Cannot identify %s. %s."),
 		  device_name, strerror (saved_errno));
 
 	  errno = saved_errno;
-	  return -1;
+	  return ZSFB_UNKNOWN_DEVICE;
 	}
 
       if (!S_ISCHR (st.st_mode))
 	{
-	  device_close (device_log_fp, fd);
-	  fd = -1;
+	  device_close (device_log_fp, *fd);
+	  *fd = -1;
 
 	  errmsg (_("%s is not a device."),
 		  device_name);
 
 	  errno = ENODEV;
-	  return -1;
+	  return ZSFB_UNKNOWN_DEVICE;
 	}
 
       if (0 != major_number)
 	{
 	  if (major_number != major (st.st_rdev))
 	    {
-	      device_close (device_log_fp, fd);
-	      fd = -1;
+	      device_close (device_log_fp, *fd);
+	      *fd = -1;
 
 	      errmsg (_("%s is not a video device."),
 		      device_name);
 
 	      errno = ENODEV;
-	      return -1;
+	      return ZSFB_UNKNOWN_DEVICE;
 	    }
 	}
     }
   else if (-1 != device_fd)
     {
-      /* Expect EBADF. */
       if (-1 == fstat (device_fd, &st))
 	{
 	  int saved_errno = errno;
@@ -217,7 +218,10 @@ device_open_safer		(const char *		device_name,
 	  errmsg (_("Cannot identify file descriptor %d. %s."),
 		  device_fd, strerror (saved_errno));
 	  errno = saved_errno;
-	  return -1;
+	  if (EBADF == saved_errno)
+	    return ZSFB_BAD_DEVICE_FD;
+	  else
+	    return ZSFB_UNKNOWN_DEVICE;
 	}
 
       if (!S_ISCHR (st.st_mode))
@@ -225,7 +229,7 @@ device_open_safer		(const char *		device_name,
 	  errmsg (_("File descriptor %d is not a device."),
 		  device_fd);
 	  errno = ENODEV;
-	  return -1;
+	  return ZSFB_UNKNOWN_DEVICE;
 	}
 
       if (0 != major_number)
@@ -235,7 +239,7 @@ device_open_safer		(const char *		device_name,
 	      errmsg (_("File descriptor %d is not a video device."),
 		      device_fd);
 	      errno = ENODEV;
-	      return -1;
+	      return ZSFB_UNKNOWN_DEVICE;
 	    }
 	}
 
@@ -243,14 +247,17 @@ device_open_safer		(const char *		device_name,
 	       "Using device by file descriptor %d.\n",
 	       device_fd);
 
-      fd = device_fd;
+      *fd = device_fd;
     }
   else
     {
-      assert (0);
+      errmsg (_("Internal error at %s:%u."),
+	      __FILE__, __LINE__);
+      errno = 0;
+      return ZSFB_BUG;
     }
 
-  return fd;
+  return ZSFB_SUCCESS;
 }
 
 void
@@ -267,7 +274,7 @@ drop_root_privileges		(void)
 		    "running with UID %d, EUID %d."),
 		  uid, euid);
 
-	  exit (EXIT_FAILURE);
+	  exit (ZSFB_BUG);
         }
     }
   else if (ROOT_UID == uid)
@@ -281,7 +288,7 @@ drop_root_privileges		(void)
     }
 }
 
-int
+zsfb_status
 restore_root_privileges		(void)
 {
   if (ROOT_UID == euid && ROOT_UID != uid)
@@ -298,11 +305,11 @@ restore_root_privileges		(void)
 		  uid, euid);
 
 	  errno = saved_errno;
-	  return -1; /* failed */
+	  return ZSFB_NO_PERMISSION;
         }
     }
 
-  return 0; /* success */
+  return ZSFB_SUCCESS;
 }
 
 static const char
@@ -361,6 +368,7 @@ int
 main				(int			argc,
 				 char **		argv)
 {
+  zsfb_status status;
   const char *device_name;
   int device_fd;
   const char *display_name;
@@ -368,6 +376,8 @@ main				(int			argc,
   int bpp_arg;
   tv_screen *screens;
   tv_screen *xs;
+
+  status = ZSFB_BUG;
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
   program_invocation_name = argv[0];
@@ -382,7 +392,10 @@ main				(int			argc,
 
     for (fd = 0; fd <= 2; ++fd)
       if (-1 == fcntl (fd, F_GETFL, &flags))
-	exit (EXIT_FAILURE);
+	{
+	  errmsg (_("No standard input, output or error file."));
+	  exit (ZSFB_BUG);
+	}
   }
 
   /* Drop root privileges until we need them. */
@@ -394,13 +407,14 @@ main				(int			argc,
 
   /* Parse arguments. */
 
-  if (0) {
-    unsigned int i;
+  if (0)
+    {
+      unsigned int i;
     
-    for (i = 0; i < argc; ++i)
-      fprintf (stderr, "argv[%u]='%s'\n", i, argv[i]);
-  }
-
+      for (i = 0; i < (unsigned int) argc; ++i)
+	fprintf (stderr, "argv[%u]='%s'\n", i, argv[i]);
+    }
+  
   device_name = default_device_name;
   device_fd = -1;
 
@@ -434,6 +448,7 @@ main				(int			argc,
 	    default:
 	      errmsg (_("Invalid bpp argument %d. Expected 24 or 32."),
 		      bpp_arg);
+	      status = ZSFB_INVALID_BPP;
 	      goto failure;
 	    }
 	  
@@ -466,14 +481,14 @@ main				(int			argc,
 	    {
 	      errmsg (_("Invalid device file descriptor %d."),
 		      device_fd);
-	      exit (EXIT_FAILURE);
+	      exit (ZSFB_BAD_DEVICE_FD);
 	    }
 
 	  break;
 
 	case 'h':
 	  usage (stdout);
-	  exit (EXIT_SUCCESS);
+	  exit (ZSFB_SUCCESS);
 
 	case 'q':
 	  if (verbosity > VERBOSITY_MIN)
@@ -491,7 +506,7 @@ main				(int			argc,
 
 	case 'V':
 	  printf ("%s\n", zsfb_version);
-	  exit (EXIT_SUCCESS);
+	  exit (ZSFB_SUCCESS);
 
 	default:
 	  /* getopt(_long) prints option name when unknown or arg missing. */
@@ -522,6 +537,7 @@ main				(int			argc,
   if (NULL == screens)
     {
       errmsg (_("No screens found."));
+      status = ZSFB_NO_SCREEN;
       goto failure;
     }
 
@@ -556,6 +572,7 @@ main				(int			argc,
 	{
 	  errmsg (_("Cannot open display %s."),
 		  display_name);
+	  status = ZSFB_NO_SCREEN;
 	  goto failure;
 	}
 
@@ -572,6 +589,7 @@ main				(int			argc,
     {
       errmsg (_("Screen %d not found."),
 	      screen_number);
+      status = ZSFB_NO_SCREEN;
       goto failure;
     }
 
@@ -579,46 +597,47 @@ main				(int			argc,
     {
       errmsg (_("DMA is not possible on screen %d."),
 	      xs->screen_number);
+      status = ZSFB_OVERLAY_IMPOSSIBLE;
       goto failure;
     }
 
-  {
-    int result;
+  status = setup_v4l25 (device_name, device_fd, &xs->target);
+  if (ZSFB_UNKNOWN_DEVICE == status) /* not Linux 2.6 V4L2 */
+    {
+      status = setup_v4l2 (device_name, device_fd, &xs->target);
+      if (ZSFB_UNKNOWN_DEVICE == status) /* not V4L2 0.20 */
+	{
+	  status = setup_v4l (device_name, device_fd, &xs->target);
+	  if (ZSFB_UNKNOWN_DEVICE == status) /* not V4L */
+	    {
+	      if (NULL != device_name)
+		errmsg (_("%s is not a V4L or V4L2 device."),
+			device_name);
+	      else if (-1 != device_fd)
+		errmsg (_("File descriptor %d is not a V4L or V4L2 device."),
+			device_fd);
+	      else
+		errmsg (_("Cannot identify the video capture device."));
 
-    result = setup_v4l25 (device_name, device_fd, &xs->target);
-    if (-2 == result) /* not Linux 2.6 V4L2 */
-      {
-	result = setup_v4l2 (device_name, device_fd, &xs->target);
-	if (-2 == result) /* not V4L2 0.20 */
-	  {
-	    result = setup_v4l (device_name, device_fd, &xs->target);
-	    if (-2 == result) /* not V4L */
-	      {
-		if (NULL != device_name)
-		  errmsg (_("%s is not a V4L or V4L2 device."),
-			  device_name);
-		else if (-1 != device_fd)
-		  errmsg (_("File descriptor %d is not a V4L or V4L2 device."),
-			  device_fd);
+	      goto failure;
+	    }
+	}
+    }
 
-		goto failure;
-	      }
-	  }
-      }
-
-    if (result < 0)
-      goto failure;
-  }
+  if (ZSFB_SUCCESS != status)
+    goto failure;
 
   message (/* verbosity */ 1,
 	   "Setup completed.\n");
 
-  return EXIT_SUCCESS;
+  exit (ZSFB_SUCCESS);
 
  failure:
   message (/* verbosity */ 1,
 	   "Setup failed. Try %s -v or -vv for more details.\n",
 	   program_invocation_name);
+
+  exit (status);
 
   return EXIT_FAILURE;
 }
