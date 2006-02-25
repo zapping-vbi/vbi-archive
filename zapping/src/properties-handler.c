@@ -764,10 +764,7 @@ picture_sizes_setup		(GtkWidget *		page)
 
   selection = gtk_tree_view_get_selection (tree_view);
   gtk_tree_selection_set_mode (selection, GTK_SELECTION_MULTIPLE);
-
-  g_signal_connect (G_OBJECT (selection), "changed",
-  		    G_CALLBACK (picture_sizes_on_selection_changed),
-		    tree_view);
+  /* Don't connect "changed" signal here, see below. */
 
   list_store = picture_sizes_create_model ();
   gtk_tree_view_set_model (tree_view, GTK_TREE_MODEL (list_store));
@@ -820,6 +817,12 @@ picture_sizes_setup		(GtkWidget *		page)
   g_signal_connect (G_OBJECT (widget), "clicked",
 		    G_CALLBACK (picture_sizes_on_remove_clicked),
 		    tree_view);
+
+  /* Must not fire until the dialog is ready. */
+  g_signal_connect (G_OBJECT (selection), "changed",
+  		    G_CALLBACK (picture_sizes_on_selection_changed),
+		    tree_view);
+
 }
 
 /* Toolbar style option menu mostly copied from libgnomeui,
