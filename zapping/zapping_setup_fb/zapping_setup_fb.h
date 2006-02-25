@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping_setup_fb.h,v 1.9 2005-10-25 09:25:35 mschimek Exp $ */
+/* $Id: zapping_setup_fb.h,v 1.10 2006-02-25 17:34:36 mschimek Exp $ */
 
 #ifndef ZAPPING_SETUP_FB_H
 #define ZAPPING_SETUP_FB_H
@@ -33,9 +33,28 @@
 
 #define ROOT_UID 0
 
+/* Keep this in sync with tveng.c. */
+typedef enum {
+	ZSFB_SUCCESS = EXIT_SUCCESS,
+
+	ZSFB_BUG = 60,
+	ZSFB_NO_PERMISSION,
+	ZSFB_NO_SCREEN,
+	ZSFB_INVALID_BPP,
+	ZSFB_BAD_DEVICE_NAME,
+	ZSFB_BAD_DEVICE_FD,
+	ZSFB_UNKNOWN_DEVICE,
+	ZSFB_OPEN_ERROR,
+	ZSFB_IOCTL_ERROR,
+	ZSFB_OVERLAY_IMPOSSIBLE,
+} zsfb_status;
+
 #ifdef HAVE_GNU_C_VARIADIC_MACROS
 #  define errmsg(template, args...)					\
      error_message (__FILE__, __LINE__, template , ##args)
+#  define errmsg_ioctl(name, errno)					\
+     error_message (__FILE__, __LINE__, _("Ioctl %s failed: %s."),	\
+		    name, strerror (errno))
 #else
 #  error Compiler does not support GNU C variadic macros
 #endif
@@ -61,7 +80,7 @@ extern FILE *		device_log_fp;
 
 extern void
 drop_root_privileges		(void);
-extern int
+extern zsfb_status
 restore_root_privileges		(void);
 
 extern void
@@ -77,23 +96,24 @@ error_message			(const char *		file,
 				 ...)
   __attribute__ ((_zsfb_nonnull (1), format (printf, 3, 4)));
 
-extern int
-device_open_safer		(const char *		device_name,
+extern zsfb_status
+device_open_safer		(int *			fd,
+				 const char *		device_name,
 				 int			device_fd,
-				 int			major_number,
-				 int			flags);
-
-extern int
+				 unsigned int		major_number,
+				 unsigned int		flags)
+  __attribute__ ((_zsfb_nonnull (1)));
+extern zsfb_status
 setup_v4l	 		(const char *		device_name,
 				 int			device_fd,
 				 const tv_overlay_buffer *buffer)
   __attribute__ ((_zsfb_nonnull (3)));
-extern int
+extern zsfb_status
 setup_v4l2	 		(const char *		device_name,
 				 int			device_fd,
 				 const tv_overlay_buffer *buffer)
   __attribute__ ((_zsfb_nonnull (3)));
-extern int
+extern zsfb_status
 setup_v4l25	 		(const char *		device_name,
 				 int			device_fd,
 				 const tv_overlay_buffer *buffer)
