@@ -260,6 +260,7 @@ struct private_tveng1_device_info
 
 	/* See set_overlay_buffer(). */
 	tv_image_format		overlay_buffer_format;
+	tv_bool			use_overlay_limits;
 
 	/* Info about mapped buffers. */
 	void *			mapped_addr;
@@ -1363,6 +1364,39 @@ channel_norm_test		(tveng_device_info *	info)
 	return success;
 }
 
+static void
+update_capture_limits		(tveng_device_info *	info)
+{
+	struct video_capability caps;
+
+	if (P_INFO (info)->use_overlay_limits)
+		return;
+
+	if (TVENG1_RIVATV_TEST) {
+		tv_video_standard *s;
+
+		s = info->panel.cur_video_standard;
+		if (NULL != s) {
+			info->caps.maxwidth = s->frame_width;
+			info->caps.maxheight = s->frame_height;
+			return;
+		}
+	}
+
+	if (0 == xioctl (info, VIDIOCGCAP, &caps)) {
+		info->caps.minwidth = caps.minwidth;
+		info->caps.minheight = caps.minheight;
+		info->caps.maxwidth = caps.maxwidth;
+		info->caps.maxheight = caps.maxheight;
+	} else {
+		/* Let's hope this is ok. */
+		info->caps.minwidth = 352;
+		info->caps.minheight = 240;
+		info->caps.maxwidth = 640;
+		info->caps.maxheight = 480;
+	}
+}
+
 static tv_bool
 get_video_standard		(tveng_device_info *	info)
 {
@@ -1372,6 +1406,7 @@ get_video_standard		(tveng_device_info *	info)
 	if (!info->panel.video_standards) {
 		store_cur_video_standard (info, NULL /* unknown */);
 		set_audio_capability (P_INFO (info));
+		update_capture_limits (info);
 		return TRUE;
 	}
 
@@ -1437,6 +1472,7 @@ get_video_standard		(tveng_device_info *	info)
  store:
 	store_cur_video_standard (info, s);
 	set_audio_capability (P_INFO (info));
+	update_capture_limits (info);
 
 	if (TVENG_ATTACH_CONTROL == info->attach_mode)
 		return panel_close (info);
@@ -1486,6 +1522,7 @@ set_video_standard		(tveng_device_info *	info,
 		if (0 == (r = xioctl (info, VIDIOCSCHAN, &channel))) {
 			store_cur_video_standard (info, s);
 			set_audio_capability (P_INFO (info));
+			update_capture_limits (info);
 		}
 	} else if (IS_TUNER_LINE (info->panel.cur_video_input)) {
 		struct video_tuner tuner;
@@ -1510,6 +1547,7 @@ set_video_standard		(tveng_device_info *	info,
 		if (0 == (r = xioctl (info, VIDIOCSTUNER, &tuner))) {
 			store_cur_video_standard (info, s);
 			set_audio_capability (P_INFO (info));
+			update_capture_limits (info);
 		}
 	} else {
 		struct video_channel channel;
@@ -1573,6 +1611,7 @@ set_video_standard		(tveng_device_info *	info,
 			if (get_video_standard (info)) {
 				store_cur_video_standard (info, s);
 				set_audio_capability (P_INFO (info));
+				update_capture_limits (info);
 			} else {
 				r = -1;
 			}
@@ -1609,6 +1648,11 @@ v4l_standards [] = {
 	{ "NTSC",	TV_VIDEOSTD_SET_NTSC },
 	{ "SECAM",	TV_VIDEOSTD_SET_SECAM },
 #if 0
+	/* We need video standard parameters (frame size, rate) and
+	   it's impossible (I think) to determine which standard has
+	   been detected, so this is pretty much useless. Also drivers
+	   supporting AUTO may not really detect standards, but only
+	   distinguish between 525 and 625 systems. */
 	{ "AUTO",	TV_VIDEOSTD_SET_UNKNOWN },
 #endif
 	{ NULL,		0 }
@@ -1634,19 +1678,21 @@ get_video_standard_list		(tveng_device_info *	info)
 	unsigned int flags;
 	unsigned int i;
 
-	free_video_standards (info);
-
-	if (!info->panel.cur_video_input)
+	if (!info->panel.cur_video_input) {
+		free_video_standards (info);
 		return TRUE;
+	}
 
 	if (DRIVER_BTTV == P_INFO (info)->driver) {
 		if (info->panel.video_standards)
-			return TRUE; /* invariable */
+			goto get_current; /* invariable */
 
 		table = bttv_standards;
 	} else {
 		table = v4l_standards;
 	}
+
+	free_video_standards (info);
 
 	if (IS_TUNER_LINE (info->panel.cur_video_input)) {
 		/* For API compatibility bttv's VIDICGTUNER reports
@@ -1689,6 +1735,7 @@ get_video_standard_list		(tveng_device_info *	info)
 		s->norm = i;
 	}
 
+ get_current:
 	if (TVENG1_RIVATV_TEST) {
 		struct video_channel channel;
 
@@ -1706,9 +1753,7 @@ get_video_standard_list		(tveng_device_info *	info)
 		if (NULL == info->panel.cur_video_standard) {
 			tv_video_standard *s;
 
-			/* VIDEO_MODE_AUTO is bad. For VBI capturing
-			   and recording should distinguish at least
-			   between NTSC and PAL/SECAM. */
+			/* AUTO not acceptable. */
 
 			s = info->panel.video_standards; /* first */
 
@@ -2103,27 +2148,38 @@ get_overlay_buffer		(tveng_device_info *	info)
 
 	info->overlay.buffer.base = (unsigned long) buffer.base;
 
-	/* rivatv 0.8.6 bug: Doesn't provide format information
-	   which is required for safety checks and clipping. */
-	if (DRIVER_RIVATV == p_info->driver) {
+	if (0 && DRIVER_RIVATV == p_info->driver) {
 		info->overlay.buffer.format = p_info->overlay_buffer_format;
 		return TRUE;
 	}
 
 	pixfmt = pig_depth_to_pixfmt ((unsigned int) buffer.depth);
 
-	if (!tv_image_format_init (&info->overlay.buffer.format,
+	if (tv_image_format_init (&info->overlay.buffer.format,
 				  (unsigned int) buffer.width,
 				  (unsigned int) buffer.height,
 				  (unsigned int) buffer.bytesperline,
 				  pixfmt,
 				  TV_COLSPC_UNKNOWN)) {
+		if (TVENG1_RIVATV_TEST) {
+			/* This is just a simulation, must not exceed
+			   the real limits. */
+		} else if (TVENG_ATTACH_XV == info->attach_mode
+			   && DRIVER_RIVATV == p_info->driver) {
+			/* Overlay has no limits, but VIDIOCGCAP tells only
+			   when overlay is already enabled. */
+			info->caps.maxwidth = buffer.width;
+			info->caps.maxheight = buffer.height;
+
+			p_info->use_overlay_limits = TRUE;
+		}
+	} else {
 		tv_error_msg (info, _("Driver %s returned an unknown or "
 				      "invalid frame buffer format."),
 			      info->node.label);
 
 		info->tveng_errno = EINVAL;
-	}
+	} 
 
 	return TRUE;
 }
@@ -2139,9 +2195,7 @@ set_overlay_buffer		(tveng_device_info *	info,
 	if (!(info->caps.flags & TVENG_CAPS_OVERLAY))
 		return FALSE;
 
-	/* rivatv 0.8.6: Has no effect, so it's pointless to collect
-	   an EPERM and try zapping_setup_fb. */
-	if (DRIVER_RIVATV == p_info->driver) {
+	if (0 && DRIVER_RIVATV == p_info->driver) {
 		P_INFO (info)->overlay_buffer_format = target->format;
 		return get_overlay_buffer (info);
 	}
@@ -2435,6 +2489,14 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 
 	p_info->palette_yuyv = VIDEO_PALETTE_YUYV;
 
+	if (DRIVER_RIVATV == P_INFO (info)->driver) {
+		/* rivatv 0.8.6 feature: does not EINVAL if the palette is
+		   unsupported. UYVY is always supported. Other formats
+		   if software conversion or DMA is enabled? Another ioctl
+		   testing palette is VIDIOCMCAPTURE. */
+		return TV_PIXFMT_SET (TV_PIXFMT_UYVY);
+	}
+
 	CLEAR (pict);
 
 	if (-1 == xioctl (info, VIDIOCGPICT, &pict))
@@ -2677,15 +2739,18 @@ map_xbuffers			(tveng_device_info *	info)
 	if (-1 == xioctl (info, VIDIOCGMBUF, &p_info->mbuf))
 		return FALSE;
 
-	if (0 == p_info->mbuf.frames)
+	if (0 == p_info->mbuf.frames) {
+		info->tveng_errno = ENOMEM;
 		return FALSE;
+	}
 
 	/* Limited by the size of the mbuf.offset[] array. */
 	p_info->n_buffers = MIN (p_info->mbuf.frames, VIDEO_MAX_FRAME);
 
 	p_info->buffers = calloc (p_info->n_buffers, sizeof (struct xbuffer));
-	if (!p_info->buffers) {
+	if (NULL == p_info->buffers) {
 		p_info->n_buffers = 0;
+		info->tveng_errno = ENOMEM;
 		return FALSE;
 	}
 
@@ -2984,7 +3049,7 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
   info->caps.flags = 0;
 
   /* BTTV doesn't return properly the maximum width */
-#ifdef TVENG1_BTTV_PRESENT
+#if 0 && defined (TVENG1_BTTV_PRESENT) /* or does it? */
   if (info->caps.maxwidth > 768)
     info->caps.maxwidth = 768;
 #endif
@@ -3019,9 +3084,20 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
   p_info->first_queued = NULL;
 
 	if (TVENG1_RIVATV_TEST) {
+		info->caps.channels = 2;
+		info->caps.audios = 0;
+
+		info->caps.minwidth = 64;
+		info->caps.minheight = 32;
+
+		/* Will be adjusted later in get_video_standard(). */
+		info->caps.maxwidth = 704;
+		info->caps.maxheight = 576;
+
 		info->caps.flags = (TVENG_CAPS_CAPTURE |
 				    TVENG_CAPS_OVERLAY |
 				    TVENG_CAPS_CHROMAKEY);
+
 		p_info->driver = DRIVER_RIVATV;
 	} else {
 		identify_driver (info);
@@ -3159,17 +3235,25 @@ int tveng1_attach_device(const char* device_file,
       return -1;
     }
 
-  if ((attach_mode == TVENG_ATTACH_XV) ||
-      (attach_mode == TVENG_ATTACH_CONTROL) ||
-      (attach_mode == TVENG_ATTACH_VBI))
-    attach_mode = TVENG_ATTACH_READ;
-
   switch (attach_mode)
     {
-      /* In V4L there is no control-only mode */
+    case TVENG_ATTACH_XV: /* i.e. overlay */
+      /* Attn: get_overlay_buffer() behaves differently in this mode. */
+      info -> fd = p_tveng1_open_device_file(O_RDWR, info);
+      break;
+
+    case TVENG_ATTACH_CONTROL:
+    case TVENG_ATTACH_VBI:
+      /* In V4L there is no control-only mode (but we'll pretend in
+	 the future). VBI mode is unnecessary. */
+      attach_mode = TVENG_ATTACH_READ;
+
+      /* fall through */
+
     case TVENG_ATTACH_READ:
       info -> fd = p_tveng1_open_device_file(O_RDWR, info);
       break;
+
     default:
       tv_error_msg(info, "Unknown attach mode for the device");
       free(info->file_name);
