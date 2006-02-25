@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.c,v 1.14 2006-01-08 05:25:31 mschimek Exp $ */
+/* $Id: zapping.c,v 1.15 2006-02-25 17:35:53 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -99,6 +99,15 @@ crash_action			(GtkAction *		action _unused_,
 	/* Testing bug-buddy interaction. */
 
 	*((int *) 1) = 0;
+}
+
+static void
+assert_action			(GtkAction *		action _unused_,
+				 Zapping *		z)
+{
+	/* Testing bug-buddy interaction. */
+
+	assert (0);
 }
 
 #if 0 /* Ok that's nice, but how can we SET current?
@@ -414,6 +423,8 @@ generic_actions [] = {
 #ifdef ZAPPING_CRASH_TEST
   { "Crash", GTK_STOCK_DISCONNECT, "_Crash", NULL, NULL,
     G_CALLBACK (crash_action) },
+  { "Assert", GTK_STOCK_DISCONNECT, "_Assert", NULL, NULL,
+    G_CALLBACK (assert_action) },
 #endif
   { "Quit", GTK_STOCK_QUIT, NULL, NULL, NULL, G_CALLBACK (quit_action) },
   { "EditSubmenu", NULL, N_("_Edit"), NULL, NULL, NULL },
@@ -504,6 +515,7 @@ ui_description =
 "  <menu action='FileSubmenu'>"
 #ifdef ZAPPING_CRASH_TEST
 "   <menuitem action='Crash'/>"
+"   <menuitem action='Assert'/>"
 #endif
 "   <menuitem action='Quit'/>"
 "  </menu>"
