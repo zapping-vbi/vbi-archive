@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l2.c,v 1.11 2005-10-14 23:40:14 mschimek Exp $ */
+/* $Id: v4l2.c,v 1.12 2006-02-25 17:35:35 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -29,6 +29,8 @@
 
 #ifdef ENABLE_V4L
 
+#include "common/intl-priv.h"
+
 #include "common/videodev2.h" /* V4L2 header file */
 #include "common/_videodev2.h"
 
@@ -37,19 +39,21 @@
    device_ioctl (device_log_fp, fprint_v4l2_ioctl_arg, fd, cmd, arg))
 
 /* Attn: device_name may be NULL, device_fd may be -1. */
-int
+zsfb_status
 setup_v4l2			(const char *		device_name,
 				 int			device_fd,
 				 const tv_overlay_buffer *buffer)
 {
+  zsfb_status status;
   int fd;
   struct v4l2_capability cap;
 
   buffer = buffer; /* unused */
 
-  fd = device_open_safer (device_name, device_fd, /* major */ 81, O_RDWR);
-  if (-1 == fd)
-    return -1; /* failed */
+  status = device_open_safer (&fd, device_name,
+			      device_fd, /* major */ 81, O_RDWR);
+  if (ZSFB_SUCCESS != status)
+    return status;
 
   message (/* verbosity */ 2,
 	   "Querying device capabilities.\n");
@@ -66,12 +70,13 @@ setup_v4l2			(const char *		device_name,
 		   "Not a V4L2 0.20 device.\n");
 
 	  errno = EINVAL;
-	  return -2; /* unknown API */
+	  return ZSFB_UNKNOWN_DEVICE;
 	} 
       else
 	{
+	  errmsg_ioctl ("VIDIOC_QUERYCAP (V4L2 0.20)", saved_errno);
 	  errno = saved_errno;
-	  return -1; /* failed */
+	  return ZSFB_IOCTL_ERROR;
 	}
     }
 
@@ -83,12 +88,12 @@ setup_v4l2			(const char *		device_name,
 	   "V4L2 0.20 API is no longer supported.\n");
 
   errno = EINVAL;
-  return -2; /* unknown API (may talk V4L) */
+  return ZSFB_UNKNOWN_DEVICE; /* unknown API (may talk V4L) */
 }
 
 #else /* !ENABLE_V4L */
 
-int
+zsfb_status
 setup_v4l2			(const char *		device_name,
 				 const tv_overlay_buffer *buffer)
 {
@@ -96,7 +101,7 @@ setup_v4l2			(const char *		device_name,
 	   "No V4L2 0.20 support compiled in.\n");
 
   errno = EINVAL;
-  return -2; /* unknown API */
+  return ZSFB_UNKNOWN_DEVICE;
 }
 
 #endif /* !ENABLE_V4L */

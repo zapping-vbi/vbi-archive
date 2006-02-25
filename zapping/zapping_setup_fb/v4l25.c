@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.14 2005-10-22 15:48:34 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.15 2006-02-25 17:35:14 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -41,20 +41,22 @@
    device_ioctl (device_log_fp, fprint_v4l25_ioctl_arg, fd, cmd, arg))
 
 /* Attn: device_name may be NULL, device_fd may be -1. */
-int
+zsfb_status
 setup_v4l25			(const char *		device_name,
 				 int			device_fd,
 				 const tv_overlay_buffer *buffer)
 {
+  zsfb_status status;
+  int saved_errno;
   int fd;
   struct v4l2_capability cap;
   struct v4l2_framebuffer fb;
   const tv_pixel_format *pf;
-  int saved_errno;
 
-  fd = device_open_safer (device_name, device_fd, /* major */ 81, O_RDWR);
-  if (-1 == fd)
-    return -1; /* failed */
+  status = device_open_safer (&fd, device_name,
+			      device_fd, /* major */ 81, O_RDWR);
+  if (ZSFB_SUCCESS != status)
+    return status;
 
   message (/* verbosity */ 2,
 	   "Querying device capabilities.\n");
@@ -63,16 +65,19 @@ setup_v4l25			(const char *		device_name,
     {
       saved_errno = errno;
 
-      if (EINVAL != saved_errno)
-	goto failure;
+      if (EINVAL == saved_errno)
+	{
+	  message (/* verbosity */ 2,
+		   "Not a V4L2 2.5 device.\n");
+	  status = ZSFB_UNKNOWN_DEVICE;
+	}
+      else
+	{
+	  errmsg_ioctl ("VIDIOC_QUERYCAP", saved_errno);
+	  status = ZSFB_IOCTL_ERROR;
+	}
 
-      device_close (device_log_fp, fd);
-
-      message (/* verbosity */ 2,
-	       "Not a V4L2 2.5 device.\n");
-
-      errno = EINVAL;
-      return -2; /* unknown API */
+      goto failure;
     }
 
   message (/* verbosity */ 1,
@@ -85,6 +90,7 @@ setup_v4l25			(const char *		device_name,
     {
       errmsg (_("The device does not support video overlay."));
       saved_errno = EINVAL;
+      status = ZSFB_OVERLAY_IMPOSSIBLE;
       goto failure;
     }
 
@@ -94,6 +100,8 @@ setup_v4l25			(const char *		device_name,
   if (-1 == xioctl (fd, VIDIOC_G_FBUF, &fb))
     {
       saved_errno = errno;
+      errmsg_ioctl ("VIDIOC_G_FBUF", saved_errno);
+      status = ZSFB_IOCTL_ERROR;
       goto failure;
     }
 
@@ -182,7 +190,8 @@ setup_v4l25			(const char *		device_name,
   {
     int result;
 
-    if (-1 == restore_root_privileges ())
+    status = restore_root_privileges ();
+    if (ZSFB_SUCCESS != status)
       {
 	saved_errno = errno;
 	goto failure;
@@ -196,27 +205,31 @@ setup_v4l25			(const char *		device_name,
 
     if (-1 == result)
       {
-        if (EPERM == saved_errno
-	    && ROOT_UID != euid)
-	  privilege_hint ();
-
+	errmsg_ioctl ("VIDIOC_S_FBUF", saved_errno);
+	status = ZSFB_IOCTL_ERROR;
+	if (EPERM == saved_errno)
+	  {
+	    status = ZSFB_NO_PERMISSION;
+	    if (ROOT_UID != euid)
+	      privilege_hint ();
+	  }
 	goto failure;
       }
   }
 
  success:
   device_close (device_log_fp, fd);
-  return 0; /* success */
+  return ZSFB_SUCCESS;
 
  failure:
   device_close (device_log_fp, fd);
   errno = saved_errno;
-  return -1; /* failed */
+  return status;
 }
 
 #else /* !ENABLE_V4L */
 
-int
+zsfb_status
 setup_v4l25			(const char *		device_name,
 				 const tv_overlay_buffer *buffer)
 {
@@ -224,7 +237,7 @@ setup_v4l25			(const char *		device_name,
 	   "No V4L2 2.5 support compiled in.\n");
 
   errno = EINVAL;
-  return -2; /* unknown API */
+  return ZSFB_UNKNOWN_DEVICE;
 }
 
 #endif /* !ENABLE_V4L */
