@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_block.c,v 1.3 2005-06-28 01:01:40 mschimek Exp $ */
+/* $Id: copy_block.c,v 1.4 2006-02-25 17:37:43 mschimek Exp $ */
 
 #include <inttypes.h>
 #include <mmintrin.h>
@@ -64,7 +64,7 @@ memcpy_mmx			(void *			dst,
 			      :: "cc", "memory");    
 }
 
-void
+tv_bool
 copy_block1_mmx			(void *			dst,
 				 const void *		src,
 				 unsigned int		width,
@@ -78,7 +78,9 @@ copy_block1_mmx			(void *			dst,
 	dst_padding = dst_bytes_per_line - width * 1;
 	src_padding = src_bytes_per_line - width * 1;
 
-	if (likely (0 == (dst_padding | src_padding))) {
+	if (unlikely ((long)(dst_padding | src_padding) < 0)) {
+		return FALSE;
+	} else if (likely (0 == (dst_padding | src_padding))) {
 		width *= height;
 		height = 1;
 	}
@@ -124,4 +126,6 @@ copy_block1_mmx			(void *			dst,
 	}
 
 	_mm_empty ();
+
+	return TRUE;
 }

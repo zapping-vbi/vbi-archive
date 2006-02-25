@@ -2,27 +2,27 @@
 
 TESTS = ditest-scalar.sh
 
-if HAVE_MMX
+if CAN_COMPILE_MMX
 TESTS += ditest-mmx.sh
 endif
 
-if HAVE_3DNOW
+if CAN_COMPILE_3DNOW
 TESTS += ditest-3dnow.sh
 endif
 
-if HAVE_SSE
+if CAN_COMPILE_SSE
 TESTS += ditest-sse.sh
 endif
 
-if HAVE_SSE2
+if CAN_COMPILE_SSE2
 TESTS += ditest-sse2.sh
 endif
 
-if HAVE_SSE3
+if CAN_COMPILE_SSE3
 TESTS += ditest-sse3.sh
 endif
 
-if HAVE_ALTIVEC
+if CAN_COMPILE_ALTIVEC
 TESTS += ditest-altivec.sh
 endif
 

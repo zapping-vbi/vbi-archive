@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.31 2005-07-04 21:55:38 mschimek Exp $ */
+/* $Id: audio.c,v 1.32 2006-02-25 17:37:44 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -66,7 +66,8 @@ void mixer_setup ( void )
 				  mixer->rec_gain->reset,
 				  mixer->rec_gain->reset);
 
-      tv_mixer_line_record (mixer_line, /* exclusive */ TRUE);
+      if (mixer_line->recordable)
+        tv_mixer_line_record (mixer_line, /* exclusive */ TRUE);
     }
 }
 

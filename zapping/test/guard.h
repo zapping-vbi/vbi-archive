@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: guard.h,v 1.3 2005-02-18 08:03:19 mschimek Exp $ */
+/* $Id: guard.h,v 1.4 2006-02-25 17:37:44 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -60,6 +60,36 @@ dev_zero			(void)
 	return fd;
 }
 
+static void
+make_unwriteable		(void *			p,
+				 size_t			n_bytes)
+{
+	size_t page_size;
+	int r;
+
+	page_size = getpagesize ();
+	assert (0 == (unsigned long) p % page_size);
+	assert (0 == n_bytes % page_size);
+
+	r = mprotect (p, n_bytes, PROT_READ);
+	assert (-1 != r);
+}
+
+static void
+make_inaccessible		(void *			p,
+				 size_t			n_bytes)
+{
+	size_t page_size;
+	int r;
+
+	page_size = getpagesize ();
+	assert (0 == (unsigned long) p % page_size);
+	assert (0 == n_bytes % page_size);
+
+	r = mprotect (p, n_bytes, PROT_NONE);
+	assert (-1 != r);
+}
+
 /* Allocates a block of memory surrounded by an inaccessible guard area.
    n_bytes must be page aligned. */
 static void *
@@ -67,7 +97,6 @@ guard_alloc			(size_t			n_bytes)
 {
 	size_t page_size;
 	char *p;
-	int r;
 
 	page_size = getpagesize ();
 	assert (0 == n_bytes % page_size);
@@ -94,14 +123,12 @@ guard_alloc			(size_t			n_bytes)
 		exit (EXIT_FAILURE);
 	}
 
-	r = mprotect (p, n_bytes, PROT_NONE);
-	assert (-1 != r);
+	make_inaccessible (p, n_bytes);
 
 	p += n_bytes;
 	assert (0 == (unsigned long) p % 16);
 
-	r = mprotect (p + n_bytes, n_bytes, PROT_NONE);
-	assert (-1 != r);
+	make_inaccessible (p + n_bytes, n_bytes);
 
 	return p;
 }

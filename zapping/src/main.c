@@ -320,7 +320,13 @@ restore_last_capture_mode		(void)
 
 extern int zapzilla_main(int argc, char * argv[]);
 
-int main(int argc, char * argv[])
+/* Make sure the version appears in backtraces. */
+#define _MAIN(version) main_ ## version
+#define MAIN(version) _MAIN (version)
+
+int
+MAIN (PACKAGE_VERSION_ID)	(int			argc,
+				 char **		argv)
 {
   GList * p;
   gint x_bpp = -1;
@@ -606,7 +612,7 @@ int main(int argc, char * argv[])
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.208 2006-02-03 18:23:15 mschimek Exp $",
+	 "$Id: main.c,v 1.209 2006-02-25 17:37:44 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
@@ -1019,6 +1025,11 @@ int main(int argc, char * argv[])
   shutdown_remote();
 
   return 0;
+}
+
+int main(int argc, char * argv[])
+{
+  return MAIN (PACKAGE_VERSION_ID) (argc, argv);
 }
 
 void shutdown_zapping(void)

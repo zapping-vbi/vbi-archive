@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.h,v 1.6 2005-07-16 21:12:36 mschimek Exp $ */
+/* $Id: pixel_format.h,v 1.7 2006-02-25 17:37:42 mschimek Exp $ */
 
 #ifndef __ZTV_PIXEL_FORMAT_H__
 #define __ZTV_PIXEL_FORMAT_H__
@@ -46,58 +46,58 @@ typedef enum {
 	TV_PIXFMT_YUV410,		/* 4x4 1x1 1x1 */
 	TV_PIXFMT_YVU410,
 
-	/* Packed YUV formats */	/* reg msb..lsb -> memory byte 0..3 */
+	/* Packed YUV formats */	/* in register msb ... lsb */
 
-	TV_PIXFMT_YUVA32_LE,		/* AVUY -> LE  Y U V A  BE  A V U Y */
+	TV_PIXFMT_YUVA32_LE,		/* aaaaaaaavvvvvvvvuuuuuuuuyyyyyyyy */
 	TV_PIXFMT_YUVA32_BE,
-	TV_PIXFMT_YVUA32_LE,		/* AUVY -> LE  Y V U A  BE  A U V Y */
+	TV_PIXFMT_YVUA32_LE,		/* aaaaaaaauuuuuuuuvvvvvvvvyyyyyyyy */
 	TV_PIXFMT_YVUA32_BE,
 
 	TV_PIXFMT_AVUY32_BE = TV_PIXFMT_YUVA32_LE,
-	TV_PIXFMT_AVUY32_LE,		/* YUVA -> LE  A V U Y  BE  Y U V A */
+	TV_PIXFMT_AVUY32_LE,		/* yyyyyyyyuuuuuuuuvvvvvvvvaaaaaaaa */
 	TV_PIXFMT_AUVY32_BE,
-	TV_PIXFMT_AUVY32_LE,		/* YVUA -> LE  A U V Y  BE  Y V U A */
+	TV_PIXFMT_AUVY32_LE,		/* yyyyyyyyvvvvvvvvuuuuuuuuaaaaaaaa */
 
-	TV_PIXFMT_YUV24_LE,		/*  VUY -> LE  Y U V  BE  V U Y */
+	TV_PIXFMT_YUV24_LE,		/* vvvvvvvvuuuuuuuuyyyyyyyy */
 	TV_PIXFMT_YUV24_BE,
-	TV_PIXFMT_YVU24_LE,		/*  UVY -> LE  Y V U  BE  U V Y */
+	TV_PIXFMT_YVU24_LE,		/* uuuuuuuuvvvvvvvvyyyyyyyy */
 	TV_PIXFMT_YVU24_BE,
 
 	TV_PIXFMT_VUY24_BE = TV_PIXFMT_YUV24_LE,
-	TV_PIXFMT_VUY24_LE,		/*  YUV -> LE  V U Y  BE  Y U V */
+	TV_PIXFMT_VUY24_LE,		/* yyyyyyyyuuuuuuuuvvvvvvvv */
 	TV_PIXFMT_UVY24_BE,
-	TV_PIXFMT_UVY24_LE,		/*  YVU -> LE  U V Y  BE  Y V U */
+	TV_PIXFMT_UVY24_LE,		/* yyyyyyyyvvvvvvvvuuuuuuuu */
 
-	TV_PIXFMT_YUYV,			/* Y0 U Y1 V in memory */
+	TV_PIXFMT_YUYV,			/* Y0 U Y1 V in memory byte 0 ... 3 */
 	TV_PIXFMT_YVYU,			/* Y0 V Y1 U */
 	TV_PIXFMT_UYVY,			/* U Y0 V Y1 */
 	TV_PIXFMT_VYUY,			/* V Y0 U Y1 */
 
 	TV_PIXFMT_RESERVED1,
-	TV_PIXFMT_Y8,			/* Y */
+	TV_PIXFMT_Y8,			/* yyyyyyyy */
 
 	TV_PIXFMT_RESERVED2,
 	TV_PIXFMT_RESERVED3,
 
 	/* Packed RGB formats */
 
-	TV_PIXFMT_RGBA32_LE,		/* ABGR -> LE  R G B A  BE  A B G R */
+	TV_PIXFMT_RGBA32_LE,		/* aaaaaaaabbbbbbbbggggggggrrrrrrrr */
 	TV_PIXFMT_RGBA32_BE,
-	TV_PIXFMT_BGRA32_LE,		/* ARGB -> LE  B G R A  BE  A R G B */
+	TV_PIXFMT_BGRA32_LE,		/* aaaaaaaarrrrrrrrggggggggbbbbbbbb */
 	TV_PIXFMT_BGRA32_BE,
 
 	TV_PIXFMT_ABGR32_BE = TV_PIXFMT_RGBA32_LE,
-	TV_PIXFMT_ABGR32_LE,		/* RGBA -> LE  A B G R  BE  R G B A */
+	TV_PIXFMT_ABGR32_LE,		/* rrrrrrrrggggggggbbbbbbbbaaaaaaaa */
 	TV_PIXFMT_ARGB32_BE,
-	TV_PIXFMT_ARGB32_LE,		/* BGRA -> LE  A R G B  BE  B G R A */
+	TV_PIXFMT_ARGB32_LE,		/* bbbbbbbbggggggggrrrrrrrraaaaaaaa */
 
-	TV_PIXFMT_RGB24_LE,		/*  BGR -> LE  R G B  BE  B G R */
-	TV_PIXFMT_BGR24_LE,		/*  RGB -> LE  B G R  BE  R G B */
+	TV_PIXFMT_RGB24_LE,		/* bbbbbbbbggggggggrrrrrrrr */
+	TV_PIXFMT_BGR24_LE,		/* rrrrrrrrggggggggbbbbbbbb */
 
 	TV_PIXFMT_BGR24_BE = TV_PIXFMT_RGB24_LE,
 	TV_PIXFMT_RGB24_BE,
 
-	TV_PIXFMT_RGB16_LE,		/* bbbbbggggggrrrrr msb..lsb */
+	TV_PIXFMT_RGB16_LE,		/* bbbbbggggggrrrrr */
 	TV_PIXFMT_RGB16_BE,
 	TV_PIXFMT_BGR16_LE,		/* rrrrrggggggbbbbb */
 	TV_PIXFMT_BGR16_BE,
@@ -238,7 +238,7 @@ typedef uint64_t tv_pixfmt_set;
 	      ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGB16) ? 2 :	\
 	       ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGBA16) ? 2 :	\
 	        ((TV_PIXFMT_SET (pixfmt) & TV_PIXFMT_SET_RGBA12) ? 2 :	\
-		 ((TV_PIXFMT_SBBGR == (pixfmt)) ? 1 :			\
+		 ((TV_PIXFMT_SBGGR == (pixfmt)) ? 1 :			\
 		   1))))))))))
 #else
 #define TV_PIXFMT_BYTES_PER_PIXEL(pixfmt)				\

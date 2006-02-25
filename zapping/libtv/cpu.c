@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.c,v 1.3 2005-10-25 09:24:15 mschimek Exp $ */
+/* $Id: cpu.c,v 1.4 2006-02-25 17:37:42 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -37,9 +37,9 @@ cpu_detection			(void)
 {
 	cpu_features = 0;
 
-#if defined (HAVE_MMX)
+#if defined (CAN_COMPILE_MMX)
 	cpu_features = cpu_detection_mmx ();
-#elif defined (HAVE_ALTIVEC)
+#elif defined (CAN_COMPILE_ALTIVEC)
 	cpu_features = cpu_detection_altivec ();
 #endif
 

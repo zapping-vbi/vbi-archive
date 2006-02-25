@@ -47,7 +47,7 @@
 #define MODE_BGR  0x2
 
 /* Won't run on x86-64. */
-#if defined (HAVE_X86) && defined (HAVE_SSE)
+#if defined (HAVE_X86) && defined (CAN_COMPILE_SSE)
 
 typedef void
 planar2packed_fn		(uint8_t * image,
@@ -348,14 +348,14 @@ mmx_register_converters		(void)
     }
 }
 
-#else /* !(HAVE_X86 && HAVE_SSE) */
+#else /* !(HAVE_X86 && CAN_COMPILE_SSE) */
 
 static void
 mmx_register_converters (void)
 {
 }
 
-#endif /* !(HAVE_X86 && HAVE_SSE) */
+#endif /* !(HAVE_X86 && CAN_COMPILE_SSE) */
 
 #define RGB(i)					\
 	U = pu[i];				\

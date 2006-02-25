@@ -289,10 +289,11 @@ static tveng_controller tveng_controllers[] = {
 #if TVENG1_RIVATV_TEST
   tveng1_init_module,
 #else
-  tvengxv_init_module,
-  tveng25_init_module,
+#warning
+  //  tvengxv_init_module,
+  //  tveng25_init_module,
   tveng1_init_module,
-  tvengbktr_init_module,
+  //  tvengbktr_init_module,
 #endif
 };
 
@@ -672,8 +673,28 @@ int tveng_attach_device(const char* device_file,
 
   if (info->debug_level>0)
     {
+      static const struct {
+	const gchar *name;
+	guint value;
+      } caps [] = {
+#undef CAP
+#define CAP(name) { #name, TVENG_CAPS_##name }
+	CAP (CAPTURE),
+	CAP (TUNER),
+	CAP (TELETEXT),
+	CAP (OVERLAY),
+	CAP (CHROMAKEY),
+	CAP (CLIPPING),
+	CAP (FRAMERAM),
+	CAP (SCALES),
+	CAP (MONOCHROME),
+	CAP (SUBCAPTURE),
+	CAP (SUBCAPTURE),
+	CAP (QUEUE),
+      };
       short_str = "?";
       long_str = "?";
+      guint i;
 
       fprintf(stderr, "[TVeng] - Info about the video device\n");
       fprintf(stderr, "-------------------------------------\n");
@@ -683,6 +704,21 @@ int tveng_attach_device(const char* device_file,
       fprintf(stderr, "Device signature: %x\n", info->signature);
       fprintf(stderr, "Detected framebuffer depth: %d\n",
 	      p_tveng_get_display_depth(info));
+      fprintf (stderr, "Capabilities:\n  0x%x=",
+	       (unsigned int) info->caps.flags);
+      for (i = 0; i < N_ELEMENTS (caps); ++i)
+	{
+	  if (info->caps.flags & caps[i].value)
+	    fprintf (stderr, "%s%s", caps[i].name,
+		     (info->caps.flags > caps[i].value * 2 - 1) ? "|" : "");
+	}
+      fprintf (stderr,
+	       "\n  channels=%u audios=%u\n"
+	       "  min=%ux%u max=%ux%u\n",
+	       info->caps.channels,
+	       info->caps.audios,
+	       info->caps.minwidth, info->caps.minheight,
+	       info->caps.maxwidth, info->caps.maxheight);
       fprintf (stderr, "Capture format:\n"
 	       "  buffer size            %ux%u pixels, 0x%lx bytes\n"
 	       "  bytes per line         %lu, %lu bytes\n"
@@ -3075,6 +3111,315 @@ read_file_from_fd		(char *			buffer,
 
 #define ZSFB_NAME "zapping_setup_fb"
 
+/* Keep this in sync with zapping_setup_fb.h. */
+typedef enum {
+	ZSFB_SUCCESS = EXIT_SUCCESS,
+	ZSFB_FAILURE = EXIT_FAILURE,
+
+	/* zapping errors. */
+	ZSFB_FORK_ERROR = 40,
+	ZSFB_EXEC_ENOENT,
+	ZSFB_EXEC_ERROR,
+	ZSFB_IO_ERROR,
+	ZSFB_BAD_BUFFER,
+
+	/* zapping_setup_fb errors. */
+	ZSFB_BUG = 60,
+	ZSFB_NO_PERMISSION,
+	ZSFB_NO_SCREEN,
+	ZSFB_INVALID_BPP,
+	ZSFB_BAD_DEVICE_NAME,
+	ZSFB_BAD_DEVICE_FD,
+	ZSFB_UNKNOWN_DEVICE,
+	ZSFB_OPEN_ERROR,
+	ZSFB_IOCTL_ERROR,
+	ZSFB_OVERLAY_IMPOSSIBLE,
+} zsfb_status;
+
+static zsfb_status
+exec_zapping_setup_fb_argv	(tveng_device_info *	info,
+				 const char **		argv)
+{
+	int stderr_pipe[2];
+	pid_t pid;
+	char errmsg[256];
+	int status;
+	int r;
+
+	stderr_pipe[0] = -1;
+	stderr_pipe[1] = -1;
+
+	if (-1 == pipe (stderr_pipe)) {
+		info->tveng_errno = errno;
+		printv ("pipe() error: %s\n",
+			strerror (info->tveng_errno));
+		goto fork_error;
+	}
+
+	fflush (stderr);
+
+	pid = fork ();
+
+	switch (pid) {
+	case -1: /* error */
+		info->tveng_errno = errno;
+
+		printv ("fork() error: %s\n",
+			strerror (info->tveng_errno));
+
+		/* Error ignored. */
+		close (stderr_pipe[1]);
+		close (stderr_pipe[0]);
+
+		goto fork_error;
+
+	case 0: /* in child */
+	{
+		int saved_errno;
+
+		printv ("Forked.\n");
+
+		/* Pipe input is unused in child. Error ignored. */
+		close (stderr_pipe[0]);
+		stderr_pipe[0] = -1;
+
+		/* Redirect error message to pipe. */
+		if (-1 == dup2 (stderr_pipe[1], STDERR_FILENO)) {
+			printv ("dup2() error: %s\n", strerror (errno));
+			_exit (ZSFB_FORK_ERROR); /* tell parent */
+		}
+
+		/* Try in $PATH. Note this might be a consolehelper symlink.
+		   Exit status 0 on success, something else on error. */
+		execvp (argv[0], (char **) argv);
+
+		/* When execvp returns it failed. */
+
+		saved_errno = errno;
+
+		fputs (strerror (saved_errno), stderr);
+
+		switch (saved_errno) {
+		case ENOENT:
+			_exit (ZSFB_EXEC_ENOENT);
+
+		default:
+			_exit (ZSFB_EXEC_ERROR);
+		}
+
+		assert (0);
+	}
+
+	default: /* in parent */
+		break;
+	}
+
+	/* Pipe output is unused in parent. Error ignored. */
+	close (stderr_pipe[1]);
+	stderr_pipe[1] = -1;
+
+	r = read_file_from_fd (errmsg, sizeof (errmsg), stderr_pipe[0]);
+	info->tveng_errno = errno;
+
+	/* Error ignored. */
+	close (stderr_pipe[0]);
+	stderr_pipe[0] = -1;
+
+	if (-1 == r) {
+		printv ("Stderr pipe read error %s\n",
+			strerror (info->tveng_errno));
+
+		while (-1 == waitpid (pid, &status, 0)
+		       && EINTR == errno)
+			;
+
+		goto fork_error;
+	}
+
+	while (-1 == (r = waitpid (pid, &status, 0))
+	       && EINTR == errno)
+		;
+
+	info->tveng_errno = errno;
+
+	if (-1 == r) {
+		printv ("waitpid() error %s, errmsg %s\n",
+			strerror (info->tveng_errno), errmsg);
+
+		goto fork_error;
+	}
+
+	if (!WIFEXITED (status)) {
+		printv ("WIFEXITED() error %s, errmsg %s\n",
+			strerror (info->tveng_errno), errmsg);
+
+		goto fork_error;
+	}
+
+	info->tveng_errno = 0;
+
+	switch ((zsfb_status) WEXITSTATUS (status)) {
+	case ZSFB_SUCCESS: /* zapping_setup_fb success */
+		break;
+
+	case ZSFB_FORK_ERROR:
+		tv_error_msg (info, _("Cannot execute %s. Pipe error."),
+			      argv[0]);
+
+		return ZSFB_FORK_ERROR;
+
+	case ZSFB_EXEC_ERROR:
+	case ZSFB_EXEC_ENOENT:
+		tv_error_msg (info, _("Cannot execute %s. %s."),
+			      argv[0], errmsg);
+
+		return (zsfb_status) WEXITSTATUS (status);
+
+	case ZSFB_BUG ... ZSFB_OVERLAY_IMPOSSIBLE:
+		printv ("zapping_setup_fb failed with exit status %d\n",
+			(int) WEXITSTATUS (status));
+
+		/* TRANSLATORS: Program name, error message. */
+		tv_error_msg (info, _("%s failed.\n%s"),
+			      argv[0], errmsg);
+
+		return (zsfb_status) WEXITSTATUS (status);
+
+	default:
+		printv ("zapping_setup_fb failed with exit status %d\n",
+			(int) WEXITSTATUS (status));
+
+		/* Something executed, but it wasn't
+		   zapping_setup_fb. Perhaps consolehelper
+		   couldn't authenticate the user? */
+		tv_error_msg (info, _("Cannot execute %s. "
+				      "No permission?"),
+			      argv[0]);
+
+		return (zsfb_status) WEXITSTATUS (status);
+	}
+
+	return ZSFB_SUCCESS;
+
+ fork_error:
+	tv_error_msg (info, _("Cannot execute %s. %s."),
+		      argv[0], strerror (info->tveng_errno));
+
+	return ZSFB_FORK_ERROR;
+}
+
+static zsfb_status
+exec_zapping_setup_fb		(tveng_device_info *	info,
+				 const char *		executable_name,
+				 const char *		display_name,
+				 int			screen_number,
+				 const tv_overlay_buffer *target)
+{
+	const char *argv[20];
+	char buf[3][16];
+	unsigned int argc;
+	unsigned int i;
+	int old_flags;
+	zsfb_status status;
+
+	argc = 0;
+
+	argv[argc++] = executable_name;
+
+	argv[argc++] = "-c"; /* enable UTF-8 error messages */
+
+	/* Just in case. XXX error ignored. */
+	old_flags = fcntl (info->fd, F_GETFD, 0);
+	if (-1 != old_flags
+	    && (old_flags & FD_CLOEXEC)) {
+		old_flags &= ~FD_CLOEXEC;
+		/* XXX error ignored. */
+		fcntl (info->fd, F_SETFD, old_flags);
+	}
+
+	snprintf (buf[0], sizeof (buf[0]), "%d", info->fd);
+	argv[argc++] = "-f";
+	argv[argc++] = buf[0];
+
+	if (NULL != display_name) {
+		argv[argc++] = "-D";
+		argv[argc++] = display_name;
+	}
+
+	if (screen_number >= 0) {
+		snprintf (buf[1], sizeof (buf[1]), "%d", screen_number);
+		argv[argc++] = "-S";
+		argv[argc++] = buf[1];
+	}
+
+	if (-1 != info->bpp) {
+		snprintf (buf[2], sizeof (buf[2]), "%d", info->bpp);
+		argv[argc++] = "-b";
+		argv[argc++] = buf[2];
+	}
+
+	argv[argc] = NULL;
+
+	assert (argc <= N_ELEMENTS (argv));
+
+	printv ("Running ");
+	for (i = 0; i < argc; ++i)
+		printv ("'%s' ", argv[i]);
+	printv ("\n");
+
+	status = exec_zapping_setup_fb_argv (info, argv);
+
+	if (ZSFB_BAD_DEVICE_FD == status) {
+		gboolean dummy;
+
+                if (NULL == info->file_name)
+			return status;
+
+		argv[2] = "-d";
+                argv[3] = info->file_name;
+
+                /* XXX this is unnecessary with V4L2. We should just
+		   temporarily switch to a panel mode. */
+
+                p_tveng_stop_everything (info, &dummy);
+
+                device_close (info->log_fp, info->fd);
+                info->fd = -1;
+
+		printv ("Running ");
+		for (i = 0; i < argc; ++i)
+			printv ("'%s' ", argv[i]);
+		printv ("\n");
+
+		status = exec_zapping_setup_fb_argv (info, argv);
+
+		/* XXX what if this doesn't succeed? */
+                info->fd = device_open (info->log_fp, info->file_name,
+                                        O_RDWR, 0);
+                assert (-1 != info->fd);
+	}
+
+	if (ZSFB_SUCCESS == status) {
+		if (!info->overlay.get_buffer (info)) {
+			tv_error_msg (info, _("Cannot determine current "
+					      "overlay parameters. %s"),
+				      strerror (info->tveng_errno));
+
+			return ZSFB_IO_ERROR;
+		}
+
+		if (!verify_overlay_buffer (target, &info->overlay.buffer)) {
+			/* TRANSLATORS: Program name. */
+			tv_error_msg (info, _("%s did not work as expected."),
+				      argv[0]);
+
+			return ZSFB_BAD_BUFFER;
+		}
+	}
+
+	return status;
+}
+
 /**
  * This function sets the overlay buffer, where images will be stored.
  * When this operation is privileged we run the zapping_setup_fb
@@ -3089,17 +3434,12 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 				 int			screen_number,
 				 const tv_overlay_buffer *target)
 {
-	const char *argv[20];
-	char buf[3][16];
-	unsigned int argc;
-	pid_t pid;
-	int stderr_pipe[2];
-	int old_flags;
-	char errmsg[256];
-	int status;
-	int r;
+	zsfb_status status1;
+	zsfb_status status2;
 
 	assert (NULL != info);
+
+	printv ("tv_set_overlay_buffer()\n");
 
 	if (TVENG_CONTROLLER_NONE == info->current_controller)
 		return FALSE;
@@ -3137,193 +3477,60 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	/* Delegate to suid root ZSFB_NAME helper program. */
 
-	argc = 0;
-
-	argv[argc++] = ZSFB_NAME;
-
-	argv[argc++] = "-c";
-
-	snprintf (buf[0], sizeof (buf[0]), "%d", info->fd);
-	argv[argc++] = "-f";
-	argv[argc++] = buf[0];
-
-	if (NULL != display_name) {
-		argv[argc++] = "-D";
-		argv[argc++] = display_name;
-	}
-
-	if (screen_number >= 0) {
-		snprintf (buf[1], sizeof (buf[1]), "%d", screen_number);
-		argv[argc++] = "-S";
-		argv[argc++] = buf[1];
-	}
-
-	if (-1 != info->bpp) {
-		snprintf (buf[2], sizeof (buf[2]), "%d", info->bpp);
-		argv[argc++] = "-b";
-		argv[argc++] = buf[2];
-	}
-
-	argv[argc++] = NULL;
-
-	assert (argc <= N_ELEMENTS (argv));
-
-	stderr_pipe[0] = -1;
-	stderr_pipe[1] = -1;
-
-	if (-1 == pipe (stderr_pipe))
-		goto fork_error;
-
-	fflush (stderr);
-
-	/* Just in case. XXX error ignored. */
-	old_flags = fcntl (info->fd, F_GETFD, 0);
-	if (-1 != old_flags
-	    && (old_flags & FD_CLOEXEC)) {
-		old_flags &= ~FD_CLOEXEC;
-		/* XXX error ignored. */
-		fcntl (info->fd, F_SETFD, old_flags);
-	}
-
-	pid = fork ();
-
-	switch (pid) {
-	case -1: /* error */
-		info->tveng_errno = errno;
-		goto fork_error;
-
-	case 0: /* in child */
-	{
-		int saved_errno;
-
-		close (stderr_pipe[0]); /* unused */
-		stderr_pipe[0] = -1;
-
-		/* Redirect error message to pipe. */
-		if (-1 == dup2 (stderr_pipe[1], STDERR_FILENO))
-			_exit (2); /* tell parent */
-
-		/* Try in $PATH. Note this might be a consolehelper symlink.
-		   Exit status 0 on success, 1 on error. */
-		execvp (ZSFB_NAME, (char **) argv);
-
-		/* When execvp returns it failed. */
-
-		if (ENOENT == errno) {
-			/* File not found. Try the zapping_setup_fb install
-			   path. Second choice because this works only if
-			   zapping_setup_fb has been set SUID root. */
-		        execvp (PACKAGE_ZSFB_DIR "/" ZSFB_NAME,
-				(char **) argv);
-		}
-
-		saved_errno = errno;
-
-		switch (saved_errno) {
-		case ENOENT:
-			fprintf (stderr,
-				 _("%s not found in %s "
-				   "or the executable search path."),
-				 ZSFB_NAME, PACKAGE_ZSFB_DIR);
-			break;
-
-		default:
-			fprintf (stderr,
-				 _("Cannot execute %s.\n%s."),
-				 ZSFB_NAME, strerror (saved_errno));
-			break;
-		}
-
-		_exit (3); /* tell parent */
-	}
-
-	default: /* in parent */
-		break;
-	}
-
-	close (stderr_pipe[1]); /* unused */
-	stderr_pipe[1] = -1;
-
-	r = read_file_from_fd (errmsg, sizeof (errmsg), stderr_pipe[0]);
-
-	close (stderr_pipe[0]);
-	stderr_pipe[0] = -1;
-
-	if (-1 == r) {
-		while (-1 == waitpid (pid, &status, 0)
-		       && EINTR == errno)
-			;
-
-		info->tveng_errno = errno;
-		goto fork_error;
-	}
-
-	while (-1 == (r = waitpid (pid, &status, 0))
-	       && EINTR == errno)
-		;
-
-	if (-1 == r) {
-		info->tveng_errno = errno;
-		goto fork_error;
-	}
-
-	if (!WIFEXITED (status)) {
-		info->tveng_errno = errno;
-		goto fork_error;
-	}
-
-	switch (WEXITSTATUS (status)) {
-	case 0: /* zapping_setup_fb success */
-		if (!info->overlay.get_buffer (info))
-			goto failure;
-
-		if (!verify_overlay_buffer (target, &info->overlay.buffer))
-			goto zsfb_failed;
-
+	status1 = exec_zapping_setup_fb (info,
+					 PACKAGE_ZSFB_DIR "/" ZSFB_NAME,
+					 display_name,
+					 screen_number,
+					 target);
+	switch (status1) {
+	case ZSFB_SUCCESS:
 		break;
 
-	case 1: /* zapping_setup_fb failure */
-		info->tveng_errno = 0;
-		/* TRANSLATORS: Program name, error message. */
-		tv_error_msg (info, _("%s failed.\n%s"),
-			      ZSFB_NAME, errmsg);
-		goto failure;
-
-	case 2: /* dup2() failed */
-		goto fork_error;
-
-	case 3: /* execvp() failed */
-		info->tveng_errno = 0;
-		tv_error_msg (info, "%s", errmsg);
+	case ZSFB_FORK_ERROR:
+	case ZSFB_BUG:
+	case ZSFB_NO_SCREEN:
+	case ZSFB_INVALID_BPP:
+	case ZSFB_UNKNOWN_DEVICE:
+	case ZSFB_OPEN_ERROR:
+	case ZSFB_IOCTL_ERROR:
+	case ZSFB_OVERLAY_IMPOSSIBLE:
+		/* Hopeless. */
 		goto failure;
 
 	default:
-		info->tveng_errno = 0;
-		/* TRANSLATORS: Program name. */
-		tv_error_msg (info, _("Unknown error in %s."),
-			      ZSFB_NAME);
-		goto failure;
+		/* Let's try in $PATH. Note this may be a consolehelper
+		   symlink. */
+
+		status2 = exec_zapping_setup_fb (info,
+						 ZSFB_NAME,
+						 display_name,
+						 screen_number,
+						 target);
+		switch (status2) {
+		case ZSFB_SUCCESS:
+			break;
+
+		case ZSFB_EXEC_ENOENT:
+			if (ZSFB_EXEC_ENOENT == status1) {
+				tv_error_msg (info,
+					      _("%s not found in %s or the "
+						"executable search path."),
+					      ZSFB_NAME, PACKAGE_ZSFB_DIR);
+			}
+
+			/* fall through */
+
+		default:
+			goto failure;
+		}
 	}
+
+	printv ("tv_set_overlay_buffer() ok\n");
 
 	RETURN_UNTVLOCK (TRUE);
 
- fork_error:
-	/* TRANSLATORS: Program name, error message. */
-	tv_error_msg (info, _("Cannot execute %s.\n%s."),
-		      ZSFB_NAME, strerror (info->tveng_errno));
-	goto failure;
-
- zsfb_failed:
-	/* TRANSLATORS: Program name. */
-	tv_error_msg (info, _("%s failed."), ZSFB_NAME);
-	goto failure;
-
  failure:
-	if (-1 != stderr_pipe[0])
-		close (stderr_pipe[0]);
-
-	if (-1 != stderr_pipe[1])
-		close (stderr_pipe[1]);
+	printv ("tv_set_overlay_buffer() failed\n");
 
 	RETURN_UNTVLOCK (FALSE);
 }
@@ -3728,9 +3935,11 @@ tv_set_overlay_window_chromakey	(tveng_device_info *	info,
 	if (!add_boundary_clips (info, &safe_vec, &win))
 		goto failure2;
 
-	if (0)
-		fprintf (stderr, "win.width=%u height=%u\n",
+	if (0) {
+		fprintf (stderr, "win.x=%d y=%d width=%u height=%u\n",
+			 win.x, win.y,
 			 win.width, win.height);
+	}
 
 	verify_clip_vector (&safe_vec, &win);
 
@@ -4541,7 +4750,7 @@ hash_warning			(const char *		label1,
 #define STORE_CURRENT_FUNC(item, kind)					\
 void									\
 store_cur_##item		(tveng_device_info *	info,		\
-				 const tv_##kind *	p)		\
+				 tv_##kind *		p)		\
 {									\
 									\
 	assert (NULL != info);			        		\
@@ -4750,7 +4959,7 @@ FREE_ITEM_FUNC (video_standard, video_standard);
 
 void
 store_cur_video_standard	(tveng_device_info *	info,
-				 const tv_video_standard *p)
+				 tv_video_standard *	p)
 {
 	assert (NULL != info);
 
@@ -4815,7 +5024,7 @@ FREE_ITEM_FUNC (audio_input, audio_line);
 
 void
 store_cur_audio_input		(tveng_device_info *	info,
-				 const tv_audio_line *	p)
+				 tv_audio_line *	p)
 {
 	assert (NULL != info);
 

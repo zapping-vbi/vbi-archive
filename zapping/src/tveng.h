@@ -91,10 +91,9 @@ enum tveng_attach_mode
   */
   TVENG_ATTACH_READ,
   /*
-    Attachs the device to a XVideo virtual device, use this mode if
+    Attaches the device to a XVideo virtual device, use this mode if
     you would prefer the X server to take care of the video. This mode
-    only supports preview mode, and falls back to the previous attach
-    modes if XVideo isn't present or it isn't functional.
+    only supports preview mode, and falls back to DMA overlay.
   */
   TVENG_ATTACH_XV,
   /*

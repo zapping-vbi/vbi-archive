@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mixer.c,v 1.14 2005-07-04 21:55:27 mschimek Exp $ */
+/* $Id: mixer.c,v 1.15 2006-02-25 17:37:44 mschimek Exp $ */
 
 /*
  *  These functions encapsulate the OS and driver specific
@@ -177,6 +177,7 @@ tv_mixer_line_record		(tv_audio_line *	line,
 	tv_audio_line *l;
 
 	assert (NULL != line);
+	assert (NULL != line->_parent);
 
 	for (l = ((tv_mixer *) line->_parent)->inputs; l; l = l->_next)
 		if (line == l)

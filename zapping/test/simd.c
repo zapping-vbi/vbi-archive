@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.c,v 1.2 2005-06-28 01:09:34 mschimek Exp $ */
+/* $Id: simd.c,v 1.3 2006-02-25 17:37:44 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -310,18 +310,7 @@ SIMD_NAME (test)		(void)
 
 #else /* !SIMD */
 
-#define s8(n)  { n * 0x0101010101010101ULL, n * 0x0101010101010101ULL }
-#define s16(n) { n * 0x0001000100010001ULL, n * 0x0001000100010001ULL }
-#define s32(n) { n * 0x0000000100000001ULL, n * 0x0000000100000001ULL }
-const int64_t vsplat8_m1[2]	= s8 (0xFF);
-const int64_t vsplat8_1[2]	= s8 (1);
-const int64_t vsplat8_127[2]	= s8 (127);
-const int64_t vsplat8_15[2]	= s8 (15);
-const int64_t vsplat16_255[2]	= s16 (255);
-const int64_t vsplat16_256[2]	= s16 (256);
-const int64_t vsplat16_m256[2]	= s16 (0xFF00);
-const int64_t vsplat32_1[2]	= s32 (1);
-const int64_t vsplat32_2[2]	= s32 (2);
+#include "libtv/simd-consts.h"
 
 int
 main				(int			argc,

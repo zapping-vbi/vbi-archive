@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.50 2006-02-06 18:13:17 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.51 2006-02-25 17:37:44 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -147,7 +147,46 @@ static void
 on_cursor_blanked		(ZVideo *		video _unused_,
 				 gpointer		user_data _unused_)
 {
-  /* Recenter the viewport */
+  GtkWindow *window;
+
+  if (0)
+    {
+      gint x;
+      gint y;
+      gint width;
+      gint height;
+      const tv_screen *s;
+
+      /* Root window relative position. */
+      gdk_window_get_origin (black_window->window, &x, &y);
+
+      gdk_window_get_geometry (black_window->window,
+			       /* x */ NULL,
+			       /* y */ NULL,
+			       &width,
+			       &height,
+			       /* depth */ NULL);
+
+      s = tv_screen_list_find (screens,
+			       x, y,
+			       (guint) width,
+			       (guint) height);
+
+      if (NULL != s && screen != s)
+	{
+	  /* Moved to a different screen. */
+	  /* TO DO:
+	     - restore vidmode on old screen.
+	     - find suitable vidmode on new screen.
+	  */
+	}
+    }
+
+  /* Recenter the window. */
+  window = GTK_WINDOW (black_window);
+  gtk_window_move (window, (gint) screen->x, (gint) screen->y);
+
+  /* Recenter the viewport. */
   x11_vidmode_switch (svidmodes, screens, NULL, NULL);
 }
 
@@ -586,6 +625,8 @@ start_fullscreen		(display_mode		dmode,
 	}
 
       /* Driver limit. */
+      /* FIXME the capture (after ATTACH_READ) and overlay limits (after
+         ATTACH_XV or tv_set_overlay_buffer()) may be different. */
       caps = tv_get_caps (zapping->info);
       vwidth = MIN ((guint) caps->maxwidth, vwidth);
       vheight = MIN ((guint) caps->maxheight, vheight);

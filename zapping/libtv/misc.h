@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.9 2005-06-28 19:16:09 mschimek Exp $ */
+/* $Id: misc.h,v 1.10 2006-02-25 17:37:42 mschimek Exp $ */
 
 #ifndef __ZTV_MISC_H__
 #define __ZTV_MISC_H__
@@ -29,6 +29,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <assert.h>
+#include "macros.h"
 
 #define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
 
@@ -137,6 +138,11 @@ do {									\
 })
 #endif
 
+#define SWAB16(n) ({							\
+	__typeof__ (n) _n = (n);					\
+	((_n & 0xFF) << 8) | ((_n >> 8) & 0xFF);			\
+})
+
 #else /* !__GNUC__ */
 
 #define likely(expr) (expr)
@@ -182,6 +188,8 @@ do {									\
 #undef SATURATE
 #define SATURATE(n, min, max) MIN (MAX (n, min), max)
 
+#define SWAB16(n) ((((n) & 0xFF) << 8) | (((n) >> 8) & 0xFF))
+
 #endif /* !__GNUC__ */
 
 /* Find first set bit in 32 bit constant, see man 3 ffs. */
@@ -191,6 +199,21 @@ do {									\
 #define FFS16(m) ((m) & 0xFF00 ? 8 + FFS8 ((m) >> 8) : FFS8 (m))
 #define FFS32(m) ((m) & 0xFFFF0000 ? 16 + FFS16 ((m) >> 16) : FFS16 (m))
 #define FFS(m) (0 == (m) ? 0 : FFS32 (m))
+
+/* Masks m bits out of v, then shifts msb to position n (0 ... 31).
+   E.g. v=0x1234, m=0x0FF0, n=7 -> 0x0023. */
+#undef MASKED_SHIFT
+#define MASKED_SHIFT(v, m, n)						\
+	((FFS (m) > (int)(n) + 1) ?					\
+	 (((v) & (m)) >> (FFS (m) - (n) - 1)) :				\
+	 (((v) & (m)) << MIN ((int)(n) + 1 - FFS (m), 31)))
+
+/* E.g. v=0x1234, m=0x0FF0, n=7 -> 0x0340. */
+#undef SHIFT_MASKED
+#define SHIFT_MASKED(v, m, n)						\
+	((FFS (m) > (int)(n) + 1) ?					\
+	 (((v) << (FFS (m) - (n) - 1)) & (m)) :				\
+	 (((v) >> MIN ((int)(n) + 1 - FFS32 (m), 31) & (m)))
 
 #undef CLAMP
 #define CLAMP(n, min, max) SATURATE (n, min, max)
@@ -214,7 +237,7 @@ do { \
 #endif
 
 #ifdef HAVE_STRLCPY
-#define _tv_strlcpy strlcpy
+#  define _tv_strlcpy strlcpy
 #else
 extern size_t
 _tv_strlcpy			(char *			dst,
@@ -223,7 +246,7 @@ _tv_strlcpy			(char *			dst,
 #endif
 
 #ifdef HAVE_STRNDUP
-#define _tv_strndup strndup
+#  define _tv_strndup strndup
 #else
 extern char *
 _tv_strndup			(const char *		s,
@@ -231,7 +254,7 @@ _tv_strndup			(const char *		s,
 #endif
 
 #ifdef HAVE_ASPRINTF
-#define _tv_asprintf asprintf
+#  define _tv_asprintf asprintf
 #else
 int
 _tv_asprintf			(char **		dstp,
@@ -246,7 +269,7 @@ clear_block_fn                  (void *                 dst,
                                  unsigned int           height,
                                  unsigned long          bytes_per_line);
 
-typedef void
+typedef tv_bool
 copy_block_fn                   (void *                 dst,
                                  const void *           src,
                                  unsigned int           width,

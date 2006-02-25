@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.15 2006-02-09 06:38:52 mschimek Exp $ */
+/* $Id: image_format.c,v 1.16 2006-02-25 17:37:42 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -25,6 +25,7 @@
 #include "mmx/mmx.h"
 #include "sse/sse.h"
 #include "avec/avec.h"
+#include "simd-consts.h"
 #include "image_format.h"
 #include "misc.h"
 
@@ -394,20 +395,20 @@ tv_clear_image			(void *			image,
 	assert (NULL != image);
 	assert (NULL != format);
 
-#ifdef HAVE_ALTIVEC
+#ifdef CAN_COMPILE_ALTIVEC
 	if (UNTESTED_SIMD
 	    && (cpu_features & CPU_FEATURE_ALTIVEC)
 	    && 0 == ((unsigned long) image | format->bytes_per_line[0]) % 16)
 		clear_block = clear_block_altivec;
 	else
 #endif
-#ifdef HAVE_SSE
+#ifdef CAN_COMPILE_SSE
 	if (UNTESTED_SIMD
 	    && (cpu_features & CPU_FEATURE_SSE))
 		clear_block = clear_block_mmx_nt;
 	else
 #endif
-#ifdef HAVE_MMX
+#ifdef CAN_COMPILE_MMX
 	if (cpu_features & CPU_FEATURE_MMX)
 		clear_block = clear_block_mmx;
 	else
@@ -600,13 +601,13 @@ tv_memcpy			(void *			dst,
 	if (unlikely (dst == src))
 		return;
 
-#ifdef HAVE_SSE
+#ifdef CAN_COMPILE_SSE
 	if (UNTESTED_SIMD
 	    && (cpu_features & CPU_FEATURE_SSE))
 		if (0 == ((unsigned long) dst | (unsigned long) src) % 16)
 			return memcpy_sse_nt (dst, src, n_bytes);
 #endif
-#ifdef HAVE_MMX
+#ifdef CAN_COMPILE_MMX
 	/* Is this really faster? */
 	if (cpu_features & CPU_FEATURE_MMX)
 		return memcpy_mmx (dst, src, n_bytes);
@@ -614,7 +615,7 @@ tv_memcpy			(void *			dst,
 	memcpy (dst, src, n_bytes);
 }
 
-void
+tv_bool
 copy_block1_generic		(void *			dst,
 				 const void *		src,
 				 unsigned int		width,
@@ -627,12 +628,14 @@ copy_block1_generic		(void *			dst,
 	unsigned long dst_padding;
 	unsigned long src_padding;
 
-	dst_padding = dst_bytes_per_line - width * 1;
-	src_padding = src_bytes_per_line - width * 1;
+	dst_padding = dst_bytes_per_line - width;
+	src_padding = src_bytes_per_line - width;
 
-	if (likely (0 == (dst_padding | src_padding))) {
+	if (unlikely ((long)(dst_padding | src_padding) < 0)) {
+		return FALSE;
+	} else if (likely (0 == (dst_padding | src_padding))) {
 		memcpy (dst, src, width * height);
-		return;
+		return TRUE;
 	}
 
 	d = (uint8_t *) dst;
@@ -641,9 +644,11 @@ copy_block1_generic		(void *			dst,
 	for (; height > 0; --height) {
 		memcpy (d, s, width);
 
-		d += dst_padding;
-		s += src_padding;
+		d += dst_bytes_per_line;
+		s += src_bytes_per_line;
 	}
+
+	return TRUE;
 }
 
 #define offset(start, format, plane, row)				\
@@ -671,14 +676,14 @@ tv_copy_image			(void *			dst_image,
 	assert (NULL != dst_image);
 	assert (NULL != dst_format);
 
-	if (NULL == src_image)
+	if (unlikely (NULL == src_image))
 		return tv_clear_image (dst_image, dst_format);
 
 	assert (NULL != src_format);
 
 	assert (dst_format->pixel_format == src_format->pixel_format);
 
-#ifdef HAVE_SSE
+#ifdef CAN_COMPILE_SSE
 	if (UNTESTED_SIMD
 	    && (cpu_features & CPU_FEATURE_SSE))
 		copy_block = copy_block1_sse_nt;
@@ -694,7 +699,7 @@ tv_copy_image			(void *			dst_image,
 
 	y1 = MIN (y1, height);
 
-	if (y0 > y1)
+	if (unlikely (y0 > y1))
 		return FALSE;
 
 	height = y1 - y0;
@@ -713,30 +718,32 @@ tv_copy_image			(void *			dst_image,
 		uv_height = height >> pf->uv_vshift;
 		uv_y0 = y0 >> pf->uv_vshift;
 
-		copy_block (offset (d, dst_format, 1, uv_y0),
-			    offset (s, src_format, 1, uv_y0),
-			    uv_width, uv_height,
-			    dst_format->bytes_per_line[1],
-			    src_format->bytes_per_line[1]);
+		if (unlikely (!copy_block (offset (d, dst_format, 1, uv_y0),
+					   offset (s, src_format, 1, uv_y0),
+					   uv_width, uv_height,
+					   dst_format->bytes_per_line[1],
+					   src_format->bytes_per_line[1])))
+			return FALSE;
 
 		if (TV_PIXFMT_NV12 != pf->pixfmt) {
-			copy_block (offset (d, dst_format, 2, uv_y0),
-				    offset (s, src_format, 2, uv_y0),
-				    uv_width, uv_height,
-				    dst_format->bytes_per_line[2],
-				    src_format->bytes_per_line[2]);
+			if (unlikely
+			    (!copy_block (offset (d, dst_format, 2, uv_y0),
+					  offset (s, src_format, 2, uv_y0),
+					  uv_width, uv_height,
+					  dst_format->bytes_per_line[2],
+					  src_format->bytes_per_line[2]))) {
+				return FALSE;
+			}
 		}
 	} else {
 		width = (width * pf->bits_per_pixel) >> 3;
 	}
 
-	copy_block (offset (d, dst_format, 0, y0),
-		    offset (s, src_format, 0, y0),
-		    width, height,
-		    dst_format->bytes_per_line[0],
-		    src_format->bytes_per_line[0]);
-
-	return TRUE;
+	return copy_block (offset (d, dst_format, 0, y0),
+			   offset (s, src_format, 0, y0),
+			   width, height,
+			   dst_format->bytes_per_line[0],
+			   src_format->bytes_per_line[0]);
 }
 
 void *

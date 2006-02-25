@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.h,v 1.3 2005-06-28 00:53:05 mschimek Exp $ */
+/* $Id: simd.h,v 1.4 2006-02-25 17:37:43 mschimek Exp $ */
 
 #ifndef SIMD_H
 #define SIMD_H
@@ -60,8 +60,9 @@
      LE:   ^ bit n      ^ bit 0,  LSB first in memory.
 
    Compiling:
-   The configure script defines HAVE_MMX, HAVE_SSE, ... (both #defines
-   and automake conditionals) if the compiler recognizes these intrinsics.
+   The configure script defines CAN_COMPILE_MMX, CAN_COMPILE_SSE, ... (both
+   #defines and automake conditionals) if the compiler recognizes these
+   intrinsics.
 
    To compile intrinsics GCC needs a target CPU switch, e. g. -mmmx,
    -msse or -march=pentium4.  The resulting code will be unportable.
@@ -109,6 +110,8 @@ extern const v8 vsplat8_1;	/* vsplat8(1) */			\
 extern const v8 vsplat8_m1;	/* vsplat8(-1) */			\
 extern const v8 vsplat8_15;	/* vsplat8(15) */			\
 extern const v8 vsplat8_127;	/* vsplat8(127 = 0x7F) */		\
+extern const v16 vsplat16_1;	/* vsplat16(1) */			\
+extern const v16 vsplat16_2;	/* vsplat16(2) */			\
 extern const v16 vsplat16_255;	/* vsplat16(255 = 0x00FF) */		\
 extern const v16 vsplat16_256;	/* vsplat16(256 = 0x0100) */		\
 extern const v16 vsplat16_m256;	/* vsplat16(-256 = 0xFF00) */		\
@@ -116,13 +119,15 @@ extern const v32 vsplat32_1;	/* vsplat32(1) */			\
 extern const v32 vsplat32_2;	/* vsplat32(2) */
 
 #define vsplatu8_1 ((vu8) vsplat8_1)
-#define vsplat16_m1 ((v16) vsplat8_1)
-#define vsplat32_m1 ((v32) vsplat8_1)
+#define vsplat16_m1 ((v16) vsplat8_m1)
+#define vsplat32_m1 ((v32) vsplat8_m1)
 #define vsplatu8_m1 ((vu8) vsplat8_m1)
-#define vsplatu16_m1 ((vu16) vsplat8_1)
-#define vsplatu32_m1 ((vu32) vsplat8_1)
+#define vsplatu16_m1 ((vu16) vsplat8_m1)
+#define vsplatu32_m1 ((vu32) vsplat8_m1)
 #define vsplatu8_15 ((vu8) vsplat8_15)
 #define vsplatu8_127 ((vu8) vsplat8_127)
+#define vsplatu16_1 ((vu16) vsplat16_1)
+#define vsplatu16_2 ((vu16) vsplat16_2)
 #define vsplatu16_255 ((vu16) vsplat16_255)
 #define vsplatu16_256 ((vu16) vsplat16_256)
 #define vsplatu16_m256 ((vu16) vsplat16_m256)
@@ -364,6 +369,8 @@ vshiftu2x			(__m64 *		_l,
 #define vunpacklo32(_a, _b) _mm_unpacklo_pi32 (_a, _b)
 #define vunpackhi32(_a, _b) _mm_unpackhi_pi32 (_a, _b)
 
+#define vpacksu16(_a, _b) _mm_packs_pi16 (_a, _b)
+
 /* _a + _b, _a - _b with wrap-around. */
 #define vadd8(_a, _b) _mm_add_pi8 (_a, _b)
 #define vadd16(_a, _b) _mm_add_pi16 (_a, _b)
@@ -450,6 +457,14 @@ fast_vavgu8			(vu8			_a,
 	return vadd8 (vsr1u8 (_a), vsr1u8 (_b));
 }
 
+static always_inline vu16
+small_vavgu16			(vu16			_a,
+				 vu16			_b)
+{
+	/* For values < 16384. */
+	return vsru16 (vadd16 (vadd16 (_a, vsplat16_1), _b), 1);
+}
+
 /* min (_a, _b) (single instruction on all but MMX, 3DNow). */
 static always_inline vu8
 vminu8				(vu8			_a,
@@ -534,6 +549,8 @@ vminu16i			(vu8			_a,
 
 #define vavgu8(_a, _b) _mm_avg_pu8 (_a, _b)
 #define fast_vavgu8(_a, _b) vavgu8 (_a, _b)
+#define vavgu16(_a, _b) _mm_avg_pu16 (_a, _b)
+#define small_vavgu16(_a, _b) vavgu16 (_a, _b)
 #define vminu8(_a, _b) _mm_min_pu8 (_a, _b)
 #define vmaxu8(_a, _b) _mm_max_pu8 (_a, _b)
 #define vmin16(_a, _b) _mm_min_pi16 (_a, _b)
@@ -744,6 +761,8 @@ vshiftu2x			(__m128i *		_l,
 #define vunpacklo64(_a, _b) _mm_unpacklo_epi64 (_a, _b)
 #define vunpackhi64(_a, _b) _mm_unpackhi_epi64 (_a, _b)
 
+#define vpacksu16(_a, _b) _mm_packs_epi16 (_a, _b)
+
 #define vadd8(_a, _b) _mm_add_epi8 (_a, _b)
 #define vadd16(_a, _b) _mm_add_epi16 (_a, _b)
 #define vadd32(_a, _b) _mm_add_epi32 (_a, _b)
@@ -784,6 +803,8 @@ vshiftu2x			(__m128i *		_l,
 
 #define vavgu8(_a, _b) _mm_avg_epu8 (_a, _b)
 #define fast_vavgu8(_a, _b) vavgu8 (_a, _b)
+#define vavgu16(_a, _b) _mm_avg_epu16 (_a, _b)
+#define small_vavgu16(_a, _b) vavgu16 (_a, _b)
 #define vminu8(_a, _b) _mm_min_epu8 (_a, _b)
 #define vmaxu8(_a, _b) _mm_max_epu8 (_a, _b)
 #define vmin16(_a, _b) _mm_min_epi16 (_a, _b)
@@ -1112,42 +1133,42 @@ extern fn_type name ## _SSE2;						\
 extern fn_type name ## _SSE3;						\
 extern fn_type name ## _ALTIVEC;
 
-#if defined (HAVE_MMX)
+#if defined (CAN_COMPILE_MMX)
 #  define SIMD_FN_SELECT_MMX(name, avail)				\
 	(((avail) & CPU_FEATURE_MMX) & cpu_features) ? name ## _MMX
 #else
 #  define SIMD_FN_SELECT_MMX(name, avail) 0 ? NULL
 #endif
 
-#if defined (HAVE_3DNOW)
+#if defined (CAN_COMPILE_3DNOW)
 #  define SIMD_FN_SELECT_3DNOW(name, avail)				\
 	(((avail) & CPU_FEATURE_3DNOW) & cpu_features) ? name ## _3DNOW
 #else
 #  define SIMD_FN_SELECT_3DNOW(name, avail) 0 ? NULL
 #endif
 
-#if defined (HAVE_SSE)
+#if defined (CAN_COMPILE_SSE)
 #  define SIMD_FN_SELECT_SSE(name, avail)				\
 	(((avail) & CPU_FEATURE_SSE) & cpu_features) ? name ## _SSE
 #else
 #  define SIMD_FN_SELECT_SSE(name, avail) 0 ? NULL
 #endif
 
-#if defined (HAVE_SSE2)
+#if defined (CAN_COMPILE_SSE2)
 #  define SIMD_FN_SELECT_SSE2(name, avail)				\
 	(((avail) & CPU_FEATURE_SSE2) & cpu_features) ? name ## _SSE2
 #else
 #  define SIMD_FN_SELECT_SSE2(name, avail) 0 ? NULL
 #endif
 
-#if defined (HAVE_SSE3)
+#if defined (CAN_COMPILE_SSE3)
 #  define SIMD_FN_SELECT_SSE3(name, avail)				\
 	(((avail) & CPU_FEATURE_SSE3) & cpu_features) ? name ## _SSE3
 #else
 #  define SIMD_FN_SELECT_SSE3(name, avail) 0 ? NULL
 #endif
 
-#if defined (HAVE_ALTIVEC)
+#if defined (CAN_COMPILE_ALTIVEC)
 #  define SIMD_FN_SELECT_ALTIVEC(name, avail)				\
 	(((avail) & CPU_FEATURE_ALTIVEC) & cpu_features) ? name ## _ALTIVEC
 #else

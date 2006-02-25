@@ -12,23 +12,26 @@ BUILT_SOURCES = \
 
 EXTRA_DIST = \
 	gen_conv.s \
-	zmarshalers.list 
+	zmarshalers.list
 
+# Adding -g here is bad but I need better BugBuddy backtraces.
 AM_CFLAGS = \
 	-D_GNU_SOURCE \
 	@DEFAULT_CFLAGS@ \
 	$(ZVBI_CFLAGS) \
 	$(LIBXML_CFLAGS) \
-	-DZAPPING8
+	-DZAPPING8 \
+	-DPACKAGE_VERSION_ID=@PACKAGE_VERSION_ID@ \
+	-g
 
 INCLUDES = \
 	-I$(top_srcdir) \
 	@COMMON_INCLUDES@
 
 # Need gcc and as support for SSE to build this module.
-# Cannot build for target x86_64, code is 32 bit.
+# Cannot build for host x86_64, code is 32 bit.
 if HAVE_X86
-if HAVE_SSE
+if CAN_COMPILE_SSE
 gen_conv_lib = libgen_conv.a
 else
 gen_conv_lib =
@@ -50,7 +53,6 @@ zmarshalers.h: zmarshalers.list
 zapping_SOURCES = \
 	arts.c esd.c oss.c \
 	audio.c audio.h \
-	bayer.c bayer.h \
 	capture.c capture.h \
 	channel_editor.c channel_editor.h \
 	cmd.c cmd.h \

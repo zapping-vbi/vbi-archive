@@ -26,6 +26,7 @@ EXTRA_DIST = \
 	BUGS \
 	ChangeLog.01 \
 	ChangeLog.03 \
+	ChangeLog.05 \
 	intltool-extract.in \
 	intltool-merge.in \
 	intltool-update.in \

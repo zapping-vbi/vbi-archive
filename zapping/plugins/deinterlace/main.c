@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.9 2005-08-04 01:40:49 mschimek Exp $ */
+/* $Id: main.c,v 1.10 2006-02-25 17:37:43 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -32,6 +32,7 @@
 #include "src/plugin_common.h"
 #include "src/zgconf.h"
 #include "libtv/cpu.h"
+#include "libtv/simd-consts.h"
 #include "preferences.h"
 #include "main.h"
 
@@ -42,21 +43,6 @@
    all methods at full height. */
 #  define DI_MAIN_HEIGHT_DIV 1
 #endif
-
-/* See windows.h */
-#define s8(n) { n * 0x0101010101010101ULL, n * 0x0101010101010101ULL }
-#define s16(n) { n * 0x0001000100010001ULL, n * 0x0001000100010001ULL }
-#define s32(n) { n * 0x0000000100000001ULL, n * 0x0000000100000001ULL }
-const int64_t vsplat8_m1[2]	= s8 (0xFF);
-const int64_t vsplat8_1[2]	= s8 (1);
-const int64_t vsplat8_127[2]	= s8 (127);
-const int64_t vsplat8_15[2]	= s8 (15);
-const int64_t vsplat16_255[2]	= s16 (255);
-const int64_t vsplat16_256[2]	= s16 (256);
-const int64_t vsplat16_m256[2]	= s16 (0xFF00);
-const int64_t vsplat32_1[2]	= s32 (1);
-const int64_t vsplat32_2[2]	= s32 (2);
-
 
 DEINTERLACE_METHOD *		deinterlace_methods[30];
 

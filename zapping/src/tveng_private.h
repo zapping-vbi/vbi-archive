@@ -277,6 +277,9 @@ struct overlay_device {
 					 Window			window,
 					 GC			gc,
 					 unsigned int		chromakey);
+	/* Drivers may not stop immediately, you may want to usleep() for
+	   1-2 frame periods after disabling the overlay. This function
+	   doesn't sleep so the caller can do useful work in the meantime. */
 	tv_bool			(* enable)
 					(tveng_device_info *	info,
 					 tv_bool		enable);
@@ -393,7 +396,7 @@ extern void								\
 free_##kind##_list		(tv_##kind **		list);		\
 extern void								\
 store_cur_##item		(tveng_device_info *	info,		\
-				 const tv_##kind *	p);
+				 tv_##kind *		p);
 
 NODE_HELPER_FUNCTIONS		(control, control);
 extern void

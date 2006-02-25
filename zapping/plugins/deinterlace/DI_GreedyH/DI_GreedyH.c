@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyH.c,v 1.4 2005-07-29 17:39:29 mschimek Exp $
+// $Id: DI_GreedyH.c,v 1.5 2006-02-25 17:37:43 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -37,6 +37,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.4  2005/07/29 17:39:29  mschimek
+// *** empty log message ***
+//
 // Revision 1.3  2005/06/28 00:47:12  mschimek
 // Converted to vector intrinsics. Added support for 3DNow, SSE2, x86-64
 // and AltiVec. Removed ununsed DScaler code. Cleaned up. All options work
@@ -144,7 +147,7 @@ DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
 {
     pInfo = pInfo;
 
-#if defined (HAVE_ALTIVEC)
+#if defined (CAN_COMPILE_ALTIVEC)
     if (cpu_features & CPU_FEATURE_ALTIVEC) {
 	if (GreedyUseMedianFilter |
 	    GreedyUsePulldown |
@@ -157,7 +160,7 @@ DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
     } else
 #endif
 
-#if defined (HAVE_SSE3)
+#if defined (CAN_COMPILE_SSE3)
     if (cpu_features & CPU_FEATURE_SSE3) {
 	if (GreedyUseMedianFilter |
 	    GreedyUsePulldown |
@@ -170,7 +173,7 @@ DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
     } else
 #endif
 
-#if defined (HAVE_SSE2)
+#if defined (CAN_COMPILE_SSE2)
     if (cpu_features & CPU_FEATURE_SSE2) {
 	if (GreedyUseMedianFilter |
 	    GreedyUsePulldown |
@@ -183,7 +186,7 @@ DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
     } else
 #endif
 
-#if defined (HAVE_SSE)
+#if defined (CAN_COMPILE_SSE)
     if (cpu_features & CPU_FEATURE_SSE) {
 	if (GreedyUseMedianFilter |
 	    GreedyUsePulldown |
@@ -198,7 +201,7 @@ DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
 
     /* Test mode: enable expensive features for tests. */
 
-#if defined (HAVE_3DNOW)
+#if defined (CAN_COMPILE_3DNOW)
     if (cpu_features & CPU_FEATURE_3DNOW) {
 	if (GreedyTestMode
 	    && (GreedyUseMedianFilter |
@@ -212,7 +215,7 @@ DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
     } else
 #endif
 
-#if defined (HAVE_MMX)
+#if defined (CAN_COMPILE_MMX)
     if (cpu_features & CPU_FEATURE_MMX) {
 	if (GreedyTestMode
 	    && (GreedyUseMedianFilter |
@@ -359,27 +362,27 @@ DI_GreedyH_GetDeinterlacePluginInfo (void)
     m = NULL;
     f = NULL;
 
-#if defined (HAVE_ALTIVEC)
+#if defined (CAN_COMPILE_ALTIVEC)
     if (cpu_features & CPU_FEATURE_ALTIVEC)
 	f = DeinterlaceGreedyH;
 #endif
-#if defined (HAVE_SSE3)
+#if defined (CAN_COMPILE_SSE3)
     if (cpu_features & CPU_FEATURE_SSE3)
 	f = DeinterlaceGreedyH;
 #endif
-#if defined (HAVE_SSE2)
+#if defined (CAN_COMPILE_SSE2)
     if (cpu_features & CPU_FEATURE_SSE2)
 	f = DeinterlaceGreedyH;
 #endif
-#if defined (HAVE_SSE)
+#if defined (CAN_COMPILE_SSE)
     if (cpu_features & CPU_FEATURE_SSE)
 	f = DeinterlaceGreedyH;
 #endif
-#if defined (HAVE_3DNOW)
+#if defined (CAN_COMPILE_3DNOW)
     if (cpu_features & CPU_FEATURE_3DNOW)
 	f = DeinterlaceGreedyH;
 #endif
-#if defined (HAVE_MMX)
+#if defined (CAN_COMPILE_MMX)
     if (cpu_features & CPU_FEATURE_MMX)
        	f = DeinterlaceGreedyH;
 #endif

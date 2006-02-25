@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(zapping, 0.10cvs2,
+AC_INIT(zapping, 0.10cvs3,
   [http://sourceforge.net/tracker/?atid=102599&group_id=2599&func=browse])
 AC_CONFIG_SRCDIR(configure.in)
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
@@ -104,20 +104,21 @@ AC_DEFUN([CHECK_SIMD], [
   AC_MSG_CHECKING(if $CC supports $1)
   SAVE_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $2"
-  HAVE_$1="yes"
-  AC_COMPILE_IFELSE(AC_LANG_PROGRAM([#include <$3>], [$4]),, HAVE_$1="no")
-  if test x$HAVE_$1 = xyes; then
+  CAN_COMPILE_$1="yes"
+  AC_COMPILE_IFELSE(
+    AC_LANG_PROGRAM([#include <$3>], [$4]),, CAN_COMPILE_$1="no")
+  if test x$CAN_COMPILE_$1 = xyes; then
     dnl Older versions of GCC and other compilers have not been tested.
-    GCC_VERSION(0, 30200, HAVE_$1="disabled")
+    GCC_VERSION(0, 30200, CAN_COMPILE_$1="disabled")
   fi
-  if test x$HAVE_$1 = xyes; then
+  if test x$CAN_COMPILE_$1 = xyes; then
     dnl GCC 3.2.3
     dnl DI_TomsMoComp.c: In function `Search_Effort_1':
     dnl DI_TomsMoComp.c:876: Internal compiler error
     dnl   in find_reloads_toplev, at reload.c:4438
-    GCC_VERSION(30200, 30300, HAVE_$1="broken")
+    GCC_VERSION(30200, 30300, CAN_COMPILE_$1="broken")
   fi
-  if test x$HAVE_$1 = xyes; then
+  if test x$CAN_COMPILE_$1 = xyes; then
     if test x$1 = xSSE2 -o x$1 = xSSE3; then
       dnl GCC 3.3.5:
       dnl DI_GreedyHF.c: In function `DI_GreedyHF_SSE2':
@@ -126,16 +127,16 @@ AC_DEFUN([CHECK_SIMD], [
       dnl GCC 3.4.1 (x86_64), GCC 4.0.0 (i686):
       dnl DI_GreedyHM.c:1281: internal compiler error:
       dnl   in extract_insn, at recog.c:2083
-      GCC_VERSION(30300, 40001, HAVE_$1="broken")
+      GCC_VERSION(30300, 40001, CAN_COMPILE_$1="broken")
     fi
   fi
-  if test x$HAVE_$1 = xyes; then
+  if test x$CAN_COMPILE_$1 = xyes; then
     SIMD_SUPPORT="${SIMD_SUPPORT}$1 "
-    AC_DEFINE(HAVE_$1, 1, [Define if $CC supports $1 extensions])
+    AC_DEFINE(CAN_COMPILE_$1, 1, [Define if $CC supports $1 extensions])
   fi
-  AM_CONDITIONAL(HAVE_$1, test "x$HAVE_$1" = "xyes")
+  AM_CONDITIONAL(CAN_COMPILE_$1, test "x$CAN_COMPILE_$1" = "xyes")
   CFLAGS="$SAVE_CFLAGS"]
-  AC_MSG_RESULT($HAVE_$1))
+  AC_MSG_RESULT($CAN_COMPILE_$1))
 
 dnl x86 and x86_64
 CHECK_SIMD(MMX, [-mmmx], [mmintrin.h], [_mm_setzero_si64 ()])
@@ -148,7 +149,7 @@ dnl powerpc
 CHECK_SIMD(ALTIVEC, [-maltivec -mabi=altivec], [altivec.h], [vec_dssall ()])
 
 case "$host" in
-i?86-* | k?-*) dnl i386, i486, i586, i686, k6, k7
+i?86-* | k?-*) dnl i386, i486, i586, i686, k6, k7, k8
   AC_DEFINE(HAVE_X86, 1, [Define if target is x86 (not x86_64)])
   HAVE_X86=yes ;;
 *)
@@ -167,9 +168,6 @@ AC_COMPILE_IFELSE(AC_LANG_PROGRAM([], [return 0;]),
 AC_MSG_RESULT($HAVE_GCC_LIMITS)
 AM_CONDITIONAL(HAVE_GCC_LIMITS, test "x$HAVE_GCC_LIMITS" = "xyes")
 CFLAGS="$SAVE_CFLAGS"
-
-test "x$HAVE_X86" = "xyes" -a "x$HAVE_SSE2_ASM" = "xyes" && \
-  PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD deinterlace"
 
 dnl ---------------------------------------------------------------------------
 dnl GCC builtins
@@ -262,6 +260,8 @@ if test "x$enable_v4l" = "xyes"; then
   PLUGINS_TO_BUILD="$PLUGINS_TO_BUILD deinterlace"
 fi
 
+AM_CONDITIONAL(BUILD_DEINTERLACE_PLUGIN, test "x$enable_v4l" = "xyes")
+
 dnl ---------------------------------------------------------------------------
 dnl BSD Brooktree / Meteor
 dnl ---------------------------------------------------------------------------
@@ -325,8 +325,6 @@ AC_SUBST(ZSFB_GROUP)
 dnl ---------------------------------------------------------------------------
 
 test "x$VIDEO_SUPPORT" = "x" && VIDEO_SUPPORT="none"
-
-AM_CONDITIONAL(BUILD_DEINTERLACE_PLUGIN, test "x$enable_v4l" = "xyes")
 
 dnl ===========================================================================
 dnl Audio device checks
@@ -907,6 +905,9 @@ AC_SUBST(PLUGIN_DEFAULT_FLAGS)
 
 COMMON_INCLUDES="$PY_CFLAGS $PACKAGE_CFLAGS $UNICODE_CFLAGS $ARTS_CFLAGS"
 AC_SUBST(COMMON_INCLUDES)
+
+PACKAGE_VERSION_ID=`echo $VERSION | sed s/[[^a-z0-9]]/_/g`
+AC_SUBST(PACKAGE_VERSION_ID)
 
 dnl ---------------------------------------------------------------------------
 

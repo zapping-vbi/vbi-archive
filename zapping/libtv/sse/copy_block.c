@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_block.c,v 1.3 2005-06-28 01:01:30 mschimek Exp $ */
+/* $Id: copy_block.c,v 1.4 2006-02-25 17:37:43 mschimek Exp $ */
 
 #include <inttypes.h>		/* uint8_t */
 #include <xmmintrin.h>
@@ -66,7 +66,7 @@ memcpy_sse_nt			(void *			dst,
 			      :: "cc", "memory");    
 }
 
-void
+tv_bool
 copy_block1_sse_nt		(void *			dst,
 				 const void *		src,
 				 unsigned int		width,
@@ -85,23 +85,24 @@ copy_block1_sse_nt		(void *			dst,
 
 	if (unlikely (0 != align % 16)) {
 #ifdef HAVE_MMX
-		copy_block1_mmx (dst, src,
-				 width, height,
-				 dst_bytes_per_line,
-				 src_bytes_per_line);
+		return copy_block1_mmx (dst, src,
+					width, height,
+					dst_bytes_per_line,
+					src_bytes_per_line);
 #else
-		copy_block1_generic (dst, src,
-				     width, height,
-				     dst_bytes_per_line,
-				     src_bytes_per_line);
+		return copy_block1_generic (dst, src,
+					    width, height,
+					    dst_bytes_per_line,
+					    src_bytes_per_line);
 #endif
-		return;
 	}
 
 	dst_padding = dst_bytes_per_line - width * 1;
 	src_padding = src_bytes_per_line - width * 1;
 
-	if (likely (0 == (dst_padding | src_padding))) {
+	if (unlikely ((long)(dst_padding | src_padding) < 0)) {
+		return FALSE;
+	} else if (likely (0 == (dst_padding | src_padding))) {
 		width *= height;
 		height = 1;
 	}
@@ -145,4 +146,6 @@ copy_block1_sse_nt		(void *			dst,
 		dst = ((uint8_t *) d) + dst_padding;
 		src = ((const uint8_t *) s) + src_padding;
 	}
+
+	return TRUE;
 }

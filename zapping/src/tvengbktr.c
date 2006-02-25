@@ -2055,6 +2055,7 @@ tvengbktr_attach_device (const char* device_file,
       return -1;
     }
 
+  /* FIXME */
   if (attach_mode == TVENG_ATTACH_XV)
     attach_mode = TVENG_ATTACH_READ;
 

@@ -1422,7 +1422,6 @@ static tv_bool
 get_overlay_buffer		(tveng_device_info *	info)
 {
 	struct v4l2_framebuffer fb;
-	tv_pixfmt pixfmt;
 
 	CLEAR (info->overlay.buffer);
 
@@ -2695,9 +2694,11 @@ get_capabilities		(tveng_device_info *	info)
 		     (const char *) p_info->caps.card,
 		     MIN (sizeof (info->caps.name),
 			  sizeof (p_info->caps.card)));
-	/* XXX get these elsewhere */
-	info->caps.channels = 0; /* FIXME video inputs */
+	/* FIXME determine actual number of video inputs. */
+	info->caps.channels = 0; 
 	info->caps.audios = 0;
+	/* FIXME determine actual limits.
+	   Attention: may be different for capture and overlay. */
 	info->caps.maxwidth = 768;
 	info->caps.minwidth = 16;
 	info->caps.maxheight = 576;
@@ -2965,8 +2966,8 @@ int tveng25_attach_device(const char* device_file,
       info -> fd = p_tveng25_open_device_file(0, info);
       break;
 
+    case TVENG_ATTACH_XV: /* FIXME this is overlay, not read. */
     case TVENG_ATTACH_READ:
-    case TVENG_ATTACH_XV:
       attach_mode = TVENG_ATTACH_READ;
       /* NB must be RDWR since client may write mmapped buffers. */
       info -> fd = p_tveng25_open_device_file(O_RDWR, info);
