@@ -84,6 +84,29 @@ static struct {
 	int			num_ports;
 } formats [TV_MAX_PIXFMTS];
 
+/* Reflect all errors back to the program through the procedural
+   interface. The default error handler terminates the program.
+   XXX This code is not reentrant. */
+
+static unsigned long		error_code;
+
+static int
+my_error_handler		(Display *		display,
+				 XErrorEvent *		error)
+{
+  display = display;
+
+  error_code = error->error_code;
+
+  printv ("X Error: serial=%lu error=%lu request=%lu minor=%lu\n",
+	  (unsigned long) error->serial,
+	  (unsigned long) error->error_code,
+	  (unsigned long) error->request_code,
+	  (unsigned long) error->minor_code);
+
+  return 0; /* ignored */
+}
+
 static XvPortID
 grab_port (tv_pixfmt pixfmt)
 {
@@ -144,108 +167,140 @@ ungrab_port (XvPortID	xvport)
  * Create a new XV image with the given attributes, returns NULL on error.
  */
 static zimage *
-image_new(tv_pixfmt pixfmt, guint w, guint h)
+image_new			(tv_pixfmt		pixfmt,
+				 guint			width,
+				 guint			height)
 {
-  zimage *new_image;
+  XErrorHandler old_error_handler;
+  Display *display;
   struct _zimage_private *pimage;
-  void *image_data = NULL;
   const tv_pixel_format *pf;
+  zimage *new_image;
+  void *image_data;
   XvPortID xvport;
+
+  xvport = None;
+  pimage = NULL;
+  image_data = NULL;
+
+  old_error_handler = XSetErrorHandler (my_error_handler);
+
+  display = GDK_DISPLAY ();
 
   xvport = grab_port (pixfmt);
   if (None == xvport)
-    return NULL; /* Cannot grab a suitable port */
+    goto failure; /* Cannot grab a suitable port */
 
   pimage = g_malloc0 (sizeof (*pimage));
 
-  pf = tv_pixel_format_from_pixfmt (pixfmt);
-  assert (NULL != pf);
+#ifdef USE_XV_SHM
+  pimage->shminfo.shmid = -1;
+  pimage->shminfo.shmaddr = (void *) -1;
+#endif
 
-  pimage -> uses_shm = FALSE;
+  pf = tv_pixel_format_from_pixfmt (pixfmt);
+  if (NULL == pf)
+    goto failure;
+
+  pimage->uses_shm = FALSE;
 
 #ifdef USE_XV_SHM
 
   if (have_mitshm) /* just in case */
     {
-      CLEAR (pimage->shminfo);
-      pimage->image = XvShmCreateImage(GDK_DISPLAY(), xvport,
-	formats[pixfmt].format_id, NULL, (gint) w, (gint) h, &pimage->shminfo);
-
-      if (pimage->image)
+      pimage->image = XvShmCreateImage (display, xvport,
+					formats[pixfmt].format_id,
+					/* data */ NULL,
+					(int) width, (int) height,
+					&pimage->shminfo);
+      if (NULL != pimage->image)
 	{
-	  pimage->uses_shm = TRUE;
+	  Status success;
 
-	  pimage->shminfo.shmid =
-	    shmget (IPC_PRIVATE,
-		    (unsigned) pimage->image->data_size, IPC_CREAT | 0777);
-
+	  pimage->shminfo.shmid = shmget (IPC_PRIVATE,
+					  (unsigned) pimage->image->data_size,
+					  IPC_CREAT | 0777);
 	  if (-1 == pimage->shminfo.shmid)
-            {
-	      goto shm_error;
+	    goto shm_free;
+
+	  pimage->shminfo.shmaddr = shmat (pimage->shminfo.shmid,
+					   /* shmaddr: anywhere */ NULL,
+					   /* shmflg */ 0);
+	  pimage->image->data = pimage->shminfo.shmaddr;
+	  if ((void *) -1 == pimage->shminfo.shmaddr)
+	    goto shm_remove;
+
+	  pimage->shminfo.readOnly = False;
+
+	  error_code = Success;
+	  success = XShmAttach (display, &pimage->shminfo);
+	  XSync (display, /* discard events */ False);
+
+	  if (success && Success == error_code)
+	    {
+	      /* Free the memory when the last attached
+		 process quits or aborts. Error ignored. */
+	      shmctl (pimage->shminfo.shmid, IPC_RMID, 0);
+
+	      pimage->uses_shm = TRUE;
 	    }
 	  else
 	    {
-	      pimage->shminfo.shmaddr =
-		shmat (pimage->shminfo.shmid, NULL /* anywhere */, 0);
+	      /* Error ignored. */
+	      shmdt (pimage->shminfo.shmaddr);
+	      pimage->shminfo.shmaddr = (void *) -1;
 
-	      pimage->image->data = pimage->shminfo.shmaddr;
+	    shm_remove:
+	      /* Error ignored. */
+	      shmctl (pimage->shminfo.shmid, IPC_RMID, 0);
+	      pimage->shminfo.shmid = -1;
 
-	      if (pimage->shminfo.shmaddr == (void *) -1)
-	        goto shm_error;
-
-	      pimage->shminfo.readOnly = False;
-
-	      if (!XShmAttach(GDK_DISPLAY(), &pimage->shminfo))
-	        {
-		  g_assert(shmdt(pimage->shminfo.shmaddr) != -1);
- shm_error:
-		  XFree(pimage->image);
-		  pimage->image = NULL;
-	          pimage->uses_shm = FALSE;
-		}
-
-	      XSync (GDK_DISPLAY(), False);
-
-	      /* Free the memory when the last attached
-		 process quits or aborts. */
-	      shmctl(pimage->shminfo.shmid, IPC_RMID, 0);
+	    shm_free:
+	      XFree (pimage->image);
+	      pimage->image = NULL;
 	    }
 	}
     }
 
 #endif /* USE_XV_SHM */
 
-  if (!pimage->image)
+  if (NULL == pimage->image)
     {
       if (pf->planar)
-	image_data = malloc ((pf->color_depth * w * h) >> 3);
+	image_data = malloc ((pf->color_depth * width * height) >> 3);
       else
-	image_data = malloc ((pf->bits_per_pixel * w * h) >> 3);
+	image_data = malloc ((pf->bits_per_pixel * width * height) >> 3);
 
-      if (!image_data)
+      if (NULL == image_data)
 	{
-	  g_warning("XV image data allocation failed");
-	  goto error1;
+	  g_warning ("XV image data allocation failed");
+	  goto failure;
 	}
-      pimage->image =
-	XvCreateImage(GDK_DISPLAY(), xvport,
-		      formats[pixfmt].format_id,
-		      image_data, (gint) w, (gint) h);
-      if (!pimage->image)
-        goto error2;
+
+      pimage->image = XvCreateImage (display, xvport,
+				     formats[pixfmt].format_id,
+				     image_data,
+				     (int) width, (int) height);
+      if (NULL == pimage->image)
+        goto failure;
     }
 
-  /* Make sure we get an object with appropiate width and height */
-  if ((guint) pimage->image->width != w ||
-      (guint) pimage->image->height != h)
-    goto error3;
+  /* Make sure we get an object with appropiate width and height. */
+  if ((guint) pimage->image->width != width ||
+      (guint) pimage->image->height != height)
+    goto failure;
+
+  /* FIXME to be sure we successfully allocated the required resources
+     we may have to call Xv(Shm)PutImage() once. But first redesign capture.c
+     to properly handle zimage_new() errors (it cannot switch the pixfmt if
+     only video_mem.c supports it). */
 
   new_image = zimage_create_object ();
   new_image->priv = pimage;
   pimage->xvport = xvport;
 
-  new_image->fmt.width = w;
-  new_image->fmt.height = h;
+  new_image->fmt.width = width;
+  new_image->fmt.height = height;
   new_image->fmt.pixel_format = tv_pixel_format_from_pixfmt (pixfmt);
   new_image->fmt.size = pimage->image->data_size;
 
@@ -253,7 +308,7 @@ image_new(tv_pixfmt pixfmt, guint w, guint h)
     {
       int swap_uv = formats[pixfmt].swap_uv;
 
-      g_assert (pimage->image->num_planes == 3);
+      g_assert (3 == pimage->image->num_planes);
       g_assert (pimage->image->pitches[1] ==
 		pimage->image->pitches[2]);
 
@@ -267,7 +322,7 @@ image_new(tv_pixfmt pixfmt, guint w, guint h)
     }
   else if (TV_PIXFMT_SET_PACKED & TV_PIXFMT_SET (pixfmt))
     {
-      g_assert (pimage->image->num_planes == 1);
+      g_assert (1 == pimage->image->num_planes);
       new_image->img = pimage->image->data;
       new_image->fmt.bytes_per_line[0] = pimage->image->pitches[0];
     }
@@ -276,28 +331,50 @@ image_new(tv_pixfmt pixfmt, guint w, guint h)
       g_assert_not_reached ();
     }
 
-  printv ("Created image: %s %ux%u, %lu, %lu\n",
+  printv ("Created image: %s %ux%u, %lu, %lu shm=%u\n",
 	  new_image->fmt.pixel_format->name,
 	  new_image->fmt.width,
 	  new_image->fmt.height,
 	  new_image->fmt.bytes_per_line[0],
-	  new_image->fmt.bytes_per_line[1]);
+	  new_image->fmt.bytes_per_line[1],
+	  pimage->uses_shm);
+
+  XSetErrorHandler (old_error_handler);
 
   return new_image;
 
- error3:
+ failure:
+  free (image_data);
+
+  if (NULL != pimage)
+    {
 #ifdef USE_XV_SHM
-  if (pimage->uses_shm)
-    XShmDetach(GDK_DISPLAY(), &pimage->shminfo);
+      if (pimage->uses_shm)
+	XShmDetach (display, &pimage->shminfo);
+
+      if ((void *) -1 != pimage->shminfo.shmaddr)
+	{
+	  /* Error ignored. */
+	  shmdt (pimage->shminfo.shmaddr);
+	}
+
+      if (-1 != pimage->shminfo.shmid)
+	{
+	  /* Error ignored. */
+	  shmctl (pimage->shminfo.shmid, IPC_RMID, 0);
+	}
 #endif
-  XFree (pimage->image);
 
- error2:
-  if (!pimage->uses_shm)
-    free(image_data);
+      if (NULL != pimage->image)
+	XFree (pimage->image);
 
- error1:
-  g_free(pimage);
+      g_free (pimage);
+    }
+
+  if (None != xvport)
+    ungrab_port (xvport);
+
+  XSetErrorHandler (old_error_handler);  
 
   return NULL;
 }
@@ -322,6 +399,7 @@ image_put(zimage *image, guint width, guint height)
 
   display = GDK_DISPLAY ();
 
+  /* FIXME these calls may allocate resources and fail (asynchronously). */
 #ifdef USE_XV_SHM
   if (pimage->uses_shm)
     XvShmPutImage(display, pimage->xvport,
@@ -465,6 +543,8 @@ static video_backend xv = {
     nv: boolean
  */
 
+#if 0 /* TO DO */
+
 static tv_bool
 set_control			(tveng_device_info *	info,
 				 tv_control *		control,
@@ -474,7 +554,6 @@ set_control			(tveng_device_info *	info,
   control = control;
   value = value;
 
-#if 0 /* TO DO */
   if ((c->atom == info->filter) &&
 	  (info->port != None))
 	{
@@ -532,8 +611,6 @@ set_control			(tveng_device_info *	info,
 			     value);
 	}
 
-#endif
-
   return FALSE;
 }
 
@@ -543,8 +620,6 @@ get_control			(tveng_device_info *	info,
 {
   info = info;
   control = control;
-
-#if 0 /* TO DO */
 
   if ((c->atom == info->filter) &&
 	   (info->port != None))
@@ -615,8 +690,6 @@ get_control			(tveng_device_info *	info,
       tv_callback_notify (info, &c->pub, c->pub._callback);
     }
 
-#endif
-
   return FALSE;
 }
 
@@ -624,8 +697,6 @@ static tv_bool
 get_control_list		(tveng_device_info *	info)
 {
   info = info;
-
-#if 0 /* TO DO */
 
   XvAttribute *at;
   int attributes, i;
@@ -735,8 +806,6 @@ get_control_list		(tveng_device_info *	info)
 
   UNTVLOCK;
 
-#endif
-
   return FALSE;
 }
 
@@ -752,6 +821,8 @@ init_panel			()
 
   get_control_list (NULL);
 }
+
+#endif /* 0 */
 
 static void
 register_port			(XvPortID		xvport,
