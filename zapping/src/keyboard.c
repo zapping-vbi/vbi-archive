@@ -1083,21 +1083,16 @@ setup				(GtkWidget *		page)
   GtkCellRenderer *renderer;
   GtkTreeViewColumn *column;
   GtkWidget *widget;
+  GtkTreeSelection *selection;
 
   widget = lookup_widget (page, "general-keyboard-treeview");
   tree_view = GTK_TREE_VIEW (widget);
   gtk_tree_view_set_rules_hint (tree_view, TRUE);
   gtk_tree_view_set_reorderable (tree_view, TRUE);
 
-  {
-    GtkTreeSelection *selection;
-
-    selection = gtk_tree_view_get_selection (tree_view);
-    gtk_tree_selection_set_mode (selection, GTK_SELECTION_BROWSE);
-
-    g_signal_connect (G_OBJECT (selection), "changed",
-		      G_CALLBACK (on_selection_changed), tree_view);
-  }
+  selection = gtk_tree_view_get_selection (tree_view);
+  gtk_tree_selection_set_mode (selection, GTK_SELECTION_BROWSE);
+  /* Don't connect "changed" signal here, see below. */
 
   {
     GtkListStore *model;
@@ -1141,6 +1136,10 @@ setup				(GtkWidget *		page)
   widget = lookup_widget (page, "general-keyboard-remove");
   g_signal_connect (G_OBJECT (widget), "clicked",
 		    G_CALLBACK (on_remove_clicked), tree_view);
+
+  /* Must not fire until the dialog is ready. */
+  g_signal_connect (G_OBJECT (selection), "changed",
+		    G_CALLBACK (on_selection_changed), tree_view);
 }
 
 static void
