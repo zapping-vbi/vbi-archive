@@ -33,6 +33,7 @@ endif
 SIMD_SOURCES = \
 	rgb2rgb.c \
 	rgb2rgb.h \
+	simd-consts.h \
 	simd-conv.h
 
 INCLUDES = -I$(top_srcdir)

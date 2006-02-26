@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rgb2rgb.c,v 1.1 2006-02-25 17:37:42 mschimek Exp $ */
+/* $Id: rgb2rgb.c,v 1.2 2006-02-26 15:50:44 mschimek Exp $ */
 
 /* RGB to RGB image format conversion functions:
 
@@ -757,6 +757,8 @@ sbggr_to_ ## fmt ## _loop	(uint8_t *		dst,		\
 	}								\
 									\
 	sbggr_row (sbggr_odd_bottom, fmt);				\
+									\
+	vempty ();							\
 									\
 	return TRUE;							\
 }

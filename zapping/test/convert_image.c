@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: convert_image.c,v 1.1 2006-02-25 19:49:49 mschimek Exp $ */
+/* $Id: convert_image.c,v 1.2 2006-02-26 15:50:45 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -33,7 +33,7 @@ _tv_sbggr_to_rgb		(void *			dst_image,
 				 const void *		src_image,
 				 const tv_image_format *src_format);
 
-tv_bool				fast = FALSE;
+tv_bool				fast = TRUE;
 
 unsigned int			buffer_size;
 

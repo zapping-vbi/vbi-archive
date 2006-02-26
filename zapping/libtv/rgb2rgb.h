@@ -16,12 +16,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rgb2rgb.h,v 1.1 2006-02-25 17:37:43 mschimek Exp $ */
+/* $Id: rgb2rgb.h,v 1.2 2006-02-26 15:50:44 mschimek Exp $ */
 
 /* RGB to RGB image format conversion functions. */
 
-#ifndef IMAGE_FORMAT_RGB2RGB_H
-#define IMAGE_FORMAT_RGB2RGB_H
+#ifndef RGB2RGB_H
+#define RGB2RGB_H
 
 #include "image_format.h"
 
@@ -41,4 +41,4 @@ _tv_sbggr_to_rgb		(void *			dst_image,
 				 const void *		src_image,
 				 const tv_image_format *src_format);
 
-#endif /* IMAGE_FORMAT_RGB2RGB_H */
+#endif /* RGB2RGB_H */
