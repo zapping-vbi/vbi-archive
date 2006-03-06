@@ -53,6 +53,9 @@ extern tv_mixer *		mixer;
 extern tv_audio_line *		mixer_line;
 #endif
 
+/* XXX move this into device preferences */
+extern gint			esd_output;
+
 #ifdef HAVE_LIBZVBI
 
 /* Preliminary Teletext plugin interface. */

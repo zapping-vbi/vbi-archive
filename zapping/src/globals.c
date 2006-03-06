@@ -38,6 +38,9 @@ gint			cur_tuned_channel = -1;
 tv_mixer *		mixer = NULL;
 tv_audio_line *		mixer_line = NULL;
 
+/* XXX move this into device preferences */
+gint			esd_output		= FALSE;
+
 #ifdef HAVE_LIBZVBI
 
 /* Preliminary Teletext plugin interface. */
