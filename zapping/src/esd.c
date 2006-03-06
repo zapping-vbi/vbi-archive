@@ -41,11 +41,15 @@ typedef struct {
   double	time;
   double	buffer_period_near;
   double	buffer_period_far;
+  gboolean	write;
 } esd_handle;
 
 /** ESD backend ***/
 static gpointer
-esd_open (gboolean stereo, guint rate, enum audio_format format)
+_open				(gboolean		stereo,
+				 guint			sampling_rate,
+				 enum audio_format	format,
+				 gboolean		write)
 {
   esd_format_t fmt;
   esd_handle *h;
@@ -60,27 +64,55 @@ esd_open (gboolean stereo, guint rate, enum audio_format format)
 
   h = (esd_handle *) g_malloc0(sizeof(esd_handle));
 
-  fmt = ESD_STREAM | ESD_RECORD | ESD_BITS16
-    | (stereo ? ESD_STEREO : ESD_MONO);
+  if (write)
+    {
+      GnomeProgram *program;
+      GValue espeaker;
 
-  h->socket = esd_record_stream_fallback(fmt, (int) rate, NULL, NULL);
-  h->sampling_rate = rate;
-  h->stereo = stereo;
+      fmt = ESD_STREAM | ESD_PLAY | ESD_BITS16
+	| (stereo ? ESD_STEREO : ESD_MONO);
 
-  h->time = 0.0;
+      /* Use --espeaker parameter or NULL for
+	 default host ($DISPLAY, localhost). */
+      program = gnome_program_get ();
+      CLEAR (espeaker);
+      g_value_init (&espeaker, G_TYPE_STRING);
+      g_object_get_property (G_OBJECT (program),
+			     GNOME_PARAM_ESPEAKER, &espeaker);
+
+      h->socket = esd_play_stream_fallback (fmt, (int) sampling_rate,
+					    g_value_get_string (&espeaker),
+					    /* name */ NULL);
+      g_value_unset (&espeaker);
+    }
+  else
+    {
+      fmt = ESD_STREAM | ESD_RECORD | ESD_BITS16
+	| (stereo ? ESD_STEREO : ESD_MONO);
+
+      h->socket = esd_record_stream_fallback (fmt, (int) sampling_rate,
+					      /* host: default */ NULL,
+					      /* name */ NULL);
+    }
 
   if (h->socket < 0)
     {
-      g_warning("Cannot open record socket");
+      g_warning("Cannot open ESD play/record socket");
       g_free(h);
       return NULL;
     }
+
+  h->sampling_rate = sampling_rate;
+  h->stereo = stereo;
+  h->write = write;
+
+  h->time = 0.0;
 
   return h;
 }
 
 static void
-_esd_close (gpointer handle)
+_close (gpointer handle)
 {
   esd_handle *h = (esd_handle *) handle;
 
@@ -89,15 +121,17 @@ _esd_close (gpointer handle)
   g_free(handle);
 }
 
-static void
-esd_read (gpointer handle, gpointer dest, guint num_bytes,
-	  double *timestamp)
+static gboolean
+_read (gpointer handle, gpointer dest, guint num_bytes,
+       double *timestamp)
 {
   esd_handle *h = (esd_handle *) handle;
   struct timeval tv;
   unsigned char *p;
   ssize_t r, n;
   double now;
+
+  g_assert (!h->write);
 
   for (p = (unsigned char *) dest, n = num_bytes; n > 0;)
     {
@@ -114,7 +148,7 @@ esd_read (gpointer handle, gpointer dest, guint num_bytes,
       if (r == 0)
 	g_error("ESD read timeout");
       else if (r < 0)
-	g_error("ESD select error (%d, %s)",
+	g_error("ESD select error %d (%s)",
 		errno, strerror(errno));
 
       r = read(h->socket, p, (size_t) n);
@@ -160,14 +194,56 @@ esd_read (gpointer handle, gpointer dest, guint num_bytes,
 	h->buffer_period_far =
           num_bytes / (double)(h->sampling_rate * 2 << h->stereo);
     }
+
+  return TRUE;
+}
+
+static gboolean
+_write (gpointer handle, gpointer src, guint num_bytes,
+	double timestamp)
+{
+  esd_handle *h = (esd_handle *) handle;
+  unsigned char *p;
+  ssize_t r, n;
+
+  timestamp = timestamp;
+
+  g_assert (h->write);
+
+  p = src;
+  n = num_bytes;
+
+  while (n > 0)
+    {
+      r = write (h->socket, p, (size_t) n);
+
+      if (r < 0)
+	{
+	  int saved_errno = errno;
+
+	  if (EINTR == saved_errno)
+	    continue;
+
+	  g_error("ESD write error %d (%s)",
+		  saved_errno, strerror (saved_errno));
+
+	  return FALSE;
+	}
+
+      p += r;
+      n -= r;
+    }
+
+  return TRUE;
 }
 
 const audio_backend_info esd_backend =
 {
   name:		"Enlightened Sound Daemon",
-  open:		esd_open,
-  close:	_esd_close,
-  read:		esd_read,
+  open:		_open,
+  close:	_close,
+  read:		_read,
+  write:	_write,
 };
 
 #endif /* HAVE_ESD */
