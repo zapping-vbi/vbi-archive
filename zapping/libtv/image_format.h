@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.9 2005-09-01 01:40:52 mschimek Exp $ */
+/* $Id: image_format.h,v 1.10 2006-03-06 01:49:01 mschimek Exp $ */
 
 #ifndef __ZTV_IMAGE_FORMAT_H__
 #define __ZTV_IMAGE_FORMAT_H__
@@ -27,6 +27,15 @@
 #include "pixel_format.h"
 
 TV_BEGIN_DECLS
+
+typedef enum {
+	TV_FIELD_UNKNOWN = 0,
+	TV_FIELD_PROGRESSIVE,
+	TV_FIELD_INTERLACED,
+	TV_FIELD_SEQUENTIAL,
+	TV_FIELD_TOP,
+	TV_FIELD_BOTTOM,
+} tv_field;
 
 typedef struct {
 	/* Image width in pixels. For planar formats this refers to
@@ -56,9 +65,7 @@ typedef struct {
 
 	const tv_pixel_format *	pixel_format;
 	tv_colspc		colspc;
-
-	/* XXX field order:
-	   progressive, interlaced, top field, bottom field. */
+	tv_field		field;
 } tv_image_format;
 
 extern tv_bool
