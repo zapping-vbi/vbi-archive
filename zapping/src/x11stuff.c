@@ -213,7 +213,7 @@ _x11_force_expose(gint x, gint y, gint w, gint h)
     XSendEvent(GDK_DISPLAY(), children[i], False,
   	       ExposureMask, (XEvent*)&event);
   }
-  XSync (GDK_DISPLAY(), False);
+  XSync (GDK_DISPLAY(), /* discard events */ False);
   XSetErrorHandler(olderror);
   /* leave error-ignore mode */
 
@@ -307,7 +307,7 @@ send_event			(Display *		display,
     fprintf (stderr, "%d = XSendEvent(message_type=%u l0=%ld l1=%ld)\n",
 	     status, (unsigned int) message_type, l0, l1);
 
-  XSync (display, False);
+  XSync (display, /* discard events */ False);
 }
 
 static void
@@ -656,6 +656,59 @@ struct vidmode {
 #define VIDMODE(p) PARENT (p, struct vidmode, pub)
 #define CVIDMODE(p) CONST_PARENT (p, struct vidmode, pub)
 
+static Bool
+vidmode_switch_to_mode		(Display *		display,
+				 int			screen,
+				 XF86VidModeModeInfo *	modeline)
+{
+  error_code = Success;
+
+  if (!XF86VidModeSwitchToMode (display, screen, modeline))
+    return False;
+
+  XSync (display, /* discard events */ False);		
+
+  return (Success == error_code);
+}
+
+static Bool
+vidmode_set_view_port		(Display *		display,
+				 int			screen,
+				 int			x,
+				 int			y)
+{
+  error_code = Success;
+
+  if (!XF86VidModeSetViewPort (display, screen, x, y))
+    return False;
+
+  XSync (display, /* discard events */ False);		
+
+  return (Success == error_code);
+}
+
+static Bool
+warp_pointer			(Display *		display,
+				 Window			src_win,
+				 Window			dest_win,
+				 int			src_x,
+				 int			src_y,
+				 unsigned int		src_width,
+				 unsigned int		src_height,
+				 int			dest_x,
+				 int			dest_y)
+{
+  error_code = Success;
+
+  if (!XWarpPointer (display, src_win, dest_win, src_x, src_y,
+		     src_width, src_height, dest_x, dest_y))
+    return False;
+
+  XSync (display, /* discard events */ False);		
+
+  return (Success == error_code);
+} 
+
 /**
  * x11_vidmode_list_delete:
  * @list:
@@ -700,12 +753,14 @@ x11_vidmode_list_new		(const char *		display_name,
 
   display = GDK_DISPLAY ();
 
+  list = NULL;
+  mode_info = NULL;
+
   old_error_handler = XSetErrorHandler (my_error_handler);
 
   if (NULL != display_name)
     {
       display = XOpenDisplay (display_name);
-
       if (NULL == display)
 	{
 	  printv ("%s: Cannot open display '%s'\n",
@@ -750,8 +805,6 @@ x11_vidmode_list_new		(const char *		display_name,
       goto failure;
     }
 
-  list = NULL;
-
   for (i = 0; i < mode_count; i++)
     {
       XF86VidModeModeInfo *m = mode_info[i];
@@ -770,7 +823,7 @@ x11_vidmode_list_new		(const char *		display_name,
          have been accepted at X server startup and can be selected
          with Ctrl-Alt-nk+/-. x11_vidmode_switch() needs all
 	 selectable modes listed, so we ignore this. */
-      if (1 || valid)
+      if (1)
 	{
 	  /* XXX flags: see xvidtune.c; special treatment of
 	     V_INTERLACE/V_DBLSCAN necessary? */
@@ -828,16 +881,13 @@ x11_vidmode_list_new		(const char *		display_name,
 	}
     }
 
-  XFree (mode_info);
+ failure:
+  if (NULL != mode_info)
+    XFree (mode_info);
 
   XSetErrorHandler (old_error_handler);
 
   return list;
-
- failure:
-  XSetErrorHandler (old_error_handler);
-
-  return NULL;
 }
 
 /**
@@ -922,6 +972,7 @@ x11_vidmode_by_name		(const x11_vidmode_info *list,
 const x11_vidmode_info *
 x11_vidmode_current		(const x11_vidmode_info *list)
 {
+  XErrorHandler old_error_handler;
   XF86VidModeModeLine mode_line;
   int dot_clock;
   const struct vidmode *vl;
@@ -929,6 +980,8 @@ x11_vidmode_current		(const x11_vidmode_info *list)
 
   if (!list)
     return NULL;
+
+  old_error_handler = XSetErrorHandler (my_error_handler);
 
   vl = CONST_PARENT (list, struct vidmode, pub);
 
@@ -939,7 +992,7 @@ x11_vidmode_current		(const x11_vidmode_info *list)
     {
       if (X11STUFF_VIDMODE_DEBUG)
 	printv ("XF86VidModeGetModeLine() failed\n");
-      return NULL;
+      goto failure;
     }
 
   if (mode_line.privsize > 0)
@@ -966,10 +1019,17 @@ x11_vidmode_current		(const x11_vidmode_info *list)
       if (X11STUFF_VIDMODE_DEBUG)
 	printv ("Current VidMode dot=%u hd=%u vd=%u not in list\n",
 		dot_clock, mode_line.hdisplay, mode_line.vdisplay);
-      return NULL;
+      goto failure;
     }
 
+  XSetErrorHandler (old_error_handler);
+
   return &vm->pub;
+
+ failure:
+  XSetErrorHandler (old_error_handler);
+
+  return NULL;
 }
 
 /**
@@ -990,6 +1050,7 @@ x11_vidmode_switch		(const x11_vidmode_info *vlist,
 				 const x11_vidmode_info *vm,
 				 x11_vidmode_state *	vs)
 {
+  XErrorHandler old_error_handler;
   const struct vidmode *vl;
   x11_vidmode_state state;
   Window root;
@@ -1003,9 +1064,13 @@ x11_vidmode_switch		(const x11_vidmode_info *vlist,
   int px;
   int py;
   int warp;
+  int vpx;
+  int vpy;
 
   if (!vlist)
     return FALSE;
+
+  old_error_handler = XSetErrorHandler (my_error_handler);
 
   vl = CONST_PARENT (vlist, struct vidmode, pub);
 
@@ -1025,7 +1090,7 @@ x11_vidmode_switch		(const x11_vidmode_info *vlist,
 	  break;
 
       if (!slist)
-	return FALSE;
+	goto failure;
 
       x	= slist->x;
       y	= slist->y;
@@ -1034,28 +1099,33 @@ x11_vidmode_switch		(const x11_vidmode_info *vlist,
     }
   else
     {
-      XGetGeometry (vl->display,
-		    /* drawable */ root,
-		    /* root */ &dummy1,
-		    &x, &y, &w, &h,
-		    /* border_width */ &dummy3,
-		    /* depth */ &dummy3);
+      if (!XGetGeometry (vl->display,
+			 /* drawable */ root,
+			 /* root */ &dummy1,
+			 &x, &y, &w, &h,
+			 /* border_width */ &dummy3,
+			 /* depth */ &dummy3))
+	goto failure;
     }
 
-  XF86VidModeGetViewPort (vl->display,
-			  vl->screen_number,
-			  &vs->_old.vp.x,
-			  &vs->_old.vp.y);
+  if (!XF86VidModeGetViewPort (vl->display,
+			       vl->screen_number,
+			       &vpx, &vpy))
+    goto failure;
 
-  XQueryPointer (vl->display,
-		 /* window */ root,
-		 /* root */ &dummy1,
-		 /* child */ &dummy1,
-		 /* root_x */ &vs->_old.pt.x,
-		 /* root_y */ &vs->_old.pt.y,
-		 /* win_x */ &dummy2,
-		 /* win_y */ &dummy2,
-		 /* mask */ &dummy3);
+  if (!XQueryPointer (vl->display,
+		      /* window */ root,
+		      /* root */ &dummy1,
+		      /* child */ &dummy1,
+		      /* root_x */ &vs->_old.pt.x,
+		      /* root_y */ &vs->_old.pt.y,
+		      /* win_x */ &dummy2,
+		      /* win_y */ &dummy2,
+		      /* mask */ &dummy3))
+    goto failure;
+
+  vs->_old.vp.x = vpx;
+  vs->_old.vp.y = vpy;
 
   /* Switch to requested mode, if any */
 
@@ -1073,9 +1143,10 @@ x11_vidmode_switch		(const x11_vidmode_info *vlist,
 	    XF86VidModeModeInfo info;
 
 	    info = CVIDMODE (vm)->info;
-	    if (XF86VidModeSwitchToMode (vl->display,
-					 vl->screen_number,
-					 &info))
+
+	    if (vidmode_switch_to_mode (vl->display,
+					vl->screen_number,
+					&info))
 	      {
 		/* Might not be exactly what we asked for,
 		   or even anything we know. */
@@ -1088,8 +1159,8 @@ x11_vidmode_switch		(const x11_vidmode_info *vlist,
 	      {
 		if (X11STUFF_VIDMODE_DEBUG)
 		  printv ("XF86VidModeSwitchToMode() failed\n");
-		
-		return FALSE;
+
+		vm = cur_vm;
 	      }
 	  }
       }
@@ -1099,7 +1170,7 @@ x11_vidmode_switch		(const x11_vidmode_info *vlist,
       }
     else
       {
-	return FALSE;
+	goto failure;
       }
   }
 
@@ -1110,7 +1181,7 @@ x11_vidmode_switch		(const x11_vidmode_info *vlist,
 
   assert (px >= 0 && py >= 0);
 
-  if (XF86VidModeSetViewPort (CVIDMODE (vm)->display,
+  if (vidmode_set_view_port (CVIDMODE (vm)->display,
 			      CVIDMODE (vm)->screen_number,
 			      px, py))
     {
@@ -1126,7 +1197,7 @@ x11_vidmode_switch		(const x11_vidmode_info *vlist,
       py = vs->_old.vp.y;
     }
 
-  /* Make pointer visible */
+  /* Make pointer visible. */
 
   warp = 0;
 
@@ -1163,19 +1234,25 @@ x11_vidmode_switch		(const x11_vidmode_info *vlist,
 
   if (warp)
     {
-      XWarpPointer (CVIDMODE (vm)->display,
-		    /* src_window */ None,
-		    /* dst_window */ root,
-		    /* src_x, y, width, height */ 0, 0, 0, 0,
-		    /* dst_x, y */ px, py);
+      if (!warp_pointer (CVIDMODE (vm)->display,
+			 /* src_window */ None,
+			 /* dst_window */ root,
+			 /* src_x, y, width, height */ 0, 0, 0, 0,
+			 /* dst_x, y */ px, py))
+	goto failure;
 
       vs->_new.pt.x = px;
       vs->_new.pt.y = py;
     }
 
-  XSync (CVIDMODE (vm)->display, False);
+  XSetErrorHandler (old_error_handler);
 
   return TRUE;
+
+ failure:
+  XSetErrorHandler (old_error_handler);
+
+  return FALSE;
 }
 
 /**
@@ -1193,6 +1270,7 @@ void
 x11_vidmode_restore		(const x11_vidmode_info *list,
 				 x11_vidmode_state *	vs)
 {
+  XErrorHandler old_error_handler;
   Window root;
   Window dummy1;
   int vpx;
@@ -1208,22 +1286,29 @@ x11_vidmode_restore		(const x11_vidmode_info *list,
   if (!vs)
     return;
 
+  old_error_handler = XSetErrorHandler (my_error_handler);
+
   root = DefaultRootWindow (CVIDMODE (list)->display);
 
-  XF86VidModeGetViewPort (CVIDMODE (list)->display,
-			  CVIDMODE (list)->screen_number,
-			  &vpx,
-			  &vpy);
+  if (!XF86VidModeGetViewPort (CVIDMODE (list)->display,
+			       CVIDMODE (list)->screen_number,
+			       &vpx,
+			       &vpy))
+    goto done;
 
-  XQueryPointer (CVIDMODE (list)->display,
-		 /* window */ root,
-		 /* root */ &dummy1,
-		 /* child */ &dummy1,
-		 /* root_x */ &ptx,
-		 /* root_y */ &pty,
-		 /* win_x */ &dummy2,
-		 /* win_y */ &dummy2,
-		 /* mask */ &dummy3);
+  if (!XQueryPointer (CVIDMODE (list)->display,
+		      /* window */ root,
+		      /* root */ &dummy1,
+		      /* child */ &dummy1,
+		      /* root_x */ &ptx,
+		      /* root_y */ &pty,
+		      /* win_x */ &dummy2,
+		      /* win_y */ &dummy2,
+		      /* mask */ &dummy3))
+    {
+      ptx = 16384;
+      pty = 16384;
+    }
 
   if (vs->_old.vm && vs->_new.vm)
     {
@@ -1239,42 +1324,41 @@ x11_vidmode_restore		(const x11_vidmode_info *list,
 	  XF86VidModeModeInfo info;
 
 	  info = CVIDMODE (vs->_old.vm)->info;
-	  if (!XF86VidModeSwitchToMode (CVIDMODE (list)->display,
-					CVIDMODE (list)->screen_number,
-					&info))
+
+	  if (!vidmode_switch_to_mode (CVIDMODE (list)->display,
+				       CVIDMODE (list)->screen_number,
+				       &info))
 	    {
 	      if (X11STUFF_VIDMODE_DEBUG)
 		printv ("Cannot restore old mode, "
 			"XF86VidModeSwitchToMode() failed\n");
-	      goto done;
 	    }
 	}
     }
 
-  if (vs->_new.vp.x == vpx
-      && vs->_new.vp.y == vpy)
-    {
-      XF86VidModeSetViewPort (CVIDMODE (list)->display,
-			      CVIDMODE (list)->screen_number,
-			      vs->_old.vp.x,
-			      vs->_old.vp.y);
-    }
-  else
-    {
-      goto done; /* user moved viewport, keep that */
-    }
+  if (vs->_new.vp.x != vpx
+      || vs->_new.vp.y != vpy)
+    goto done; /* user moved viewport, keep that */
 
-  if (abs (vs->_new.pt.x - ptx) < 10
-      && abs (vs->_new.pt.y - pty) < 10)
-    XWarpPointer (CVIDMODE (list)->display,
-		  /* src_window */ None,
-		  /* dst_window */ root,
-		  /* src_x, y, width, height */ 0, 0, 0, 0,
-		  /* dst_x, y */ vs->_old.pt.x, vs->_old.pt.y);
-  /* else user moved pointer, keep that */
+  if (vidmode_set_view_port (CVIDMODE (list)->display,
+			     CVIDMODE (list)->screen_number,
+			     vs->_old.vp.x,
+			     vs->_old.vp.y))
+    goto done;
+
+  if (abs (vs->_new.pt.x - ptx) >= 10
+      || abs (vs->_new.pt.y - pty) >= 10)
+    goto done; /* user moved pointer, keep that */
+
+  /* Error ignored. */
+  warp_pointer (CVIDMODE (list)->display,
+		/* src_window */ None,
+		/* dst_window */ root,
+		/* src_x, y, width, height */ 0, 0, 0, 0,
+		/* dst_x, y */ vs->_old.pt.x, vs->_old.pt.y);
 
  done:
-  XSync (CVIDMODE (list)->display, False);
+  XSetErrorHandler (old_error_handler);
 
   x11_vidmode_clear_state (vs);
 }
@@ -1406,7 +1490,7 @@ find_xscreensaver_window	(Display *		display,
       void *vec;
       unsigned long nitems;
 
-      XSync (display, False);
+      XSync (display, /* discard events */ False);
 
       if (Success == get_window_property (display, kids[i],
                                           _XA_SCREENSAVER_VERSION,
@@ -1549,7 +1633,7 @@ x11_screensaver_set		(unsigned int		level)
 		{
 		  /* Make sure the display is on now. */
 		  screensaver_timeout (NULL);	      
-		  XSync (display, False);
+		  XSync (display, /* discard events */ False);
 		  
 		  screensaver_timeout_id =
 		    g_timeout_add (5432 /* ms */,
