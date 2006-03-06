@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd-conv.h,v 1.1 2006-02-25 17:37:43 mschimek Exp $ */
+/* $Id: simd-conv.h,v 1.2 2006-03-06 01:48:35 mschimek Exp $ */
 
 #include <assert.h>
 #include "pixel_format.h"
@@ -88,31 +88,75 @@ load_lo				(const uint8_t *	src)
 }
 
 static always_inline void
+load_16				(v16 *			even,
+				 v16 *			odd,
+				 const uint8_t *	src,
+				 unsigned long		offset)
+{
+	*even = vload (src, offset);
+	*odd  = vsru16 ((vu16) *even, 8);
+	*even = vand (*even, vsplat16_255);
+}
+
+static always_inline void
 load_yuyv8			(vu8 *			y0,
 				 vu8 *			y1,
 				 vu8 *			u,
 				 vu8 *			v,
 				 const uint8_t *	src,
+				 unsigned long		offset,
 				 tv_bool		swap_yc,
 				 tv_bool		swap_uv)
 {
 	vu8 yeu0, yov0, yeu1, yov1;
 
 	interleave (&yeu0, &yov0,
-		    vload (src, 0 * sizeof (vu8)),
-		    vload (src, 1 * sizeof (vu8)), 4);
+		    vload (src, offset),
+		    vload (src, offset + 1 * sizeof (vu8)), 4);
+
 	*y0 = swap_yc ? vunpackhi8 (yeu0, yov0) : vunpacklo8 (yeu0, yov0);
 
 	interleave (&yeu1, &yov1,
-		    vload (src, 2 * sizeof (vu8)),
-		    vload (src, 3 * sizeof (vu8)), 4);
+		    vload (src, offset + 2 * sizeof (vu8)),
+		    vload (src, offset + 3 * sizeof (vu8)), 4);
+
 	*y1 = swap_yc ? vunpackhi8 (yeu1, yov1) : vunpacklo8 (yeu1, yov1);
 
 	if (swap_uv)
-		SWAP (u, v); /* register renaming */
+		SWAP (u, v);
 
-	*u = swap_yc ? vunpacklo8 (yeu0, yeu1) : vunpackhi8 (yeu0, yeu1);
-	*v = swap_yc ? vunpacklo8 (yov0, yov1) : vunpackhi8 (yov0, yov1);
+	*u = swap_yc ? vunpacklo (yeu0, yeu1) : vunpackhi (yeu0, yeu1);
+	*v = swap_yc ? vunpacklo (yov0, yov1) : vunpackhi (yov0, yov1);
+}
+
+static always_inline void
+load_yuyv16			(vu16 *			ye,
+				 vu16 *			yo,
+				 vu16 *			u,
+				 vu16 *			v,
+				 const vu8 *		src,
+				 tv_bool		swap_yc,
+				 tv_bool		swap_uv)
+{
+	vu8 yeu, yov;
+
+	interleave (&yeu, &yov,
+		    vload (src, 0),
+		    vload (src, sizeof (vu8)), 4);
+
+	if (swap_yc) {
+		SWAP (ye, u);
+		SWAP (yo, v);
+	}
+
+	if (swap_uv) {
+		SWAP (u, v);
+	}
+
+	*ye = vunpacklo8 (yeu, vzero8 ());
+	*u  = vunpackhi8 (yeu, vzero8 ());
+	*yo = vunpacklo8 (yov, vzero8 ());
+	*v  = vunpackhi8 (yov, vzero8 ());
 }
 
 static always_inline void
