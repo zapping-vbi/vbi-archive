@@ -135,7 +135,7 @@ zvbi_export_load_zconf		(vbi3_export *		context,
 				 gpointer		user_data);
 
 vbi3_pgno
-zvbi_find_subtitle_page		(void);
+zvbi_find_subtitle_page		(tveng_device_info *	info);
 
 #else /* !HAVE_LIBZVBI */
 

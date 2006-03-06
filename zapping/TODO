@@ -1,6 +1,10 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Recording won't work while the --esd-out audio loopback is active.
+  Also bilingual recording (with monaural to speakers) isn't
+  implemented yet.
+* Muting the audio loopback clicks. Try fade out the volume.
 * Integrate XvPutImage controls into the tveng.c virtual control
   layer. Like mixer volume, substitute tv card brightness and
   contrast control when available for XVPutImage.

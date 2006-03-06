@@ -2698,7 +2698,9 @@ get_capabilities		(tveng_device_info *	info)
 	info->caps.channels = 0; 
 	info->caps.audios = 0;
 	/* FIXME determine actual limits.
-	   Attention: may be different for capture and overlay. */
+	   Attention: may be different for capture and overlay.
+	   Attention: all conversion routines cannot handle
+	   arbitrary widths yet. */
 	info->caps.maxwidth = 768;
 	info->caps.minwidth = 16;
 	info->caps.maxheight = 576;

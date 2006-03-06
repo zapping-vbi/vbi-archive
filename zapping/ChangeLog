@@ -1,3 +1,104 @@
+2006-03-06    <mschimek@users.sf.net>
+
+	* Prerelease 0.10cvs4.
+
+2006-03-05    <mschimek@users.sf.net>
+
+	* src/oss.c (_open, _add_props, _apply_props, _init): Used old
+	  config value blah/oss/device instead of blah/pcm_device for
+	  /dev/dsp name.
+
+	* src/tveng.c (tveng_attach_device), src/mixer.c (startup_mixer):
+	  Present the audio loopback mixer in the GUI instead of the TV card
+	  or soundcard mixer if the loopback is enabled.
+	* src/main.c (MAIN), src/globals.h, src/globals.c: New --esd-out
+	  option.
+	* src/zvbi.c (join_thread),
+	  src/zmisc.h, src/zmisc.c, src/capture.c (join): Replaced join
+	  functions by one z_join_thread_with_timeout() in zmisc.c.
+	* src/audio.h: Added a mixer interface to mute and change the volume
+	  of the new audio loopback, so we can leave the TV card or
+	  soundcard recording level alone.
+	* src/audio.c: Added a software audio loopback from the audio source
+	  (TV card, soundcard) to ESD in response to Gnome bug #332777.
+	  Recording is not yet possible while the loopback is active.
+	  Added a mixer interface to mute and change the volume of the
+	  loopback, so we can leave the TV card or soundcard recording
+	  level alone.
+	(mixer_setup): Mute (for output) the recorded mixer line when the
+	  audio loopback is enabled.
+	(open_audio_device): Added PCM write interface.
+	* src/esd.c: Added playback capability.
+	* src/oss.c, src/esd.c, src/audio.h, src/arts.c: Defined a PCM write
+	  interface. 
+
+	* src/zvbi.c (zvbi_find_subtitle_page),
+	  src/v4linterface.c (z_switch_channel),
+	  src/subtitle.c (py_closed_caption),
+	  plugins/mpeg/mpeg.c (init_subtitle_encoding): When switching to an
+	  NTSC channel, guess caption is on CC channel zero. In response to
+	  Gnome bug #332746 Subtitles should stay enabled between channel
+	  changes.
+
+	* src/tvengxv.c (enable_overlay): Xorg 6.8.0 w/bttv 0.9.5 freezes
+	  when the requested size is briefly 1x1 during video widget creation.
+
+	* src/capture.c	(change_capture_format): Preserve the image aspect
+	  in fullscreen mode (preliminary).
+	* src/fullscreen.c (start_fullscreen): Preserve the image aspect in
+	  capture mode (preliminary). Bug introduced when removing the 768 x
+	  576 limit.
+
+	* src/x11stuff.c (x11_vidmode_current, x11_vidmode_switch) 
+	(x11_vidmode_restore): Handle asynchronous errors of
+	  XF86VidModeSwitchToMode(), XF86VidModeSetViewPort() and
+	  XWarpPointer(). Supposed to fix Gnome bug #332846 Crash When Put
+	  Into Full Screen Mode.
+
+	* src/fullscreen.c (start_fullscreen): tveng_set_capture_size()
+	  removed, use tv_cur/set_capture_format() instead.
+	* src/tveng.c, src/tveng.h: 
+	(tveng_start_capturing, tveng_stop_capturing): Replaced by
+	  tv_enable_capturing().
+	(tv_set_capture_buffers, tv_get_capture_buffers): Renamed to
+	  tv_get/set_num_capture_buffers() for clarity.
+	(tveng_set_capture_size, tveng_get_capture_size): Removed. Was only
+	  used in fullscreen.c, which uses tv_cur/set_capture_format() now.
+
+	* src/tveng.c: Accidentally disabled all APIs except V4L1.
+	(tveng_attach_device): Dump info->caps.flags with -d.
+	
+	* src/zapping.c (crash_action): Unused parameter warnings.
+
+	* src/tveng1.c (update_capture_limits, p_tveng1_open_device_file): 
+	  Capabilities maxwidth must be a multiple of 8 because the old
+	  SIMD routines we still use do not check this and fall back to
+	  scalar functions.
+
+	* src/csconvert.c (startup_csconvert): Register new YUV-to-YUV
+	  routines in libtv/yuv2yuv.c.
+	* test/convert_image.c: Added checks for yuv2yuv.c routines,
+	  handling of planar formats (YUV420).
+	* libtv/simd.h: Added vector size unpack macros.
+	(SIMD_FN_ALIGNED_SELECT, SIMD_FN_ARRAY_PROTOS): Added for yuv2yuv.c.
+	* libtv/simd.h: Added 32 bit shifts and byte/word swap for yuv2yuv.c.
+	* libtv/simd-conv.h (load_16): Added.
+	(load_yuyv8): Added offset parameter.
+	(load_yuyv16): Added for yuv2yuv.c.
+	* libtv/rgb2rgb.c (_tv_rgb32_to_rgb32): Reuse yuv2yuv.c uint32_t
+	  shuffle routines.
+	* libtv/pixel_format.h (TV_PIXFMT_SET_RGB): SBGGR is also RGB.
+	* libtv/image_format.h (tv_image_format): Added field order field. 
+	* libtv/sse/sse.h, libtv/sse/copy_block.c, libtv/mmx/mmx.h, 
+	  libtv/mmx/copy_block.c, libtv/misc.h, libtv/image_format.c:
+	  Modified the image copy routines for reuse by yuv2yuv.c.
+	* libtv/Makefile.am (SIMD_SOURCES): Added yuv2yuv.(c|h).
+
+	* zapping_setup_fb/Makefile.am,
+	  zapping_setup_fb/zapping_fix_overlay.in: zapping_fix_overlay
+	  removed. Simply making <prefix>/sbin/zapping_setup_fb setuid root
+	  will work as well.
+
 2006-02-26    <mschimek@users.sf.net>
 
 	* Prerelease 0.10cvs3.
