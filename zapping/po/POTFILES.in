@@ -61,7 +61,6 @@ src/properties-handler.c
 src/subtitle.c
 src/tveng1.c
 src/tveng25.c
-src/tveng2.c
 src/tvengbktr.c
 src/tveng.c
 #src/tvengemu.c

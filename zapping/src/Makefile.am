@@ -78,7 +78,6 @@ zapping_SOURCES = \
 	subtitle.c subtitle.h \
 	tveng.c tveng.h tveng_private.h \
 	tveng1.c tveng1.h \
-	tveng2.c tveng2.h \
 	tveng25.c tveng25.h \
 	tvengbktr.c tvengbktr.h \
 	tvengemu.c tvengemu.h \

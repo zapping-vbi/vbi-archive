@@ -926,7 +926,6 @@ po/Makefile.in
 glade/Makefile
 pixmaps/Makefile
 zapping_setup_fb/Makefile
-zapping_setup_fb/zapping_fix_overlay
 plugins/Makefile
 plugins/alirc/Makefile
 plugins/deinterlace/Makefile

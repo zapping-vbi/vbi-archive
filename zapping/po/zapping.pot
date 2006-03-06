@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-02-21 13:39+0100\n"
+"POT-Creation-Date: 2006-03-06 03:02+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -31,8 +31,8 @@ msgstr ""
 msgid "Advanced"
 msgstr ""
 
-#: ../glade/zapping.glade2.h:4 ../src/audio.c:533 ../src/audio.c:538
-#: ../src/tveng.c:4709
+#: ../glade/zapping.glade2.h:4 ../src/audio.c:829 ../src/audio.c:834
+#: ../src/tveng.c:4791
 msgid "Audio"
 msgstr ""
 
@@ -92,8 +92,8 @@ msgstr ""
 msgid "Device name:"
 msgstr ""
 
-#: ../glade/zapping.glade2.h:20 ../src/audio.c:543
-#: ../src/properties-handler.c:1349 ../src/zvbi.c:2556
+#: ../glade/zapping.glade2.h:20 ../src/audio.c:839
+#: ../src/properties-handler.c:1352 ../src/zvbi.c:2537
 msgid "Devices"
 msgstr ""
 
@@ -129,7 +129,7 @@ msgstr ""
 msgid "Kernel _device"
 msgstr ""
 
-#: ../glade/zapping.glade2.h:29 ../src/keyboard.c:1150
+#: ../glade/zapping.glade2.h:29 ../src/keyboard.c:1149
 msgid "Keyboard"
 msgstr ""
 
@@ -255,12 +255,12 @@ msgstr ""
 msgid "Title _bar contents:"
 msgstr ""
 
-#: ../glade/zapping.glade2.h:60 ../src/zvbi.c:2551
+#: ../glade/zapping.glade2.h:60 ../src/zvbi.c:2532
 msgid "VBI"
 msgstr ""
 
 #: ../glade/zapping.glade2.h:61 ../src/main.c:200
-#: ../src/properties-handler.c:1336 ../src/properties-handler.c:1344
+#: ../src/properties-handler.c:1339 ../src/properties-handler.c:1347
 msgid "Video"
 msgstr ""
 
@@ -655,56 +655,56 @@ msgstr ""
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:237
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:240
 msgid "Max Comb"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:243
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:246
 msgid "Motion Threshold"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:249
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:252
 msgid "Motion Sense"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:255
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:258
 msgid "Good PullDown Lvl"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:261
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:264
 msgid "Bad PullDown Lvl"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:267
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:315
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:270
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:318
 msgid "H. Sharpness"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:273
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:309
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:276
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:312
 msgid "V. Sharpness"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:279
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:303
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:282
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:306
 msgid "Median Filter"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:285
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:288
 msgid "High Comb Skip"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:291
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:294
 msgid "Auto Pull-Down"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:297
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:300
 msgid "In-Between Frames"
 msgstr ""
 
 #. size of this struct
 #. curr version compiled
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:333
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:336
 msgid "Video (Greedy, High Motion)"
 msgstr ""
 
@@ -1001,7 +1001,7 @@ msgstr ""
 msgid "_Update live caption at line breaks"
 msgstr ""
 
-#: ../plugins/mpeg/mpeg_properties.glade2.h:27 ../src/zapping.c:494
+#: ../plugins/mpeg/mpeg_properties.glade2.h:27 ../src/zapping.c:500
 msgid "_Video"
 msgstr ""
 
@@ -1536,7 +1536,7 @@ msgid "S_earch..."
 msgstr ""
 
 #: ../plugins/teletext/view.c:2773 ../plugins/teletext/window.c:812
-#: ../src/zapping.c:491
+#: ../src/zapping.c:497
 msgid "_Bookmarks"
 msgstr ""
 
@@ -1571,7 +1571,7 @@ msgid "_Received"
 msgstr ""
 
 #: ../plugins/teletext/window.c:349 ../src/v4linterface.c:1317
-#: ../src/v4linterface.c:2505
+#: ../src/v4linterface.c:2520
 msgid "Unnamed"
 msgstr ""
 
@@ -1587,24 +1587,24 @@ msgstr ""
 msgid "_Automatic"
 msgstr ""
 
-#: ../plugins/teletext/window.c:804 ../src/zapping.c:422
+#: ../plugins/teletext/window.c:804 ../src/zapping.c:428
 msgid "_File"
 msgstr ""
 
-#: ../plugins/teletext/window.c:808 ../src/zapping.c:430
+#: ../plugins/teletext/window.c:808 ../src/zapping.c:436
 msgid "_Edit"
 msgstr ""
 
-#: ../plugins/teletext/window.c:809 ../src/zapping.c:437
+#: ../plugins/teletext/window.c:809 ../src/zapping.c:443
 msgid "_View"
 msgstr ""
 
 #. 2.6 GTK_STOCK_EDIT
-#: ../plugins/teletext/window.c:811 ../src/zapping.c:435 ../src/zapping.c:448
+#: ../plugins/teletext/window.c:811 ../src/zapping.c:441 ../src/zapping.c:454
 msgid "_Channels"
 msgstr ""
 
-#: ../plugins/teletext/window.c:871 ../src/zapping.c:470
+#: ../plugins/teletext/window.c:871 ../src/zapping.c:476
 msgid "_Toolbar"
 msgstr ""
 
@@ -1613,28 +1613,28 @@ msgid "_Statusbar"
 msgstr ""
 
 #. TRANSLATORS: Soundcard mixer line.
-#: ../src/audio.c:511
+#: ../src/audio.c:807
 msgid "Input:"
 msgstr ""
 
-#: ../src/audio.c:544 ../src/keyboard.c:1155 ../src/osd.c:1080
-#: ../src/properties.c:991 ../src/properties-handler.c:1350
+#: ../src/audio.c:840 ../src/keyboard.c:1154 ../src/osd.c:1080
+#: ../src/properties.c:991 ../src/properties-handler.c:1353
 msgid "General Options"
 msgstr ""
 
-#: ../src/audio.c:643
+#: ../src/audio.c:939
 msgid "<span foreground=\"blue\">Audio off</span>"
 msgstr ""
 
-#: ../src/audio.c:644
+#: ../src/audio.c:940
 msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr ""
 
-#: ../src/capture.c:895
+#: ../src/capture.c:866
 msgid "Cannot stop capturing while recording."
 msgstr ""
 
-#: ../src/capture.c:1077
+#: ../src/capture.c:1052
 #, c-format
 msgid "Cannot start capturing: %s"
 msgstr ""
@@ -1816,16 +1816,16 @@ msgstr ""
 msgid "Key table..."
 msgstr ""
 
-#: ../src/keyboard.c:1111
+#: ../src/keyboard.c:1106
 msgid "Command"
 msgstr ""
 
-#: ../src/keyboard.c:1125 ../src/properties-handler.c:804
+#: ../src/keyboard.c:1120 ../src/properties-handler.c:801
 msgid "Shortcut"
 msgstr ""
 
-#: ../src/main.c:197 ../src/tveng1.c:1210 ../src/tveng25.c:538
-#: ../src/tvengbktr.c:414 ../src/tveng.c:2270 ../src/tvengxv.c:569
+#: ../src/main.c:197 ../src/tveng1.c:1211 ../src/tveng25.c:538
+#: ../src/tvengbktr.c:414 ../src/tveng.c:2312 ../src/tvengxv.c:574
 msgid "Mute"
 msgstr ""
 
@@ -1858,115 +1858,115 @@ msgid ""
 "%s"
 msgstr ""
 
-#: ../src/main.c:372
+#: ../src/main.c:376
 msgid "Kernel video device"
 msgstr ""
 
-#: ../src/main.c:373
+#: ../src/main.c:377
 msgid "FILENAME"
 msgstr ""
 
-#: ../src/main.c:384 ../src/main.c:402
+#: ../src/main.c:388 ../src/main.c:406
 msgid "XVideo video input port"
 msgstr ""
 
-#: ../src/main.c:393
+#: ../src/main.c:397
 msgid "XVideo image overlay port"
 msgstr ""
 
-#: ../src/main.c:411
+#: ../src/main.c:415
 msgid "Disable XVideo video input support"
 msgstr ""
 
-#: ../src/main.c:420
+#: ../src/main.c:424
 msgid "Disable XVideo image overlay support"
 msgstr ""
 
-#: ../src/main.c:429
+#: ../src/main.c:433
 msgid "Disable XVideo extension support"
 msgstr ""
 
-#: ../src/main.c:441
+#: ../src/main.c:445
 msgid "Disable video overlay"
 msgstr ""
 
-#: ../src/main.c:450
+#: ../src/main.c:454
 msgid "X display is remote, disable video overlay"
 msgstr ""
 
-#: ../src/main.c:459
+#: ../src/main.c:463
 msgid "Disable VBI support"
 msgstr ""
 
-#: ../src/main.c:468
+#: ../src/main.c:472
 msgid "Disable plugins"
 msgstr ""
 
 #. TRANSLATORS: --no-zsfb command line option.
 #. TRANSLATORS: --yuv-format command line option.
 #. TRANSLATORS: --tunerless-norm command line option.
-#: ../src/main.c:482 ../src/main.c:537 ../src/main.c:547
+#: ../src/main.c:486 ../src/main.c:550 ../src/main.c:560
 msgid "Obsolete"
 msgstr ""
 
-#: ../src/main.c:491
+#: ../src/main.c:504
 msgid "Color depth of the X display"
 msgstr ""
 
-#: ../src/main.c:492
+#: ../src/main.c:505
 msgid "BPP"
 msgstr ""
 
-#: ../src/main.c:500
+#: ../src/main.c:513
 msgid "Print debug messages"
 msgstr ""
 
-#: ../src/main.c:518
+#: ../src/main.c:531
 msgid "Force dword alignment of the overlay window"
 msgstr ""
 
-#: ../src/main.c:527
+#: ../src/main.c:540
 msgid "Execute the given command and exit"
 msgstr ""
 
-#: ../src/main.c:528
+#: ../src/main.c:541
 msgid "CMD"
 msgstr ""
 
-#: ../src/main.c:556
+#: ../src/main.c:569
 msgid "Override CPU detection"
 msgstr ""
 
-#: ../src/main.c:645
+#: ../src/main.c:658
 msgid "Sorry, but there is no module support in GLib"
 msgstr ""
 
-#: ../src/main.c:769
+#: ../src/main.c:782
 msgid "Cannot get device info struct"
 msgstr ""
 
-#: ../src/main.c:778
+#: ../src/main.c:791
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: ../src/main.c:832
+#: ../src/main.c:845
 #, c-format
 msgid "Couldn't open %s, try other devices?"
 msgstr ""
 
-#: ../src/main.c:859
+#: ../src/main.c:872
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr ""
 
-#: ../src/main.c:869
+#: ../src/main.c:882
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: ../src/main.c:1229
+#: ../src/main.c:1242
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -1979,11 +1979,11 @@ msgid ""
 "     %s. Please contact the author.\n"
 msgstr ""
 
-#: ../src/main.c:1255
+#: ../src/main.c:1268
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
-#: ../src/mixer.c:97
+#: ../src/mixer.c:103
 msgid "The soundcard mixer is not configured."
 msgstr ""
 
@@ -2004,22 +2004,22 @@ msgid ""
 "your system is properly configured."
 msgstr ""
 
-#: ../src/oss.c:179
+#: ../src/oss.c:186
 msgid "Audio device:"
 msgstr ""
 
-#: ../src/oss.c:182
+#: ../src/oss.c:189
 msgid "Select the audio device"
 msgstr ""
 
-#: ../src/oss.c:209
+#: ../src/oss.c:216
 #, c-format
 msgid "The given audio device \"%s\" doesn't exist"
 msgstr ""
 
 #. TRANSLATORS: Name of mixer line, mono as
 #. opposed to stereo.
-#: ../src/oss.c:913
+#: ../src/oss.c:920
 #, c-format
 msgid "%s (Mono)"
 msgstr ""
@@ -2159,51 +2159,51 @@ msgid "Resize to %ux%u"
 msgstr ""
 
 #. append
-#: ../src/properties-handler.c:781
+#: ../src/properties-handler.c:778
 msgid "Width"
 msgstr ""
 
-#: ../src/properties-handler.c:781
+#: ../src/properties-handler.c:778
 msgid "Height"
 msgstr ""
 
-#: ../src/properties-handler.c:889
+#: ../src/properties-handler.c:892
 msgid "Text Below Icons"
 msgstr ""
 
-#: ../src/properties-handler.c:890
+#: ../src/properties-handler.c:893
 msgid "Priority Text Beside Icons"
 msgstr ""
 
-#: ../src/properties-handler.c:891
+#: ../src/properties-handler.c:894
 msgid "Icons Only"
 msgstr ""
 
-#: ../src/properties-handler.c:892
+#: ../src/properties-handler.c:895
 msgid "Text Only"
 msgstr ""
 
-#: ../src/properties-handler.c:957
+#: ../src/properties-handler.c:960
 #, c-format
 msgid "Use desktop default (%s)"
 msgstr ""
 
 #. TRANSLATORS: Fullscreen video mode
-#: ../src/properties-handler.c:1157
+#: ../src/properties-handler.c:1160
 msgid "Do not change"
 msgstr ""
 
-#: ../src/properties-handler.c:1161 ../src/tveng.c:4720
+#: ../src/properties-handler.c:1164 ../src/tveng.c:4802
 msgid "Automatic"
 msgstr ""
 
 #. TRANSLATORS: Fullscreen video mode
-#: ../src/properties-handler.c:1176
+#: ../src/properties-handler.c:1179
 #, c-format
 msgid "%u x %u @ %u Hz"
 msgstr ""
 
-#: ../src/properties-handler.c:1341
+#: ../src/properties-handler.c:1344
 msgid "Main Window"
 msgstr ""
 
@@ -2212,39 +2212,39 @@ msgstr ""
 msgid "Page %x"
 msgstr ""
 
-#: ../src/tveng1.c:1264
+#: ../src/tveng1.c:1265
 msgid "Frame Rate"
 msgstr ""
 
 #. TRANSLATORS: PWC driver control.  In 'Snapshot' mode the
 #. camera freezes its automatic exposure and colour balance
 #. controls.
-#: ../src/tveng1.c:1277
+#: ../src/tveng1.c:1278
 msgid "Snapshot Mode"
 msgstr ""
 
-#: ../src/tveng1.c:2121 ../src/tveng25.c:1443
+#: ../src/tveng1.c:2179 ../src/tveng25.c:1443
 #, c-format
 msgid "Driver %s returned an unknown or invalid frame buffer format."
 msgstr ""
 
 #: ../src/tveng25.c:519 ../src/tvengbktr.c:383 ../src/tvengbktr.c:400
-#: ../src/tvengxv.c:563
+#: ../src/tvengxv.c:568
 msgid "Brightness"
 msgstr ""
 
 #: ../src/tveng25.c:520 ../src/tvengbktr.c:385 ../src/tvengbktr.c:402
-#: ../src/tvengxv.c:564
+#: ../src/tvengxv.c:569
 msgid "Contrast"
 msgstr ""
 
 #: ../src/tveng25.c:521 ../src/tvengbktr.c:387 ../src/tvengbktr.c:404
-#: ../src/tvengxv.c:565
+#: ../src/tvengxv.c:570
 msgid "Saturation"
 msgstr ""
 
 #: ../src/tveng25.c:522 ../src/tvengbktr.c:393 ../src/tvengbktr.c:412
-#: ../src/tvengxv.c:566
+#: ../src/tvengxv.c:571
 msgid "Hue"
 msgstr ""
 
@@ -2300,7 +2300,7 @@ msgstr ""
 msgid "Vert. flipping"
 msgstr ""
 
-#: ../src/tveng25.c:537 ../src/tveng.c:2257 ../src/tvengxv.c:570
+#: ../src/tveng25.c:537 ../src/tveng.c:2299 ../src/tvengxv.c:575
 msgid "Volume"
 msgstr ""
 
@@ -2350,68 +2350,77 @@ msgstr ""
 msgid "V Saturation"
 msgstr ""
 
-#: ../src/tveng.c:3248
+#: ../src/tveng.c:3186
 #, c-format
-msgid "%s not found in %s or the executable search path."
+msgid "Cannot execute %s. Pipe error."
+msgstr ""
+
+#: ../src/tveng.c:3193 ../src/tveng.c:3225
+#, c-format
+msgid "Cannot execute %s. %s."
 msgstr ""
 
 #. TRANSLATORS: Program name, error message.
-#: ../src/tveng.c:3255 ../src/tveng.c:3351
-#, c-format
-msgid ""
-"Cannot execute %s.\n"
-"%s."
-msgstr ""
-
-#. TRANSLATORS: Program name, error message.
-#: ../src/tveng.c:3323
+#: ../src/tveng.c:3203
 #, c-format
 msgid ""
 "%s failed.\n"
 "%s"
 msgstr ""
 
-#. TRANSLATORS: Program name.
-#: ../src/tveng.c:3340
+#. Something executed, but it wasn't
+#. zapping_setup_fb. Perhaps consolehelper
+#. couldn't authenticate the user?
+#: ../src/tveng.c:3215
 #, c-format
-msgid "Unknown error in %s."
+msgid "Cannot execute %s. No permission?"
+msgstr ""
+
+#: ../src/tveng.c:3324
+#, c-format
+msgid "Cannot determine current overlay parameters. %s"
 msgstr ""
 
 #. TRANSLATORS: Program name.
-#: ../src/tveng.c:3357
+#: ../src/tveng.c:3333
 #, c-format
-msgid "%s failed."
+msgid "%s did not work as expected."
 msgstr ""
 
-#: ../src/tveng.c:4727
+#: ../src/tveng.c:3436
+#, c-format
+msgid "%s not found in %s or the executable search path."
+msgstr ""
+
+#: ../src/tveng.c:4809
 msgid "Mono"
 msgstr ""
 
-#: ../src/tveng.c:4734
+#: ../src/tveng.c:4816
 msgid "Stereo"
 msgstr ""
 
-#: ../src/tveng.c:4742
+#: ../src/tveng.c:4824
 msgid "Language 2"
 msgstr ""
 
-#: ../src/tvengxv.c:567
+#: ../src/tvengxv.c:572
 msgid "Color"
 msgstr ""
 
-#: ../src/tvengxv.c:568
+#: ../src/tvengxv.c:573
 msgid "Interlace"
 msgstr ""
 
-#: ../src/tvengxv.c:609
+#: ../src/tvengxv.c:614
 msgid "No"
 msgstr ""
 
-#: ../src/tvengxv.c:610
+#: ../src/tvengxv.c:615
 msgid "Yes"
 msgstr ""
 
-#: ../src/tvengxv.c:611
+#: ../src/tvengxv.c:616
 msgid "Doublescan"
 msgstr ""
 
@@ -2422,7 +2431,7 @@ msgstr ""
 msgid "Adjust %s"
 msgstr ""
 
-#: ../src/v4linterface.c:621 ../src/zapping.c:460
+#: ../src/v4linterface.c:621 ../src/zapping.c:466
 msgid "Controls"
 msgstr ""
 
@@ -2438,125 +2447,125 @@ msgstr ""
 msgid "No standard"
 msgstr ""
 
-#: ../src/v4linterface.c:2395
+#: ../src/v4linterface.c:2410
 msgid "Video standards"
 msgstr ""
 
-#: ../src/v4linterface.c:2415
+#: ../src/v4linterface.c:2430
 msgid "Audio inputs"
 msgstr ""
 
-#: ../src/v4linterface.c:2435
+#: ../src/v4linterface.c:2450
 msgid "Video inputs"
 msgstr ""
 
 #. TRANSLATORS: This is displayed in the channel menu when
 #. the channel list is empty.
-#: ../src/v4linterface.c:2533
+#: ../src/v4linterface.c:2548
 msgid "No channels"
 msgstr ""
 
-#: ../src/zapping.c:433
+#: ../src/zapping.c:439
 msgid "P_lugins"
 msgstr ""
 
-#: ../src/zapping.c:438 ../src/zapping.c:479
+#: ../src/zapping.c:444 ../src/zapping.c:485
 msgid "_Window"
 msgstr ""
 
-#: ../src/zapping.c:440 ../src/zapping.c:481
+#: ../src/zapping.c:446 ../src/zapping.c:487
 msgid "_Fullscreen"
 msgstr ""
 
-#: ../src/zapping.c:442 ../src/zapping.c:483
+#: ../src/zapping.c:448 ../src/zapping.c:489
 msgid "_Background"
 msgstr ""
 
-#: ../src/zapping.c:444
+#: ../src/zapping.c:450
 msgid "_Overlay mode"
 msgstr ""
 
-#: ../src/zapping.c:446
+#: ../src/zapping.c:452
 msgid "_Capture mode"
 msgstr ""
 
-#: ../src/zapping.c:449
+#: ../src/zapping.c:455
 msgid "_Help"
 msgstr ""
 
-#: ../src/zapping.c:450
+#: ../src/zapping.c:456
 msgid "_Contents"
 msgstr ""
 
-#: ../src/zapping.c:452
+#: ../src/zapping.c:458
 msgid "_About"
 msgstr ""
 
-#: ../src/zapping.c:455
+#: ../src/zapping.c:461
 msgid "Appearance"
 msgstr ""
 
-#: ../src/zapping.c:456
+#: ../src/zapping.c:462
 msgid "Ch. Up"
 msgstr ""
 
-#: ../src/zapping.c:457
+#: ../src/zapping.c:463
 msgid "Switch to higher channel"
 msgstr ""
 
-#: ../src/zapping.c:458
+#: ../src/zapping.c:464
 msgid "Ch. Down"
 msgstr ""
 
-#: ../src/zapping.c:459
+#: ../src/zapping.c:465
 msgid "Switch to lower channel"
 msgstr ""
 
-#: ../src/zapping.c:461
+#: ../src/zapping.c:467
 msgid "Change picture controls"
 msgstr ""
 
-#: ../src/zapping.c:466
+#: ../src/zapping.c:472
 msgid "_Mute"
 msgstr ""
 
-#: ../src/zapping.c:467
+#: ../src/zapping.c:473
 msgid "Switch audio on or off"
 msgstr ""
 
-#: ../src/zapping.c:468
+#: ../src/zapping.c:474
 msgid "Menu"
 msgstr ""
 
-#: ../src/zapping.c:472 ../src/zapping.c:1086
+#: ../src/zapping.c:478 ../src/zapping.c:1092
 msgid "Keep window on top"
 msgstr ""
 
-#: ../src/zapping.c:490 ../src/zapping.c:492
+#: ../src/zapping.c:496 ../src/zapping.c:498
 msgid "_Teletext"
 msgstr ""
 
-#: ../src/zapping.c:493
+#: ../src/zapping.c:499
 msgid "Activate Teletext mode"
 msgstr ""
 
-#: ../src/zapping.c:495
+#: ../src/zapping.c:501
 msgid "Return to video mode"
 msgstr ""
 
-#: ../src/zapping.c:496
+#: ../src/zapping.c:502
 msgid "_New Teletext View"
 msgstr ""
 
-#: ../src/zapping.c:502 ../src/zapping.c:507
+#: ../src/zapping.c:508 ../src/zapping.c:513
 msgid "_Subtitles"
 msgstr ""
 
-#: ../src/zapping.c:508
+#: ../src/zapping.c:514
 msgid "Switch subtitles on or off"
 msgstr ""
 
-#: ../src/zapping.c:1084
+#: ../src/zapping.c:1090
 msgid "Show menu and toolbar"
 msgstr ""
 
@@ -2651,41 +2660,41 @@ msgstr ""
 msgid "Reset"
 msgstr ""
 
-#: ../src/zvbi.c:1036
+#: ../src/zvbi.c:1044
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr ""
 
-#: ../src/zvbi.c:1039
+#: ../src/zvbi.c:1047
 #, c-format
 msgid " Teletext Page %x"
 msgstr ""
 
-#: ../src/zvbi.c:1040
+#: ../src/zvbi.c:1048
 msgid "Open this page with Zapzilla"
 msgstr ""
 
-#: ../src/zvbi.c:1426
+#: ../src/zvbi.c:1434
 msgid "PES file read error"
 msgstr ""
 
-#: ../src/zvbi.c:1645
+#: ../src/zvbi.c:1653
 msgid "VBI interface timeout"
 msgstr ""
 
-#: ../src/zvbi.c:1677
+#: ../src/zvbi.c:1685
 msgid "VBI interface: Failed to read from the device"
 msgstr ""
 
-#: ../src/zvbi.c:1755 ../src/zvbi.c:2025 ../src/zvbi.c:2133
+#: ../src/zvbi.c:1763 ../src/zvbi.c:2006 ../src/zvbi.c:2114
 msgid "VBI initialization failed"
 msgstr ""
 
-#: ../src/zvbi.c:2079
+#: ../src/zvbi.c:2060
 msgid "Cannot open PES file"
 msgstr ""
 
-#: ../src/zvbi.c:2134
+#: ../src/zvbi.c:2115
 #, c-format
 msgid "%s is no VBI device."
 msgstr ""
@@ -2904,102 +2913,120 @@ msgid ""
 "the horizontal resolution. Valid values: low, medium, high."
 msgstr ""
 
-#: ../zapping_setup_fb/zapping_setup_fb.c:134
+#: ../zapping_setup_fb/zapping_setup_fb.c:136
 #, c-format
 msgid "Device name %s is unsafe, contains dots."
 msgstr ""
 
-#: ../zapping_setup_fb/zapping_setup_fb.c:142
+#: ../zapping_setup_fb/zapping_setup_fb.c:144
 #, c-format
 msgid "Device name %s is unsafe, does not begin with /dev/."
 msgstr ""
 
 #. TRANSLATORS: File name, error message.
-#: ../zapping_setup_fb/zapping_setup_fb.c:161
+#: ../zapping_setup_fb/zapping_setup_fb.c:163
 #, c-format
 msgid "Cannot open device %s. %s."
 msgstr ""
 
 #. TRANSLATORS: File name, error message.
-#: ../zapping_setup_fb/zapping_setup_fb.c:176
+#: ../zapping_setup_fb/zapping_setup_fb.c:178
 #, c-format
 msgid "Cannot identify %s. %s."
 msgstr ""
 
-#: ../zapping_setup_fb/zapping_setup_fb.c:188
+#: ../zapping_setup_fb/zapping_setup_fb.c:190
 #, c-format
 msgid "%s is not a device."
 msgstr ""
 
-#: ../zapping_setup_fb/zapping_setup_fb.c:202
+#: ../zapping_setup_fb/zapping_setup_fb.c:204
 #, c-format
 msgid "%s is not a video device."
 msgstr ""
 
-#: ../zapping_setup_fb/zapping_setup_fb.c:217
+#: ../zapping_setup_fb/zapping_setup_fb.c:218
 #, c-format
 msgid "Cannot identify file descriptor %d. %s."
 msgstr ""
 
-#: ../zapping_setup_fb/zapping_setup_fb.c:225
+#: ../zapping_setup_fb/zapping_setup_fb.c:229
 #, c-format
 msgid "File descriptor %d is not a device."
 msgstr ""
 
-#: ../zapping_setup_fb/zapping_setup_fb.c:235
+#: ../zapping_setup_fb/zapping_setup_fb.c:239
 #, c-format
 msgid "File descriptor %d is not a video device."
 msgstr ""
 
-#: ../zapping_setup_fb/zapping_setup_fb.c:266
+#: ../zapping_setup_fb/zapping_setup_fb.c:254
+#, c-format
+msgid "Internal error at %s:%u."
+msgstr ""
+
+#: ../zapping_setup_fb/zapping_setup_fb.c:273
 #, c-format
 msgid "Cannot drop root privileges despite running with UID %d, EUID %d."
 msgstr ""
 
-#: ../zapping_setup_fb/zapping_setup_fb.c:296
+#: ../zapping_setup_fb/zapping_setup_fb.c:303
 #, c-format
 msgid "Cannot restore root privileges despite running with UID %d, EUID %d."
 msgstr ""
 
-#: ../zapping_setup_fb/zapping_setup_fb.c:435
+#: ../zapping_setup_fb/zapping_setup_fb.c:396
+msgid "No standard input, output or error file."
+msgstr ""
+
+#: ../zapping_setup_fb/zapping_setup_fb.c:449
 #, c-format
 msgid "Invalid bpp argument %d. Expected 24 or 32."
 msgstr ""
 
-#: ../zapping_setup_fb/zapping_setup_fb.c:467
+#: ../zapping_setup_fb/zapping_setup_fb.c:482
 #, c-format
 msgid "Invalid device file descriptor %d."
 msgstr ""
 
-#: ../zapping_setup_fb/zapping_setup_fb.c:524
+#: ../zapping_setup_fb/zapping_setup_fb.c:539
 msgid "No screens found."
-msgstr ""
-
-#: ../zapping_setup_fb/zapping_setup_fb.c:557
-#, c-format
-msgid "Cannot open display %s."
 msgstr ""
 
 #: ../zapping_setup_fb/zapping_setup_fb.c:573
 #, c-format
-msgid "Screen %d not found."
+msgid "Cannot open display %s."
 msgstr ""
 
-#: ../zapping_setup_fb/zapping_setup_fb.c:580
+#: ../zapping_setup_fb/zapping_setup_fb.c:590
 #, c-format
-msgid "DMA is not possible on screen %d."
+msgid "Screen %d not found."
 msgstr ""
 
 #: ../zapping_setup_fb/zapping_setup_fb.c:598
 #, c-format
+msgid "DMA is not possible on screen %d."
+msgstr ""
+
+#: ../zapping_setup_fb/zapping_setup_fb.c:614
+#, c-format
 msgid "%s is not a V4L or V4L2 device."
 msgstr ""
 
-#: ../zapping_setup_fb/zapping_setup_fb.c:601
+#: ../zapping_setup_fb/zapping_setup_fb.c:617
 #, c-format
 msgid "File descriptor %d is not a V4L or V4L2 device."
 msgstr ""
 
-#: ../zapping_setup_fb/v4l.c:84 ../zapping_setup_fb/v4l25.c:86
+#: ../zapping_setup_fb/zapping_setup_fb.c:620
+msgid "Cannot identify the video capture device."
+msgstr ""
+
+#: ../zapping_setup_fb/zapping_setup_fb.h:56
+#, c-format
+msgid "Ioctl %s failed: %s."
+msgstr ""
+
+#: ../zapping_setup_fb/v4l.c:89 ../zapping_setup_fb/v4l25.c:91
 msgid "The device does not support video overlay."
 msgstr ""
