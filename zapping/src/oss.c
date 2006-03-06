@@ -54,13 +54,18 @@ typedef struct {
    while (__result == -1L && errno == EINTR); __result; })
 
 static gpointer
-oss_open (gboolean stereo, guint rate, enum audio_format format)
+_open				(gboolean		stereo,
+				 guint			sampling_rate,
+				 enum audio_format	format,
+				 gboolean		write)
 {
   int Format = AFMT_S16_LE;
   int Stereo = !!stereo;
-  int Speed = rate;
+  int Speed = sampling_rate;
   int oss_fd;
   oss_handle *h;
+
+  g_assert (!write);
 
   if (format != AUDIO_FORMAT_S16_LE)
     {
@@ -68,7 +73,7 @@ oss_open (gboolean stereo, guint rate, enum audio_format format)
       return NULL;
     }
 
-  if ((oss_fd = open(zcg_char(NULL, "oss/device"), O_RDONLY)) == -1)
+  if ((oss_fd = open(zcg_char(NULL, "pcm_device"), O_RDONLY)) == -1)
     return NULL;
 
   if ((IOCTL(oss_fd, SNDCTL_DSP_SETFMT, &Format) == -1))
@@ -81,7 +86,7 @@ oss_open (gboolean stereo, guint rate, enum audio_format format)
   h = (oss_handle *) g_malloc0(sizeof(*h));
   h->fd = oss_fd;
   h->stereo = stereo;
-  h->sampling_rate = rate;
+  h->sampling_rate = sampling_rate;
   h->time = 0.0;
 
   return h;
@@ -92,7 +97,7 @@ oss_open (gboolean stereo, guint rate, enum audio_format format)
 }
 
 static void
-oss_close (gpointer handle)
+_close (gpointer handle)
 {
   oss_handle *h = (oss_handle*)handle;
 
@@ -101,9 +106,9 @@ oss_close (gpointer handle)
   g_free(h);
 }
 
-static void
-oss_read (gpointer handle, gpointer dest, guint num_bytes,
-	  double *timestamp)
+static gboolean
+_read (gpointer handle, gpointer dest, guint num_bytes,
+       double *timestamp)
 {
   oss_handle *h = (oss_handle *) handle;
   ssize_t r, n = num_bytes;
@@ -171,10 +176,12 @@ oss_read (gpointer handle, gpointer dest, guint num_bytes,
       h->buffer_period =
           num_bytes / (double)(h->sampling_rate * 2 << h->stereo);
     }
+
+  return TRUE;
 }
 
 static void
-oss_add_props (GtkBox *vbox)
+_add_props (GtkBox *vbox)
 {
   GtkWidget *label = gtk_label_new(_("Audio device:"));
   GtkWidget *hbox = gtk_hbox_new(TRUE, 3);
@@ -186,7 +193,7 @@ oss_add_props (GtkBox *vbox)
   gtk_box_pack_start_defaults(GTK_BOX(hbox), label);
 
   entry = GTK_ENTRY(gnome_file_entry_gtk_entry(GNOME_FILE_ENTRY(fentry)));
-  gtk_entry_set_text(entry, zcg_char(NULL, "oss/device"));
+  gtk_entry_set_text(entry, zcg_char(NULL, "pcm_device"));
   gtk_box_pack_start_defaults(GTK_BOX(hbox), fentry);
   g_object_set_data(G_OBJECT(vbox), "fentry", fentry);
 
@@ -195,7 +202,7 @@ oss_add_props (GtkBox *vbox)
 }
 
 static void
-oss_apply_props (GtkBox *vbox)
+_apply_props (GtkBox *vbox)
 {
   GnomeFileEntry *fentry =
     GNOME_FILE_ENTRY(g_object_get_data(G_OBJECT(vbox), "fentry"));
@@ -211,27 +218,27 @@ oss_apply_props (GtkBox *vbox)
     }
   else
     {
-      zcs_char(result, "oss/device");
+      zcs_char(result, "pcm_device");
       g_free(result);
     }
 }
 
 static void
-oss_init (void)
+_init (void)
 {
-  zcc_char("/dev/dsp", "OSS audio device", "oss/device");
+  zcc_char("/dev/dsp", "Kernel audio device", "pcm_device");
 }
 
 const audio_backend_info oss_backend =
 {
   name:		"Open Sound System",
-  open:		oss_open,
-  close:	oss_close,
-  read:		oss_read,
-  init:		oss_init,
+  open:		_open,
+  close:	_close,
+  read:		_read,
+  init:		_init,
   
-  add_props:	oss_add_props,
-  apply_props:	oss_apply_props
+  add_props:	_add_props,
+  apply_props:	_apply_props
 };
 
 /* Preliminary */
