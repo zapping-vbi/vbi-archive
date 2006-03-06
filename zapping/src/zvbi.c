@@ -814,12 +814,13 @@ zvbi_export_load_zconf		(vbi3_export *		context,
 /* Subtitle helper functions. */
 
 vbi3_pgno
-zvbi_find_subtitle_page		(void)
+zvbi_find_subtitle_page		(tveng_device_info *	info)
 {
   vbi3_caption_decoder *cd;
   vbi3_teletext_decoder *td;
   double now;
   vbi3_pgno pgno;
+  const tv_video_standard *vs;
 
   if (NULL == vbi)
     return 0;
@@ -851,6 +852,13 @@ zvbi_find_subtitle_page		(void)
 
       if (VBI3_SUBTITLE_PAGE == ps.page_type)
 	return pgno;
+    }
+
+  vs = tv_cur_video_standard (info);
+  if (NULL != vs && (vs->videostd_set & TV_VIDEOSTD_SET_NTSC))
+    {
+      /* Wild guess. */
+      return VBI3_CAPTION_CC1;
     }
 
   return 0;
@@ -1246,7 +1254,7 @@ main_event_handler		(const vbi3_event *	ev,
 static unsigned int		flush;
 static pthread_t		capturer_id;
 static gboolean			have_capture_thread;
-static gboolean			vbi_quit;
+static gboolean			capturer_quit;
 static gboolean			capturer_quit_ack;
 static zf_fifo			sliced_fifo;
 static gboolean			fifo_ready;
@@ -1614,7 +1622,7 @@ capturing_thread (void *x)
 
   assert (zf_add_producer (&sliced_fifo, &p));
 
-  while (!vbi_quit) {
+  while (!capturer_quit) {
     zf_buffer *b;
     int lines;
 
@@ -1756,37 +1764,6 @@ run_box_errno			(int			errnum)
      strerror (errnum));
 }
 
-static gint
-join_thread			(const char *		who,
-				 pthread_t		id,
-				 gboolean *		ack,
-				 gint			timeout)
-{
-  vbi_quit = TRUE;
-
-  /* Dirty. Where is pthread_try_join()? */
-  for (; (!*ack) && timeout > 0; timeout--) {
-    usleep (100000);
-  }
-
-  /* Ok, you asked for it */
-  if (timeout == 0) {
-    int r;
-
-    printv("Unfriendly vbi capture termination\n");
-    r = pthread_cancel (id);
-    if (r != 0)
-      {
-	printv("Cancellation of %s failed: %d\n", who, r);
-	return 0;
-      }
-  }
-
-  pthread_join (id, NULL);
-
-  return timeout;
-}
-
 static void
 destroy_threads			(void)
 {
@@ -1824,7 +1801,11 @@ destroy_threads			(void)
     {
       D();
 	
-      join_thread ("cap", capturer_id, &capturer_quit_ack, 15);
+      z_join_thread_with_timeout ("vbicap",
+				  capturer_id,
+				  &capturer_quit,
+				  &capturer_quit_ack,
+				  /* timeout */ 15);
 
       have_capture_thread = FALSE;
     }
@@ -1898,7 +1879,7 @@ init_threads			(void)
 
   D();
 
-  vbi_quit = FALSE;
+  capturer_quit = FALSE;
   capturer_quit_ack = FALSE;
 
   success = (NULL != zf_add_consumer (&sliced_fifo, &channel_consumer));
