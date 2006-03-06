@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2004 Michael H. Schimek
+ *  Copyright (C) 2006 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,24 +16,29 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: convert_image.c,v 1.2 2006-02-26 15:50:45 mschimek Exp $ */
+/* $Id: convert_image.c,v 1.3 2006-03-06 01:48:15 mschimek Exp $ */
 
 #undef NDEBUG
 
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 #include "libtv/cpu.h"
 #include "libtv/rgb2rgb.h"
+#include "libtv/yuv2yuv.h"
 #include "libtv/misc.h"		/* FFS() */
 #include "guard.h"
 
+#define ERASE(var) memset (&(var), 0xAA, sizeof (var))
+/*
 extern tv_bool
 _tv_sbggr_to_rgb		(void *			dst_image,
 				 const tv_image_format *dst_format,
 				 const void *		src_image,
 				 const tv_image_format *src_format);
+*/
 
-tv_bool				fast = TRUE;
+tv_bool				fast = 0;
 
 unsigned int			buffer_size;
 
@@ -60,46 +65,82 @@ uint8_t *			dst_scatter_buffer_end;
 tv_image_format			src_format;
 tv_image_format			dst_format;
 
-unsigned int			and_mask;
-unsigned int			or_mask;
+tv_bool				erase_dst = 1;
 
 /* 0xAABBGGRR or 0xAAVVUUYY, lsbs filled up with zero bits. */
 static unsigned int
-get_pixel			(const uint8_t *	s,
+get_pixel			(const uint8_t *	src,
 				 const tv_image_format *format,
 				 unsigned int		x,
 				 unsigned int		y)
 {
+	const tv_pixel_format *pf;
+	const uint8_t *s0;
+	const uint8_t *s1;
+	const uint8_t *s2;
+	unsigned int byte;
+	unsigned int x2;
+	unsigned int y2;
 	unsigned int t;
 
-	assert (NULL != s);
-	assert (NULL != format);
-
-	s += format->offset[0];
-	s += y * format->bytes_per_line[0];
-	s += (x * format->pixel_format->bits_per_pixel) >> 3;
+	pf = format->pixel_format;
+	s0 = src + y * format->bytes_per_line[0] + format->offset[0];
+	byte = (x * pf->bits_per_pixel) >> 3;
 
 	switch (format->pixel_format->pixfmt) {
+	case TV_PIXFMT_YUV444:
+	case TV_PIXFMT_YUV422:
+	case TV_PIXFMT_YUV411:
+	case TV_PIXFMT_YUV420:
+	case TV_PIXFMT_YUV410:
+		x2 = x >> pf->uv_hshift;
+		y2 = y >> pf->uv_vshift;
+		s1 = src + y2 * format->bytes_per_line[1] + format->offset[1];
+		s2 = src + y2 * format->bytes_per_line[2] + format->offset[2];
+		return s0[x] + (s1[x2] << 8) + (s2[x2] << 16) + 0xFF000000;
+
+	case TV_PIXFMT_YVU444:
+	case TV_PIXFMT_YVU422:
+	case TV_PIXFMT_YVU411:
+	case TV_PIXFMT_YVU420:
+	case TV_PIXFMT_YVU410:
+		x2 = x >> pf->uv_hshift;
+		y2 = y >> pf->uv_vshift;
+		s1 = src + y2 * format->bytes_per_line[1] + format->offset[1];
+		s2 = src + y2 * format->bytes_per_line[2] + format->offset[2];
+		return s0[x] + (s2[x2] << 8) + (s1[x2] << 16) + 0xFF000000;
+
+#define YUYV(y0, u)							\
+	(x2 = (x & ~1) * 2,						\
+	 + (s0[x * 2 + y0] << 0)					\
+	 + (s0[x2 + u] << 8)						\
+	 + (s0[x2 + (u ^ 2)] << 16)					\
+	 + 0xFF000000)
+	case TV_PIXFMT_YUYV: return YUYV (0, 1);
+	case TV_PIXFMT_UYVY: return YUYV (1, 0);
+	case TV_PIXFMT_YVYU: return YUYV (0, 3);
+	case TV_PIXFMT_VYUY: return YUYV (1, 2);		
+
 #define RGB32(r, g, b, a)						\
-	(+ (s[r] << 0)							\
-	 + (s[g] << 8)							\
-	 + (s[b] << 16)							\
-	 + (s[a] << 24))
+	(+ (s0[byte + r] << 0)						\
+	 + (s0[byte + g] << 8)						\
+	 + (s0[byte + b] << 16)						\
+	 + (s0[byte + a] << 24))
 	case TV_PIXFMT_RGBA32_LE: return RGB32 (0, 1, 2, 3);
 	case TV_PIXFMT_RGBA32_BE: return RGB32 (3, 2, 1, 0);
 	case TV_PIXFMT_BGRA32_LE: return RGB32 (2, 1, 0, 3);
 	case TV_PIXFMT_BGRA32_BE: return RGB32 (1, 2, 3, 0);
 
 #define RGB24(r, g, b)							\
-	(+ (s[r] << 0)							\
-	 + (s[g] << 8)							\
-	 + (s[b] << 16)							\
+	(+ (s0[byte + r] << 0)						\
+	 + (s0[byte + g] << 8)						\
+	 + (s0[byte + b] << 16)						\
 	 + 0xFF000000)
 	case TV_PIXFMT_RGB24_LE: return RGB24 (0, 1, 2);
 	case TV_PIXFMT_BGR24_LE: return RGB24 (2, 1, 0);
 
 #define RGB16(r, g, b, e)						\
-	(t = s[0 + e] + s[1 - e] * 256,					\
+	(t = s0[byte + 0 + e] + s0[byte + 1 - e] * 256,			\
 	 + MASKED_SHIFT (t, r, 7)					\
 	 + MASKED_SHIFT (t, g, 15)					\
 	 + MASKED_SHIFT (t, b, 23)					\
@@ -110,7 +151,7 @@ get_pixel			(const uint8_t *	s,
 	case TV_PIXFMT_BGR16_BE: return RGB16 (0xF800, 0x07E0, 0x001F, 1);
 
 #define RGBA16(r, g, b, a, e)						\
-	(t = s[0 + e] + s[1 - e] * 256,					\
+	(t = s0[byte + 0 + e] + s0[byte + 1 - e] * 256,			\
 	 + MASKED_SHIFT (t, r, 7)					\
 	 + MASKED_SHIFT (t, g, 15)					\
 	 + MASKED_SHIFT (t, b, 23)					\
@@ -130,18 +171,18 @@ get_pixel			(const uint8_t *	s,
 	CASE_RGB16 (ABGR12, 0xF000, 0x0F00, 0x00F0, 0x000F);
 
 #define RGB8(r, g, b)							\
-	(+ MASKED_SHIFT (s[0], r, 7)					\
-	 + MASKED_SHIFT (s[0], g, 15)					\
-	 + MASKED_SHIFT (s[0], b, 23)					\
+	(+ MASKED_SHIFT (s0[byte], r, 7)				\
+	 + MASKED_SHIFT (s0[byte], g, 15)				\
+	 + MASKED_SHIFT (s0[byte], b, 23)				\
 	 + 0xFF000000)
 	case TV_PIXFMT_RGB8: return RGB8 (0x07, 0x38, 0xC0);
 	case TV_PIXFMT_BGR8: return RGB8 (0xE0, 0x1C, 0x03);
 
 #define RGBA8(r, g, b, a)						\
-	(+ MASKED_SHIFT (s[0], r, 7)					\
-	 + MASKED_SHIFT (s[0], g, 15)					\
-	 + MASKED_SHIFT (s[0], b, 23)					\
-	 + MASKED_SHIFT (s[0], a, 31))
+	(+ MASKED_SHIFT (s0[byte], r, 7)				\
+	 + MASKED_SHIFT (s0[byte], g, 15)				\
+	 + MASKED_SHIFT (s0[byte], b, 23)				\
+	 + MASKED_SHIFT (s0[byte], a, 31))
 	case TV_PIXFMT_RGBA8: return RGBA8 (0x03, 0x1C, 0x60, 0x80);
 	case TV_PIXFMT_BGRA8: return RGBA8 (0x60, 0x1C, 0x03, 0x80);
 	case TV_PIXFMT_ARGB8: return RGBA8 (0x06, 0x38, 0xC0, 0x01);
@@ -153,17 +194,18 @@ get_pixel			(const uint8_t *	s,
 		const uint8_t *u, *d;
 		unsigned int l, r, h, v;
 
-		t = *s--;
+		t = s0[x];
+		--s0;
 
 		l = (x <= 0) * 2;
 		r = (x < format->width - 1) * 2;
 
-		h = s[l] + s[r] + 1;
+		h = s0[x + l] + s0[x + r] + 1;
 
-		u = (y <= 0) ? s + bpl : s - bpl;
-		d = (y < format->height - 1) ? s + bpl : s - bpl;
+		u = (y <= 0) ? s0 + bpl : s0 - bpl;
+		d = (y < format->height - 1) ? s0 + bpl : s0 - bpl;
 
-		v = u[1] + d[1] + 1;
+		v = u[x + 1] + d[x + 1] + 1;
 
 		if ((x ^ y) & 1) {
 			h >>= 1;
@@ -177,7 +219,8 @@ get_pixel			(const uint8_t *	s,
 			/* Should average three pixels in some border
 			   cases but this is easier and faster in SIMD. */
 			h = (h + v) >> 2;
-			v = (u[l] + d[l] + u[r] + d[r] + 2) >> 2;
+			v = (u[x + l] + d[x + l] +
+			     u[x + r] + d[x + r] + 2) >> 2;
 
 			if (x & 1)
 				return t + (h << 8) + (v << 16) + 0xFF000000;
@@ -193,32 +236,103 @@ get_pixel			(const uint8_t *	s,
 }
 
 static unsigned int
-bytes_per_pixel			(const tv_image_format *format)
+get_avg_pixel			(const uint8_t *	src,
+				 const tv_image_format *format,
+				 unsigned int		x,
+				 unsigned int		y,
+				 unsigned int		hshift,
+				 unsigned int		vshift)
 {
-	assert (NULL != format);
-	assert (NULL != format->pixel_format);
-	return format->pixel_format->bits_per_pixel >> 3;
+	unsigned int n;
+	unsigned int sum0;
+	unsigned int sum1;
+	unsigned int mask;
+	unsigned int i;
+	unsigned int j;
+
+	if (0 == (hshift | vshift))
+		return get_pixel (src, format, x, y);
+
+	sum0 = 0;
+	sum1 = 0;
+	mask = 0xFF00FF;
+
+	if (TV_PIXFMT_IS_YUV (format->pixel_format->pixfmt)) {
+		n = get_pixel (src, format, x, y);
+		sum0 = (n & 0xFF) << (hshift + vshift);
+		mask = 0xFF0000;
+	}
+
+	x &= ~((1 << hshift) - 1);
+	y &= ~((1 << vshift) - 1);
+
+	for (j = 0; j < 1U << vshift; ++j) {
+		for (i = 0; i < 1U << hshift; ++i) {
+			n = get_pixel (src, format, x + i, y + j);
+			sum0 += n & mask;
+			sum1 += (n >> 8) & 0xFF00FF;
+		}
+	}
+
+	n = (0x010001 << (hshift + vshift)) >> 1;
+	sum0 = (sum0 + n) >> (hshift + vshift);
+	sum1 = (sum1 + n) >> (hshift + vshift);
+
+	return (sum0 & 0xFF00FF) | ((sum1 & 0xFF00FF) << 8);
 }
 
-static unsigned int
-byte_width			(const tv_image_format *format)
+static void
+compare_images			(const uint8_t *	dst,
+				 const tv_image_format *dst_format,
+				 const uint8_t *	src,
+				 const tv_image_format *src_format)
 {
-	assert (NULL != format);
-	assert (NULL != format->pixel_format);
-	return (format->width * format->pixel_format->bits_per_pixel) >> 3;
-}
+	const tv_pixel_format *dst_pf;
+	const tv_pixel_format *src_pf;
+	tv_image_format format;
+	unsigned int and_mask;
+	unsigned int d_mask;
+	unsigned int s_mask;
+	unsigned int x;
+	unsigned int y;
 
-static unsigned int
-min_size			(tv_image_format *	format)
-{
-	assert (NULL != format);
+	dst_pf = dst_format->pixel_format;
+	src_pf = src_format->pixel_format;
 
-	if (0 == format->width || 0 == format->height)
-		return 0;
+	and_mask = -1;
+	CLEAR (format);
+	format.pixel_format = dst_format->pixel_format;
+	and_mask = get_pixel ((void *) &and_mask, &format, 0, 0);
 
-	return format->offset[0]
-		+ format->bytes_per_line[0] * (format->height - 1)
-		+ byte_width (format); /* last line */
+	d_mask = 0;
+	s_mask = 0;
+
+	if ((0 == dst_pf->mask.rgb.a) != (0 == src_pf->mask.rgb.a)) {
+		d_mask = 0xFF000000;
+		s_mask = 0xFF000000;
+	}
+
+	for (y = 0; y < dst_format->height; ++y) {
+		for (x = 0; x < dst_format->width; ++x) {
+			unsigned int d, s;
+
+			d = get_avg_pixel (dst, dst_format, x, y,
+					   src_pf->uv_hshift,
+					   src_pf->uv_vshift);
+			s = get_avg_pixel (src, src_format, x, y,
+					   dst_pf->uv_hshift,
+					   dst_pf->uv_vshift);
+
+			if ((d | d_mask) != ((s & and_mask) | s_mask)) {
+				fprintf (stderr,
+					 "x=%3u y=%3u d=%08x s=%08x "
+					 "%08x %08x %08x\n",
+					 x, y, d, s,
+					 d_mask, s_mask, and_mask);
+				assert (0);
+			}
+		}
+	}
 }
 
 static void
@@ -237,79 +351,224 @@ assert_is_aa			(const uint8_t *	begin,
 				 const uint8_t *	end)
 {
 	assert (NULL != begin);
-	assert (end >= begin);
+	assert (NULL != end);
 
-	for (; begin < end; ++begin)
-		assert (0xAA == *begin);
+	if (0 == (((unsigned long) begin |
+		   (unsigned long) end) & 3)) {
+		/* Faster. */
+		for (; begin < end; begin += 4)
+			assert (0xAAAAAAAA == * (const uint32_t *) begin);
+	} else {
+		for (; begin < end; ++begin)
+			assert (0xAA == *begin);
+	}
 }
 
 /* Must not write padding bytes before or after the image
    or between lines. */
 static void
-assert_padding_is_aa		(const uint8_t *	dst,
-				 const tv_image_format *format)
+check_padding			(const tv_image_format *format)
 {
+	const tv_pixel_format *pf;
 	const uint8_t *p;
-	unsigned int bw;
+	const uint8_t *end;
+	unsigned int bw[3];
 
-	p = dst + format->offset[0];
+	pf = format->pixel_format;
 
-	assert_is_aa (dst_buffer, p);
+	if (pf->planar) {
+		unsigned int order[3];
+		unsigned int i;
 
-	bw = byte_width (format);
-	p += bw;
+		bw[0] = (format->width * pf->bits_per_pixel) >> 3;
+		bw[1] = format->width >> pf->uv_hshift;
+		bw[2] = bw[1];
 
-	if (format->width > 0) {
-		unsigned int padding;
+		order[0] = (format->offset[1] < format->offset[0]);
+
+		if (format->offset[2] < format->offset[order[0] ^ 1]) {
+			order[2] = order[0] ^ 1;
+			if (format->offset[2] < format->offset[order[0]]) {
+				order[1] = order[0];
+				order[0] = 2;
+			} else {
+				order[1] = 2;
+			}
+		} else {
+			order[1] = order[0] ^ 1;
+			order[2] = 2;
+		}
+
+		p = dst_buffer;
+
+		for (i = 0; i < 3; ++i) {
+			unsigned int count;
+			unsigned int j;
+
+			j = order[i];
+
+			end = dst_buffer + format->offset[j];
+			assert_is_aa (p, end);
+			p = end;
+
+			for (count = format->height - 1; count > 0; --count) {
+				end = p + format->bytes_per_line[j];
+				assert_is_aa (p + bw[j], end);
+				p = end;
+			}
+
+			p += bw[j];
+		}
+	} else {
 		unsigned int count;
 
-		padding = format->bytes_per_line[0] - bw;
+		bw[0] = (format->width * pf->bits_per_pixel) >> 3;
 
-		for (count = 1; count < format->height; ++count) {
-			assert_is_aa (p, p + padding);
-			p += format->bytes_per_line[0];
+		end = dst_buffer + format->offset[0];
+		assert_is_aa (dst_buffer, end);
+		p = end;
+
+		for (count = format->height - 1; count > 0; --count) {
+			end = p + format->bytes_per_line[0];
+			assert_is_aa (p + bw[0], end);
+			p = end;
 		}
+
+		p += bw[0];
 	}
 
 	assert_is_aa (p, dst_buffer_end);
 }
 
-static void
-assert_conversion_ok		(const uint8_t *	dst,
-				 const uint8_t *	src,
-				 const tv_image_format *dst_format,
-				 const tv_image_format *src_format)
+static unsigned int
+min_size			(tv_image_format *	format)
 {
-	unsigned int x;
-	unsigned int y;
+	const tv_pixel_format *pf;
+	unsigned long end[3];
 
-	for (y = 0; y < dst_format->height; ++y) {
-		for (x = 0; x < dst_format->width; ++x) {
-			unsigned int a, b;
+	assert (NULL != format);
 
-			a = get_pixel (dst, dst_format, x, y);
-			b = get_pixel (src, src_format, x, y);
-				
-			if (0)
-				fprintf (stderr, "x=%3u y=%3u %08x %08x\n",
-					 x, y, a, b);
+	if (0 == format->width || 0 == format->height)
+		return 0;
 
-			assert (a == ((b & and_mask) | or_mask));
-		}
+	pf = format->pixel_format;
+
+	end[0] = format->offset[0]
+		+ format->bytes_per_line[0] * (format->height - 1)
+		+ ((format->width * pf->bits_per_pixel) >> 3);
+
+	if (pf->planar) {
+		unsigned int uv_width;
+		unsigned int uv_height_m1;
+
+		uv_width = format->width >> pf->uv_hshift;
+		uv_height_m1 = (format->height >> pf->uv_vshift) - 1;
+
+		end[1] = format->offset[1] + uv_width
+			+ format->bytes_per_line[1] * uv_height_m1;
+		end[2] = format->offset[2] + uv_width
+			+ format->bytes_per_line[2] * uv_height_m1;
+
+		return MAX (end[0], MAX (end[1], end[2]));
+	} else {
+		return end[0];
 	}
 }
 
+static unsigned int
+bytes_per_pixel			(const tv_image_format *format)
+{
+	return format->pixel_format->bits_per_pixel >> 3;
+}
+
+static unsigned int
+byte_width			(const tv_image_format *format,
+				 unsigned int		plane)
+{
+	const tv_pixel_format *pf;
+
+	pf = format->pixel_format;
+
+	if (0 == plane)
+		return (format->width * pf->bits_per_pixel) >> 3;
+	else
+		return format->width >> pf->uv_hshift;
+}
+
+#define RES(sh) ((1U << (sh)) - 1)
+
 static void
-convert_rgb			(uint8_t *		dst,
+test				(uint8_t *		dst,
 				 const uint8_t *	src)
 {
+	const tv_pixel_format *dst_pf;
+	const tv_pixel_format *src_pf;
 	tv_image_format md_format;
 	tv_image_format ms_format;
+	unsigned int hshift;
+	unsigned int vshift;
 	tv_bool success;
+
+	dst_pf = dst_format.pixel_format;
+	src_pf = src_format.pixel_format;
+
+	hshift = MAX (dst_pf->uv_hshift, src_pf->uv_hshift);
+	vshift = MAX (dst_pf->uv_vshift, src_pf->uv_vshift);
+
+	md_format = dst_format;
+	md_format.width = MIN (dst_format.width, src_format.width);
+	md_format.height = MIN (dst_format.height, src_format.height);
+	
+	if (0)
+		fprintf (stderr, "%d %d %d %d\n",
+			 md_format.width, md_format.height,
+			 hshift, vshift);
 
 	memset (dst_buffer, 0xAA, dst_buffer_end - dst_buffer);
 
 	switch (src_format.pixel_format->pixfmt) {
+	case TV_PIXFMT_YUV420:
+	case TV_PIXFMT_YVU420:
+		switch (dst_format.pixel_format->pixfmt) {
+		case TV_PIXFMT_YUV420:
+		case TV_PIXFMT_YVU420:
+			success = _tv_yuv420_to_yuv420 (dst, &dst_format,
+							src, &src_format);
+			break;
+		case TV_PIXFMT_YUYV:
+		case TV_PIXFMT_UYVY:
+		case TV_PIXFMT_YVYU:
+		case TV_PIXFMT_VYUY:
+			hshift = 1;
+			success = _tv_yuv420_to_yuyv (dst, &dst_format,
+						      src, &src_format);
+			break;
+		default:
+			assert (0);
+		}
+		break;
+	case TV_PIXFMT_YUYV:
+	case TV_PIXFMT_UYVY:
+	case TV_PIXFMT_YVYU:
+	case TV_PIXFMT_VYUY:
+		hshift = 1;
+		switch (dst_format.pixel_format->pixfmt) {
+		case TV_PIXFMT_YUV420:
+		case TV_PIXFMT_YVU420:
+			success = _tv_yuyv_to_yuv420 (dst, &dst_format,
+						      src, &src_format);
+			break;
+		case TV_PIXFMT_YUYV:
+		case TV_PIXFMT_UYVY:
+		case TV_PIXFMT_YVYU:
+		case TV_PIXFMT_VYUY:
+			success = _tv_yuyv_to_yuyv (dst, &dst_format,
+						    src, &src_format);
+			break;
+		default:
+			assert (0);
+		}
+		break;
 	case TV_PIXFMT_RGBA32_LE:
 	case TV_PIXFMT_RGBA32_BE:
 	case TV_PIXFMT_BGRA32_LE:
@@ -323,32 +582,28 @@ convert_rgb			(uint8_t *		dst,
 		case TV_PIXFMT_BGRA32_BE:
 		case TV_PIXFMT_RGB24_LE:
 		case TV_PIXFMT_RGB24_BE:
-			success = _tv_rgb32_to_rgb32 (dst, &dst_format, src, &src_format);
+			success = _tv_rgb32_to_rgb32 (dst, &dst_format,
+						      src, &src_format);
 			break;
 		case TV_PIXFMT_BGR16_LE:
 		case TV_PIXFMT_BGR16_BE:
 		case TV_PIXFMT_BGRA16_LE:
 		case TV_PIXFMT_BGRA16_BE:
-			success = _tv_rgb32_to_rgb16 (dst, &dst_format, src, &src_format);
+			success = _tv_rgb32_to_rgb16 (dst, &dst_format,
+						      src, &src_format);
 			break;
 		default:
 			assert (0);
 		}
 		break;
 	case TV_PIXFMT_SBGGR:
-		success = _tv_sbggr_to_rgb (dst, &dst_format, src, &src_format);
+		hshift = 1;
+		vshift = 1;
+		success = _tv_sbggr_to_rgb (dst, &dst_format,
+					    src, &src_format);
 		break;
 	default:
 		assert (0);
-	}
-
-	md_format = dst_format;
-	md_format.width = MIN (dst_format.width, src_format.width);
-	md_format.height = MIN (dst_format.height, src_format.height);
-
-	if (TV_PIXFMT_SBGGR == src_format.pixel_format->pixfmt) {
-		md_format.width &= ~1;
-		md_format.height &= ~1;
 	}
 
 #define FAIL_IF(expr)							\
@@ -360,44 +615,76 @@ convert_rgb			(uint8_t *		dst,
 
 	FAIL_IF (0 == md_format.width);
 	FAIL_IF (0 == md_format.height);
-	FAIL_IF (byte_width (&dst_format) > dst_format.bytes_per_line[0]);
-	FAIL_IF (byte_width (&src_format) > src_format.bytes_per_line[0]);
+
+	FAIL_IF (md_format.width & RES (hshift));
+	FAIL_IF (md_format.height & RES (vshift));
+
+	FAIL_IF (byte_width (&dst_format, 0) > dst_format.bytes_per_line[0]);
+	FAIL_IF (byte_width (&src_format, 0) > src_format.bytes_per_line[0]);
+
+	if (dst_pf->planar) {
+		FAIL_IF (byte_width (&dst_format, 1)
+			 > dst_format.bytes_per_line[1]);
+		FAIL_IF (byte_width (&dst_format, 2)
+			 > dst_format.bytes_per_line[2]);
+	}
+
+	if (src_pf->planar) {
+		FAIL_IF (byte_width (&src_format, 1)
+			 > src_format.bytes_per_line[1]);
+		FAIL_IF (byte_width (&src_format, 2)
+			 > src_format.bytes_per_line[2]);
+	}
 
 	assert (success);
-	assert_padding_is_aa (dst, &md_format);
+
+	check_padding (&md_format);
 
 	ms_format = src_format;
 	/* Required for proper SBGGR clipping. */
 	ms_format.width = md_format.width;
 	ms_format.height = md_format.height;
 
-	assert_conversion_ok (dst, src, &md_format, &ms_format);
+	compare_images (dst, &md_format, src, &ms_format);
 }
 
+#if 1
+
+#  define overflow_packed() test (dst_buffer, src_buffer)
+#  define overflow_planar() test (dst_buffer, src_buffer)
+
+#else
+
 static void
-overflow_rgb			(void)
+overflow_packed			(void)
 {
-	convert_rgb (dst_buffer, src_buffer);
+	test (dst_buffer, src_buffer);
 
 	if (fast)
 		return;
 
 	if (src_format.size < buffer_size)
-		convert_rgb (dst_buffer,
-			     src_buffer_end - ((src_format.size + 15) & -16));
+		test (dst_buffer,
+		      src_buffer_end
+		      - ((src_format.size + 15) & -16));
 
 	if (dst_format.size < buffer_size)
-		convert_rgb (dst_buffer_end - ((dst_format.size + 15) & -16),
-			     src_buffer);
+		test (dst_buffer_end
+		      - ((dst_format.size + 15) & -16),
+		      src_buffer);
 
 	if (dst_format.size < buffer_size
 	    && src_format.size < buffer_size)
-		convert_rgb (dst_buffer_end - ((dst_format.size + 15) & -16),
-			     src_buffer_end - ((src_format.size + 15) & -16));
+		test (dst_buffer_end
+		      - ((dst_format.size + 15) & -16),
+		      src_buffer_end
+		      - ((src_format.size + 15) & -16));
 }
 
+#endif
+
 static void
-unaligned_rgb			(void)
+unaligned_packed			(void)
 {
 	static int unaligned[][2] = {
 		{ 0, 0 },
@@ -419,19 +706,23 @@ unaligned_rgb			(void)
 
 	for (i = 0; i < N_ELEMENTS (unaligned); ++i) {
 		for (j = 0; j < N_ELEMENTS (unaligned); ++j) {
+			ERASE (dst_format.offset);
+			ERASE (dst_format.bytes_per_line);
 			dst_format.offset[0] = unaligned[j][0];
 			dst_format.bytes_per_line[0] =
 				dst_format.width * dst_bpp
 				+ unaligned[j][1];
 			dst_format.size = min_size (&dst_format);
 
+			ERASE (src_format.offset);
+			ERASE (src_format.bytes_per_line);
 			src_format.offset[0] = unaligned[i][0];
 			src_format.bytes_per_line[0] =
 				src_format.width * src_bpp
 				+ unaligned[i][1];
 			src_format.size = min_size (&src_format);
 
-			overflow_rgb ();
+			overflow_packed ();
 
 			if (fast)
 				return;
@@ -450,7 +741,7 @@ unaligned_rgb			(void)
 		dst_format.bytes_per_line[0] =
 			(dst_format.width - 16) * dst_bpp;
 
-		overflow_rgb ();
+		overflow_packed ();
 	}
 
 	if (src_format.width >= 16) {
@@ -458,7 +749,148 @@ unaligned_rgb			(void)
 		src_format.bytes_per_line[0] =
 			(src_format.width - 16) * src_bpp;
 
-		overflow_rgb ();
+		overflow_packed ();
+	}
+
+	/* TO DO: padding = inaccessible page. */
+}
+
+static void
+unaligned_planar			(void)
+{
+	static int unaligned[][6] = {
+		{ 0, 0, 0, 0, 0, 0 },
+		{ 5, 0, 0, 0, 0, 0 },
+		{ 0, 5, 0, 0, 0, 0 },
+		{ 5, 5, 0, 0, 0, 0 },
+		{ 0, 0, 5, 0, 0, 0 },
+		{ 0, 0, 0, 5, 0, 0 },
+		{ 0, 0, 0, 0, 5, 0 },
+		{ 0, 0, 0, 0, 0, 5 },
+		{ 8, 0, 8, 0, 8, 0 },
+		{ 0, 8, 0, 8, 0, 8 },
+		{ 16, 0, 16, 0, 16, 0 },
+		{ 0, 16, 0, 16, 0, 16 },
+	};
+	unsigned int dst_bpp;
+	unsigned int src_bpp;
+	unsigned int dst_y_bpl;
+	unsigned int dst_uv_bpl;
+	unsigned int src_y_bpl;
+	unsigned int src_uv_bpl;
+	unsigned int short_bpl;
+	unsigned int i;
+	unsigned int j;
+
+	dst_bpp = bytes_per_pixel (&dst_format);
+	dst_y_bpl = dst_format.width * dst_bpp;
+	dst_uv_bpl = (dst_format.width * dst_bpp)
+		>> dst_format.pixel_format->uv_hshift;
+
+	src_bpp = bytes_per_pixel (&src_format);
+	src_y_bpl = src_format.width * src_bpp;
+	src_uv_bpl = (src_format.width * src_bpp)
+		>> src_format.pixel_format->uv_hshift;
+
+	for (i = 0; i < N_ELEMENTS (unaligned); ++i) {
+		for (j = 0; j < N_ELEMENTS (unaligned); ++j) {
+			ERASE (dst_format.offset);
+			ERASE (dst_format.bytes_per_line);
+			dst_format.offset[0] = unaligned[j][0];
+			dst_format.bytes_per_line[0] = dst_y_bpl
+				+ unaligned[j][1];
+			if (dst_format.pixel_format->planar) {
+				dst_format.offset[1] = (dst_y_bpl * 16)
+					* (dst_format.height + 1)
+					+ unaligned[j][2];
+				dst_format.bytes_per_line[1] = dst_uv_bpl
+					+ unaligned[j][3];
+				dst_format.offset[2] = (dst_y_bpl * 16)
+					* (dst_format.height + 1) * 2
+					+ unaligned[j][4];
+				dst_format.bytes_per_line[2] = dst_uv_bpl
+					+ unaligned[j][5];
+			}
+			dst_format.size = min_size (&dst_format);
+
+			ERASE (src_format.offset);
+			ERASE (src_format.bytes_per_line);
+			src_format.offset[0] = unaligned[i][0];
+			src_format.bytes_per_line[0] =
+				src_y_bpl + unaligned[i][1];
+			if (src_format.pixel_format->planar) {
+				src_format.offset[1] = unaligned[i][2];
+				src_format.bytes_per_line[1] =
+					src_uv_bpl + unaligned[i][3];
+				src_format.offset[2] = unaligned[i][4];
+				src_format.bytes_per_line[2] =
+					src_uv_bpl + unaligned[i][5];
+			}
+			src_format.size = min_size (&src_format);
+
+			overflow_planar ();
+
+			if (fast)
+				return;
+		}
+	}
+
+	dst_format.offset[0] = 2 * dst_y_bpl * dst_format.height;
+	dst_format.bytes_per_line[0] = dst_y_bpl;
+	if (dst_format.pixel_format->planar) {
+		dst_format.offset[1] = 1 * dst_y_bpl * dst_format.height;
+		dst_format.bytes_per_line[1] = dst_uv_bpl;
+		dst_format.offset[2] = 0 * dst_y_bpl * dst_format.height;
+		dst_format.bytes_per_line[2] = dst_uv_bpl;
+	}
+	dst_format.size = min_size (&dst_format);
+
+	src_format.offset[0] = 0;
+	src_format.bytes_per_line[0] = src_y_bpl;
+	if (dst_format.pixel_format->planar) {
+		src_format.offset[1] = 0;
+		src_format.bytes_per_line[1] = src_uv_bpl;
+		src_format.offset[2] = 0;
+		src_format.bytes_per_line[2] = src_uv_bpl;
+	}
+	src_format.size = min_size (&src_format);
+
+	if (dst_format.width >= 16) {
+		dst_format.bytes_per_line[0] =
+			(dst_format.width - 16) * dst_bpp;
+		overflow_planar ();
+		dst_format.bytes_per_line[0] = dst_y_bpl;
+
+		if (dst_format.pixel_format->planar) {
+			short_bpl = ((dst_format.width - 16) * dst_bpp)
+				>> dst_format.pixel_format->uv_hshift;
+			dst_format.bytes_per_line[1] = short_bpl;
+			overflow_planar ();
+			dst_format.bytes_per_line[1] = dst_uv_bpl;
+			dst_format.bytes_per_line[2] = short_bpl;
+			overflow_planar ();
+			dst_format.bytes_per_line[2] = dst_uv_bpl;
+		}
+	}
+
+	dst_format.bytes_per_line[0] = dst_format.width * dst_bpp;
+
+	if (src_format.width >= 16) {
+		src_format.bytes_per_line[0] =
+			(src_format.width - 16) * src_bpp;
+		overflow_planar ();
+		src_format.bytes_per_line[0] = src_y_bpl;
+
+		if (dst_format.pixel_format->planar) {
+			short_bpl = ((src_format.width - 16) * src_bpp)
+				>> src_format.pixel_format->uv_hshift;
+			src_format.bytes_per_line[1] = short_bpl;
+			overflow_planar ();
+			src_format.bytes_per_line[1] = src_uv_bpl;
+			src_format.bytes_per_line[2] = short_bpl;
+			overflow_planar ();
+			src_format.bytes_per_line[2] = short_bpl;
+		}
 	}
 
 	/* TO DO: padding = inaccessible page. */
@@ -471,6 +903,10 @@ all_sizes			(void)
 		0, 1, 2, 11, 12
 	};
 	unsigned int i;
+	tv_bool planar;
+
+	planar = (dst_format.pixel_format->planar
+		  | src_format.pixel_format->planar);
 
 	for (i = 0; i < N_ELEMENTS (heights); ++i) {
 		static unsigned int widths[] = {
@@ -490,39 +926,54 @@ all_sizes			(void)
 			if (fast)
 				src_format.width = 32;
 			else
-				src_format.width = widths[i];
+				src_format.width = widths[j];
 
 			dst_format.width = src_format.width;
 			dst_format.height = src_format.height;
 
-			unaligned_rgb ();
+			if (planar)
+				unaligned_planar ();
+			else
+				unaligned_packed ();
 
 			if (fast)
 				return;
-
+continue;
 			if (src_format.width > 5) {
 				dst_format.width = src_format.width - 5;
 				dst_format.height = src_format.height;
 
-				unaligned_rgb ();
+				if (planar)
+					unaligned_planar ();
+				else
+					unaligned_packed ();
 			}
 
 			dst_format.width = src_format.width + 5;
 			dst_format.height = src_format.height;
 
-			unaligned_rgb ();
+			if (planar)
+				unaligned_planar ();
+			else
+				unaligned_packed ();
 
 			if (src_format.height > 5) {
 				dst_format.width = src_format.width;
 				dst_format.height = src_format.height - 5;
 
-				unaligned_rgb ();
+				if (planar)
+					unaligned_planar ();
+				else
+					unaligned_packed ();
 			}
 
 			dst_format.width = src_format.width;
 			dst_format.height = src_format.height + 5;
 
-			unaligned_rgb ();
+			if (planar)
+				unaligned_planar ();
+			else
+				unaligned_packed ();
 		}
 	}
 }
@@ -531,6 +982,12 @@ static void
 all_formats			(void)
 {
 	static const tv_pixfmt src_formats[] = {
+		TV_PIXFMT_YUV420,
+		TV_PIXFMT_YVU420,
+		TV_PIXFMT_YUYV,
+		TV_PIXFMT_UYVY,
+		TV_PIXFMT_YVYU,
+		TV_PIXFMT_VYUY,
 		TV_PIXFMT_RGBA32_LE,
 		TV_PIXFMT_RGBA32_BE,
 		TV_PIXFMT_BGRA32_LE,
@@ -540,6 +997,12 @@ all_formats			(void)
 		TV_PIXFMT_SBGGR,
 	};
 	static const tv_pixfmt dst_formats[] = {
+		TV_PIXFMT_YUV420,
+		TV_PIXFMT_YVU420,
+		TV_PIXFMT_YUYV,
+		TV_PIXFMT_UYVY,
+		TV_PIXFMT_YVYU,
+		TV_PIXFMT_VYUY,
 		TV_PIXFMT_RGBA32_LE,
 		TV_PIXFMT_RGBA32_BE,
 		TV_PIXFMT_BGRA32_LE,
@@ -559,19 +1022,9 @@ all_formats			(void)
 
 	for (i = 0; i < N_ELEMENTS (src_formats); ++i) {
 		for (j = 0; j < N_ELEMENTS (dst_formats); ++j) {
-			format.pixel_format =
-				tv_pixel_format_from_pixfmt (dst_formats[j]);
-			and_mask = -1;
-			and_mask = get_pixel ((void *) &and_mask,
-					      &format, 0, 0);
-
-			or_mask = 0;
-			if ((TV_PIXFMT_SET (TV_PIXFMT_RGB24_LE) |
-			     TV_PIXFMT_SET (TV_PIXFMT_RGB24_BE) |
-			     TV_PIXFMT_SET (TV_PIXFMT_BGR16_LE) |
-			     TV_PIXFMT_SET (TV_PIXFMT_BGR16_BE))
-			    & TV_PIXFMT_SET (dst_formats[j]))
-				or_mask = 0xFF000000;
+			if (TV_PIXFMT_IS_RGB (dst_formats[j])
+			    != TV_PIXFMT_IS_RGB (src_formats[i]))
+				continue; /* later */
 
 			dst_format.pixel_format =
 				tv_pixel_format_from_pixfmt (dst_formats[j]);
@@ -596,7 +1049,7 @@ main				(int			argc,
 	unsigned int scatter_size;
 	unsigned int i;
 
-	buffer_size = 8 * 4096;
+	buffer_size = 20 * 4096;
 
 	src_buffer = guard_alloc (buffer_size);
 	src_buffer_end = src_buffer + buffer_size;
