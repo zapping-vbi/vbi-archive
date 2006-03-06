@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mixer.c,v 1.15 2006-02-25 17:37:44 mschimek Exp $ */
+/* $Id: mixer.c,v 1.16 2006-03-06 01:44:05 mschimek Exp $ */
 
 /*
  *  These functions encapsulate the OS and driver specific
@@ -41,6 +41,7 @@
 #include "mixer.h"
 #include "zconf.h"
 #include "globals.h"
+#include "audio.h"
 
 /* preliminary */
 void		shutdown_mixer(tveng_device_info *info)
@@ -89,7 +90,12 @@ void		startup_mixer(tveng_device_info *info)
 		    break;
 		  }
 
-	      tveng_attach_mixer_line (info, mixer, mixer_line);
+	      if (esd_output)
+		tveng_attach_mixer_line (info,
+					 &audio_loopback_mixer,
+					 &audio_loopback_mixer_line);
+	      else
+		tveng_attach_mixer_line (info, mixer, mixer_line);
 	    }
 	}
       else
