@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rgb2rgb.c,v 1.2 2006-02-26 15:50:44 mschimek Exp $ */
+/* $Id: rgb2rgb.c,v 1.3 2006-03-06 01:48:45 mschimek Exp $ */
 
 /* RGB to RGB image format conversion functions:
 
@@ -47,6 +47,7 @@
 #include "lut_rgb16.h"
 #include "simd-conv.h"
 #include "rgb2rgb.h"
+#include "yuv2yuv.h"		/* shuffle routines */
 
 #define Z_LE Z_LITTLE_ENDIAN
 #define Z_BE Z_BIG_ENDIAN
@@ -239,19 +240,21 @@ _tv_rgb32_to_rgb32		(void *			dst_image,
 	    || src_pixfmt > TV_PIXFMT_RGB24_BE)
 		return FALSE;
 
+	dst_padding = dst_format->bytes_per_line[0]
+		- ((width * dst_format->pixel_format->bits_per_pixel) >> 3);
+	src_padding = src_format->bytes_per_line[0]
+		- ((width * src_format->pixel_format->bits_per_pixel) >> 3);
+
+	if ((long)(src_padding | dst_padding) < 0) {
+		return FALSE;
+	} else if (0 == (src_padding | dst_padding)) {
+		width *= height;
+		height = 1;
+	}
+
 #undef LOOP
 #define LOOP(op, src_bpp, dst_bpp)					\
 do {									\
-	src_padding = src_format->bytes_per_line[0] - width * src_bpp;	\
-	dst_padding = dst_format->bytes_per_line[0] - width * dst_bpp;	\
-									\
-	if ((long)(src_padding | dst_padding) < 0) {			\
-		return FALSE;						\
-	} else if (0 == (src_padding | dst_padding)) {			\
-		width *= height;					\
-		height = 1;						\
-	}								\
-									\
 	while (height-- > 0) {						\
 		const uint8_t *end;					\
 									\
@@ -275,39 +278,28 @@ do {									\
 				      src_format);
 
 	case 1: /* ABGR -> RGBA, ARGB -> BGRA */
-		/* XXX use swab32 instruction if available. */
-		LOOP ({ dst[0] = src[3];
-			dst[1] = src[2];
-			dst[2] = src[1];
-			dst[3] = src[0]; }, 4, 4);
+		_tv_shuffle_3210_SCALAR (dst, src, width * 4, height,
+					 dst_padding, src_padding);
 		break;
 
 	case 2: /* BGRA -> RGBA, RGBA -> BGRA */
-		LOOP ({ dst[0] = src[2];
-			dst[1] = src[1];
-			dst[2] = src[0];
-			dst[3] = src[3]; }, 4, 4);
+		_tv_shuffle_2103_SCALAR (dst, src, width * 4, height,
+					 dst_padding, src_padding);
 		break;
 
 	case 3: /* ARGB -> RGBA, ABGR -> BGRA */
-		LOOP ({ dst[0] = src[1];
-			dst[1] = src[2];
-			dst[2] = src[3];
-			dst[3] = src[0]; }, 4, 4);
+		_tv_shuffle_1230_SCALAR (dst, src, width * 4, height,
+					 dst_padding, src_padding);
 		break;
 
 	case 12: /* BGRA -> ABGR, RGBA -> ARGB */
-		LOOP ({ dst[0] = src[3];
-			dst[1] = src[0];
-			dst[2] = src[1];
-			dst[3] = src[2]; }, 4, 4);
+		_tv_shuffle_3012_SCALAR (dst, src, width * 4, height,
+					 dst_padding, src_padding);
 		break;
 
 	case 13: /* ARGB -> ABGR, ABGR -> ARGB */
-		LOOP ({ dst[0] = src[0];
-			dst[1] = src[3];
-			dst[2] = src[2];
-			dst[3] = src[1]; }, 4, 4);
+		_tv_shuffle_0321_SCALAR (dst, src, width * 4, height,
+					 dst_padding, src_padding);
 		break;
 
 	case 4: /* RGB -> RGBA, BGR -> BGRA */
@@ -790,8 +782,8 @@ SIMD_NAME (_tv_sbggr_to_rgb)	(void *			dst_image,
 	dst = (uint8_t *) dst_image + dst_format->offset[0];
 	src = (const uint8_t *) src_image + src_format->offset[0];
 
-	width = MIN (dst_format->width, src_format->width) & ~3;
-	height = MIN (dst_format->height, src_format->height) & ~3;
+	width = MIN (dst_format->width, src_format->width);
+	height = MIN (dst_format->height, src_format->height);
 
 	dst_bpl = dst_format->bytes_per_line[0];
 	src_bpl = src_format->bytes_per_line[0];
@@ -1030,10 +1022,14 @@ _tv_sbggr_to_rgb		(void *			dst_image,
 	dst = (uint8_t *) dst_image + dst_format->offset[0];
 	src = (const uint8_t *) src_image + src_format->offset[0];
 
-	width = MIN (dst_format->width, src_format->width) & ~1;
-	height = MIN (dst_format->height, src_format->height) & ~1;
+	width = MIN (dst_format->width, src_format->width);
+	height = MIN (dst_format->height, src_format->height);
 
-	if (width < 2 || height < 2)
+	if (0 == width || 0 == height
+	    || ((width | height) & 1)
+	    || width > src_format->bytes_per_line[0]
+	    || (((width * dst_format->pixel_format->bits_per_pixel) >> 3)
+		> dst_format->bytes_per_line[0]))
 		return FALSE;
 
 	align = ((unsigned long) dst |
