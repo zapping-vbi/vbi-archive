@@ -326,6 +326,10 @@ extern int zapzilla_main(int argc, char * argv[]);
 
 int
 MAIN (PACKAGE_VERSION_ID)	(int			argc,
+				 char **		argv);
+
+int
+MAIN (PACKAGE_VERSION_ID)	(int			argc,
 				 char **		argv)
 {
   GList * p;
@@ -483,6 +487,15 @@ MAIN (PACKAGE_VERSION_ID)	(int			argc,
       NULL
     },
     {
+      "esd-out",
+      0,
+      POPT_ARG_NONE,
+      &esd_output,
+      0,
+      "Copy recorded sound to sound daemon",
+      NULL 
+    },
+    {
       "bpp",
       'b',
       POPT_ARG_INT,
@@ -612,7 +625,7 @@ MAIN (PACKAGE_VERSION_ID)	(int			argc,
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.209 2006-02-25 17:37:44 mschimek Exp $",
+	 "$Id: main.c,v 1.210 2006-03-06 01:44:16 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
