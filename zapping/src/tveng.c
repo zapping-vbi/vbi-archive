@@ -51,6 +51,7 @@
 #include "tveng_private.h" /* private definitions */
 
 #include "globals.h" /* XXX for vidmodes, dga_param */
+#include "audio.h"
 
 #include "zmisc.h"
 #include "../common/device.h"
@@ -289,11 +290,10 @@ static tveng_controller tveng_controllers[] = {
 #if TVENG1_RIVATV_TEST
   tveng1_init_module,
 #else
-#warning
-  //  tvengxv_init_module,
-  //  tveng25_init_module,
+  tvengxv_init_module,
+  tveng25_init_module,
   tveng1_init_module,
-  //  tvengbktr_init_module,
+  tvengbktr_init_module,
 #endif
 };
 
@@ -636,7 +636,11 @@ int tveng_attach_device(const char* device_file,
     /* Add mixer controls */
     /* XXX the mixer_line should be property of a virtual
        device, but until we're there... */
-    if (mixer && mixer_line)
+    if (esd_output)
+      tveng_attach_mixer_line (info,
+			       &audio_loopback_mixer,
+			       &audio_loopback_mixer_line);
+    else if (mixer && mixer_line)
       tveng_attach_mixer_line (info, mixer, mixer_line);
 
     if ((tc = control_by_id (info, TV_CONTROL_ID_MUTE)))
@@ -692,9 +696,10 @@ int tveng_attach_device(const char* device_file,
 	CAP (SUBCAPTURE),
 	CAP (QUEUE),
       };
+      guint i;
+
       short_str = "?";
       long_str = "?";
-      guint i;
 
       fprintf(stderr, "[TVeng] - Info about the video device\n");
       fprintf(stderr, "-------------------------------------\n");
@@ -710,7 +715,8 @@ int tveng_attach_device(const char* device_file,
 	{
 	  if (info->caps.flags & caps[i].value)
 	    fprintf (stderr, "%s%s", caps[i].name,
-		     (info->caps.flags > caps[i].value * 2 - 1) ? "|" : "");
+		     (info->caps.flags
+		      > (int) caps[i].value * 2 - 1) ? "|" : "");
 	}
       fprintf (stderr,
 	       "\n  channels=%u audios=%u\n"
@@ -2704,65 +2710,38 @@ tv_get_signal_strength		(tveng_device_info *	info,
   return FALSE;
 }
 
-/*
-  Sets up the capture device so any read() call after this one
-  succeeds. Returns -1 on error.
-*/
-int
-tveng_start_capturing(tveng_device_info * info)
+tv_bool
+tv_enable_capturing		(tveng_device_info *	info,
+				 tv_bool		enable)
 {
-  assert (NULL != info);
+	assert (NULL != info);
 
-  if (TVENG_CONTROLLER_NONE == info->current_controller)
-    return -1;
+	if (TVENG_CONTROLLER_NONE == info->current_controller)
+		return FALSE;
 
-  REQUIRE_IO_MODE (-1);
+	REQUIRE_IO_MODE (FALSE);
 
-  TVLOCK;
+	TVLOCK;
 
-  tv_clear_error (info);
+	if (!enable && info->capture_mode == CAPTURE_MODE_NONE) {
+		fprintf(stderr,
+			"Warning: trying to stop capture "
+			"with no capture active\n");
+		RETURN_UNTVLOCK(-1);
+	}
 
-  if (info->capture.enable)
-    RETURN_UNTVLOCK(info->capture.enable (info, TRUE) ? 0 : -1);
+	tv_clear_error (info);
 
-  TVUNSUPPORTED;
-  UNTVLOCK;
-  return -1;
-}
+	if (info->capture.enable)
+		RETURN_UNTVLOCK(info->capture.enable (info, enable));
 
-/* Tries to stop capturing. -1 on error. */
-int
-tveng_stop_capturing(tveng_device_info * info)
-{
-  assert (NULL != info);
-
-  if (TVENG_CONTROLLER_NONE == info->current_controller)
-    return -1;
-
-  REQUIRE_IO_MODE (-1);
-
-  TVLOCK;
-
-  if (info->capture_mode == CAPTURE_MODE_NONE)
-    {
-	    fprintf(stderr,
-		    "Warning: trying to stop capture "
-		    "with no capture active\n");
-	    RETURN_UNTVLOCK(-1);
-    }
-
-  tv_clear_error (info);
-
-  if (info->capture.enable)
-    RETURN_UNTVLOCK(info->capture.enable (info, FALSE) ? 0 : -1);
-
-  TVUNSUPPORTED;
-  UNTVLOCK;
-  return -1;
+	TVUNSUPPORTED;
+	UNTVLOCK;
+	return FALSE;
 }
 
 tv_bool
-tv_set_buffers			(tveng_device_info *	info,
+tv_set_num_capture_buffers	(tveng_device_info *	info,
 				 unsigned int 		n_buffers)
 {
   assert (NULL != info);
@@ -2784,7 +2763,7 @@ tv_set_buffers			(tveng_device_info *	info,
 }
 
 tv_bool
-tv_get_buffers			(tveng_device_info *	info,
+tv_get_num_capture_buffers	(tveng_device_info *	info,
 				 unsigned int * 	n_buffers)
 {
   *n_buffers = info->capture.n_buffers;
@@ -2930,66 +2909,7 @@ tv_flush_capture_buffers	(tveng_device_info *	info)
   return FALSE;
 }
 
-/* 
-   Sets the capture buffer to an specific size. returns -1 on
-   error. Remember to check the value of width and height since it can
-   be different to the one requested. 
-*/
-int tveng_set_capture_size(unsigned int width,
-			   unsigned int height,
-			   tveng_device_info * info)
-{
-	tv_image_format format;
 
-	format = info->capture.format;
-
-	format.width = width;
-	format.height = height;
-
-	return tv_set_capture_format (info, &format) ? 0 : -1;
-}
-
-/* 
-   Gets the actual size of the capture buffer in width and height.
-   -1 on error
-*/
-int tveng_get_capture_size(int *width, int *height, tveng_device_info * info)
-{
-  assert (NULL != info);
-
-  if (TVENG_CONTROLLER_NONE == info->current_controller)
-    return -1;
-
-  assert (NULL != width);
-  assert (NULL != height);
-
-  REQUIRE_IO_MODE (-1);
-
-  TVLOCK;
-
-  tv_clear_error (info);
-
-  if (!info->capture.get_format)
-    {
-      TVUNSUPPORTED;
-      UNTVLOCK;
-      return -1;
-    }
-
-  if (-1 == info->capture.get_format(info))
-    {
-      UNTVLOCK;
-      return -1;
-    }
-
-  if (width)
-    *width = info->capture.format.width;
-  if (height)
-    *height = info->capture.format.height;
-
-  UNTVLOCK;
-  return 0;
-}
 
 /*
  *  Overlay
