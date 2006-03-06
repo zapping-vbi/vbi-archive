@@ -422,6 +422,10 @@ enable_overlay			(tveng_device_info *	info,
 		      /* border width */ &dummy,
 		      /* depth */ &dummy);
 
+	/* 1x1 freezes the X server (Xorg 6.8.0, bttv 0.9.5) */
+	if (width < 32 || height < 24)
+		return FALSE;
+
 	encoding_num = 0;
 
 	if (p_info->xa_encoding != None
@@ -430,6 +434,7 @@ enable_overlay			(tveng_device_info *	info,
 				    p_info->port,
 				    p_info->xa_encoding,
 				    &encoding_num);
+
 	if (on) {
 		XvPutVideo (info->display,
 			    p_info->port,
