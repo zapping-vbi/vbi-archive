@@ -1271,7 +1271,7 @@ zconf_set_sources		(tveng_device_info *	info)
 static
 gchar *substitute_keywords	(gchar		*string,
 				 tveng_tuned_channel *tc,
-				 gchar          *default_name)
+				 const gchar    *default_name)
 {
   gint i;
   gchar *found, *buffer = NULL, *p;
@@ -1410,6 +1410,7 @@ z_switch_channel		(tveng_tuned_channel *	channel,
   gboolean in_global_list;
   gboolean avoid_noise;
   const tv_video_line *vi;
+  gboolean caption_enabled;
 
   if (!channel)
     return;
@@ -1490,8 +1491,22 @@ z_switch_channel		(tveng_tuned_channel *	channel,
 #ifdef HAVE_LIBZVBI
   zvbi_caption_pgno = channel->caption_pgno;
 
-  if (zvbi_caption_pgno <= 0)
-    python_command_printf (NULL, "zapping.closed_caption(0)");
+  caption_enabled = zconf_get_boolean
+    (NULL, "/zapping/internal/callbacks/closed_caption");
+
+  if (caption_enabled
+      && zvbi_caption_pgno <= 0)
+    {
+      zvbi_caption_pgno = zvbi_find_subtitle_page (info);
+
+      /* XXX shall we? It's a little inconvenient, but we don't
+	 know what to show on this channel, and deactivating the
+	 caption/subtitles button reflects that. TODO: some hint
+         that subtitles are available when we receive a ttx
+	 page inventory or caption data. */
+      if (zvbi_caption_pgno <= 0)
+	python_command_printf (NULL, "zapping.closed_caption(0)");
+    }
 
   zvbi_channel_switched();
 
