@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.h,v 1.4 2006-02-25 17:37:43 mschimek Exp $ */
+/* $Id: simd.h,v 1.5 2006-03-06 01:48:25 mschimek Exp $ */
 
 #ifndef SIMD_H
 #define SIMD_H
@@ -309,9 +309,24 @@ vsel				(__m64			_mask,
 #define vsr1u8(_a) vand (_mm_srli_pi16 (_a, 1), vsplat8_127)
 /* Shift left by immediate. */
 #define vsl16(_a, _i) _mm_slli_pi16 (_a, _i)
+#define vsl32(_a, _i) _mm_slli_pi32 (_a, _i)
 /* Shift right by immediate. */
 #define vsr16(_a, _i) _mm_srai_pi16 (_a, _i)
 #define vsru16(_a, _i) _mm_srli_pi16 (_a, _i)
+#define vsr32(_a, _i) _mm_srai_pi32 (_a, _i)
+#define vsru32(_a, _i) _mm_srli_pi32 (_a, _i)
+
+static always_inline __m64
+vbswap16			(__m64			_a)
+{
+	return vor (vsl16 (_a, 8), vsru16 (_a, 8));
+}
+
+static always_inline __m64
+vwswap32			(__m64			_a)
+{
+	return vor (vsl32 (_a, 16), vsru32 (_a, 16));
+}
 
 /* Long shift right, e.g. (0x0123, 0x4567, 3) -> 0x1234 */
 static always_inline __m64
@@ -349,7 +364,7 @@ vshiftu2x			(__m64 *		_l,
 
 #if 0
 	if (4 == _dist) {
-		_a0 = _mm_shuffle_pi16 (_a0, _MM_SHUFFLE (1, 0, 3, 2));
+		_a0 = vwswap32 (_a0);
 		*_l = _mm_unpackhi_pi32 (_am, _a0);
 		*_r = _mm_unpacklo_pi32 (_a0, _a1);
 	} else
@@ -368,6 +383,8 @@ vshiftu2x			(__m64 *		_l,
 #define vunpackhi16(_a, _b) _mm_unpackhi_pi16 (_a, _b)
 #define vunpacklo32(_a, _b) _mm_unpacklo_pi32 (_a, _b)
 #define vunpackhi32(_a, _b) _mm_unpackhi_pi32 (_a, _b)
+#define vunpacklo(_a, _b) _mm_unpacklo_pi32 (_a, _b)
+#define vunpackhi(_a, _b) _mm_unpackhi_pi32 (_a, _b)
 
 #define vpacksu16(_a, _b) _mm_packs_pi16 (_a, _b)
 
@@ -547,6 +564,7 @@ vminu16i			(vu8			_a,
 
 #include <xmmintrin.h>
 
+#define vwswap32(_a) _mm_shuffle_pi16 (_a, _MM_SHUFFLE (1, 0, 3, 2))
 #define vavgu8(_a, _b) _mm_avg_pu8 (_a, _b)
 #define fast_vavgu8(_a, _b) vavgu8 (_a, _b)
 #define vavgu16(_a, _b) _mm_avg_pu16 (_a, _b)
@@ -660,8 +678,19 @@ vsel				(__m128i		_mask,
 #define vsr18(_a) vsel (vsplat8_127, _mm_srli_epi16 (_a, 1), _a)
 #define vsr1u8(_a) vand (_mm_srli_epi16 (_a, 1), vsplat8_127)
 #define vsl16(_a, _i) _mm_slli_epi16 (_a, _i)
+#define vsl32(_a, _i) _mm_slli_epi32 (_a, _i)
 #define vsr16(_a, _i) _mm_srai_epi16 (_a, _i)
 #define vsru16(_a, _i) _mm_srli_epi16 (_a, _i)
+#define vsr32(_a, _i) _mm_srai_epi32 (_a, _i)
+#define vsru32(_a, _i) _mm_srli_epi32 (_a, _i)
+
+static always_inline __m128i
+vbswap16			(__m128i		_a)
+{
+	return vor (vsl16 (_a, 8), vsru16 (_a, 8));
+}
+
+#define vwswap32(_a) _mm_shuffle_epi16 (_a, _MM_SHUFFLE (1, 0, 3, 2))
 
 /* _mm_sxli_si128 is misdefined under gcc -O0.  Arg 2 must be an immediate,
    not a variable which evaluates to one, not even a const variable. */
@@ -760,6 +789,8 @@ vshiftu2x			(__m128i *		_l,
 #define vunpackhi32(_a, _b) _mm_unpackhi_epi32 (_a, _b)
 #define vunpacklo64(_a, _b) _mm_unpacklo_epi64 (_a, _b)
 #define vunpackhi64(_a, _b) _mm_unpackhi_epi64 (_a, _b)
+#define vunpacklo(_a, _b) _mm_unpacklo_epi64 (_a, _b)
+#define vunpackhi(_a, _b) _mm_unpackhi_epi64 (_a, _b)
 
 #define vpacksu16(_a, _b) _mm_packs_epi16 (_a, _b)
 
@@ -976,6 +1007,30 @@ vsru16				(vu16			_a,
 	return vec_sr (_a, i);
 }
 
+static always_inline v32
+vsl32				(v32			_a,
+				 const unsigned int	_i)
+{
+	vu32 i = vec_splat_u32 (_i);
+	return vec_sl (_a, i);
+}
+
+static always_inline v32
+vsr32				(v32			_a,
+				 const unsigned int	_i)
+{
+	vu32 i = vec_splat_u32 (_i);
+	return vec_sra (_a, i);
+}
+
+static always_inline vu32
+vsru32				(vu32			_a,
+				 const unsigned int	_i)
+{
+	vu32 i = vec_splat_u32 (_i);
+	return vec_sr (_a, i);
+}
+
 /* Long shift right, e.g. (0x0123, 0x4567, 3) -> 0x1234 */
 static always_inline vu8
 vlsr				(vu8			_h,
@@ -1133,6 +1188,15 @@ extern fn_type name ## _SSE2;						\
 extern fn_type name ## _SSE3;						\
 extern fn_type name ## _ALTIVEC;
 
+#define SIMD_FN_ARRAY_PROTOS(fn_type, name, n_elements)			\
+extern fn_type name ## _SCALAR [n_elements];				\
+extern fn_type name ## _MMX [n_elements];				\
+extern fn_type name ## _3DNOW [n_elements];				\
+extern fn_type name ## _SSE [n_elements];				\
+extern fn_type name ## _SSE2 [n_elements];				\
+extern fn_type name ## _SSE3 [n_elements];				\
+extern fn_type name ## _ALTIVEC [n_elements];
+
 #if defined (CAN_COMPILE_MMX)
 #  define SIMD_FN_SELECT_MMX(name, avail)				\
 	(((avail) & CPU_FEATURE_MMX) & cpu_features) ? name ## _MMX
@@ -1185,6 +1249,13 @@ extern fn_type name ## _ALTIVEC;
 	 SIMD_FN_SELECT_SSE (name, avail) :				\
 	 SIMD_FN_SELECT_3DNOW (name, avail) :				\
 	 SIMD_FN_SELECT_MMX (name, avail) :				\
+	 ((avail) & SCALAR) ? name ## _SCALAR : NULL)
+
+#define SIMD_FN_ALIGNED_SELECT(name, align, avail)			\
+	((0 == ((align) & 15)) ? SIMD_FN_SELECT (name, avail) :		\
+	 (0 == ((align) & 7)) ?						\
+	 SIMD_FN_SELECT (name, ((avail) & ~(CPU_FEATURE_ALTIVEC |	\
+					    CPU_FEATURE_SSE3))) :	\
 	 ((avail) & SCALAR) ? name ## _SCALAR : NULL)
 
 #endif /* SIMD_H */
