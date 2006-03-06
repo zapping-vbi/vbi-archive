@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.32 2006-02-25 17:37:44 mschimek Exp $ */
+/* $Id: audio.c,v 1.33 2006-03-06 01:45:32 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -40,6 +40,7 @@
 #include "remote.h"
 #include "globals.h"
 #include "v4linterface.h"
+#include "tveng_private.h"
 
 #ifdef HAVE_ESD
 extern audio_backend_info esd_backend;
@@ -51,10 +52,10 @@ extern audio_backend_info arts_backend;
 extern audio_backend_info oss_backend;
 #endif
 
-typedef struct {
+struct _mhandle {
   gpointer		handle; /* for the backend */
   audio_backend_info *	backend;
-} mhandle;
+};
 
 void mixer_setup ( void )
 {
@@ -67,11 +68,16 @@ void mixer_setup ( void )
 				  mixer->rec_gain->reset);
 
       if (mixer_line->recordable)
-        tv_mixer_line_record (mixer_line, /* exclusive */ TRUE);
+	{
+	  tv_mixer_line_record (mixer_line, /* exclusive */ TRUE);
+
+	  if (esd_output)
+	    tv_mixer_line_set_mute (mixer_line, TRUE);
+	}
     }
 }
 
-gpointer
+mhandle *
 open_audio_device (gboolean stereo, guint rate, enum audio_format
 		   format)
 {
@@ -104,7 +110,7 @@ open_audio_device (gboolean stereo, guint rate, enum audio_format
   handle = NULL;
 
   if (backend)
-    handle = backend->open (stereo, rate, format);
+    handle = backend->open (stereo, rate, format, /* write */ FALSE);
 
   if (!handle)
     {
@@ -125,24 +131,306 @@ open_audio_device (gboolean stereo, guint rate, enum audio_format
   return mh;
 }
 
-void
-close_audio_device (gpointer handle)
+static mhandle *
+open_esd_output (gboolean stereo, guint rate, enum audio_format
+		 format)
 {
-  mhandle *mh = handle;
+  audio_backend_info *backend;
+  gpointer handle;
+  mhandle *mh;
+
+  backend = NULL;
+#ifdef HAVE_ESD
+  backend = &esd_backend;
+#endif
+
+  handle = NULL;
+
+  if (backend)
+    handle = backend->open (stereo, rate, format, /* write */ TRUE);
+
+  if (!handle)
+    {
+      ShowBox(("Cannot open the Gnome sound daemon (ESD) for output.\n"),
+	      GTK_MESSAGE_WARNING);
+      return NULL;
+    }
+
+  mh = g_malloc0 (sizeof (*mh));
+  mh->handle = handle;
+  mh->backend = backend;
+
+  return mh;
+}
+
+void
+close_audio_device (mhandle *mh)
+{
+  g_assert (NULL != mh);
 
   mh->backend->close (mh->handle);
 
   g_free (mh);
 }
 
-void
-read_audio_data (gpointer handle, gpointer dest, guint num_bytes,
+gboolean
+read_audio_data (mhandle *mh, gpointer dest, guint num_bytes,
 		 double *timestamp)
 {
-  mhandle *mh = handle;
+  g_assert (NULL != mh);
 
-  mh->backend->read (mh->handle,
-		     dest, num_bytes, timestamp);
+  return mh->backend->read (mh->handle, dest, num_bytes, timestamp);
+}
+
+gboolean
+write_audio_data (mhandle *mh, gpointer src, guint num_bytes,
+		  double timestamp)
+{
+  g_assert (NULL != mh);
+
+  return mh->backend->write (mh->handle, src, num_bytes, timestamp);
+}
+
+/*
+ *  Audio loop-back thread
+ */
+
+static pthread_t		loopback_id;
+static gboolean			have_loopback_thread;
+static volatile gboolean	loopback_quit;
+static volatile gboolean	loopback_quit_ack;
+static gpointer			loopback_src;
+static gpointer			loopback_dst;
+
+tv_audio_line
+audio_loopback_mixer_line = {
+	._parent	= (void *) &audio_loopback_mixer,
+	.label		= "Audio Loopback",
+	.hash		= 38558,
+	.minimum	= 0,
+	.maximum	= 256,
+	.step		= 1,
+	.reset		= 204,
+	.stereo		= TRUE,
+	.muted		= TRUE,
+	.volume		= { 204, 204 }
+};
+
+static tv_bool
+loopback_mixer_set_mute		(tv_audio_line *	l,
+				 tv_bool		mute)
+{
+	assert (l == &audio_loopback_mixer_line);
+
+	if (l->muted != mute) {
+		l->muted = mute;
+		tv_callback_notify (NULL, l, l->_callback);
+	}
+
+	return TRUE;
+}
+
+static tv_bool
+loopback_mixer_set_volume	(tv_audio_line *	l,
+				 int			left,
+				 int			right)
+{
+	assert (l == &audio_loopback_mixer_line);
+
+	left = SATURATE (left, 0, 256);
+	right = SATURATE (right, 0, 256);
+
+	if (l->volume[0] != left
+	    || l->volume[1] != right) {
+		l->volume[0] = left;
+		l->volume[1] = right;
+		tv_callback_notify (NULL, l, l->_callback);
+	}
+
+	return TRUE;
+}
+
+static tv_bool
+loopback_mixer_update_line	(tv_audio_line *	l)
+{
+	assert (l == &audio_loopback_mixer_line);
+
+	l = l;
+
+	return TRUE;
+}
+
+static const tv_mixer_interface
+audio_loopback_mixer_interface = {
+	.name 		= "Audio Loopback",
+	.update_line	= loopback_mixer_update_line,
+	.set_volume	= loopback_mixer_set_volume,
+	.set_mute	= loopback_mixer_set_mute,
+};
+
+tv_mixer
+audio_loopback_mixer = {
+	.inputs		= &audio_loopback_mixer_line,
+	._interface	= &audio_loopback_mixer_interface,
+};
+
+static void *
+loopback_thread			(void *			x)
+{
+  uint8_t *buffer;
+  uint8_t *buffer_end;
+  guint buffer_size;
+
+  x = x;
+
+  printv ("audio loopback thread\n");
+
+  buffer_size = 4096;
+
+  buffer = malloc (buffer_size);
+  g_assert (NULL != buffer);
+
+  buffer_end = buffer + buffer_size;
+
+  while (!loopback_quit) 
+    {
+      double timestamp;
+
+      if (!read_audio_data (loopback_src, buffer, buffer_size, &timestamp))
+	break;
+
+      if (audio_loopback_mixer_line.muted)
+	{
+	  /* XXX inefficient */
+	  memset (buffer, 0, buffer_size);
+	}
+      else
+	{
+	  /* Can't just change rec_gain because that may not exist and
+	     we don't want to affect recording (in the future). XXX SIMD me. */
+#if Z_BYTE_ORDER == Z_LITTLE_ENDIAN
+	  {
+	    int16_t *p;
+
+	    for (p = (int16_t *) buffer; p < (int16_t *) buffer_end; p += 2)
+	      {
+		p[0] = (p[0] * audio_loopback_mixer_line.volume[0]) / 256;
+		p[1] = (p[1] * audio_loopback_mixer_line.volume[1]) / 256;
+	      }
+	  }
+#elif Z_BYTE_ORDER == Z_BIG_ENDIAN
+	  {
+	    uint8_t *p;
+
+	    for (p = buffer; p < buffer_end; p += 4)
+	      {
+		gint n;
+
+		n = ((p[0] + p[1] * 256)
+		     * audio_loopback_mixer_line.volume[0]) / 256;
+		p[0] = n;
+		p[1] = n >> 8;
+
+		n = ((p[2] + p[3] * 256)
+		     * audio_loopback_mixer_line.volume[1]) / 256;
+		p[2] = n;
+		p[3] = n >> 8;
+	      }
+	  }
+#else
+#  error unknown endianess
+#endif
+	}
+
+      if (!write_audio_data (loopback_dst, buffer, buffer_size, timestamp))
+	break;
+    }
+
+  free (buffer);
+  buffer = NULL;
+
+  printv ("audio loopback thread quits\n");
+
+  loopback_quit_ack = TRUE;
+
+  return NULL;
+}
+
+static void
+loopback_stop			(void)
+{
+  printv ("stopping audio loopback\n");
+
+  if (have_loopback_thread)
+    {
+      z_join_thread_with_timeout ("audio loopback",
+				  loopback_id,
+				  &loopback_quit,
+				  &loopback_quit_ack,
+				  /* timeout */ 15);
+
+      have_loopback_thread = FALSE;
+    }
+
+  if (loopback_dst)
+    {
+      close_audio_device (loopback_dst);
+      loopback_dst = NULL;
+    }
+
+  if (loopback_src)
+    {
+      close_audio_device (loopback_src);
+      loopback_src = NULL;
+    }
+}
+
+static gboolean
+loopback_start			(void)
+{
+  gboolean stereo = TRUE;
+  gboolean rate = 44100;
+  gboolean format = AUDIO_FORMAT_S16_LE;
+
+  if (have_loopback_thread)
+    loopback_stop ();
+
+  printv ("starting audio loopback\n");
+
+  loopback_src = open_audio_device (stereo, rate, format);
+  if (NULL == loopback_src)
+    return FALSE;
+
+  loopback_dst = open_esd_output (stereo, rate, format);
+  if (NULL == loopback_dst)
+    {
+      close_audio_device (loopback_src);
+      loopback_src = NULL;
+      return FALSE;
+    }
+
+  loopback_quit = FALSE;
+  loopback_quit_ack = FALSE;
+
+  if (pthread_create (&loopback_id,
+		      /* attr */ NULL,
+		      loopback_thread,
+		      /* arg */ NULL))
+    {
+      close_audio_device (loopback_dst);
+      loopback_dst = NULL;
+
+      close_audio_device (loopback_src);
+      loopback_src = NULL;
+
+      return FALSE;
+    }
+
+  have_loopback_thread = TRUE;
+
+  printv ("audio loopback started\n");
+
+  return TRUE;
 }
 
 /*
@@ -273,13 +561,21 @@ devices_audio_apply		(GtkWidget *		page)
   tveng_tc_control *tcc;
   guint num_controls;
 
+  loopback_stop ();
+
   devices_audio_source_apply (page);
   devices_audio_mixer_apply (page);
 
   store_control_values (zapping->info, &tcc, &num_controls);
+
   startup_mixer (zapping->info);
+
   update_control_box (zapping->info);
+
   load_control_values (zapping->info, tcc, num_controls);
+
+  if (esd_output)
+    loopback_start ();
 }
 
 static void
@@ -708,10 +1004,15 @@ void startup_audio ( void )
 		("Mute/unmute"), "zapping.mute()",
 		("Mute"), "zapping.mute(1)",
 		("Unmute"), "zapping.mute(0)");
+
+  if (esd_output)
+    loopback_start ();
 }
 
 void shutdown_audio ( void )
 {
+    loopback_stop ();
+
 #ifdef HAVE_ESD
   if (esd_backend.shutdown)
     esd_backend.shutdown ();
