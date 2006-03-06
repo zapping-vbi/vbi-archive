@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.c,v 1.15 2006-02-25 17:35:53 mschimek Exp $ */
+/* $Id: zapping.c,v 1.16 2006-03-06 01:47:44 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -93,19 +93,25 @@ background_action		(GtkAction *		action _unused_,
 }
 
 static void
-crash_action			(GtkAction *		action _unused_,
+crash_action			(GtkAction *		action,
 				 Zapping *		z)
 {
 	/* Testing bug-buddy interaction. */
+
+	action = action;
+	z = z;
 
 	*((int *) 1) = 0;
 }
 
 static void
-assert_action			(GtkAction *		action _unused_,
+assert_action			(GtkAction *		action,
 				 Zapping *		z)
 {
 	/* Testing bug-buddy interaction. */
+
+	action = action;
+	z = z;
 
 	assert (0);
 }
