@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.51 2006-02-25 17:37:44 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.52 2006-03-06 01:47:13 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -691,13 +691,38 @@ start_fullscreen		(display_mode		dmode,
       break;
 
     case CAPTURE_MODE_READ:
-      /* XXX error? */
-      tveng_set_capture_size (vwidth, vheight, zapping->info);
+      {
+	tv_image_format format;
+	guint awidth;
 
-      if (!capture_start (zapping->info, GTK_WIDGET (drawing_area)))
-	goto failure;
+	format = *tv_cur_capture_format (zapping->info);
 
-      break;
+	format.width = vwidth;
+	format.height = vheight;
+
+	/* XXX error? */
+	tv_set_capture_format (zapping->info, &format);
+
+	/* We asked for screen size images, which is likely
+	   impossible. In case the driver has strange limits and
+	   XvImage is unavailable to scale images let's try to
+	   get closer to the desired aspect ratio. */
+
+	format = *tv_cur_capture_format (zapping->info);
+
+	awidth = format.height * 4 / 3;
+	if (format.width != awidth)
+	  {
+	    format.width = awidth;
+	    /* Error ignored. */
+	    tv_set_capture_format (zapping->info, &format);
+	  }
+
+	if (!capture_start (zapping->info, GTK_WIDGET (drawing_area)))
+	  goto failure;
+
+	break;
+      }
 
     case CAPTURE_MODE_TELETEXT:
       /* Nothing to do. */
