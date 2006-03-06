@@ -581,7 +581,7 @@ capture_source_funcs = {
 /* Capture thread / idle handler. */
 
 static pthread_t		capture_thread_id;
-static volatile gboolean	exit_capture_thread;
+static volatile gboolean	capture_quit;
 static volatile gboolean	capture_quit_ack;
 
 static void *
@@ -592,7 +592,7 @@ capture_thread			(void *			data)
 
   zf_add_producer (&capture_fifo, &prod);
 
-  while (!exit_capture_thread)
+  while (!capture_quit)
     {
       producer_buffer *p =
 	(producer_buffer *) zf_wait_empty_buffer (&prod);
@@ -612,7 +612,7 @@ capture_thread			(void *			data)
 
       {
       retry:
-	if (exit_capture_thread)
+	if (capture_quit)
 	  {
 	    _pthread_rwlock_unlock (&fmt_rwlock);
 	    zf_unget_empty_buffer (&prod, &p->frame.b);
@@ -852,35 +852,6 @@ add_display_filter		(display_filter_fn *	filter,
   return TRUE;
 }
 
-static gint
-join				(const char *		who,
-				 pthread_t		id,
-				 volatile gboolean *	ack,
-				 gint			timeout)
-{
-  /* Dirty. Where is pthread_try_join()? */
-  for (; (!*ack) && timeout > 0; timeout--) {
-    usleep (100000);
-  }
-
-  /* Ok, you asked for it */
-  if (timeout == 0) {
-    int r;
-
-    printv("Unfriendly video capture termination\n");
-    r = pthread_cancel (id);
-    if (r != 0)
-      {
-	printv("Cancellation of %s failed: %d\n", who, r);
-	return 0;
-      }
-  }
-
-  pthread_join (id, NULL);
-
-  return timeout;
-}
-
 gboolean
 capture_stop			(void)
 {
@@ -896,7 +867,7 @@ capture_stop			(void)
       return FALSE;
     }
 
-  tveng_stop_capturing (zapping->info);
+  tv_enable_capturing (zapping->info, FALSE);
 
   /* XXX */
   g_signal_handlers_disconnect_by_func
@@ -929,7 +900,7 @@ capture_stop			(void)
       idle_id = NO_SOURCE_ID;
 
       /* Let the capture thread go to a better place. */
-      exit_capture_thread = TRUE;
+      capture_quit = TRUE;
 
       /* empty full queue and remove timeout consumer. */
       while ((b = zf_recv_full_buffer (&idle_consumer)))
@@ -937,7 +908,11 @@ capture_stop			(void)
 
       zf_rem_consumer (&idle_consumer);
 
-      join ("videocap", capture_thread_id, &capture_quit_ack, 15);
+      z_join_thread_with_timeout ("videocap",
+				  capture_thread_id,
+				  &capture_quit,
+				  &capture_quit_ack,
+				  /* timeout */ 15);
     }
 
   g_free (formats);
@@ -973,10 +948,10 @@ capture_start			(tveng_device_info *	info,
 
   if (use_queue)
     {
-      if (-1 == tv_set_buffers (info, N_BUNDLES))
+      if (-1 == tv_set_num_capture_buffers (info, N_BUNDLES))
 	goto failure;
 
-      if (-1 == tv_get_buffers (info, &n_buffers))
+      if (-1 == tv_get_num_capture_buffers (info, &n_buffers))
 	goto failure;
 
       /* zapping-misc 2005-04-24 preliminary fix.
@@ -990,7 +965,7 @@ capture_start			(tveng_device_info *	info,
       n_buffers = N_BUNDLES;
     }
 
-  if (-1 == tveng_start_capturing (info))
+  if (!tv_enable_capturing (info, TRUE))
     goto failure;
 
   /* XXX */
@@ -1044,7 +1019,7 @@ capture_start			(tveng_device_info *	info,
 
       zf_add_consumer (&capture_fifo, &idle_consumer);
 
-      exit_capture_thread = FALSE;
+      capture_quit = FALSE;
       capture_quit_ack = FALSE;
 
       r = pthread_create (&capture_thread_id, NULL,
@@ -1072,7 +1047,7 @@ capture_start			(tveng_device_info *	info,
 
  failure:
   /* Unmap buffers early. Error ignored. */
-  tv_set_buffers (info, 0);
+  tv_set_num_capture_buffers (info, 0);
 
   ShowBox (_("Cannot start capturing: %s"),
 	   GTK_MESSAGE_ERROR, tv_get_errstr (info));
@@ -1247,7 +1222,7 @@ change_capture_format		(tveng_device_info *	info,
 
   old_mode = tv_get_capture_mode (info);
   if (CAPTURE_MODE_READ == old_mode)
-    tveng_stop_capturing (info);
+    tv_enable_capturing (zapping->info, FALSE);
 
   flush_buffers (info);
 
@@ -1258,7 +1233,21 @@ change_capture_format		(tveng_device_info *	info,
   if ((flags & REQ_SIZE)
       && fmt->width != width
       && fmt->height != height)
-    fmt = NULL; /* failed */
+    {
+      fmt = NULL; /* failed */
+    }
+  else if (DISPLAY_MODE_FULLSCREEN == zapping->display_mode)
+    {
+      guint awidth = fmt->height * 4 / 3;
+
+      /* In case XvImage is unavailable to scale the images
+	 to screen size. XXX this is ugly. */
+      if (fmt->width != awidth)
+	{
+	  new_format.width = awidth;
+	  fmt = tv_set_capture_format (info, &new_format);
+	}
+    }
 
   if (!fmt)
     {
@@ -1275,7 +1264,10 @@ change_capture_format		(tveng_device_info *	info,
 
   /* XXX caller doesn't properly handle a stop? */
   if (CAPTURE_MODE_READ == old_mode)
-    tveng_start_capturing (info);
+    {
+      /* XXX error? */
+      tv_enable_capturing (info, TRUE);
+    }
 
   return fmt;
 }
