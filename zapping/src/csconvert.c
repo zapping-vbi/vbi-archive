@@ -30,6 +30,7 @@
 #include "yuv2rgb.h"
 #include "zmisc.h"
 #include "libtv/rgb2rgb.h"
+#include "libtv/yuv2yuv.h"
 
 static struct {
   CSConverter_fn *	convert;
@@ -178,7 +179,7 @@ void startup_csconvert(void)
        we need them. They are rarely used, tho. */
     { TV_PIXFMT_NV12, TV_PIXFMT_YUV420, nv12_yuv420, "nv12->yuv420" }
   };
-  static const tv_pixfmt src_formats [] =
+  static const tv_pixfmt rgb_src_formats [] =
     {
       TV_PIXFMT_RGBA32_LE,
       TV_PIXFMT_RGBA32_BE,
@@ -188,7 +189,7 @@ void startup_csconvert(void)
       TV_PIXFMT_RGB24_BE,
       TV_PIXFMT_SBGGR,
     };
-  static const tv_pixfmt dst_formats [] =
+  static const tv_pixfmt rgb_dst_formats [] =
     {
       TV_PIXFMT_RGBA32_LE,
       TV_PIXFMT_RGBA32_BE,
@@ -201,38 +202,100 @@ void startup_csconvert(void)
       TV_PIXFMT_BGRA16_LE,
       TV_PIXFMT_BGRA16_BE,
     };
+  static const tv_pixfmt yuyv_formats [] =
+    {
+      TV_PIXFMT_YUYV,
+      TV_PIXFMT_UYVY,
+      TV_PIXFMT_YVYU,
+      TV_PIXFMT_VYUY,
+    };
   unsigned int i;
   unsigned int j;
 
   CLEAR (filters);
 
-  for (i = 0; i < G_N_ELEMENTS (src_formats); ++i)
+  for (i = 0; i < G_N_ELEMENTS (rgb_src_formats); ++i)
     {
-      for (j = 0; j < G_N_ELEMENTS (dst_formats); ++j)
+      for (j = 0; j < G_N_ELEMENTS (rgb_dst_formats); ++j)
 	{
-	  if (TV_PIXFMT_SBGGR == src_formats[i])
+	  if (TV_PIXFMT_SBGGR == rgb_src_formats[i])
 	    {
 	      register_converter ("_tv_sbggr_to_rgb",
-				  src_formats[i], dst_formats[j],
+				  rgb_src_formats[i],
+				  rgb_dst_formats[j],
 				  (CSConverter_fn *) _tv_sbggr_to_rgb,
 				  /* user_data */ NULL);
 	    }
-	  else if (2 == TV_PIXFMT_BYTES_PER_PIXEL (dst_formats[j]))
+	  else if (2 == TV_PIXFMT_BYTES_PER_PIXEL (rgb_dst_formats[j]))
 	    {
 	      register_converter ("_tv_rgb32_to_rgb16",
-				  src_formats[i], dst_formats[j],
+				  rgb_src_formats[i],
+				  rgb_dst_formats[j],
 				  (CSConverter_fn *) _tv_rgb32_to_rgb16,
 				  /* user_data */ NULL);
 	    }
 	  else
 	    {
 	      register_converter ("_tv_rgb32_to_rgb32",
-				  src_formats[i], dst_formats[j],
+				  rgb_src_formats[i],
+				  rgb_dst_formats[j],
 				  (CSConverter_fn *) _tv_rgb32_to_rgb32,
 				  /* user_data */ NULL);
 	    }
 	}
     }
+
+  for (i = 0; i < G_N_ELEMENTS (yuyv_formats); ++i)
+    {
+      for (j = 0; j < G_N_ELEMENTS (yuyv_formats); ++j)
+	{
+	  register_converter ("_tv_yuyv_to_yuyv",
+			      yuyv_formats[i],
+			      yuyv_formats[j],
+			      (CSConverter_fn *) _tv_yuyv_to_yuyv,
+			      /* user_data */ NULL);
+	}
+    }
+
+  for (j = 0; j < G_N_ELEMENTS (yuyv_formats); ++j)
+    {
+      register_converter ("_tv_yuv420_to_yuyv",
+			  TV_PIXFMT_YUV420,
+			  yuyv_formats[j],
+			  (CSConverter_fn *) _tv_yuv420_to_yuyv,
+			  /* user_data */ NULL);
+      register_converter ("_tv_yvu420_to_yuyv",
+			  TV_PIXFMT_YVU420,
+			  yuyv_formats[j],
+			  (CSConverter_fn *) _tv_yuv420_to_yuyv,
+			  /* user_data */ NULL);
+    }
+
+  for (i = 0; i < G_N_ELEMENTS (yuyv_formats); ++i)
+    {
+      register_converter ("_tv_yuyv_to_yuv420",
+			  yuyv_formats[i],
+			  TV_PIXFMT_YUV420,
+			  (CSConverter_fn *) _tv_yuyv_to_yuv420,
+			  /* user_data */ NULL);
+      register_converter ("_tv_yuyv_to_yvu420",
+			  yuyv_formats[i],
+			  TV_PIXFMT_YVU420,
+			  (CSConverter_fn *) _tv_yuyv_to_yuv420,
+			  /* user_data */ NULL);
+    }
+
+  register_converter ("_tv_yuv420_to_yvu420",
+		      TV_PIXFMT_YUV420,
+		      TV_PIXFMT_YVU420,
+		      (CSConverter_fn *) _tv_yuv420_to_yuv420,
+		      /* user_data */ NULL);
+
+  register_converter ("_tv_yvu420_to_yuv420",
+		      TV_PIXFMT_YVU420,
+		      TV_PIXFMT_YUV420,
+		      (CSConverter_fn *) _tv_yuv420_to_yuv420,
+		      /* user_data */ NULL);
 
   register_converters ("c", rgb_filters, N_ELEMENTS (rgb_filters));
 
