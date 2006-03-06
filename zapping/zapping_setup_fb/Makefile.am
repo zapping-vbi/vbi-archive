@@ -2,11 +2,9 @@
 ## Note $(DESTDIR)$(sbindir) also encoded in src/Makefile.am
 
 bin_PROGRAMS = zapping_setup_fb
-bin_SCRIPTS = zapping_fix_overlay
 
 EXTRA_DIST = \
-	zapping_setup_fb.pam \
-	zapping_fix_overlay.in
+	zapping_setup_fb.pam
 
 AM_CFLAGS = @DEFAULT_CFLAGS@
 
