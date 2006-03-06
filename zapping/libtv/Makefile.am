@@ -34,7 +34,9 @@ SIMD_SOURCES = \
 	rgb2rgb.c \
 	rgb2rgb.h \
 	simd-consts.h \
-	simd-conv.h
+	simd-conv.h \
+	yuv2yuv.c \
+	yuv2yuv.h
 
 INCLUDES = -I$(top_srcdir)
 
