@@ -1384,9 +1384,11 @@ update_capture_limits		(tveng_device_info *	info)
 	}
 
 	if (0 == xioctl (info, VIDIOCGCAP, &caps)) {
-		info->caps.minwidth = caps.minwidth;
+		/* XXX all conversion routines
+		   cannot handle arbitrary widths yet. */
+		info->caps.minwidth = (caps.minwidth + 7) & ~7;
 		info->caps.minheight = caps.minheight;
-		info->caps.maxwidth = caps.maxwidth;
+		info->caps.maxwidth = caps.maxwidth & ~7;
 		info->caps.maxheight = caps.maxheight;
 	} else {
 		/* Let's hope this is ok. */
@@ -3042,8 +3044,10 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
 
   info->caps.channels = caps.channels;
   info->caps.audios = caps.audios;
-  info->caps.maxwidth = caps.maxwidth;
-  info->caps.minwidth = caps.minwidth;
+  /* XXX all conversion routines
+     cannot handle arbitrary widths yet. */
+  info->caps.maxwidth = caps.maxwidth & ~7;
+  info->caps.minwidth = (caps.minwidth + 7) & ~7;
   info->caps.maxheight = caps.maxheight;
   info->caps.minheight = caps.minheight;
   info->caps.flags = 0;
