@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.10 2006-02-25 17:37:42 mschimek Exp $ */
+/* $Id: misc.h,v 1.11 2006-03-06 01:49:39 mschimek Exp $ */
 
 #ifndef __ZTV_MISC_H__
 #define __ZTV_MISC_H__
@@ -28,6 +28,7 @@
 
 #include <stddef.h>
 #include <string.h>
+#include <inttypes.h>
 #include <assert.h>
 #include "macros.h"
 
@@ -269,12 +270,12 @@ clear_block_fn                  (void *                 dst,
                                  unsigned int           height,
                                  unsigned long          bytes_per_line);
 
-typedef tv_bool
-copy_block_fn                   (void *                 dst,
-                                 const void *           src,
-                                 unsigned int           width,
-                                 unsigned int           height,
-                                 unsigned long          dst_bytes_per_line,
-                                 unsigned long          src_bytes_per_line);
+typedef void
+copy_plane_fn			(uint8_t *		dst,
+				 const uint8_t *	src,
+				 unsigned int		width,
+				 unsigned int		height,
+				 unsigned long		dst_padding,
+				 unsigned long		src_padding);
 
 #endif /* MISC_H */

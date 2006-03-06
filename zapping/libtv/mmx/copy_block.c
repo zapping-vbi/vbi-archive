@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_block.c,v 1.4 2006-02-25 17:37:43 mschimek Exp $ */
+/* $Id: copy_block.c,v 1.5 2006-03-06 01:49:31 mschimek Exp $ */
 
 #include <inttypes.h>
 #include <mmintrin.h>
@@ -64,25 +64,28 @@ memcpy_mmx			(void *			dst,
 			      :: "cc", "memory");    
 }
 
-tv_bool
-copy_block1_mmx			(void *			dst,
-				 const void *		src,
+void
+copy_plane_MMX			(uint8_t *		dst,
+				 const uint8_t *	src,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned long		dst_bytes_per_line,
-				 unsigned long		src_bytes_per_line)
+				 unsigned long		dst_padding,
+				 unsigned long		src_padding)
 {
-	unsigned long dst_padding;
-	unsigned long src_padding;
+	unsigned long align;
 
-	dst_padding = dst_bytes_per_line - width * 1;
-	src_padding = src_bytes_per_line - width * 1;
+	/* XXX check that in caller. */
+	align = ((unsigned long) dst |
+		 (unsigned long) src |
+		 (width + dst_padding) |
+		 (width + src_padding) |
+		 width);
 
-	if (unlikely ((long)(dst_padding | src_padding) < 0)) {
-		return FALSE;
-	} else if (likely (0 == (dst_padding | src_padding))) {
-		width *= height;
-		height = 1;
+	if (unlikely ((align & 7) > 0)) {
+		return copy_plane_SCALAR (dst, src,
+					  width, height,
+					  dst_padding,
+					  src_padding);
 	}
 
 	for (; height > 0; --height) {
@@ -126,6 +129,4 @@ copy_block1_mmx			(void *			dst,
 	}
 
 	_mm_empty ();
-
-	return TRUE;
 }

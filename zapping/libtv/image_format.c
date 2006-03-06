@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.16 2006-02-25 17:37:42 mschimek Exp $ */
+/* $Id: image_format.c,v 1.17 2006-03-06 01:49:47 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -615,40 +615,20 @@ tv_memcpy			(void *			dst,
 	memcpy (dst, src, n_bytes);
 }
 
-tv_bool
-copy_block1_generic		(void *			dst,
-				 const void *		src,
+void
+copy_plane_SCALAR		(uint8_t *		dst,
+				 const uint8_t *	src,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned long		dst_bytes_per_line,
-				 unsigned long		src_bytes_per_line)
+				 unsigned long		dst_padding,
+				 unsigned long		src_padding)
 {
-	uint8_t *d;
-	const uint8_t *s;
-	unsigned long dst_padding;
-	unsigned long src_padding;
-
-	dst_padding = dst_bytes_per_line - width;
-	src_padding = src_bytes_per_line - width;
-
-	if (unlikely ((long)(dst_padding | src_padding) < 0)) {
-		return FALSE;
-	} else if (likely (0 == (dst_padding | src_padding))) {
-		memcpy (dst, src, width * height);
-		return TRUE;
-	}
-
-	d = (uint8_t *) dst;
-	s = (const uint8_t *) src;
-
 	for (; height > 0; --height) {
-		memcpy (d, s, width);
+		memcpy (dst, src, width);
 
-		d += dst_bytes_per_line;
-		s += src_bytes_per_line;
+		dst += width + dst_padding;
+		src += width + src_padding;
 	}
-
-	return TRUE;
 }
 
 #define offset(start, format, plane, row)				\
@@ -665,11 +645,15 @@ tv_copy_image			(void *			dst_image,
 				 const tv_image_format *src_format)
 {
 	const tv_pixel_format *pf;
-	copy_block_fn *copy_block;
+	copy_plane_fn *copy_plane;
 	uint8_t *d;
+	uint8_t *dst;
 	const uint8_t *s;
+	const uint8_t *src;
 	unsigned int width;
 	unsigned int height;
+	unsigned long dst_padding;
+	unsigned long src_padding;
 	unsigned int y0 = 0;
 	unsigned int y1 = -1;
 
@@ -681,21 +665,21 @@ tv_copy_image			(void *			dst_image,
 
 	assert (NULL != src_format);
 
-	assert (dst_format->pixel_format == src_format->pixel_format);
+	if (dst_format->pixel_format != src_format->pixel_format)
+		return FALSE;
 
-#ifdef CAN_COMPILE_SSE
-	if (UNTESTED_SIMD
-	    && (cpu_features & CPU_FEATURE_SSE))
-		copy_block = copy_block1_sse_nt;
+#if 0 /* untested */
+	if (cpu_features & CPU_FEATURE_SSE)
+		copy_plane = copy_plane_SSE;
 	else
 #endif
-		copy_block = copy_block1_generic;
+		copy_plane = copy_plane_SCALAR;
 
 	d = (uint8_t *) dst_image;
 	s = (const uint8_t *) src_image;
 
-	width = MIN (dst_format->width, src_format->width); 
-	height = MIN (dst_format->height, src_format->height); 
+	width = MIN (dst_format->width, src_format->width);
+	height = MIN (dst_format->height, src_format->height);
 
 	y1 = MIN (y1, height);
 
@@ -704,46 +688,90 @@ tv_copy_image			(void *			dst_image,
 
 	height = y1 - y0;
 
-	assert (width > 0);
-	assert (height > 0);
+	if (0 == width || 0 == height)
+		return FALSE;
 
 	pf = dst_format->pixel_format;
 
+	dst = offset (d, dst_format, 0, y0);
+	src = offset (s, src_format, 0, y0);
+
+	width = (width * pf->bits_per_pixel) >> 3;
+
+	dst_padding = dst_format->bytes_per_line[0] - width;
+	src_padding = src_format->bytes_per_line[0] - width;
+
+	if (unlikely ((long)(dst_padding | src_padding) < 0))
+		return FALSE;
+
 	if (TV_PIXFMT_IS_PLANAR (pf->pixfmt)) {
+		uint8_t *udst;
+		uint8_t *vdst;
+		const uint8_t *usrc;
+		const uint8_t *vsrc;
 		unsigned int uv_width;
 		unsigned int uv_height;
 		unsigned int uv_y0;
+		unsigned long udst_padding;
+		unsigned long vdst_padding;
+		unsigned long usrc_padding;
+		unsigned long vsrc_padding;
+		unsigned int block;
+
+		uv_y0 = y0 >> pf->uv_vshift;
+
+		udst = offset (d, dst_format, 1, uv_y0);
+		usrc = offset (s, src_format, 1, uv_y0);
 
 		uv_width = width >> pf->uv_hshift;
 		uv_height = height >> pf->uv_vshift;
-		uv_y0 = y0 >> pf->uv_vshift;
 
-		if (unlikely (!copy_block (offset (d, dst_format, 1, uv_y0),
-					   offset (s, src_format, 1, uv_y0),
-					   uv_width, uv_height,
-					   dst_format->bytes_per_line[1],
-					   src_format->bytes_per_line[1])))
-			return FALSE;
+		block = uv_width * uv_height;
 
-		if (TV_PIXFMT_NV12 != pf->pixfmt) {
-			if (unlikely
-			    (!copy_block (offset (d, dst_format, 2, uv_y0),
-					  offset (s, src_format, 2, uv_y0),
-					  uv_width, uv_height,
-					  dst_format->bytes_per_line[2],
-					  src_format->bytes_per_line[2]))) {
+		udst_padding = dst_format->bytes_per_line[1] - uv_width;
+		usrc_padding = src_format->bytes_per_line[1] - uv_width;
+
+		if (TV_PIXFMT_NV12 == pf->pixfmt) {
+			if (unlikely ((long)(udst_padding |
+					     usrc_padding) < 0))
 				return FALSE;
+		} else {
+			vdst = offset (d, dst_format, 2, uv_y0);
+			vsrc = offset (s, src_format, 2, uv_y0);
+
+			vdst_padding = dst_format->bytes_per_line[2] - uv_width;
+			vsrc_padding = src_format->bytes_per_line[2] - uv_width;
+
+			if (unlikely ((long)(udst_padding |
+					     usrc_padding |
+					     vdst_padding |
+					     vsrc_padding) < 0))
+				return FALSE;
+
+			if (likely (0 == (vdst_padding | vsrc_padding))) {
+				copy_plane (vdst, vsrc, block, 1, 0, 0);
+			} else {
+				copy_plane (vdst, vsrc, uv_width, uv_height,
+					    vdst_padding, vsrc_padding);
 			}
 		}
-	} else {
-		width = (width * pf->bits_per_pixel) >> 3;
+
+		if (likely (0 == (udst_padding | usrc_padding))) {
+			copy_plane (udst, usrc, block, 1, 0, 0);
+		} else {
+			copy_plane (udst, usrc, uv_width, uv_height,
+				    udst_padding, usrc_padding);
+		}
 	}
 
-	return copy_block (offset (d, dst_format, 0, y0),
-			   offset (s, src_format, 0, y0),
-			   width, height,
-			   dst_format->bytes_per_line[0],
-			   src_format->bytes_per_line[0]);
+	if (likely (0 == (dst_padding | src_padding))) {
+		copy_plane (dst, src, width * height, 1, 0, 0);
+	} else {
+		copy_plane (dst, src, width, height,
+			    dst_padding, src_padding);
+	}
+
+	return TRUE;
 }
 
 void *

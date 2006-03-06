@@ -5,7 +5,7 @@
 #include "libtv/misc.h"
 
 extern clear_block_fn *		clear_block_mmx_nt [4];
-extern copy_block_fn		copy_block1_sse_nt;
+extern copy_plane_fn		copy_plane_SSE;
 
 extern void
 memcpy_sse_nt			(void *			dst,

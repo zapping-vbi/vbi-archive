@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_block.c,v 1.4 2006-02-25 17:37:43 mschimek Exp $ */
+/* $Id: copy_block.c,v 1.5 2006-03-06 01:49:16 mschimek Exp $ */
 
 #include <inttypes.h>		/* uint8_t */
 #include <xmmintrin.h>
@@ -66,45 +66,35 @@ memcpy_sse_nt			(void *			dst,
 			      :: "cc", "memory");    
 }
 
-tv_bool
-copy_block1_sse_nt		(void *			dst,
-				 const void *		src,
+void
+copy_plane_SSE			(uint8_t *		dst,
+				 const uint8_t *	src,
 				 unsigned int		width,
 				 unsigned int		height,
-				 unsigned long		dst_bytes_per_line,
-				 unsigned long		src_bytes_per_line)
+				 unsigned long		dst_padding,
+				 unsigned long		src_padding)
 {
 	unsigned long align;
-	unsigned long dst_padding;
-	unsigned long src_padding;
 
+	/* XXX check that in caller. */
 	align = ((unsigned long) dst |
 		 (unsigned long) src |
-		 dst_bytes_per_line |
-		 src_bytes_per_line);
+		 (width + dst_padding) |
+		 (width + src_padding) |
+		 width);
 
-	if (unlikely (0 != align % 16)) {
-#ifdef HAVE_MMX
-		return copy_block1_mmx (dst, src,
-					width, height,
-					dst_bytes_per_line,
-					src_bytes_per_line);
+	if (unlikely ((align % 16) > 0)) {
+#ifdef CAN_COMPILE_MMX
+		return copy_plane_MMX (dst, src,
+				       width, height,
+				       dst_padding,
+				       src_padding);
 #else
-		return copy_block1_generic (dst, src,
-					    width, height,
-					    dst_bytes_per_line,
-					    src_bytes_per_line);
+		return copy_plane_SCALAR (dst, src,
+					  width, height,
+					  dst_padding,
+					  src_padding);
 #endif
-	}
-
-	dst_padding = dst_bytes_per_line - width * 1;
-	src_padding = src_bytes_per_line - width * 1;
-
-	if (unlikely ((long)(dst_padding | src_padding) < 0)) {
-		return FALSE;
-	} else if (likely (0 == (dst_padding | src_padding))) {
-		width *= height;
-		height = 1;
 	}
 
 	for (; height > 0; --height) {
@@ -143,9 +133,7 @@ copy_block1_sse_nt		(void *			dst,
 				      : "+D" (d), "+S" (s), "+c" (count)
 				      :: "cc", "memory");
 
-		dst = ((uint8_t *) d) + dst_padding;
-		src = ((const uint8_t *) s) + src_padding;
+		dst += dst_padding;
+		src += src_padding;
 	}
-
-	return TRUE;
 }
