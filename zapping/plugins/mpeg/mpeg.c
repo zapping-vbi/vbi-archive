@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.61 2005-09-01 01:37:12 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.62 2006-03-06 01:46:49 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -764,7 +764,7 @@ init_subtitle_encoding		(const gchar *		file_name)
       CLEAR (subt_page);
 
       /* 0 if none. */
-      subt_page[0].first = zvbi_find_subtitle_page ();
+      subt_page[0].first = zvbi_find_subtitle_page (zapping_info);
       subt_page[0].last = subt_page[0].first;
     }
   else if (0 == strcmp (selection, "pages"))
@@ -1303,7 +1303,7 @@ record_config_menu_attach	(const gchar *		source,
 {
   gchar *zcname = g_strconcat (source, "/configs", NULL);
   GtkWidget *menu;
-  gchar *label;
+  const gchar *label;
   gint i;
   guint def, count;
 
@@ -1359,7 +1359,7 @@ record_config_zconf_find	(const gchar *		source,
 				 const gchar *		name)
 {
   gchar *zcname = g_strconcat (source, "/configs", NULL);
-  gchar *label;
+  const gchar *label;
   gint i;
 
   for (i = 0; (label = zconf_get_nth ((guint) i, NULL, zcname)); i++)
