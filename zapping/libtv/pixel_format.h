@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.h,v 1.7 2006-02-25 17:37:42 mschimek Exp $ */
+/* $Id: pixel_format.h,v 1.8 2006-03-06 01:48:54 mschimek Exp $ */
 
 #ifndef __ZTV_PIXEL_FORMAT_H__
 #define __ZTV_PIXEL_FORMAT_H__
@@ -208,7 +208,8 @@ typedef uint64_t tv_pixfmt_set;
 				  + TV_PIXFMT_SET_RGBA12		\
 				  + TV_PIXFMT_SET_RGB8			\
 				  + TV_PIXFMT_SET_RGBA8)
-#define TV_PIXFMT_SET_RGB	    TV_PIXFMT_SET_RGB_PACKED
+#define TV_PIXFMT_SET_RGB	 (+ TV_PIXFMT_SET_RGB_PACKED		\
+				  + TV_PIXFMT_SET (TV_PIXFMT_SBGGR))
 #define TV_PIXFMT_SET_PLANAR	    TV_PIXFMT_SET_YUV_PLANAR
 #define TV_PIXFMT_SET_PACKED	 (+ TV_PIXFMT_SET_YUV_PACKED		\
 				  + TV_PIXFMT_SET_RGB_PACKED)
@@ -291,6 +292,7 @@ typedef struct {
 
 	/* Y, U and V color components are stored in separate arrays,
 	   first Y, then U and V. */
+// XXX make this n_planes? (1, 2 (NV12), 3 (YUV420 etc))
 	tv_bool			planar;
 
 	/* For packed YUV 4:2:2, V pixel is stored before U pixel
