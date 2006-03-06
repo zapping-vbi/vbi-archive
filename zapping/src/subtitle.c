@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: subtitle.c,v 1.4 2005-09-01 01:31:00 mschimek Exp $ */
+/* $Id: subtitle.c,v 1.5 2006-03-06 01:46:23 mschimek Exp $ */
 
 #include "subtitle.h"
 
@@ -414,7 +414,7 @@ py_closed_caption		(PyObject *		self _unused_,
       /* In video mode, use previous page or find subtitles. */
       else if (zvbi_caption_pgno <= 0)
 	{
-	  zvbi_caption_pgno = zvbi_find_subtitle_page ();
+	  zvbi_caption_pgno = zvbi_find_subtitle_page (zapping->info);
 
 	  if (ZVBI_CAPTION_DEBUG)
 	    fprintf (stderr, "CC lookup pgno %x\n", zvbi_caption_pgno);
