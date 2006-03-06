@@ -821,27 +821,8 @@ tv_get_signal_strength		(tveng_device_info *	info,
 				 int *			strength,
 				 int *			afc);
 
-/*
-  Sets up the capture device so any read() call after this one
-  succeeds. Returns -1 on error.
-*/
-int
-tveng_start_capturing(tveng_device_info * info);
 
-/* Tries to stop capturing. -1 on error. */
-int
-tveng_stop_capturing(tveng_device_info * info);
 
-tv_bool
-tv_set_buffers			(tveng_device_info *	info,
-				 unsigned int 		n_buffers);
-tv_bool
-tv_get_buffers			(tveng_device_info *	info,
-				 unsigned int *		n_buffers);
-extern int
-tv_read_frame			(tveng_device_info *	info,
-				 tv_capture_buffer *	buffer,
-				 const struct timeval *	timeout);
 extern tv_bool
 tv_queue_capture_buffer		(tveng_device_info *	info,
 				 const tv_capture_buffer *buffer);
@@ -852,23 +833,21 @@ tv_dequeue_capture_buffer_with_timeout
 				(tveng_device_info *	info,
 				 const tv_capture_buffer **buffer,
 				 struct timeval *	timeout);
+tv_bool
+tv_set_num_capture_buffers	(tveng_device_info *	info,
+				 unsigned int 		n_buffers);
+tv_bool
+tv_get_num_capture_buffers	(tveng_device_info *	info,
+				 unsigned int *		n_buffers);
+extern int
+tv_read_frame			(tveng_device_info *	info,
+				 tv_capture_buffer *	buffer,
+				 const struct timeval *	timeout);
 extern tv_bool
 tv_flush_capture_buffers	(tveng_device_info *	info);
-
-/* 
-   Sets the capture buffer to an specific size. returns -1 on
-   error. Remember to check the value of width and height in the
-   format struct since it can be different to the one requested. 
-*/
-int tveng_set_capture_size(unsigned int width,
-			   unsigned int height,
-			   tveng_device_info *info);
-
-/* 
-   Gets the actual size of the capture buffer in width and height.
-   -1 on error
-*/
-int tveng_get_capture_size(int *width, int *height, tveng_device_info * info);
+extern tv_bool
+tv_enable_capturing		(tveng_device_info *	info,
+				 tv_bool		enable);
 
 /* XF86 Frame Buffer routines */
 
