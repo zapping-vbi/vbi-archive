@@ -30,6 +30,7 @@
 
 #include <stddef.h>
 #include <string.h>
+#include <pthread.h>
 #include <assert.h>
 
 #include "globals.h"
@@ -681,6 +682,13 @@ extern guint
 z_timeout_add			(GTimeVal		wakeup,
 				 ZTimeoutFunc		function,
 				 gpointer		data);
+
+extern gint
+z_join_thread_with_timeout	(const char *		who,
+				 pthread_t		id,
+				 volatile gboolean *	quit_flag,
+				 volatile gboolean *	ack_flag,
+				 gint			timeout);
 
 /* Common constants for item position in Gtk insert functions. */
 #define PREPEND 0

@@ -1851,6 +1851,12 @@ static void
 on_z_device_entry_changed	(GtkEntry *		entry,
 				 gpointer		user_data);
 
+/* XXX deprecated, although the GtkCombo description elaborates:
+   "The drop-down list is a GtkList widget and can be accessed
+   using the list member of the GtkCombo. List elements can contain
+   arbitrary widgets, [by appending GtkListItems to the list]" */
+extern GtkWidget *gtk_list_item_new (void);
+
 static void
 z_device_entry_relist		(z_device_entry *	de)
 {
@@ -1866,12 +1872,6 @@ z_device_entry_relist		(z_device_entry *	de)
       GtkWidget *item;
       GtkWidget *label;
       gchar *s;
-
-      /* XXX deprecated, although the GtkCombo description elaborates:
-	 "The drop-down list is a GtkList widget and can be accessed
-	 using the list member of the GtkCombo. List elements can contain
-	 arbitrary widgets, [by appending GtkListItems to the list]" */
-      extern GtkWidget *gtk_list_item_new (void);
 
       item = gtk_list_item_new ();
       gtk_widget_show (item);
@@ -2916,4 +2916,39 @@ z_timeout_add			(GTimeVal		wakeup,
 {
   return z_timeout_add_full (G_PRIORITY_DEFAULT, wakeup,
 			     function, data, NULL);
+}
+
+gint
+z_join_thread_with_timeout	(const char *		who,
+				 pthread_t		id,
+				 volatile gboolean *	quit_flag,
+				 volatile gboolean *	ack_flag,
+				 gint			timeout)
+{
+  *ack_flag = FALSE;
+  *quit_flag = TRUE;
+
+  /* XXX use pthread_timedjoin_np() where available. */
+  for (; timeout > 0; --timeout) {
+    if (*ack_flag)
+      break;
+    usleep (100000);
+  }
+
+  /* Ok, you asked for it */
+  if (0 == timeout) {
+    int r;
+
+    printv ("Unfriendly termination of %s\n", who);
+    r = pthread_cancel (id);
+    if (r != 0)
+      {
+	printv("Cancellation of %s failed: %d\n", who, r);
+	return 0;
+      }
+  }
+
+  pthread_join (id, NULL);
+
+  return timeout;
 }
