@@ -46,13 +46,18 @@ typedef struct {
 } arts_handle;
 
 static gpointer
-arts_open (gboolean stereo, guint rate, enum audio_format format)
+_open				(gboolean		stereo,
+				 guint			sampling_rate,
+				 enum audio_format	format,
+				 gboolean		write)
 {
   arts_handle *h;
   arts_stream_t stream;
   gint errcode;
 
   /* FIXME: Improve error reporting */
+
+  g_assert (!write);
 
   if (format != AUDIO_FORMAT_S16_LE)
     {
@@ -67,7 +72,7 @@ arts_open (gboolean stereo, guint rate, enum audio_format format)
       return NULL;
     }
 
-  stream = arts_record_stream ((int) rate, 16, (!!stereo)+1, "Zapping");
+  stream = arts_record_stream ((int) sampling_rate, 16, (!!stereo)+1, "Zapping");
 
   /* FIXME: can this really fail? */
   if (!stream)
@@ -80,7 +85,7 @@ arts_open (gboolean stereo, guint rate, enum audio_format format)
 
   h->stream = stream;
   h->stereo = !!stereo;
-  h->sampling_rate = rate;
+  h->sampling_rate = sampling_rate;
 
   h->time = 0.0;
 
@@ -92,7 +97,7 @@ arts_open (gboolean stereo, guint rate, enum audio_format format)
 }
 
 static void
-arts_close (gpointer handle)
+_close (gpointer handle)
 {
   arts_handle *h = handle;
 
@@ -102,9 +107,9 @@ arts_close (gpointer handle)
   g_free(handle);
 }
 
-static void
-_arts_read (gpointer handle, gpointer dest, guint num_bytes,
-	    double *timestamp)
+static gboolean
+_read (gpointer handle, gpointer dest, guint num_bytes,
+       double *timestamp)
 {
   arts_handle *h = handle;
   unsigned char *p;
@@ -159,14 +164,16 @@ _arts_read (gpointer handle, gpointer dest, guint num_bytes,
 	h->buffer_period_far =
           num_bytes / (double)(h->sampling_rate * 2 << h->stereo);
     }
+
+  return TRUE;
 }
 
 const audio_backend_info arts_backend =
 {
   name:		"KDE Sound Server (aRts)",
-  open:		arts_open,
-  close:	arts_close,
-  read:		_arts_read,
+  open:		_open,
+  close:	_close,
+  read:		_read,
 };
 
 #endif /* HAVE_ARTS */
