@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.33 2006-03-06 01:45:32 mschimek Exp $ */
+/* $Id: audio.c,v 1.34 2006-03-11 13:11:39 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -199,8 +199,8 @@ static pthread_t		loopback_id;
 static gboolean			have_loopback_thread;
 static volatile gboolean	loopback_quit;
 static volatile gboolean	loopback_quit_ack;
-static gpointer			loopback_src;
-static gpointer			loopback_dst;
+static mhandle *		loopback_src;
+static mhandle *		loopback_dst;
 
 tv_audio_line
 audio_loopback_mixer_line = {
@@ -314,8 +314,8 @@ loopback_thread			(void *			x)
 
 	    for (p = (int16_t *) buffer; p < (int16_t *) buffer_end; p += 2)
 	      {
-		p[0] = (p[0] * audio_loopback_mixer_line.volume[0]) / 256;
-		p[1] = (p[1] * audio_loopback_mixer_line.volume[1]) / 256;
+		p[0] = (p[0] * audio_loopback_mixer_line.volume[0]) >> 8;
+		p[1] = (p[1] * audio_loopback_mixer_line.volume[1]) >> 8;
 	      }
 	  }
 #elif Z_BYTE_ORDER == Z_BIG_ENDIAN
@@ -327,12 +327,12 @@ loopback_thread			(void *			x)
 		gint n;
 
 		n = ((p[0] + p[1] * 256)
-		     * audio_loopback_mixer_line.volume[0]) / 256;
+		     * audio_loopback_mixer_line.volume[0]) >> 8;
 		p[0] = n;
 		p[1] = n >> 8;
 
 		n = ((p[2] + p[3] * 256)
-		     * audio_loopback_mixer_line.volume[1]) / 256;
+		     * audio_loopback_mixer_line.volume[1]) >> 8;
 		p[2] = n;
 		p[3] = n >> 8;
 	      }
@@ -645,7 +645,7 @@ devices_audio_source_setup	(GtkWidget *		page)
   if (0 == strcmp (audio_source, "kernel"))
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (widget), TRUE);
 
-  /* XXX "oss"? */
+  /* XXX "oss_"? */
   list = oss_pcm_scan (NULL, NULL);
 
   alignment = lookup_widget (page, "devices-audio-kernel-alignment");
