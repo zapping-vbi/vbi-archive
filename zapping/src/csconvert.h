@@ -21,6 +21,13 @@ typedef struct {
   const void *		user_data;
 } CSFilter;
 
+typedef struct {
+  tv_pixfmt_set		src_pixfmt_set;
+  tv_pixfmt_set		dst_pixfmt_set;
+  CSConverter_fn *	convert;
+  const void *		user_data;
+} CSFilters;
+
 /**
  * Try to find an available converter, returns -1 on error or the
  * converter id on success.
