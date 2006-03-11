@@ -79,6 +79,10 @@ check_PROGRAMS = \
 	memcpy \
 	simd
 
+convert_image_LDADD = \
+	-lm \
+	$(top_builddir)/libtv/libtv.la
+
 check_SCRIPTS = \
 	simd-emu.sh
 
