@@ -16,27 +16,23 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: convert_image.c,v 1.3 2006-03-06 01:48:15 mschimek Exp $ */
+/* $Id: convert_image.c,v 1.4 2006-03-11 13:12:38 mschimek Exp $ */
 
+#define _GNU_SOURCE 1
 #undef NDEBUG
 
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <math.h>		/* lrint() */
 #include "libtv/cpu.h"
 #include "libtv/rgb2rgb.h"
+#include "libtv/yuv2rgb.h"
 #include "libtv/yuv2yuv.h"
 #include "libtv/misc.h"		/* FFS() */
 #include "guard.h"
 
 #define ERASE(var) memset (&(var), 0xAA, sizeof (var))
-/*
-extern tv_bool
-_tv_sbggr_to_rgb		(void *			dst_image,
-				 const tv_image_format *dst_format,
-				 const void *		src_image,
-				 const tv_image_format *src_format);
-*/
 
 tv_bool				fast = 0;
 
@@ -88,6 +84,15 @@ get_pixel			(const uint8_t *	src,
 	byte = (x * pf->bits_per_pixel) >> 3;
 
 	switch (format->pixel_format->pixfmt) {
+	case TV_PIXFMT_NV12:
+		x2 = x & ~1;
+		y2 = y >> pf->uv_vshift;
+		s1 = src + y2 * format->bytes_per_line[1] + format->offset[1];
+		return (+ s0[x]
+			+ (s1[x2 + 0] << 8)
+			+ (s1[x2 + 1] << 16)
+			+ 0xFF000000);
+
 	case TV_PIXFMT_YUV444:
 	case TV_PIXFMT_YUV422:
 	case TV_PIXFMT_YUV411:
@@ -282,6 +287,114 @@ get_avg_pixel			(const uint8_t *	src,
 }
 
 static void
+compare_images_straight		(const uint8_t *	dst,
+				 const tv_image_format *dst_format,
+				 const uint8_t *	src,
+				 const tv_image_format *src_format,
+				 unsigned int		and_mask,
+				 unsigned int		d_mask,
+				 unsigned int		s_mask)
+{
+	const tv_pixel_format *dst_pf;
+	const tv_pixel_format *src_pf;
+	unsigned int x;
+	unsigned int y;
+
+	dst_pf = dst_format->pixel_format;
+	src_pf = src_format->pixel_format;
+
+	for (y = 0; y < dst_format->height; ++y) {
+		for (x = 0; x < dst_format->width; ++x) {
+			unsigned int d, s;
+
+			d = get_avg_pixel (dst, dst_format, x, y,
+					   src_pf->uv_hshift,
+					   src_pf->uv_vshift);
+			s = get_avg_pixel (src, src_format, x, y,
+					   dst_pf->uv_hshift,
+					   dst_pf->uv_vshift);
+
+			if ((d | d_mask) != ((s & and_mask) | s_mask)) {
+				fprintf (stderr,
+					 "x=%u y=%u d=%08x s=%08x "
+					 "%08x %08x %08x\n",
+					 x, y, d, s,
+					 d_mask, s_mask, and_mask);
+				assert (0);
+			}
+		}
+	}
+
+}
+
+static void
+compare_images_yuv2rgb		(const uint8_t *	dst,
+				 const tv_image_format *dst_format,
+				 const uint8_t *	src,
+				 const tv_image_format *src_format,
+				 unsigned int		and_mask,
+				 unsigned int		d_mask,
+				 unsigned int		s_mask)
+{
+	const tv_pixel_format *dst_pf;
+	const tv_pixel_format *src_pf;
+	unsigned int x;
+	unsigned int y;
+
+	dst_pf = dst_format->pixel_format;
+	src_pf = src_format->pixel_format;
+
+	for (y = 0; y < dst_format->height; ++y) {
+		for (x = 0; x < dst_format->width; ++x) {
+			unsigned int d, s;
+			double Y, U, V;
+			long int r, g, b;
+			long int r_min, g_min, b_min;
+			long int r_max, g_max, b_max;
+
+			d = get_pixel (dst, dst_format, x, y);
+			s = get_pixel (src, src_format, x, y);
+
+			Y = ((int)((s >> 0) & 0xFF) - 16) * 255 / 219.0;
+			U = ((int)((s >> 8) & 0xFF) - 128) * 255 / 224.0;
+			V = ((int)((s >> 16) & 0xFF) - 128) * 255 / 224.0;
+
+			r = lrint (Y             + 1.402 * V);
+			g = lrint (Y - 0.344 * U - 0.714 * V);
+			b = lrint (Y + 1.772 * U);
+
+			r_min = SATURATE (r - 2, 0L, 255L) & (and_mask >> 0);
+			r_max = SATURATE (r + 2, 0L, 255L) & (and_mask >> 0);
+
+			g_min = SATURATE (g - 2, 0L, 255L) & (and_mask >> 8);
+			g_max = SATURATE (g + 2, 0L, 255L) & (and_mask >> 8);
+
+			b_min = SATURATE (b - 2, 0L, 255L) & (and_mask >> 16);
+			b_max = SATURATE (b + 2, 0L, 255L) & (and_mask >> 16);
+
+			if (0 != (0xFF000000 & (d ^ and_mask))
+			    || (long int)((d >> 0) & 0xFF) < r_min
+			    || (long int)((d >> 0) & 0xFF) > r_max
+			    || (long int)((d >> 8) & 0xFF) < g_min
+			    || (long int)((d >> 8) & 0xFF) > g_max
+			    || (long int)((d >> 16) & 0xFF) < b_min
+			    || (long int)((d >> 16) & 0xFF) > b_max) {
+				fprintf (stderr,
+					 "x=%u y=%u d=%08x s=%08x "
+					 "%02lx-%02lx %02lx-%02lx %02lx-%02lx "
+					 "%08x %08x %08x\n",
+					 x, y, d, s,
+					 r_min, r_max,
+					 g_min, g_max,
+					 b_min, b_max,
+					 d_mask, s_mask, and_mask);
+				assert (0);
+			}
+		}
+	}
+}
+
+static void
 compare_images			(const uint8_t *	dst,
 				 const tv_image_format *dst_format,
 				 const uint8_t *	src,
@@ -293,8 +406,6 @@ compare_images			(const uint8_t *	dst,
 	unsigned int and_mask;
 	unsigned int d_mask;
 	unsigned int s_mask;
-	unsigned int x;
-	unsigned int y;
 
 	dst_pf = dst_format->pixel_format;
 	src_pf = src_format->pixel_format;
@@ -312,26 +423,17 @@ compare_images			(const uint8_t *	dst,
 		s_mask = 0xFF000000;
 	}
 
-	for (y = 0; y < dst_format->height; ++y) {
-		for (x = 0; x < dst_format->width; ++x) {
-			unsigned int d, s;
-
-			d = get_avg_pixel (dst, dst_format, x, y,
-					   src_pf->uv_hshift,
-					   src_pf->uv_vshift);
-			s = get_avg_pixel (src, src_format, x, y,
-					   dst_pf->uv_hshift,
-					   dst_pf->uv_vshift);
-
-			if ((d | d_mask) != ((s & and_mask) | s_mask)) {
-				fprintf (stderr,
-					 "x=%3u y=%3u d=%08x s=%08x "
-					 "%08x %08x %08x\n",
-					 x, y, d, s,
-					 d_mask, s_mask, and_mask);
-				assert (0);
-			}
-		}
+	if (TV_PIXFMT_IS_RGB (dst_pf->pixfmt)
+	    == TV_PIXFMT_IS_RGB (src_pf->pixfmt)) {
+		compare_images_straight (dst, dst_format,
+					 src, src_format,
+					 and_mask, d_mask, s_mask);
+	} else if (TV_PIXFMT_IS_RGB (dst_pf->pixfmt)) {
+		compare_images_yuv2rgb (dst, dst_format,
+					src, src_format,
+					and_mask, d_mask, s_mask);
+	} else {
+		assert (0);
 	}
 }
 
@@ -370,20 +472,19 @@ static void
 check_padding			(const tv_image_format *format)
 {
 	const tv_pixel_format *pf;
+	unsigned int order[3];
+	unsigned int bw[3];
 	const uint8_t *p;
 	const uint8_t *end;
-	unsigned int bw[3];
+	unsigned int i;
 
 	pf = format->pixel_format;
 
-	if (pf->planar) {
-		unsigned int order[3];
-		unsigned int i;
+	bw[0] = (format->width * pf->bits_per_pixel) >> 3;
+	bw[1] = format->width >> pf->uv_hshift;
+	bw[2] = bw[1];
 
-		bw[0] = (format->width * pf->bits_per_pixel) >> 3;
-		bw[1] = format->width >> pf->uv_hshift;
-		bw[2] = bw[1];
-
+	if (pf->n_planes > 2) {
 		order[0] = (format->offset[1] < format->offset[0]);
 
 		if (format->offset[2] < format->offset[order[0] ^ 1]) {
@@ -398,43 +499,32 @@ check_padding			(const tv_image_format *format)
 			order[1] = order[0] ^ 1;
 			order[2] = 2;
 		}
-
-		p = dst_buffer;
-
-		for (i = 0; i < 3; ++i) {
-			unsigned int count;
-			unsigned int j;
-
-			j = order[i];
-
-			end = dst_buffer + format->offset[j];
-			assert_is_aa (p, end);
-			p = end;
-
-			for (count = format->height - 1; count > 0; --count) {
-				end = p + format->bytes_per_line[j];
-				assert_is_aa (p + bw[j], end);
-				p = end;
-			}
-
-			p += bw[j];
-		}
+	} else if (pf->n_planes > 1) {
+		order[0] = (format->offset[1] < format->offset[0]);
+		order[1] = order[0] ^ 1;
 	} else {
+		order[0] = 0;
+	}
+
+	p = dst_buffer;
+
+	for (i = 0; i < pf->n_planes; ++i) {
 		unsigned int count;
+		unsigned int j;
 
-		bw[0] = (format->width * pf->bits_per_pixel) >> 3;
+		j = order[i];
 
-		end = dst_buffer + format->offset[0];
-		assert_is_aa (dst_buffer, end);
+		end = dst_buffer + format->offset[j];
+		assert_is_aa (p, end);
 		p = end;
 
 		for (count = format->height - 1; count > 0; --count) {
-			end = p + format->bytes_per_line[0];
-			assert_is_aa (p + bw[0], end);
+			end = p + format->bytes_per_line[j];
+			assert_is_aa (p + bw[j], end);
 			p = end;
 		}
 
-		p += bw[0];
+		p += bw[j];
 	}
 
 	assert_is_aa (p, dst_buffer_end);
@@ -457,7 +547,7 @@ min_size			(tv_image_format *	format)
 		+ format->bytes_per_line[0] * (format->height - 1)
 		+ ((format->width * pf->bits_per_pixel) >> 3);
 
-	if (pf->planar) {
+	if (pf->n_planes > 2) {
 		unsigned int uv_width;
 		unsigned int uv_height_m1;
 
@@ -470,6 +560,17 @@ min_size			(tv_image_format *	format)
 			+ format->bytes_per_line[2] * uv_height_m1;
 
 		return MAX (end[0], MAX (end[1], end[2]));
+	} else if (pf->n_planes > 1) {
+		unsigned int uv_width;
+		unsigned int uv_height_m1;
+
+		uv_width = format->width >> pf->uv_hshift;
+		uv_height_m1 = (format->height >> pf->uv_vshift) - 1;
+
+		end[1] = format->offset[1] + uv_width
+			+ format->bytes_per_line[1] * uv_height_m1;
+
+		return MAX (end[0], end[1]);
 	} else {
 		return end[0];
 	}
@@ -527,6 +628,39 @@ test				(uint8_t *		dst,
 	memset (dst_buffer, 0xAA, dst_buffer_end - dst_buffer);
 
 	switch (src_format.pixel_format->pixfmt) {
+	case TV_PIXFMT_NV12:
+		hshift = 1;
+		switch (dst_format.pixel_format->pixfmt) {
+		case TV_PIXFMT_YUV420:
+		case TV_PIXFMT_YVU420:
+			success = _tv_nv_to_yuv420 (dst, &dst_format,
+						    src, &src_format);
+			break;
+		case TV_PIXFMT_YUYV:
+		case TV_PIXFMT_UYVY:
+		case TV_PIXFMT_YVYU:
+		case TV_PIXFMT_VYUY:
+			hshift = 1;
+			success = _tv_nv_to_yuyv (dst, &dst_format,
+						  src, &src_format);
+			break;
+		case TV_PIXFMT_RGBA32_LE:
+		case TV_PIXFMT_RGBA32_BE:
+		case TV_PIXFMT_BGRA32_LE:
+		case TV_PIXFMT_BGRA32_BE:
+		case TV_PIXFMT_RGB24_LE:
+		case TV_PIXFMT_RGB24_BE:
+		case TV_PIXFMT_BGR16_LE:
+		case TV_PIXFMT_BGR16_BE:
+		case TV_PIXFMT_BGRA16_LE:
+		case TV_PIXFMT_BGRA16_BE:
+			success = _tv_nv_to_rgb (dst, &dst_format,
+						 src, &src_format);
+			break;
+		default:
+			assert (0);
+		}
+		break;
 	case TV_PIXFMT_YUV420:
 	case TV_PIXFMT_YVU420:
 		switch (dst_format.pixel_format->pixfmt) {
@@ -542,6 +676,19 @@ test				(uint8_t *		dst,
 			hshift = 1;
 			success = _tv_yuv420_to_yuyv (dst, &dst_format,
 						      src, &src_format);
+			break;
+		case TV_PIXFMT_RGBA32_LE:
+		case TV_PIXFMT_RGBA32_BE:
+		case TV_PIXFMT_BGRA32_LE:
+		case TV_PIXFMT_BGRA32_BE:
+		case TV_PIXFMT_RGB24_LE:
+		case TV_PIXFMT_RGB24_BE:
+		case TV_PIXFMT_BGR16_LE:
+		case TV_PIXFMT_BGR16_BE:
+		case TV_PIXFMT_BGRA16_LE:
+		case TV_PIXFMT_BGRA16_BE:
+			success = _tv_yuv420_to_rgb (dst, &dst_format,
+						     src, &src_format);
 			break;
 		default:
 			assert (0);
@@ -564,6 +711,19 @@ test				(uint8_t *		dst,
 		case TV_PIXFMT_VYUY:
 			success = _tv_yuyv_to_yuyv (dst, &dst_format,
 						    src, &src_format);
+			break;
+		case TV_PIXFMT_RGBA32_LE:
+		case TV_PIXFMT_RGBA32_BE:
+		case TV_PIXFMT_BGRA32_LE:
+		case TV_PIXFMT_BGRA32_BE:
+		case TV_PIXFMT_RGB24_LE:
+		case TV_PIXFMT_RGB24_BE:
+		case TV_PIXFMT_BGR16_LE:
+		case TV_PIXFMT_BGR16_BE:
+		case TV_PIXFMT_BGRA16_LE:
+		case TV_PIXFMT_BGRA16_BE:
+			success = _tv_yuyv_to_rgb (dst, &dst_format,
+						   src, &src_format);
 			break;
 		default:
 			assert (0);
@@ -622,19 +782,21 @@ test				(uint8_t *		dst,
 	FAIL_IF (byte_width (&dst_format, 0) > dst_format.bytes_per_line[0]);
 	FAIL_IF (byte_width (&src_format, 0) > src_format.bytes_per_line[0]);
 
-	if (dst_pf->planar) {
-		FAIL_IF (byte_width (&dst_format, 1)
-			 > dst_format.bytes_per_line[1]);
+	if (dst_pf->n_planes > 2)
 		FAIL_IF (byte_width (&dst_format, 2)
 			 > dst_format.bytes_per_line[2]);
-	}
 
-	if (src_pf->planar) {
-		FAIL_IF (byte_width (&src_format, 1)
-			 > src_format.bytes_per_line[1]);
+	if (dst_pf->n_planes > 1)
+		FAIL_IF (byte_width (&dst_format, 1)
+			 > dst_format.bytes_per_line[1]);
+
+	if (src_pf->n_planes > 2)
 		FAIL_IF (byte_width (&src_format, 2)
 			 > src_format.bytes_per_line[2]);
-	}
+
+	if (src_pf->n_planes > 1)
+		FAIL_IF (byte_width (&src_format, 1)
+			 > src_format.bytes_per_line[1]);
 
 	assert (success);
 
@@ -799,7 +961,7 @@ unaligned_planar			(void)
 			dst_format.offset[0] = unaligned[j][0];
 			dst_format.bytes_per_line[0] = dst_y_bpl
 				+ unaligned[j][1];
-			if (dst_format.pixel_format->planar) {
+			if (dst_format.pixel_format->n_planes > 1) {
 				dst_format.offset[1] = (dst_y_bpl * 16)
 					* (dst_format.height + 1)
 					+ unaligned[j][2];
@@ -818,7 +980,7 @@ unaligned_planar			(void)
 			src_format.offset[0] = unaligned[i][0];
 			src_format.bytes_per_line[0] =
 				src_y_bpl + unaligned[i][1];
-			if (src_format.pixel_format->planar) {
+			if (src_format.pixel_format->n_planes > 1) {
 				src_format.offset[1] = unaligned[i][2];
 				src_format.bytes_per_line[1] =
 					src_uv_bpl + unaligned[i][3];
@@ -837,7 +999,7 @@ unaligned_planar			(void)
 
 	dst_format.offset[0] = 2 * dst_y_bpl * dst_format.height;
 	dst_format.bytes_per_line[0] = dst_y_bpl;
-	if (dst_format.pixel_format->planar) {
+	if (dst_format.pixel_format->n_planes > 1) {
 		dst_format.offset[1] = 1 * dst_y_bpl * dst_format.height;
 		dst_format.bytes_per_line[1] = dst_uv_bpl;
 		dst_format.offset[2] = 0 * dst_y_bpl * dst_format.height;
@@ -847,7 +1009,7 @@ unaligned_planar			(void)
 
 	src_format.offset[0] = 0;
 	src_format.bytes_per_line[0] = src_y_bpl;
-	if (dst_format.pixel_format->planar) {
+	if (dst_format.pixel_format->n_planes > 1) {
 		src_format.offset[1] = 0;
 		src_format.bytes_per_line[1] = src_uv_bpl;
 		src_format.offset[2] = 0;
@@ -861,7 +1023,7 @@ unaligned_planar			(void)
 		overflow_planar ();
 		dst_format.bytes_per_line[0] = dst_y_bpl;
 
-		if (dst_format.pixel_format->planar) {
+		if (dst_format.pixel_format->n_planes > 1) {
 			short_bpl = ((dst_format.width - 16) * dst_bpp)
 				>> dst_format.pixel_format->uv_hshift;
 			dst_format.bytes_per_line[1] = short_bpl;
@@ -881,7 +1043,7 @@ unaligned_planar			(void)
 		overflow_planar ();
 		src_format.bytes_per_line[0] = src_y_bpl;
 
-		if (dst_format.pixel_format->planar) {
+		if (dst_format.pixel_format->n_planes > 1) {
 			short_bpl = ((src_format.width - 16) * src_bpp)
 				>> src_format.pixel_format->uv_hshift;
 			src_format.bytes_per_line[1] = short_bpl;
@@ -905,8 +1067,8 @@ all_sizes			(void)
 	unsigned int i;
 	tv_bool planar;
 
-	planar = (dst_format.pixel_format->planar
-		  | src_format.pixel_format->planar);
+	planar = ((dst_format.pixel_format->n_planes
+		   | src_format.pixel_format->n_planes) > 1);
 
 	for (i = 0; i < N_ELEMENTS (heights); ++i) {
 		static unsigned int widths[] = {
@@ -938,7 +1100,7 @@ all_sizes			(void)
 
 			if (fast)
 				return;
-continue;
+
 			if (src_format.width > 5) {
 				dst_format.width = src_format.width - 5;
 				dst_format.height = src_format.height;
@@ -982,6 +1144,7 @@ static void
 all_formats			(void)
 {
 	static const tv_pixfmt src_formats[] = {
+		TV_PIXFMT_NV12,
 		TV_PIXFMT_YUV420,
 		TV_PIXFMT_YVU420,
 		TV_PIXFMT_YUYV,
@@ -1022,8 +1185,8 @@ all_formats			(void)
 
 	for (i = 0; i < N_ELEMENTS (src_formats); ++i) {
 		for (j = 0; j < N_ELEMENTS (dst_formats); ++j) {
-			if (TV_PIXFMT_IS_RGB (dst_formats[j])
-			    != TV_PIXFMT_IS_RGB (src_formats[i]))
+			if (TV_PIXFMT_IS_RGB (src_formats[i])
+			    && !TV_PIXFMT_IS_RGB (dst_formats[j]))
 				continue; /* later */
 
 			dst_format.pixel_format =
@@ -1049,7 +1212,7 @@ main				(int			argc,
 	unsigned int scatter_size;
 	unsigned int i;
 
-	buffer_size = 20 * 4096;
+	buffer_size = 32 * 4096;
 
 	src_buffer = guard_alloc (buffer_size);
 	src_buffer_end = src_buffer + buffer_size;
