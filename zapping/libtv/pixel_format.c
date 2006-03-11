@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.c,v 1.5 2005-07-16 21:12:05 mschimek Exp $ */
+/* $Id: pixel_format.c,v 1.6 2006-03-11 13:15:00 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"		/* Z_BYTE_ORDER */
@@ -117,7 +117,7 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
 }
 
 #define PIXEL_FORMAT(pixfmt, colspc, bits_per_pixel, color_depth,	\
-		     uv_hshift, uv_vshift, big_endian, planar,		\
+		     uv_hshift, uv_vshift, big_endian, n_planes,	\
 		     vu_order, r, g, b, a)				\
 	{ #pixfmt,							\
 	  TV_PIXFMT_##pixfmt,						\
@@ -127,7 +127,7 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
 	  uv_hshift,							\
 	  uv_vshift,							\
 	  big_endian,							\
-	  planar,							\
+	  n_planes,							\
 	  vu_order,							\
 	  .mask = { .rgb = { r, g, b, a } } }
 
@@ -136,21 +136,21 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
                  vu_order, x, y, z, a)					\
 	[TV_PIXFMT_##fmt] = PIXEL_FORMAT (fmt, colspc,			\
         	bits_per_pixel, color_depth, 0, 0, big_endian,		\
-		FALSE, vu_order, x, y, z, a)
+		1, vu_order, x, y, z, a)
 
 #elif Z_BYTE_ORDER == Z_BIG_ENDIAN
 #  define PACKED(fmt, colspc, bits_per_pixel, color_depth, big_endian,	\
 	         vu_order, x, y, z, a)					\
 	[TV_PIXFMT_##fmt] = PIXEL_FORMAT (fmt, colspc,			\
         	bits_per_pixel, color_depth, 0, 0, !(big_endian),	\
-		FALSE, vu_order, x, y, z, a)
+		1, vu_order, x, y, z, a)
 #else
 #  error unknown endianess
 #endif
 
 #define PLANAR(fmt, color_depth, uv_hshift, uv_vshift, vu_order)	\
 	[TV_PIXFMT_##fmt] = PIXEL_FORMAT (fmt, TV_COLSPC_YUV, 8,	\
-		color_depth, uv_hshift,	uv_vshift, FALSE, TRUE,		\
+		color_depth, uv_hshift,	uv_vshift, FALSE, 3,		\
 		vu_order, 0xFF, 0xFF, 0xFF, 0)
 
 #define PACKED_YUV24(fmt, bpp, vu_order, x, y, z, a)			\
@@ -161,7 +161,7 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
 
 #define YUYV(fmt, vu_order)						\
 	[TV_PIXFMT_##fmt] = PIXEL_FORMAT (fmt, TV_COLSPC_YUV, 16,	\
-		16, 0, 0, FALSE, FALSE, vu_order, 0xFF, 0xFF, 0xFF, 0)
+		16, 0, 0, FALSE, 1, vu_order, 0xFF, 0xFF, 0xFF, 0)
 
 #define PACKED_RGB24(fmt, bpp, x, y, z, a)				\
 	PACKED(fmt##_LE, TV_COLSPC_RGB,					\
@@ -190,8 +190,10 @@ pixel_formats [] = {
 	PLANAR (YUV420, 12, 1, 1, FALSE), 
 	PLANAR (YVU420, 12, 1, 1, TRUE), 
 	PLANAR (YUV410,  9, 2, 2, FALSE), 
-	PLANAR (YVU410,  9, 2, 2, TRUE), 
-	PLANAR (NV12,   12, 0, 1, FALSE),
+	PLANAR (YVU410,  9, 2, 2, TRUE),
+	[TV_PIXFMT_NV12] = PIXEL_FORMAT (NV12, TV_COLSPC_YUV, 8,
+					 12, 0, 1, FALSE, /* n_planes */ 2,
+					 FALSE, 0xFF, 0xFF, 0xFF, 0),
 
 	PACKED_YUV24 (YUVA32, 32, FALSE, 0xFF, 0xFF00, 0xFF0000, 0xFF000000),
 	PACKED_YUV24 (YVUA32, 32,  TRUE, 0xFF, 0xFF0000, 0xFF00, 0xFF000000),
@@ -205,7 +207,7 @@ pixel_formats [] = {
 	YUYV (VYUY,  TRUE),
 
 	[TV_PIXFMT_Y8] = PIXEL_FORMAT (Y8, TV_COLSPC_YUV, 8, 8,
-				       0, 0, FALSE, FALSE, FALSE,
+				       0, 0, FALSE, 1, FALSE,
 				       0xFF, 0, 0, 0),
 
 	PACKED_RGB24 (RGBA32, 32, 0xFF, 0xFF00, 0xFF0000, 0xFF000000),
@@ -238,7 +240,7 @@ pixel_formats [] = {
 	PACKED8 (ABGR8, 0xC0, 0x38, 0x06, 0x01),
 
 	[TV_PIXFMT_SBGGR] = PIXEL_FORMAT (SBGGR, TV_COLSPC_RGB, 8, 24,
-					  0, 0, FALSE, FALSE, FALSE,
+					  0, 0, FALSE, 1, FALSE,
 					  0xFF, 0xFF, 0xFF, 0),
 };
 
@@ -296,6 +298,7 @@ tv_pixel_format_to_pixfmt	(const tv_pixel_format *format)
 	unsigned int mask_a;
 	unsigned int r_msb;
 	unsigned int a_lsb;
+
 
 	assert (NULL != format);
 

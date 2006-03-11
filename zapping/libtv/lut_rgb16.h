@@ -16,15 +16,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lut_rgb16.h,v 1.1 2006-02-25 17:37:42 mschimek Exp $ */
+/* $Id: lut_rgb16.h,v 1.2 2006-03-11 13:15:00 mschimek Exp $ */
 
 /* Look-up tables for image format conversion. */
 
-#ifndef IMAGE_FORMAT_LUT_H
-#define IMAGE_FORMAT_LUT_H
+#ifndef LUT_RGB16_H
+#define LUT_RGB16_H
 
 #include <inttypes.h>
 
-extern const uint16_t		_tv_lut_rgb16[2][6][256];
+extern const uint16_t		_tv_lut_rgb16 [2][6][256];
 
-#endif /* IMAGE_FORMAT_LUT_H */
+#endif /* LUT_RGB16_H */

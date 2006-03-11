@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lut_rgb16-gen.c,v 1.1 2006-02-25 17:37:42 mschimek Exp $ */
+/* $Id: lut_rgb16-gen.c,v 1.2 2006-03-11 13:15:00 mschimek Exp $ */
 
 /*  Generates look-up tables for image format conversion. */
 
@@ -27,8 +27,8 @@
 
 static uint16_t			lut_rgb16[2][6][256];
 
-static void
-rgb				(void)
+int
+main				(void)
 {
 	unsigned int i;
 
@@ -65,7 +65,7 @@ rgb				(void)
 	       "#include <inttypes.h>\n"
 	       "\n"
 	       "const uint16_t\n"
-	       "_tv_lut_rgb16[2][6][256] = {\n\t", stdout);
+	       "_tv_lut_rgb16 [2][6][256] = {\n\t", stdout);
 
 	for (i = 0; i < 2; ++i) {
 		unsigned int j;
@@ -92,12 +92,6 @@ rgb				(void)
 	}
 
 	fputs ("\n};\n\n", stdout);
-}
-
-int
-main				(void)
-{
-	rgb ();
 
 	exit (EXIT_SUCCESS);
 

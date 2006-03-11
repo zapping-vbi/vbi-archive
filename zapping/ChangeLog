@@ -1,3 +1,98 @@
+2006-03-11    <mschimek@users.sf.net>
+
+	* src/x11stuff.h, src/x11stuff.c (x11_error_handler): Now public to
+	  avoid code duplication in video_xv.c and tvengxv.c.
+	* src/video_xv.c: Use x11stuff.c X error handler instead of a local copy.
+	* src/tvengxv.c: Use tveng_device_info.overlay.xv_port_id instead
+	  of a private port_id to permit code sharing with other
+	  controllers. Replaced direct XVideo calls by wrapper functions
+	  with logging and proper error checking.
+	* src/tvengxv.c, src/tvengxv.h (_tv_xv_stop_video, _tv_xv_put_video)
+	(_tv_xv_get_port_attribute, _tv_xv_set_port_attribute)
+	(_tv_xv_ungrab_port, _tv_xv_grab_port): New public wrappers around
+	  XVideo functions with --io-debug logging and industrial strength
+	  error checking. Also used by tveng25.c.
+	* src/tveng_private.h (tveng_module_info): New change_attach_mode
+	  interface.
+	(overlay_device): New xv_port_id field, for tvengxv.c and other
+	  controllers which can use XVideo.
+	* src/tveng25.c: Probe the XVideo adaptors and ports to find the
+	  XVideo-V4L wrapper and use XvPutVideo() instead of setting up an
+	  overlay DMA directly. Not enabled yet. Unlike tvengxv.c we will be
+	  able to access all the controls, inputs and stuff. Switching
+	  between capture and overlay mode will be faster and easier.
+	(get_overlay_buffer): Update overlay capabilities. attach_device()
+	  used to call VIDIOC_G_FBUF twice, once to get capabilities and
+	  again to get current frame buffer parameters.
+	(tveng25_change_attach_mode): Allow mode switches without querying
+	  all the driver parameters. Not enabled yet.
+	* src/tveng1.c: Added preliminary XVideo port probe code, not
+	  enabled yet.
+	* src/tveng.h: Added TVENG_CAPS_XVIDEO. Future tveng1.c and tveng25.c
+	  will support XVideo for overlay programming. tvengxv.c sets
+	  this flag too.
+	* src/tveng_private.h (tveng_device_info),
+	  src/tveng.c (p_tv_enable_overlay): Skip overlay window visibility
+	  and frame buffer checks in enable_overlay() only if the controller
+	  supports XVideo (which is no longer limited to tvengxv.c)
+	  AND the client uses the XVideo interface.
+	* src/tveng.c: Testing XVideo support and change_attach_mode
+	  shortcut in tveng25.c. This code is not enabled yet.
+	(tveng_attach_device): Dump new overlay.xv_port_id.
+	(round_boundary_4): Signedness fix.
+	* src/overlay.c: Check new TVENG_CAPS_XVIDEO instead of
+	  TVENG_CONTROLLER_XV because in the future tveng1.c and tveng25.c
+	  will support XVideo for overlay programming.
+
+	* src/zmisc.c (tv_get_attach_mode), src/overlay.c (start_overlay),
+	  src/fullscreen.c (start_fullscreen): Removed redundant
+	  tveng_close_device() before tveng_attach_device().
+
+	* src/audio.c (loopback_thread): Volume scaling doesn't have to be
+	  perfectly accurate, signed shift instead of / 256 will do.
+
+	* libtv/yuv2yuv.c: Minor optimizations.
+	(SIMD_SHUFFLE, YUV420_YUYV): Didn't emms. 
+	* libtv/simd-consts.h: Make sure we get 16 byte alignment. 
+	* libtv/rgb2rgb.c: Minor optimizations.
+	* libtv/pixel_format.h (tv_pixfmt): Reordered YUYV formats to
+	  simplify conversions.
+	(TV_PIXFMT_SET_ALL): Accidentally added SBGGR twice.
+	* src/video_mem.c, src/video_xv.c:
+	* libtv/pixel_format.c, libtv/pixel_format.h:
+	* test/convert_image.c: Added YUV to RGB conversion tests.
+	* test/Makefile.am (convert_image_LDADD): Added -lm for YUV to RGB
+	  conversion tests.
+	* src/yuv2rgb.h, src/yuv2rgb.c: Replaced mpeg2dec scalar and x86-only
+	  MMX YUV420 to RGB and YUYV to RGB functions by libtv/yuv2rgb.c
+	  routines. Replaced dummy NV12 to RGB test functions by the real
+	  thing in libtv/yuv2rgb.c.
+	* src/csconvert.h, src/csconvert.c: Use the new yuv2yuv.c and
+	  yuv2rgb.c routines.
+	* src/csconvert.c:
+	(lookup_csconvert): Was called before initializing the conversion table.
+	(nv12_yuv420): Moved into yuv2yuv.c.
+	* libtv/simd-conv.h: Fixes and improvements for yuv2rgb.c.
+	(store_rgb16): Added saturating conversions to RGB16.
+	(fast_yuv2rgb): Added for yuv2rgb.c.
+	* libtv/simd.h: Added vsplatu8_F8 and _FC for RGB16 conversions. 
+	  Fixed signedness of vpacksu16(). Added vmulhi16() for YUV to RGB
+	  conversion.
+	(SIMD_FN_ARRAY_PROTOS): Permit multidimensional arrays.
+	* libtv/image_format.c: Replaced tv_pixel_format.planar by n_planes
+	  to simplify NV12 checks.
+	* libtv/yuv2yuv.h, libtv/yuv2yuv.c: Added NV12 to YUYV and YUV420
+	  converters.
+	* libtv/yuv2rgb.c, libtv/yuv2rgb.h: New image conversion routines.
+	* libtv/yuv2rgb-gen.c: New generator of YUV to RGB conversion lookup
+	  tables and SIMD consts.
+	* libtv/Makefile.am (BUILT_SOURCES): Added lut_yuv2rgb.c, lut_yuv2rgb.h.
+	(MAINTAINERCLEANFILES): Added lut_yuv2rgb-gen.
+	(EXTRA_DIST): Added lut_yuv2rgb-gen.c.
+	(SIMD_SOURCES): Added yuv2rgb.c, yuv2rgb.h.
+	(libtv_la_SOURCES): Added lut_yuv2rgb.c, lut_yuv2rgb.h.
+	(noinst_PROGRAMS): Added lut_yuv2rgb-gen.
+
 2006-03-06    <mschimek@users.sf.net>
 
 	* Prerelease 0.10cvs4.
@@ -66,7 +161,7 @@
 	  used in fullscreen.c, which uses tv_cur/set_capture_format() now.
 
 	* src/tveng.c: Accidentally disabled all APIs except V4L1.
-	(tveng_attach_device): Dump info->caps.flags with -d.
+	(tveng_attach_device): Dump tveng_device_info.caps.flags with -d.
 	
 	* src/zapping.c (crash_action): Unused parameter warnings.
 

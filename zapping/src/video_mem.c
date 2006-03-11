@@ -98,7 +98,7 @@ image_new (tv_pixfmt pixfmt, guint w, guint h)
   pf = tv_pixel_format_from_pixfmt (pixfmt);
   assert (NULL != pf);
 
-  if (pf->planar)
+  if (pf->n_planes > 1)
     return planar_image_new (pf, w, h);
 
   bpl = (w * pf->bits_per_pixel) >> 3;

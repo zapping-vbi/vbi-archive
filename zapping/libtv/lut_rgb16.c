@@ -3,7 +3,7 @@
 #include <inttypes.h>
 
 const uint16_t
-_tv_lut_rgb16[2][6][256] = {
+_tv_lut_rgb16 [2][6][256] = {
 	{
 		{
 			0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 

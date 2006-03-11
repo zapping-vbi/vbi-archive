@@ -1,6 +1,8 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* Option to mute if the video window is invisible?
+* http://www.geocities.com/beinges/index_nofla.htm
 * Recording won't work while the --esd-out audio loopback is active.
   Also bilingual recording (with monaural to speakers) isn't
   implemented yet.

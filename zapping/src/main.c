@@ -625,7 +625,7 @@ MAIN (PACKAGE_VERSION_ID)	(int			argc,
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.210 2006-03-06 01:44:16 mschimek Exp $",
+	 "$Id: main.c,v 1.211 2006-03-11 13:15:01 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
@@ -829,7 +829,7 @@ MAIN (PACKAGE_VERSION_ID)	(int			argc,
   D();
 
   if (tveng_attach_device(zcg_char(NULL, "video_device"),
-			  None,
+			  /* window */ None,
 			  TVENG_ATTACH_XV,
 			  info) == -1)
     {
@@ -864,7 +864,7 @@ MAIN (PACKAGE_VERSION_ID)	(int			argc,
 	      tv_set_filename (info, fallback_devices[i]);
   
 	      if (tveng_attach_device(fallback_devices[i],
-				      None,
+				      /* window */ None,
 				      TVENG_ATTACH_XV,
 				      info) != -1)
 		{
