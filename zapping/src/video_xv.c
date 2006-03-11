@@ -84,29 +84,6 @@ static struct {
 	int			num_ports;
 } formats [TV_MAX_PIXFMTS];
 
-/* Reflect all errors back to the program through the procedural
-   interface. The default error handler terminates the program.
-   XXX This code is not reentrant. */
-
-static unsigned long		error_code;
-
-static int
-my_error_handler		(Display *		display,
-				 XErrorEvent *		error)
-{
-  display = display;
-
-  error_code = error->error_code;
-
-  printv ("X Error: serial=%lu error=%lu request=%lu minor=%lu\n",
-	  (unsigned long) error->serial,
-	  (unsigned long) error->error_code,
-	  (unsigned long) error->request_code,
-	  (unsigned long) error->minor_code);
-
-  return 0; /* ignored */
-}
-
 static XvPortID
 grab_port (tv_pixfmt pixfmt)
 {
@@ -183,7 +160,7 @@ image_new			(tv_pixfmt		pixfmt,
   pimage = NULL;
   image_data = NULL;
 
-  old_error_handler = XSetErrorHandler (my_error_handler);
+  old_error_handler = XSetErrorHandler (x11_error_handler);
 
   display = GDK_DISPLAY ();
 
@@ -215,7 +192,7 @@ image_new			(tv_pixfmt		pixfmt,
 					&pimage->shminfo);
       if (NULL != pimage->image)
 	{
-	  Status success;
+	  Status status;
 
 	  pimage->shminfo.shmid = shmget (IPC_PRIVATE,
 					  (unsigned) pimage->image->data_size,
@@ -232,11 +209,11 @@ image_new			(tv_pixfmt		pixfmt,
 
 	  pimage->shminfo.readOnly = False;
 
-	  error_code = Success;
-	  success = XShmAttach (display, &pimage->shminfo);
+	  x11_error_code = Success;
+	  status = XShmAttach (display, &pimage->shminfo);
 	  XSync (display, /* discard events */ False);
 
-	  if (success && Success == error_code)
+	  if (0 != status && Success == x11_error_code)
 	    {
 	      /* Free the memory when the last attached
 		 process quits or aborts. Error ignored. */
@@ -266,7 +243,7 @@ image_new			(tv_pixfmt		pixfmt,
 
   if (NULL == pimage->image)
     {
-      if (pf->planar)
+      if (pf->n_planes > 1)
 	image_data = malloc ((pf->color_depth * width * height) >> 3);
       else
 	image_data = malloc ((pf->bits_per_pixel * width * height) >> 3);
