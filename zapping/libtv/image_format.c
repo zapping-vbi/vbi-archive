@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.17 2006-03-06 01:49:47 mschimek Exp $ */
+/* $Id: image_format.c,v 1.18 2006-03-11 13:13:48 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -71,7 +71,7 @@ tv_image_format_init		(tv_image_format *	format,
 	if (0 == width || 0 == height)
 		return FALSE;
 
-	if (pf->planar) {
+	if (pf->n_planes > 1) {
 		unsigned int hres;
 		unsigned int vres;
 
@@ -99,7 +99,7 @@ tv_image_format_init		(tv_image_format *	format,
 
 	format->offset[0] = 0;
 
-	if (pf->planar) {
+	if (pf->n_planes > 1) {
 		unsigned long uv_bpl;
 		unsigned long y_size;
 		unsigned long uv_size;
@@ -186,7 +186,7 @@ tv_image_format_is_valid	(const tv_image_format *format)
 	   for cropping. */
 	min_size = format->bytes_per_line[0] * (format->height - 1) + min_bpl;
 
-	if (pf->planar) {
+	if (pf->n_planes > 1) {
 		unsigned long min_uv_bpl;
 		unsigned long min_uv_size;
 		unsigned long min_u_size;
