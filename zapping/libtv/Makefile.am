@@ -1,14 +1,18 @@
 ## Process this file with automake to produce Makefile.in
 
 BUILT_SOURCES = \
-	lut_rgb16.c
+	lut_rgb16.c \
+	lut_yuv2rgb.c \
+	lut_yuv2rgb.h
 
 MAINTAINERCLEANFILES = \
-	lut_rgb16-gen
+	lut_rgb16-gen \
+	lut_yuv2rgb-gen
 
 EXTRA_DIST = \
 	$(BUILT_SOURCES) \
-	lut_rgb16-gen.c
+	lut_rgb16-gen.c \
+	lut_yuv2rgb-gen.c
 
 AM_CFLAGS = \
 	-D_GNU_SOURCE \
@@ -31,12 +35,11 @@ SIMD_CFLAGS += \
 endif
 
 SIMD_SOURCES = \
-	rgb2rgb.c \
-	rgb2rgb.h \
+	rgb2rgb.c rgb2rgb.h \
 	simd-consts.h \
 	simd-conv.h \
-	yuv2yuv.c \
-	yuv2yuv.h
+	yuv2rgb.c yuv2rgb.h \
+	yuv2yuv.c yuv2yuv.h
 
 INCLUDES = -I$(top_srcdir)
 
@@ -48,6 +51,7 @@ libtv_la_SOURCES = \
 	cpu.c cpu.h \
 	image_format.c image_format.h \
 	lut_rgb16.c lut_rgb16.h \
+	lut_yuv2rgb.c lut_yuv2rgb.h \
 	macros.h \
 	misc.c misc.h \
 	overlay_buffer.h \
@@ -85,7 +89,20 @@ noinst_LTLIBRARIES = \
 
 if MAINTAINER_MODE
 
+noinst_PROGRAMS = \
+	lut_rgb16-gen \
+	lut_yuv2rgb-gen
+
+lut_yuv2rgb_gen_LDADD = -lm
+
 lut_rgb16.c: lut_rgb16-gen Makefile.am
 	$(top_builddir)/libtv/lut_rgb16-gen$(EXEEXT) > $@
+
+
+lut_yuv2rgb.c: lut_yuv2rgb-gen Makefile.am
+	$(top_builddir)/libtv/lut_yuv2rgb-gen$(EXEEXT) > $@
+
+lut_yuv2rgb.h: lut_yuv2rgb-gen Makefile.am
+	$(top_builddir)/libtv/lut_yuv2rgb-gen$(EXEEXT) header > $@
 
 endif
