@@ -16,9 +16,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: yuv2yuv.c,v 1.1 2006-03-06 01:50:48 mschimek Exp $ */
+/* $Id: yuv2yuv.c,v 1.2 2006-03-11 13:11:50 mschimek Exp $ */
 
-/* C color conversion routines:
+/* YUV to YUV image format conversion functions:
 
    TV_PIXFMT_YUV420,
    TV_PIXFMT_YVU420,
@@ -53,7 +53,9 @@
 #include "simd-conv.h"
 #include "yuv2yuv.h"
 
-SIMD_FN_ARRAY_PROTOS (copy_plane_fn *, yuyv_to_yuyv_loops, 4 * 4)
+extern copy_plane_fn 		copy_plane_SCALAR;
+
+SIMD_FN_ARRAY_PROTOS (copy_plane_fn *, yuyv_to_yuyv_loops, [4 * 4])
 
 #if SIMD == CPU_FEATURE_ALTIVEC
 
@@ -92,6 +94,8 @@ _tv_shuffle_ ## a ## b ## c ## d ## _ALTIVEC				\
 		s += src_padding;					\
 		d += dst_padding;					\
 	}								\
+									\
+	vempty ();							\
 }
 
 SIMD_SHUFFLE (0, 3, 2, 1)
@@ -385,23 +389,23 @@ SHUFFLE (3, 2, 1, 0)
 copy_plane_fn *
 SIMD_NAME (yuyv_to_yuyv_loops) [4 * 4] = {
 	copy_plane_SCALAR,		/* YUYV -> YUYV */
-	SIMD_NAME (_tv_shuffle_0321),	/* YUYV -> YVYU */
 	SIMD_NAME (_tv_shuffle_1032),	/* YUYV -> UYVY */
+	SIMD_NAME (_tv_shuffle_0321),	/* YUYV -> YVYU */
 	SIMD_NAME (_tv_shuffle_3012),	/* YUYV -> VYUY */
 
-	SIMD_NAME (_tv_shuffle_0321),	/* YVYU -> YUYV */
-	copy_plane_SCALAR,		/* YVYU -> YVYU */
-	SIMD_NAME (_tv_shuffle_3012),	/* ... */
 	SIMD_NAME (_tv_shuffle_1032),
-
-	SIMD_NAME (_tv_shuffle_1032),
-	SIMD_NAME (_tv_shuffle_1230),
 	copy_plane_SCALAR,
+	SIMD_NAME (_tv_shuffle_1230),
 	SIMD_NAME (_tv_shuffle_2103),
 
-	SIMD_NAME (_tv_shuffle_1230),
+	SIMD_NAME (_tv_shuffle_0321),
+	SIMD_NAME (_tv_shuffle_3012),
+	copy_plane_SCALAR,
 	SIMD_NAME (_tv_shuffle_1032),
+
+	SIMD_NAME (_tv_shuffle_1230),
 	SIMD_NAME (_tv_shuffle_2103),
+	SIMD_NAME (_tv_shuffle_1032),
 	copy_plane_SCALAR
 };
 
@@ -426,20 +430,19 @@ _tv_yuyv_to_yuyv		(void *			dst_image,
 	unsigned int to;
 	unsigned int from;
 
-	dst = (uint8_t *) dst_image + dst_format->offset[0];
-	src = (const uint8_t *) src_image + src_format->offset[0];
-
 	width = MIN (dst_format->width, src_format->width);
 	height = MIN (dst_format->height, src_format->height);
 
-	if (unlikely (0 == width
-		      || 0 == height
+	if (unlikely (0 == width || 0 == height
 		      || (width & 1)))
 		return FALSE;
 
+	dst = (uint8_t *) dst_image + dst_format->offset[0];
+	src = (const uint8_t *) src_image + src_format->offset[0];
+
 	/* SIMD: 8 / 16 byte aligned. */
-	align = ((unsigned long) dst |
-		 (unsigned long) src);
+	align = (unsigned long) dst;
+	align |= (unsigned long) src;
 
 	dst_bpl = dst_format->bytes_per_line[0];
 	src_bpl = src_format->bytes_per_line[0];
@@ -447,11 +450,11 @@ _tv_yuyv_to_yuyv		(void *			dst_image,
 	dst_padding = dst_bpl - width * 2;
 	src_padding = src_bpl - width * 2;
 
-	if (unlikely ((long)(dst_padding | src_padding) < 0)) {
-		return FALSE;
-	} else if (likely (0 == (dst_padding | src_padding))) {
+	if (likely (0 == (dst_padding | src_padding))) {
 		width *= height;
 		height = 1;
+	} else if (unlikely ((long)(dst_padding | src_padding) < 0)) {
+		return FALSE;
 	} else {
 		align |= dst_bpl | src_bpl;
 	}
@@ -480,7 +483,7 @@ yuyv_to_yuv420_loop_fn		(uint8_t *		dst,
 				 uint8_t *		udst,
 				 uint8_t *		vdst,
 				 const uint8_t *	src,
-				 unsigned int		uv_width,
+				 unsigned int		width,
 				 unsigned int		uv_height,
 				 unsigned long		dst_bpl,
 				 unsigned long		src_bpl,
@@ -489,19 +492,19 @@ yuyv_to_yuv420_loop_fn		(uint8_t *		dst,
 				 unsigned long		vdst_padding,
 				 unsigned long		src_padding);
 
-SIMD_FN_ARRAY_PROTOS (yuyv_to_yuv420_loop_fn *, yuyv_to_yuv420_loops, 4)
+SIMD_FN_ARRAY_PROTOS (yuyv_to_yuv420_loop_fn *, yuyv_to_yuv420_loops, [4])
 
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
 	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
-#define YUYV_YUV420(swap_yc)						\
+#define YUYV_YUV420(n, src_fmt)						\
 static void								\
-SIMD_NAME (yuyv_to_yuv420_loop_ ## swap_yc)				\
+SIMD_NAME (yuyv_to_yuv420_loop_ ## n)					\
 				(uint8_t *		dst,		\
 				 uint8_t *		udst,		\
 				 uint8_t *		vdst,		\
 				 const uint8_t *	src,		\
-				 unsigned int		uv_width,	\
+				 unsigned int		width,		\
 				 unsigned int		uv_height,	\
 				 unsigned long		dst_bpl,	\
 				 unsigned long		src_bpl,	\
@@ -513,17 +516,19 @@ SIMD_NAME (yuyv_to_yuv420_loop_ ## swap_yc)				\
 	while (uv_height-- > 0) {					\
 		const uint8_t *end;					\
 									\
-		for (end = src + uv_width * 4; src < end;) {		\
+		for (end = src + width * 2; src < end;) {		\
 			vu8 y0, y1, ut, ub, vt, vb;			\
 									\
-			load_yuyv8 (&y0, &y1, &ut, &vt, src, 0,		\
-				    swap_yc, /* swap_uv */ FALSE);	\
+			load_yuyv8 (&y0, &y1, &ut, &vt,			\
+				    src, /* offset */ 0,		\
+				    TV_PIXFMT_ ## src_fmt);		\
 									\
 			vstorent (dst, 0, y0);				\
 			vstorent (dst, sizeof (vu8), y1);		\
 									\
-			load_yuyv8 (&y0, &y1, &ub, &vb,	src, src_bpl,	\
-				    swap_yc, /* swap_uv */ FALSE);	\
+			load_yuyv8 (&y0, &y1, &ub, &vb,			\
+				    src, /* offset */ src_bpl,		\
+				    TV_PIXFMT_ ## src_fmt);		\
 									\
 			src += sizeof (vu8) * 4;			\
 									\
@@ -544,10 +549,12 @@ SIMD_NAME (yuyv_to_yuv420_loop_ ## swap_yc)				\
 		udst += udst_padding;					\
 		vdst += vdst_padding;					\
 	}								\
+									\
+	vempty ();							\
 }
 
-YUYV_YUV420 (0)
-YUYV_YUV420 (1)
+YUYV_YUV420 (0, YUYV)
+YUYV_YUV420 (1, UYVY)
 
 #elif !SIMD
 
@@ -558,7 +565,7 @@ SIMD_NAME (yuyv_to_yuv420_loop_ ## y0)					\
 				 uint8_t *		udst,		\
 				 uint8_t *		vdst,		\
 				 const uint8_t *	src,		\
-				 unsigned int		uv_width,	\
+				 unsigned int		width,		\
 				 unsigned int		uv_height,	\
 				 unsigned long		dst_bpl,	\
 				 unsigned long		src_bpl,	\
@@ -570,7 +577,7 @@ SIMD_NAME (yuyv_to_yuv420_loop_ ## y0)					\
 	while (uv_height-- > 0) {					\
 		const uint8_t *end;					\
 									\
-		for (end = src + uv_width * 4; src < end;) {		\
+		for (end = src + width * 2; src < end;) {		\
 			dst[0] = src[y0];				\
 			dst[1] = src[y1];				\
 			dst[0 + dst_bpl] = src[y0 + src_bpl];		\
@@ -596,8 +603,8 @@ YUYV_YUV420 (1, 0, 3, 2)
 yuyv_to_yuv420_loop_fn *
 SIMD_NAME (yuyv_to_yuv420_loops) [4] = {
 	SIMD_NAME (yuyv_to_yuv420_loop_0),
-	SIMD_NAME (yuyv_to_yuv420_loop_0),
 	SIMD_NAME (yuyv_to_yuv420_loop_1),
+	SIMD_NAME (yuyv_to_yuv420_loop_0),
 	SIMD_NAME (yuyv_to_yuv420_loop_1)
 };
 
@@ -618,7 +625,6 @@ _tv_yuyv_to_yuv420		(void *			dst_image,
 	unsigned int width;
 	unsigned int height;
 	unsigned int uv_width;
-	unsigned int uv_height;
 	unsigned long dst_bpl;
 	unsigned long src_bpl;
 	unsigned long dst_padding;
@@ -635,7 +641,7 @@ _tv_yuyv_to_yuv420		(void *			dst_image,
 		/* Convert fields separately to make sure we
 		   average U, V of the same parity field. */
 
-		if ((dst_format->height | src_format->height) & 3)
+		if (unlikely (0 != ((dst_format->height | src_format->height) & 3)))
 			return FALSE;
 
 		d_format = *dst_format;
@@ -667,11 +673,6 @@ _tv_yuyv_to_yuv420		(void *			dst_image,
 		src_format = &s_format;
 	}
 
-	dst = (uint8_t *) dst_image + dst_format->offset[0];
-	udst = (uint8_t *) dst_image + dst_format->offset[1];
-	vdst = (uint8_t *) dst_image + dst_format->offset[2];
-	src = (const uint8_t *) src_image + src_format->offset[0];
-
 	width = MIN (dst_format->width, src_format->width);
 	height = MIN (dst_format->height, src_format->height);
 
@@ -680,14 +681,17 @@ _tv_yuyv_to_yuv420		(void *			dst_image,
 		      || (width | height) & 1))
 		return FALSE;
 
-	dst_bpl = dst_format->bytes_per_line[0];
-	src_bpl = src_format->bytes_per_line[0];
+	udst = (uint8_t *) dst_image + dst_format->offset[1];
+	vdst = (uint8_t *) dst_image + dst_format->offset[2];
 
-	dst_padding = dst_bpl - width;
-	src_padding = src_bpl - width * 2; /* 2 bytes/pixel */
+	/* SIMD: 8 / 16 byte aligned. */
+	align = (unsigned long) udst;
+	align |= (unsigned long) vdst;
 
 	uv_width = width >> 1;
-	uv_height = height >> 1;
+
+	/* SIMD: 16 / 32 pixels at once. */
+	align |= uv_width;
 
 	src_pf = src_format->pixel_format;
 
@@ -702,24 +706,27 @@ _tv_yuyv_to_yuv420		(void *			dst_image,
 		vdst_padding = dst_format->bytes_per_line[2] - uv_width;
 	}
 
+	dst_bpl = dst_format->bytes_per_line[0];
+	src_bpl = src_format->bytes_per_line[0];
+
+	align |= (dst_format->bytes_per_line[1] |
+		  dst_format->bytes_per_line[2] |
+		  dst_bpl | src_bpl);
+
+	dst_padding = dst_bpl - width;
+	src_padding = src_bpl - width * 2; /* 2 bytes/pixel */
+
 	if (unlikely ((long)(dst_padding |
 			     udst_padding |
 			     vdst_padding |
 			     src_padding) < 0))
 		return FALSE;
 
-	dst_padding += dst_bpl; /* two rows at once */
-	src_padding += src_bpl;
+	dst = (uint8_t *) dst_image + dst_format->offset[0];
+	src = (const uint8_t *) src_image + src_format->offset[0];
 
-	align = ((unsigned long) dst |
-		 (unsigned long) udst |
-		 (unsigned long) vdst |
-		 (unsigned long) src |
-		 dst_bpl |
-		 dst_format->bytes_per_line[1] |
-		 dst_format->bytes_per_line[2] |
-		 src_bpl |
-		 uv_width);
+	align |= (unsigned long) dst;
+	align |= (unsigned long) src;
 
 	from = src_pf->pixfmt - TV_PIXFMT_YUYV;
 
@@ -727,9 +734,11 @@ _tv_yuyv_to_yuv420		(void *			dst_image,
 				       (CPU_FEATURE_MMX |
 					SCALAR))[from];
 
+	dst_padding += dst_bpl; /* two rows at once */
+	src_padding += src_bpl;
+
 	loop (dst, udst, vdst, src,
-	      uv_width, uv_height,
-	      dst_bpl, src_bpl,
+	      width, height >> 1, dst_bpl, src_bpl,
 	      dst_padding, udst_padding, vdst_padding, src_padding);
 
 	return TRUE;
@@ -742,7 +751,7 @@ yuv420_to_yuyv_loop_fn		(uint8_t *		dst,
 				 const uint8_t *	src,
 				 const uint8_t *	usrc,
 				 const uint8_t *	vsrc,
-				 unsigned int		uv_width,
+				 unsigned int		width,
 				 unsigned int		uv_height,
 				 unsigned long		dst_bpl,
 				 unsigned long		src_bpl,
@@ -751,7 +760,7 @@ yuv420_to_yuyv_loop_fn		(uint8_t *		dst,
 				 unsigned long		usrc_padding,
 				 unsigned long		vsrc_padding);
 
-SIMD_FN_ARRAY_PROTOS (yuv420_to_yuyv_loop_fn *, yuv420_to_yuyv_loops, 4)
+SIMD_FN_ARRAY_PROTOS (yuv420_to_yuyv_loop_fn *, yuv420_to_yuyv_loops, [4])
 
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE | CPU_FEATURE_SSE2)
 
@@ -786,7 +795,7 @@ SIMD_NAME (yuv420_to_yuyv_loop_ ## swap_yc)				\
 				 const uint8_t *	src,		\
 				 const uint8_t *	usrc,		\
 				 const uint8_t *	vsrc,		\
-				 unsigned int		uv_width,	\
+				 unsigned int		width,		\
 				 unsigned int		uv_height,	\
 				 unsigned long		dst_bpl,	\
 				 unsigned long		src_bpl,	\
@@ -798,28 +807,29 @@ SIMD_NAME (yuv420_to_yuyv_loop_ ## swap_yc)				\
 	while (uv_height-- > 0) {					\
 		const uint8_t *end;					\
 									\
-		for (end = src + uv_width * 2; src < end;) {		\
+		for (end = src + width; src < end;) {			\
 			vu8 y0, u, y1, v, uv0, uv1;			\
 									\
 			u = vload (usrc, 0);				\
 			v = vload (vsrc, 0);				\
 			uv0 = vunpacklo8 (u, v);			\
 			uv1 = vunpackhi8 (u, v);			\
+			usrc += sizeof (vu8);				\
+			vsrc += sizeof (vu8);				\
 									\
 			YUV420_YUYV_HALF (0, 0, swap_yc);		\
 			YUV420_YUYV_HALF (dst_bpl, src_bpl, swap_yc);	\
-									\
 			src += sizeof (vu8) * 2;			\
-			usrc += sizeof (vu8);				\
-			vsrc += sizeof (vu8);				\
 			dst += sizeof (vu8) * 4;			\
 		}							\
 									\
-		src += src_padding;					\
 		usrc += usrc_padding;					\
 		vsrc += vsrc_padding;					\
+		src += src_padding;					\
 		dst += dst_padding;					\
 	}								\
+									\
+	vempty ();							\
 }
 
 YUV420_YUYV (0)
@@ -834,7 +844,7 @@ SIMD_NAME (yuv420_to_yuyv_loop_ ## y0)					\
 				 const uint8_t *	src,		\
 				 const uint8_t *	usrc,		\
 				 const uint8_t *	vsrc,		\
-				 unsigned int		uv_width,	\
+				 unsigned int		width,		\
 				 unsigned int		uv_height,	\
 				 unsigned long		dst_bpl,	\
 				 unsigned long		src_bpl,	\
@@ -846,7 +856,7 @@ SIMD_NAME (yuv420_to_yuyv_loop_ ## y0)					\
 	while (uv_height-- > 0) {					\
 		const uint8_t *end;					\
 									\
-		for (end = src + uv_width * 2; src < end;) {		\
+		for (end = src + width; src < end;) {			\
 			unsigned int U;					\
 			unsigned int V;					\
 									\
@@ -877,8 +887,8 @@ YUV420_YUYV (1, 0, 3, 2)
 yuv420_to_yuyv_loop_fn *
 SIMD_NAME (yuv420_to_yuyv_loops) [4] = {
 	SIMD_NAME (yuv420_to_yuyv_loop_0),
-	SIMD_NAME (yuv420_to_yuyv_loop_0),
 	SIMD_NAME (yuv420_to_yuyv_loop_1),
+	SIMD_NAME (yuv420_to_yuyv_loop_0),
 	SIMD_NAME (yuv420_to_yuyv_loop_1)
 };
 
@@ -899,7 +909,6 @@ _tv_yuv420_to_yuyv		(void *			dst_image,
 	unsigned int width;
 	unsigned int height;
 	unsigned int uv_width;
-	unsigned int uv_height;
 	unsigned long dst_bpl;
 	unsigned long src_bpl;
 	unsigned long dst_padding;
@@ -948,11 +957,6 @@ _tv_yuv420_to_yuyv		(void *			dst_image,
 		src_format = &s_format;
 	}
 
-	dst = (uint8_t *) dst_image + dst_format->offset[0];
-	src = (const uint8_t *) src_image + src_format->offset[0];
-	usrc = (const uint8_t *) src_image + src_format->offset[1];
-	vsrc = (const uint8_t *) src_image + src_format->offset[2];
-
 	width = MIN (dst_format->width, src_format->width);
 	height = MIN (dst_format->height, src_format->height);
 
@@ -961,14 +965,23 @@ _tv_yuv420_to_yuyv		(void *			dst_image,
 		      || (width | height) & 1))
 		return FALSE;
 
-	dst_bpl = dst_format->bytes_per_line[0];
-	src_bpl = src_format->bytes_per_line[0];
+	uv_width = width >> 1;
+
+	/* SIMD: 16 / 32 pixels at once. */
+	align = uv_width;
+
+	usrc = (const uint8_t *) src_image + src_format->offset[1];
+	vsrc = (const uint8_t *) src_image + src_format->offset[2];
+
+	/* SIMD: 8 / 16 byte aligned. */
+	align |= (unsigned long) usrc;
+	align |= (unsigned long) vsrc;
+
+	align |= dst_bpl = dst_format->bytes_per_line[0];
+	align |= src_bpl = src_format->bytes_per_line[0];
 
 	dst_padding = dst_bpl - width * 2; /* 2 bytes/pixel */
 	src_padding = src_bpl - width;
-
-	uv_width = width >> 1;
-	uv_height = height >> 1;
 
 	dst_pf = dst_format->pixel_format;
 
@@ -983,24 +996,20 @@ _tv_yuv420_to_yuyv		(void *			dst_image,
 		vsrc_padding = src_format->bytes_per_line[2] - uv_width;
 	}
 
+	align |= (src_format->bytes_per_line[1] |
+		  src_format->bytes_per_line[2]);
+
 	if (unlikely ((long)(dst_padding |
 			     src_padding |
 			     usrc_padding |
 			     vsrc_padding) < 0))
 		return FALSE;
 
-	dst_padding += dst_bpl; /* two rows at once */
-	src_padding += src_bpl;
+	dst = (uint8_t *) dst_image + dst_format->offset[0];
+	src = (const uint8_t *) src_image + src_format->offset[0];
 
-	align = ((unsigned long) dst |
-		 (unsigned long) src |
-		 (unsigned long) usrc |
-		 (unsigned long) vsrc |
-		 dst_bpl |
-		 src_bpl |
-		 src_format->bytes_per_line[1] |
-		 src_format->bytes_per_line[2] |
-		 uv_width);
+	align |= (unsigned long) dst;
+	align |= (unsigned long) src;
 
 	to = dst_pf->pixfmt - TV_PIXFMT_YUYV;
 
@@ -1008,9 +1017,11 @@ _tv_yuv420_to_yuyv		(void *			dst_image,
 				       (CPU_FEATURE_MMX |
 					SCALAR))[to];
 
+	dst_padding += dst_bpl; /* two rows at once */
+	src_padding += src_bpl;
+
 	loop (dst, src, usrc, vsrc,
-	      uv_width, uv_height,
-	      dst_bpl, src_bpl,
+	      width, height >> 1, dst_bpl, src_bpl,
 	      dst_padding, src_padding, usrc_padding, vsrc_padding);
 
 	return TRUE;
@@ -1054,6 +1065,329 @@ _tv_yuv420_to_yuv420		(void *			dst_image,
 
 	return tv_copy_image (dst_image, dst_format,
 			      src_image, src_format);
+}
+
+#endif /* !SIMD */
+
+typedef void
+nv_to_yuyv_loop_fn		(uint8_t *		dst,
+				 const uint8_t *	src,
+				 const uint8_t *	uvsrc,
+				 unsigned int		width,
+				 unsigned int		uv_height,
+				 unsigned long		dst_bpl,
+				 unsigned long		src_bpl,
+				 unsigned long		dst_padding,
+				 unsigned long		src_padding,
+				 unsigned long		uvsrc_padding);
+
+SIMD_FN_ARRAY_PROTOS (nv_to_yuyv_loop_fn *, nv_to_yuyv_loops, [4])
+
+#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE | CPU_FEATURE_SSE2)
+
+#define NV_YUYV_HALF(dst_offset, src_offset, swap_yc)			\
+do {									\
+	y = vload (src, src_offset);					\
+									\
+	if (swap_yc) {							\
+		vstorent (dst, dst_offset, vunpacklo8 (uv, y));		\
+		vstorent (dst, dst_offset + sizeof (vu8),		\
+			  vunpackhi8 (uv, y));				\
+	} else {							\
+		vstorent (dst, dst_offset, vunpacklo8 (y, uv));		\
+		vstorent (dst, dst_offset + sizeof (vu8),		\
+			  vunpackhi8 (y, uv));				\
+	}								\
+} while (0)
+
+#define NV_YUYV(fmt, swap_yc, swap_uv)					\
+static void								\
+SIMD_NAME (NV12_to_ ## fmt ## _loop)					\
+				(uint8_t *		dst,		\
+				 const uint8_t *	src,		\
+				 const uint8_t *	uvsrc,		\
+				 unsigned int		width,		\
+				 unsigned int		uv_height,	\
+				 unsigned long		dst_bpl,	\
+				 unsigned long		src_bpl,	\
+				 unsigned long		dst_padding,	\
+				 unsigned long		src_padding,	\
+				 unsigned long		uvsrc_padding)	\
+{									\
+	while (uv_height-- > 0) {					\
+		const uint8_t *end;					\
+									\
+		for (end = src + width; src < end;) {			\
+			vu8 y, uv;					\
+									\
+			uv = vload (uvsrc, 0);				\
+			uvsrc += sizeof (vu8);				\
+			if (swap_uv)					\
+				uv = vbswap16 (uv);			\
+			NV_YUYV_HALF (0, 0, swap_yc);			\
+			NV_YUYV_HALF (dst_bpl, src_bpl, swap_yc);	\
+			src += sizeof (vu8);				\
+			dst += sizeof (vu8) * 2;			\
+		}							\
+									\
+		uvsrc += uvsrc_padding;					\
+		src += src_padding;					\
+		dst += dst_padding;					\
+	}								\
+									\
+	vempty ();							\
+}
+
+NV_YUYV (YUYV, 0, 0)
+NV_YUYV (UYVY, 1, 0)
+NV_YUYV (YVYU, 0, 1)
+NV_YUYV (VYUY, 1, 1)
+
+#elif !SIMD
+
+#define NV_YUYV(fmt, y0, u, y1, v)					\
+static void								\
+NV12_to_ ## fmt ## _loop_SCALAR						\
+				(uint8_t *		dst,		\
+				 const uint8_t *	src,		\
+				 const uint8_t *	uvsrc,		\
+				 unsigned int		width,		\
+				 unsigned int		uv_height,	\
+				 unsigned long		dst_bpl,	\
+				 unsigned long		src_bpl,	\
+				 unsigned long		dst_padding,	\
+				 unsigned long		src_padding,	\
+				 unsigned long		uvsrc_padding)	\
+{									\
+	while (uv_height-- > 0) {					\
+		const uint8_t *end;					\
+									\
+		for (end = src + width; src < end;) {			\
+			unsigned int U;					\
+			unsigned int V;					\
+									\
+			dst[y0] = src[0];				\
+			dst[y1] = src[1];				\
+			dst[u] = U = uvsrc[0];				\
+			dst[v] = V = uvsrc[1];				\
+			uvsrc += 2;					\
+			dst[y0 + dst_bpl] = src[0 + src_bpl];		\
+			dst[y1 + dst_bpl] = src[1 + src_bpl];		\
+			src += 2;					\
+			dst[u + dst_bpl] = U;				\
+			dst[v + dst_bpl] = V;				\
+			dst += 4;					\
+		}							\
+									\
+		uvsrc += uvsrc_padding;					\
+		src += src_padding;					\
+		dst += dst_padding;					\
+	}								\
+}
+
+NV_YUYV (YUYV, 0, 1, 2, 3)
+NV_YUYV (UYVY, 1, 0, 3, 2)
+NV_YUYV (YVYU, 0, 3, 2, 1)
+NV_YUYV (VYUY, 1, 2, 3, 0)
+
+#endif /* !SIMD */
+
+nv_to_yuyv_loop_fn *
+SIMD_NAME (nv_to_yuyv_loops) [4] = {
+	SIMD_NAME (NV12_to_YUYV_loop),
+	SIMD_NAME (NV12_to_UYVY_loop),
+	SIMD_NAME (NV12_to_YVYU_loop),
+	SIMD_NAME (NV12_to_VYUY_loop),
+};
+
+#if !SIMD
+
+tv_bool
+_tv_nv_to_yuyv			(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format)
+{
+	nv_to_yuyv_loop_fn *loop;
+	uint8_t *dst;
+	const uint8_t *src;
+	const uint8_t *uvsrc;
+	unsigned int width;
+	unsigned int height;
+	unsigned long dst_bpl;
+	unsigned long src_bpl;
+	unsigned long uvsrc_bpl;
+	unsigned long dst_padding;
+	unsigned long src_padding;
+	unsigned long uvsrc_padding;
+	unsigned long align;
+	unsigned int to;
+
+	if (TV_FIELD_INTERLACED == src_format->field) {
+		tv_image_format d_format;
+		tv_image_format s_format;
+
+		/* Convert fields separately to make sure we
+		   average U, V of the same parity field. */
+
+		if ((dst_format->height | src_format->height) & 3)
+			return FALSE;
+
+		d_format = *dst_format;
+		d_format.height /= 2;
+		d_format.bytes_per_line[0] *= 2;
+
+		s_format = *src_format;
+		s_format.height /= 2;
+		s_format.bytes_per_line[0] *= 2;
+		s_format.bytes_per_line[1] *= 2;
+		s_format.bytes_per_line[2] *= 2;
+		s_format.field = TV_FIELD_PROGRESSIVE;
+
+		/* Convert top field. */
+
+		if (!_tv_nv_to_yuyv (dst_image, &d_format,
+				     src_image, &s_format))
+			return FALSE;
+
+		/* Convert bottom field. */
+
+		d_format.offset[0] += dst_format->bytes_per_line[0];
+
+		s_format.offset[0] += src_format->bytes_per_line[0];
+		s_format.offset[1] += src_format->bytes_per_line[1];
+		s_format.offset[2] += src_format->bytes_per_line[2];
+
+		dst_format = &d_format;
+		src_format = &s_format;
+	}
+
+	width = MIN (dst_format->width, src_format->width);
+	height = MIN (dst_format->height, src_format->height);
+
+	if (unlikely (0 == width || 0 == height
+		      || (width | height) & 1))
+		return FALSE;
+
+	/* SIMD: 8 / 16 pixels at once. */
+	align = width;
+
+	/* SIMD: 8 / 16 byte aligned. */
+	align |= dst_bpl = dst_format->bytes_per_line[0];
+	align |= src_bpl = src_format->bytes_per_line[0];
+	align |= uvsrc_bpl = src_format->bytes_per_line[1];
+
+	dst_padding = dst_bpl - width * 2; /* 2 bytes/pixel */
+	src_padding = src_bpl - width;
+	uvsrc_padding = uvsrc_bpl - width;
+
+	if (unlikely ((long)(dst_padding |
+			     src_padding |
+			     uvsrc_padding) < 0))
+		return FALSE;
+
+	dst = (uint8_t *) dst_image + dst_format->offset[0];
+	src = (const uint8_t *) src_image + src_format->offset[0];
+	uvsrc = (const uint8_t *) src_image + src_format->offset[1];
+
+	align |= (unsigned long) dst;
+	align |= (unsigned long) src;
+	align |= (unsigned long) uvsrc;
+
+	to = dst_format->pixel_format->pixfmt - TV_PIXFMT_YUYV;
+
+	loop = SIMD_FN_ALIGNED_SELECT (nv_to_yuyv_loops, align,
+				       (CPU_FEATURE_MMX |
+					SCALAR))[to];
+
+	dst_padding += dst_bpl; /* two rows at once */
+	src_padding += src_bpl;
+
+	loop (dst, src, uvsrc,
+	      width, height >> 1, dst_bpl, src_bpl,
+	      dst_padding, src_padding, uvsrc_padding);
+
+	return TRUE;
+}
+
+tv_bool
+_tv_nv_to_yuv420		(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format)
+{
+	uint8_t *dst;
+	uint8_t *udst;
+	uint8_t *vdst;
+	const uint8_t *src;
+	const uint8_t *uvsrc;
+	unsigned int width;
+	unsigned int height;
+	unsigned int uv_width;
+	unsigned long dst_padding;
+	unsigned long udst_padding;
+	unsigned long vdst_padding;
+	unsigned long src_padding;
+	unsigned long uvsrc_padding;
+
+	width = MIN (dst_format->width, src_format->width);
+	height = MIN (dst_format->height, src_format->height);
+
+	if (unlikely (0 == width
+		      || 0 == height
+		      || (width | height) & 1))
+		return FALSE;
+
+	dst_padding = dst_format->bytes_per_line[0] - width;
+	src_padding = src_format->bytes_per_line[0] - width;
+	uvsrc_padding = src_format->bytes_per_line[1] - width;
+
+	uv_width = width >> 1;
+
+	udst_padding = dst_format->bytes_per_line[1] - uv_width;
+	vdst_padding = dst_format->bytes_per_line[2] - uv_width;
+
+	if (unlikely ((long)(dst_padding |
+			     src_padding |
+			     uvsrc_padding |
+			     udst_padding |
+			     vdst_padding) < 0))
+		return FALSE;
+
+	dst = (uint8_t *) dst_image + dst_format->offset[0];
+	src = (const uint8_t *) src_image + src_format->offset[0];
+
+	if (likely (0 == (dst_padding | src_padding))) {
+		memcpy (dst, src, width * height);
+	} else {
+		copy_plane_SCALAR (dst, src, width, height,
+				   dst_padding, src_padding);
+	}
+
+	udst = (uint8_t *) dst_image + dst_format->offset[1];
+	vdst = (uint8_t *) dst_image + dst_format->offset[2];
+
+	if (TV_PIXFMT_YVU420 == dst_format->pixel_format->pixfmt) {
+		SWAP (udst, vdst);
+		SWAP (udst_padding, vdst_padding);
+	}
+
+	uvsrc = (const uint8_t *) src_image + src_format->offset[1];
+
+	for (height >>= 1; height > 0; --height) {
+		const uint8_t *end;
+
+		for (end = uvsrc + width; uvsrc < end; uvsrc += 2) {
+			*udst++ = uvsrc[0];
+			*vdst++ = uvsrc[1];
+		}
+
+		udst += udst_padding;
+		vdst += vdst_padding;
+		uvsrc += uvsrc_padding;
+	}
+
+	return TRUE;
 }
 
 #endif /* !SIMD */
