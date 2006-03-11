@@ -21,6 +21,34 @@
 
 #include "tveng_private.h"
 
+#define NO_PORT ((XvPortID) None)
+#define ANY_PORT ((XvPortID) None)
+
+extern tv_bool
+_tv_xv_stop_video		(tveng_device_info *	info,
+				 Window			window);
+extern tv_bool
+_tv_xv_put_video		(tveng_device_info *	info,
+				 Window			window,
+				 GC			gc,
+				 int			src_x,
+				 int			src_y,
+				 unsigned int		src_width,
+				 unsigned int		src_height);
+extern tv_bool
+_tv_xv_get_port_attribute	(tveng_device_info *	info,
+				 Atom			atom,
+				 int *			value);
+extern tv_bool
+_tv_xv_set_port_attribute	(tveng_device_info *	info,
+				 Atom			atom,
+				 int			value,
+				 tv_bool		sync);
+extern tv_bool
+_tv_xv_ungrab_port		(tveng_device_info *	info);
+extern tv_bool
+_tv_xv_grab_port		(tveng_device_info *	info);
+
 /*
   Inits the XVideo module, and fills in the given table.
 */
