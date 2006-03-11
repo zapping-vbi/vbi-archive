@@ -117,19 +117,23 @@ x11_display_name (void)
 }
 
 
-/* Reflect all errors back to the program through the procedural
-   interface. The default error handler terminates the program.
-   XXX This code is not reentrant. */
+/* Reflect all errors back to the program through the procedural interface.
+   The default error handler would just terminate the program. Note some
+   Xlib functions return nothing, or Bool success, or a Status code (which
+   is *usually* False == 0 on failure). Don't confuse status codes with
+   error codes, which are Success == 0 on success. Note error codes of
+   protocol extensions such as XVideo are offset by its error_base. */
+/* XXX this code is not reentrant. */
 
-static unsigned long		error_code;
+unsigned long			x11_error_code;
 
-static int
-my_error_handler		(Display *		display,
+int
+x11_error_handler		(Display *		display,
 				 XErrorEvent *		error)
 {
   display = display;
 
-  error_code = error->error_code;
+  x11_error_code = error->error_code;
 
   printv ("X Error: serial=%lu error=%lu request=%lu minor=%lu\n",
 	  (unsigned long) error->serial,
@@ -153,7 +157,7 @@ x11_force_expose(gint x, gint y, guint w, guint h)
   Window win;
   unsigned long mask;
 
-  old_error_handler = XSetErrorHandler (my_error_handler);
+  old_error_handler = XSetErrorHandler (x11_error_handler);
 
   xswa.override_redirect = TRUE;
   xswa.backing_store = NotUseful;
@@ -233,7 +237,7 @@ x11_window_viewable(GdkWindow *window)
 
   wts.map_state = 0;
 
-  old_error_handler = XSetErrorHandler (my_error_handler);
+  old_error_handler = XSetErrorHandler (x11_error_handler);
 
   XGetWindowAttributes (GDK_DISPLAY (),
 			GDK_WINDOW_XWINDOW (window),
@@ -251,7 +255,7 @@ x11_window_viewable(GdkWindow *window)
 	Window property & event helpers
 */
 
-/* Call with my_error_handler, otherwise
+/* Call with x11_error_handler, otherwise
    XGetWindowProperty() may abort(). */
 static int
 get_window_property		(Display *		display,
@@ -265,7 +269,7 @@ get_window_property		(Display *		display,
   int format;
   unsigned long bytes_after;
 
-  error_code = Success;
+  x11_error_code = Success;
 
   XGetWindowProperty (display, window, property,
 		      0, (65536 / sizeof (long)),
@@ -274,7 +278,7 @@ get_window_property		(Display *		display,
 		      nitems_return, &bytes_after,
 		      (unsigned char **) prop_return);
 
-  return error_code;
+  return x11_error_code;
 }
 
 static void
@@ -504,7 +508,7 @@ wm_hints_detect			(void)
   display = gdk_x11_get_default_xdisplay ();
   g_assert (display != 0);
 
-  old_error_handler = XSetErrorHandler (my_error_handler);
+  old_error_handler = XSetErrorHandler (x11_error_handler);
 
   root = DefaultRootWindow (display);
 
@@ -661,14 +665,14 @@ vidmode_switch_to_mode		(Display *		display,
 				 int			screen,
 				 XF86VidModeModeInfo *	modeline)
 {
-  error_code = Success;
+  x11_error_code = Success;
 
   if (!XF86VidModeSwitchToMode (display, screen, modeline))
     return False;
 
   XSync (display, /* discard events */ False);		
 
-  return (Success == error_code);
+  return (Success == x11_error_code);
 }
 
 static Bool
@@ -677,14 +681,14 @@ vidmode_set_view_port		(Display *		display,
 				 int			x,
 				 int			y)
 {
-  error_code = Success;
+  x11_error_code = Success;
 
   if (!XF86VidModeSetViewPort (display, screen, x, y))
     return False;
 
   XSync (display, /* discard events */ False);		
 
-  return (Success == error_code);
+  return (Success == x11_error_code);
 }
 
 static Bool
@@ -698,7 +702,7 @@ warp_pointer			(Display *		display,
 				 int			dest_x,
 				 int			dest_y)
 {
-  error_code = Success;
+  x11_error_code = Success;
 
   if (!XWarpPointer (display, src_win, dest_win, src_x, src_y,
 		     src_width, src_height, dest_x, dest_y))
@@ -706,7 +710,7 @@ warp_pointer			(Display *		display,
 
   XSync (display, /* discard events */ False);		
 
-  return (Success == error_code);
+  return (Success == x11_error_code);
 } 
 
 /**
@@ -756,7 +760,7 @@ x11_vidmode_list_new		(const char *		display_name,
   list = NULL;
   mode_info = NULL;
 
-  old_error_handler = XSetErrorHandler (my_error_handler);
+  old_error_handler = XSetErrorHandler (x11_error_handler);
 
   if (NULL != display_name)
     {
@@ -981,7 +985,7 @@ x11_vidmode_current		(const x11_vidmode_info *list)
   if (!list)
     return NULL;
 
-  old_error_handler = XSetErrorHandler (my_error_handler);
+  old_error_handler = XSetErrorHandler (x11_error_handler);
 
   vl = CONST_PARENT (list, struct vidmode, pub);
 
@@ -1070,7 +1074,7 @@ x11_vidmode_switch		(const x11_vidmode_info *vlist,
   if (!vlist)
     return FALSE;
 
-  old_error_handler = XSetErrorHandler (my_error_handler);
+  old_error_handler = XSetErrorHandler (x11_error_handler);
 
   vl = CONST_PARENT (vlist, struct vidmode, pub);
 
@@ -1286,7 +1290,7 @@ x11_vidmode_restore		(const x11_vidmode_info *list,
   if (!vs)
     return;
 
-  old_error_handler = XSetErrorHandler (my_error_handler);
+  old_error_handler = XSetErrorHandler (x11_error_handler);
 
   root = DefaultRootWindow (CVIDMODE (list)->display);
 
@@ -1478,7 +1482,7 @@ find_xscreensaver_window	(Display *		display,
      BadWindow errors while doing this, because it's possible that
      a window might get deleted in the meantime.  (That window won't
      have been the one we're looking for.) */
-  old_error_handler = XSetErrorHandler (my_error_handler);
+  old_error_handler = XSetErrorHandler (x11_error_handler);
 
   if (!XQueryTree (display, root, &root2, &parent, &kids, &nkids)
       || root != root2 || parent
@@ -2063,7 +2067,7 @@ x11_xvideo_dump			(void)
 
   display = GDK_DISPLAY ();
 
-  old_error_handler = XSetErrorHandler (my_error_handler);
+  old_error_handler = XSetErrorHandler (x11_error_handler);
 
   if (Success != XvQueryExtension (display,
 				   &version, &revision,
@@ -2155,7 +2159,7 @@ children_clips			(tv_clip_vector *	vector,
 	/* We need to trap BadWindow errors while traversing the
 	   list of windows because they might get deleted in the
 	   meantime. */
-	old_error_handler = XSetErrorHandler (my_error_handler);
+	old_error_handler = XSetErrorHandler (x11_error_handler);
 
 	if (!XQueryTree (display, window, &root, &parent,
 			 &children, &n_children))
@@ -2178,13 +2182,14 @@ children_clips			(tv_clip_vector *	vector,
 		int x1, y1;
 		int x2, y2;
     
-		error_code = Success;
+		x11_error_code = Success;
     
 		XGetWindowAttributes (display, children[i], &wts);
 
-		if (BadWindow == error_code) {
+		if (BadWindow == x11_error_code) {
+			/* May have disappeared in the meantime. */
 			continue;
-		} else if (Success != error_code) {
+		} else if (Success != x11_error_code) {
 			goto failure;
 		}
 
