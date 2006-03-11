@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.52 2006-03-06 01:47:13 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.53 2006-03-11 13:11:29 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -544,8 +544,6 @@ start_fullscreen		(display_mode		dmode,
       break;
 
     case CAPTURE_MODE_READ:
-      tveng_close_device(zapping->info);
-
       if (-1 == tveng_attach_device (zcg_char (NULL, "video_device"),
 				     GDK_WINDOW_XWINDOW (drawing_area->window),
 				     TVENG_ATTACH_READ,
@@ -562,8 +560,6 @@ start_fullscreen		(display_mode		dmode,
 
     case CAPTURE_MODE_TELETEXT:
       /* Bktr driver needs special programming for VBI-only mode. */
-      tveng_close_device (zapping->info);
-
       if (-1 == tveng_attach_device (zcg_char (NULL, "video_device"),
 				     GDK_WINDOW_XWINDOW (drawing_area->window),
 				     TVENG_ATTACH_VBI,
