@@ -40,6 +40,9 @@ struct tveng_module_info {
 			 enum tveng_attach_mode  attach_mode,
 			 tveng_device_info * info);
   void	(*close_device)(tveng_device_info *info);
+  int	(*change_mode)(tveng_device_info * info,
+		       Window window,
+		       enum tveng_attach_mode  attach_mode);
 	/*
 	 */
 	int		(* ioctl)		(tveng_device_info *,
@@ -254,6 +257,12 @@ struct overlay_device {
 
 	unsigned int		chromakey; /* 0xAARRGGBB */
 
+#ifdef HAVE_XV_EXTENSION
+#  define NO_PORT ((XvPortID) None)
+
+	XvPortID		xv_port_id;
+#endif
+
 	tv_bool			active; /* XXX internal */
 
 	tv_bool			(* set_buffer)
@@ -343,6 +352,8 @@ struct _tveng_device_info
   tv_bool		quiet;
 
   tv_control *		cloned_controls;
+
+  tv_bool		using_xvideo;
 };
 
 
