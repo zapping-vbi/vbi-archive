@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: yuv2yuv.h,v 1.1 2006-03-06 01:50:48 mschimek Exp $ */
+/* $Id: yuv2yuv.h,v 1.2 2006-03-11 13:13:55 mschimek Exp $ */
 
 /* YUV to YUV image format conversion functions. */
 
@@ -26,8 +26,6 @@
 #include "image_format.h"
 #include "simd.h"
 #include "misc.h"
-
-extern copy_plane_fn 		copy_plane_SCALAR;
 
 SIMD_FN_PROTOS (copy_plane_fn, _tv_shuffle_0321);
 SIMD_FN_PROTOS (copy_plane_fn, _tv_shuffle_1032);
@@ -54,6 +52,16 @@ _tv_yuv420_to_yuyv		(void *			dst_image,
 				 const tv_image_format *src_format);
 extern tv_bool
 _tv_yuv420_to_yuv420		(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format);
+extern tv_bool
+_tv_nv_to_yuyv			(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format);
+extern tv_bool
+_tv_nv_to_yuv420		(void *			dst_image,
 				 const tv_image_format *dst_format,
 				 const void *		src_image,
 				 const tv_image_format *src_format);
