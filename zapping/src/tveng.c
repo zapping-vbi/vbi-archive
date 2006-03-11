@@ -59,6 +59,9 @@
 #ifndef TVENG1_RIVATV_TEST
 #  define TVENG1_RIVATV_TEST 0
 #endif
+#ifndef TVENG25_XV_TEST
+#  define TVENG25_XV_TEST 0
+#endif
 
 /* int rc = 0; */
 
@@ -289,6 +292,8 @@ typedef void (*tveng_controller)(struct tveng_module_info *info);
 static tveng_controller tveng_controllers[] = {
 #if TVENG1_RIVATV_TEST
   tveng1_init_module,
+#elif TVENG25_XV_TEST
+  tveng25_init_module,
 #else
   tvengxv_init_module,
   tveng25_init_module,
@@ -522,6 +527,18 @@ int tveng_attach_device(const char* device_file,
 
   tv_clear_error (info);
 
+  /* Shortcut. Bloody hack. Future stuff. */
+  if (0 && -1 != info->fd && NULL != info->module.change_mode)
+    {
+      if (-1 != info->module.change_mode (info, window, attach_mode))
+	goto done;
+
+      info->tveng_errno = -1;
+      tv_error_msg (info, "Cannot change to the requested capture mode");
+      UNTVLOCK;
+      return -1;
+    }
+
   destroy_cloned_controls (info);
 
   if (-1 != info -> fd) /* If the device is already attached, detach it */
@@ -597,6 +614,8 @@ int tveng_attach_device(const char* device_file,
   return -1;
 
  success:
+  info->using_xvideo = FALSE;
+
   /* See p_tveng_set_capture_format() */
 #ifdef ENABLE_BKTR
   /* FIXME bktr VBI capturing does not work if
@@ -695,6 +714,7 @@ int tveng_attach_device(const char* device_file,
 	CAP (SUBCAPTURE),
 	CAP (SUBCAPTURE),
 	CAP (QUEUE),
+	CAP (XVIDEO),
       };
       guint i;
 
@@ -746,7 +766,8 @@ int tveng_attach_device(const char* device_file,
 	      info->overlay.window.y,
 	      info->overlay.window.width,
 	      info->overlay.window.height);
-
+      fprintf(stderr, "Overlay Xv Port: %d\n",
+	      (int) info->overlay.xv_port_id);
       {
 	tv_video_standard *s;
 	unsigned int i;
@@ -859,6 +880,7 @@ int tveng_attach_device(const char* device_file,
       }
     }
 
+ done:
   UNTVLOCK;
   return info->fd; /* XXX not all devices have fd,
 		      fake fd (tvengxv) is dangerous. */
@@ -1605,12 +1627,13 @@ tv_control_by_id		(tveng_device_info *	info,
 
 
 static void
-round_boundary_4		(unsigned int *		x1,
+round_boundary_4		(int *			x1,
 				 unsigned int *		width,
 				 tv_pixfmt		pixfmt,			 
 				 unsigned int		max_width)
 {
-	unsigned int x, w;
+	int x;
+	unsigned int w;
 
 	if (!x1) {
 		x = 0;
@@ -1622,8 +1645,8 @@ round_boundary_4		(unsigned int *		x1,
 	case TV_PIXFMT_RGBA32_BE:
 	case TV_PIXFMT_BGRA32_LE:
 	case TV_PIXFMT_BGRA32_BE:
-		x = (((*x1 << 2) + 2) & (unsigned int) -4) >> 2;
-		w = (((*width << 2) + 2) & (unsigned int) -4) >> 2;
+		x = *x1;
+		w = *width;
 		break;
 
 	case TV_PIXFMT_RGB24_LE:
@@ -3375,6 +3398,8 @@ tv_set_overlay_buffer		(tveng_device_info *	info,
 
 	tv_clear_error (info);
 
+	info->using_xvideo = FALSE;
+
 	/* We can save a lot of work if the driver is already
 	   initialized for this target. */
 	if (info->overlay.get_buffer (info)
@@ -3669,6 +3694,8 @@ p_tv_set_overlay_window		(tveng_device_info *	info,
 	REQUIRE_IO_MODE (NULL);
 	REQUIRE_SUPPORT (info->overlay.set_window, NULL);
 
+	info->using_xvideo = FALSE;
+
 	win = *window;
 
 	init_overlay_window (info, &win);
@@ -3831,6 +3858,8 @@ tv_set_overlay_window_chromakey	(tveng_device_info *	info,
 
 	TVLOCK;
 
+	info->using_xvideo = FALSE;
+
 	tv_clear_error (info);
 
 	win = *window;
@@ -3902,6 +3931,8 @@ tv_set_overlay_xwindow		(tveng_device_info *	info,
 				 GC			gc,
 				 unsigned int		chromakey)
 {
+	tv_bool success;
+
 	assert (NULL != info);
 	assert (0 != window);
 	assert (0 != gc);
@@ -3913,8 +3944,11 @@ tv_set_overlay_xwindow		(tveng_device_info *	info,
 
 	tv_clear_error (info);
 
-	RETURN_UNTVLOCK (info->overlay.set_xwindow
-			 (info, window, gc, chromakey));
+	success = info->overlay.set_xwindow (info, window, gc, chromakey);
+
+	info->using_xvideo = success;
+
+	RETURN_UNTVLOCK (success);
 }
 
 tv_bool
@@ -3931,13 +3965,13 @@ p_tv_enable_overlay		(tveng_device_info *	info,
 
 	enable = !!enable;
 
-	if (info->current_controller != TVENG_CONTROLLER_XV
+	if (!info->using_xvideo
 	    && !overlay_window_visible (info, &info->overlay.window)) {
 		info->overlay.active = enable;
 		return TRUE;
 	}
 
-	if (enable && info->current_controller != TVENG_CONTROLLER_XV) {
+	if (enable && !info->using_xvideo) {
 		tv_screen *xs;
 
 		if (!info->overlay.get_buffer) {
@@ -3957,7 +3991,7 @@ p_tv_enable_overlay		(tveng_device_info *	info,
 
 		if (!xs) {
 			fprintf (stderr, "** %s: Cannot start overlay, "
-				 "DMA target is not properly initialized.",
+				 "DMA target is not properly initialized.\n",
 				 __PRETTY_FUNCTION__);
 			return FALSE;
 		}
@@ -3967,7 +4001,7 @@ p_tv_enable_overlay		(tveng_device_info *	info,
 	}
 
 	if (!info->overlay.enable (info, enable))
-	  return FALSE;
+		return FALSE;
 
 	info->overlay.active = enable;
 
