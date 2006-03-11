@@ -645,8 +645,6 @@ zmisc_switch_mode(display_mode new_dmode,
 	  tv_get_controller (info) == TVENG_CONTROLLER_XV ||
 	  tv_get_controller (info) == TVENG_CONTROLLER_NONE)
 	{
-	  if (tv_get_controller (info) != TVENG_CONTROLLER_NONE)
-	    tveng_close_device(info);
 	  if (-1 == tveng_attach_device
 	      (zcg_char(NULL, "video_device"),
 	       GDK_WINDOW_XID (GTK_WIDGET (zapping->video)->window),
