@@ -160,6 +160,10 @@ struct context {
 
 static struct context tv_info;
 
+#define DEVICE_USES_XVIDEO(c)						\
+  (!OVERLAY_METHOD_FAILURE_TEST						\
+   && (0 != (tv_get_caps ((c)->info)->flags & TVENG_CAPS_XVIDEO)))
+
 #define DEVICE_SUPPORTS_CHROMA_KEYING(c)				\
   (!OVERLAY_METHOD_FAILURE_TEST						\
    && (OVERLAY_CHROMA_TEST						\
@@ -528,7 +532,7 @@ reconfigure			(struct context *	c)
       c->overlay_rect.height = c->vw_height;
 
       if (0)
-	fprintf (stderr, "reconfigure overlay_rect: %ux%u+%d+%d\n",
+	fprintf (stderr, "reconfigure overlay_rect: %ux%u%+d%+d\n",
 		 c->overlay_rect.width,
 		 c->overlay_rect.height,
 		 c->overlay_rect.x,
@@ -1175,8 +1179,6 @@ start_overlay			(GtkWidget *		main_window,
      to do.) */
   xwindow = GDK_WINDOW_XWINDOW (c->video_window->window);
 
-  tveng_close_device (c->info);
-
   /* Switch to overlay mode, XVideo or other. */
   if (-1 == tveng_attach_device (zcg_char (NULL, "video_device"),
 				 xwindow, TVENG_ATTACH_XV, c->info))
@@ -1196,7 +1198,7 @@ start_overlay			(GtkWidget *		main_window,
     {
       c->overlay_mode = CHROMA_KEY_OVERLAY;
     }
-  else if (TVENG_CONTROLLER_XV == tv_get_controller (c->info))
+  else if (DEVICE_USES_XVIDEO (c))
     {
       c->overlay_mode = XVIDEO_OVERLAY;
     }
