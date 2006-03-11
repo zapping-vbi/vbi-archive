@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.h,v 1.5 2006-03-06 01:48:25 mschimek Exp $ */
+/* $Id: simd.h,v 1.6 2006-03-11 13:13:35 mschimek Exp $ */
 
 #ifndef SIMD_H
 #define SIMD_H
@@ -110,11 +110,15 @@ extern const v8 vsplat8_1;	/* vsplat8(1) */			\
 extern const v8 vsplat8_m1;	/* vsplat8(-1) */			\
 extern const v8 vsplat8_15;	/* vsplat8(15) */			\
 extern const v8 vsplat8_127;	/* vsplat8(127 = 0x7F) */		\
+extern const vu8 vsplatu8_F8;	/* vsplatu8(0xF8) */			\
+extern const vu8 vsplatu8_FC;	/* vsplatu8(0xFC) */			\
 extern const v16 vsplat16_1;	/* vsplat16(1) */			\
 extern const v16 vsplat16_2;	/* vsplat16(2) */			\
+extern const v16 vsplat16_128;	/* vsplat16(128) */			\
 extern const v16 vsplat16_255;	/* vsplat16(255 = 0x00FF) */		\
 extern const v16 vsplat16_256;	/* vsplat16(256 = 0x0100) */		\
 extern const v16 vsplat16_m256;	/* vsplat16(-256 = 0xFF00) */		\
+extern const vu16 vsplatu16_F8;	/* vsplatu16(0x00F8) */			\
 extern const v32 vsplat32_1;	/* vsplat32(1) */			\
 extern const v32 vsplat32_2;	/* vsplat32(2) */
 
@@ -128,6 +132,7 @@ extern const v32 vsplat32_2;	/* vsplat32(2) */
 #define vsplatu8_127 ((vu8) vsplat8_127)
 #define vsplatu16_1 ((vu16) vsplat16_1)
 #define vsplatu16_2 ((vu16) vsplat16_2)
+#define vsplatu16_128 ((vu16) vsplat16_128)
 #define vsplatu16_255 ((vu16) vsplat16_255)
 #define vsplatu16_256 ((vu16) vsplat16_256)
 #define vsplatu16_m256 ((vu16) vsplat16_m256)
@@ -386,7 +391,7 @@ vshiftu2x			(__m64 *		_l,
 #define vunpacklo(_a, _b) _mm_unpacklo_pi32 (_a, _b)
 #define vunpackhi(_a, _b) _mm_unpackhi_pi32 (_a, _b)
 
-#define vpacksu16(_a, _b) _mm_packs_pi16 (_a, _b)
+#define vpacksu16(_a, _b) _mm_packs_pu16 (_a, _b)
 
 /* _a + _b, _a - _b with wrap-around. */
 #define vadd8(_a, _b) _mm_add_pi8 (_a, _b)
@@ -434,8 +439,9 @@ vshiftu2x			(__m64 *		_l,
 
 /* Any ideas for cmpge and cmpgtu? :-) */
 
-/* Multiply v16 giving low 16 bit of result (vu16). */
+/* Multiply v16 giving low/high 16 bit of result (vu16). */
 #define vmullo16(_a, _b) _mm_mullo_pi16 (_a, _b)
+#define vmulhi16(_a, _b) _mm_mulhi_pi16 (_a, _b)
 
 /* Clear MMX state (emms). */
 #define vempty() _mm_empty ()
@@ -792,7 +798,7 @@ vshiftu2x			(__m128i *		_l,
 #define vunpacklo(_a, _b) _mm_unpacklo_epi64 (_a, _b)
 #define vunpackhi(_a, _b) _mm_unpackhi_epi64 (_a, _b)
 
-#define vpacksu16(_a, _b) _mm_packs_epi16 (_a, _b)
+#define vpacksu16(_a, _b) _mm_packs_epu16 (_a, _b)
 
 #define vadd8(_a, _b) _mm_add_epi8 (_a, _b)
 #define vadd16(_a, _b) _mm_add_epi16 (_a, _b)
@@ -829,6 +835,7 @@ vshiftu2x			(__m128i *		_l,
 #define vcmpgeu8(_a, _b) vcmpz8 (vsubsu8 (_b, _a))
 
 #define vmullo16(_a, _b) _mm_mullo_epi16 (_a, _b)
+#define vmulhi16(_a, _b) _mm_mulhi_epi16 (_a, _b)
 
 #define vempty() do {} while (0)
 
@@ -1188,14 +1195,14 @@ extern fn_type name ## _SSE2;						\
 extern fn_type name ## _SSE3;						\
 extern fn_type name ## _ALTIVEC;
 
-#define SIMD_FN_ARRAY_PROTOS(fn_type, name, n_elements)			\
-extern fn_type name ## _SCALAR [n_elements];				\
-extern fn_type name ## _MMX [n_elements];				\
-extern fn_type name ## _3DNOW [n_elements];				\
-extern fn_type name ## _SSE [n_elements];				\
-extern fn_type name ## _SSE2 [n_elements];				\
-extern fn_type name ## _SSE3 [n_elements];				\
-extern fn_type name ## _ALTIVEC [n_elements];
+#define SIMD_FN_ARRAY_PROTOS(fn_type, name, dimensions)			\
+extern fn_type name ## _SCALAR dimensions;				\
+extern fn_type name ## _MMX dimensions;					\
+extern fn_type name ## _3DNOW dimensions;				\
+extern fn_type name ## _SSE dimensions;					\
+extern fn_type name ## _SSE2 dimensions;				\
+extern fn_type name ## _SSE3 dimensions;				\
+extern fn_type name ## _ALTIVEC dimensions;
 
 #if defined (CAN_COMPILE_MMX)
 #  define SIMD_FN_SELECT_MMX(name, avail)				\
