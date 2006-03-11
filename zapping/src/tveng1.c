@@ -2937,6 +2937,173 @@ ov511_get_button_state		(tveng_device_info	*info)
   return (button_state - '0');
 }
 
+#if 0
+
+#ifdef HAVE_XV_EXTENSION
+
+static tv_bool
+xvideo_probe_port		(struct private_tveng1_device_info *p_info,
+				 tv_bool *		restore_brightness,
+				 const XvAdaptorInfo *	adaptor,
+				 unsigned int		nth_port)
+{
+	static const unsigned int magic = 0x16; /* 010110 */
+	XvPortID port_id;
+	unsigned int sensed;
+	unsigned int last;
+	unsigned int i;
+
+	port_id = (XvPortID)(adaptor->base_id + nth_port);
+
+#warning FIXME this may require a reopen
+	if (Success != XvGrabPort (p_info->info.display,
+				   port_id,
+				   CurrentTime)) {
+		return FALSE;
+	}
+
+	sensed = 0;
+	last = 0;
+
+	for (i = 0; i < 6; ++i) {
+		unsigned int bit = magic & (1 << i);
+		struct video_picture pict;
+
+		XvSetPortAttribute (p_info->info.display,
+				    port_id,
+				    _XA_XV_BRIGHTNESS,
+				    bit ? +1000 : -1000);
+
+		XSync (p_info->info.display,
+		       /* discard events */ False);
+
+		*restore_brightness = TRUE;
+
+		if (-1 == xioctl (&p_info->info, VIDIOCGPICT, &pict)) {
+			sensed = 0;
+			goto failure;
+		}
+
+		sensed |= (pict.brightness >= last) << i;
+		last = pict.brightness;
+	}
+
+ failure:
+	/* Error ignored. */
+	XvUngrabPort (p_info->info.display, port_id, CurrentTime);
+
+	return (0 == ((sensed ^ magic) & ~1));
+}
+
+static void
+xvideo_probe			(tveng_device_info *	info)
+{
+	struct private_tveng1_device_info *p_info = P_INFO (info);
+	XErrorHandler old_error_handler;
+	unsigned int version;
+	unsigned int revision;
+	unsigned int major_opcode;
+	unsigned int event_base;
+	unsigned int error_base;
+	Window root_window;
+	XvAdaptorInfo *adaptors;
+	unsigned int n_adaptors;
+	struct video_picture pict;
+	tv_bool restore_brightness;
+	unsigned int i;
+
+	adaptors = NULL;
+
+	p_info->info.overlay.xv_port_id = NO_PORT;
+
+	old_error_handler = XSetErrorHandler (x11_error_handler);
+
+	_XA_XV_BRIGHTNESS = XInternAtom (p_info->info.display,
+					 "XV_BRIGHTNESS",
+					 /* only_if_exists */ False);
+	if (None == _XA_XV_BRIGHTNESS) {
+		goto failure;
+	}
+
+	if (Success != XvQueryExtension (p_info->info.display,
+					 &version, &revision,
+					 &major_opcode,
+					 &event_base, &error_base)) {
+		goto failure;
+	}
+
+	if (version < 2 || (version == 2 && revision < 2)) {
+		goto failure;
+	}
+
+	root_window = DefaultRootWindow (p_info->info.display);
+
+	if (Success != XvQueryAdaptors (p_info->info.display,
+					root_window,
+					&n_adaptors, &adaptors)) {
+		goto failure;
+	}
+
+	if (0 == n_adaptors) {
+		goto failure;
+	}
+
+	if (-1 == xioctl (&p_info->info, VIDIOCGPICT, &pict)) {
+		goto failure;
+	}
+
+	restore_brightness = FALSE;
+
+	for (i = 0; i < n_adaptors; ++i) {
+		unsigned int j;
+
+		if (0 != strcmp (adaptors[i].name, "video4linux")) {
+			continue;
+		}
+
+		for (j = 0; j < adaptors[i].num_ports; ++j) {
+			if (xvideo_probe_port (p_info,
+					       &restore_brightness,
+					       &adaptors[i], j)) {
+				p_info->info.caps.flags |=
+					TVENG_CAPS_XVIDEO;
+				p_info->info.overlay.xv_port_id =
+					(XvPortID)(adaptors[i].base_id + j);
+
+				goto found;
+			}
+		}
+	}
+
+ found:
+	if (restore_brightness) {
+		/* Error ignored. */
+		xioctl (&p_info->info, VIDIOCSPICT, &pict);
+	}
+
+ failure:
+	if (NULL != adaptors) {
+		XvFreeAdaptorInfo (adaptors);
+
+		adaptors = NULL;
+		n_adaptors = 0;
+	}
+
+	XSetErrorHandler (old_error_handler);
+}
+
+#else /* !HAVE_XV_EXTENSION */
+
+static void
+xvideo_probe			(tveng_device_info *	info)
+{
+	/* Nothing to do. */
+}
+
+#endif /* !HAVE_XV_EXTENSION */
+
+#endif /* 0 */
+
 static void
 identify_driver			(tveng_device_info	*info)
 {
@@ -3068,7 +3235,12 @@ int p_tveng1_open_device_file(int flags, tveng_device_info * info)
   if (1)
     {
   if (caps.type & VID_TYPE_OVERLAY)
+    {
     info ->caps.flags |= TVENG_CAPS_OVERLAY;
+#if 0
+    xvideo_probe (info);
+#endif
+    }
   if (caps.type & VID_TYPE_CHROMAKEY)
     info ->caps.flags |= TVENG_CAPS_CHROMAKEY;
   if (caps.type & VID_TYPE_CLIPPING)
