@@ -51,6 +51,11 @@ x11_get_bpp(void);
 const gchar *
 x11_display_name (void);
 
+extern unsigned long		x11_error_code;
+extern int
+x11_error_handler		(Display *		display,
+				 XErrorEvent *		error);
+
 /*
  * Maps and unmaps a window of the given (screen) geometry, thus
  * forcing an expose event in that area
