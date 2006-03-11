@@ -73,6 +73,7 @@
 #define TVENG_CAPS_SUBCAPTURE (1 << 9) /* Can capture only part of the
 					image */
 #define TVENG_CAPS_QUEUE (1 << 10) /* Has a buffer queue */
+#define TVENG_CAPS_XVIDEO (1 << 11) /* Can overlay through XVideo */
 
 /* The valid modes for opening the video device */
 enum tveng_attach_mode
