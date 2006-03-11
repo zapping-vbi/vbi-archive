@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rgb2rgb.c,v 1.3 2006-03-06 01:48:45 mschimek Exp $ */
+/* $Id: rgb2rgb.c,v 1.4 2006-03-11 13:12:21 mschimek Exp $ */
 
 /* RGB to RGB image format conversion functions:
 
@@ -69,14 +69,14 @@ _tv_rgb32_to_rgb16		(void *			dst_image,
 	const uint16_t (* lp)[256];
 	uint16_t alpha1;
 
-	dst = (uint16_t *)((uint8_t *) dst_image + dst_format->offset[0]);
-	src = (const uint8_t *) src_image + src_format->offset[0];
-
 	width = MIN (dst_format->width, src_format->width);
 	height = MIN (dst_format->height, src_format->height);
 
 	if (0 == width || 0 == height)
 		return FALSE;
+
+	dst = (uint16_t *)((uint8_t *) dst_image + dst_format->offset[0]);
+	src = (const uint8_t *) src_image + src_format->offset[0];
 
 	dst_padding = dst_format->bytes_per_line[0] - width * 2;
 
@@ -203,7 +203,7 @@ _tv_rgb32_to_rgb32		(void *			dst_image,
 				 const void *		src_image,
 				 const tv_image_format *src_format)
 {
-	static const char matrix[6][6] = {
+	static const char matrix [6][6] = {
 		{ 0,  1, 2, 12,  8, 10 },
 		{ 1,  0, 3, 13,  9, 11 },
 		{ 2, 12, 0,  1, 10,  8 },
@@ -221,23 +221,10 @@ _tv_rgb32_to_rgb32		(void *			dst_image,
 	tv_pixfmt dst_pixfmt;
 	tv_pixfmt src_pixfmt;
 
-	dst = (uint8_t *) dst_image + dst_format->offset[0];
-	src = (const uint8_t *) src_image + src_format->offset[0];
-
 	width = MIN (dst_format->width, src_format->width);
 	height = MIN (dst_format->height, src_format->height);
 
 	if (0 == width || 0 == height)
-		return FALSE;
-
-	dst_pixfmt = dst_format->pixel_format->pixfmt;
-	if (dst_pixfmt < TV_PIXFMT_RGBA32_LE
-	    || dst_pixfmt > TV_PIXFMT_RGB24_BE)
-		return FALSE;
-
-	src_pixfmt = src_format->pixel_format->pixfmt;
-	if (src_pixfmt < TV_PIXFMT_RGBA32_LE
-	    || src_pixfmt > TV_PIXFMT_RGB24_BE)
 		return FALSE;
 
 	dst_padding = dst_format->bytes_per_line[0]
@@ -245,12 +232,15 @@ _tv_rgb32_to_rgb32		(void *			dst_image,
 	src_padding = src_format->bytes_per_line[0]
 		- ((width * src_format->pixel_format->bits_per_pixel) >> 3);
 
-	if ((long)(src_padding | dst_padding) < 0) {
-		return FALSE;
-	} else if (0 == (src_padding | dst_padding)) {
+	if (likely (0 == (src_padding | dst_padding))) {
 		width *= height;
 		height = 1;
+	} else if (unlikely ((long)(src_padding | dst_padding) < 0)) {
+		return FALSE;
 	}
+
+	dst = (uint8_t *) dst_image + dst_format->offset[0];
+	src = (const uint8_t *) src_image + src_format->offset[0];
 
 #undef LOOP
 #define LOOP(op, src_bpp, dst_bpp)					\
@@ -268,6 +258,9 @@ do {									\
 		dst += dst_padding;					\
 	}								\
 } while (0)
+
+	dst_pixfmt = dst_format->pixel_format->pixfmt;
+	src_pixfmt = src_format->pixel_format->pixfmt;
 
 	switch (matrix[src_pixfmt - TV_PIXFMT_RGBA32_LE]
 		      [dst_pixfmt - TV_PIXFMT_RGBA32_LE]) {
@@ -1019,9 +1012,6 @@ _tv_sbggr_to_rgb		(void *			dst_image,
 	unsigned int height;
 	unsigned long align;
 
-	dst = (uint8_t *) dst_image + dst_format->offset[0];
-	src = (const uint8_t *) src_image + src_format->offset[0];
-
 	width = MIN (dst_format->width, src_format->width);
 	height = MIN (dst_format->height, src_format->height);
 
@@ -1031,6 +1021,9 @@ _tv_sbggr_to_rgb		(void *			dst_image,
 	    || (((width * dst_format->pixel_format->bits_per_pixel) >> 3)
 		> dst_format->bytes_per_line[0]))
 		return FALSE;
+
+	dst = (uint8_t *) dst_image + dst_format->offset[0];
+	src = (const uint8_t *) src_image + src_format->offset[0];
 
 	align = ((unsigned long) dst |
 		 (unsigned long) src |
