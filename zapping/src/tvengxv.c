@@ -68,7 +68,6 @@ struct control {
 struct private_tvengxv_device_info
 {
   tveng_device_info info; /* Info field, inherited */
-  XvPortID	port; /* port id */
 
 	/** List of encodings, i.e. standards and inputs. */
 	XvEncodingInfo *	ei;
@@ -97,7 +96,6 @@ struct private_tvengxv_device_info
 };
 
 #define P_INFO(p) PARENT (p, struct private_tvengxv_device_info, info)
-
 
 static int
 find_encoding			(tveng_device_info *	info,
@@ -149,11 +147,346 @@ split_encoding			(char *			d,
 	return s;
 }
 
-#define NO_PORT ((XvPortID) None)
-#define ANY_PORT ((XvPortID) None)
+static tv_bool
+xv_error			(tveng_device_info *	info,
+				 const char *		function,
+				 int			status)
+{
+	if (Success != x11_error_code) {
+		/* XXX better error message */
+		/* XvBadPort,
+		   XvBadEncoding,
+		   XvBadControl + error_base.
+		   XvNumErrors = 3 */
+		info->tveng_errno = 1500 + x11_error_code;
+		t_error(function, info);
+		return FALSE;
+	}
 
-static XvPortID
-grab_port			(Display *		display,
+	switch (status) {
+	case Success:
+		return TRUE;
+
+	case XvBadExtension:
+	case XvAlreadyGrabbed:
+	case XvInvalidTime:
+	case XvBadReply:
+	case XvBadAlloc:
+	default:
+		info->tveng_errno = 160 + status;
+		t_error(function, info);
+		return FALSE;
+	}
+}
+
+tv_bool
+_tv_xv_stop_video		(tveng_device_info *	info,
+				 Window			window)
+{
+	XErrorHandler old_error_handler;
+	tv_bool success;
+	int status;
+
+	success = FALSE;
+
+	old_error_handler = XSetErrorHandler (x11_error_handler);
+	x11_error_code = Success;
+
+	status = XvStopVideo (info->display,
+			      info->overlay.xv_port_id,
+			      window);
+
+	if (io_debug_msg > 0) {
+		unsigned long saved_error_code = x11_error_code;
+
+		fprintf (stderr,
+			 "%d = XvStopVideo (display=\"%s\" "
+			 "port=%d window=%d)\n",
+			 status, XDisplayString (info->display),
+			 (int) info->overlay.xv_port_id,
+			 (int) window);
+
+		x11_error_code = saved_error_code;
+	}
+
+	if (Success == (status | x11_error_code))
+		XSync (info->display, /* discard events */ False);
+
+	success = xv_error (info, "XvStopVideo", status);
+
+	XSetErrorHandler (old_error_handler);
+
+	return success;
+}
+
+tv_bool
+_tv_xv_put_video		(tveng_device_info *	info,
+				 Window			window,
+				 GC			gc,
+				 int			src_x,
+				 int			src_y,
+				 unsigned int		src_width,
+				 unsigned int		src_height)
+{
+	XErrorHandler old_error_handler;
+	Window root_window;
+	int x, y;
+	unsigned int width, height;
+	unsigned int border_width;
+	unsigned int depth;
+	tv_bool success;
+	int status;
+
+	success = FALSE;
+
+	old_error_handler = XSetErrorHandler (x11_error_handler);
+	x11_error_code = Success;
+
+	if (!XGetGeometry (info->display,
+			   window,
+			   &root_window,
+			   &x, &y,
+			   &width, &height,
+			   &border_width,
+			   &depth)) {
+		/* XXX better error message */
+		info->tveng_errno = -1;
+		t_error("XGetGeomentry", info);
+
+		if (io_debug_msg > 0) {
+			fprintf (stderr, "%s: XGetGeometry() failed\n",
+				 __FUNCTION__);
+		}
+
+		goto failure;
+	}
+
+	/* 1x1 freezes the X server (Xorg 6.8.0, bttv 0.9.5) */
+	if (width < 32 || height < 24) {
+		/* XXX better error message */
+		info->tveng_errno = -1;
+		t_error("", info);
+
+		if (io_debug_msg > 0) {
+			fprintf (stderr, "%s: window size %ux%u too small\n",
+				 __FUNCTION__, width, height);
+		}
+
+		goto failure;
+	}
+
+	status = XvPutVideo (info->display,
+			     info->overlay.xv_port_id,
+			     window, gc,
+			     src_x, src_y,
+			     src_width, src_height,
+			     /* dst_x, y */ 0, 0,
+			     /* dst */ width, height);
+
+	if (io_debug_msg > 0) {
+		unsigned long saved_error_code = x11_error_code;
+
+		fprintf (stderr,
+			 "%d = XvPutVideo (display=\"%s\" "
+			 "port=%d window=%d gc=%d "
+			 "src=%ux%u%+d%+d dst=%ux%u%+d%+d)\n",
+			 status, XDisplayString (info->display),
+			 (int) info->overlay.xv_port_id,
+			 (int) window, (int) gc,
+			 src_width, src_height, src_x, src_y,
+			 width, height, 0, 0);
+
+		x11_error_code = saved_error_code;
+	}
+
+	if (Success == (status | x11_error_code))
+		XSync (info->display, /* discard events */ False);
+
+	success = xv_error (info, "XvPutVideo", status);
+
+ failure:
+	XSetErrorHandler (old_error_handler);
+
+	return success;
+}
+
+tv_bool
+_tv_xv_get_port_attribute	(tveng_device_info *	info,
+				 Atom			atom,
+				 int *			value)		
+{
+	XErrorHandler old_error_handler;
+	tv_bool success;
+	int status;
+
+	success = FALSE;
+
+	old_error_handler = XSetErrorHandler (x11_error_handler);
+	x11_error_code = Success;
+
+	status = XvGetPortAttribute (info->display,
+				     info->overlay.xv_port_id,
+				     atom, value);
+
+	if (io_debug_msg > 0) {
+		unsigned long saved_error_code = x11_error_code;
+		char *atom_name;
+
+		atom_name = XGetAtomName (info->display, atom);
+
+		fprintf (stderr,
+			 "%d = XvGetPortAttribute (display=\"%s\" "
+			 "port=%d atom=\"%s\") -> (value=%d=0x%x)\n",
+			 status, XDisplayString (info->display),
+			 (int) info->overlay.xv_port_id,
+			 atom_name, *value, *value);
+
+		if (NULL != atom_name)
+			XFree (atom_name);
+
+		x11_error_code = saved_error_code;
+	}
+
+	success = xv_error (info, "XvGetPortAttribute", status);
+
+	XSetErrorHandler (old_error_handler);
+
+	return success;
+}
+
+tv_bool
+_tv_xv_set_port_attribute	(tveng_device_info *	info,
+				 Atom			atom,
+				 int			value,
+				 tv_bool		sync)
+{
+	XErrorHandler old_error_handler;
+	tv_bool success;
+	int status;
+
+	success = FALSE;
+
+	old_error_handler = XSetErrorHandler (x11_error_handler);
+	x11_error_code = Success;
+
+	status = XvSetPortAttribute (info->display,
+				     info->overlay.xv_port_id,
+				     atom, value);
+
+	if (io_debug_msg > 0) {
+		unsigned long saved_error_code = x11_error_code;
+		char *atom_name;
+
+		atom_name = XGetAtomName (info->display, atom);
+
+		fprintf (stderr,
+			 "%d = XvSetPortAttribute (display=\"%s\" "
+			 "port=%d atom=\"%s\" value=%d=0x%x)\n",
+			 status, XDisplayString (info->display),
+			 (int) info->overlay.xv_port_id,
+			 atom_name, value, value);
+
+		if (NULL != atom_name)
+			XFree (atom_name);
+
+		x11_error_code = saved_error_code;
+	}
+
+	if (Success == (status | x11_error_code) && sync)
+		XSync (info->display, /* discard events */ False);
+
+	success = xv_error (info, "XvSetPortAttribute", status);
+
+	XSetErrorHandler (old_error_handler);
+
+	return success;
+}
+
+tv_bool
+_tv_xv_ungrab_port		(tveng_device_info *	info)
+{
+	XErrorHandler old_error_handler;
+	tv_bool success;
+	Time time;
+	int status;
+
+	success = FALSE;
+
+	old_error_handler = XSetErrorHandler (x11_error_handler);
+	x11_error_code = Success;
+
+	time = CurrentTime;
+	status = XvUngrabPort (info->display,
+			       info->overlay.xv_port_id,
+			       time);
+
+	if (io_debug_msg > 0) {
+		unsigned long saved_error_code = x11_error_code;
+
+		fprintf (stderr,
+			 "%d = XvUngrabPort (display=\"%s\" "
+			 "port=%d time=%d)\n",
+			 status,
+			 XDisplayString (info->display),
+			 (int) info->overlay.xv_port_id,
+			 (int) time);
+
+		x11_error_code = saved_error_code;
+	}
+
+	if (Success == (status | x11_error_code))
+		XSync (info->display, /* discard events */ False);
+
+	success = xv_error (info, "XvUngrabPort", status);
+
+	XSetErrorHandler (old_error_handler);
+
+	return success;
+}
+
+tv_bool
+_tv_xv_grab_port		(tveng_device_info *	info)
+{
+	XErrorHandler old_error_handler;
+	tv_bool success;
+	Time time;
+	int status;
+
+	if (NO_PORT == info->overlay.xv_port_id) {
+		return FALSE;
+	}
+
+	success = FALSE;
+
+	old_error_handler = XSetErrorHandler (x11_error_handler);
+	x11_error_code = Success;
+
+	time = CurrentTime;
+	status = XvGrabPort (info->display,
+			     info->overlay.xv_port_id,
+			     time);
+
+	if (io_debug_msg > 0) {
+		fprintf (stderr,
+			 "%d = XvGrabPort (display=\"%s\" "
+			 "port=%d time=%d)\n",
+			 status, XDisplayString (info->display),
+			 (int) info->overlay.xv_port_id,
+			 (int) time);
+	}
+
+	success = xv_error (info, "XvGrabPort", status);
+
+	XSetErrorHandler (old_error_handler);
+
+	return success;
+}
+
+
+
+
+static tv_bool
+grab_port			(tveng_device_info *	info,
 				 const XvAdaptorInfo *	pAdaptors,
 				 int			nAdaptors,
 				 XvPortID		port_id)
@@ -181,25 +514,35 @@ grab_port			(Display *		display,
 	      unsigned int i;
 
 	      for (i = 0; i < pAdaptor->num_ports; ++i)
-		if (Success == XvGrabPort (display, pAdaptor->base_id + i,
-					   CurrentTime))
-		  return (XvPortID)(pAdaptor->base_id + i);
+		{
+		  info->overlay.xv_port_id =
+		    (XvPortID)(pAdaptor->base_id + i);
+
+		  if (_tv_xv_grab_port (info))
+		    return TRUE;
+
+		  info->overlay.xv_port_id = NO_PORT;
+		}
 	    }
 	  else
 	    {
 	      if (port_id >= pAdaptor->base_id
 		  && port_id < (pAdaptor->base_id + pAdaptor->num_ports))
 		{
-		  if (Success == XvGrabPort (display, port_id, CurrentTime))
-		    return port_id;
-		  else
-		    return NO_PORT;
+		  info->overlay.xv_port_id = port_id;
+
+		  if (_tv_xv_grab_port (info))
+		    return TRUE;
+
+		  info->overlay.xv_port_id = NO_PORT;
+
+		  return FALSE;
 		}
 	    }
 	}
     }
 
-  return NO_PORT;
+  return FALSE;
 }
 
 static int
@@ -207,7 +550,6 @@ p_tvengxv_open_device(tveng_device_info *info,
 		      Window window)
 {
   struct private_tvengxv_device_info *p_info = P_INFO (info);
-  Display *display;
   unsigned int version;
   unsigned int revision;
   unsigned int major_opcode;
@@ -220,20 +562,18 @@ p_tvengxv_open_device(tveng_device_info *info,
 
   printv ("xv_video_port 0x%x\n", xv_video_port);
 
-  display = info->display;
-
   adaptor_info = NULL;
   num_adaptors = 0;
 
   attribute = NULL;
   num_attributes = 0;
 
-  p_info->port = NO_PORT;
+  p_info->info.overlay.xv_port_id = NO_PORT;
 
   p_info->ei = NULL;
   p_info->n_encodings = 0;
 
-  if (Success != XvQueryExtension (display,
+  if (Success != XvQueryExtension (info->display,
 				   &version,
 				   &revision,
 				   &major_opcode,
@@ -257,9 +597,9 @@ p_tvengxv_open_device(tveng_device_info *info,
 
   /* We query adaptors which can render into this window. */
   if (None == window)
-    window = DefaultRootWindow (display);
+    window = DefaultRootWindow (info->display);
 
-  if (Success != XvQueryAdaptors (display,
+  if (Success != XvQueryAdaptors (info->display,
 				  window,
 				  &num_adaptors,
 				  &adaptor_info))
@@ -274,35 +614,30 @@ p_tvengxv_open_device(tveng_device_info *info,
       goto failure;
     }
 
-  p_info->port = grab_port (display,
-			    adaptor_info,
-			    num_adaptors,
-			    (XvPortID) xv_video_port);
+  p_info->info.overlay.xv_port_id = NO_PORT;
 
-  if (NO_PORT == p_info->port
+  if (!grab_port (info, adaptor_info, num_adaptors,
+		  (XvPortID) xv_video_port)
       && ANY_PORT != xv_video_port)
     {
       printv ("XVideo video input port 0x%x not found\n",
 	      (unsigned int) xv_video_port);
 
-      p_info->port = grab_port (display,
-				adaptor_info,
-				num_adaptors,
-				ANY_PORT);
+      grab_port (info, adaptor_info, num_adaptors, ANY_PORT);
     }
 
-  if (NO_PORT == p_info->port)
+  if (NO_PORT == p_info->info.overlay.xv_port_id)
     {
       printv ("No XVideo input port found\n");
       goto failure;
     }
 
   printv ("Using XVideo video input port 0x%x\n",
-	  (unsigned int) p_info->port);
+	  (unsigned int) p_info->info.overlay.xv_port_id);
 
   /* Check that it supports querying controls and encodings */
-  if (Success != XvQueryEncodings (display,
-				   p_info->port,
+  if (Success != XvQueryEncodings (info->display,
+				   info->overlay.xv_port_id,
 				   &p_info->n_encodings,
 				   &p_info->ei))
     goto failure;
@@ -315,8 +650,8 @@ p_tvengxv_open_device(tveng_device_info *info,
     }
 
   /* Create the atom that handles the encoding. */
-  if (!(attribute = XvQueryPortAttributes (display,
-					   p_info->port,
+  if (!(attribute = XvQueryPortAttributes (info->display,
+					   info->overlay.xv_port_id,
 					   &num_attributes)))
     goto failure;
 
@@ -326,7 +661,8 @@ p_tvengxv_open_device(tveng_device_info *info,
   XFree (attribute);
   attribute = NULL;
 
-  XvUngrabPort (display, p_info->port, CurrentTime);
+  /* XXX error ignored. */
+  _tv_xv_ungrab_port (info);
 
   XvFreeAdaptorInfo (adaptor_info);
   adaptor_info = NULL;
@@ -344,10 +680,11 @@ p_tvengxv_open_device(tveng_device_info *info,
       p_info->n_encodings = 0;
     }
 
-  if (NO_PORT != p_info->port)
+  if (NO_PORT != p_info->info.overlay.xv_port_id)
     {
-      XvUngrabPort (display, p_info->port, CurrentTime);
-      p_info->port = NO_PORT;
+      /* Error ignored. */
+      _tv_xv_ungrab_port (info);
+      p_info->info.overlay.xv_port_id = NO_PORT;
     }
 
   if (adaptor_info)
@@ -377,22 +714,17 @@ set_overlay_xwindow		(tveng_device_info *	info,
 
 	assert (!p_info->active);
 
+	if (p_info->xa_colorkey != None) {
+		if (!_tv_xv_set_port_attribute (info,
+						p_info->xa_colorkey,
+						(int) chromakey,
+						/* sync */ TRUE)) {
+			return FALSE;
+		}
+	}
+
 	p_info->window = window;
 	p_info->gc = gc;
-
-	if (p_info->xa_colorkey != None) {
-		if (io_debug_msg > 0) {
-			fprintf (stderr, "XvSetPortAttribute "
-				 "XA_COLORKEY 0x%x\n", chromakey);
-		}
-
-		XvSetPortAttribute (info->display,
-				    p_info->port,
-				    p_info->xa_colorkey,
-				    (int) chromakey);
-
-		return TRUE;
-	}
 
 	return TRUE;
 }
@@ -402,13 +734,9 @@ enable_overlay			(tveng_device_info *	info,
 				 tv_bool		on)
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
-	Window root;
-	int encoding_num;
-	int x, y;
-	unsigned int width, height;
-	unsigned int dummy;
+	tv_bool success;
 
-	assert (NULL != info);
+	success = FALSE;
 
   	if (p_info->window == 0 || p_info->gc == 0) {
 		info->tveng_errno = -1;
@@ -416,49 +744,32 @@ enable_overlay			(tveng_device_info *	info,
 		return FALSE;
 	}
 
-	XGetGeometry (info->display,
-		      p_info->window,
-		      &root, &x, &y, &width, &height,
-		      /* border width */ &dummy,
-		      /* depth */ &dummy);
-
-	/* 1x1 freezes the X server (Xorg 6.8.0, bttv 0.9.5) */
-	if (width < 32 || height < 24)
-		return FALSE;
-
-	encoding_num = 0;
-
-	if (p_info->xa_encoding != None
-	    && p_info->encoding_gettable)
-		XvGetPortAttribute (info->display,
-				    p_info->port,
-				    p_info->xa_encoding,
-				    &encoding_num);
-
 	if (on) {
-		XvPutVideo (info->display,
-			    p_info->port,
-			    p_info->window,
-			    p_info->gc,
-			    /* src_x */ 0,
-			    /* src_y */ 0,
-			    /* src */ p_info->ei[encoding_num].width,
-			    /* src */ p_info->ei[encoding_num].height,
-			    /* dest */
-			    0, 0, width, height);
+		int num;
 
-		p_info->active = TRUE;
+		num = 0;
+
+		if (p_info->xa_encoding != None
+		    && p_info->encoding_gettable) {
+			/* Error ignored. */
+			_tv_xv_get_port_attribute (info, p_info->xa_encoding,
+						   &num);
+		}
+
+		success = _tv_xv_put_video (info,
+					    p_info->window,
+					    p_info->gc,
+					    /* src_x, y */ 0, 0,
+					    /* src */ p_info->ei[num].width,
+					    /* src */ p_info->ei[num].height);
 	} else {
-		XvStopVideo (info->display,
-			     p_info->port,
-			     p_info->window);
-
-		p_info->active = FALSE;
+		success = _tv_xv_stop_video (info, p_info->window);
 	}
 
-	XSync (info->display, False);
+	if (success)
+		p_info->active = on;
 
-	return TRUE;
+	return success;
 }
 
 static tv_bool
@@ -467,15 +778,15 @@ get_overlay_window (tveng_device_info *info)
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 	int result;
 
-  if (p_info->xa_colorkey == None)
-    return FALSE;
+	if (p_info->xa_colorkey == None)
+		return FALSE;
 
-  XvGetPortAttribute (info->display, p_info->port,
-		      p_info->xa_colorkey, &result);
+	if (!_tv_xv_get_port_attribute (info, p_info->xa_colorkey, &result))
+		return FALSE;
 
-  info->overlay.chromakey = result;
+	info->overlay.chromakey = result;
 
-  return TRUE;
+	return TRUE;
 }
 
 
@@ -492,26 +803,18 @@ do_get_control			(struct private_tvengxv_device_info *p_info,
 	int value;
 
 	/* XXX check at runtime */
-	if (c->atom == p_info->xa_mute) {
+	if (c->atom == p_info->xa_mute)
 		return TRUE; /* no read-back (bttv bug) */
-	} else {
-		XvGetPortAttribute (p_info->info.display,
-				    p_info->port,
-				    c->atom,
-				    &value);
 
-		if (io_debug_msg > 0) {
-			fprintf (stderr, "XvGetPortAttribute %s %d\n",
-				 c->pub.label, value);
-		}
-	}
+	if (!_tv_xv_get_port_attribute (&p_info->info, c->atom, &value))
+		return FALSE;
 
 	if (c->pub.value != value) {
 		c->pub.value = value;
 		tv_callback_notify (&p_info->info, &c->pub, c->pub._callback);
 	}
 
-	return TRUE; /* ? */
+	return TRUE;
 }
 
 static tv_bool
@@ -537,15 +840,9 @@ set_control			(tveng_device_info *	info,
 {
 	struct private_tvengxv_device_info *p_info = P_INFO (info);
 
-	if (io_debug_msg > 0) {
-		fprintf (stderr, "XvSetPortAttribute %s %d\n",
-			 c->label, value);
-	}
-
-	XvSetPortAttribute (info->display,
-			    p_info->port,
-			    C(c)->atom,
-			    value);
+	if (!_tv_xv_set_port_attribute (info, C(c)->atom,
+					value, /* sync */ FALSE))
+		return FALSE;
 
 	if (C(c)->atom == p_info->xa_mute) {
 		if (c->value != value) {
@@ -638,25 +935,6 @@ add_control			(struct private_tvengxv_device_info *p_info,
  */
 
 static tv_bool
-set_encoding			(tveng_device_info *	info,
-				 int			num)
-{
-	struct private_tvengxv_device_info *p_info = P_INFO (info);
-
-	if (io_debug_msg > 0) {
-		fprintf (stderr, "XvSetPortAttribute XA_ENCODING %d (%s)\n",
-			 num, p_info->ei[num].name);
-	}
-
-	XvSetPortAttribute (info->display,
-			    p_info->port,
-			    p_info->xa_encoding,
-			    num);
-
-	return TRUE;
-}
-
-static tv_bool
 set_video_standard		(tveng_device_info *	info,
 				 tv_video_standard *	s)
 {
@@ -665,7 +943,9 @@ set_video_standard		(tveng_device_info *	info,
 
 	num = CS(s)->num;
 
-	set_encoding (info, num);
+	if (!_tv_xv_set_port_attribute (info, p_info->xa_encoding,
+					num, /* sync */ TRUE))
+		return FALSE;
 
 	p_info->cur_encoding = num;
 
@@ -829,10 +1109,8 @@ get_tuner_frequency		(tveng_device_info *	info,
 		return FALSE;
 
 	if (info->panel.cur_video_input == l) {
-		XvGetPortAttribute (info->display,
-				    p_info->port,
-				    p_info->xa_freq,
-				    &freq);
+		if (!_tv_xv_get_port_attribute (info, p_info->xa_freq, &freq))
+			return FALSE;
 
 		store_frequency (info, VI (l), freq);
 	}
@@ -859,17 +1137,9 @@ set_tuner_frequency		(tveng_device_info *	info,
 	if (info->panel.cur_video_input != l)
 		goto store;
 
-	if (io_debug_msg > 0) {
-		fprintf (stderr, "XvSetPortAttribute XA_FREQ %d (%f MHz)\n",
-			 freq, frequency / 1e6);
-	}
-
-	XvSetPortAttribute (info->display,
-			    p_info->port,
-			    p_info->xa_freq,
-			    freq);
-
-	XSync (info->display, False);
+	if (!_tv_xv_set_port_attribute (info, p_info->xa_freq,
+					freq, /* sync */ TRUE))
+		return FALSE;
 
  store:
 	store_frequency (info, VI (l), freq);
@@ -883,15 +1153,14 @@ get_signal_strength		(tveng_device_info *	info,
 {
 	struct private_tvengxv_device_info * p_info = P_INFO (info);
 
-	if (strength) {
-		if (None != p_info->xa_signal_strength)
-			XvGetPortAttribute (info->display,
-					    p_info->port,
-					    p_info->xa_signal_strength,
-					    strength);
-	}
+	if (NULL == strength)
+		return TRUE;
 
-	return TRUE;
+	if (None == p_info->xa_signal_strength)
+		return TRUE;
+
+	return _tv_xv_get_port_attribute (info, p_info->xa_signal_strength,
+					  strength);
 }
 
 
@@ -950,10 +1219,8 @@ get_video_input			(tveng_device_info *	info)
 		return TRUE;
 	}
 
-	XvGetPortAttribute (info->display,
-			    p_info->port,
-			    p_info->xa_encoding,
-			    &enc);
+	if (!_tv_xv_get_port_attribute (info, p_info->xa_encoding, &enc))
+		return FALSE;
 
 	/* XXX Xv/v4l BUG? */
 	if (enc < 0 || enc > 10 /*XXX*/)
@@ -1003,11 +1270,15 @@ set_video_input			(tveng_device_info *	info,
 	if (-1 == num) {
 		num = vi->num; /* random standard */
 
-		set_encoding (info, num);
+		/* XXX error ignored */
+		_tv_xv_set_port_attribute (info, p_info->xa_encoding,
+					   num, /* sync */ TRUE);
 
 		get_video_standard_list (info);
 	} else {
-		set_encoding (info, num);
+		/* XXX error ignored */
+		_tv_xv_set_port_attribute (info, p_info->xa_encoding,
+					   num, /* sync */ TRUE);
 	}
 
 	p_info->cur_encoding = num;
@@ -1090,10 +1361,10 @@ get_video_input_list		(tveng_device_info *	info)
 			vi->pub.u.tuner.step = 62500;
 
 			/* FIXME gets frequency of current input. */
-			XvGetPortAttribute (info->display,
-					    p_info->port,
-					    p_info->xa_freq,
-					    &freq);
+			/* XXX error ignored. */
+			_tv_xv_get_port_attribute (info,
+						   p_info->xa_freq,
+						   &freq);
 
 			store_frequency (info, vi, freq);
 		}
@@ -1170,6 +1441,7 @@ int tvengxv_attach_device(const char* device_file _unused_,
   Display *dpy;
   XvAttribute *at;
   int num_attributes;
+  XvPortID port_id;
   int i;
   unsigned int j;
 
@@ -1236,14 +1508,16 @@ int tvengxv_attach_device(const char* device_file _unused_,
   /* Current capture mode is no capture at all */
   info -> capture_mode = CAPTURE_MODE_NONE;
 
-  info->caps.flags = TVENG_CAPS_OVERLAY | TVENG_CAPS_CLIPPING;
+  info->caps.flags = (TVENG_CAPS_OVERLAY |
+		      TVENG_CAPS_CLIPPING |
+		      TVENG_CAPS_XVIDEO);
   info->caps.audios = 0;
 
   /* Atoms & controls */
 
   info->panel.controls = NULL;
 
-  at = XvQueryPortAttributes (dpy, p_info->port, &num_attributes);
+  at = XvQueryPortAttributes (dpy, p_info->info.overlay.xv_port_id, &num_attributes);
 
   for (i = 0; i < num_attributes; i++) {
 	  if (info->debug_level > 0)
@@ -1363,8 +1637,9 @@ int tvengxv_attach_device(const char* device_file _unused_,
 	if (!get_video_input_list (info))
 	  goto error1; /* XXX*/
 
+	port_id = info->overlay.xv_port_id;
 	CLEAR (info->overlay);
-
+	info->overlay.xv_port_id = port_id;
 	info->overlay.set_xwindow = set_overlay_xwindow;
 	info->overlay.get_window = get_overlay_window;
 	info->overlay.enable = enable_overlay;
