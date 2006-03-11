@@ -52,6 +52,7 @@
 #include "tveng.h"
 #define TVENG25_PROTOTYPES 1
 #include "tveng25.h"
+#include "tvengxv.h"
 
 #include "zmisc.h"
 
@@ -139,11 +140,21 @@ struct xbuffer {
 	tv_bool			clear;
 };
 
+#ifndef TVENG25_BAYER_TEST
+#  define TVENG25_BAYER_TEST 0
+#endif
+#ifndef TVENG25_NV12_TEST
+#  define TVENG25_NV12_TEST 0
+#endif
+#ifndef TVENG25_XV_TEST
+#  define TVENG25_XV_TEST 0
+#endif
+
 struct private_tveng25_device_info
 {
   tveng_device_info info; /* Info field, inherited */
   struct timeval last_timestamp; /* The timestamp of the last captured buffer */
-  uint32_t chroma;
+  uint32_t killme_chroma;
   int audio_mode; /* 0 mono */
 	struct v4l2_capability	caps;
 
@@ -158,6 +169,17 @@ struct private_tveng25_device_info
 	tv_bool			use_v4l_audio;
 	tv_bool			use_s_ctrl_old;
 
+#if defined (HAVE_XV_EXTENSION) && TVENG25_XV_TEST
+	/* Grabbed the info->overlay.xv_port_id for overlay. */
+	tv_bool			grabbed_xv_port;
+
+	Window			xwindow;
+	GC			xgc;
+
+	Atom			xa_colorkey;
+	Atom			xa_xv_brightness;
+#endif
+
 	/* Capturing has been started (STREAMON). */
 	tv_bool			capturing;
 
@@ -166,13 +188,6 @@ struct private_tveng25_device_info
 };
 
 #define P_INFO(p) PARENT (p, struct private_tveng25_device_info, info)
-
-#ifndef TVENG25_BAYER_TEST
-#  define TVENG25_BAYER_TEST 0
-#endif
-#ifndef TVENG25_NV12_TEST
-#  define TVENG25_NV12_TEST 0
-#endif
 
 static tv_bool
 queue_xbuffers			(tveng_device_info *	info);
@@ -446,19 +461,13 @@ get_control			(tveng_device_info *	info,
 }
 
 static tv_bool
-set_control			(tveng_device_info *	info,
-				 tv_control *		c,
-				 int			value)
+s_ctrl				(tveng_device_info *	info,
+				 const struct v4l2_control *c)
 {
 	struct private_tveng25_device_info *p_info = P_INFO (info);
 	struct v4l2_control ctrl;
 
-	if (c->id == TV_CONTROL_ID_AUDIO_MODE)
-		return set_audio_mode_control (info, c, value);
-
-	CLEAR (ctrl);
-	ctrl.id = C(c)->id;
-	ctrl.value = value;
+	ctrl = *c;
 
 	if (p_info->use_s_ctrl_old) {
 		/* Incorrectly defined as _IOW. */
@@ -476,9 +485,7 @@ set_control			(tveng_device_info *	info,
 			return FALSE;
 		}
 
-		CLEAR (ctrl);
-		ctrl.id = C(c)->id;
-		ctrl.value = value;
+		ctrl = *c;
 
 		if (-1 == xioctl (info, VIDIOC_S_CTRL_OLD, &ctrl)) {
 			return FALSE;
@@ -487,6 +494,28 @@ set_control			(tveng_device_info *	info,
 		/* We call this function quite often,
 		   next time take a shortcut. */
 		p_info->use_s_ctrl_old = TRUE;
+	}
+
+	return TRUE;
+}
+
+static tv_bool
+set_control			(tveng_device_info *	info,
+				 tv_control *		c,
+				 int			value)
+{
+	struct private_tveng25_device_info *p_info = P_INFO (info);
+	struct v4l2_control ctrl;
+
+	if (c->id == TV_CONTROL_ID_AUDIO_MODE)
+		return set_audio_mode_control (info, c, value);
+
+	CLEAR (ctrl);
+	ctrl.id = C(c)->id;
+	ctrl.value = value;
+
+	if (!s_ctrl (info, &ctrl)) {
+		return FALSE;
 	}
 
 	if (p_info->read_back_controls) {
@@ -1430,7 +1459,26 @@ get_overlay_buffer		(tveng_device_info *	info)
 	if (-1 == xioctl (info, VIDIOC_G_FBUF, &fb))
 		return FALSE;
 
-	/* XXX fb.capability, fb.flags ignored */
+	info->caps.flags &= ~(TVENG_CAPS_CHROMAKEY |
+			      TVENG_CAPS_CLIPPING |
+			      TVENG_CAPS_FRAMERAM);
+
+	if (fb.capability & V4L2_FBUF_CAP_CHROMAKEY)
+		info->caps.flags |= TVENG_CAPS_CHROMAKEY;
+
+	/* XXX */
+	if (fb.capability & (V4L2_FBUF_CAP_LIST_CLIPPING
+			     | V4L2_FBUF_CAP_BITMAP_CLIPPING))
+		info->caps.flags |= TVENG_CAPS_CLIPPING;
+
+	/* XXX */
+	if (!(fb.capability & V4L2_FBUF_CAP_EXTERNOVERLAY))
+		info->caps.flags |= TVENG_CAPS_FRAMERAM;
+
+	/* XXX get elsewhere
+	   if ((fb.flags & V4L2_FBUF_CAP_SCALEUP) ||
+	   (fb.flags & V4L2_FBUF_CAP_SCALEDOWN))
+	   info->caps.flags |= TVENG_CAPS_SCALES; */
 
 	info->overlay.buffer.base = (unsigned long) fb.base;
 
@@ -1560,6 +1608,35 @@ set_overlay_window		(tveng_device_info *	info,
 	return TRUE;
 }
 
+#if defined (HAVE_XV_EXTENSION) && TVENG25_XV_TEST
+
+static tv_bool
+set_overlay_xwindow		(tveng_device_info *	info,
+				 Window			window,
+				 GC			gc,
+				 unsigned int		chromakey)
+{
+	struct private_tveng25_device_info * p_info = P_INFO (info);
+
+	/* The XVideo V4L wrapper supports only clip-list overlay. */
+	/* XXX tell the caller. */
+	chromakey = chromakey;
+
+	if (!p_info->grabbed_xv_port) {
+		/* XXX shouldn't attach_device report this? */
+		info->tveng_errno = EBUSY;
+		t_error("XvGrabPort", info);
+		return FALSE;
+	}
+
+	p_info->xwindow = window;
+	p_info->xgc = gc;
+
+	return TRUE;
+}
+
+#endif
+
 static tv_bool
 enable_overlay			(tveng_device_info *	info,
 				 tv_bool		on)
@@ -1570,12 +1647,40 @@ enable_overlay			(tveng_device_info *	info,
 	if (on && p_info->buffers)
 		unmap_xbuffers (info, /* ignore_errors */ TRUE);
 
-	if (0 == xioctl (info, VIDIOC_OVERLAY, &value)) {
-		/* Caller shall use a timer instead. */
-		/* usleep (50000); */
-		return TRUE;
-	} else {
-		return FALSE;
+#if defined (HAVE_XV_EXTENSION) && TVENG25_XV_TEST
+	if (p_info->grabbed_xv_port
+	    && 0 != p_info->xwindow
+	    && 0 != p_info->xgc) {
+		if (on) {
+			const tv_video_standard *s;
+			unsigned int src_width, src_height;
+
+			src_width = 640;
+			src_height = 480;
+			s = p_info->info.panel.cur_video_standard;
+			if (NULL != s) {
+				src_width = s->frame_width;
+				src_height = s->frame_height;
+			}
+
+			return _tv_xv_put_video (info,
+						 p_info->xwindow,
+						 p_info->xgc,
+						 /* src_x, y */ 0, 0,
+						 src_width, src_height);
+		} else {
+			return _tv_xv_stop_video (info, p_info->xwindow);
+		}
+	} else
+#endif
+	{
+		if (0 == xioctl (info, VIDIOC_OVERLAY, &value)) {
+			/* Caller shall use a timer instead. */
+			/* usleep (50000); */
+			return TRUE;
+		} else {
+			return FALSE;
+		}
 	}
 }
 
@@ -2583,41 +2688,27 @@ enable_capture			(tveng_device_info *	info,
 	}
 }
 
-/* Closes a device opened with tveng_init_device */
-static void tveng25_close_device(tveng_device_info * info)
+static void
+grab_xv_port			(tveng_device_info *	info)
 {
+#if defined (HAVE_XV_EXTENSION) && TVENG25_XV_TEST
   struct private_tveng25_device_info *p_info = P_INFO (info);
-  gboolean dummy;
- 
-  p_tveng_stop_everything(info,&dummy);
 
-  if (p_info->buffers)
-	  unmap_xbuffers (info, /* ignore_errors */ TRUE);
+  if (NO_PORT == info->overlay.xv_port_id)
+    return;
 
-  device_close(info->log_fp, info->fd);
-  info -> fd = -1;
-  info -> current_controller = TVENG_CONTROLLER_NONE;
-
-  if (info -> file_name)
+  if (_tv_xv_grab_port (info))
     {
-      free(info -> file_name);
-      info->file_name = NULL;
+      p_info->grabbed_xv_port = TRUE;
+      p_info->xwindow = 0;
+      p_info->xgc = 0;
+      /* XXX check if XV_COLORKEY is supported by this port and
+	 set xa_colorkey, caps.flags accordingly. */
+      p_info->xa_colorkey = XInternAtom (p_info->info.display,
+					 "XV_COLORKEY",
+					 /* only_if_exists */ False);
     }
-
-	free_panel_controls (info);
-	free_video_standards (info);
-	free_video_inputs (info);
-	free_audio_inputs (info);
-
-  info->file_name = NULL;
-
-  free (info->node.label);
-  free (info->node.bus);
-  free (info->node.driver);
-  free (info->node.version);
-  free (info->node.device);
-
-  CLEAR (info->node);
+#endif
 }
 
 static tv_bool
@@ -2796,6 +2887,200 @@ reopen_ivtv_capture_device	(tveng_device_info *	info,
 	return TRUE;
 }
 
+#if TVENG25_XV_TEST
+
+#ifdef HAVE_XV_EXTENSION
+
+static tv_bool
+test_xv_port			(tveng_device_info *	info,
+				 tv_bool *		restore_brightness)
+{
+	static const unsigned int magic = 0x16; /* 010110 */
+	struct private_tveng25_device_info *p_info = P_INFO (info);
+	unsigned int sensed;
+	unsigned int i;
+	int last;
+
+	if (!_tv_xv_grab_port (info)) {
+		return FALSE;
+	}
+
+	sensed = 0;
+	last = 0;
+
+	for (i = 0; i < 6; ++i) {
+		unsigned int bit = magic & (1 << i);
+		struct v4l2_control ctrl;
+
+		*restore_brightness = TRUE;
+
+		if (!_tv_xv_set_port_attribute (info,
+						p_info->xa_xv_brightness,
+						bit ? +1000 : -1000,
+						/* sync */ TRUE)) {
+			sensed = 0;
+			goto failure;
+		}
+
+		CLEAR (ctrl);
+		ctrl.id = V4L2_CID_BRIGHTNESS;
+
+		if (-1 == xioctl (info, VIDIOC_G_CTRL, &ctrl)) {
+			sensed = 0;
+			goto failure;
+		}
+
+		sensed |= (ctrl.value >= last) << i;
+		last = ctrl.value;
+	}
+
+ failure:
+	/* Error ignored. */
+	_tv_xv_ungrab_port (info);
+
+	return (0 == ((sensed ^ magic) & ~1));
+}
+
+static tv_bool
+xvideo_probe			(tveng_device_info *	info)
+{
+	struct private_tveng25_device_info *p_info = P_INFO (info);
+	XErrorHandler old_error_handler;
+	unsigned int version;
+	unsigned int revision;
+	unsigned int major_opcode;
+	unsigned int event_base;
+	unsigned int error_base;
+	Window root_window;
+	XvAdaptorInfo *adaptors;
+	unsigned int n_adaptors;
+	struct v4l2_control brightness;
+	tv_bool restore_brightness;
+	unsigned int i;
+
+	adaptors = NULL;
+
+	p_info->info.overlay.xv_port_id = NO_PORT;
+
+	old_error_handler = XSetErrorHandler (x11_error_handler);
+
+	p_info->xa_xv_brightness = XInternAtom (p_info->info.display,
+						"XV_BRIGHTNESS",
+						/* only_if_exists */ False);
+	if (None == p_info->xa_xv_brightness) {
+		goto failure;
+	}
+
+	if (Success != XvQueryExtension (p_info->info.display,
+					 &version, &revision,
+					 &major_opcode,
+					 &event_base, &error_base)) {
+		goto failure;
+	}
+
+	if (version < 2 || (version == 2 && revision < 2)) {
+		goto failure;
+	}
+
+	root_window = DefaultRootWindow (p_info->info.display);
+
+	if (Success != XvQueryAdaptors (p_info->info.display,
+					root_window,
+					&n_adaptors, &adaptors)) {
+		goto failure;
+	}
+
+	if (0 == n_adaptors) {
+		goto failure;
+	}
+
+	CLEAR (brightness);
+	brightness.id = V4L2_CID_BRIGHTNESS;
+
+	/* XXX this is probably redundant. Can't we just take the
+	   value from info->panel.controls? */
+	if (-1 == xioctl (&p_info->info, VIDIOC_G_CTRL, &brightness)) {
+		goto failure;
+	}
+
+	restore_brightness = FALSE;
+
+	for (i = 0; i < n_adaptors; ++i) {
+		unsigned int j;
+
+		if (0 != strcmp (adaptors[i].name, "video4linux")) {
+			continue;
+		}
+
+		for (j = 0; j < adaptors[i].num_ports; ++j) {
+			p_info->info.overlay.xv_port_id =
+				(XvPortID)(adaptors[i].base_id + j);
+
+			if (test_xv_port (info, &restore_brightness)) {
+				goto found;
+			}
+		}
+	}
+
+	p_info->info.overlay.xv_port_id = NO_PORT;
+
+ found:
+	if (restore_brightness) {
+		/* Error ignored. */
+		s_ctrl (info, &brightness);
+	}
+
+	if (io_debug_msg > 0) {
+		fprintf (stderr, "Found Xv port %d.\n",
+			 (int) p_info->info.overlay.xv_port_id);
+	}
+
+ failure:
+	if (NULL != adaptors) {
+		XvFreeAdaptorInfo (adaptors);
+
+		adaptors = NULL;
+		n_adaptors = 0;
+	}
+
+	XSetErrorHandler (old_error_handler);
+}
+
+#else /* !HAVE_XV_EXTENSION */
+
+static void
+xvideo_probe			(tveng_device_info *	info)
+{
+	/* Nothing to do. */
+}
+
+#endif /* !HAVE_XV_EXTENSION */
+
+#endif /* 0 */
+
+static int
+do_open	(int flags, tveng_device_info * info)
+{
+  struct private_tveng25_device_info *p_info = P_INFO (info);
+
+  /* sn9c102 1.0.8 bug: NONBLOCK open fails with EAGAIN if the device has
+     users, and it seems the counter is never decremented when the USB device
+     is disconnected at close time. */
+  if (0 != strcmp ((char *) p_info->caps.driver, "sn9c102"))
+    flags |= O_NONBLOCK;
+
+  /* XXX see zapping_setup_fb for a safer version. */
+  info -> fd = device_open(info->log_fp, info -> file_name, flags, 0);
+  if (-1 == info -> fd)
+    {
+      info->tveng_errno = errno;
+      t_error("open()", info);
+      free (info->node.device);
+      info->node.device = NULL;
+      return -1;
+    }
+}
+
 /*
   Return fd for the device file opened. Checks if the device is a
   valid video device. -1 on error.
@@ -2856,30 +3141,124 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
     {
       info->caps.flags |= TVENG_CAPS_OVERLAY;
 
-      /* Collect more info about the overlay mode */
-      if (xioctl (info, VIDIOC_G_FBUF, &fb) != 0)
-	{
-	  if (fb.capability & V4L2_FBUF_CAP_CHROMAKEY)
-	    info->caps.flags |= TVENG_CAPS_CHROMAKEY;
-
-	  if (fb.capability & (V4L2_FBUF_CAP_LIST_CLIPPING
-			       | V4L2_FBUF_CAP_BITMAP_CLIPPING))
-	    info->caps.flags |= TVENG_CAPS_CLIPPING;
-
-	  if (!(fb.capability & V4L2_FBUF_CAP_EXTERNOVERLAY))
-	    info->caps.flags |= TVENG_CAPS_FRAMERAM;
-
-	  /* XXX get elsewhere
-	  if ((fb.flags & V4L2_FBUF_CAP_SCALEUP) ||
-	      (fb.flags & V4L2_FBUF_CAP_SCALEDOWN))
-	      info->caps.flags |= TVENG_CAPS_SCALES; */
-	}
+      /* More capabilities determined later
+	 when we call xvideo_probe() and get_overlay_buffer(). */
     }
 
   info -> current_controller = TVENG_CONTROLLER_V4L2;
   
   /* Everything seems to be OK with this device */
   return (info -> fd);
+}
+
+static void
+stop				(tveng_device_info *	info)
+{
+  struct private_tveng25_device_info *p_info = P_INFO (info);
+  gboolean dummy;
+
+  p_tveng_stop_everything(info,&dummy);
+
+  if (p_info->buffers)
+    unmap_xbuffers (info, /* ignore_errors */ TRUE);
+
+#if defined (HAVE_XV_EXTENSION) && TVENG25_XV_TEST
+	if (p_info->grabbed_xv_port) {
+		if (!_tv_xv_ungrab_port (info)) {
+			p_info->info.overlay.xv_port_id = NO_PORT;
+			p_info->info.caps.flags &= ~TVENG_CAPS_XVIDEO;
+		}
+
+		p_info->grabbed_xv_port = FALSE;
+	}
+#endif
+
+	if (-1 != info->fd)
+		device_close (info->log_fp, info->fd);
+  info -> fd = -1;
+}
+
+static void free_all(tveng_device_info * info)
+{
+  struct private_tveng25_device_info *p_info = P_INFO (info);
+
+  if (info -> file_name)
+    {
+      free(info -> file_name);
+      info->file_name = NULL;
+    }
+
+  free_panel_controls (info);
+  free_video_standards (info);
+  free_video_inputs (info);
+  free_audio_inputs (info);
+
+  free (info->node.label);
+  free (info->node.bus);
+  free (info->node.driver);
+  free (info->node.version);
+  free (info->node.device);
+
+  CLEAR (info->node);
+}
+
+/* Closes a device opened with tveng_init_device */
+static void tveng25_close_device(tveng_device_info * info)
+{
+  struct private_tveng25_device_info *p_info = P_INFO (info);
+
+  stop (info);
+
+  info -> current_controller = TVENG_CONTROLLER_NONE;
+
+  free_all (info);
+}
+
+static int
+tveng25_change_attach_mode	(tveng_device_info * info,
+				 Window window,
+				 enum tveng_attach_mode attach_mode)
+{
+  struct private_tveng25_device_info *p_info = P_INFO (info);
+
+  window = window; 
+
+  stop (info);
+
+  switch (attach_mode)
+    {
+    case TVENG_ATTACH_CONTROL:
+    case TVENG_ATTACH_VBI:
+      attach_mode = TVENG_ATTACH_CONTROL;
+      if (-1 == (info -> fd = do_open (0, info)))
+	{
+	  free_all (info);
+	  return -1;
+	}
+      break;
+
+    case TVENG_ATTACH_XV: /* FIXME this is overlay, not read. */
+    case TVENG_ATTACH_READ:
+      /* NB must be RDWR since client may write mmapped buffers. */
+      if (-1 == (info -> fd = do_open (O_RDWR, info)))
+	{
+	  free_all (info);
+	  return -1;
+	}
+     if (TVENG_ATTACH_XV == attach_mode)
+	grab_xv_port (info);
+      attach_mode = TVENG_ATTACH_READ;
+      break;
+    default:
+      tv_error_msg(info, "Unknown attach mode for the device");
+      return -1;
+    };
+
+  info -> attach_mode = attach_mode;
+  /* Current capture mode is no capture at all */
+  info -> capture_mode = CAPTURE_MODE_NONE;
+
+  return 0; /* ok */
 }
 
 static void
@@ -2970,9 +3349,12 @@ int tveng25_attach_device(const char* device_file,
 
     case TVENG_ATTACH_XV: /* FIXME this is overlay, not read. */
     case TVENG_ATTACH_READ:
-      attach_mode = TVENG_ATTACH_READ;
-      /* NB must be RDWR since client may write mmapped buffers. */
+      /* NB must be RDWR since client may write mmapped buffers.
+	 It's required by some drivers and the V4L2 spec too. */
       info -> fd = p_tveng25_open_device_file(O_RDWR, info);
+      if (TVENG_ATTACH_XV == attach_mode)
+	grab_xv_port (info);
+      attach_mode = TVENG_ATTACH_READ;
       break;
     default:
       tv_error_msg(info, "Unknown attach mode for the device");
@@ -3053,11 +3435,26 @@ int tveng25_attach_device(const char* device_file,
 		info->overlay.get_window = get_overlay_window;
 		info->overlay.enable = enable_overlay;
 
+		/* Current parameters and additional capability flags. */
 		if (!get_overlay_buffer (info))
 			goto failure;
 
 		if (!get_overlay_window (info))
 			goto failure;
+
+#if defined (HAVE_XV_EXTENSION) && TVENG25_XV_TEST
+		/* The XVideo V4L wrapper supports only clip-list overlay. */
+		if (info->caps.flags & TVENG_CAPS_CLIPPING) {
+			xvideo_probe (info);
+
+			if (NO_PORT != info->overlay.xv_port_id) {
+				p_info->info.caps.flags |= TVENG_CAPS_XVIDEO;
+
+				info->overlay.set_xwindow =
+					set_overlay_xwindow;
+			}
+		}
+#endif
 	}
 
 	/* Capture */
@@ -3098,6 +3495,7 @@ int tveng25_attach_device(const char* device_file,
 static struct tveng_module_info tveng25_module_info = {
   .attach_device =		tveng25_attach_device,
   .close_device =		tveng25_close_device,
+  .change_mode =		tveng25_change_attach_mode,
 
   .interface_label		= "Video4Linux 2",
 
