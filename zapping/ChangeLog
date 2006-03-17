@@ -1,3 +1,26 @@
+2006-03-17    <mschimek@users.sf.net>
+
+	* TODO, NEWS: Updated.
+
+	* src/tvengxv.h, src/tvengxv.c (tvengxv_port_scan): New function
+	  enumerating XVideo video input ports.
+	* src/tvengbktr.h, src/tvengbktr.c (tvengbktr_device_scan): New
+	  function enumerating installed bktr devices.
+	* src/tveng25.h, src/tveng25.c (tveng25_device_scan): New function
+	  enumerating installed V4L2 and V4L video capture devices.
+
+	* src/tveng1.c: Rewrote the code temporarily opening and closing the
+	  V4L device. Finished XVideo-V4L support. Added functions to access
+	  controls and tuner frequency through the XVideo interface, so we
+	  don't have to stop overlay and reopen the V4L every time. Added a
+	  change_attach_mode function as in tveng25.c. Restructured the code
+	  a bit and cleaned up. XVideo-V4L and change_attach_mode not
+	  enabled yet.
+	* src/tveng.h (enum tveng_attach_mode): Added
+	  TVENG_ATTACH_UNKNOWN = 0.
+	* src/tveng.c (tveng_attach_device): Now tveng1.c supports
+	  change_attach_mode method too.
+
 2006-03-11    <mschimek@users.sf.net>
 
 	* src/x11stuff.h, src/x11stuff.c (x11_error_handler): Now public to
