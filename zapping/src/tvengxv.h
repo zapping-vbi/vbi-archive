@@ -49,6 +49,10 @@ _tv_xv_ungrab_port		(tveng_device_info *	info);
 extern tv_bool
 _tv_xv_grab_port		(tveng_device_info *	info);
 
+extern tv_device_node *
+tvengxv_port_scan		(Display *		display,
+				 FILE *			log);
+
 /*
   Inits the XVideo module, and fills in the given table.
 */
