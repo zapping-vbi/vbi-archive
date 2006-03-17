@@ -62,6 +62,9 @@
 #ifndef TVENG25_XV_TEST
 #  define TVENG25_XV_TEST 0
 #endif
+#ifndef TVENG1_XV_TEST
+#  define TVENG1_XV_TEST 0
+#endif
 
 /* int rc = 0; */
 
@@ -290,7 +293,7 @@ clone_controls			(tv_control **		list,
 
 typedef void (*tveng_controller)(struct tveng_module_info *info);
 static tveng_controller tveng_controllers[] = {
-#if TVENG1_RIVATV_TEST
+#if TVENG1_RIVATV_TEST || TVENG1_XV_TEST
   tveng1_init_module,
 #elif TVENG25_XV_TEST
   tveng25_init_module,
@@ -527,8 +530,10 @@ int tveng_attach_device(const char* device_file,
 
   tv_clear_error (info);
 
-  /* Shortcut. Bloody hack. Future stuff. */
-  if (0 && -1 != info->fd && NULL != info->module.change_mode)
+  if (0
+      && (TVENG1_XV_TEST | TVENG25_XV_TEST)
+      && -1 != info->fd
+      && NULL != info->module.change_mode)
     {
       if (-1 != info->module.change_mode (info, window, attach_mode))
 	goto done;
