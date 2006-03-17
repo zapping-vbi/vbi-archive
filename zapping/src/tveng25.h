@@ -55,5 +55,8 @@ int tveng25_attach_device(const char* device_file,
 */
 static void tveng25_close_device(tveng_device_info* info);
 
+extern tv_device_node *
+tveng25_device_scan		(FILE *			log);
+
 #endif /* TVENG25_PROTOTYPES */
 #endif /* TVENG25.H */
