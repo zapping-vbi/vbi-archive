@@ -78,6 +78,7 @@
 /* The valid modes for opening the video device */
 enum tveng_attach_mode
 {
+  TVENG_ATTACH_UNKNOWN = 0,
   /*
     Attachs the device so you can only control it, not read
     frames. This way you can do more than one opens per device. This
