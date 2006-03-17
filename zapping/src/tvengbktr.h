@@ -53,5 +53,8 @@ int tvengbktr_attach_device(const char* device_file,
 */
 static void tvengbktr_close_device(tveng_device_info* info);
 
+extern tv_device_node *
+tvengbktr_device_scan		(FILE *			log);
+
 #endif /* TVENGBKTR_PROTOTYPES */
 #endif /* TVENGBKTR.H */
