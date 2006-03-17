@@ -176,7 +176,6 @@ struct private_tveng25_device_info
 	Window			xwindow;
 	GC			xgc;
 
-	Atom			xa_colorkey;
 	Atom			xa_xv_brightness;
 #endif
 
@@ -2702,11 +2701,15 @@ grab_xv_port			(tveng_device_info *	info)
       p_info->grabbed_xv_port = TRUE;
       p_info->xwindow = 0;
       p_info->xgc = 0;
-      /* XXX check if XV_COLORKEY is supported by this port and
-	 set xa_colorkey, caps.flags accordingly. */
+#if 0
+      /* XXX XVideo-V4L does not support chroma-keying by the
+	 V4L driver, but the graphics chip may have a XV_COLORKEY
+	 attribute. Implications? XXX we still caps.flags the V4L
+	 chroma-keying support although it has no effect here. */
       p_info->xa_colorkey = XInternAtom (p_info->info.display,
 					 "XV_COLORKEY",
 					 /* only_if_exists */ False);
+#endif
     }
 #endif
 }
@@ -2871,6 +2874,7 @@ reopen_ivtv_capture_device	(tveng_device_info *	info,
 	    || 0 != XSTRACMP (caps.driver, "ivtv")) {
 		info->tveng_errno = -1;
 
+		/* Error ignored. */
 		device_close (info->log_fp, fd);
 		fd = -1;
 
@@ -2880,6 +2884,7 @@ reopen_ivtv_capture_device	(tveng_device_info *	info,
 		return FALSE;
 	}
 
+	/* Error ignored. */
 	device_close (info->log_fp, info->fd);
 
 	info->fd = fd;
@@ -3117,6 +3122,7 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
 
   if (!get_capabilities (info))
     {
+      /* Error ignored. */
       device_close(info->log_fp, info->fd);
       free (info->node.device);
       info->node.device = NULL;
@@ -3125,6 +3131,7 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
 
 	if (p_info->ivtv_driver > 0) {
 		if (!reopen_ivtv_capture_device (info, flags)) {
+			/* Error ignored. */
 			device_close(info->log_fp, info->fd);
 			free (info->node.device);
 			info->node.device = NULL;
@@ -3173,9 +3180,11 @@ stop				(tveng_device_info *	info)
 	}
 #endif
 
-	if (-1 != info->fd)
+	if (-1 != info->fd) {
+		/* Error ignored. */
 		device_close (info->log_fp, info->fd);
-  info -> fd = -1;
+		info -> fd = -1;
+	}
 }
 
 static void free_all(tveng_device_info * info)
@@ -3490,6 +3499,169 @@ int tveng25_attach_device(const char* device_file,
  failure:
   tveng25_close_device (info);
   return -1;
+}
+
+static void
+destroy_devnode			(tv_device_node *	n,
+				 tv_bool		restore)
+{
+	restore = restore;
+
+	if (NULL == n)
+		return;
+
+	free (n->device);
+	free (n->version);
+	free (n->driver);
+	free (n->bus);
+	free (n->label);
+
+	CLEAR (*n);
+
+	free (n);
+}
+
+static tv_bool
+append_devnode			(tv_device_node **	list,
+				 const char *		api,
+				 const __u8 *		label,
+				 size_t			label_size,
+				 const __u8 *		bus,
+				 size_t			bus_size,
+				 const __u8 *		driver,
+				 size_t			driver_size,
+				 unsigned int		version,
+				 const char *		device)
+{
+	tv_device_node *n;
+
+	n = calloc (1, sizeof (*n));
+	if (NULL == n) {
+		return FALSE;
+	}
+
+	n->label = xstrndup (label, label_size);
+	if (NULL == n->label)
+		goto failure;
+
+	if (NULL != bus) {
+		n->bus = xstrndup (bus, bus_size);
+		if (NULL == n->bus)
+			goto failure;
+	}
+
+	if (driver) {
+		char *s;
+
+		s = xstrndup (driver, driver_size);
+		if (NULL != s) {
+			_tv_asprintf (&n->driver, "%s (%s)", s, api);
+			free (s);
+			s = NULL;
+		}
+	} else {
+		n->driver = strdup (api);
+	}
+
+	if (NULL == n->label)
+		goto failure;
+
+	if (0 != version) {
+		_tv_asprintf (&n->version, "%u.%u.%u",
+			      (version >> 16) & 0xFF,
+			      (version >> 8) & 0xFF,
+			      (version >> 0) & 0xFF);
+		if (NULL == n->version)
+			goto failure;
+	}
+
+	n->device = strdup (device);
+	if (NULL == n->device)
+		goto failure;
+
+	n->destroy = destroy_devnode;
+
+	tv_device_node_add (list, n);
+
+	return TRUE;
+
+ failure:
+	destroy_devnode (n, /* restore */ TRUE);
+
+	return FALSE;
+}
+
+tv_device_node *
+tveng25_device_scan		(FILE *			log)
+{
+	static const char *video_devices [] = {
+		"/dev/video",
+		"/dev/video0",
+		"/dev/v4l/video0",
+		"/dev/v4l/video",
+		"/dev/video1",
+		"/dev/video2",
+		"/dev/video3",
+		"/dev/v4l/video1",
+		"/dev/v4l/video2",
+		"/dev/v4l/video3"
+	};
+	tv_device_node *list;
+	unsigned int i;
+
+	list = NULL;
+
+	if (NULL != log) {
+		fprintf (log, "V4L2 device scan\n");
+	}
+
+	for (i = 0; i < N_ELEMENTS (video_devices); ++i) {
+		struct video_capability v4l_cap;
+		struct v4l2_capability v4l2_cap;
+		tv_bool success;
+		int fd;
+
+		/* XXX see zapping_setup_fb for a safer version. */
+		fd = device_open (log, video_devices[i],
+				  /* flags */ O_RDWR,
+				  /* mode */ 0);
+		if (-1 == fd) {
+			continue;
+		}
+
+		success = TRUE;
+
+		if (0 == device_ioctl (log, fprint_ioctl_arg, fd,
+				       VIDIOC_QUERYCAP, &v4l2_cap)) {
+			success = append_devnode (&list, "V4L2",
+						  v4l2_cap.card,
+						  sizeof (v4l2_cap.card),
+						  v4l2_cap.bus_info,
+						  sizeof (v4l2_cap.bus_info),
+						  v4l2_cap.driver,
+						  sizeof (v4l2_cap.driver),
+						  v4l2_cap.version,
+						  video_devices[i]);
+		} else if (0 == device_ioctl (log, fprint_ioctl_arg, fd,
+					      VIDIOCGCAP, &v4l_cap)) {
+			success = append_devnode (&list, "V4L",
+						  (const __u8 *) v4l_cap.name,
+						  sizeof (v4l_cap.name),
+						  /* bus */ NULL, 0,
+						  /* driver */ NULL, 0,
+						  /* version */ 0,
+						  video_devices[i]);
+		}
+
+		/* Error ignored. */
+		device_close (log, fd);
+		fd = -1;
+
+		if (!success)
+			break;
+	}
+
+	return list;
 }
 
 static struct tveng_module_info tveng25_module_info = {
