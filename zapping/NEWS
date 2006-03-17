@@ -1,7 +1,7 @@
 New stuff, refer to the ChangeLog for a more detailed description of
 the changes.
 
-Zapping 0.10, 2005-11-03
+Zapping 0.10, 2006-03-11
 ------------------------
 This version of Zapping improves caption and subtitle support.
 
@@ -41,8 +41,8 @@ This version of Zapping improves caption and subtitle support.
 
 Other improvements:
 
-- The VBI device UI moved into the device section.  A new option has been
-  added to select a DVB PES file as source (mainly for tests).  Uses
+- The VBI device UI moved into the device section. A new option has been
+  added to select a DVB PES file as source (mainly for tests). Uses
   GnomeVFS to permit on-the-fly decompression.
 - The Xawtv config import routines now handle baseband inputs
   (Debian patch #302835).
@@ -51,16 +51,23 @@ Other improvements:
 - With GCC 4.0.1+ compiling of SSE2 optimized functions is enabled (earlier
   versions had a bug aborting the compilation).
 - New SSE3 optimized deinterlace routines were added.
+- The MMX YUV to YUV and RGB conversion routines have been replaced by
+  vector intrinsics which compile on x86-64 as well. An MMX SBGGR to
+  RGB routine has been added. More source and target formats are supported
+  now.
 - This version has preliminary support for the ivtv 0.2 and 0.3 driver
   (untested). So far display and screenshots only. No video out, recording
   or playback.
+- Improved support for the rivatv driver (untested).
 - When zapping_setup_fb (preparing for DMA overlay) fails, the error messages
   are more verbose.
 - The "Save window geometry" option is gone. Zapping now unconditionally
   preserves the main window size or relies on the session manager to
   restore the window size and position.
+- Video overlay improved and support for chroma-key overlay was restored.
+  (Overlay of captured images with XVideo is still disabled.)
 - Recording now works on FreeBSD with the bktr driver. Overlay has been
-  restored.
+  restored on FreeBSD.
 
 Fixes:
 
@@ -70,12 +77,23 @@ Fixes:
   Zapping closed the VBI device.
 - Capture mode error dialogs appeared twice.
 - Overlay didn't work with the built-in video device emulator.
-- A bug displaced the main window when leaving the fullscreen mode.
+- A bug displaced the main window when leaving the fullscreen mode
+  (Debian bug #304375).
+- Crashes in the Teletext cache code (prob. bug #1089853).
+- Abortion due to unhandled X errors when DGA is unsupported (esp.
+  newer nVidia drivers), when using XVideo image scaling and in
+  fullscreen mode (bug #1424470, #1447834; Gnome bug #331580,
+  #332846).
+- Entering single-digit channel numbers on the numeric keypad did
+  not work.
+- A crash in zapping_setup_fb when given an unknown option.
+- A crash when opening the channel editor or preferences (bug
+  #1429083; Debian bug #344969; Gnome bug #332221, #328309).
 
 Dependencies:
 
 - Zapping now requires libzvbi >= 0.2.11 for better DVB PES support
-  (the most recent version is 0.2.17).
+  (the most recent version is 0.2.18).
 - Recording now works on FreeBSD, if librte is installed. Note librte
   works only on x86, not x86-64 or ppc systems.
 
