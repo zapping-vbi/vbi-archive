@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: convert_image.c,v 1.4 2006-03-11 13:12:38 mschimek Exp $ */
+/* $Id: convert_image.c,v 1.5 2006-03-17 13:35:27 mschimek Exp $ */
 
 #define _GNU_SOURCE 1
 #undef NDEBUG
@@ -1251,9 +1251,6 @@ main				(int			argc,
 		/* Use optimized version, if available. */
 		cpu_features = cpu_feature_set_from_string (argv[1]);
 	}
-
-	CLEAR (dst_format);
-	CLEAR (src_format);
 
 	all_formats ();
 
