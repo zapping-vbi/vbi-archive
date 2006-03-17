@@ -482,8 +482,19 @@ _tv_xv_grab_port		(tveng_device_info *	info)
 	return success;
 }
 
+static unsigned int
+adaptor_type			(const XvAdaptorInfo *	adaptor)
+{
+	unsigned int type = adaptor->type;
 
+	if (0 == strcmp (adaptor->name, "NVIDIA Video Interface Port")
+	    && type == (XvInputMask | XvVideoMask)) {
+		/* Bug. This is TV out. */
+		type = XvOutputMask | XvVideoMask;
+	}
 
+	return type;
+}
 
 static tv_bool
 grab_port			(tveng_device_info *	info,
@@ -500,11 +511,7 @@ grab_port			(tveng_device_info *	info,
 
       pAdaptor = pAdaptors + i;
 
-      type = pAdaptor->type;
-
-      if (0 == strcmp (pAdaptor->name, "NVIDIA Video Interface Port")
-	  && type == (XvInputMask | XvVideoMask))
-	type = XvOutputMask | XvVideoMask; /* Bug. This is TV out. */
+      type = adaptor_type (pAdaptor);
 
       if ((XvInputMask | XvVideoMask)
 	  == (type & (XvInputMask | XvVideoMask)))
@@ -1710,16 +1717,180 @@ static void tvengxv_close_device(tveng_device_info * info)
 
 
 
+static void
+destroy_devnode			(tv_device_node *	n,
+				 tv_bool		restore)
+{
+	restore = restore;
 
+	if (NULL == n)
+		return;
 
+	free (n->device);
+	free (n->version);
+	free (n->driver);
+	free (n->bus);
+	free (n->label);
 
+	CLEAR (*n);
 
+	free (n);
+}
 
+static tv_bool
+append_devnodes			(tv_device_node **	list,
+				 const XvAdaptorInfo *	adaptor,
+				 const char *		display_name,
+				 const char *		version_str)
+{
+	unsigned int i;
 
+	for (i = 0; i < adaptor->num_ports; ++i) {
+		tv_device_node *n;
 
+		n = calloc (1, sizeof (*n));
+		if (NULL == n) {
+			return FALSE;
+		}
 
+		if (1 == adaptor->num_ports) {
+			n->label = strdup (adaptor->name);
+		} else {
+			_tv_asprintf (&n->label, "%s port %u",
+				      adaptor->name, i);
+		}
 
+		n->bus = strdup (display_name);
+		n->driver = strdup ("XVideo");
+		n->version = strdup (version_str);
 
+		/* XvPortID */
+		_tv_asprintf (&n->device, "%u",
+			      adaptor->base_id + i);
+
+		if (NULL == n->label
+		    || NULL == n->bus
+		    || NULL == n->driver
+		    || NULL == n->version
+		    || NULL == n->device) {
+			destroy_devnode (n, /* restore */ TRUE);
+			return FALSE;
+		}
+
+		n->destroy = destroy_devnode;
+
+		tv_device_node_add (list, n);
+	}
+
+	return TRUE;
+}
+
+tv_device_node *
+tvengxv_port_scan		(Display *		display,
+				 FILE *			log)
+{
+	char version_str[32];
+	XErrorHandler old_error_handler;
+	tv_device_node *list;
+	XvAdaptorInfo *adaptors;
+	unsigned int n_adaptors;
+	const char *display_name;
+	unsigned int version;
+	unsigned int revision;
+	unsigned int major_opcode;
+	unsigned int event_base;
+	unsigned int error_base;
+	Window root_window;
+	unsigned int i;
+	int status;
+
+	assert (NULL != display);
+
+	list = NULL;
+	adaptors = NULL;
+
+	old_error_handler = XSetErrorHandler (x11_error_handler);
+
+	display_name = XDisplayString (display);
+
+	if (NULL != log) {
+		fprintf (log, "XVideo video port scan on display %s\n",
+			 display_name);
+	}
+
+	if (Success != XvQueryExtension (display,
+					 &version, &revision,
+					 &major_opcode,
+					 &event_base, &error_base)) {
+		if (NULL != log) {
+			fprintf (log, "XVideo extension not available\n");
+		}
+
+		goto done;
+	}
+
+	if (NULL != log) {
+		fprintf (log, "XVideo opcode=%u event_base=%u "
+			 "error_base=%u version=%u.%u\n",
+			 major_opcode,
+			 event_base, error_base,
+			 version, revision);
+	}
+
+	if (version < 2 || (version == 2 && revision < 2)) {
+		if (NULL != log) {
+			fprintf (log, "XVideo extension not usable\n");
+		}
+
+		goto done;
+	}
+
+	snprintf (version_str, sizeof (version_str),
+		  "%u.%u", version, revision);
+
+	root_window = DefaultRootWindow (display);
+
+	x11_error_code = Success;
+	status = XvQueryAdaptors (display, root_window,
+				  &n_adaptors, &adaptors);
+	if (Success != status) {
+		if (log) {
+			fprintf (log, "XvQueryAdaptors failed, "
+				 "status=%d error=%d\n",
+				 status, x11_error_code);
+		}
+
+		goto done;
+	}
+
+	for (i = 0; i < n_adaptors; ++i) {
+		unsigned int type;
+		char *name;
+
+		type = adaptor_type (&adaptors[i]);
+
+		if ((XvInputMask | XvVideoMask)
+		    != (type & (XvInputMask | XvVideoMask)))
+			continue;
+
+		if (!append_devnodes (&list, &adaptors[i],
+				      display_name, version_str)) {
+			goto done;
+		}
+	}
+
+ done:
+	if (NULL != adaptors) {
+		XvFreeAdaptorInfo (adaptors);
+
+		adaptors = NULL;
+		n_adaptors = 0;
+	}
+
+	XSetErrorHandler (old_error_handler);
+
+	return list;
+}
 
 static struct tveng_module_info tvengxv_module_info = {
   .attach_device =		tvengxv_attach_device,
