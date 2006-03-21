@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.h,v 1.3 2005-01-31 07:17:02 mschimek Exp $ */
+/* $Id: exp-txt.h,v 1.4 2006-03-21 19:01:24 mschimek Exp $ */
 
 #ifndef __ZVBI3_EXP_TXT_H__
 #define __ZVBI3_EXP_TXT_H__
@@ -40,8 +40,8 @@ extern unsigned int
 vbi3_print_page_region_va_list	(vbi3_page *		pg,
 				 char *			buffer,
 				 unsigned int		buffer_size,
-				 const char *		format,
-				 const char *		separator,
+				 const char * __restrict__ format,
+				 const char * __restrict__ separator,
 				 unsigned int		separator_size,
 				 unsigned int		column,
 				 unsigned int		row,
@@ -53,8 +53,8 @@ extern unsigned int
 vbi3_print_page_region		(vbi3_page *		pg,
 				 char *			buffer,
 				 unsigned int		buffer_size,
-				 const char *		format,
-				 const char *		separator,
+				 const char * __restrict__ format,
+				 const char * __restrict__ separator,
 				 unsigned int		separator_size,
 				 unsigned int		column,
 				 unsigned int		row,

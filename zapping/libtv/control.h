@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: control.h,v 1.2 2005-07-04 21:56:19 mschimek Exp $ */
+/* $Id: control.h,v 1.3 2006-03-21 19:01:22 mschimek Exp $ */
 
 #ifndef __ZTV_CONTROL_H__
 #define __ZTV_CONTROL_H__
@@ -98,8 +98,8 @@ tv_control_callback_fn		(tv_control *		control,
 
 static __inline__ tv_callback *
 tv_control_add_callback		(tv_control *		control,
-				 tv_control_callback_fn	notify,
-				 tv_control_callback_fn	destroy,
+				 tv_control_callback_fn	*notify,
+				 tv_control_callback_fn	*destroy,
 				 void *			user_data)
 {
 	assert (control != NULL);

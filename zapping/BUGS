@@ -2,6 +2,7 @@ Known bugs in Zapping, don't report them
 ----------------------------------------
 
 Zapping 0.10:
+* TTX does not work when XV overlay enabled? 
 * Why 100% CPU in win/over w/VBI=1?
 * Cannot switch to capture mode when VIDIOC_G_FMT fails (e.g. after
   bttv PALETTE_RAW capturing).

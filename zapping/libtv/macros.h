@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: macros.h,v 1.3 2005-06-28 01:03:31 mschimek Exp $ */
+/* $Id: macros.h,v 1.4 2006-03-21 19:01:22 mschimek Exp $ */
 
 #ifndef __ZTV_MACROS_H__
 #define __ZTV_MACROS_H__
@@ -36,6 +36,7 @@ TV_BEGIN_DECLS
 #  define _tv_sentinel sentinel(0)
 #else
 #  define _tv_sentinel
+#  define __restrict__
 #endif
 
 #if (__GNUC__ == 3 && __GNUC_MINOR__ >= 3) || __GNUC__ >= 4

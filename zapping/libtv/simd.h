@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.h,v 1.6 2006-03-11 13:13:35 mschimek Exp $ */
+/* $Id: simd.h,v 1.7 2006-03-21 19:01:22 mschimek Exp $ */
 
 #ifndef SIMD_H
 #define SIMD_H
@@ -84,8 +84,9 @@
 
 #define SCALAR (1 << 30)
 
-#define always_inline __attribute__ ((always_inline, unused))
-#define never_inline __attribute__ ((noinline, unused))
+/* XXX GCC 4.1 doesn't support nested always_inline functions? */
+#define always_inline __attribute__ ((always_inline))
+#define never_inline __attribute__ ((noinline))
 
 /* ------------------------------------------------------------------------- */
 
@@ -339,6 +340,7 @@ vlsr				(__m64			_h,
 				 __m64			_l,
 				 unsigned int		_i)
 {
+	assert (__builtin_constant_p (_i));
 	assert (_i <= 64);
 
 	if (0 == _i) {
@@ -365,6 +367,7 @@ vshiftu2x			(__m64 *		_l,
 				 __m64			_a1,
 				 const unsigned int	_dist)
 {
+	assert (__builtin_constant_p (_dist));
 	assert (_dist <= sizeof (vu8));
 
 #if 0
@@ -528,15 +531,16 @@ vminmaxu8			(vu8 *			_min,
 	*_min = vxor (_a, t);	/* b       a */
 }
 
-static always_inline vu8
-vminu16i			(vu8			_a,
+static always_inline vu16
+vminu16i			(vu16			_a,
 				 unsigned int		_i)
 {
 	vu16 t;
 
+	assert (__builtin_constant_p (_i));
 	assert (_i <= 65535);
 
-	t = vsplatu16 (0xFFFF - _i); 	/* a > i   a <= i */ 
+	t = vsplatu16 (0xFFFF - _i);    /* a > i   a <= i */
 	_a = vaddsu16 (_a, t);	 	/* 0xFFFF  a + 0xFFFF - i */
 	return vsubsu16 (_a, t);  	/* i       a */
 }
@@ -707,7 +711,9 @@ static always_inline __m128i
 vsl				(__m128i		_a,
 				 const unsigned int	_i)
 {
+	assert (__builtin_constant_p (_i));
 	assert (0 == (_i % 8));
+
 	return _mm_slli_si128 (_a, _i / 8); /* sic */
 }
 
@@ -715,7 +721,9 @@ static always_inline __m128i
 vsru				(__m128i		_a,
 				 const unsigned int	_i)
 {
+	assert (__builtin_constant_p (_i));
 	assert (0 == (_i % 8));
+
 	return _mm_srli_si128 (_a, _i / 8); /* sic */
 }
 
@@ -725,6 +733,7 @@ vlsr				(__m128i		_h,
 				 __m128i		_l,
 				 const unsigned int	_i)
 {
+	assert (__builtin_constant_p (_i));
 	assert (_i <= 128);
 
 	if (0 == _i) {
@@ -746,6 +755,7 @@ vshiftu2x			(__m128i *		_l,
 				 __m128i		_a1,
 				 const unsigned int	_dist)
 {
+	assert (__builtin_constant_p (_dist));
 	assert (_dist <= sizeof (vu8));
 
 	if (8 == _dist) {
@@ -994,7 +1004,11 @@ static always_inline v16
 vsl16				(v16			_a,
 				 const unsigned int	_i)
 {
-	vu16 i = vec_splat_u16 (_i);
+	vu16 i;
+
+	assert (__builtin_constant_p (_i));
+	i = vec_splat_u16 (_i);
+
 	return vec_sl (_a, i);
 }
 
@@ -1002,7 +1016,11 @@ static always_inline v16
 vsr16				(v16			_a,
 				 const unsigned int	_i)
 {
-	vu16 i = vec_splat_u16 (_i);
+	vu16 i;
+
+	assert (__builtin_constant_p (_i));
+	i = vec_splat_u16 (_i);
+
 	return vec_sra (_a, i);
 }
 
@@ -1010,7 +1028,11 @@ static always_inline vu16
 vsru16				(vu16			_a,
 				 const unsigned int	_i)
 {
-	vu16 i = vec_splat_u16 (_i);
+	vu16 i;
+
+	assert (__builtin_constant_p (_i));
+	i = vec_splat_u16 (_i);
+
 	return vec_sr (_a, i);
 }
 
@@ -1018,7 +1040,11 @@ static always_inline v32
 vsl32				(v32			_a,
 				 const unsigned int	_i)
 {
-	vu32 i = vec_splat_u32 (_i);
+	vu32 i;
+	
+	assert (__builtin_constant_p (_i));
+	i = vec_splat_u32 (_i);
+
 	return vec_sl (_a, i);
 }
 
@@ -1026,7 +1052,11 @@ static always_inline v32
 vsr32				(v32			_a,
 				 const unsigned int	_i)
 {
-	vu32 i = vec_splat_u32 (_i);
+	vu32 i;
+	
+	assert (__builtin_constant_p (_i));
+	i = vec_splat_u32 (_i);
+
 	return vec_sra (_a, i);
 }
 
@@ -1034,7 +1064,11 @@ static always_inline vu32
 vsru32				(vu32			_a,
 				 const unsigned int	_i)
 {
-	vu32 i = vec_splat_u32 (_i);
+	vu32 i;
+	
+	assert (__builtin_constant_p (_i));
+	i = vec_splat_u32 (_i);
+
 	return vec_sr (_a, i);
 }
 
@@ -1044,6 +1078,7 @@ vlsr				(vu8			_h,
 				 vu8			_l,
 				 const unsigned int	_i)
 {
+	assert (__builtin_constant_p (_i));
 	assert (_i <= 128);
 
 	if (0 == _i) {
@@ -1071,7 +1106,9 @@ vshiftu2x			(vu8 *			_l,
 				 vu8			_a1,
 				 const unsigned int	_dist)
 {
+	assert (__builtin_constant_p (_dist));
 	assert (_dist <= sizeof (vu8));
+
 	/* 0123 4567 -> 3456 */
 	*_l = vlsr (_am, _a0, _dist * 8);
 	/* 4567 89AB -> 5678 */

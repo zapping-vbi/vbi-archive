@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd-conv.h,v 1.3 2006-03-11 13:13:24 mschimek Exp $ */
+/* $Id: simd-conv.h,v 1.4 2006-03-21 19:01:22 mschimek Exp $ */
 
 #include <assert.h>
 #include "pixel_format.h"
@@ -36,7 +36,11 @@
 #  warning only MMX tested
 #endif
 
-/* out[i] = in[i * dist % sizeof (in) + i * dist / sizeof (in)] */
+/* out[i] = in[i * dist % sizeof (in) + i * dist / sizeof (in)], e.g.
+   dist = 2: (30 28 26 24 22 20 18 16) 14 12 10 08 06 04 02 00,
+             (31 29 27 25 23 21 19 17) 15 13 11 09 07 05 03 01
+   dist = 4: (29 25 21 17) 13 09 05 01 (28 24 20 16) 12 08 04 00,
+             (31 27 23 19) 15 11 07 03 (30 26 22 18) 14 10 06 02 */
 static always_inline void
 interleave			(vu8 *			o0,
 				 vu8 *			o1,
@@ -45,6 +49,8 @@ interleave			(vu8 *			o0,
 				 unsigned int		dist)
 {
 	vu8 t;
+
+	assert (__builtin_constant_p (dist));
 
 	if (SIMD == CPU_FEATURE_SSE2) {
 		/* Another round because the vector is twice as wide. */
@@ -80,6 +86,7 @@ interleave			(vu8 *			o0,
 	}
 }
 
+/* Loads 4/8 unsigned bytes from src and zero-extends to 16 bit. */
 static always_inline vu8
 load_lo				(const uint8_t *	src)
 {
@@ -92,6 +99,8 @@ load_lo				(const uint8_t *	src)
 #endif
 }
 
+/* Loads 8/16 unsigned bytes from src + offset, separates them into
+   even and odd bytes, and zero-extends to 16 bit. */
 static always_inline void
 load_16				(v16 *			even,
 				 v16 *			odd,
@@ -103,6 +112,8 @@ load_16				(v16 *			even,
 	*even = vand (*even, vsplat16_255);
 }
 
+/* Loads 16/32 YUYV pixels from src + offset in the given pixfmt,
+   and separates them into Y, U and V samples. */
 static always_inline void
 load_yuyv8			(vu8 *			y0,
 				 vu8 *			y1,
@@ -113,6 +124,8 @@ load_yuyv8			(vu8 *			y0,
 				 tv_pixfmt		pixfmt)
 {
 	vu8 yeu0, yov0, yeu1, yov1;
+
+	assert (__builtin_constant_p (pixfmt));
 
 	interleave (&yeu0, &yov0,
 		    vload (src, offset),
@@ -152,16 +165,21 @@ load_yuyv8			(vu8 *			y0,
 	}
 }
 
+/* Loads 8/16 YUYV pixels from src + offset in the given pixfmt,
+   separates them into even Y, odd Y, U and V samples, and
+   zero-extends all samples to 16 bit. */
 static always_inline void
-load_yuyv16			(vu16 *			ye,
-				 vu16 *			yo,
-				 vu16 *			u,
-				 vu16 *			v,
+load_yuyv16			(v16 *			ye,
+				 v16 *			yo,
+				 v16 *			u,
+				 v16 *			v,
 				 const uint8_t *	src,
 				 unsigned long		offset,
 				 tv_pixfmt		pixfmt)
 {
 	vu8 yeu, yov;
+
+	assert (__builtin_constant_p (pixfmt));
 
 	interleave (&yeu, &yov,
 		    vload (src, offset),
@@ -174,10 +192,10 @@ load_yuyv16			(vu16 *			ye,
 		/* fall through */
 
 	case TV_PIXFMT_YUYV:
-		*ye = vunpacklo8 (yeu, vzerou8 ());
-		*yo = vunpacklo8 (yov, vzerou8 ());
-		*u = vunpackhi8 (yeu, vzerou8 ());
-		*v = vunpackhi8 (yov, vzerou8 ());
+		*ye = (v16) vunpacklo8 (yeu, vzerou8 ());
+		*yo = (v16) vunpacklo8 (yov, vzerou8 ());
+		*u = (v16) vunpackhi8 (yeu, vzerou8 ());
+		*v = (v16) vunpackhi8 (yov, vzerou8 ());
 		break;
 
 	case TV_PIXFMT_VYUY:
@@ -186,10 +204,10 @@ load_yuyv16			(vu16 *			ye,
 		/* fall through */
 
 	case TV_PIXFMT_UYVY:
-		*ye = vunpackhi8 (yeu, vzerou8 ());
-		*yo = vunpackhi8 (yov, vzerou8 ());
-		*u = vunpacklo8 (yeu, vzerou8 ());
-		*v = vunpacklo8 (yov, vzerou8 ());
+		*ye = (v16) vunpackhi8 (yeu, vzerou8 ());
+		*yo = (v16) vunpackhi8 (yov, vzerou8 ());
+		*u = (v16) vunpacklo8 (yeu, vzerou8 ());
+		*v = (v16) vunpacklo8 (yov, vzerou8 ());
 		break;
 
 	default:
@@ -197,15 +215,20 @@ load_yuyv16			(vu16 *			ye,
 	}
 }
 
+/* Loads 4/8 RGB pixels from src + offset in the given pixfmt,
+   separates them into R, G and B component, scales to 0 ... 255,
+   and zero-extends to 16 bit. */
 static always_inline void
-load_rgb16			(vu16 *			r,
-				 vu16 *			g,
-				 vu16 *			b,
+load_rgb16			(v16 *			r,
+				 v16 *			g,
+				 v16 *			b,
 				 const uint8_t *	src,
 				 unsigned long		offset,
 				 tv_pixfmt		pixfmt)
 {
 	vu8 t0, t1;
+
+	assert (__builtin_constant_p (pixfmt));
 
 	switch (pixfmt) {
 	case TV_PIXFMT_BGRA32_LE:
@@ -239,10 +262,13 @@ load_rgb16			(vu16 *			r,
 
 	case TV_PIXFMT_RGB24_BE: /* .. R0 G0 B0 */
 		/* TODO */
+
 	case TV_PIXFMT_BGR16_LE: /* rrrrrggg gggbbbbb */
 		/* TODO */
+
 	case TV_PIXFMT_BGRA16_LE: /* arrrrrgg gggbbbbb */
 		/* TODO */
+
 	default:
 		assert (0);
 	}
@@ -252,7 +278,7 @@ load_rgb16			(vu16 *			r,
    rg = (GE-RE GC-RC GA-RA G8-R8) G6-R6 G4-R4 G2-R2 G0-R0
    gb = (BF-GF BD-GD BB-GB B9-G9) B7-G7 B5-G5 B3-G3 B1-G1
    br = (RF-BE RD-BC RB-BA R9-B8) R7-B6 R5-B4 R3-B2 R1-B0 */
-static __inline__ void
+static always_inline void
 store_rggbbr			(uint8_t *		dst,
 				 unsigned long		offset,
 				 vu8			rg,
@@ -264,36 +290,36 @@ store_rggbbr			(uint8_t *		dst,
 	vu8 t0;
 
 	t0 = vunpacklo16 (rg, br);
-	/* R7-B6 G6-R6 R5-B4-G4-R4 R3-B2 G2-R2 R1-B0-G0-R0 */
+		/* R7-B6 G6-R6 R5-B4-G4-R4 R3-B2 G2-R2 R1-B0-G0-R0 */
 	t0 = _mm_shufflelo_epi16 (t0, _MM_SHUFFLE (1, 0, 3, 2));
-	/* R7-B6 G6-R6 R5-B4-G4-R4 R1-B0-G0-R0 R3-B2 G2-R2 */ 
+		/* R7-B6 G6-R6 R5-B4-G4-R4 R1-B0-G0-R0 R3-B2 G2-R2 */ 
 	br = vunpackhi16 (br, gb);
-	/* BF-GF-RF-BE BD-GD RD-BC BB-GB-RB-BA B9-G9 R9-B8 */
+		/* BF-GF-RF-BE BD-GD RD-BC BB-GB-RB-BA B9-G9 R9-B8 */
 	gb = vunpackhi32 (vsl (gb, 64), t0);
-	/* R7-B6 G6-R6 B7-G7 B5-G5 R5-B4-G4-R4 B3-G3 B1-G1 */
+		/* R7-B6 G6-R6 B7-G7 B5-G5 R5-B4-G4-R4 B3-G3 B1-G1 */
 	gb = _mm_shufflehi_epi16 (gb, _MM_SHUFFLE (1, 3, 2, 0));
-	/* B7-G7-R7-B6-G6-R6-B5-G5 R5-B4-G4-R4 B3-G3 B1-G1 */
+		/* B7-G7-R7-B6-G6-R6-B5-G5 R5-B4-G4-R4 B3-G3 B1-G1 */
 	rg = vunpacklo32 (vsru (rg, 64), br);
-	/* BB-GB-RB-BA GE-RE GC-RC B9-G9 R9-B8 GA-RA G8-R8 */
+		/* BB-GB-RB-BA GE-RE GC-RC B9-G9 R9-B8 GA-RA G8-R8 */
 	rg = _mm_shufflelo_epi16 (rg, _MM_SHUFFLE (1, 3, 2, 0));
-	/* BB-GB-RB-BA GE-RE GC-RC GA-RA-B9-G9-R9-B8-G8-R8 */
+		/* BB-GB-RB-BA GE-RE GC-RC GA-RA-B9-G9-R9-B8-G8-R8 */
 	t0 = vunpacklo32 (t0, gb);
-	/* R5-B4-G4-R4 R1-B0-G0-R0 B3-G3 B1-G1 R3-B2 G2-R2 */
+		/* R5-B4-G4-R4 R1-B0-G0-R0 B3-G3 B1-G1 R3-B2 G2-R2 */
 	t0 = _mm_shufflelo_epi16 (t0, _MM_SHUFFLE (3, 1, 0, 2));
-	/* R5-B4-G4-R4 R1-B0-G0-R0 B3-G3-R3-B2 G2-R2-B1-G1 */
+		/* R5-B4-G4-R4 R1-B0-G0-R0 B3-G3-R3-B2 G2-R2-B1-G1 */
 	vstorent (dst, offset,
 		  _mm_shuffle_epi32 (t0, _MM_SHUFFLE (3, 1, 0, 2)));
-	/* R5-B4-G4-R4-B3-G3-R3-B2-G2-R2-B1-G1-R1-B0-G0-R0 */
+		/* R5-B4-G4-R4-B3-G3-R3-B2-G2-R2-B1-G1-R1-B0-G0-R0 */
 	vstorent (dst, offset + 16,
 		  vunpacklo32 (vsru (gb, 64), rg));
-	/* GA-RA-B9-G9-R9-B8-G8-R8-B7-G7-R7-B6-G6-R6-B5-G5 */
+		/* GA-RA-B9-G9-R9-B8-G8-R8-B7-G7-R7-B6-G6-R6-B5-G5 */
 	rg = vunpackhi32 (rg, br);
-	/* BF-GF-RF-BE BB-GB-RB-BA BD-GD RD-BC GE-RE GC-RC */
+		/* BF-GF-RF-BE BB-GB-RB-BA BD-GD RD-BC GE-RE GC-RC */
 	rg = _mm_shufflelo_epi16 (rg, _MM_SHUFFLE (1, 3, 2, 0));
-	/* BF-GF-RF-BE BB-GB-RB-BA GE-RE-BD-GD RD-BC-GC-RC */
+		/* BF-GF-RF-BE BB-GB-RB-BA GE-RE-BD-GD RD-BC-GC-RC */
 	vstorent (dst, offset + 32,
 		  _mm_shuffle_epi32 (rg, _MM_SHUFFLE (3, 1, 0, 2)));
-	/* BF-GF-RF-BE-GE-RE-BD-GD-RD-BC-GC-RC-BB-GB-RB-BA */
+		/* BF-GF-RF-BE-GE-RE-BD-GD-RD-BC-GC-RC-BB-GB-RB-BA */
 
 #elif SIMD == CPU_FEATURE_SSE
 
@@ -343,7 +369,7 @@ store_rggbbr			(uint8_t *		dst,
 }
 
 /* Stores 8/16 RGB pixels at dst + offset in the given pixfmt.
-   saturate: saturate values outside 0 ... 255.
+   saturate: saturate values outside 0 ... 255, otherwise msb = 0 assumed.
    re: (RE RC RA R8) R6 R4 R2 R0
    ro: (RF RD RB R9) R7 R5 R3 R1
    etc */
@@ -359,6 +385,9 @@ store_rgb16			(void *			dst,
 				 v16			be,
 				 v16			bo)
 {
+	assert (__builtin_constant_p (pixfmt));
+	assert (__builtin_constant_p (saturate));
+
 	switch (pixfmt) {
 	case TV_PIXFMT_BGRA32_LE:
 	case TV_PIXFMT_BGRA32_BE:
@@ -407,36 +436,28 @@ store_rgb16			(void *			dst,
 		} else {
 			vu8 rge, rgo, bae, bao;
 			vu8 rgl, rgh, bal, bah;
+			vu8 a;
 
 			/* Already saturated. */
 
 			if (TV_PIXFMT_BGRA32_BE == pixfmt
 			    || TV_PIXFMT_RGBA32_BE == pixfmt) {
-				vu8 a;
-
 				SWAP (re, ge);
 				SWAP (ro, go);
+			}
 
-				rge = vor (re, vsl16 (ge, 8)); /* .. G0 R0 */
-				rgo = vor (ro, vsl16 (go, 8));
+			rge = vor (re, vsl16 (ge, 8)); /* .. G0 R0 */
+			rgo = vor (ro, vsl16 (go, 8));
 
-				a = vsplat16_255;
+			a = vsplat16_255;
 
-				bae = vor (vsl16 (be, 8), a); /* .. B0 FF */
-				bao = vor (vsl16 (bo, 8), a);
+			bae = vor (vsl16 (be, 8), a); /* .. B0 FF */
+			bao = vor (vsl16 (bo, 8), a);
 
+			if (TV_PIXFMT_BGRA32_BE == pixfmt
+			    || TV_PIXFMT_RGBA32_BE == pixfmt) {
 				SWAP (rge, bae);
 				SWAP (rgo, bao);
-			} else {
-				vu8 a;
-
-				rge = vor (re, vsl16 (ge, 8));
-				rgo = vor (ro, vsl16 (go, 8));
-
-				a = vsplat16_m256;
-	
-				bae = vor (be, a);
-				bao = vor (bo, a);
 			}
 
 			rgl = vunpacklo16 (rge, rgo); /* .. G1 R1 G0 R0 */
@@ -511,27 +532,22 @@ store_rgb16			(void *			dst,
 			be = vunpacklo8 (be, re);
 
 			go = vunpackhi8 (ge, vzerou8 ());
-			bo = vor (bo, vsl16 (go, 3));
+			bo = vor (bo, vsl16 (go, 3));	/* 00000ggg ggg00000 */
 
 			ge = vunpacklo8 (ge, vzerou8 ());
 			be = vor (be, vsl16 (ge, 3));
-
-			vstorent (dst, offset, vunpacklo16 (be, bo));
-			vstorent (dst, offset + sizeof (vu8),
-				  vunpackhi16 (be, bo));
 		} else {
-			re = vsl16 (vand (re, vsplatu16_F8), 8);
-			re = vor (re, vsru16 (be, 3));
-			re = vor (re, vsl16 (vsru16 (ge, 2), 3 + 2));
+			be = vsru16 (be, 3);
+			be = vor (be, vsl16 (vand (re, vsplatu16_F8), 8));
+			be = vor (be, vsl16 (vsru16 (ge, 2), 3 + 2));
 
-			ro = vsl16 (vand (ro, vsplatu16_F8), 8);
-			ro = vor (ro, vsru16 (bo, 3));
-			ro = vor (ro, vsl16 (vsru16 (go, 2), 3 + 2));
-
-			vstorent (dst, offset, vunpacklo16 (re, ro));
-			vstorent (dst, offset + sizeof (vu8),
-				  vunpackhi16 (re, ro));
+			bo = vsru16 (bo, 3);
+			bo = vor (bo, vsl16 (vand (ro, vsplatu16_F8), 8));
+			bo = vor (bo, vsl16 (vsru16 (go, 2), 3 + 2));
 		}
+
+		vstorent (dst, offset, vunpacklo16 (be, bo));
+		vstorent (dst, offset + sizeof (vu8), vunpackhi16 (be, bo));
 
 		break;
 
@@ -557,10 +573,6 @@ store_rgb16			(void *			dst,
 			ge = vunpacklo8 (ge, vzerou8 ());
 			re = vor (re, vsru16 (ge, 5));
 			re = vor (re, vsl16 (ge, 16 - 5));
-
-			vstorent (dst, offset, vunpacklo16 (re, ro));
-			vstorent (dst, offset + sizeof (vu8),
-				  vunpackhi16 (re, ro));
 		} else {
 			re = vand (re, vsplatu16_F8);
 			re = vor (re, vsl16 (vand (be, vsplatu16_F8), 5));
@@ -571,11 +583,10 @@ store_rgb16			(void *			dst,
 			ro = vor (ro, vsl16 (vand (bo, vsplatu16_F8), 5));
 			ro = vor (ro, vsru16 (go, 5));
 			ro = vor (ro, vsl16 (vsru16 (go, 2), 8 + 5));
-
-			vstorent (dst, offset, vunpacklo16 (re, ro));
-			vstorent (dst, offset + sizeof (vu8),
-				  vunpackhi16 (re, ro));
 		}
+
+		vstorent (dst, offset, vunpacklo16 (re, ro));
+		vstorent (dst, offset + sizeof (vu8), vunpackhi16 (re, ro));
 
 		break;
 
@@ -598,25 +609,20 @@ store_rgb16			(void *			dst,
 
 			bo = vor (bo, vsl16 (vunpackhi8 (ge, _20), 2));
 			be = vor (be, vsl16 (vunpacklo8 (ge, _20), 2));
-
-			vstorent (dst, offset, vunpacklo16 (be, bo));
-			vstorent (dst, offset + sizeof (vu8),
-				  vunpackhi16 (be, bo));
 		} else {
+			be = vsru16 (be, 3);
 			re = vor (re, vsplatu16_256);
-			re = vsl16 (vsru16 (re, 3), 7 + 3);
-			re = vor (re, vsru16 (be, 3));
-			re = vor (re, vsl (vand (ge, vsplatu16_F8), 2));
+			be = vor (be, vsl16 (vsru16 (re, 3), 7 + 3));
+			be = vor (be, vsl (vand (ge, vsplatu16_F8), 2));
 
+			bo = vsru16 (bo, 3);
 			ro = vor (ro, vsplatu16_256);
-			ro = vsl16 (vsru16 (ro, 3), 7 + 3);
-			ro = vor (ro, vsru16 (bo, 3));
-			ro = vor (ro, vsl (vand (go, vsplatu16_F8), 2));
-
-			vstorent (dst, offset, vunpacklo16 (re, ro));
-			vstorent (dst, offset + sizeof (vu8),
-				  vunpackhi16 (re, ro));
+			bo = vor (bo, vsl16 (vsru16 (ro, 3), 7 + 3));
+			bo = vor (bo, vsl (vand (go, vsplatu16_F8), 2));
 		}
+
+		vstorent (dst, offset, vunpacklo16 (be, bo));
+		vstorent (dst, offset + sizeof (vu8), vunpackhi16 (be, bo));
 
 		break;
 
@@ -644,10 +650,6 @@ store_rgb16			(void *			dst,
 			ge = vunpacklo8 (ge, _20);
 			re = vor (re, vsru16 (ge, 6));
 			re = vor (re, vsl16 (ge, 16 - 6));
-
-			vstorent (dst, offset, vunpacklo16 (re, ro));
-			vstorent (dst, offset + sizeof (vu8),
-				  vunpackhi16 (re, ro));
 		} else {
 			re = vand (re, vsplatu16_F8);
 			re = vsru16 (vor (re, vsplatu16_256), 1);
@@ -660,11 +662,10 @@ store_rgb16			(void *			dst,
 			ro = vor (ro, vsl16 (vand (bo, vsplatu16_F8), 5));
 			ro = vor (ro, vsl16 (vand (go, vsplatu16_F8), 8 + 2));
 			ro = vor (ro, vsru16 (go, 6));
-
-			vstorent (dst, offset, vunpacklo16 (re, ro));
-			vstorent (dst, offset + sizeof (vu8),
-				  vunpackhi16 (re, ro));
 		}
+
+		vstorent (dst, offset, vunpacklo16 (re, ro));
+		vstorent (dst, offset + sizeof (vu8), vunpackhi16 (re, ro));
 
 		break;
 
@@ -673,23 +674,27 @@ store_rgb16			(void *			dst,
 	}
 }
 
+/* Fast but inaccurate conversion of 8/16 YUV 4:2:2 pixels
+   or if b.. != NULL 2 x 8/16 YUV 4:2:0 pixels to RGB.
+   e/o: even/odd samples.
+   t/b: top/bottom row. */
 static always_inline void
-fast_yuv2rgb			(v16 *			re0,
-				 v16 *			ro0,
-				 v16 *			ge0,
-				 v16 *			go0,
-				 v16 *			be0,
-				 v16 *			bo0,
-				 v16 *			re1,
-				 v16 *			ro1,
-				 v16 *			ge1,
-				 v16 *			go1,
-				 v16 *			be1,
-				 v16 *			bo1,
-				 v16			ye0,
-				 v16			yo0,
-				 v16			ye1,
-				 v16			yo1,
+fast_yuv2rgb			(v16 *			tre,
+				 v16 *			tro,
+				 v16 *			tge,
+				 v16 *			tgo,
+				 v16 *			tbe,
+				 v16 *			tbo,
+				 v16 *			bre,
+				 v16 *			bro,
+				 v16 *			bge,
+				 v16 *			bgo,
+				 v16 *			bbe,
+				 v16 *			bbo,
+				 v16			tye,
+				 v16			tyo,
+				 v16			bye,
+				 v16			byo,
 				 v16			u,
 				 v16			v)
 {
@@ -707,30 +712,30 @@ fast_yuv2rgb			(v16 *			re0,
 
 	bias = vsru16 (bias, 3); /* vsplat16 (16); */
 
-	ye0 = vmulhi16 (vsl16 (vsub16 (ye0, bias), 16 - CY_SH),
+	tye = vmulhi16 (vsl16 (vsub16 (tye, bias), 16 - CY_SH),
 			_tv_vsplat16_yuv2rgb_cy);
-	yo0 = vmulhi16 (vsl16 (vsub16 (yo0, bias), 16 - CY_SH),
+	tyo = vmulhi16 (vsl16 (vsub16 (tyo, bias), 16 - CY_SH),
 			_tv_vsplat16_yuv2rgb_cy);
 
-	*re0 = vadd16 (ye0, cr);
-	*ro0 = vadd16 (yo0, cr);
-	*ge0 = vsub16 (ye0, cg);
-	*go0 = vsub16 (yo0, cg);
-	*be0 = vadd16 (ye0, cb);
-	*bo0 = vadd16 (yo0, cb);
+	*tre = vadd16 (tye, cr);
+	*tro = vadd16 (tyo, cr);
+	*tge = vsub16 (tye, cg);
+	*tgo = vsub16 (tyo, cg);
+	*tbe = vadd16 (tye, cb);
+	*tbo = vadd16 (tyo, cb);
 
-	if (NULL != re1) {
-		ye1 = vmulhi16 (vsl16 (vsub16 (ye1, bias), 16 - CY_SH),
+	if (NULL != bre) {
+		bye = vmulhi16 (vsl16 (vsub16 (bye, bias), 16 - CY_SH),
 				_tv_vsplat16_yuv2rgb_cy);
-		yo1 = vmulhi16 (vsl16 (vsub16 (yo1, bias), 16 - CY_SH),
+		byo = vmulhi16 (vsl16 (vsub16 (byo, bias), 16 - CY_SH),
 				_tv_vsplat16_yuv2rgb_cy);
 
-		*re1 = vadd16 (ye1, cr);
-		*ro1 = vadd16 (yo1, cr);
-		*ge1 = vsub16 (ye1, cg);
-		*go1 = vsub16 (yo1, cg);
-		*be1 = vadd16 (ye1, cb);
-		*bo1 = vadd16 (yo1, cb);
+		*bre = vadd16 (bye, cr);
+		*bro = vadd16 (byo, cr);
+		*bge = vsub16 (bye, cg);
+		*bgo = vsub16 (byo, cg);
+		*bbe = vadd16 (bye, cb);
+		*bbo = vadd16 (byo, cb);
 	}
 }
 
