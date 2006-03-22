@@ -5,20 +5,20 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-02-06 05:53+0100\n"
+"POT-Creation-Date: 2006-03-22 02:32+0100\n"
 "PO-Revision-Date: 2006-03-17 20:59+0100\n"
 "Last-Translator: Pavel Mlčoch <pavkamlc@centrum.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: glade/zapping.glade2.h:1
+#: ../glade/zapping.glade2.h:1
 msgid "320x240"
 msgstr "320×240"
 
-#: glade/zapping.glade2.h:2
+#: ../glade/zapping.glade2.h:2
 msgid ""
 "A format string describing the main window title when changing channels: "
 "$(alias), $(index), $(id), $(freq), $(standard) and $(input) are substituted "
@@ -28,627 +28,633 @@ msgstr ""
 "$(alias), $(index), $(id), $(freq), $(standard) a $(input) jsou nahrazeny "
 "příslušnými hodnotami."
 
-#: glade/zapping.glade2.h:3
+#: ../glade/zapping.glade2.h:3
 msgid "Advanced"
 msgstr "Rozšířené"
 
-#: glade/zapping.glade2.h:4 src/audio.c:532 src/audio.c:537 src/tveng.c:4613
+#: ../glade/zapping.glade2.h:4 ../src/audio.c:829 ../src/audio.c:834
+#: ../src/tveng.c:4830
 msgid "Audio"
 msgstr "Zvuk"
 
-#: glade/zapping.glade2.h:5
+#: ../glade/zapping.glade2.h:5
 msgid "Author:"
 msgstr "Autor:"
 
-#: glade/zapping.glade2.h:6
+#: ../glade/zapping.glade2.h:6
 msgid "Biggest noninterlaced (autodetect)"
 msgstr "Větší neprokládané (autodetekce)"
 
 # src/interface.c:405
-#: glade/zapping.glade2.h:7
+#: ../glade/zapping.glade2.h:7
 msgid "Canonical name:"
 msgstr "Standardní jméno:"
 
 # src/interface.c:362
-#: glade/zapping.glade2.h:8
+#: ../glade/zapping.glade2.h:8
 msgid "Channel list number"
 msgstr "Číslo v seznamu kanálů"
 
-#: glade/zapping.glade2.h:9
+#: ../glade/zapping.glade2.h:9
 msgid "Choose a color"
 msgstr "Vyberte barvu"
 
-#: glade/zapping.glade2.h:10
+#: ../glade/zapping.glade2.h:10
+msgid "Chroma _key:"
+msgstr ""
+
+#: ../glade/zapping.glade2.h:11
 msgid "Clean console"
 msgstr "Smaž konzolu"
 
 # src/interface.c:448
-#: glade/zapping.glade2.h:11
+#: ../glade/zapping.glade2.h:12
 msgid "Click here when you are done"
 msgstr "Klikni zde pro dokončení"
 
-#: glade/zapping.glade2.h:12
+#: ../glade/zapping.glade2.h:13
 msgid "Console"
 msgstr "Konzola"
 
-#: glade/zapping.glade2.h:13
+#: ../glade/zapping.glade2.h:14
 msgid "Copyright (C) 2000-2005 the contributors\n"
 msgstr "Copyright (C) 2000-2005 přispěvatelé\n"
 
-#: glade/zapping.glade2.h:15
+#: ../glade/zapping.glade2.h:16
 msgid "Current controller:"
 msgstr "Aktuální ovladač:"
 
-#: glade/zapping.glade2.h:16
+#: ../glade/zapping.glade2.h:17
 msgid "DVB PES File"
 msgstr "DVB PES Soubor"
 
-#: glade/zapping.glade2.h:17
+#: ../glade/zapping.glade2.h:18
 msgid "DVB _PES File"
 msgstr "DVB _PES Soubor"
 
-#: glade/zapping.glade2.h:18
+#: ../glade/zapping.glade2.h:19
 msgid "Device name:"
 msgstr "Jméno zařízení:"
 
-#: glade/zapping.glade2.h:19 src/audio.c:542 src/properties-handler.c:1319
-#: src/zvbi.c:2556
+#: ../glade/zapping.glade2.h:20 ../src/audio.c:839
+#: ../src/properties-handler.c:1352 ../src/zvbi.c:2537
 msgid "Devices"
 msgstr "Zařízení"
 
-#: glade/zapping.glade2.h:20
+#: ../glade/zapping.glade2.h:21
 msgid "Disable _screensaver"
 msgstr "_Zakaž spořič obrazovky"
 
-#: glade/zapping.glade2.h:21
+#: ../glade/zapping.glade2.h:22
 msgid "Enter key"
 msgstr "Stiskni klávesu"
 
-#: glade/zapping.glade2.h:22
+#: ../glade/zapping.glade2.h:23
 msgid "F_ont:"
 msgstr "_Písmo:"
 
-#: glade/zapping.glade2.h:23
+#: ../glade/zapping.glade2.h:24
 msgid "Favorite _picture sizes:"
 msgstr "_Oblíbené velikosti obrazu:"
 
-#: glade/zapping.glade2.h:24
+#: ../glade/zapping.glade2.h:25
 msgid "General options"
 msgstr "Základní nastavení"
 
-#: glade/zapping.glade2.h:25
+#: ../glade/zapping.glade2.h:26
 msgid "Interlaced (window size)"
 msgstr "Prokládané (velikost okna)"
 
-#: glade/zapping.glade2.h:26
+#: ../glade/zapping.glade2.h:27
 msgid "Kernel VBI device"
 msgstr "Zařízení VBI v jádře"
 
-#: glade/zapping.glade2.h:27
+#: ../glade/zapping.glade2.h:28
 msgid "Kernel _device"
 msgstr "Zařízení _jádra"
 
-#: glade/zapping.glade2.h:28 src/keyboard.c:1150
+#: ../glade/zapping.glade2.h:29 ../src/keyboard.c:1149
 msgid "Keyboard"
 msgstr "Klávesnice"
 
-#: glade/zapping.glade2.h:29
+#: ../glade/zapping.glade2.h:30
 msgid "Known key names"
 msgstr "Jména známých kláves"
 
-#: glade/zapping.glade2.h:30
+#: ../glade/zapping.glade2.h:31
 msgid "Maximum capture size:"
 msgstr "Největší velikost obrazu:"
 
-#: glade/zapping.glade2.h:31
+#: ../glade/zapping.glade2.h:32
 msgid "Minimum capture size:"
 msgstr "Nejmenší velikost obrazu:"
 
-#: glade/zapping.glade2.h:32
+#: ../glade/zapping.glade2.h:33
 msgid "Mute while ch_anging channels"
 msgstr "Ztlumit při změně kanálu"
 
-#: glade/zapping.glade2.h:33
+#: ../glade/zapping.glade2.h:34
 msgid "NTSC"
 msgstr "NTSC"
 
-#: glade/zapping.glade2.h:34
+#: ../glade/zapping.glade2.h:35
 msgid "No Display"
 msgstr "Nezobrazovat"
 
-#: glade/zapping.glade2.h:35
+#: ../glade/zapping.glade2.h:36
 msgid "OK, let's go on"
 msgstr "Ok, spustit"
 
-#: glade/zapping.glade2.h:36 src/osd.c:1075
+#: ../glade/zapping.glade2.h:37 ../src/osd.c:1075
 msgid "OSD"
 msgstr "OSD"
 
-#: glade/zapping.glade2.h:37
+#: ../glade/zapping.glade2.h:38
 msgid "On Screen Display (OSD)"
 msgstr "On Screen Display (OSD)"
 
-#: glade/zapping.glade2.h:38
+#: ../glade/zapping.glade2.h:39
 msgid "PAL"
 msgstr "PAL"
 
-#: glade/zapping.glade2.h:39
+#: ../glade/zapping.glade2.h:40
 msgid "Plugin location"
 msgstr "Umístění pluginu"
 
-#: glade/zapping.glade2.h:40
+#: ../glade/zapping.glade2.h:41
 msgid "Plugin priority:"
 msgstr "Priorita pluginu:"
 
-#: glade/zapping.glade2.h:41
+#: ../glade/zapping.glade2.h:42
 msgid "Plugin properties"
 msgstr "Vlastnosti pluginu"
 
-#: glade/zapping.glade2.h:42
+#: ../glade/zapping.glade2.h:43
 msgid "Plugin version:"
 msgstr "Verze pluginu:"
 
-#: glade/zapping.glade2.h:43
+#: ../glade/zapping.glade2.h:44
 msgid "Properties"
 msgstr "Vlastnosti"
 
 # src/interface.c:362
-#: glade/zapping.glade2.h:44
+#: ../glade/zapping.glade2.h:45
 msgid "RF channel number"
 msgstr "Číslo RF kanálu"
 
 # src/v4l2interface.c:344
-#: glade/zapping.glade2.h:45
+#: ../glade/zapping.glade2.h:46
 msgid "Remember this video standard"
 msgstr "Používej tento video standard"
 
-#: glade/zapping.glade2.h:46
+#: ../glade/zapping.glade2.h:47
 msgid "Remove all this mess"
 msgstr "Odstraň všechen tento nepořádek"
 
-#: glade/zapping.glade2.h:47
+#: ../glade/zapping.glade2.h:48
 msgid "Run the plugin"
 msgstr "Spusť plugin"
 
-#: glade/zapping.glade2.h:48
+#: ../glade/zapping.glade2.h:49
 msgid "SECAM"
 msgstr "SECAM"
 
 # src/interface.c:247
-#: glade/zapping.glade2.h:49
+#: ../glade/zapping.glade2.h:50
 msgid "S_how toolbar as:"
 msgstr "_Zobraz toolbar jako:"
 
-#: glade/zapping.glade2.h:50
+#: ../glade/zapping.glade2.h:51
 msgid "Save _control values per channel"
 msgstr "Ulož _hodnoty nastavení pro každý kanál"
 
-#: glade/zapping.glade2.h:51
+#: ../glade/zapping.glade2.h:52
 msgid "Select OSD font"
 msgstr "Vyber OSD font"
 
-#: glade/zapping.glade2.h:52
+#: ../glade/zapping.glade2.h:53
 msgid "Select the V4L device"
 msgstr "Vyber V4L zařízení"
 
 # src/interface.c:247
-#: glade/zapping.glade2.h:53
+#: ../glade/zapping.glade2.h:54
 msgid "Show _tooltips"
 msgstr "_Zobraz tooltipy"
 
-#: glade/zapping.glade2.h:54
+#: ../glade/zapping.glade2.h:55
 msgid "Status Bar"
 msgstr "Stavový řádek"
 
-#: glade/zapping.glade2.h:55
+#: ../glade/zapping.glade2.h:56
 msgid "Stop this plugin"
 msgstr "Zastav plugin"
 
-#: glade/zapping.glade2.h:56
+#: ../glade/zapping.glade2.h:57
 msgid "TV viewer for the Gnome environment"
 msgstr "TV prohlížeč pro prostředí Gnome"
 
-#: glade/zapping.glade2.h:57
+#: ../glade/zapping.glade2.h:58
 msgid ""
 "The video capture device does not report the correct video standard, please "
 "select manually:"
 msgstr ""
-"Zařízení pro snímání videa nevrací správný video standard, prosím "
-"vyberte manuálně:"
+"Zařízení pro snímání videa nevrací správný video standard, prosím vyberte "
+"manuálně:"
 
-#: glade/zapping.glade2.h:58
+#: ../glade/zapping.glade2.h:59
 msgid "Title _bar contents:"
 msgstr "Obsah _popisu okna:"
 
-#: glade/zapping.glade2.h:59 src/zvbi.c:2551
+#: ../glade/zapping.glade2.h:60 ../src/zvbi.c:2532
 msgid "VBI"
 msgstr "VBI"
 
-#: glade/zapping.glade2.h:60 src/main.c:200 src/properties-handler.c:1306
-#: src/properties-handler.c:1314
+#: ../glade/zapping.glade2.h:61 ../src/main.c:200
+#: ../src/properties-handler.c:1339 ../src/properties-handler.c:1347
 msgid "Video"
 msgstr "Video"
 
 # src/v4l2interface.c:344
-#: glade/zapping.glade2.h:61
+#: ../glade/zapping.glade2.h:62
 msgid "Video Standard"
 msgstr "Videostandard:"
 
-#: glade/zapping.glade2.h:62
+#: ../glade/zapping.glade2.h:63
 msgid "Video device capabilities"
 msgstr "Možnosti video zařízení"
 
-#: glade/zapping.glade2.h:63
+#: ../glade/zapping.glade2.h:64
 msgid "Window"
 msgstr "Okno"
 
-#: glade/zapping.glade2.h:64
+#: ../glade/zapping.glade2.h:65
 msgid "Zapping Preferences"
 msgstr "Vlastnosti Programu"
 
-#: glade/zapping.glade2.h:65
+#: ../glade/zapping.glade2.h:66
 msgid "Zapping error console"
 msgstr "Chybová konzola programu"
 
-#: glade/zapping.glade2.h:66
+#: ../glade/zapping.glade2.h:67
 msgid "_Background color:"
 msgstr "_Barva pozadí:"
 
-#: glade/zapping.glade2.h:67
+#: ../glade/zapping.glade2.h:68
 msgid "_Capture size under XVideo:"
 msgstr "_Velikost obrazu pro XVideo:"
 
-#: glade/zapping.glade2.h:68
+#: ../glade/zapping.glade2.h:69
 msgid "_Command:"
 msgstr "_Příkaz:"
 
-#: glade/zapping.glade2.h:69
+#: ../glade/zapping.glade2.h:70
 msgid "_Control volume with soundcard mixer"
 msgstr "_Ovládání hlasitosti pomocí zvukové karty"
 
-#: glade/zapping.glade2.h:70
+#: ../glade/zapping.glade2.h:71
 msgid "_Device file:"
 msgstr "_Soubor zařízení:"
 
-#: glade/zapping.glade2.h:71
+#: ../glade/zapping.glade2.h:72
 msgid "_Display mode:"
 msgstr "_Režim obrazovky:"
 
 # src/v4l2interface.c:146
-#: glade/zapping.glade2.h:72
+#: ../glade/zapping.glade2.h:73
 msgid "_Enter channels by:"
 msgstr "_Zadat kanál pomocí:"
 
-#: glade/zapping.glade2.h:73
+#: ../glade/zapping.glade2.h:74
 msgid "_Foreground color:"
 msgstr "_Barva textu:"
 
-#: glade/zapping.glade2.h:74
+#: ../glade/zapping.glade2.h:75
 msgid "_Fullscreen video resolution:"
 msgstr "_Rozlišení v režimu celé obrazovky:"
 
-#: glade/zapping.glade2.h:75
+#: ../glade/zapping.glade2.h:76
 msgid "_Gnome sound daemon (ESD)"
 msgstr "_Zvukový démon pro Gnome (ESD)"
 
-#: glade/zapping.glade2.h:76
+#: ../glade/zapping.glade2.h:77
 msgid "_KDE sound daemon (ARTS)"
 msgstr "_Zvukový démon pro KDE (ARTS)"
 
-#: glade/zapping.glade2.h:77
+#: ../glade/zapping.glade2.h:78
 msgid "_Mute on exit"
 msgstr "_Ztlumit při ukončení"
 
-#: glade/zapping.glade2.h:78
+#: ../glade/zapping.glade2.h:79
 msgid "_No VBI services"
 msgstr "_Žádné VBI funkce"
 
-#: glade/zapping.glade2.h:79
+#: ../glade/zapping.glade2.h:80
 msgid "_No audio recording"
 msgstr "Žádný audio _záznam"
 
-#: glade/zapping.glade2.h:80
+#: ../glade/zapping.glade2.h:81
 msgid "_Remove after:"
 msgstr "_Odstraň po:"
 
-#: glade/zapping.glade2.h:81
+#: ../glade/zapping.glade2.h:82
 msgid "_Resize using fixed increments"
 msgstr "_Měnit velikost po krocích"
 
-#: glade/zapping.glade2.h:82
+#: ../glade/zapping.glade2.h:83
 msgid "_Start Zapping muted"
 msgstr "Spusť program _ztlumený"
 
-#: glade/zapping.glade2.h:83
+#: ../glade/zapping.glade2.h:84
 msgid "_Use VBI Proxy if available"
 msgstr "_Použij VBI Proxy je-li dostupná"
 
-#: glade/zapping.glade2.h:84
+#: ../glade/zapping.glade2.h:85
 msgid "seconds"
 msgstr "sekundy"
 
-#: libvbi/exp-gfx.c:1483
+#: ../libvbi/exp-gfx.c:1483
 msgid "Correct aspect ratio"
 msgstr "Správný poměr stran"
 
-#: libvbi/exp-gfx.c:1484
+#: ../libvbi/exp-gfx.c:1484
 msgid ""
 "Approach an image aspect ratio similar to a real TV. This will double the "
 "image size."
 msgstr ""
-"Poměr stran obrazu podobný opravdové TV. Velikost obrazu bude "
-"dvojnásobná."
+"Poměr stran obrazu podobný opravdové TV. Velikost obrazu bude dvojnásobná."
 
-#: libvbi/exp-gfx.c:1623
+#: ../libvbi/exp-gfx.c:1623
 msgid "PPM"
 msgstr "PPM"
 
-#: libvbi/exp-gfx.c:1624
+#: ../libvbi/exp-gfx.c:1624
 msgid "Export this page as raw PPM image"
 msgstr "Exportuj tuto stránku jako PPM-obrázek"
 
 #. XXX gettext encoding
-#: libvbi/exp-gfx.c:1824 libvbi/exp-html.c:532 libvbi/exp-sub.c:633
-#: libvbi/exp-sub.c:764 libvbi/exp-sub.c:821
+#: ../libvbi/exp-gfx.c:1824 ../libvbi/exp-html.c:532 ../libvbi/exp-sub.c:633
+#: ../libvbi/exp-sub.c:764 ../libvbi/exp-sub.c:821
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr "Stránka Teletextu %3x.%x"
 
-#: libvbi/exp-gfx.c:1828 libvbi/exp-html.c:535 libvbi/exp-sub.c:636
-#: libvbi/exp-sub.c:767 libvbi/exp-sub.c:824
+#: ../libvbi/exp-gfx.c:1828 ../libvbi/exp-html.c:535 ../libvbi/exp-sub.c:636
+#: ../libvbi/exp-sub.c:767 ../libvbi/exp-sub.c:824
 #, c-format
 msgid "Teletext Page %3x"
 msgstr "Stránka Teletextu %x"
 
-#: libvbi/exp-gfx.c:2019
+#: ../libvbi/exp-gfx.c:2019
 msgid "PNG"
 msgstr "PNG"
 
-#: libvbi/exp-gfx.c:2020
+#: ../libvbi/exp-gfx.c:2020
 msgid "Export this page as PNG image"
 msgstr "Exportuj tuto stránku jako PNG obrázek"
 
-#: libvbi/exp-html.c:110 libvbi/exp-txt.c:133
+#: ../libvbi/exp-html.c:110 ../libvbi/exp-txt.c:133
 msgid "Graphics char"
 msgstr "Grafický znak"
 
-#: libvbi/exp-html.c:111 libvbi/exp-txt.c:134
+#: ../libvbi/exp-html.c:111 ../libvbi/exp-txt.c:134
 msgid ""
 "Replacement for block graphic characters: a single character or decimal (32) "
 "or hex (0x20) code"
 msgstr ""
-"Přepisování bloku grafických znaků: znak, desítkové (32), nebo "
-"šestnáctkové (0x20) číslo"
+"Přepisování bloku grafických znaků: znak, desítkové (32), nebo šestnáctkové "
+"(0x20) číslo"
 
-#: libvbi/exp-html.c:114 libvbi/exp-txt.c:137
+#: ../libvbi/exp-html.c:114 ../libvbi/exp-txt.c:137
 msgid "ASCII art"
 msgstr "ASCII-grafika"
 
-#: libvbi/exp-html.c:115 libvbi/exp-txt.c:138
+#: ../libvbi/exp-html.c:115 ../libvbi/exp-txt.c:138
 msgid "Replace graphic characters by ASCII art"
 msgstr "Přepisuj grafické znaky pomocí ASCII"
 
-#: libvbi/exp-html.c:117
+#: ../libvbi/exp-html.c:117
 msgid "Color (CSS)"
 msgstr "Barva (CSS)"
 
-#: libvbi/exp-html.c:118
+#: ../libvbi/exp-html.c:118
 msgid "Store the page colors using CSS attributes"
 msgstr "Ulož barvy stránky použitím CSS atributů"
 
-#: libvbi/exp-html.c:120
+#: ../libvbi/exp-html.c:120
 msgid "HTML header"
 msgstr "HTML hlavička"
 
-#: libvbi/exp-html.c:121
+#: ../libvbi/exp-html.c:121
 msgid "Include HTML page header"
 msgstr "Vlož hlavičku HTML stránky"
 
 #. TRANSLATORS: lang=\"en\" refers to the page title
 #. "Teletext Page ...". Please specify "de", "fr", "es"
 #. etc.
-#: libvbi/exp-html.c:521
+#: ../libvbi/exp-html.c:521
 msgid "<title lang=\"en\">"
 msgstr "<title lang=\"cs\">"
 
-#: libvbi/exp-html.c:843
+#: ../libvbi/exp-html.c:843
 msgid "HTML"
 msgstr "HTML"
 
-#: libvbi/exp-html.c:844
+#: ../libvbi/exp-html.c:844
 msgid "Export this page as HTML page"
 msgstr "Ulož tuto stránku jako HTML"
 
-#: libvbi/export.c:200
+#: ../libvbi/export.c:200
 msgid "Write error."
 msgstr "Chyba zápisu."
 
-#: libvbi/export.c:210
+#: ../libvbi/export.c:210
 msgid "Out of memory."
 msgstr "Chyba paměti."
 
-#: libvbi/export.c:235
+#: ../libvbi/export.c:235
 #, c-format
 msgid "Export module %s has no option %s."
 msgstr "Exportní modul %s nemá žádné volby %s."
 
-#: libvbi/export.c:295
+#: ../libvbi/export.c:295
 #, c-format
 msgid "Invalid argument %s for option %s of export module %s."
 msgstr "Nesprávný argument %s pro volbu %s exportního modulu %s."
 
-#: libvbi/export.c:350
+#: ../libvbi/export.c:350
 msgid "Unknown error."
 msgstr "Neznámá chyba."
 
-#: libvbi/export.c:436
+#: ../libvbi/export.c:436
 #, c-format
 msgid "Could not create %s. %s."
 msgstr "Nemohu vytvořit %s. %s."
 
-#: libvbi/export.c:1334
+#: ../libvbi/export.c:1334
 #, c-format
 msgid "Invalid option string \"%s\"."
 msgstr "Nesprávný řetězec volby \"%s\"."
 
-#: libvbi/export.c:1438
+#: ../libvbi/export.c:1438
 #, c-format
 msgid "Unknown export module '%s'."
 msgstr "Neznámý exportní modul '%s'."
 
-#: libvbi/export.c:1452
+#: ../libvbi/export.c:1452
 #, c-format
 msgid "Cannot initialize export module '%s', probably lack of memory."
 msgstr ""
-"Nemohu inicializovat exportní modul '%s'. Pravděpodobně nemáte dostatek paměti."
+"Nemohu inicializovat exportní modul '%s'. Pravděpodobně nemáte dostatek "
+"paměti."
 
-#: libvbi/export.c:1476
+#: ../libvbi/export.c:1476
 #, c-format
 msgid "Cannot initialize export module '%s', out of memory."
 msgstr "Nemohu inicializovat exportní modul %s, chyba paměti."
 
-#: libvbi/exp-sub.c:124 libvbi/exp-txt.c:81
+#: ../libvbi/exp-sub.c:124 ../libvbi/exp-txt.c:81
 msgid "ASCII"
 msgstr "ASCII"
 
-#: libvbi/exp-sub.c:125 libvbi/exp-txt.c:82
+#: ../libvbi/exp-sub.c:125 ../libvbi/exp-txt.c:82
 msgid "ISO-8859-1 (Latin-1 Western languages)"
 msgstr "ISO-8859-1 (Latin-1 západní jazyky)"
 
-#: libvbi/exp-sub.c:126 libvbi/exp-txt.c:83
+#: ../libvbi/exp-sub.c:126 ../libvbi/exp-txt.c:83
 msgid "ISO-8859-2 (Latin-2 Central and Eastern European languages)"
 msgstr "ISO-8859-2 (Latin-2 středo a východoevropské jazyky)"
 
-#: libvbi/exp-sub.c:127 libvbi/exp-txt.c:84
+#: ../libvbi/exp-sub.c:127 ../libvbi/exp-txt.c:84
 msgid "ISO-8859-4 (Latin-3 Baltic languages)"
 msgstr "ISO-8859-4 (Latin-3 pobaltské jazyky)"
 
-#: libvbi/exp-sub.c:128 libvbi/exp-txt.c:85
+#: ../libvbi/exp-sub.c:128 ../libvbi/exp-txt.c:85
 msgid "ISO-8859-5 (Cyrillic)"
 msgstr "ISO-8859-5 (Cirilice)"
 
-#: libvbi/exp-sub.c:129 libvbi/exp-txt.c:86
+#: ../libvbi/exp-sub.c:129 ../libvbi/exp-txt.c:86
 msgid "ISO-8859-7 (Greek)"
 msgstr "ISO-8859-7 (Řecké)"
 
-#: libvbi/exp-sub.c:130 libvbi/exp-txt.c:87
+#: ../libvbi/exp-sub.c:130 ../libvbi/exp-txt.c:87
 msgid "ISO-8859-8 (Hebrew)"
 msgstr "ISO-8859-8 (Hebrejské)"
 
-#: libvbi/exp-sub.c:131 libvbi/exp-txt.c:88
+#: ../libvbi/exp-sub.c:131 ../libvbi/exp-txt.c:88
 msgid "ISO-8859-9 (Turkish)"
 msgstr "ISO-8859-9 (Turecké)"
 
-#: libvbi/exp-sub.c:132 libvbi/exp-txt.c:89
+#: ../libvbi/exp-sub.c:132 ../libvbi/exp-txt.c:89
 msgid "KOI8-R (Russian and Bulgarian)"
 msgstr "KOI8-R (Ruské a bulharské)"
 
-#: libvbi/exp-sub.c:133 libvbi/exp-txt.c:90
+#: ../libvbi/exp-sub.c:133 ../libvbi/exp-txt.c:90
 msgid "KOI8-U (Ukranian)"
 msgstr "KOI8-U (Ukrajina)"
 
-#: libvbi/exp-sub.c:134 libvbi/exp-txt.c:91
+#: ../libvbi/exp-sub.c:134 ../libvbi/exp-txt.c:91
 msgid "ISO-10646/UTF-8 (Unicode)"
 msgstr "ISO-10646/UTF-8 (Unicode)"
 
 #. TRANSLATORS: Text export encoding (ASCII, Unicode, ...) menu
-#: libvbi/exp-sub.c:155 libvbi/exp-sub.c:165 libvbi/exp-txt.c:127
+#: ../libvbi/exp-sub.c:155 ../libvbi/exp-sub.c:165 ../libvbi/exp-txt.c:127
 msgid "Encoding"
 msgstr "Kódování"
 
-#: libvbi/exp-sub.c:171
+#: ../libvbi/exp-sub.c:171
 msgid "Font face"
 msgstr "Písmo"
 
 #. TRANSLATORS:
 #. Caption is an aid for the hearing impaired,
 #. subtitles for foreign language viewers.
-#: libvbi/exp-sub.c:1534
+#: ../libvbi/exp-sub.c:1534
 msgid "MPlayer caption/subtitle file"
 msgstr "MPlayer soubor nadpisu/titulků"
 
 #. TRANSLATORS:
 #. Styles like bold, italic, underlined, etc.
 #. Justification to the left, right, centered.
-#: libvbi/exp-sub.c:1559
+#: ../libvbi/exp-sub.c:1559
 msgid ""
 "QuickTime Text caption/subtitle file preserving text styles, justification "
 "and color"
 msgstr ""
-"QuickTime soubor textu nadpisu/titulků, zachovává styly textu, zarovnání "
-"a barvy"
+"QuickTime soubor textu nadpisu/titulků, zachovává styly textu, zarovnání a "
+"barvy"
 
-#: libvbi/exp-sub.c:1583
+#: ../libvbi/exp-sub.c:1583
 msgid "RealText caption/subtitle file preserving text styles and color"
 msgstr "RealText soubor nadpisu/titulků zachovává styly a barvy"
 
-#: libvbi/exp-sub.c:1606
+#: ../libvbi/exp-sub.c:1606
 msgid ""
 "SAMI 1.0 caption/subtitle file preserving text styles, justification and "
 "color"
-msgstr "SAMI 1.0 soubor nadpisu/titulků, zachovává styly textu, zarovnání a "
-"barvy"
+msgstr ""
+"SAMI 1.0 soubor nadpisu/titulků, zachovává styly textu, zarovnání a barvy"
 
-#: libvbi/exp-sub.c:1630
+#: ../libvbi/exp-sub.c:1630
 msgid "SubRip caption/subtitle file"
 msgstr "SubRip soubor nadpisu/titulků"
 
-#: libvbi/exp-sub.c:1652
+#: ../libvbi/exp-sub.c:1652
 msgid "SubViewer 2.x caption/subtitle file"
 msgstr "SubViewer 2.x soubor nadpisu/titulků"
 
 #. TRANSLATORS: Terminal control codes menu
-#: libvbi/exp-txt.c:112
+#: ../libvbi/exp-txt.c:112
 msgid "None"
 msgstr "Žádné"
 
-#: libvbi/exp-txt.c:113
+#: ../libvbi/exp-txt.c:113
 msgid "ANSI X3.64 / VT 100"
 msgstr "ANSI X3.64 / VT 100"
 
-#: libvbi/exp-txt.c:114
+#: ../libvbi/exp-txt.c:114
 msgid "VT 200"
 msgstr "VT 200"
 
-#: libvbi/exp-txt.c:140
+#: ../libvbi/exp-txt.c:140
 msgid "Control codes"
 msgstr "Kódy barev"
 
-#: libvbi/exp-txt.c:1030
+#: ../libvbi/exp-txt.c:1030
 msgid "Text"
 msgstr "Text"
 
-#: libvbi/exp-txt.c:1031
+#: ../libvbi/exp-txt.c:1031
 msgid "Export this page as text file"
 msgstr "Ulož tuto stránku jako textový soubor"
 
-#: libvbi/exp-vtx.c:82
+#: ../libvbi/exp-vtx.c:82
 msgid "Can only export Teletext pages."
 msgstr "Mužu exportovat pouze stránky teletextu."
 
-#: libvbi/exp-vtx.c:89
+#: ../libvbi/exp-vtx.c:89
 msgid "Page is not cached."
 msgstr "Stránka není v paměti."
 
-#: libvbi/exp-vtx.c:98
+#: ../libvbi/exp-vtx.c:98
 msgid "Cannot export this page, is not displayable."
 msgstr "Nemohu exportovat tuto stránku, není zobrazitelná."
 
-#: libvbi/exp-vtx.c:135
+#: ../libvbi/exp-vtx.c:135
 msgid "VTX"
 msgstr "VTX"
 
-#: libvbi/exp-vtx.c:136
+#: ../libvbi/exp-vtx.c:136
 msgid ""
 "Export this page as VTX file, the format used by VideoteXt and vbidecode"
 msgstr ""
-"Export této stránky jako VTX soubor, formát používaný VideoteXtem a vbidekodérem"
+"Export této stránky jako VTX soubor, formát používaný VideoteXtem a "
+"vbidekodérem"
 
-#: plugins/alirc/alirc.c:37
+#: ../plugins/alirc/alirc.c:37
 msgid "Another lirc plugin"
 msgstr "Další LIRC plugin"
 
-#: plugins/alirc/alirc.c:39
+#: ../plugins/alirc/alirc.c:39
 msgid ""
 "Another plugin to control zapping through lirc\n"
 "\n"
@@ -660,7 +666,7 @@ msgstr ""
 "K povolení tohoto pluginu musíte upravit soubor ~/.lircrc\n"
 "Pro detaily nahlédněte do dokumentace programu.\n"
 
-#: plugins/alirc/alirc.c:44
+#: ../plugins/alirc/alirc.c:44
 msgid "Lets you control zapping through lirc"
 msgstr "Nyní můžete program ovládat pomocí LIRC"
 
@@ -669,422 +675,405 @@ msgstr "Nyní můžete program ovládat pomocí LIRC"
 #. hash collision code
 #. hash collision code
 #. Warn
-#: plugins/alirc/alirc.c:375 plugins/mpeg/mpeg.c:3026
-#: plugins/screenshot/screenshot.c:1778
+#: ../plugins/alirc/alirc.c:375 ../plugins/mpeg/mpeg.c:3026
+#: ../plugins/screenshot/screenshot.c:1778
 #, c-format
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr "Chyba: \"%s\" v pluginu %s má kód 0x%x oproti. 0x%x"
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:237
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:240
 msgid "Max Comb"
 msgstr "Maximální Comb"
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:243
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:246
 msgid "Motion Threshold"
 msgstr "Práh pohybu"
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:249
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:252
 msgid "Motion Sense"
 msgstr "Citlivost pohybu"
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:255
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:258
 msgid "Good PullDown Lvl"
 msgstr "Dobrá úroveň Pulldownu"
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:261
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:264
 msgid "Bad PullDown Lvl"
 msgstr "Špatná úroveň Pulldownu"
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:267
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:315
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:270
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:318
 msgid "H. Sharpness"
 msgstr "Horizontální citlivost"
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:273
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:309
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:276
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:312
 msgid "V. Sharpness"
 msgstr "Vertikální citlivost"
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:279
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:303
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:282
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:306
 msgid "Median Filter"
 msgstr "Medián filtr"
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:285
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:288
 msgid "High Comb Skip"
 msgstr "Přeskoč velký Comb"
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:291
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:294
 msgid "Auto Pull-Down"
 msgstr "Autom. Pulldown"
 
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:297
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:300
 msgid "In-Between Frames"
 msgstr "Mezi snímky"
 
 #. size of this struct
 #. curr version compiled
-#: plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:333
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:336
 msgid "Video (Greedy, High Motion)"
 msgstr "Video (Greedy, Velký pohyb)"
 
-#: plugins/deinterlace/DI_Misc/DI_Adaptive.c:317
-msgid "Adaptive"
-msgstr "Adaptivní"
-
-#: plugins/deinterlace/DI_Misc/DI_BlendedClip.c:973
-msgid "Blended Clip"
-msgstr "Prolínaný klip"
-
-#: plugins/deinterlace/DI_Misc/DI_Bob.c:150
+#: ../plugins/deinterlace/DI_Misc/DI_Bob.c:150
 msgid "Simple Bob"
 msgstr "Jednoduchý Bob"
 
-#: plugins/deinterlace/DI_Misc/DI_EvenOnly.c:123
+#: ../plugins/deinterlace/DI_Misc/DI_EvenOnly.c:123
 msgid "Even Scanlines Only"
 msgstr "Pouze stejné scan řádky"
 
-#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:258
+#: ../plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:258
 msgid "Greedy 2 Frame Luma Threshold"
 msgstr "Greedy 2 frame práh světla"
 
-#: plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:270
+#: ../plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:270
 msgid "Greedy 2 Frame"
 msgstr "Greedy 2 frame"
 
-#: plugins/deinterlace/DI_Misc/DI_Greedy.c:235
+#: ../plugins/deinterlace/DI_Misc/DI_Greedy.c:235
 msgid "Greedy Max Comb"
 msgstr "Greedy maxímální Comb"
 
-#: plugins/deinterlace/DI_Misc/DI_Greedy.c:246
+#: ../plugins/deinterlace/DI_Misc/DI_Greedy.c:246
 msgid "Video (Greedy, Low Motion)"
 msgstr "Video (Greedy, malý pohyb)"
 
-#: plugins/deinterlace/DI_Misc/DI_MoComp2.c:351
+#: ../plugins/deinterlace/DI_Misc/DI_MoComp2.c:351
 msgid "Video (MoComp2)"
 msgstr "Video (MoComp2)"
 
-#: plugins/deinterlace/DI_Misc/DI_OddOnly.c:125
+#: ../plugins/deinterlace/DI_Misc/DI_OddOnly.c:125
 msgid "Odd Scanlines Only"
 msgstr "Pouze zbláštní scan řádky"
 
-#: plugins/deinterlace/DI_Misc/DI_OldGame.c:254
-msgid "Maximum motion"
-msgstr "Maximální pohyb"
-
-#: plugins/deinterlace/DI_Misc/DI_OldGame.c:260
-msgid "Composite mode"
-msgstr "Compositní režim"
-
-#: plugins/deinterlace/DI_Misc/DI_OldGame.c:271
-msgid "Old Game"
-msgstr "Starý způsob"
-
-#: plugins/deinterlace/DI_Misc/DI_ScalerBob.c:117
+#: ../plugins/deinterlace/DI_Misc/DI_ScalerBob.c:117
 msgid "Scaler Bob"
 msgstr "Scaler Bob"
 
-#: plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:955
+#: ../plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:955
 msgid "Search Effort"
 msgstr "Snaha hledat"
 
-#: plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:961
+#: ../plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:961
 msgid "Use Strange Bob"
 msgstr "Použij zvlástní Bob"
 
-#: plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:972
+#: ../plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:972
 msgid "Video (TomsMoComp)"
 msgstr "Video (TomsMoComp)"
 
-#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:317
+#: ../plugins/deinterlace/DI_Misc/DI_TwoFrame.c:317
 msgid "2 Frame Spatial Tolerance"
 msgstr "2 frame prostorová tolerance"
 
-#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:323
+#: ../plugins/deinterlace/DI_Misc/DI_TwoFrame.c:323
 msgid "2 Frame Temporal Tolerance"
 msgstr "2 frame běžná tolerance"
 
-#: plugins/deinterlace/DI_Misc/DI_TwoFrame.c:334
+#: ../plugins/deinterlace/DI_Misc/DI_TwoFrame.c:334
 msgid "Video Deinterlace (2-Frame)"
 msgstr "Video Deinterlace (2 frame)"
 
-#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:237
+#: ../plugins/deinterlace/DI_Misc/DI_VideoBob.c:237
 msgid "Weave Edge Detect"
 msgstr "Detekce plovoucích hran"
 
-#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:243
+#: ../plugins/deinterlace/DI_Misc/DI_VideoBob.c:243
 msgid "Weave Jaggie Threshold"
 msgstr "Práh plovoucích roztřesení"
 
-#: plugins/deinterlace/DI_Misc/DI_VideoBob.c:254
+#: ../plugins/deinterlace/DI_Misc/DI_VideoBob.c:254
 msgid "Video Deinterlace (Bob)"
 msgstr "Video Deinterlace (Bob)"
 
-#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:270
+#: ../plugins/deinterlace/DI_Misc/DI_VideoWeave.c:270
 msgid "Temporal Tolerance"
 msgstr "Běžná tolerance"
 
-#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:276
+#: ../plugins/deinterlace/DI_Misc/DI_VideoWeave.c:276
 msgid "Spatial Tolerance"
 msgstr "Prostorová tolerance"
 
-#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:282
+#: ../plugins/deinterlace/DI_Misc/DI_VideoWeave.c:282
 msgid "Similarity Threshold"
 msgstr "Práh podobnosti"
 
-#: plugins/deinterlace/DI_Misc/DI_VideoWeave.c:293
+#: ../plugins/deinterlace/DI_Misc/DI_VideoWeave.c:293
 msgid "Video Deinterlace (Weave)"
 msgstr "Video Deinterlace (Plovoucí)"
 
-#: plugins/deinterlace/DI_Misc/DI_Weave.c:155
+#: ../plugins/deinterlace/DI_Misc/DI_Weave.c:155
 msgid "Simple Weave"
 msgstr "Prosté plovoucí"
 
-#: plugins/deinterlace/main.c:366
+#: ../plugins/deinterlace/main.c:352
 msgid "Could not start deinterlace plugin"
 msgstr "Nemohu spustit deinterlace plugin"
 
-#: plugins/deinterlace/main.c:367
+#: ../plugins/deinterlace/main.c:353
 #, c-format
 msgid "Could not switch to capture format YUYV %u x %u."
 msgstr "Nemohu přepnout do formátu zobrazení YUYV %u × %u."
 
-#: plugins/deinterlace/main.c:461
+#: ../plugins/deinterlace/main.c:447
 msgid "Deinterlace"
 msgstr "Deinterlace"
 
-#: plugins/deinterlace/main.c:468 plugins/mpeg/mpeg.c:2336
-#: plugins/mpeg/mpeg.c:2956 plugins/screenshot/screenshot.c:522
-#: plugins/screenshot/screenshot.c:1525 plugins/subtitle/main.c:55
-#: plugins/teletext/main.c:212
+#: ../plugins/deinterlace/main.c:454 ../plugins/mpeg/mpeg.c:2336
+#: ../plugins/mpeg/mpeg.c:2956 ../plugins/screenshot/screenshot.c:522
+#: ../plugins/screenshot/screenshot.c:1525 ../plugins/subtitle/main.c:55
+#: ../plugins/teletext/main.c:212
 msgid "Plugins"
 msgstr "Pluginy"
 
-#: plugins/deinterlace/main.c:537
+#: ../plugins/deinterlace/main.c:523
 msgid "Deinterlace plugin"
 msgstr "Deinterlace plugin"
 
-#: plugins/deinterlace/preferences.c:48 src/plugin_properties.c:120
+#: ../plugins/deinterlace/preferences.c:48 ../src/plugin_properties.c:120
 msgid "Low"
 msgstr "Nízká"
 
-#: plugins/deinterlace/preferences.c:49
+#: ../plugins/deinterlace/preferences.c:49
 msgid "Medium"
 msgstr "Střední"
 
-#: plugins/deinterlace/preferences.c:50 src/plugin_properties.c:128
+#: ../plugins/deinterlace/preferences.c:50 ../src/plugin_properties.c:128
 msgid "High"
 msgstr "Vysoká"
 
-#: plugins/deinterlace/preferences.c:287
+#: ../plugins/deinterlace/preferences.c:287
 msgid "_Resolution:"
 msgstr "_Rozlišení:"
 
 # src/frequencies.c:827
 #. TRANSLATORS: Relative display duration of the first and
 #. second field in deinterlace mode.
-#: plugins/deinterlace/preferences.c:296
+#: ../plugins/deinterlace/preferences.c:296
 msgid "_Field Balance:"
 msgstr "_Vyvážení položek:"
 
-#: plugins/deinterlace/preferences.c:708 src/eggcellrendererkeys.c:222
+#: ../plugins/deinterlace/preferences.c:708 ../src/eggcellrendererkeys.c:222
 msgid "Disabled"
 msgstr "Vypnuty"
 
-#: plugins/mpeg/mpeg.c:846
+#: ../plugins/mpeg/mpeg.c:846
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
 msgstr "Formát %s není kompletní, prosím nastavte video nebo audio kodek."
 
-#: plugins/mpeg/mpeg.c:1156
+#: ../plugins/mpeg/mpeg.c:1156
 #, c-format
 msgid "Cannot create file %s: %s\n"
 msgstr "Nemohu vytvořit soubori %s: %s\n"
 
-#: plugins/mpeg/mpeg.c:1726 plugins/mpeg/options.c:407
-#: plugins/teletext/export.c:128
+#: ../plugins/mpeg/mpeg.c:1726 ../plugins/mpeg/options.c:407
+#: ../plugins/teletext/export.c:128
 msgid "Options"
 msgstr "Volby"
 
-#: plugins/mpeg/mpeg.c:2150
+#: ../plugins/mpeg/mpeg.c:2150
 msgid "New format"
 msgstr "Nový formát"
 
-#: plugins/mpeg/mpeg.c:2151
+#: ../plugins/mpeg/mpeg.c:2151
 msgid "Format name:"
 msgstr "Jméno formátu"
 
-#: plugins/mpeg/mpeg.c:2336 plugins/mpeg/mpeg.c:2809 plugins/mpeg/mpeg.c:2837
-#: plugins/mpeg/mpeg.c:2945 plugins/mpeg/mpeg_properties.glade2.h:7
+#: ../plugins/mpeg/mpeg.c:2336 ../plugins/mpeg/mpeg.c:2809
+#: ../plugins/mpeg/mpeg.c:2837 ../plugins/mpeg/mpeg.c:2945
+#: ../plugins/mpeg/mpeg_properties.glade2.h:7
 msgid "Record"
 msgstr "Záznam"
 
-#: plugins/mpeg/mpeg.c:2625
+#: ../plugins/mpeg/mpeg.c:2625
 msgid "Not implemented yet"
 msgstr "Dosud není implementováno"
 
-#: plugins/mpeg/mpeg.c:2802
+#: ../plugins/mpeg/mpeg.c:2802
 msgid "Record a video stream"
 msgstr "Záznam video streamu"
 
-#: plugins/mpeg/mpeg.c:2887
+#: ../plugins/mpeg/mpeg.c:2887
 msgid "Audio/Video Recorder"
 msgstr "Audio/Video rekordér"
 
-#: plugins/mpeg/mpeg.c:2890
+#: ../plugins/mpeg/mpeg.c:2890
 msgid "This plugin records video and audio into a file"
 msgstr "Tento plugin nahrává video a audio do souboru"
 
-#: plugins/mpeg/mpeg.c:2893
+#: ../plugins/mpeg/mpeg.c:2893
 msgid "Record video and audio."
 msgstr "Nahrávej video a audio."
 
-#: plugins/mpeg/mpeg_properties.glade2.h:1
+#: ../plugins/mpeg/mpeg_properties.glade2.h:1
 msgid "-"
 msgstr "-"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:2
+#: ../plugins/mpeg/mpeg_properties.glade2.h:2
 msgid "Capture _height:"
 msgstr "Výška _obrazu:"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:3
+#: ../plugins/mpeg/mpeg_properties.glade2.h:3
 msgid "Capture _width:"
 msgstr "Šíř_ka obrazu:"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:4
+#: ../plugins/mpeg/mpeg_properties.glade2.h:4
 msgid "Co_dec:"
 msgstr "Ko_dek:"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:5
-#: plugins/screenshot/screenshot.glade2.h:3
+#: ../plugins/mpeg/mpeg_properties.glade2.h:5
+#: ../plugins/screenshot/screenshot.glade2.h:3
 msgid "Destination file"
 msgstr "Cílový soubor"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:6
+#: ../plugins/mpeg/mpeg_properties.glade2.h:6
 msgid "Fil_e format"
 msgstr "_Formát souboru"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:8
+#: ../plugins/mpeg/mpeg_properties.glade2.h:8
 msgid "Record _all subtitles"
 msgstr "Nahraj všechny titulky"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:9
+#: ../plugins/mpeg/mpeg_properties.glade2.h:9
 msgid "Record this channel or _page:"
 msgstr "Nahraj t_ento kanál nebo stránku:"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:10
+#: ../plugins/mpeg/mpeg_properties.glade2.h:10
 msgid "Save _as:"
 msgstr "Ulož _jako:"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:11
+#: ../plugins/mpeg/mpeg_properties.glade2.h:11
 msgid "_Audio"
 msgstr "_Audio"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:12
+#: ../plugins/mpeg/mpeg_properties.glade2.h:12
 msgid "_Caption and Subtitles"
 msgstr "_Nadpis a titulky"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:13
+#: ../plugins/mpeg/mpeg_properties.glade2.h:13
 msgid "_Codec:"
 msgstr "_Kodek:"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:14
+#: ../plugins/mpeg/mpeg_properties.glade2.h:14
 msgid "_Configure..."
 msgstr "_Konfiguruj..."
 
-#: plugins/mpeg/mpeg_properties.glade2.h:15
+#: ../plugins/mpeg/mpeg_properties.glade2.h:15
 msgid "_Delete"
 msgstr "_Smaž"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:16
+#: ../plugins/mpeg/mpeg_properties.glade2.h:16
 msgid "_Embedded in the video file:"
 msgstr "_Vložený ve video souboru:"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:17
-#: plugins/screenshot/screenshot.glade2.h:13
+#: ../plugins/mpeg/mpeg_properties.glade2.h:17
+#: ../plugins/screenshot/screenshot.glade2.h:13
 msgid "_Format:"
 msgstr "_Formát:"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:18
+#: ../plugins/mpeg/mpeg_properties.glade2.h:18
 msgid "_New"
 msgstr "_Nový"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:19
+#: ../plugins/mpeg/mpeg_properties.glade2.h:19
 msgid "_No caption or subtitle recording"
 msgstr "_Nenahrávej nadpis ani titulky"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:20
+#: ../plugins/mpeg/mpeg_properties.glade2.h:20
 msgid "_Pause"
 msgstr "_Pauza"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:21
+#: ../plugins/mpeg/mpeg_properties.glade2.h:21
 msgid "_Record"
 msgstr "_Nahrávej"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:22
+#: ../plugins/mpeg/mpeg_properties.glade2.h:22
 msgid "_Record the displayed caption or subtitles"
 msgstr "Nahraj _zobrazený nadpis nebo titulky"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:23
+#: ../plugins/mpeg/mpeg_properties.glade2.h:23
 msgid "_Stop"
 msgstr "_Stop"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:24
+#: ../plugins/mpeg/mpeg_properties.glade2.h:24
 msgid "_Subtitle file:"
 msgstr "_soubor titulků:"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:25
+#: ../plugins/mpeg/mpeg_properties.glade2.h:25
 msgid "_Superimposed onto the picture"
 msgstr "_Překrýt na obraz"
 
-#: plugins/mpeg/mpeg_properties.glade2.h:26
+#: ../plugins/mpeg/mpeg_properties.glade2.h:26
 msgid "_Update live caption at line breaks"
 msgstr "_Aktualizuj pohyblivý nadpis na koncích řádků"
 
 # src/v4l2interface.c:344
-#: plugins/mpeg/mpeg_properties.glade2.h:27 src/zapping.c:483
+#: ../plugins/mpeg/mpeg_properties.glade2.h:27 ../src/zapping.c:500
 msgid "_Video"
 msgstr "_Video"
 
-#: plugins/mpeg/options.c:741
+#: ../plugins/mpeg/options.c:741
 msgid "No codec"
 msgstr "Kodek nenalezen"
 
-#: plugins/screenshot/screenshot.c:45
+#: ../plugins/screenshot/screenshot.c:45
 msgid "Screenshot saver"
 msgstr "Uložit screenshoty"
 
-#: plugins/screenshot/screenshot.c:47
+#: ../plugins/screenshot/screenshot.c:47
 msgid ""
 "With this plugin you can take screen shots of the program you are watching "
 "and save them in various formats."
 msgstr ""
-"Pomocí tohoto pluginu můžete sejmnout screenshot kanálu který právě sledujete "
-"a uložit v různých formátech."
+"Pomocí tohoto pluginu můžete sejmnout screenshot kanálu který právě "
+"sledujete a uložit v různých formátech."
 
-#: plugins/screenshot/screenshot.c:50
+#: ../plugins/screenshot/screenshot.c:50
 msgid "This plugin takes screenshots of the video capture."
 msgstr "Tento plugin sejme screenshot oblasti videa."
 
-#: plugins/screenshot/screenshot.c:517 plugins/screenshot/screenshot.c:542
-#: plugins/screenshot/screenshot.c:1525
+#: ../plugins/screenshot/screenshot.c:517
+#: ../plugins/screenshot/screenshot.c:542
+#: ../plugins/screenshot/screenshot.c:1525
 msgid "Screenshot"
 msgstr "Screenshot"
 
-#: plugins/screenshot/screenshot.c:547
+#: ../plugins/screenshot/screenshot.c:547
 msgid "Take a screenshot"
 msgstr "Sejme screenshot"
 
-#: plugins/screenshot/screenshot.c:684 plugins/screenshot/screenshot.c:842
+#: ../plugins/screenshot/screenshot.c:684
+#: ../plugins/screenshot/screenshot.c:842
 msgid "Error while writing screenshot\n"
 msgstr "Chyba při zápisu screenshotu\n"
 
-#: plugins/screenshot/screenshot.c:892
+#: ../plugins/screenshot/screenshot.c:892
 msgid "Saving..."
 msgstr "Ukládání..."
 
 # src/tveng.c:70
-#: plugins/screenshot/screenshot.c:919
+#: ../plugins/screenshot/screenshot.c:919
 #, c-format
 msgid ""
 "Sorry, but I cannot write %s\n"
@@ -1093,172 +1082,174 @@ msgstr ""
 "Promiňte, nemohu zapsat %s\n"
 "%s"
 
-#: plugins/screenshot/screenshot.c:953
+#: ../plugins/screenshot/screenshot.c:953
 msgid "Sorry, not enough resources to create a new thread"
 msgstr "Promiňte, není dostatek prostředků pro vytvoření nového vlákna"
 
-#: plugins/screenshot/screenshot.c:958
+#: ../plugins/screenshot/screenshot.c:958
 msgid "There are too many threads"
 msgstr "Příliž mnoho vláken"
 
-#: plugins/screenshot/screenshot.c:1147
+#: ../plugins/screenshot/screenshot.c:1147
 #, c-format
 msgid "appx %u KB"
 msgstr "asi %u KB"
 
-#: plugins/screenshot/screenshot.c:1150
+#: ../plugins/screenshot/screenshot.c:1150
 #, c-format
 msgid "appx %.2f MB"
 msgstr "asi. %.2f MB"
 
-#: plugins/screenshot/screenshot.c:1225 plugins/screenshot/screenshot.c:1369
+#: ../plugins/screenshot/screenshot.c:1225
+#: ../plugins/screenshot/screenshot.c:1369
 msgid "This format has no quality option"
 msgstr "Tento formát nemá volbu kvality"
 
-#: plugins/screenshot/screenshot.c:1405
+#: ../plugins/screenshot/screenshot.c:1405
 msgid "Only useful with full size, unscaled picture (480 or 576 lines)"
-msgstr "Použitelné pouze pro plnou velikost - nezvětšený obraz (480 nebo 576 řádků)"
+msgstr ""
+"Použitelné pouze pro plnou velikost - nezvětšený obraz (480 nebo 576 řádků)"
 
-#: plugins/screenshot/screenshot.glade2.h:1
+#: ../plugins/screenshot/screenshot.glade2.h:1
 msgid "Backward"
 msgstr "Zpět"
 
-#: plugins/screenshot/screenshot.glade2.h:2
+#: ../plugins/screenshot/screenshot.glade2.h:2
 msgid "Command to execute after the image has been saved"
 msgstr "Příkaz k provedení po uložení obrázku"
 
-#: plugins/screenshot/screenshot.glade2.h:4
+#: ../plugins/screenshot/screenshot.glade2.h:4
 msgid "Forward"
 msgstr "Vpřed"
 
-#: plugins/screenshot/screenshot.glade2.h:5
+#: ../plugins/screenshot/screenshot.glade2.h:5
 msgid "Grab full size image"
 msgstr "Sejmi obrázek v plné velikosti"
 
-#: plugins/screenshot/screenshot.glade2.h:6
+#: ../plugins/screenshot/screenshot.glade2.h:6
 msgid "Off"
 msgstr "Vypnout"
 
-#: plugins/screenshot/screenshot.glade2.h:7
+#: ../plugins/screenshot/screenshot.glade2.h:7
 msgid "Preview"
 msgstr "Náhled"
 
-#: plugins/screenshot/screenshot.glade2.h:8 plugins/teletext/view.c:2767
+#: ../plugins/screenshot/screenshot.glade2.h:8 ../plugins/teletext/view.c:2767
 msgid "S_ubtitles"
 msgstr "_Titulky"
 
-#: plugins/screenshot/screenshot.glade2.h:9
+#: ../plugins/screenshot/screenshot.glade2.h:9
 msgid "Save Screenshot"
 msgstr "Ulož screenshot"
 
-#: plugins/screenshot/screenshot.glade2.h:10
+#: ../plugins/screenshot/screenshot.glade2.h:10
 msgid "_Add toolbar button"
 msgstr "_Přidej tlačítko do toolbaru"
 
-#: plugins/screenshot/screenshot.glade2.h:11
+#: ../plugins/screenshot/screenshot.glade2.h:11
 msgid "_Completion command:"
 msgstr "_Příkaz doplnění:"
 
-#: plugins/screenshot/screenshot.glade2.h:12
+#: ../plugins/screenshot/screenshot.glade2.h:12
 msgid "_Deinterlace:"
 msgstr "_Deinterlace:"
 
-#: plugins/screenshot/screenshot.glade2.h:14
+#: ../plugins/screenshot/screenshot.glade2.h:14
 msgid "_Grab on clicking OK"
 msgstr "_Sejmi při stisknutí OK"
 
-#: plugins/screenshot/screenshot.glade2.h:15
+#: ../plugins/screenshot/screenshot.glade2.h:15
 msgid "_Quality:"
 msgstr "_Kvalita:"
 
-#: plugins/screenshot/screenshot.glade2.h:16
+#: ../plugins/screenshot/screenshot.glade2.h:16
 msgid "_Save as:"
 msgstr "_Ulož jako:"
 
-#: plugins/screenshot/screenshot.glade2.h:17
+#: ../plugins/screenshot/screenshot.glade2.h:17
 msgid "_Skip"
 msgstr "_Přeskočit"
 
-#: plugins/screenshot/screenshot.glade2.h:18
+#: ../plugins/screenshot/screenshot.glade2.h:18
 msgid "pictures before grabbing"
 msgstr "obrázků před sejmutím"
 
-#: plugins/subtitle/main.c:47 src/main.c:199
+#: ../plugins/subtitle/main.c:47 ../src/main.c:199
 msgid "Subtitles"
 msgstr "Titulky"
 
-#: plugins/subtitle/main.c:89
+#: ../plugins/subtitle/main.c:89
 msgid "Subtitle plugin"
 msgstr "Plugin titulků"
 
-#: plugins/subtitle/preferences.c:55 plugins/teletext/preferences.c:57
+#: ../plugins/subtitle/preferences.c:55 ../plugins/teletext/preferences.c:57
 msgid "Western and Central Europe"
 msgstr "Západní a střední evropa"
 
 # src/frequencies.c:821
-#: plugins/subtitle/preferences.c:56 plugins/teletext/preferences.c:58
+#: ../plugins/subtitle/preferences.c:56 ../plugins/teletext/preferences.c:58
 msgid "Eastern Europe"
 msgstr "Východní evropa"
 
-#: plugins/subtitle/preferences.c:57 plugins/teletext/preferences.c:59
+#: ../plugins/subtitle/preferences.c:57 ../plugins/teletext/preferences.c:59
 msgid "Western Europe and Turkey"
 msgstr "Západní evropa a Turecko"
 
-#: plugins/subtitle/preferences.c:58 plugins/teletext/preferences.c:60
+#: ../plugins/subtitle/preferences.c:58 ../plugins/teletext/preferences.c:60
 msgid "Central and Southeast Europe"
 msgstr "Střední a jihovýchodní evropa"
 
-#: plugins/subtitle/preferences.c:59 plugins/teletext/preferences.c:61
+#: ../plugins/subtitle/preferences.c:59 ../plugins/teletext/preferences.c:61
 msgid "Cyrillic"
 msgstr "Cirilice"
 
-#: plugins/subtitle/preferences.c:60 plugins/teletext/preferences.c:62
+#: ../plugins/subtitle/preferences.c:60 ../plugins/teletext/preferences.c:62
 msgid "Greek and Turkish"
 msgstr "Řecko a Turecko"
 
-#: plugins/subtitle/preferences.c:61 plugins/teletext/preferences.c:63
+#: ../plugins/subtitle/preferences.c:61 ../plugins/teletext/preferences.c:63
 msgid "Arabic"
 msgstr "Arabsky"
 
-#: plugins/subtitle/preferences.c:62 plugins/teletext/preferences.c:64
+#: ../plugins/subtitle/preferences.c:62 ../plugins/teletext/preferences.c:64
 msgid "Hebrew and Arabic"
 msgstr "Hebrejsky a arabsky"
 
-#: plugins/subtitle/preferences.c:77 plugins/teletext/preferences.c:97
+#: ../plugins/subtitle/preferences.c:77 ../plugins/teletext/preferences.c:97
 msgid "Nearest (fast, low quality)"
 msgstr "Blízko (rychlé, nízká kvalita)"
 
-#: plugins/subtitle/preferences.c:78 plugins/teletext/preferences.c:98
+#: ../plugins/subtitle/preferences.c:78 ../plugins/teletext/preferences.c:98
 msgid "Tiles"
 msgstr "Dlaždice"
 
-#: plugins/subtitle/preferences.c:79 plugins/teletext/preferences.c:99
+#: ../plugins/subtitle/preferences.c:79 ../plugins/teletext/preferences.c:99
 msgid "Bilinear"
 msgstr "Bilinearní"
 
-#: plugins/subtitle/preferences.c:80 plugins/teletext/preferences.c:100
+#: ../plugins/subtitle/preferences.c:80 ../plugins/teletext/preferences.c:100
 msgid "Hyper (slow, high quality)"
 msgstr " Hyper (pomalý, vysoká kvalita)"
 
-#: plugins/subtitle/preferences.c:386
+#: ../plugins/subtitle/preferences.c:345
 msgid "<b>Teletext</b>"
 msgstr "<b>Teletext</b>"
 
-#: plugins/subtitle/preferences.c:388 plugins/teletext/preferences.c:303
+#: ../plugins/subtitle/preferences.c:347 ../plugins/teletext/preferences.c:303
 msgid "_Default encoding:"
 msgstr "_Standartní kódování:"
 
-#: plugins/subtitle/preferences.c:392
+#: ../plugins/subtitle/preferences.c:351
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Subtitle viewer may not display the correct font or national characters. You "
 "can select your geographical region here as an additional hint."
 msgstr ""
 "Některé stanice selhávají při přenosu kompletního jazykového identifikátoru, "
-"prohlížeč titulků nemusí zobrazit správné písmo nebo znaky s diakritikou. Zde můžete"
-"vybrat geografickou oblast jako pomocnou informaci."
+"prohlížeč titulků nemusí zobrazit správné písmo nebo znaky s diakritikou. "
+"Zde můžetevybrat geografickou oblast jako pomocnou informaci."
 
-#: plugins/subtitle/preferences.c:399
+#: ../plugins/subtitle/preferences.c:358
 msgid "_Show double height characters"
 msgstr "_Zobraz znaky ve dvojité výšce"
 
@@ -1266,165 +1257,165 @@ msgstr "_Zobraz znaky ve dvojité výšce"
 #. Closed Caption is a captioning system used mainly in the USA,
 #. and on VHS/LD/DVD in other countries. Europe uses Teletext for
 #. caption and subtitle transmissions.
-#: plugins/subtitle/preferences.c:406
+#: ../plugins/subtitle/preferences.c:365
 msgid "<b>Closed Caption</b>"
 msgstr "<b>Uzavřený nadpis</b>"
 
-#: plugins/subtitle/preferences.c:408
+#: ../plugins/subtitle/preferences.c:367
 msgid "_Foreground:"
 msgstr "_Barva písma:"
 
-#: plugins/subtitle/preferences.c:410
+#: ../plugins/subtitle/preferences.c:369
 msgid "Closed Caption foreground color"
 msgstr "Barva písma uzavřeného nadpisu"
 
-#: plugins/subtitle/preferences.c:413
+#: ../plugins/subtitle/preferences.c:372
 msgid "_Background:"
 msgstr "_Pozadí:"
 
-#: plugins/subtitle/preferences.c:415
+#: ../plugins/subtitle/preferences.c:374
 msgid "Closed Caption background color"
 msgstr "Barva pozadí uzavřeného nadpisu"
 
-#: plugins/subtitle/preferences.c:424
+#: ../plugins/subtitle/preferences.c:383
 msgid "_Roll live caption"
 msgstr "_Rolující nadpis"
 
-#: plugins/subtitle/preferences.c:427 plugins/teletext/preferences.c:368
+#: ../plugins/subtitle/preferences.c:386 ../plugins/teletext/preferences.c:368
 msgid "<b>Display</b>"
 msgstr "<b>Zobrazení</b>"
 
-#: plugins/subtitle/preferences.c:429 plugins/teletext/preferences.c:370
+#: ../plugins/subtitle/preferences.c:388 ../plugins/teletext/preferences.c:370
 msgid "_Brightness:"
 msgstr "_Jas:"
 
 # src/interface.c:247
-#: plugins/subtitle/preferences.c:451 plugins/teletext/preferences.c:392
+#: ../plugins/subtitle/preferences.c:410 ../plugins/teletext/preferences.c:392
 msgid "_Contrast:"
 msgstr "_Kontrast:"
 
-#: plugins/subtitle/preferences.c:473 plugins/teletext/preferences.c:414
+#: ../plugins/subtitle/preferences.c:432 ../plugins/teletext/preferences.c:414
 msgid "S_caling:"
 msgstr "_Zvětšení:"
 
-#: plugins/subtitle/preferences.c:477 plugins/teletext/preferences.c:418
+#: ../plugins/subtitle/preferences.c:436 ../plugins/teletext/preferences.c:418
 msgid "Quality/speed trade-off when scaling and anti-aliasing the page."
 msgstr "Záměna kvalita/rychlost při zvětšení a vyhlazování stránky."
 
-#: plugins/subtitle/view.c:1701 src/subtitle.c:321
+#: ../plugins/subtitle/view.c:1660 ../src/subtitle.c:321
 msgid "_Disable"
 msgstr "_Vypnuto"
 
-#: plugins/subtitle/view.c:1703
+#: ../plugins/subtitle/view.c:1662
 msgid "_Reset position"
 msgstr "_Obnovení umístění"
 
-#: plugins/subtitle/view.c:1705 plugins/teletext/window.c:810
+#: ../plugins/subtitle/view.c:1664 ../plugins/teletext/window.c:810
 msgid "_Encoding"
 msgstr "_Kódování"
 
-#: plugins/teletext/bookmark.c:283
+#: ../plugins/teletext/bookmark.c:283
 #, c-format
 msgid "Added page %x.%02x to bookmarks"
 msgstr "Přidání stránky %x.%02x do záložek"
 
-#: plugins/teletext/bookmark.c:287
+#: ../plugins/teletext/bookmark.c:287
 #, c-format
 msgid "Added page %x to bookmarks"
 msgstr "Přidání stránky %x do záložek"
 
-#: plugins/teletext/bookmark.c:348
+#: ../plugins/teletext/bookmark.c:348
 msgid "_Add Bookmark"
 msgstr "_Přidání záložky"
 
-#: plugins/teletext/bookmark.c:354
+#: ../plugins/teletext/bookmark.c:354
 msgid "_Edit Bookmarks..."
 msgstr "Editace _záložek..."
 
-#: plugins/teletext/bookmark.c:595
+#: ../plugins/teletext/bookmark.c:595
 msgid "Bookmarks"
 msgstr "Záložky"
 
 # src/interface.c:362
-#: plugins/teletext/bookmark.c:634
+#: ../plugins/teletext/bookmark.c:634
 msgid "Channel"
 msgstr "Kanál"
 
-#: plugins/teletext/bookmark.c:640
+#: ../plugins/teletext/bookmark.c:640
 msgid "Page"
 msgstr "Stránka"
 
-#: plugins/teletext/bookmark.c:645
+#: ../plugins/teletext/bookmark.c:645
 msgid "Description"
 msgstr "Popis"
 
-#: plugins/teletext/export.c:168 plugins/teletext/export.c:194
+#: ../plugins/teletext/export.c:168 ../plugins/teletext/export.c:194
 msgid "Could not save page"
 msgstr "Nemohu uložit stránku"
 
-#: plugins/teletext/export.c:239
+#: ../plugins/teletext/export.c:239
 msgid "Save as"
 msgstr "Uložit jako"
 
-#: plugins/teletext/export.c:257
+#: ../plugins/teletext/export.c:257
 msgid "Format:"
 msgstr "Formát:"
 
-#: plugins/teletext/main.c:176
+#: ../plugins/teletext/main.c:176
 msgid "_Preferences"
 msgstr "_Nastavení"
 
-#: plugins/teletext/main.c:178
+#: ../plugins/teletext/main.c:178
 msgid "_Colors"
 msgstr "_Barvy"
 
-#: plugins/teletext/main.c:204 src/main.c:198
+#: ../plugins/teletext/main.c:204 ../src/main.c:198
 msgid "Teletext"
 msgstr "Teletext"
 
-#: plugins/teletext/main.c:277
+#: ../plugins/teletext/main.c:277
 msgid "Teletext plugin"
 msgstr "Plugin teletextu"
 
-#: plugins/teletext/preferences.c:79
+#: ../plugins/teletext/preferences.c:79
 msgid "Level 1"
 msgstr "Úroveň 1"
 
-#: plugins/teletext/preferences.c:80
+#: ../plugins/teletext/preferences.c:80
 msgid "Level 1.5 (additional national characters)"
 msgstr "Úroveň 1.5 (další národní znaky)"
 
-#: plugins/teletext/preferences.c:81
+#: ../plugins/teletext/preferences.c:81
 msgid "Level 2.5 (more colors, font styles and graphics)"
 msgstr "Úroveň 2.5 (více barev, stylů písma a grafiky)"
 
-#: plugins/teletext/preferences.c:82
+#: ../plugins/teletext/preferences.c:82
 msgid "Level 3.5 (proportional spacing, multicolor graphics)"
 msgstr "Úroveň 3.5 (proporciální mezery, vícebarevná grafika)"
 
-#: plugins/teletext/preferences.c:295
+#: ../plugins/teletext/preferences.c:295
 msgid "<b>General</b>"
 msgstr "<b>Obecné</b>"
 
-#: plugins/teletext/preferences.c:297
+#: ../plugins/teletext/preferences.c:297
 msgid "_Teletext implementation:"
 msgstr "_Implementace teletextu:"
 
-#: plugins/teletext/preferences.c:307
+#: ../plugins/teletext/preferences.c:307
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Teletext viewer may not display the correct font or national characters. You "
 "can select your geographical region here as an additional hint."
 msgstr ""
 "Některé stanice selhávají při přenosu kompletního jazykového identifikátoru, "
-"prohlížeč titulků nemusí zobrazit správné písmo nebo znaky s diakritikou. Zde můžete"
-"vybrat geografickou oblast jako pomocnou informaci."
+"prohlížeč titulků nemusí zobrazit správné písmo nebo znaky s diakritikou. "
+"Zde můžetevybrat geografickou oblast jako pomocnou informaci."
 
-#: plugins/teletext/preferences.c:313
+#: ../plugins/teletext/preferences.c:313
 msgid "<b>Page memory</b>"
 msgstr "<b>Paměť stránek</b>"
 
-#: plugins/teletext/preferences.c:315
+#: ../plugins/teletext/preferences.c:315
 msgid "_Size:"
 msgstr "_Velikost:"
 
@@ -1432,477 +1423,477 @@ msgstr "_Velikost:"
 #. fill
 #. pad
 #. TRANSLATORS: Kilobyte (2^10)
-#: plugins/teletext/preferences.c:341
+#: ../plugins/teletext/preferences.c:341
 msgid "KiB"
 msgstr "KiB"
 
 # src/interface.c:362
-#: plugins/teletext/preferences.c:348
+#: ../plugins/teletext/preferences.c:348
 msgid "_Channels:"
 msgstr "_Kanály:"
 
-#: plugins/teletext/search.c:131 plugins/teletext/search.c:349
+#: ../plugins/teletext/search.c:131 ../plugins/teletext/search.c:349
 msgid "Search text:"
 msgstr "Hledej text:"
 
-#: plugins/teletext/search.c:153
+#: ../plugins/teletext/search.c:153
 #, c-format
 msgid "Found text on page %x.%02x:"
 msgstr "Text nalezen na stránce %x.%02x:"
 
-#: plugins/teletext/search.c:160
+#: ../plugins/teletext/search.c:160
 msgid "Not found:"
 msgstr "Nenalezeno:"
 
-#: plugins/teletext/search.c:171
+#: ../plugins/teletext/search.c:171
 msgid "Page memory is empty"
 msgstr "Paměť stránek je prázdná"
 
-#: plugins/teletext/search.c:342 plugins/teletext/view.c:3260
+#: ../plugins/teletext/search.c:342 ../plugins/teletext/view.c:3260
 msgid "Search page memory"
 msgstr "Hledej stránku v paměti"
 
-#: plugins/teletext/search.c:358
+#: ../plugins/teletext/search.c:358
 msgid "_Regular expression"
 msgstr "_Regulární výraz"
 
-#: plugins/teletext/search.c:363
+#: ../plugins/teletext/search.c:363
 msgid "Search case _insensitive"
 msgstr "Hledej - nerozlišuj velikost"
 
 # src/v4l2interface.c:146
 #. Future stuff.
-#: plugins/teletext/search.c:369
+#: ../plugins/teletext/search.c:369
 msgid "_All channels"
 msgstr "_Všechny kanály"
 
-#: plugins/teletext/toolbar.c:122
+#: ../plugins/teletext/toolbar.c:122
 msgid "Next page"
 msgstr "Další stránka"
 
-#: plugins/teletext/toolbar.c:125
+#: ../plugins/teletext/toolbar.c:125
 msgid "Previous page"
 msgstr "Předchozí stránka"
 
-#: plugins/teletext/toolbar.c:128
+#: ../plugins/teletext/toolbar.c:128
 msgid "Previous subpage"
 msgstr "Předchozí podstránka"
 
-#: plugins/teletext/toolbar.c:131
+#: ../plugins/teletext/toolbar.c:131
 msgid "Next subpage"
 msgstr "Další podstránka"
 
-#: plugins/teletext/toolbar.c:188
+#: ../plugins/teletext/toolbar.c:188
 msgid "Open new Teletext window"
 msgstr "Otevři nové okno teletextu"
 
-#: plugins/teletext/toolbar.c:210
+#: ../plugins/teletext/toolbar.c:210
 msgid "Hold the current subpage"
 msgstr "Podržet aktuální podstránku"
 
-#: plugins/teletext/toolbar.c:240
+#: ../plugins/teletext/toolbar.c:240
 msgid "Reveal"
 msgstr "Odkrýt"
 
-#: plugins/teletext/toolbar.c:241
+#: ../plugins/teletext/toolbar.c:241
 msgid "Reveal concealed text"
 msgstr "Odkrýt skrytý text"
 
-#: plugins/teletext/view.c:846
+#: ../plugins/teletext/view.c:846
 #, c-format
 msgid " Page %x"
 msgstr " Stránka %x"
 
-#: plugins/teletext/view.c:850
+#: ../plugins/teletext/view.c:850
 #, c-format
 msgid " Subpage %x"
 msgstr " Podstránka %x"
 
-#: plugins/teletext/view.c:1459
+#: ../plugins/teletext/view.c:1459
 #, c-format
 msgid "Loading page %X..."
 msgstr "Nahrávám stránku %X..."
 
-#: plugins/teletext/view.c:1461
+#: ../plugins/teletext/view.c:1461
 #, c-format
 msgid "Loading page %X.%02X..."
 msgstr "Nahrávám stránku %X.%02X..."
 
-#: plugins/teletext/view.c:2372
+#: ../plugins/teletext/view.c:2372
 msgid "Selection copied to clipboard"
 msgstr "Výběr zkopírován do schránky"
 
-#: plugins/teletext/view.c:2454
+#: ../plugins/teletext/view.c:2454
 msgid "No page loaded"
 msgstr "Nenahrána žádná stránka"
 
-#: plugins/teletext/view.c:2467
+#: ../plugins/teletext/view.c:2467
 msgid "Selecting - press Shift key for table mode"
 msgstr "Výběr - stiskněte klávesu Shift pro režim tabulky"
 
-#: plugins/teletext/view.c:2627
+#: ../plugins/teletext/view.c:2627
 msgid "Subtitle index"
 msgstr "Obsah titulků"
 
-#: plugins/teletext/view.c:2634
+#: ../plugins/teletext/view.c:2634
 msgid "Now and Next"
 msgstr "Nyní a příště"
 
-#: plugins/teletext/view.c:2640
+#: ../plugins/teletext/view.c:2640
 msgid "Current program"
 msgstr "Aktuální program"
 
-#: plugins/teletext/view.c:2646
+#: ../plugins/teletext/view.c:2646
 msgid "Program Index"
 msgstr "Obsah programu"
 
-#: plugins/teletext/view.c:2652
+#: ../plugins/teletext/view.c:2652
 msgid "Program Schedule"
 msgstr "Plánování programu"
 
 #. TRANSLATORS: Schedule changes and the like.
-#: plugins/teletext/view.c:2660
+#: ../plugins/teletext/view.c:2660
 msgid "Program Warning"
 msgstr "Varování programu"
 
-#: plugins/teletext/view.c:2721
+#: ../plugins/teletext/view.c:2721
 msgid "_Open"
 msgstr "_Otevřít"
 
-#: plugins/teletext/view.c:2727
+#: ../plugins/teletext/view.c:2727
 msgid "Open in _New Window"
 msgstr "Otevřít v _novém okně"
 
-#: plugins/teletext/view.c:2738
+#: ../plugins/teletext/view.c:2738
 msgid "_Open Link"
 msgstr "_Otevři odkaz"
 
-#: plugins/teletext/view.c:2749 plugins/teletext/window.c:805
+#: ../plugins/teletext/view.c:2749 ../plugins/teletext/window.c:805
 msgid "_New Window"
 msgstr "_Nové okno"
 
-#: plugins/teletext/view.c:2755
+#: ../plugins/teletext/view.c:2755
 msgid "_Save as..."
 msgstr "_Ulož jako..."
 
-#: plugins/teletext/view.c:2761
+#: ../plugins/teletext/view.c:2761
 msgid "S_earch..."
 msgstr "_Hledej..."
 
-#: plugins/teletext/view.c:2773 plugins/teletext/window.c:812
-#: src/zapping.c:480
+#: ../plugins/teletext/view.c:2773 ../plugins/teletext/window.c:812
+#: ../src/zapping.c:497
 msgid "_Bookmarks"
 msgstr "_Záložky"
 
-#: plugins/teletext/view.c:3252
+#: ../plugins/teletext/view.c:3252
 msgid "_Go"
 msgstr "_Přejít"
 
-#: plugins/teletext/view.c:3254
+#: ../plugins/teletext/view.c:3254
 msgid "Previous page in history"
 msgstr "Předchozí stránka v historii"
 
-#: plugins/teletext/view.c:3256
+#: ../plugins/teletext/view.c:3256
 msgid "Next page in history"
 msgstr "Další stránka v historii"
 
-#: plugins/teletext/view.c:3257
+#: ../plugins/teletext/view.c:3257
 msgid "Index"
 msgstr "Obsah"
 
-#: plugins/teletext/view.c:3258
+#: ../plugins/teletext/view.c:3258
 msgid "Go to the index page"
 msgstr "Přejít na stránku obsahu"
 
-#: plugins/teletext/view.c:3262
+#: ../plugins/teletext/view.c:3262
 msgid "Save this page to a file"
 msgstr "Ulož tuto stránku do souboru"
 
 #. TRANSLATORS: Choose from the Teletext page cache the currently
 #. received channel.
-#: plugins/teletext/window.c:317
+#: ../plugins/teletext/window.c:317
 msgid "_Received"
 msgstr "_Přijaté"
 
 # Unbenannt
-#: plugins/teletext/window.c:349 src/v4linterface.c:1317
-#: src/v4linterface.c:2505
+#: ../plugins/teletext/window.c:349 ../src/v4linterface.c:1317
+#: ../src/v4linterface.c:2520
 msgid "Unnamed"
 msgstr "Beze jména"
 
-#: plugins/teletext/window.c:571 src/zvbi.c:221
+#: ../plugins/teletext/window.c:571 ../src/zvbi.c:221
 msgid " (Latin)"
 msgstr " (Latin)"
 
-#: plugins/teletext/window.c:573 src/zvbi.c:223
+#: ../plugins/teletext/window.c:573 ../src/zvbi.c:223
 msgid " (Cyrillic)"
 msgstr " (Kyrilice)"
 
-#: plugins/teletext/window.c:616 src/zvbi.c:238
+#: ../plugins/teletext/window.c:616 ../src/zvbi.c:238
 msgid "_Automatic"
 msgstr "_Automatické"
 
-#: plugins/teletext/window.c:804 src/zapping.c:413
+#: ../plugins/teletext/window.c:804 ../src/zapping.c:428
 msgid "_File"
 msgstr "_Soubor"
 
-#: plugins/teletext/window.c:808 src/zapping.c:419
+#: ../plugins/teletext/window.c:808 ../src/zapping.c:436
 msgid "_Edit"
 msgstr "_Editace"
 
 # src/v4l2interface.c:344
-#: plugins/teletext/window.c:809 src/zapping.c:426
+#: ../plugins/teletext/window.c:809 ../src/zapping.c:443
 msgid "_View"
 msgstr "_Zobrazení"
 
 # src/interface.c:362
 #. 2.6 GTK_STOCK_EDIT
-#: plugins/teletext/window.c:811 src/zapping.c:424 src/zapping.c:437
+#: ../plugins/teletext/window.c:811 ../src/zapping.c:441 ../src/zapping.c:454
 msgid "_Channels"
 msgstr "_Kanály"
 
-#: plugins/teletext/window.c:871 src/zapping.c:459
+#: ../plugins/teletext/window.c:871 ../src/zapping.c:476
 msgid "_Toolbar"
 msgstr "_Toolbar"
 
-#: plugins/teletext/window.c:873
+#: ../plugins/teletext/window.c:873
 msgid "_Statusbar"
 msgstr "_Stavový řádek"
 
 #. TRANSLATORS: Soundcard mixer line.
-#: src/audio.c:510
+#: ../src/audio.c:807
 msgid "Input:"
 msgstr "Vstup:"
 
-#: src/audio.c:543 src/keyboard.c:1155 src/osd.c:1080 src/properties.c:974
-#: src/properties-handler.c:1320
+#: ../src/audio.c:840 ../src/keyboard.c:1154 ../src/osd.c:1080
+#: ../src/properties.c:991 ../src/properties-handler.c:1353
 msgid "General Options"
 msgstr "Obecné nastavení"
 
-#: src/audio.c:642
+#: ../src/audio.c:939
 msgid "<span foreground=\"blue\">Audio off</span>"
 msgstr "<span foreground=\"blue\">Ztlumit zvuk</span>"
 
-#: src/audio.c:643
+#: ../src/audio.c:940
 msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr "<span foreground=\"yellow\">Zapnout zvuk</span>"
 
-#: src/capture.c:895
+#: ../src/capture.c:866
 msgid "Cannot stop capturing while recording."
 msgstr "Nemohu zastavit přehrávání dokud nahrávám."
 
-#: src/capture.c:1077
+#: ../src/capture.c:1052
 #, c-format
 msgid "Cannot start capturing: %s"
 msgstr "Nemohu spustit přehrávání: %s"
 
-#: src/channel_editor.c:592
+#: ../src/channel_editor.c:592
 #, c-format
 msgid "Channel: %s   Found: %u"
 msgstr "Kanál: %s   Nalezen: %u"
 
-#: src/channel_editor.c:715
+#: ../src/channel_editor.c:715
 msgid "Searching..."
 msgstr "Hledání..."
 
 # src/interface.c:336
-#: src/channel_editor.c:1452
+#: ../src/channel_editor.c:1452
 msgid "Select the frequency table used in your country"
 msgstr "Vyberte frekvenční tabulku používanou ve vaší zemi"
 
-#: src/channel_editor.c:1596
+#: ../src/channel_editor.c:1596
 msgid "Ch. Name"
 msgstr "Jméno kanálu"
 
 # src/interface.c:369
 # glade/glade_strings.c:149, glade/glade_strings.c:155
-#: src/channel_editor.c:1601
+#: ../src/channel_editor.c:1601
 msgid "Freq (MHz)"
 msgstr "Freq. (MHz)"
 
 # src/interface.c:405
 #. append
-#: src/channel_editor.c:1654
+#: ../src/channel_editor.c:1654
 msgid "Channel name"
 msgstr "Jméno kanálu"
 
 #. append
-#: src/channel_editor.c:1658
+#: ../src/channel_editor.c:1658
 msgid "Video input"
 msgstr "Video vstup"
 
 # src/interface.c:362
 #. append
-#: src/channel_editor.c:1662
+#: ../src/channel_editor.c:1662
 msgid "RF Channel"
 msgstr "RF Kanál"
 
 # src/v4l2interface.c:344
 #. append
-#: src/channel_editor.c:1666
+#: ../src/channel_editor.c:1666
 msgid "Video standard"
 msgstr "Videostandard"
 
 #. append
-#: src/channel_editor.c:1670 src/keyboard.c:444
+#: ../src/channel_editor.c:1670 ../src/keyboard.c:444
 msgid "Accelerator"
 msgstr "Akcelerátor"
 
-#: src/channel_editor.c:1685
+#: ../src/channel_editor.c:1685
 msgid "Do not change input"
 msgstr "Nelze změnit vstup"
 
-#: src/channel_editor.c:1709
+#: ../src/channel_editor.c:1709
 msgid "Do not change standard"
 msgstr "Nelze změnit standard"
 
 # src/interface.c:362
-#: src/channel_editor.c:1748
+#: ../src/channel_editor.c:1748
 msgid "Channel editor"
 msgstr "Editor kanálů"
 
-#: src/channel_editor.c:1772
+#: ../src/channel_editor.c:1772
 msgid "Region"
 msgstr "Oblast"
 
-#: src/channel_editor.c:1808
+#: ../src/channel_editor.c:1808
 msgid "Automatic station _search"
 msgstr "_Automatické hledání stanic"
 
-#: src/channel_editor.c:1814
+#: ../src/channel_editor.c:1814
 msgid ""
 "Select a suitable frequency table, then click here to search through all "
 "channels in the table and add the received stations to the channel list."
 msgstr ""
-"Vyberte vhodnou frekvenční tabulku, poté klikněte zde pro hledaní ve "
-"všech kanálech tabulky a přidání získaných stanic do seznamu kanálů."
+"Vyberte vhodnou frekvenční tabulku, poté klikněte zde pro hledaní ve všech "
+"kanálech tabulky a přidání získaných stanic do seznamu kanálů."
 
 # src/v4l2interface.c:146
-#: src/channel_editor.c:1820
+#: ../src/channel_editor.c:1820
 msgid "Add all _channels"
 msgstr "Přidej všechny _kanály"
 
-#: src/channel_editor.c:1827
+#: ../src/channel_editor.c:1827
 msgid "Add all channels in the frequency table to the channel list."
 msgstr "Přidej všechny kanály ve frekvenční tabulce do seznamu kanálů."
 
-#: src/channel_editor.c:1831
+#: ../src/channel_editor.c:1831
 msgid "_Import XawTV configuration"
 msgstr "_Importuj konfiguraci XawTV"
 
 # src/interface.c:362
-#: src/channel_editor.c:1858
+#: ../src/channel_editor.c:1858
 msgid "Channel List"
 msgstr "Seznam kanálů"
 
 # src/interface.c:362
-#: src/channel_editor.c:1893
+#: ../src/channel_editor.c:1893
 msgid "Edit channel"
 msgstr "Edituj kanál"
 
-#: src/channel_editor.c:1910
+#: ../src/channel_editor.c:1910
 msgid "Name:"
 msgstr "Jméno:"
 
-#: src/channel_editor.c:1919
+#: ../src/channel_editor.c:1919
 msgid "Video input:"
 msgstr "Video vstup:"
 
-#: src/channel_editor.c:1930
+#: ../src/channel_editor.c:1930
 msgid "Fine tuning:"
 msgstr "Jemné ladění:"
 
-#: src/channel_editor.c:1936
+#: ../src/channel_editor.c:1936
 msgid "MHz"
 msgstr "MHz"
 
 # src/v4l2interface.c:344
-#: src/channel_editor.c:1947
+#: ../src/channel_editor.c:1947
 msgid "Video standard:"
 msgstr "Videostandard:"
 
-#: src/channel_editor.c:1958
+#: ../src/channel_editor.c:1958
 msgid "Accelerator:"
 msgstr "Klávesová zkratka:"
 
-#: src/eggcellrendererkeys.c:163 src/eggcellrendererkeys.c:164
+#: ../src/eggcellrendererkeys.c:163 ../src/eggcellrendererkeys.c:164
 msgid "Accelerator key"
 msgstr "Klávesa klávesové zkratky"
 
-#: src/eggcellrendererkeys.c:173 src/eggcellrendererkeys.c:174
+#: ../src/eggcellrendererkeys.c:173 ../src/eggcellrendererkeys.c:174
 msgid "Accelerator modifiers"
 msgstr "Modifikátor klávesové zkratky"
 
-#: src/eggcellrendererkeys.c:183
+#: ../src/eggcellrendererkeys.c:183
 msgid "Accelerator Mode"
 msgstr "Režim klávesové zkratky"
 
-#: src/eggcellrendererkeys.c:184
+#: ../src/eggcellrendererkeys.c:184
 msgid "The type of accelerator."
 msgstr "Typ klávesové zkratky."
 
 # extrem gekürzt, wirkt sich auf Fensterbreite aus
-#: src/eggcellrendererkeys.c:333 src/eggcellrendererkeys.c:567
+#: ../src/eggcellrendererkeys.c:333 ../src/eggcellrendererkeys.c:567
 msgid "Type a new accelerator, or press Backspace to clear"
 msgstr "Zadejte nový klávesovou zkratku, nebo stistkněte Backspace pro výmaz"
 
-#: src/eggcellrendererkeys.c:570
+#: ../src/eggcellrendererkeys.c:570
 msgid "Type a new accelerator"
 msgstr "Zadejte nový akcelerátor"
 
-#: src/frequencies.c:94 src/frequencies.c:160
+#: ../src/frequencies.c:94 ../src/frequencies.c:160
 msgid "broadcast"
 msgstr "vysílání"
 
-#: src/frequencies.c:107
+#: ../src/frequencies.c:107
 msgid "cable IRC"
 msgstr "Kabelové IRC"
 
-#: src/frequencies.c:126
+#: ../src/frequencies.c:126
 msgid "cable HRC"
 msgstr "Kabelové HRC"
 
 # src/frequencies.c:817
-#: src/frequencies.c:144 src/frequencies.c:172
+#: ../src/frequencies.c:144 ../src/frequencies.c:172
 msgid "cable"
 msgstr "Kabelové"
 
 #. TRANSLATORS: Leave "Autocom" untranslated.
-#: src/frequencies.c:275
+#: ../src/frequencies.c:275
 msgid "Autocom cable"
 msgstr "Autocom Kabelová"
 
-#: src/keyboard.c:89 src/keyboard.c:112
+#: ../src/keyboard.c:89 ../src/keyboard.c:112
 msgid "Ctrl+"
 msgstr "Ctrl+"
 
-#: src/keyboard.c:90 src/keyboard.c:113
+#: ../src/keyboard.c:90 ../src/keyboard.c:113
 msgid "Alt+"
 msgstr "Alt+"
 
-#: src/keyboard.c:91 src/keyboard.c:114
+#: ../src/keyboard.c:91 ../src/keyboard.c:114
 msgid "Shift+"
 msgstr "Shift+"
 
-#: src/keyboard.c:525
+#: ../src/keyboard.c:525
 msgid "Key table..."
 msgstr "Tabulka kláves..."
 
-#: src/keyboard.c:1111
+#: ../src/keyboard.c:1106
 msgid "Command"
 msgstr "Příkaz"
 
-#: src/keyboard.c:1125 src/properties-handler.c:803
+#: ../src/keyboard.c:1120 ../src/properties-handler.c:801
 msgid "Shortcut"
 msgstr "Zkratka"
 
-#: src/main.c:197 src/tveng1.c:1174 src/tveng25.c:538 src/tvengbktr.c:414
-#: src/tveng.c:2261 src/tvengxv.c:569
+#: ../src/main.c:197 ../src/tveng1.c:1358 ../src/tveng25.c:566
+#: ../src/tvengbktr.c:414 ../src/tveng.c:2340 ../src/tvengxv.c:878
 msgid "Mute"
 msgstr "Ztlum"
 
 #. warnings
-#: src/main.c:273 src/main.c:308
+#: ../src/main.c:273 ../src/main.c:308
 #, c-format
 msgid ""
 "Capture mode couldn't be started:\n"
@@ -1911,7 +1902,7 @@ msgstr ""
 "Nemohu spustit capture režim:\n"
 "%s"
 
-#: src/main.c:291
+#: ../src/main.c:291
 #, c-format
 msgid ""
 "Cannot restore previous mode, will try capture mode:\n"
@@ -1920,7 +1911,7 @@ msgstr ""
 "Nemohu obnovit předchozí režim, použijte capture režim \n"
 "%s"
 
-#: src/main.c:299
+#: ../src/main.c:299
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
@@ -1929,7 +1920,7 @@ msgstr ""
 "Nemohu spustit ani capture režim:\n"
 "%s"
 
-#: src/main.c:302
+#: ../src/main.c:302
 #, c-format
 msgid ""
 "Cannot restore previous mode:\n"
@@ -1938,109 +1929,109 @@ msgstr ""
 "Nemohu obnovit předchozí režim:\n"
 "%s"
 
-#: src/main.c:366
+#: ../src/main.c:376
 msgid "Kernel video device"
 msgstr "Video zařízení jádra"
 
-#: src/main.c:367
+#: ../src/main.c:377
 msgid "FILENAME"
 msgstr "FILENAME"
 
-#: src/main.c:378 src/main.c:396
+#: ../src/main.c:388 ../src/main.c:406
 msgid "XVideo video input port"
 msgstr "Port video vstupu XVideo"
 
-#: src/main.c:387
+#: ../src/main.c:397
 msgid "XVideo image overlay port"
 msgstr "port ovelay obrazu XVideo"
 
-#: src/main.c:405
+#: ../src/main.c:415
 msgid "Disable XVideo video input support"
 msgstr "Vypnout podporu XVideo video vstupu"
 
-#: src/main.c:414
+#: ../src/main.c:424
 msgid "Disable XVideo image overlay support"
 msgstr "Vypnout podporu overlay obrazu XVideo"
 
-#: src/main.c:423
+#: ../src/main.c:433
 msgid "Disable XVideo extension support"
 msgstr "Vypnoutu podporu XVideo rozšíření"
 
-#: src/main.c:435
+#: ../src/main.c:445
 msgid "Disable video overlay"
 msgstr "Vypnout overlay video"
 
-#: src/main.c:444
+#: ../src/main.c:454
 msgid "X display is remote, disable video overlay"
 msgstr "X server je vzdálený, vypne video overlay"
 
-#: src/main.c:453
+#: ../src/main.c:463
 msgid "Disable VBI support"
 msgstr "Vypnout podporu VBI"
 
-#: src/main.c:462
+#: ../src/main.c:472
 msgid "Disable plugins"
 msgstr "Vypnout pluginy"
 
 #. TRANSLATORS: --no-zsfb command line option.
 #. TRANSLATORS: --yuv-format command line option.
 #. TRANSLATORS: --tunerless-norm command line option.
-#: src/main.c:476 src/main.c:531 src/main.c:541
+#: ../src/main.c:486 ../src/main.c:550 ../src/main.c:560
 msgid "Obsolete"
 msgstr "Zastaralé"
 
-#: src/main.c:485
+#: ../src/main.c:504
 msgid "Color depth of the X display"
 msgstr "Barevná hloubka X-serveru"
 
-#: src/main.c:486
+#: ../src/main.c:505
 msgid "BPP"
 msgstr "BPP"
 
-#: src/main.c:494 src/zapzilla.c:74
+#: ../src/main.c:513
 msgid "Print debug messages"
 msgstr "Vypisuj ladicí zprávy"
 
-#: src/main.c:512
+#: ../src/main.c:531
 msgid "Force dword alignment of the overlay window"
 msgstr "Rychlé zarovnání dword overlay okna"
 
-#: src/main.c:521
+#: ../src/main.c:540
 msgid "Execute the given command and exit"
 msgstr "Spusť daný příkaz a ukonči"
 
-#: src/main.c:522
+#: ../src/main.c:541
 msgid "CMD"
 msgstr "CMD"
 
-#: src/main.c:550
+#: ../src/main.c:569
 msgid "Override CPU detection"
 msgstr "Detekováno přetížení procesoru"
 
-#: src/main.c:639
+#: ../src/main.c:658
 msgid "Sorry, but there is no module support in GLib"
 msgstr "Promiňte, ale tento modul není v glib podporován"
 
 # src/callbacks.c:320 src/v4l2interface.c:89
-#: src/main.c:763
+#: ../src/main.c:782
 msgid "Cannot get device info struct"
 msgstr "Nemohu získat strukturu informací zařízení"
 
-#: src/main.c:772
+#: ../src/main.c:791
 msgid "Zapping couldn't be started"
 msgstr "Zapping nemohl být spuštěn"
 
-#: src/main.c:826
+#: ../src/main.c:845
 #, c-format
 msgid "Couldn't open %s, try other devices?"
 msgstr "Nemohu otevřít %s, zkusit jiné zařízení?"
 
-#: src/main.c:853
+#: ../src/main.c:872
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr "%s dokončeno, nastavuji jako nové standardní"
 
-#: src/main.c:863
+#: ../src/main.c:882
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
@@ -2049,7 +2040,7 @@ msgstr ""
 "Promiňte, ale nemohu otevřít »%s«:\n"
 "%s"
 
-#: src/main.c:1218 src/zapzilla.c:165
+#: ../src/main.c:1242
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -2070,19 +2061,19 @@ msgstr ""
 "   - nebo další, nalezli jste chybu programu\n"
 "     %s. Prosím kontaktujte Autora.\n"
 
-#: src/main.c:1244
+#: ../src/main.c:1268
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr "Promiňte, Zapping nemohl vytvořit konfigurační strom"
 
-#: src/mixer.c:97
+#: ../src/mixer.c:103
 msgid "The soundcard mixer is not configured."
 msgstr "Mixer zvukové karty není nakonfigurován."
 
-#: src/osd.c:601
+#: ../src/osd.c:601
 msgid "Please choose a font for OSD in preferences."
 msgstr "Prosím vyberte písmo pro OSD ve nastavení."
 
-#: src/osd.c:604
+#: ../src/osd.c:604
 #, c-format
 msgid ""
 "The configured font \"%s\" cannot be loaded, please select another one in "
@@ -2091,7 +2082,7 @@ msgstr ""
 "Nastavené písmo \"%s\" nemohlo být nahráno, prosím vyberte jiné písmo v "
 "nastavení\n"
 
-#: src/osd.c:614
+#: ../src/osd.c:614
 msgid ""
 "No font could be loaded, please make sure\n"
 "your system is properly configured."
@@ -2100,89 +2091,89 @@ msgstr ""
 "váš systém."
 
 # src/frequencies.c:827
-#: src/oss.c:179
+#: ../src/oss.c:186
 msgid "Audio device:"
 msgstr "Audio zařízení:"
 
-#: src/oss.c:182
+#: ../src/oss.c:189
 msgid "Select the audio device"
 msgstr "Vyberte audio zařízení"
 
-#: src/oss.c:209
+#: ../src/oss.c:216
 #, c-format
 msgid "The given audio device \"%s\" doesn't exist"
 msgstr "Dané audio zařízení \"%s\" neexistuje"
 
 #. TRANSLATORS: Name of mixer line, mono as
 #. opposed to stereo.
-#: src/oss.c:913
+#: ../src/oss.c:920
 #, c-format
 msgid "%s (Mono)"
 msgstr "%s (Mono)"
 
-#: src/plugin_properties.c:118
+#: ../src/plugin_properties.c:118
 msgid "Very low"
 msgstr "Velmi malé"
 
-#: src/plugin_properties.c:122
+#: ../src/plugin_properties.c:122
 msgid "Lower"
 msgstr "Malé"
 
-#: src/plugin_properties.c:124
+#: ../src/plugin_properties.c:124
 msgid "Normal"
 msgstr "Normální"
 
-#: src/plugin_properties.c:126
+#: ../src/plugin_properties.c:126
 msgid "Very high"
 msgstr "Velmi vysoké"
 
-#: src/plugin_properties.c:130
+#: ../src/plugin_properties.c:130
 msgid "Higher"
 msgstr "Vyžší"
 
-#: src/plugin_properties.c:152
+#: ../src/plugin_properties.c:152
 msgid "This plugin has no public symbols"
 msgstr "Tento plugin nemá přístupné symboly"
 
-#: src/plugin_properties.c:171
+#: ../src/plugin_properties.c:171
 msgid "List of symbols exported by the plugin"
 msgstr "Seznam symbolů exportovaných pluginem"
 
-#: src/plugin_properties.c:213
+#: ../src/plugin_properties.c:213
 msgid "Sorry, the plugin couldn't be started"
 msgstr "Promiňte, nemohu spustit plugin"
 
-#: src/plugin_properties.c:273
+#: ../src/plugin_properties.c:273
 msgid "Sorry, but no plugins have been loaded"
 msgstr "Promiňte, nemohu nahrát plugin"
 
-#: src/plugin_properties.c:308
+#: ../src/plugin_properties.c:308
 msgid "Plugin name"
 msgstr "Jméno pluginu"
 
-#: src/plugin_properties.c:335
+#: ../src/plugin_properties.c:335
 msgid "Symbol"
 msgstr "Symbol"
 
-#: src/plugin_properties.c:340
+#: ../src/plugin_properties.c:340
 msgid "Hash"
 msgstr "Hash"
 
-#: src/plugins.c:190
+#: ../src/plugins.c:190
 #, c-format
 msgid "\"%s\" doesn't provide a version"
 msgstr "\"%s\" neposkytuje verzi"
 
-#: src/plugins.c:227
+#: ../src/plugins.c:227
 msgid "Insufficient memory"
 msgstr "Nedostatečná pamět"
 
-#: src/plugins.c:236
+#: ../src/plugins.c:236
 msgid "No description available"
 msgstr "Není dostupný žádný popis"
 
 #. Warn
-#: src/plugins.c:350
+#: ../src/plugins.c:350
 #, c-format
 msgid ""
 "Check error: \"%s\" in plugin %s was supposed to be \"%s\" but it is:\"%s\". "
@@ -2191,279 +2182,284 @@ msgstr ""
 "Chyba kontroly: \"%s\" v pluginu %s očekává \"%s\", ale je: \"%s\". Hashe "
 "jsou 0x%x vs. 0x%x"
 
-#: src/properties.c:605
+#: ../src/properties.c:622
 msgid "Zapping Properties"
 msgstr "Vlastnosti programu"
 
-#: src/properties-handler.c:85
+#: ../src/properties-handler.c:86
 msgid "Can capture to memory.\n"
 msgstr "Mohu snímat do paměti.\n"
 
-#: src/properties-handler.c:87
+#: ../src/properties-handler.c:88
 msgid "Has some tuner.\n"
 msgstr "Má alespoň jeden tuner.\n"
 
-#: src/properties-handler.c:89
+#: ../src/properties-handler.c:90
 msgid "Supports the teletext service.\n"
 msgstr "Podporuje službu teletextu.\n"
 
-#: src/properties-handler.c:91
+#: ../src/properties-handler.c:92
 msgid "Can overlay the image.\n"
 msgstr "Umožňuje overlay obrazu.\n"
 
-#: src/properties-handler.c:93
+#: ../src/properties-handler.c:94
 msgid "Can chromakey the image.\n"
 msgstr "Umožňuje tónování obrazu.\n"
 
-#: src/properties-handler.c:95
+#: ../src/properties-handler.c:96
 msgid "Clipping rectangles are supported.\n"
 msgstr "Podporuje obdelníkové výseče.\n"
 
-#: src/properties-handler.c:97
+#: ../src/properties-handler.c:98
 msgid "Framebuffer memory is overwritten.\n"
 msgstr "Paměť framebufferu je přepsána.\n"
 
-#: src/properties-handler.c:99
+#: ../src/properties-handler.c:100
 msgid "The capture can be scaled.\n"
 msgstr "Obraz může měnit velikost.\n"
 
-#: src/properties-handler.c:101
+#: ../src/properties-handler.c:102
 msgid "Only monochrome is available\n"
 msgstr "Dostupné pouze černobíle\n"
 
-#: src/properties-handler.c:103
+#: ../src/properties-handler.c:104
 msgid "The capture can be zoomed\n"
 msgstr "Obraz může být zvětšován\n"
 
 # src/v4l2interface.c:344
-#: src/properties-handler.c:114
+#: ../src/properties-handler.c:115
 msgid "No available inputs"
 msgstr "Nedostupné vstupy"
 
-#: src/properties-handler.c:116
+#: ../src/properties-handler.c:117
 msgid "Your video device has no inputs"
 msgstr "Vaše video zařízení nemá vstupy"
 
-#: src/properties-handler.c:131
+#: ../src/properties-handler.c:132
 msgid "TV input"
 msgstr "TV vstup"
 
-#: src/properties-handler.c:133
+#: ../src/properties-handler.c:134
 msgid "Camera"
 msgstr "Kamera"
 
-#: src/properties-handler.c:412
+#: ../src/properties-handler.c:413
 #, c-format
 msgid "Resize to %ux%u"
 msgstr "Změň velikost na %u×%u"
 
 #. append
-#: src/properties-handler.c:780
+#: ../src/properties-handler.c:778
 msgid "Width"
 msgstr "Šiřka"
 
-#: src/properties-handler.c:780
+#: ../src/properties-handler.c:778
 msgid "Height"
 msgstr "Výška"
 
-#: src/properties-handler.c:888
+#: ../src/properties-handler.c:892
 msgid "Text Below Icons"
 msgstr "Text pod ikonami"
 
-#: src/properties-handler.c:889
+#: ../src/properties-handler.c:893
 msgid "Priority Text Beside Icons"
 msgstr "Důležitý text vedle ikon"
 
-#: src/properties-handler.c:890
+#: ../src/properties-handler.c:894
 msgid "Icons Only"
 msgstr "Pouze ikony"
 
-#: src/properties-handler.c:891
+#: ../src/properties-handler.c:895
 msgid "Text Only"
 msgstr "Pouze text"
 
-#: src/properties-handler.c:956
+#: ../src/properties-handler.c:960
 #, c-format
 msgid "Use desktop default (%s)"
 msgstr "Použít standartně plochu (%s)"
 
 #. TRANSLATORS: Fullscreen video mode
-#: src/properties-handler.c:1155
+#: ../src/properties-handler.c:1160
 msgid "Do not change"
 msgstr "Neměnit"
 
-#: src/properties-handler.c:1159 src/tveng.c:4624
+#: ../src/properties-handler.c:1164 ../src/tveng.c:4841
 msgid "Automatic"
 msgstr "Automaticky"
 
 #. TRANSLATORS: Fullscreen video mode
-#: src/properties-handler.c:1174
+#: ../src/properties-handler.c:1179
 #, c-format
 msgid "%u x %u @ %u Hz"
 msgstr "%u × %u, %u Hz"
 
-#: src/properties-handler.c:1311
+#: ../src/properties-handler.c:1344
 msgid "Main Window"
 msgstr "Hlavní okno"
 
-#: src/subtitle.c:258
+#: ../src/subtitle.c:258
 #, c-format
 msgid "Page %x"
 msgstr "Stránka %x"
 
-#: src/tveng1.c:1226
+#: ../src/tveng1.c:1419
 msgid "Frame Rate"
 msgstr "Snímková frekvence"
 
-#. TRANSLATORS: PWC driver control.  In 'Snapshot' mode the
-#. camera freezes its automatic exposure and colour balance
-#. controls.
-#: src/tveng1.c:1239
+#: ../src/tveng1.c:1434
 msgid "Snapshot Mode"
 msgstr "Režim snímků"
 
-#: src/tveng25.c:519 src/tvengbktr.c:383 src/tvengbktr.c:400 src/tvengxv.c:563
+#: ../src/tveng1.c:2571 ../src/tveng25.c:1490
+#, c-format
+msgid "Driver %s returned an unknown or invalid frame buffer format."
+msgstr ""
+
+#: ../src/tveng25.c:547 ../src/tvengbktr.c:383 ../src/tvengbktr.c:400
+#: ../src/tvengxv.c:872
 msgid "Brightness"
 msgstr "Jas"
 
 # src/interface.c:247
-#: src/tveng25.c:520 src/tvengbktr.c:385 src/tvengbktr.c:402 src/tvengxv.c:564
+#: ../src/tveng25.c:548 ../src/tvengbktr.c:385 ../src/tvengbktr.c:402
+#: ../src/tvengxv.c:873
 msgid "Contrast"
 msgstr "Kontrast"
 
-#: src/tveng25.c:521 src/tvengbktr.c:387 src/tvengbktr.c:404 src/tvengxv.c:565
+#: ../src/tveng25.c:549 ../src/tvengbktr.c:387 ../src/tvengbktr.c:404
+#: ../src/tvengxv.c:874
 msgid "Saturation"
 msgstr "Saturace"
 
-#: src/tveng25.c:522 src/tvengbktr.c:393 src/tvengbktr.c:412 src/tvengxv.c:566
+#: ../src/tveng25.c:550 ../src/tvengbktr.c:393 ../src/tvengbktr.c:412
+#: ../src/tvengxv.c:875
 msgid "Hue"
 msgstr "Odstín"
 
-#: src/tveng25.c:523
+#: ../src/tveng25.c:551
 msgid "Whiteness"
 msgstr "Světlost"
 
-#: src/tveng25.c:524
+#: ../src/tveng25.c:552
 msgid "Black level"
 msgstr "Úroveň černé"
 
 # src/frequencies.c:827
-#: src/tveng25.c:525 src/tveng25.c:526
+#: ../src/tveng25.c:553 ../src/tveng25.c:554
 msgid "White balance"
 msgstr "Vyvážení bílé"
 
 # src/frequencies.c:827
-#: src/tveng25.c:527
+#: ../src/tveng25.c:555
 msgid "Red balance"
 msgstr "Vyvážení červené"
 
 # src/frequencies.c:827
-#: src/tveng25.c:528
+#: ../src/tveng25.c:556
 msgid "Blue balance"
 msgstr "Vyvážení modré"
 
-#: src/tveng25.c:529
+#: ../src/tveng25.c:557
 msgid "Gamma"
 msgstr "Gamma"
 
-#: src/tveng25.c:530
+#: ../src/tveng25.c:558
 msgid "Exposure"
 msgstr "Expozice"
 
-#: src/tveng25.c:531
+#: ../src/tveng25.c:559
 msgid "Auto gain"
 msgstr "Automatické získávání"
 
-#: src/tveng25.c:532
+#: ../src/tveng25.c:560
 msgid "Gain"
 msgstr "Získávání"
 
-#: src/tveng25.c:533
+#: ../src/tveng25.c:561
 msgid "HCenter"
 msgstr "Horizontální centrování"
 
-#: src/tveng25.c:534
+#: ../src/tveng25.c:562
 msgid "VCenter"
 msgstr "Vertikální centrování"
 
-#: src/tveng25.c:535
+#: ../src/tveng25.c:563
 msgid "Hor. flipping"
 msgstr "Horizontální otočení"
 
-#: src/tveng25.c:536
+#: ../src/tveng25.c:564
 msgid "Vert. flipping"
 msgstr "Vertikální otočení"
 
-#: src/tveng25.c:537 src/tveng.c:2248 src/tvengxv.c:570
+#: ../src/tveng25.c:565 ../src/tveng.c:2327 ../src/tvengxv.c:879
 msgid "Volume"
 msgstr "Hlasitost"
 
-#: src/tveng25.c:539
+#: ../src/tveng25.c:567
 msgid "Audio Mute"
 msgstr "Stlumení zvuku"
 
 # src/frequencies.c:827
-#: src/tveng25.c:540
+#: ../src/tveng25.c:568
 msgid "Balance"
 msgstr "Vyvážení"
 
 # src/frequencies.c:827
-#: src/tveng25.c:541
+#: ../src/tveng25.c:569
 msgid "Audio Balance"
 msgstr "Vyvážení zvuku"
 
-#: src/tveng25.c:542
+#: ../src/tveng25.c:570
 msgid "Treble"
 msgstr "Výšky"
 
-#: src/tveng25.c:543
+#: ../src/tveng25.c:571
 msgid "Loudness"
 msgstr "Hlasitost"
 
-#: src/tveng25.c:544
+#: ../src/tveng25.c:572
 msgid "Bass"
 msgstr "Basy"
 
-#: src/tveng25.c:2658
+#: ../src/tveng25.c:2745
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr "%s nevypadá jako opravdové obrazové zařízení"
 
 # src/tveng.c:70
-#: src/tveng25.c:2677
+#: ../src/tveng25.c:2764
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr "Promiňte, ale \"%s\" nemůže streamovat"
 
-#: src/tvengbktr.c:390
+#: ../src/tvengbktr.c:390
 msgid "U/V Gain"
 msgstr "Získávání U/V"
 
-#: src/tvengbktr.c:407
+#: ../src/tvengbktr.c:407
 msgid "U Saturation"
 msgstr "U Saturace"
 
-#: src/tvengbktr.c:409
+#: ../src/tvengbktr.c:409
 msgid "V Saturation"
 msgstr "V Saturace"
 
-#: src/tveng.c:3202
-#, c-format
-msgid "%s not found in %s or the executable search path."
-msgstr "%s nenalezeno v %s nebo v cestě hledání spustitelných souborů."
+#: ../src/tveng.c:3214
+#, fuzzy, c-format
+msgid "Cannot execute %s. Pipe error."
+msgstr ""
+"Nemohu spustit %s.\n"
+"%s"
 
-#. TRANSLATORS: Program name, error message.
-#: src/tveng.c:3209 src/tveng.c:3290
-#, c-format
-msgid ""
-"Cannot execute %s.\n"
-"%s."
+#: ../src/tveng.c:3221 ../src/tveng.c:3253
+#, fuzzy, c-format
+msgid "Cannot execute %s. %s."
 msgstr ""
 "Nemohu spustit %s.\n"
 "%s"
 
 #. TRANSLATORS: Program name, error message.
-#: src/tveng.c:3265
+#: ../src/tveng.c:3231
 #, c-format
 msgid ""
 "%s failed.\n"
@@ -2472,252 +2468,250 @@ msgstr ""
 "%s chyba.\n"
 "%s"
 
-#. TRANSLATORS: Program name.
-#: src/tveng.c:3280
+#. Something executed, but it wasn't
+#. zapping_setup_fb. Perhaps consolehelper
+#. couldn't authenticate the user?
+#: ../src/tveng.c:3243
+#, fuzzy, c-format
+msgid "Cannot execute %s. No permission?"
+msgstr ""
+"Nemohu spustit %s.\n"
+"%s"
+
+#: ../src/tveng.c:3352
 #, c-format
-msgid "Unknown error in %s."
-msgstr "Neznámá chyba v %s."
+msgid "Cannot determine current overlay parameters. %s"
+msgstr ""
 
 #. TRANSLATORS: Program name.
-#: src/tveng.c:3296
-#, c-format
-msgid "%s failed."
-msgstr "%s chyba."
+#: ../src/tveng.c:3361
+#, fuzzy, c-format
+msgid "%s did not work as expected."
+msgstr "%s není zařízení."
 
-#: src/tveng.c:4631
+#: ../src/tveng.c:3466
+#, c-format
+msgid "%s not found in %s or the executable search path."
+msgstr "%s nenalezeno v %s nebo v cestě hledání spustitelných souborů."
+
+#: ../src/tveng.c:4848
 msgid "Mono"
 msgstr "Mono"
 
-#: src/tveng.c:4638
+#: ../src/tveng.c:4855
 msgid "Stereo"
 msgstr "Stereo"
 
-#: src/tveng.c:4646
+#: ../src/tveng.c:4863
 msgid "Language 2"
 msgstr "Jazyk 2"
 
-#: src/tvengxv.c:567
+#: ../src/tvengxv.c:876
 msgid "Color"
 msgstr "Barva"
 
-#: src/tvengxv.c:568
+#: ../src/tvengxv.c:877
 msgid "Interlace"
 msgstr "Prokládání"
 
-#: src/tvengxv.c:609
+#: ../src/tvengxv.c:918
 msgid "No"
 msgstr "Ne"
 
-#: src/tvengxv.c:610
+#: ../src/tvengxv.c:919
 msgid "Yes"
 msgstr "Ano"
 
-#: src/tvengxv.c:611
+#: ../src/tvengxv.c:920
 msgid "Doublescan"
 msgstr "Doublescan"
 
 #. TRANSLATORS: In controls box, color picker control,
 #. something like "Adjust Chroma-Key" for overlay.
-#: src/v4linterface.c:452
+#: ../src/v4linterface.c:452
 #, c-format
 msgid "Adjust %s"
 msgstr "Upravit %s"
 
-#: src/v4linterface.c:621 src/zapping.c:449
+#: ../src/v4linterface.c:621 ../src/zapping.c:466
 msgid "Controls"
 msgstr "Ovládací prvky"
 
-#: src/v4linterface.c:1308 src/zmisc.c:1812
+#: ../src/v4linterface.c:1308 ../src/zmisc.c:1811
 msgid "Unknown"
 msgstr "Neznámé"
 
-#: src/v4linterface.c:1326
+#: ../src/v4linterface.c:1326
 msgid "No input"
 msgstr "Žádný vstup"
 
 # src/v4l2interface.c:344
-#: src/v4linterface.c:1337
+#: ../src/v4linterface.c:1337
 msgid "No standard"
 msgstr "Žádný standard"
 
 # src/v4l2interface.c:344
-#: src/v4linterface.c:2395
+#: ../src/v4linterface.c:2410
 msgid "Video standards"
 msgstr "Video standardy"
 
-#: src/v4linterface.c:2415
+#: ../src/v4linterface.c:2430
 msgid "Audio inputs"
 msgstr "Audio vstupy"
 
-#: src/v4linterface.c:2435
+#: ../src/v4linterface.c:2450
 msgid "Video inputs"
 msgstr "Video vstupy"
 
 # src/v4l2interface.c:146
 #. TRANSLATORS: This is displayed in the channel menu when
 #. the channel list is empty.
-#: src/v4linterface.c:2533
+#: ../src/v4linterface.c:2548
 msgid "No channels"
 msgstr "Žádné kanály"
 
-#: src/zapping.c:422
+#: ../src/zapping.c:439
 msgid "P_lugins"
 msgstr "P_luginy"
 
-#: src/zapping.c:427 src/zapping.c:468
+#: ../src/zapping.c:444 ../src/zapping.c:485
 msgid "_Window"
 msgstr "_Okno"
 
-#: src/zapping.c:429 src/zapping.c:470
+#: ../src/zapping.c:446 ../src/zapping.c:487
 msgid "_Fullscreen"
 msgstr "_Celá obrazovka"
 
-#: src/zapping.c:431 src/zapping.c:472
+#: ../src/zapping.c:448 ../src/zapping.c:489
 msgid "_Background"
 msgstr "_Pozadí"
 
-#: src/zapping.c:433
+#: ../src/zapping.c:450
 msgid "_Overlay mode"
 msgstr "_Overlay-režim"
 
-#: src/zapping.c:435
+#: ../src/zapping.c:452
 msgid "_Capture mode"
 msgstr "_Capture režim"
 
-#: src/zapping.c:438
+#: ../src/zapping.c:455
 msgid "_Help"
 msgstr "_Nápověda"
 
-#: src/zapping.c:439
+#: ../src/zapping.c:456
 msgid "_Contents"
 msgstr "_Obsah"
 
-#: src/zapping.c:441
+#: ../src/zapping.c:458
 msgid "_About"
 msgstr "_O programu"
 
-#: src/zapping.c:444
+#: ../src/zapping.c:461
 msgid "Appearance"
 msgstr "Vzhled"
 
-#: src/zapping.c:445
+#: ../src/zapping.c:462
 msgid "Ch. Up"
 msgstr "Kanál +"
 
-#: src/zapping.c:446
+#: ../src/zapping.c:463
 msgid "Switch to higher channel"
 msgstr "Přepni na další kanál"
 
-#: src/zapping.c:447
+#: ../src/zapping.c:464
 msgid "Ch. Down"
 msgstr "Kanál -"
 
-#: src/zapping.c:448
+#: ../src/zapping.c:465
 msgid "Switch to lower channel"
 msgstr "Přepni na předchozí kanál"
 
-#: src/zapping.c:450
+#: ../src/zapping.c:467
 msgid "Change picture controls"
 msgstr "Změň nastavení obrazu"
 
-#: src/zapping.c:455
+#: ../src/zapping.c:472
 msgid "_Mute"
 msgstr "_Stlum"
 
-#: src/zapping.c:456
+#: ../src/zapping.c:473
 msgid "Switch audio on or off"
 msgstr "Zapní nebo vypni zvuk"
 
-#: src/zapping.c:457
+#: ../src/zapping.c:474
 msgid "Menu"
 msgstr "Menu"
 
-#: src/zapping.c:461 src/zapping.c:1074
+#: ../src/zapping.c:478 ../src/zapping.c:1092
 msgid "Keep window on top"
 msgstr "Vždy nahoře"
 
-#: src/zapping.c:479 src/zapping.c:481
+#: ../src/zapping.c:496 ../src/zapping.c:498
 msgid "_Teletext"
 msgstr "_Teletext"
 
-#: src/zapping.c:482
+#: ../src/zapping.c:499
 msgid "Activate Teletext mode"
 msgstr "Aktivuj Teletext"
 
-#: src/zapping.c:484
+#: ../src/zapping.c:501
 msgid "Return to video mode"
 msgstr "Vrať do video režimu"
 
-#: src/zapping.c:485
+#: ../src/zapping.c:502
 msgid "_New Teletext View"
 msgstr "_Nový náhled teletextu"
 
-#: src/zapping.c:491 src/zapping.c:496
+#: ../src/zapping.c:508 ../src/zapping.c:513
 msgid "_Subtitles"
 msgstr "_Titulky"
 
-#: src/zapping.c:497
+#: ../src/zapping.c:514
 msgid "Switch subtitles on or off"
 msgstr "Zapnout nebo vypnout titulky"
 
-#: src/zapping.c:1072
+#: ../src/zapping.c:1090
 msgid "Show menu and toolbar"
 msgstr "Zobraz menu a toolbar"
 
-#: src/zapzilla.c:83
-msgid "VBI device to use"
-msgstr "VBI zařízení k použití"
-
-#: src/zapzilla.c:84
-msgid "DEVICE"
-msgstr "DEVICE"
-
-#: src/zapzilla.c:113
-msgid "Zapzilla couldn't be started"
-msgstr "Zapzilla nemůže být spuštěna"
-
-#: src/zapzilla.c:192
-msgid "Sorry, Zapzilla is unable to create the config tree"
-msgstr "Promiňte, Zapzilla nemůže vytvořit konfigurační strom"
-
-#: src/zmisc.c:664
+#: ../src/zmisc.c:662
 msgid "Could not switch to capture mode"
 msgstr "Nemohu přepnout do capture režimu"
 
-#: src/zmisc.c:686 src/zmisc.c:703
+#: ../src/zmisc.c:684 ../src/zmisc.c:702
 msgid "Could not switch to overlay mode"
 msgstr "Nemohu přepnout do overlay režimu"
 
-#: src/zmisc.c:687 src/zmisc.c:738
+#: ../src/zmisc.c:685 ../src/zmisc.c:737
 msgid "Video overlay has been disabled."
 msgstr "Video overlay bude vypnuto."
 
-#: src/zmisc.c:719
+#: ../src/zmisc.c:718
 msgid "Could not switch to Teletext mode"
 msgstr "Nemohu přepnout do režimu teletextu"
 
-#: src/zmisc.c:720
+#: ../src/zmisc.c:719
 msgid "VBI has been disabled, or it doesn't work."
 msgstr "VBI bylo vypnuto nebo nepracuje"
 
-#: src/zmisc.c:737 src/zmisc.c:766
+#: ../src/zmisc.c:736 ../src/zmisc.c:765
 msgid "Could not switch to fullscreen mode"
 msgstr "Nemohu přepnout na celou obrazovku"
 
-#: src/zmisc.c:1032
+#: ../src/zmisc.c:1031
 msgid "Hide the statusbar"
 msgstr "Skryj stavový řádek"
 
-#: src/zmisc.c:1244
+#: ../src/zmisc.c:1243
 #, c-format
 msgid "%s is not a directory."
 msgstr "%s není adresář."
 
-#: src/zmisc.c:1286
+#: ../src/zmisc.c:1285
 msgid "Could not create directory"
 msgstr "Nemohu vytvořit adresář"
 
-#: src/zmisc.c:1287
+#: ../src/zmisc.c:1286
 #, c-format
 msgid ""
 "Could not create %s.\n"
@@ -2726,151 +2720,158 @@ msgstr ""
 "Nemohu vytvořit %s.\n"
 "%s"
 
-#: src/zmisc.c:2007
+#: ../src/zmisc.c:2006
 msgid "Device:"
 msgstr "Zařízení:"
 
-#: src/zmisc.c:2008
+#: ../src/zmisc.c:2007
 msgid "Driver:"
 msgstr "Ovladač:"
 
-#: src/zmisc.c:2009
+#: ../src/zmisc.c:2008
 msgid "Device file:"
 msgstr "Soubor zařízení:"
 
-#: src/zmisc.c:2355
+#: ../src/zmisc.c:2354
 #, c-format
 msgid "Overwrite %s?"
 msgstr "Přepsat %s?"
 
-#: src/zmisc.c:2360
+#: ../src/zmisc.c:2359
 msgid "_Overwrite"
 msgstr "_Přepsat"
 
-#: src/zmisc.c:2368
+#: ../src/zmisc.c:2367
 #, c-format
 msgid "%s is a directory."
 msgstr "%s je adresář."
 
-#: src/zmisc.c:2383
+#: ../src/zmisc.c:2382
 #, c-format
 msgid "%s is a special file"
 msgstr "%s je speciální soubor"
 
-#: src/zmisc.c:2387
+#: ../src/zmisc.c:2386
 msgid "Continue"
 msgstr "Pokračovat"
 
-#: src/zmisc.c:2665
+#: ../src/zmisc.c:2664
 msgid "Could not open help file"
 msgstr "Nemohu otevřít soubor nápovědy"
 
-#: src/zmisc.c:2698
+#: ../src/zmisc.c:2697
 msgid "Could not open URL"
 msgstr "Nemohu otevřít URL"
 
-#: src/zspinslider.c:306 src/zspinslider.c:310
+#: ../src/zspinslider.c:306 ../src/zspinslider.c:310
 msgid "Reset"
 msgstr "Reset"
 
-#: src/zvbi.c:1036
+#: ../src/zvbi.c:1044
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr " %s: strana teletextu %x"
 
-#: src/zvbi.c:1039
+#: ../src/zvbi.c:1047
 #, c-format
 msgid " Teletext Page %x"
 msgstr " Strana teletextu %x"
 
-#: src/zvbi.c:1040
+#: ../src/zvbi.c:1048
 msgid "Open this page with Zapzilla"
 msgstr "Otevři tuto stránku v Zapzille"
 
-#: src/zvbi.c:1426
+#: ../src/zvbi.c:1434
 msgid "PES file read error"
 msgstr "Chyba čtení PES souboru"
 
-#: src/zvbi.c:1645
+#: ../src/zvbi.c:1653
 msgid "VBI interface timeout"
 msgstr "V4L/V4L2 timeout VBI rozhraní"
 
-#: src/zvbi.c:1677
+#: ../src/zvbi.c:1685
 msgid "VBI interface: Failed to read from the device"
 msgstr "V4L/V4L2 VBI rozhraní: Chyba čtení ze zařízení"
 
-#: src/zvbi.c:1755 src/zvbi.c:2025 src/zvbi.c:2133
+#: ../src/zvbi.c:1763 ../src/zvbi.c:2006 ../src/zvbi.c:2114
 msgid "VBI initialization failed"
 msgstr "Chyba inicializace VBI"
 
-#: src/zvbi.c:2079
+#: ../src/zvbi.c:2060
 msgid "Cannot open PES file"
 msgstr "Nemohu otevřít PES soubor"
 
-#: src/zvbi.c:2134
+#: ../src/zvbi.c:2115
 #, c-format
 msgid "%s is no VBI device."
 msgstr "%s není VBI zařízení."
 
-#: zapping.desktop.in.h:1
+#: ../zapping.desktop.in.h:1
 msgid "Lets you watch TV in a window"
 msgstr "Sledujte TV v okně"
 
-#: zapping.desktop.in.h:2
+#: ../zapping.desktop.in.h:2
 msgid "Zapping TV Viewer"
 msgstr "Prohližeč TV - Zapping"
 
-#: zapping.schemas.in.h:1
+#: ../zapping.schemas.in.h:1
 msgid "Adds spaces around words in Closed Caption text to improve legibility."
 msgstr "Přidá mezery okolo slov v uzavřeném nadpisu ke zlepšení čitelnosti."
 
-#: zapping.schemas.in.h:2
+#: ../zapping.schemas.in.h:2
 msgid "Caption/subtitle scaling quality."
 msgstr "Měření kvality nadpisu/titulků."
 
-#: zapping.schemas.in.h:3
+#: ../zapping.schemas.in.h:3
 msgid "Closed Caption default background color."
 msgstr "Standardní barva pozadí uzavřeného nadpisu."
 
-#: zapping.schemas.in.h:4
+#: ../zapping.schemas.in.h:4
 msgid "Closed Caption default foreground color."
 msgstr "Standardní barva písma uzavřeného nadpisu."
 
-#: zapping.schemas.in.h:5
+#: ../zapping.schemas.in.h:5
+msgid "Color for chroma-key overlay (#RRGGBB), default #FFCCCC."
+msgstr ""
+
+#: ../zapping.schemas.in.h:6
 msgid "Default Teletext character set."
 msgstr "Standardní znaková sada teletextu."
 
-#: zapping.schemas.in.h:6
+#: ../zapping.schemas.in.h:7
 msgid ""
 "Default Teletext home page, usually 100. Valid values range from 100 to 899."
 msgstr ""
-"Standardní domácí stránka teletextu, obvykle 100. Možné hodnoty od 100 do 899."
+"Standardní domácí stránka teletextu, obvykle 100. Možné hodnoty od 100 do "
+"899."
 
-#: zapping.schemas.in.h:7
+#: ../zapping.schemas.in.h:8
 msgid "Default Teletext home page."
 msgstr "Standartní domácí stránka teletextu."
 
-#: zapping.schemas.in.h:8
+#: ../zapping.schemas.in.h:9
 msgid ""
 "Default background color of Closed Caption text (#RRGGBB), default #000000."
 msgstr ""
-"Standartní barva pozadí textu uzavřeného nadpisu (#RRGGBB), standartně #000000."
+"Standartní barva pozadí textu uzavřeného nadpisu (#RRGGBB), standartně "
+"#000000."
 
-#: zapping.schemas.in.h:9
+#: ../zapping.schemas.in.h:10
 msgid ""
 "Default foreground color of Closed Caption text (#RRGGBB), default #FFFFFF."
 msgstr ""
-"Standartní barva písma textu uzavřeného nadpisu (#RRGGBB), standartně #FFFFFF."
+"Standartní barva písma textu uzavřeného nadpisu (#RRGGBB), standartně "
+"#FFFFFF."
 
-#: zapping.schemas.in.h:10
+#: ../zapping.schemas.in.h:11
 msgid "Deinterlace option."
 msgstr "Deinterlace volby."
 
-#: zapping.schemas.in.h:11
+#: ../zapping.schemas.in.h:12
 msgid "Display delay of second field (0.0 to 1.0 of one frame period)."
 msgstr "Zobraz položku po dobu (0,0 až 1,0 snímkovací frekvence)."
 
-#: zapping.schemas.in.h:12
+#: ../zapping.schemas.in.h:13
 msgid ""
 "Enable navigation elements in the bottom row of the Teletext page. Valid "
 "values: disabled, flof_top1 (FLOF or TOP style 1), flof_top2 (TOP style 2)."
@@ -2879,102 +2880,103 @@ msgstr ""
 "hodnoty : disabled (vypnuté), flof_top1 (FLOF nebo TOP varianta 1), "
 "flof_top2 (TOP varianta 2)."
 
-#: zapping.schemas.in.h:13
+#: ../zapping.schemas.in.h:14
 msgid "Enable navigation elements."
 msgstr "Povol navigační elementy."
 
-#: zapping.schemas.in.h:14
+#: ../zapping.schemas.in.h:15
 msgid "Enable smooth rolling of real time Closed Caption."
 msgstr "Povol vyhlazování pohyblivého closed nadpisu."
 
-#: zapping.schemas.in.h:15
+#: ../zapping.schemas.in.h:16
 msgid "Enables slow MMX and 3DNow! optimized functions for tests."
 msgstr "Povoluji optimalizované funkce MMX a 3DNow! pro testy."
 
-#: zapping.schemas.in.h:16
+#: ../zapping.schemas.in.h:17
 msgid "Greedy (high motion) deinterlace test mode."
 msgstr "Zátěžový (velkého pohybu) test deinterlace režimu."
 
-#: zapping.schemas.in.h:17
+#: ../zapping.schemas.in.h:18
 msgid "Horizontal image resolution in deinterlace mode."
 msgstr "Horizontální rozlišení obrazu v deinterlace režimu."
 
-#: zapping.schemas.in.h:18
+#: ../zapping.schemas.in.h:19
 msgid "Interpret the Teletext search text as regular expression."
 msgstr "Interpret teletextu hledá text jako regulární výraz."
 
-#: zapping.schemas.in.h:19
+#: ../zapping.schemas.in.h:20
 msgid "Keep the main window above other windows."
 msgstr "Hlavní okno vždy nad ostatními."
 
-#: zapping.schemas.in.h:20
+#: ../zapping.schemas.in.h:21
 msgid "Maximum number of networks in the Teletext page cache."
 msgstr "Největší počet sítí v mezipaměti stránek teletextu."
 
-#: zapping.schemas.in.h:21
+#: ../zapping.schemas.in.h:22
 msgid "Maximum size of the Teletext page cache in bytes."
 msgstr "Největší velikost mezipaměti stránek teletextu v bytech."
 
-#: zapping.schemas.in.h:22
+#: ../zapping.schemas.in.h:23
 msgid "Pad Closed Caption text with spaces."
 msgstr "Text closed nadpisu s podkreslenými mezerami."
 
-#: zapping.schemas.in.h:23
+#: ../zapping.schemas.in.h:24
 msgid ""
 "Quality/speed trade-off when scaling and anti-aliasing Teletext pages. Valid "
 "values: nearest, tiles, bilinear, hyper."
 msgstr ""
-"Poměr kvality a rychlosti pro zvětšování a vyhlazování textu teletextových stránek. "
-"Možné hodnoty: nearest, tiles, bilinear, hyper."
+"Poměr kvality a rychlosti pro zvětšování a vyhlazování textu teletextových "
+"stránek. Možné hodnoty: nearest, tiles, bilinear, hyper."
 
-#: zapping.schemas.in.h:24
+#: ../zapping.schemas.in.h:25
 msgid ""
 "Quality/speed trade-off when scaling and anti-aliasing caption/subtitles. "
 "Valid values: nearest, tiles, bilinear, hyper."
 msgstr ""
-"Poměr kvality a rychlosti pro zvětšování a vyhlazování textu nadpisu/titulků. "
-"Možné hodnoty: nearest, tiles, bilinear, hyper."
+"Poměr kvality a rychlosti pro zvětšování a vyhlazování textu nadpisu/"
+"titulků. Možné hodnoty: nearest, tiles, bilinear, hyper."
 
-#: zapping.schemas.in.h:25
+#: ../zapping.schemas.in.h:26
 msgid "Reverse the temporal field order."
 msgstr "Obrácené pořadí běžných položek."
 
-#: zapping.schemas.in.h:26
+#: ../zapping.schemas.in.h:27
 msgid "Roll Teletext page numbers."
 msgstr "Roluj čísla teletextových stránek."
 
-#: zapping.schemas.in.h:27
+#: ../zapping.schemas.in.h:28
 msgid ""
 "Roll the Teletext page number in the page header until the requested page "
 "has arrived."
 msgstr ""
-"Roluj číslo teletextové stránky v hlavičce stránky dokud není stránka nahraná."
+"Roluj číslo teletextové stránky v hlavičce stránky dokud není stránka "
+"nahraná."
 
-#: zapping.schemas.in.h:28
+#: ../zapping.schemas.in.h:29
 msgid "Search all channels in the Teletext page memory."
 msgstr "Prohledej všechny kanály v paměti teletextových stránek."
 
-#: zapping.schemas.in.h:29
+#: ../zapping.schemas.in.h:30
 msgid "Show a menu bar in the main window."
 msgstr "Zobraz menu v hlavním okně."
 
-#: zapping.schemas.in.h:30
+#: ../zapping.schemas.in.h:31
 msgid "Show a status bar in Teletext windows."
 msgstr "Zobraz stavový řádek v oknech teletextu."
 
-#: zapping.schemas.in.h:31
+#: ../zapping.schemas.in.h:32
 msgid "Show a toolbar in Teletext windows."
 msgstr "Zobraz toolbar v oknech teletextu."
 
-#: zapping.schemas.in.h:32
+#: ../zapping.schemas.in.h:33
 msgid "Show a toolbar in the main window."
 msgstr "Zobraz toolbar v hlavním okně."
 
-#: zapping.schemas.in.h:33
+#: ../zapping.schemas.in.h:34
 msgid "Show double height characters in Teletext subtitles."
 msgstr "Zobrazuj dvojitou výšku znaků v titulcích."
 
-#: zapping.schemas.in.h:34
+#: ../zapping.schemas.in.h:35
 msgid ""
 "Some stations fail to transmit a complete language identifier, so the "
 "Teletext viewer may not display the correct font or national characters. You "
@@ -2986,162 +2988,210 @@ msgstr ""
 "Některé stanice chybují při přenosu celého identifikátoru jazyka, proto "
 "nemusí prohlížeč titulků zobrazovat správné písmo nebo národní znaky. Můžete "
 "vybrat vaši geografickou oblast jako dodatečnou informaci. Možné hodnoty "
-"jsou: western_and_central_europe, eastern_europe, "
-"western_europe_and_turkey, central_and_southeast_europe, cyrillic, "
-"greek_and_turkish, arabic, hebrew_and_arabic."
+"jsou: western_and_central_europe, eastern_europe, western_europe_and_turkey, "
+"central_and_southeast_europe, cyrillic, greek_and_turkish, arabic, "
+"hebrew_and_arabic."
 
-#: zapping.schemas.in.h:35
+#: ../zapping.schemas.in.h:36
 msgid "Switch to full capture size for screenshot."
 msgstr "Přepnout na plnou velikost snímání pro screenshot."
 
-#: zapping.schemas.in.h:36
+#: ../zapping.schemas.in.h:37
 msgid "Teletext implementation level."
 msgstr "Úroveň implementace teletextu."
 
-#: zapping.schemas.in.h:37
+#: ../zapping.schemas.in.h:38
 msgid "Teletext implementation level. Valid values: 1, 1.5, 2.5, 3.5."
 msgstr "Úroveň implementace teletextu. Možné hodnoty: 1, 1.5, 2.5, 3.5."
 
-#: zapping.schemas.in.h:38
+#: ../zapping.schemas.in.h:39
 msgid "Teletext page scaling quality."
 msgstr "Volba kvality stránek teletextu."
 
-#: zapping.schemas.in.h:39
+#: ../zapping.schemas.in.h:40
 msgid "Text brightness, valid values range from 0 to 255."
 msgstr "Jas textu. Možné hodnoty v rozsahu od 0 do 255."
 
-#: zapping.schemas.in.h:40
+#: ../zapping.schemas.in.h:41
 msgid "Text contrast, valid values range from -128 to 127."
 msgstr "Kontrast textu. Možné hodnoty v rozsahu od -128 do 127."
 
-#: zapping.schemas.in.h:41
+#: ../zapping.schemas.in.h:42
 msgid "The Teletext search is case insensitive."
 msgstr "Hledání v teletextu rozlišovat velikost."
 
-#: zapping.schemas.in.h:42
+#: ../zapping.schemas.in.h:43
 msgid ""
 "This is the time in milliseconds Zapping will wait between pointer movements "
 "and blanking the pointer when over the video. A value of zero disables this "
 "feature."
 msgstr ""
-"Toto je doba v milisekundách po kterou bude program čekat mezi ukazateli změny "
-"a skrytí ukazatele nad videem. Hodnota nula vlastnost vypne."
+"Toto je doba v milisekundách po kterou bude program čekat mezi ukazateli "
+"změny a skrytí ukazatele nad videem. Hodnota nula vlastnost vypne."
 
-#: zapping.schemas.in.h:43
+#: ../zapping.schemas.in.h:44
 msgid "Time to wait until blanking the pointer."
 msgstr "Doba do skrytí ukazatele."
 
-#: zapping.schemas.in.h:44
+#: ../zapping.schemas.in.h:45
 msgid "Update the clock in the Teletext page header."
 msgstr "Aktualizuj hodiny v hlavičce teletextové stránky."
 
-#: zapping.schemas.in.h:45
+#: ../zapping.schemas.in.h:46
 msgid ""
 "When your CPU is too slow to use the desired deinterlace mode you can reduce "
 "the horizontal resolution. Valid values: low, medium, high."
 msgstr ""
-"Jestliže je váš procesor velmi pomalý k použití žádaného režimu prokládání můžete "
-"snížit horizontální rozlišení. Možné hodnoty: low "
-"(malé), medium (střední), high (velké)."
+"Jestliže je váš procesor velmi pomalý k použití žádaného režimu prokládání "
+"můžete snížit horizontální rozlišení. Možné hodnoty: low (malé), medium "
+"(střední), high (velké)."
 
-#: zapping_setup_fb/zapping_setup_fb.c:134
+#: ../zapping_setup_fb/zapping_setup_fb.c:136
 #, c-format
 msgid "Device name %s is unsafe, contains dots."
 msgstr "Jméno zařízení %s není bezpečné, obsahuje tečky."
 
-#: zapping_setup_fb/zapping_setup_fb.c:142
+#: ../zapping_setup_fb/zapping_setup_fb.c:144
 #, c-format
 msgid "Device name %s is unsafe, does not begin with /dev/."
 msgstr "Jméno zařízení %s není bezpečné, začíná jinak než /dev/."
 
 # src/callbacks.c:320 src/v4l2interface.c:89
 #. TRANSLATORS: File name, error message.
-#: zapping_setup_fb/zapping_setup_fb.c:161
+#: ../zapping_setup_fb/zapping_setup_fb.c:163
 #, c-format
 msgid "Cannot open device %s. %s."
 msgstr "Nemohu otevřít zařízení %s. %s."
 
 #. TRANSLATORS: File name, error message.
-#: zapping_setup_fb/zapping_setup_fb.c:176
+#: ../zapping_setup_fb/zapping_setup_fb.c:178
 #, c-format
 msgid "Cannot identify %s. %s."
 msgstr "Nemohu rozpoznat %s. %s."
 
-#: zapping_setup_fb/zapping_setup_fb.c:188
+#: ../zapping_setup_fb/zapping_setup_fb.c:190
 #, c-format
 msgid "%s is not a device."
 msgstr "%s není zařízení."
 
-#: zapping_setup_fb/zapping_setup_fb.c:202
+#: ../zapping_setup_fb/zapping_setup_fb.c:204
 #, c-format
 msgid "%s is not a video device."
 msgstr "%s není zařízení videa."
 
-#: zapping_setup_fb/zapping_setup_fb.c:217
+#: ../zapping_setup_fb/zapping_setup_fb.c:218
 #, c-format
 msgid "Cannot identify file descriptor %d. %s."
 msgstr "Nemohu rozpoznat popisovač souboru %d. %s."
 
-#: zapping_setup_fb/zapping_setup_fb.c:225
+#: ../zapping_setup_fb/zapping_setup_fb.c:229
 #, c-format
 msgid "File descriptor %d is not a device."
 msgstr "Popisovač souboru %d není zařízení."
 
-#: zapping_setup_fb/zapping_setup_fb.c:235
+#: ../zapping_setup_fb/zapping_setup_fb.c:239
 #, c-format
 msgid "File descriptor %d is not a video device."
 msgstr "Popisovač souboru %d není zařízení videa."
 
-#: zapping_setup_fb/zapping_setup_fb.c:266
+#: ../zapping_setup_fb/zapping_setup_fb.c:254
+#, c-format
+msgid "Internal error at %s:%u."
+msgstr ""
+
+#: ../zapping_setup_fb/zapping_setup_fb.c:273
 #, c-format
 msgid "Cannot drop root privileges despite running with UID %d, EUID %d."
 msgstr "Nemohu získat práva roota navzdory spuštění s UID %d a EUID %d."
 
-#: zapping_setup_fb/zapping_setup_fb.c:296
+#: ../zapping_setup_fb/zapping_setup_fb.c:303
 #, c-format
 msgid "Cannot restore root privileges despite running with UID %d, EUID %d."
 msgstr "Nemohu obnovit práva roota navzdory spuštění s UID %d a EUID %d."
 
-#: zapping_setup_fb/zapping_setup_fb.c:427
+#: ../zapping_setup_fb/zapping_setup_fb.c:396
+msgid "No standard input, output or error file."
+msgstr ""
+
+#: ../zapping_setup_fb/zapping_setup_fb.c:449
 #, c-format
 msgid "Invalid bpp argument %d. Expected 24 or 32."
 msgstr "Nesprávný parametr bpp %d. Očekávám 24 nebo 32."
 
-#: zapping_setup_fb/zapping_setup_fb.c:459
+#: ../zapping_setup_fb/zapping_setup_fb.c:482
 #, c-format
 msgid "Invalid device file descriptor %d."
 msgstr "Neplatný popisovač souboru zařízení %d."
 
-#: zapping_setup_fb/zapping_setup_fb.c:516
+#: ../zapping_setup_fb/zapping_setup_fb.c:539
 msgid "No screens found."
 msgstr "Nenalezen X-server."
 
-#: zapping_setup_fb/zapping_setup_fb.c:549
+#: ../zapping_setup_fb/zapping_setup_fb.c:573
 #, c-format
 msgid "Cannot open display %s."
 msgstr "Nemohu otevřít displej %s."
 
-#: zapping_setup_fb/zapping_setup_fb.c:565
+#: ../zapping_setup_fb/zapping_setup_fb.c:590
 #, c-format
 msgid "Screen %d not found."
 msgstr "X-server %d nenalezen."
 
-#: zapping_setup_fb/zapping_setup_fb.c:572
+#: ../zapping_setup_fb/zapping_setup_fb.c:598
 #, c-format
 msgid "DMA is not possible on screen %d."
 msgstr "X-server %d neumožňuje DMA přenosy."
 
-#: zapping_setup_fb/zapping_setup_fb.c:590
+#: ../zapping_setup_fb/zapping_setup_fb.c:614
 #, c-format
 msgid "%s is not a V4L or V4L2 device."
 msgstr "%s není V4L- oder V4L2-Gerät."
 
-#: zapping_setup_fb/zapping_setup_fb.c:593
+#: ../zapping_setup_fb/zapping_setup_fb.c:617
 #, c-format
 msgid "File descriptor %d is not a V4L or V4L2 device."
 msgstr "Popisovač souboru %d není V4L ani V4L2 zařízení."
 
-#: zapping_setup_fb/v4l.c:84 zapping_setup_fb/v4l25.c:86
+#: ../zapping_setup_fb/zapping_setup_fb.c:620
+#, fuzzy
+msgid "Cannot identify the video capture device."
+msgstr "Nemohu rozpoznat popisovač souboru %d. %s."
+
+#: ../zapping_setup_fb/zapping_setup_fb.h:56
+#, fuzzy, c-format
+msgid "Ioctl %s failed: %s."
+msgstr "%s chyba."
+
+#: ../zapping_setup_fb/v4l.c:89 ../zapping_setup_fb/v4l25.c:91
 msgid "The device does not support video overlay."
 msgstr "Zařízení nepodporuje video režim overlay."
 
+#~ msgid "Adaptive"
+#~ msgstr "Adaptivní"
+
+#~ msgid "Blended Clip"
+#~ msgstr "Prolínaný klip"
+
+#~ msgid "Maximum motion"
+#~ msgstr "Maximální pohyb"
+
+#~ msgid "Composite mode"
+#~ msgstr "Compositní režim"
+
+#~ msgid "Old Game"
+#~ msgstr "Starý způsob"
+
+#~ msgid "Unknown error in %s."
+#~ msgstr "Neznámá chyba v %s."
+
+#~ msgid "VBI device to use"
+#~ msgstr "VBI zařízení k použití"
+
+#~ msgid "DEVICE"
+#~ msgstr "DEVICE"
+
+#~ msgid "Zapzilla couldn't be started"
+#~ msgstr "Zapzilla nemůže být spuštěna"
+
+#~ msgid "Sorry, Zapzilla is unable to create the config tree"
+#~ msgstr "Promiňte, Zapzilla nemůže vytvořit konfigurační strom"
