@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.c,v 1.3 2006-02-25 17:37:44 mschimek Exp $ */
+/* $Id: simd.c,v 1.4 2006-04-12 01:42:09 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -223,7 +223,7 @@ SIMD_NAME (test)		(void)
 		// vlsr
 		// vshiftu2x
 
-#if SIMD & (CPU_FEATURE_SSE |CPU_FEATURE_SSE2 | CPU_FEATURE_SSE3)
+#if SIMD & (CPU_FEATURE_SSE_INT |CPU_FEATURE_SSE2 | CPU_FEATURE_SSE3)
 		// unpack
 #endif
 
@@ -310,8 +310,6 @@ SIMD_NAME (test)		(void)
 
 #else /* !SIMD */
 
-#include "libtv/simd-consts.h"
-
 int
 main				(int			argc,
 				 char **		argv)
@@ -324,7 +322,7 @@ main				(int			argc,
 
 	testp = SIMD_FN_SELECT (test,
 				CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
-				CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
+				CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 |
 				CPU_FEATURE_ALTIVEC);
 
 	assert (NULL != testp);
