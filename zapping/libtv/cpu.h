@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.h,v 1.2 2005-06-28 00:52:54 mschimek Exp $ */
+/* $Id: cpu.h,v 1.3 2006-04-12 01:46:04 mschimek Exp $ */
 
 #ifndef CPU_H
 #define CPU_H
@@ -25,13 +25,15 @@
 #define CPU_FEATURE_TSC		(1 << 0)
 #define CPU_FEATURE_CMOV	(1 << 1)
 #define CPU_FEATURE_MMX		(1 << 2)
-#define CPU_FEATURE_SSE		(1 << 3)
+#define CPU_FEATURE_SSE_INT	(1 << 3)
 #define CPU_FEATURE_SSE2	(1 << 4)
 #define CPU_FEATURE_AMD_MMX	(1 << 5)
 #define CPU_FEATURE_3DNOW	(1 << 6)
 #define CPU_FEATURE_3DNOW_EXT	(1 << 7)
 #define CPU_FEATURE_CYRIX_MMX	(1 << 8)
 #define CPU_FEATURE_SSE3	(1 << 10)
+/* SSE_INT vecs are 64 bit, SSE_FLT 128 bit wide. */
+#define CPU_FEATURE_SSE_FLT	(1 << 11)
 
 /* powerpc features */
 #define CPU_FEATURE_ALTIVEC	(1 << 9)
