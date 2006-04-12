@@ -1,12 +1,16 @@
 ## Process this file with automake to produce Makefile.in
 
-TESTS = guard1 guard2 clear_image convert_image memcpy
+TESTS = guard1 guard2 clear_image convert_image copy_image memcpy
 XFAIL_TESTS = guard1 guard2
 
 EXTRA_DIST = \
+	clear_image-altivec.sh \
 	clear_image-mmx.sh \
 	clear_image-sse.sh \
 	convert_image-mmx.sh \
+	copy_image-altivec.sh \
+	copy_image-mmx.sh \
+	copy_image-sse.sh \
 	guard.h \
 	memcpy-mmx.sh \
 	memcpy-sse.sh \
@@ -30,6 +34,7 @@ if CAN_COMPILE_MMX
 TESTS += \
 	clear_image-mmx.sh \
 	convert_image-mmx.sh \
+	copy_image-mmx.sh \
 	memcpy-mmx.sh \
 	simd-mmx.sh
 SIMD_LIBS += libsimd_MMX.la
@@ -45,9 +50,13 @@ libsimd_3DNOW_la_SOURCES = $(SIMD_SOURCES)
 endif
 
 if CAN_COMPILE_SSE
-TESTS += clear_image-sse.sh memcpy-sse.sh simd-sse.sh
+TESTS += \
+	clear_image-sse.sh \
+	copy_image-sse.sh \
+	memcpy-sse.sh \
+	simd-sse.sh
 SIMD_LIBS += libsimd_SSE.la
-libsimd_SSE_la_CFLAGS = $(SIMD_CFLAGS) -msse -DSIMD=CPU_FEATURE_SSE
+libsimd_SSE_la_CFLAGS = $(SIMD_CFLAGS) -msse -DSIMD=CPU_FEATURE_SSE_INT
 libsimd_SSE_la_SOURCES = $(SIMD_SOURCES)
 endif
 
@@ -61,7 +70,10 @@ endif
 # powerpc
 
 if CAN_COMPILE_ALTIVEC
-TESTS += simd-altivec.sh
+TESTS += \
+	clear_image-altivec.sh \
+	copy_image-altivec.sh \
+	simd-altivec.sh
 SIMD_LIBS += libsimd_AVEC.la
 libsimd_AVEC_la_CFLAGS = $(SIMD_CFLAGS) \
 	-maltivec -mabi=altivec -DSIMD=CPU_FEATURE_ALTIVEC
@@ -74,6 +86,7 @@ check_PROGRAMS = \
 	cpudt \
 	clear_image \
 	convert_image \
+	copy_image \
 	guard1 \
 	guard2 \
 	memcpy \
@@ -81,6 +94,9 @@ check_PROGRAMS = \
 
 convert_image_LDADD = \
 	-lm \
+	$(top_builddir)/libtv/libtv.la
+
+copy_image_LDADD = \
 	$(top_builddir)/libtv/libtv.la
 
 check_SCRIPTS = \
@@ -106,8 +122,17 @@ clear_image-sse.sh \
 clear_image-altivec.sh:
 	$(MAKE) clear_image
 
-convert_image-mmx.sh:
+convert_image-mmx.sh \
+convert_image-3dnow.sh \
+convert_image-sse.sh \
+convert_image-sse2.sh \
+convert_image-altivec.sh:
 	$(MAKE) convert_image
+
+copy_image-mmx.sh \
+copy_image-sse.sh \
+copy_image-altivec.sh:
+	$(MAKE) copy_image
 
 simd-mmx.sh \
 simd-3dnow.sh \
