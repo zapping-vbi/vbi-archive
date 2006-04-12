@@ -51,13 +51,8 @@ planar_image_new (const tv_pixel_format *pf, guint w, guint h)
   zimage_private *pimage;
   unsigned int y_size;
   unsigned int uv_size;
-  unsigned int hres;
-  unsigned int vres;
 
-  hres = (1 << pf->uv_hshift) - 1;
-  vres = (1 << pf->uv_vshift) - 1;
-
-  if ((w & hres) || (h & vres))
+  if (0 != ((w & pf->hmask) | (h & pf->vmask)))
     {
       g_warning ("YUV420 formats require even dimensions");
       return NULL;
