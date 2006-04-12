@@ -16,7 +16,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd-consts.h,v 1.2 2006-03-11 13:11:59 mschimek Exp $ */
+/* $Id: simd-consts.h,v 1.3 2006-04-12 01:42:42 mschimek Exp $ */
+
+#error
 
 #include <inttypes.h>
 #include "misc.h"
