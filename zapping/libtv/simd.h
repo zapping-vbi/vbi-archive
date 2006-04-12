@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.h,v 1.7 2006-03-21 19:01:22 mschimek Exp $ */
+/* $Id: simd.h,v 1.8 2006-04-12 01:45:45 mschimek Exp $ */
 
 #ifndef SIMD_H
 #define SIMD_H
@@ -40,7 +40,8 @@
 
    CPU_FEATURE_MMX      x86 and x86_64 MMX extension
    CPU_FEATURE_3DNOW    x86 and x86_64 3DNow! extension
-   CPU_FEATURE_SSE      x86 and x86_64 SSE extension
+   CPU_FEATURE_SSE_INT  x86 and x86_64 SSE extension
+   CPU_FEATURE_SSE_FLT  x86 and x86_64 SSE extension
    CPU_FEATURE_SSE2     x86 and x86_64 SSE2 extension
    CPU_FEATURE_SSE3     x86 and x86_64 SSE3 extension
    CPU_FEATURE_ALTIVEC  powerpc AltiVec extension
@@ -84,8 +85,8 @@
 
 #define SCALAR (1 << 30)
 
-/* XXX GCC 4.1 doesn't support nested always_inline functions? */
-#define always_inline __attribute__ ((always_inline))
+/* XXX GCC 4.1 doesn't support nested always_inline functions with -O0? */
+#define always_inline __inline__
 #define never_inline __attribute__ ((noinline))
 
 /* ------------------------------------------------------------------------- */
@@ -179,12 +180,14 @@ extern const v32 vsplat32_2;	/* vsplat32(2) */
 #define SUFFIX _SCALAR
 
 #define vempty() do {} while (0)
+#define sfence() do {} while (0)
 
 #endif /* !SIMD */
 
 /* ------------------------------------------------------------------------- */
 
-#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW | CPU_FEATURE_SSE)
+#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
+	    CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE_FLT)
 
 #include <mmintrin.h>
 
@@ -338,9 +341,8 @@ vwswap32			(__m64			_a)
 static always_inline __m64
 vlsr				(__m64			_h,
 				 __m64			_l,
-				 unsigned int		_i)
+				 const unsigned int	_i)
 {
-	assert (__builtin_constant_p (_i));
 	assert (_i <= 64);
 
 	if (0 == _i) {
@@ -367,7 +369,6 @@ vshiftu2x			(__m64 *		_l,
 				 __m64			_a1,
 				 const unsigned int	_dist)
 {
-	assert (__builtin_constant_p (_dist));
 	assert (_dist <= sizeof (vu8));
 
 #if 0
@@ -448,6 +449,10 @@ vshiftu2x			(__m64 *		_l,
 
 /* Clear MMX state (emms). */
 #define vempty() _mm_empty ()
+
+/* Store fence guarantees that every preceding store is globally visible
+   before any subsequent store. */
+#define sfence() do {} while (0)
 
 /* abs (_a - _b). */
 static always_inline vu8
@@ -533,11 +538,10 @@ vminmaxu8			(vu8 *			_min,
 
 static always_inline vu16
 vminu16i			(vu16			_a,
-				 unsigned int		_i)
+				 const unsigned int	_i)
 {
 	vu16 t;
 
-	assert (__builtin_constant_p (_i));
 	assert (_i <= 65535);
 
 	t = vsplatu16 (0xFFFF - _i);    /* a > i   a <= i */
@@ -568,11 +572,13 @@ vminu16i			(vu16			_a,
 
 /* ------------------------------------------------------------------------- */
 
-#elif SIMD == CPU_FEATURE_SSE
+#elif (SIMD == CPU_FEATURE_SSE_INT || SIMD == CPU_FEATURE_SSE_FLT)
 
 #define SUFFIX _SSE
 
 #include <xmmintrin.h>
+
+typedef __m128 vf;
 
 #define vwswap32(_a) _mm_shuffle_pi16 (_a, _MM_SHUFFLE (1, 0, 3, 2))
 #define vavgu8(_a, _b) _mm_avg_pu8 (_a, _b)
@@ -584,11 +590,23 @@ vminu16i			(vu16			_a,
 #define vmin16(_a, _b) _mm_min_pi16 (_a, _b)
 #define vmax16(_a, _b) _mm_max_pi16 (_a, _b)
 
+#undef sfence
+#define sfence() _mm_sfence ()
+
 /* movntq - don't load cache line and don't store _a in cache.
    Might be useful to aggregate stores (write combining, burst writes). */
 #undef vstorent
 #define vstorent(_p, _o, _a)						\
 	_mm_stream_pi ((__m64 *)((uint8_t *)(_p) + (_o)), _a)
+
+#define vloadf(_p, _o)							\
+	_mm_load_ps ((const float *)((const uint8_t *)(_p) + (_o)))
+#define vstoref(_p, _o, _a)						\
+	_mm_store_ps ((float *)((uint8_t *)(_p) + (_o)), _a)
+
+#define vloadfnt(_p, _o) vloadf (_p, _o)
+#define vstorefnt(_p, _o, _a)						\
+	_mm_stream_ps ((float *)((uint8_t *)(_p) + (_o)), _a)
 
 /* Override MMX inline function vminmaxu8. */
 #define vminmaxu8(_minp, _maxp, _a, _b) sse_vminmaxu8 (_minp, _maxp, _a, _b)
@@ -603,7 +621,7 @@ sse_vminmaxu8			(vu8 *			_min,
 	*_max = _mm_max_pu8 (_a, _b);
 }
 
-#endif /* SIMD == CPU_FEATURE_SSE */
+#endif /* SIMD == CPU_FEATURE_SSE_INT or _FLT */
 
 /* ========================================================================= */
 
@@ -711,7 +729,6 @@ static always_inline __m128i
 vsl				(__m128i		_a,
 				 const unsigned int	_i)
 {
-	assert (__builtin_constant_p (_i));
 	assert (0 == (_i % 8));
 
 	return _mm_slli_si128 (_a, _i / 8); /* sic */
@@ -721,7 +738,6 @@ static always_inline __m128i
 vsru				(__m128i		_a,
 				 const unsigned int	_i)
 {
-	assert (__builtin_constant_p (_i));
 	assert (0 == (_i % 8));
 
 	return _mm_srli_si128 (_a, _i / 8); /* sic */
@@ -733,7 +749,6 @@ vlsr				(__m128i		_h,
 				 __m128i		_l,
 				 const unsigned int	_i)
 {
-	assert (__builtin_constant_p (_i));
 	assert (_i <= 128);
 
 	if (0 == _i) {
@@ -755,7 +770,6 @@ vshiftu2x			(__m128i *		_l,
 				 __m128i		_a1,
 				 const unsigned int	_dist)
 {
-	assert (__builtin_constant_p (_dist));
 	assert (_dist <= sizeof (vu8));
 
 	if (8 == _dist) {
@@ -848,6 +862,7 @@ vshiftu2x			(__m128i *		_l,
 #define vmulhi16(_a, _b) _mm_mulhi_epi16 (_a, _b)
 
 #define vempty() do {} while (0)
+#define sfence() _mm_sfence ()
 
 #define vavgu8(_a, _b) _mm_avg_epu8 (_a, _b)
 #define fast_vavgu8(_a, _b) vavgu8 (_a, _b)
@@ -1004,11 +1019,7 @@ static always_inline v16
 vsl16				(v16			_a,
 				 const unsigned int	_i)
 {
-	vu16 i;
-
-	assert (__builtin_constant_p (_i));
-	i = vec_splat_u16 (_i);
-
+	vu16 i = vec_splat_u16 (_i);
 	return vec_sl (_a, i);
 }
 
@@ -1016,11 +1027,7 @@ static always_inline v16
 vsr16				(v16			_a,
 				 const unsigned int	_i)
 {
-	vu16 i;
-
-	assert (__builtin_constant_p (_i));
-	i = vec_splat_u16 (_i);
-
+	vu16 i = vec_splat_u16 (_i);
 	return vec_sra (_a, i);
 }
 
@@ -1028,11 +1035,7 @@ static always_inline vu16
 vsru16				(vu16			_a,
 				 const unsigned int	_i)
 {
-	vu16 i;
-
-	assert (__builtin_constant_p (_i));
-	i = vec_splat_u16 (_i);
-
+	vu16 i = vec_splat_u16 (_i);
 	return vec_sr (_a, i);
 }
 
@@ -1040,11 +1043,7 @@ static always_inline v32
 vsl32				(v32			_a,
 				 const unsigned int	_i)
 {
-	vu32 i;
-	
-	assert (__builtin_constant_p (_i));
-	i = vec_splat_u32 (_i);
-
+	vu32 i = vec_splat_u32 (_i);
 	return vec_sl (_a, i);
 }
 
@@ -1052,11 +1051,7 @@ static always_inline v32
 vsr32				(v32			_a,
 				 const unsigned int	_i)
 {
-	vu32 i;
-	
-	assert (__builtin_constant_p (_i));
-	i = vec_splat_u32 (_i);
-
+	vu32 i = vec_splat_u32 (_i);
 	return vec_sra (_a, i);
 }
 
@@ -1064,11 +1059,7 @@ static always_inline vu32
 vsru32				(vu32			_a,
 				 const unsigned int	_i)
 {
-	vu32 i;
-	
-	assert (__builtin_constant_p (_i));
-	i = vec_splat_u32 (_i);
-
+	vu32 i = vec_splat_u32 (_i);
 	return vec_sr (_a, i);
 }
 
@@ -1078,7 +1069,6 @@ vlsr				(vu8			_h,
 				 vu8			_l,
 				 const unsigned int	_i)
 {
-	assert (__builtin_constant_p (_i));
 	assert (_i <= 128);
 
 	if (0 == _i) {
@@ -1106,7 +1096,6 @@ vshiftu2x			(vu8 *			_l,
 				 vu8			_a1,
 				 const unsigned int	_dist)
 {
-	assert (__builtin_constant_p (_dist));
 	assert (_dist <= sizeof (vu8));
 
 	/* 0123 4567 -> 3456 */
@@ -1187,6 +1176,7 @@ vmullo16			(v16			_a,
 }
 
 #define vempty() do {} while (0)
+#define sfence() do {} while (0)
 #define vavgu8(_a, _b) vec_avg (_a, _b)
 #define fast_vavgu8(_a, _b) vavgu8 (_a, _b)
 #define vminu8(_a, _b) vec_min (_a, _b)
@@ -1257,7 +1247,8 @@ extern fn_type name ## _ALTIVEC dimensions;
 
 #if defined (CAN_COMPILE_SSE)
 #  define SIMD_FN_SELECT_SSE(name, avail)				\
-	(((avail) & CPU_FEATURE_SSE) & cpu_features) ? name ## _SSE
+	(((avail) & (CPU_FEATURE_SSE_INT |				\
+		     CPU_FEATURE_SSE_FLT)) & cpu_features) ? name ## _SSE
 #else
 #  define SIMD_FN_SELECT_SSE(name, avail) 0 ? NULL
 #endif
@@ -1296,10 +1287,13 @@ extern fn_type name ## _ALTIVEC dimensions;
 	 ((avail) & SCALAR) ? name ## _SCALAR : NULL)
 
 #define SIMD_FN_ALIGNED_SELECT(name, align, avail)			\
-	((0 == ((align) & 15)) ? SIMD_FN_SELECT (name, avail) :		\
-	 (0 == ((align) & 7)) ?						\
-	 SIMD_FN_SELECT (name, ((avail) & ~(CPU_FEATURE_ALTIVEC |	\
-					    CPU_FEATURE_SSE3))) :	\
-	 ((avail) & SCALAR) ? name ## _SCALAR : NULL)
+	(likely (0 == ((align) & 15)) ?					\
+	 SIMD_FN_SELECT (name, avail) :					\
+	 likely (0 == ((align) & 7)) ?					\
+	 SIMD_FN_SELECT (name, (avail) & (CPU_FEATURE_SSE_INT |		\
+					  CPU_FEATURE_3DNOW |		\
+					  CPU_FEATURE_MMX |		\
+					  SCALAR)) :			\
+	 SIMD_FN_SELECT (name, (avail) & SCALAR))
 
 #endif /* SIMD_H */
