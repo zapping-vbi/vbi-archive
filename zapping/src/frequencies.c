@@ -429,6 +429,18 @@ frequency_tables [] =
       RANGE_CCIR_UHF,
       RANGE_END
     }
+  }, {
+    /* http://www.kweeconsult.nl/index.html/UPC_channel_table_for_Video4Linux_xawtv */
+    "nl", NULL, NULL,
+    "NL", N_("UPC cable"),
+    TV_VIDEOSTD_PAL_B | TV_VIDEOSTD_PAL_G |
+    TV_VIDEOSTD_PAL_H | TV_VIDEOSTD_PAL_I,
+    {
+      { "",  0,  5, 12, 8000, 176000 }, /* Band III */
+      { "S", 0, 11, 19, 8000, 232000 }, /* Upper Hyperband */
+      { "",  0, 26, 64, 8000, 512000 }, /* Band IV/V */
+      RANGE_END
+    }
   },
 
   TABLE_END
