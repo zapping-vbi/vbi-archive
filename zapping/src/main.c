@@ -260,63 +260,114 @@ restore_controls		(void)
     zconf_get_sources (zapping->info, start_muted);
 }
 
+#define DEVICE_SUPPORTS_CAPTURE(info)					\
+  (0 != (tv_get_caps (info)->flags & TVENG_CAPS_CAPTURE))
+#define DEVICE_SUPPORTS_OVERLAY(info)					\
+  (0 != (tv_get_caps (info)->flags & TVENG_CAPS_OVERLAY))
+
 static void
 restore_last_capture_mode		(void)
 {
-  /* Start the capture in the last mode */
+  gint cap_mode;
+  display_mode dmode;
+  capture_mode cmode;
+  gchar *errstr;
 
-  if (disable_overlay)
+  cap_mode = zcg_int (NULL, "capture_mode");
+  from_old_tveng_capture_mode (&dmode, &cmode,
+			       (enum old_tveng_capture_mode) cap_mode);
+
+  errstr = NULL;
+
+  if (CAPTURE_MODE_NONE == cmode)
+    cmode = CAPTURE_MODE_OVERLAY;
+
+  if (!DEVICE_SUPPORTS_CAPTURE (zapping->info))
     {
-      if (-1 == zmisc_switch_mode (DISPLAY_MODE_WINDOW,
-				   CAPTURE_MODE_READ,
-				   zapping->info, /* warnings */ FALSE))
-	ShowBox (_("Capture mode couldn't be started:\n%s"),
-		 GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
+      GtkAction *action;
+
+      printv("Device not capture capable, removing GUI items\n");
+      action = gtk_action_group_get_action (zapping->generic_action_group,
+					    "Capture");
+      z_action_set_sensitive (action, FALSE);
+
+      if (CAPTURE_MODE_READ == cmode)
+	cmode = CAPTURE_MODE_OVERLAY;
     }
-  else
+
+  if (disable_overlay || !DEVICE_SUPPORTS_OVERLAY (zapping->info))
     {
-      gint cap_mode;
-      display_mode dmode;
-      capture_mode cmode;
+      GtkAction *action;
 
-      cap_mode = zcg_int (NULL, "capture_mode");
-      from_old_tveng_capture_mode (&dmode, &cmode,
-				   (enum old_tveng_capture_mode) cap_mode);
+      printv("Device not overlay capable, removing GUI items\n");
+      action = gtk_action_group_get_action (zapping->generic_action_group,
+					    "Overlay");
+      z_action_set_sensitive (action, FALSE);
 
-      if (-1 == zmisc_switch_mode (dmode, cmode, zapping->info, /* warnings */ FALSE))
+      if (CAPTURE_MODE_OVERLAY == cmode)
 	{
-	  if (CAPTURE_MODE_READ != cmode)
-	    {
-	      if (0)
-		ShowBox(_("Cannot restore previous mode, will try capture mode:\n%s"),
-			GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
+	  if (!DEVICE_SUPPORTS_CAPTURE (zapping->info))
+	    goto failed2;
 
-	      if (-1 == zmisc_switch_mode (DISPLAY_MODE_WINDOW,
-					   CAPTURE_MODE_READ, zapping->info,
-					   /* warnings */ FALSE))
-		{
-		  if (0)
-		    ShowBox(_("Capture mode couldn't be started either:\n%s"),
-			    GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
-		  else
-		    ShowBox(_("Cannot restore previous mode:\n%s"),
-			    GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
-		}
-	    }
-	  else
-	    {
-	      ShowBox (_("Capture mode couldn't be started:\n%s"),
-		       GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
-	    }
-	}
-      else
-	{
-	  last_dmode = DISPLAY_MODE_WINDOW;
-	  last_cmode = CAPTURE_MODE_OVERLAY;
+	  cmode = CAPTURE_MODE_READ;
 	}
     }
+
+  if (0 == zmisc_switch_mode (dmode, cmode, zapping->info,
+			      /* warnings */ FALSE))
+    goto success;
+
+  errstr = g_strdup (tv_get_errstr (zapping->info));
+
+  dmode = DISPLAY_MODE_WINDOW;
+
+  if (CAPTURE_MODE_READ == cmode)
+    {
+      if (disable_overlay || !DEVICE_SUPPORTS_OVERLAY (zapping->info))
+	goto failed;
+
+      cmode = CAPTURE_MODE_OVERLAY;
+    }
+  else if (CAPTURE_MODE_OVERLAY == cmode)
+    {
+      if (!DEVICE_SUPPORTS_CAPTURE (zapping->info))
+	goto failed;
+
+      cmode = CAPTURE_MODE_READ;
+
+      if (0)
+	ShowBox(_("Cannot restore previous mode, will try capture mode:\n%s"),
+		GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
+    }
+
+  if (0 == zmisc_switch_mode (dmode, cmode, zapping->info,
+			      /* warnings */ FALSE))
+    goto success;
+
+  if (0)
+    ShowBox(_("Capture mode couldn't be started either:\n%s"),
+	    GTK_MESSAGE_ERROR, tv_get_errstr (zapping->info));
+
+ failed:
+  ShowBox(_("Cannot restore previous mode:\n%s"),
+	  GTK_MESSAGE_ERROR, errstr);
+
+ failed2:
+  last_dmode = DISPLAY_MODE_WINDOW;
+  last_cmode = CAPTURE_MODE_OVERLAY;
+
+  g_free (errstr);
+  errstr = NULL;
+
+  return;
+
+ success:
+  last_dmode = dmode;
+  last_cmode = cmode;
+
+  g_free (errstr);
+  errstr = NULL;
 }
-
 
 extern int zapzilla_main(int argc, char * argv[]);
 
@@ -625,7 +676,7 @@ MAIN (PACKAGE_VERSION_ID)	(int			argc,
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.211 2006-03-11 13:15:01 mschimek Exp $",
+	 "$Id: main.c,v 1.212 2006-04-12 01:41:30 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
@@ -889,7 +940,9 @@ MAIN (PACKAGE_VERSION_ID)	(int			argc,
  device_ok:
 
   if (tv_get_controller (info) == TVENG_CONTROLLER_XV)
-    xv_present = TRUE;
+    {
+      xv_present = TRUE;
+    }
 
   D();
   /* mute the device while we are starting up */
@@ -973,10 +1026,6 @@ MAIN (PACKAGE_VERSION_ID)	(int			argc,
       GtkAction *action;
 
       printv("Preview disabled, removing GUI items\n");
-
-      action = gtk_action_group_get_action (zapping->generic_action_group,
-					    "Fullscreen");
-      z_action_set_sensitive (action, FALSE);
       action = gtk_action_group_get_action (zapping->generic_action_group,
 					    "Overlay");
       z_action_set_sensitive (action, FALSE);
