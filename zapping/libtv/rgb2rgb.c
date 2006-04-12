@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rgb2rgb.c,v 1.4 2006-03-11 13:12:21 mschimek Exp $ */
+/* $Id: rgb2rgb.c,v 1.5 2006-04-12 01:45:25 mschimek Exp $ */
 
 /* RGB to RGB image format conversion functions:
 
@@ -402,7 +402,7 @@ bggr_load			(v16 *			mm,
 		}
 	}
 
-#elif SIMD & CPU_FEATURE_SSE
+#elif SIMD & CPU_FEATURE_SSE_INT
 
 	*m1 = vsru16 ((vu16) *m0, 8);
 	*m0 = vand (*m0, vsplat16_255);
@@ -553,7 +553,7 @@ sbggr_odd_kernel		(uint8_t *		dst,
 		     /* b */ b10, vsr16 (vadd16 (b12, b10), 1));
 }
 
-#elif SIMD & (CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
+#elif SIMD & (CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
 /* Memory layout:
   xxx xxx xxx xxx xxx xxx ...
@@ -618,7 +618,8 @@ sbggr_odd_kernel		(uint8_t *		dst,
 		     /* b */ b10, vavgu16 (b12, b10));
 }
 
-#endif /* SIMD & (CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC) */
+#endif /* SIMD & (CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 |
+	          CPU_FEATURE_ALTIVEC) */
 
 static always_inline void
 sbggr_odd_top			(uint8_t *		dst,
@@ -743,6 +744,7 @@ sbggr_to_ ## fmt ## _loop	(uint8_t *		dst,		\
 									\
 	sbggr_row (sbggr_odd_bottom, fmt);				\
 									\
+	sfence ();							\
 	vempty ();							\
 									\
 	return TRUE;							\
@@ -1051,7 +1053,7 @@ _tv_sbggr_to_rgb		(void *			dst_image,
 
 	if (likely (0 == (align % 8) && width >= 3 * 8)) {
 #if 0 /* defined CAN_COMPILE_SSE */
-		if (cpu_features & CPU_FEATURE_SSE)
+		if (cpu_features & CPU_FEATURE_SSE_INT)
 			return _tv_sbggr_to_rgb_SSE (dst_image, dst_format,
 						     src_image, src_format);
 		else

@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_ScalerBob.c,v 1.4 2005-06-28 19:17:10 mschimek Exp $
+// $Id: DI_ScalerBob.c,v 1.5 2006-04-12 01:43:39 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 // Copyright (C) 2005 Michael Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.4  2005/06/28 19:17:10  mschimek
+// *** empty log message ***
+//
 // Revision 1.3  2005/06/28 00:50:44  mschimek
 // Added support for x86-64, AltiVec and a scalar version. Cleaned up.
 //
@@ -70,7 +73,7 @@
 
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceScalerBob);
 
-#if !SIMD || (SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE |		\
+#if !SIMD || (SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE_INT |		\
 		      CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC))
 
 BOOL
@@ -147,7 +150,7 @@ DI_ScalerBob_GetDeinterlacePluginInfo (void)
     m->pfnAlgorithm = SIMD_FN_SELECT (DeinterlaceScalerBob,
 				      SCALAR |
 				      CPU_FEATURE_MMX |
-				      CPU_FEATURE_SSE |
+				      CPU_FEATURE_SSE_INT |
 				      CPU_FEATURE_SSE2 |
 				      CPU_FEATURE_ALTIVEC);
 

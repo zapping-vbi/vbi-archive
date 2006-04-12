@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_VideoWeave.c,v 1.5 2005-06-28 19:17:10 mschimek Exp $
+// $Id: DI_VideoWeave.c,v 1.6 2006-04-12 01:43:04 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.5  2005/06/28 19:17:10  mschimek
+// *** empty log message ***
+//
 // Revision 1.4  2005/06/28 00:48:17  mschimek
 // Cleaned up.
 // Replaced longs by ints for proper operation on LP64 machines. Code
@@ -80,7 +83,7 @@ extern int SimilarityThreshold;
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceFieldWeave);
 
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
-	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
+	    CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
 BOOL
 SIMD_NAME (DeinterlaceFieldWeave) (TDeinterlaceInfo *	pInfo)
@@ -322,7 +325,7 @@ DI_VideoWeave_GetDeinterlacePluginInfo (void)
 
     f =	SIMD_FN_SELECT (DeinterlaceFieldWeave,
 			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
-			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
+			CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 |
 			CPU_FEATURE_ALTIVEC);
 
     if (f) {

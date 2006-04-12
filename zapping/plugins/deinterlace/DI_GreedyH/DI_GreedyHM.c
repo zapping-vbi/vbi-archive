@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHM.c,v 1.2 2005-06-28 00:47:01 mschimek Exp $
+// $Id: DI_GreedyHM.c,v 1.3 2006-04-12 01:44:58 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -27,6 +27,11 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2005/06/28 00:47:01  mschimek
+// Converted to vector intrinsics. Added support for 3DNow, SSE2, x86-64
+// and AltiVec. Removed ununsed DScaler code. Cleaned up. All options work
+// now.
+//
 // Revision 1.1.2.4  2005/05/31 02:40:34  mschimek
 // *** empty log message ***
 //
@@ -269,7 +274,7 @@ pulldown_sum			(pd_sum_union *		sum,
     /* Sums to { motion, motion }. */
     sum->v[1] = vadd32 (sum->v[1], vunpacklo16 (motion, vzero16 ()));
 
-#elif SIMD == CPU_FEATURE_SSE
+#elif SIMD == CPU_FEATURE_SSE_INT
     v16 prev_y, new_y;
     v32 comb, contr, motion;
 
@@ -600,7 +605,7 @@ DI_GrUpdtFS_template		(TDeinterlaceInfo *	pInfo,
 			/* comb */     pd_sum.a[0] / scale,
 			/* contrast */ pd_sum.a[1] / scale,
 			/* motion */  (pd_sum.a[2] + pd_sum.a[3]) / scale);
-#elif SIMD & (CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_SSE3)
+#elif SIMD & (CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 | CPU_FEATURE_SSE3)
 	UpdatePulldown (pInfo,
 			/* comb */     pd_sum.a[0] / scale,
 			/* contrast */ pd_sum.a[1] / scale,

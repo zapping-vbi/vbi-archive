@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_TomsMoComp.c,v 1.4 2005-07-29 17:39:30 mschimek Exp $
+// $Id: DI_TomsMoComp.c,v 1.5 2006-04-12 01:43:31 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2002 Tom Barry.  All rights reserved.
 // Copyright (c) 2005 Michael H. Schimek
@@ -32,6 +32,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.4  2005/07/29 17:39:30  mschimek
+// *** empty log message ***
+//
 // Revision 1.3  2005/06/28 19:17:10  mschimek
 // *** empty log message ***
 //
@@ -104,7 +107,7 @@ extern int UseStrangeBob2;
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceTomsMoComp);
 
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
-	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_SSE3 |	\
+	    CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 | CPU_FEATURE_SSE3 |	\
 	    CPU_FEATURE_ALTIVEC)
 
 #define USE_VERTICAL_FILTER 0
@@ -179,7 +182,7 @@ MERGE4PIXavg			(vu8 *			pixels,
 
 	diff = vabsdiffu8 (a, b);
 
-#if SIMD & (CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |			\
+#if SIMD & (CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 |			\
 	    CPU_FEATURE_SSE3 | CPU_FEATURE_ALTIVEC)
 	/* AVEC: saves one, SSE: three instructions. */
 	*weight = vminu8 (*weight, diff);
@@ -285,7 +288,7 @@ Unpair				(vu8 *			pixels,
     mask = (vu8) vcmpeq8 (*weight, t);
     *weight = vor (*weight, (vu8) vsplat16_255);
     *pixels = vsel (mask, (vu8) vsl16 ((v16) *pixels, 8), *pixels);
-#elif SIMD & (CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_SSE3)
+#elif SIMD & (CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 | CPU_FEATURE_SSE3)
     /* 0xYbY1YaY0 */
     t = (vu8) vsru16 ((vu16) *weight, 8);
     /* Saves three instructions over a second vsel. */
@@ -1001,7 +1004,7 @@ DI_TomsMoComp_GetDeinterlacePluginInfo (void)
 
     f = SIMD_FN_SELECT (DeinterlaceTomsMoComp,
 			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
-			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
+			CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 |
 			CPU_FEATURE_SSE3 | CPU_FEATURE_ALTIVEC);
 
     if (f) {

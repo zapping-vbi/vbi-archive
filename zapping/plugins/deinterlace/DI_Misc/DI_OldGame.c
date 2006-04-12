@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DI_OldGame.c,v 1.4 2005-06-28 00:48:50 mschimek Exp $
+// $Id: DI_OldGame.c,v 1.5 2006-04-12 01:43:47 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Lindsey Dubb.  All rights reserved.
 // based on OddOnly and Temporal Noise DScaler Plugins
@@ -20,6 +20,11 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.4  2005/06/28 00:48:50  mschimek
+// Cleaned up.
+// Replaced longs by ints for proper operation on LP64 machines. Code
+// assumes option values cast to int.
+//
 // Revision 1.3.2.4  2005/06/17 02:54:20  mschimek
 // *** empty log message ***
 //
@@ -127,7 +132,7 @@ extern int                         gMaxComb;
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, OldGameFilter)
 
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
-	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
+	    CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
 BOOL
 SIMD_NAME (OldGameFilter)	(TDeinterlaceInfo *	pInfo)
@@ -313,7 +318,7 @@ DI_OldGame_GetDeinterlacePluginInfo (void)
 
     f = SIMD_FN_SELECT (OldGameFilter,
 			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
-			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
+			CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 |
 			CPU_FEATURE_ALTIVEC);
 
     if (f) {

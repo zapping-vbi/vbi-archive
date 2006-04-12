@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyHMPulldown.c,v 1.3 2005-06-28 00:46:10 mschimek Exp $
+// $Id: DI_GreedyHMPulldown.c,v 1.4 2006-04-12 01:44:48 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -27,6 +27,11 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.3  2005/06/28 00:46:10  mschimek
+// Converted to vector intrinsics. Added support for 3DNow, SSE2, x86-64
+// and AltiVec. Removed ununsed DScaler code. Cleaned up. All options work
+// now.
+//
 // Revision 1.2.2.3  2005/05/31 02:40:34  mschimek
 // *** empty log message ***
 //
@@ -395,7 +400,7 @@ min255_sru6_u16			(vu16			mm0)
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW)
     /* Faster emulation of vminu16 when one arg is const. */
     return vminu16i (vsru16 (mm0, 6), 255);
-#elif SIMD & (CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_SSE3)
+#elif SIMD & (CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 | CPU_FEATURE_SSE3)
     /* Has no vminu16 but vmin16 is safe here. */
     return (vu16) vmin16 (vsru16 (mm0, 6), vsplatu16_255);
 #elif SIMD == CPU_FEATURE_ALTIVEC

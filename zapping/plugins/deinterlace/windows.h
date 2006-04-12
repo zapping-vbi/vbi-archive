@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: windows.h,v 1.8 2005-07-29 17:39:29 mschimek Exp $ */
+/* $Id: windows.h,v 1.9 2006-04-12 01:45:16 mschimek Exp $ */
 
 #ifndef WINDOWS_H
 #define WINDOWS_H
@@ -357,7 +357,7 @@ uload24t			(vu8 *			m4,
 	*p4 = _mm_insert_epi16 (t1, w[9], 7);				\
 })
 
-#elif SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW | CPU_FEATURE_SSE)
+#elif SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW | CPU_FEATURE_SSE_INT)
 
 static always_inline void
 uloadxt				(vu8 *			left,

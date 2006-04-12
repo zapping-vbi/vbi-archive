@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_TwoFrame.c,v 1.5 2005-06-28 19:17:10 mschimek Exp $
+// $Id: DI_TwoFrame.c,v 1.6 2006-04-12 01:43:21 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 Steven Grimm.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.5  2005/06/28 19:17:10  mschimek
+// *** empty log message ***
+//
 // Revision 1.4  2005/06/28 00:47:43  mschimek
 // Cleaned up.
 // Replaced longs by ints for proper operation on LP64 machines. Code
@@ -83,7 +86,7 @@ extern int TwoFrameSpatialTolerance;
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceFieldTwoFrame);
 
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
-	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
+	    CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
 /*/////////////////////////////////////////////////////////////////////////////
 // Deinterlace the latest field, attempting to weave wherever it won't cause
@@ -363,7 +366,7 @@ DI_TwoFrame_GetDeinterlacePluginInfo (void)
 
     f = SIMD_FN_SELECT (DeinterlaceFieldTwoFrame,
 			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
-			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
+			CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 |
 			CPU_FEATURE_ALTIVEC);
 
     if (f) {

@@ -1,5 +1,5 @@
 /*////////////////////////////////////////////////////////////////////////////
-// $Id: DI_Greedy2Frame.c,v 1.5 2005-06-28 19:17:10 mschimek Exp $
+// $Id: DI_Greedy2Frame.c,v 1.6 2006-04-12 01:44:11 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock, Tom Barry, Steve Grimm  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -25,6 +25,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.5  2005/06/28 19:17:10  mschimek
+// *** empty log message ***
+//
 // Revision 1.4  2005/06/28 00:50:03  mschimek
 // Cleaned up.
 // Upper limit of GreedyTwoFrameThreshold is 127, not 128.
@@ -80,7 +83,7 @@ extern int GreedyTwoFrameThreshold;
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceGreedy2Frame);
 
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
-	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
+	    CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
 /*/////////////////////////////////////////////////////////////////////////////
 // Field 1 | Field 2 | Field 3 | Field 4 |
@@ -299,7 +302,7 @@ DI_Greedy2Frame_GetDeinterlacePluginInfo (void)
 
     f = SIMD_FN_SELECT (DeinterlaceGreedy2Frame,
 			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
-			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
+			CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 |
 			CPU_FEATURE_ALTIVEC);
 
     if (f) {

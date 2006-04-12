@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_Greedy.c,v 1.5 2005-06-28 19:17:10 mschimek Exp $
+// $Id: DI_Greedy.c,v 1.6 2006-04-12 01:44:19 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael Schimek
@@ -26,6 +26,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.5  2005/06/28 19:17:10  mschimek
+// *** empty log message ***
+//
 // Revision 1.4  2005/06/28 00:51:14  mschimek
 // Cleaned up.
 //
@@ -77,7 +80,7 @@ extern int GreedyMaxComb;
 SIMD_FN_PROTOS (DEINTERLACE_FUNC, DeinterlaceGreedy);
 
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
-	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
+	    CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
 /* This is a simple lightweight DeInterlace method that uses little CPU time
 // but gives very good results for low or intermedite motion.
@@ -275,7 +278,7 @@ DI_Greedy_GetDeinterlacePluginInfo (void)
 
     f = SIMD_FN_SELECT (DeinterlaceGreedy,
 			CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |
-			CPU_FEATURE_SSE | CPU_FEATURE_SSE2 |
+			CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 |
 			CPU_FEATURE_ALTIVEC);
 
     if (f) {

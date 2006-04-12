@@ -49,7 +49,7 @@ endif
 
 if CAN_COMPILE_SSE
 SIMD_LIBS += libDI_Misc_SSE.la
-libDI_Misc_SSE_la_CFLAGS = $(SIMD_CFLAGS) -msse -DSIMD=CPU_FEATURE_SSE
+libDI_Misc_SSE_la_CFLAGS = $(SIMD_CFLAGS) -msse -DSIMD=CPU_FEATURE_SSE_INT
 libDI_Misc_SSE_la_SOURCES = $(SIMD_SOURCES)
 endif
 
@@ -85,7 +85,8 @@ libDI_Misc_la_CFLAGS = \
 libDI_Misc_la_SOURCES = \
 	$(SIMD_SOURCES)
 
-libDI_Misc_la_LIBADD = $(SIMD_LIBS)
+libDI_Misc_la_LIBADD = \
+	$(SIMD_LIBS)
 
 noinst_LTLIBRARIES = \
 	$(SIMD_LIBS) \
