@@ -149,6 +149,9 @@ struct xbuffer {
 #ifndef TVENG25_XV_TEST
 #  define TVENG25_XV_TEST 0
 #endif
+#ifndef TVENG25_NOVERLAY_TEST
+#  define TVENG25_NOVERLAY_TEST 0
+#endif
 
 struct private_tveng25_device_info
 {
@@ -2723,6 +2726,10 @@ get_capabilities		(tveng_device_info *	info)
 
 	if (-1 == xioctl_may_fail (info, VIDIOC_QUERYCAP, &p_info->caps))
 		goto failure;
+
+	if (TVENG25_NOVERLAY_TEST) {
+		p_info->caps.capabilities &= ~V4L2_CAP_VIDEO_OVERLAY;
+	}
 
 	p_info->bttv_driver = 0;
 	if (0 == XSTRACMP (p_info->caps.driver, "bttv")) {
