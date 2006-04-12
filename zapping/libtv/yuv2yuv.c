@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: yuv2yuv.c,v 1.2 2006-03-11 13:11:50 mschimek Exp $ */
+/* $Id: yuv2yuv.c,v 1.3 2006-04-12 01:45:56 mschimek Exp $ */
 
 /* YUV to YUV image format conversion functions:
 
@@ -50,10 +50,9 @@
    L C L   L C L
  */
 
+#include "copy_image-priv.h"
 #include "simd-conv.h"
 #include "yuv2yuv.h"
-
-extern copy_plane_fn 		copy_plane_SCALAR;
 
 SIMD_FN_ARRAY_PROTOS (copy_plane_fn *, yuyv_to_yuyv_loops, [4 * 4])
 
@@ -95,6 +94,7 @@ _tv_shuffle_ ## a ## b ## c ## d ## _ALTIVEC				\
 		d += dst_padding;					\
 	}								\
 									\
+	sfence ();							\
 	vempty ();							\
 }
 
@@ -106,7 +106,7 @@ SIMD_SHUFFLE (2, 1, 3, 0)
 SIMD_SHUFFLE (3, 0, 1, 2)
 SIMD_SHUFFLE (3, 2, 1, 0)
 
-#elif SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE | CPU_FEATURE_SSE2)
+#elif SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2)
 
 #define ASM_SHUFFLE(name, op)						\
 void									\
@@ -166,10 +166,11 @@ SIMD_NAME (_tv_shuffle_ ## name) (uint8_t *		dst,		\
 		dst += dst_padding;					\
 	}								\
 									\
+	sfence ();							\
 	vempty ();							\
 }
 
-#if SIMD & (CPU_FEATURE_SSE | CPU_FEATURE_SSE2)
+#if SIMD & (CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2)
 
 #warning untested
 
@@ -198,7 +199,7 @@ SIMD_NAME (_tv_shuffle_2130)	(uint8_t *		dst,
 			t1 = vunpackhi8 (s1, vzero8 ());
 			s1 = vunpacklo8 (s1, vzero8 ());
 
-#if SIMD & CPU_FEATURE_SSE
+#if SIMD & CPU_FEATURE_SSE_INT
 			t0 = _mm_shuffle_pi16 (t0, _MM_SHUFFLE (2, 1, 3, 0));
 			s0 = _mm_shuffle_pi16 (s0, _MM_SHUFFLE (2, 1, 3, 0));
 			t1 = _mm_shuffle_pi16 (t1, _MM_SHUFFLE (2, 1, 3, 0));
@@ -218,6 +219,7 @@ SIMD_NAME (_tv_shuffle_2130)	(uint8_t *		dst,
 		dst += dst_padding;
 	}
 
+	sfence ();
 	vempty ();
 }
 
@@ -258,6 +260,7 @@ _tv_shuffle_0321_MMX		(uint8_t *		dst,
 		dst += dst_padding;
 	}
 
+	sfence ();
 	vempty ();
 }
 
@@ -295,6 +298,7 @@ _tv_shuffle_2103_MMX		(uint8_t *		dst,
 		dst += dst_padding;
 	}
 
+	sfence ();
 	vempty ();
 }
 
@@ -334,6 +338,7 @@ _tv_shuffle_2130_MMX		(uint8_t *		dst,
 		dst += dst_padding;
 	}
 
+	sfence ();
 	vempty ();
 }
 
@@ -388,25 +393,25 @@ SHUFFLE (3, 2, 1, 0)
 
 copy_plane_fn *
 SIMD_NAME (yuyv_to_yuyv_loops) [4 * 4] = {
-	copy_plane_SCALAR,		/* YUYV -> YUYV */
+	SIMD_NAME (_tv_copy_plane),	/* YUYV -> YUYV */
 	SIMD_NAME (_tv_shuffle_1032),	/* YUYV -> UYVY */
 	SIMD_NAME (_tv_shuffle_0321),	/* YUYV -> YVYU */
 	SIMD_NAME (_tv_shuffle_3012),	/* YUYV -> VYUY */
 
 	SIMD_NAME (_tv_shuffle_1032),
-	copy_plane_SCALAR,
+	SIMD_NAME (_tv_copy_plane),
 	SIMD_NAME (_tv_shuffle_1230),
 	SIMD_NAME (_tv_shuffle_2103),
 
 	SIMD_NAME (_tv_shuffle_0321),
 	SIMD_NAME (_tv_shuffle_3012),
-	copy_plane_SCALAR,
+	SIMD_NAME (_tv_copy_plane),
 	SIMD_NAME (_tv_shuffle_1032),
 
 	SIMD_NAME (_tv_shuffle_1230),
 	SIMD_NAME (_tv_shuffle_2103),
 	SIMD_NAME (_tv_shuffle_1032),
-	copy_plane_SCALAR
+	SIMD_NAME (_tv_copy_plane)
 };
 
 #if !SIMD
@@ -495,7 +500,7 @@ yuyv_to_yuv420_loop_fn		(uint8_t *		dst,
 SIMD_FN_ARRAY_PROTOS (yuyv_to_yuv420_loop_fn *, yuyv_to_yuv420_loops, [4])
 
 #if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_3DNOW |			\
-	    CPU_FEATURE_SSE | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
+	    CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2 | CPU_FEATURE_ALTIVEC)
 
 #define YUYV_YUV420(n, src_fmt)						\
 static void								\
@@ -550,6 +555,7 @@ SIMD_NAME (yuyv_to_yuv420_loop_ ## n)					\
 		vdst += vdst_padding;					\
 	}								\
 									\
+	sfence ();							\
 	vempty ();							\
 }
 
@@ -762,7 +768,7 @@ yuv420_to_yuyv_loop_fn		(uint8_t *		dst,
 
 SIMD_FN_ARRAY_PROTOS (yuv420_to_yuyv_loop_fn *, yuv420_to_yuyv_loops, [4])
 
-#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE | CPU_FEATURE_SSE2)
+#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2)
 
 #define YUV420_YUYV_HALF(dst_offset, src_offset, swap_yc)		\
 do {									\
@@ -829,6 +835,7 @@ SIMD_NAME (yuv420_to_yuyv_loop_ ## swap_yc)				\
 		dst += dst_padding;					\
 	}								\
 									\
+	sfence ();							\
 	vempty ();							\
 }
 
@@ -1083,7 +1090,7 @@ nv_to_yuyv_loop_fn		(uint8_t *		dst,
 
 SIMD_FN_ARRAY_PROTOS (nv_to_yuyv_loop_fn *, nv_to_yuyv_loops, [4])
 
-#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE | CPU_FEATURE_SSE2)
+#if SIMD & (CPU_FEATURE_MMX | CPU_FEATURE_SSE_INT | CPU_FEATURE_SSE2)
 
 #define NV_YUYV_HALF(dst_offset, src_offset, swap_yc)			\
 do {									\
@@ -1135,6 +1142,7 @@ SIMD_NAME (NV12_to_ ## fmt ## _loop)					\
 		dst += dst_padding;					\
 	}								\
 									\
+	sfence ();							\
 	vempty ();							\
 }
 
@@ -1360,8 +1368,8 @@ _tv_nv_to_yuv420		(void *			dst_image,
 	if (likely (0 == (dst_padding | src_padding))) {
 		memcpy (dst, src, width * height);
 	} else {
-		copy_plane_SCALAR (dst, src, width, height,
-				   dst_padding, src_padding);
+		_tv_copy_plane_SCALAR (dst, src, width, height,
+				       dst_padding, src_padding);
 	}
 
 	udst = (uint8_t *) dst_image + dst_format->offset[1];
