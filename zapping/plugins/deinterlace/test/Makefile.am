@@ -57,9 +57,9 @@ ditest_SOURCES = \
 	guard.h
 
 ditest_LDADD = \
-	$(top_builddir)/libtv/libtv.la \
 	$(top_builddir)/plugins/deinterlace/DI_GreedyH/libDI_GreedyH.la \
-	$(top_builddir)/plugins/deinterlace/DI_Misc/libDI_Misc.la
+	$(top_builddir)/plugins/deinterlace/DI_Misc/libDI_Misc.la \
+	$(top_builddir)/libtv/libtv.la
 
 dicmp_SOURCES = \
 	dicmp.c
