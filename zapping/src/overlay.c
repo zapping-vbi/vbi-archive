@@ -1215,8 +1215,9 @@ start_overlay			(GtkWidget *		main_window,
       z_show_non_modal_message_dialog
 	(GTK_WINDOW (zapping), GTK_MESSAGE_ERROR,
 	 _("Cannot overlay with this device"),
-	 "Device does not support clipping or chroma-keying. "
-	 "Please contact zapping-misc@lists.sf.net");
+	 "Device does not support clipping or chroma-keying.");
+
+      /* XXX Perhaps the driver supports another kind of overlay? */
 
       goto failure;
     }

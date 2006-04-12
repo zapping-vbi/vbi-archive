@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.11 2006-03-06 01:49:39 mschimek Exp $ */
+/* $Id: misc.h,v 1.12 2006-04-12 01:48:15 mschimek Exp $ */
 
 #ifndef __ZTV_MISC_H__
 #define __ZTV_MISC_H__
@@ -264,11 +264,11 @@ _tv_asprintf			(char **		dstp,
 #endif
 
 typedef void
-clear_block_fn                  (void *                 dst,
-                                 unsigned int           value,
-                                 unsigned int           width,
-                                 unsigned int           height,
-                                 unsigned long          bytes_per_line);
+clear_plane_fn			(uint8_t *		dst,
+				 unsigned int		value,
+				 unsigned int		width,
+				 unsigned int		height,
+				 unsigned long		padding);
 
 typedef void
 copy_plane_fn			(uint8_t *		dst,

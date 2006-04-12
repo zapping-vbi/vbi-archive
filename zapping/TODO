@@ -561,6 +561,47 @@ Possible XML Channel Table
     controls present on only some VTVDs? -->
 ]>
 
+* Audio device preferences idea:
+
+  ( ) Use a software audio loop (recommended):
+    Record audio from:
+      ( ) TV card or soundcard PCM device (TV card device recommended
+					   if the TV card can record audio):
+        [/dev/dsp]
+      [ ] Select this input when recording from a soundcard:
+        [/dev/mixer]
+        [line|v]
+    Play audio through:
+      ( ) ESD (recommended)
+      ( ) ARTS
+      ( ) Soundcard PCM device
+        [/dev/dsp]
+      XXX or
+      ( ) ESD (required because Zapping runs on a remote computer)
+      ( ) ARTS -- unsensitive
+      ( ) Soundcard PCM device -- unsensitive
+
+  ( ) Use an audio cable from the TV card or an external source to the
+      soundcard:
+    Record audio from:
+      ( ) TV card or soundcard PCM device (TV card device recommended
+					   if the TV card can record audio):
+        [/dev/dsp]
+      ( ) ESD
+      ( ) ARTS
+      ( ) No audio recording
+    [ ] Control the playback volume with the soundcard mixer and
+        select this input when recording from a soundcard (recommended):
+      [/dev/mixer]
+      [line|v]
+    XXX or
+    [ ] Select this input when recording from a soundcard, and mute
+        it because Zapping runs on a remote computer (recommended):
+      [/dev/mixer]
+      [line|v]
+  
+  ( ) No audio
+
 ------------------------------------------------------------------------------
 
 Please tell me about anything you think is worth adding:

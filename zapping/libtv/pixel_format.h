@@ -17,12 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.h,v 1.9 2006-03-11 13:12:29 mschimek Exp $ */
+/* $Id: pixel_format.h,v 1.10 2006-04-12 01:48:15 mschimek Exp $ */
 
 #ifndef __ZTV_PIXEL_FORMAT_H__
 #define __ZTV_PIXEL_FORMAT_H__
 
-#include <inttypes.h>		/* uint64_t */
+#include <inttypes.h>		/* uint8_t, uint64_t */
 #include "macros.h"
 
 TV_BEGIN_DECLS
@@ -277,11 +277,14 @@ typedef struct {
 	   per pixel. Averaged if U and V plane are smaller than Y plane. */
 	unsigned int		color_depth;
 
+	uint8_t			hmask;
+	uint8_t			vmask;
+
 	/* Width and height of the U and V plane:
 	   uv_width = width >> uv_hshift,
 	   uv_height = height >> uv_vshift. */
-	unsigned int		uv_hshift;
-	unsigned int		uv_vshift;
+	uint8_t			uv_hshift;
+	uint8_t			uv_vshift;
 
 	/* Format is packed and pixels are stored in 16, 24 or 32 bit
 	   (bits_per_pixel) quantities with most significant byte

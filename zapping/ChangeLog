@@ -1,3 +1,73 @@
+2006-04-12    <mschimek@users.sf.net>
+
+	* src/tveng25.c (get_capabilities): Added a no-overlay test.
+	* src/main.c (restore_last_capture_mode): Disable capture or overlay
+	  GUI elements if the device does not support it. Try capture OR
+	  overlay if the old mode is unsupported.
+	(main): Do not disable fullscreen GUI if overlay has been disabled
+	  because we now have fullscreen ttx and capture.
+
+	* src/frequencies.c (frequency_tables): Added UPC NL.
+
+	* plugins/deinterlace/test/Makefile.am (ditest_LDADD): Added
+	  libtv.la which defines various SIMD constants.
+	* test/simd.c, plugins/deinterlace/test/ditest.c,
+	  plugins/deinterlace/main.c, plugins/deinterlace/ditest.c:
+	  Removed include simd-consts.h, they're now defined in libtv.a.
+	* libtv/simd-consts.h: Replaced by simd.c.
+
+	* test/simd.c, plugins/deinterlace/DI_Misc/Makefile.am,
+	  plugins/deinterlace/DI_Misc/DI_Weave.c,
+	  plugins/deinterlace/DI_Misc/DI_VideoWeave.c, 
+	  plugins/deinterlace/DI_Misc/DI_VideoBob.c,
+	  plugins/deinterlace/DI_Misc/DI_TwoFrame.c,
+	  plugins/deinterlace/DI_Misc/DI_TomsMoComp.c,
+	  plugins/deinterlace/DI_Misc/DI_ScalerBob.c,
+	  plugins/deinterlace/DI_Misc/DI_OldGame.c,
+	  plugins/deinterlace/DI_Misc/DI_OddOnly.c,
+	  plugins/deinterlace/DI_Misc/DI_MoComp2.c,
+	  plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c,
+	  plugins/deinterlace/DI_Misc/DI_Greedy.c,
+	  plugins/deinterlace/DI_Misc/DI_EvenOnly.c,
+	  plugins/deinterlace/DI_Misc/DI_Bob.c,
+	  plugins/deinterlace/DI_GreedyH/Makefile.am,
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyHMPulldown.c,
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyHM.c,
+	  plugins/deinterlace/DI_GreedyH/DI_GreedyH.c,
+	  plugins/deinterlace/windows.h, libtv/rgb2rgb.c,
+	  libtv/simd-conv.h, libtv/simd.h, libtv/yuv2yuv.c:
+	  s/CPU_FEATURE_SSE/CPU_FEATURE_SSE_INT.
+	* libtv/cpu.h, libtv/cpu.c: Splitted CPU_FEATURE_SSE into SSE_INT
+	  and SSE_FLT to allow 128 bit loads/stores in P3 code. 
+
+	* test/Makefile.am: Added copy_image and clear_image checks.
+	* libtv/yuv2yuv.c: copy_plane_SCALAR() is now tv_copy_plane().
+	* libtv/image_format.c: Moved scalar image clear and copy routines
+	  to clear_image.c, copy_image.c.
+	(tv_image_format_init): Added tv_pixel_format.hmask, .vmask to
+	  simplify image size checks.
+	* libtv/cpu.c: Integrated the x86 and ppc checks formerly in mmx and
+	  avec subdirs.
+	(cpu_detection): Added SIGILL check for SSE kernel support.
+	* libtv/Makefile.am: Removed mmx, sse, avec subdirs.
+	(SIMD_SOURCES): Added clear_image.c,
+	  clear_image.h, copy_image.c, copy_image.h.
+
+	* src/video_mem.c (planar_image_new), libtv/pixel_format.h:
+	  libtv/pixel_format.c: Added tv_pixel_format.hmask, .vmask to
+	  simplify image size checks.
+
+	* libtv/yuv2yuv.c, libtv/yuv2rgb.c: nt-stores are weakly ordered,
+	  added sfence before returning from the function.
+
+	* libtv/simd.h: always_inline disabled because it does not seem to
+	  work with GCC 4.1 and -O0. Added sfence() macro and SSE float
+	  loads and stores. Removed __builtin_constant_p() checks because
+	  they fail without always_inline.
+	* libtv/simd-conv.h: Removed __builtin_constant_p() checks because
+	  they fail without always_inline.
+	(store_rgb16): Fixed a 32_BE bug in previous CVS version.
+
 2006-03-21    <mschimek@users.sf.net>
 
 	* configure.in (ALL_LINGUAS): Added cs.

@@ -1,8 +1,6 @@
 /*
- *  Copyright (C) 2004 Michael H. Schimek
- *
- *  Based on code from Xine
- *  Copyright (C) 1999-2001 Aaron Holtzman
+ *  Copyright (C) 2001-2004 Michael H. Schimek
+ *  Copyright (C) 2000-2003 Iñaki García Etxebarria
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,41 +17,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.c,v 1.2 2005-04-21 04:49:15 mschimek Exp $ */
+/* $Id: clear_image.h,v 1.1 2006-04-12 01:48:15 mschimek Exp $ */
 
-#ifdef HAVE_CONFIG_H
-#  include "config.h"
-#endif
+#ifndef __ZTV_CLEAR_IMAGE_H__
+#define __ZTV_CLEAR_IMAGE_H__
 
-#include <signal.h>
-#include <setjmp.h>
-#include "avec.h"
+#include "image_format.h"
 
-static sigjmp_buf		jmpbuf;
+TV_BEGIN_DECLS
 
-static void
-sigill_handler			(int			sig)
-{
-	sig = sig; /* unused */
+extern tv_bool
+tv_clear_image			(void *			image,
+				 const tv_image_format *format);
 
-	siglongjmp (jmpbuf, 1);
-}
+TV_END_DECLS
 
-cpu_feature_set
-cpu_detection_altivec		(void)
-{
-	if (sigsetjmp (jmpbuf, 1)) {
-		signal (SIGILL, SIG_DFL);
-		return 0;
-	}
-
-	signal (SIGILL, sigill_handler);
-
-	__asm__ __volatile__ (" mtspr 256, %0\n"
-			      " vand %%v0, %%v0, %%v0\n"
-			      :: "r" (-1));
-
-	signal (SIGILL, SIG_DFL);
-
-	return CPU_FEATURE_ALTIVEC;
-}
+#endif /* __ZTV_CLEAR_IMAGE_H__ */
