@@ -35,8 +35,9 @@ SIMD_CFLAGS += \
 endif
 
 SIMD_SOURCES = \
+	clear_image.c clear_image.h \
+	copy_image.c copy_image.h \
 	rgb2rgb.c rgb2rgb.h \
-	simd-consts.h \
 	simd-conv.h \
 	yuv2rgb.c yuv2rgb.h \
 	yuv2yuv.c yuv2yuv.h
@@ -57,28 +58,24 @@ libtv_la_SOURCES = \
 	overlay_buffer.h \
 	pixel_format.c pixel_format.h \
 	screen.c screen.h \
-	simd.h
+	simd.c simd.h
 
 SUBDIRS =
 SIMD_LIBS =
 libtv_la_LIBADD =
 
 if CAN_COMPILE_MMX
-SUBDIRS += mmx
-libtv_la_LIBADD += mmx/libmmx.la
 SIMD_LIBS += libtv_MMX.la
 libtv_MMX_la_CFLAGS = $(SIMD_CFLAGS) -mmmx -DSIMD=CPU_FEATURE_MMX
 libtv_MMX_la_SOURCES = $(SIMD_SOURCES)
 endif
 
 if CAN_COMPILE_SSE
-SUBDIRS += sse
-libtv_la_LIBADD += sse/libsse.la
-endif
-
-if CAN_COMPILE_ALTIVEC
-SUBDIRS += avec
-libtv_la_LIBADD += avec/libavec.la
+SIMD_LIBS += libtv_SSE.la
+libtv_SSE_la_CFLAGS = $(SIMD_CFLAGS) -msse -DSIMD=CPU_FEATURE_SSE_INT
+libtv_SSE_la_SOURCES = \
+	clear_image.c clear_image.h \
+	copy_image.c copy_image.h
 endif
 
 libtv_la_LIBADD += $(SIMD_LIBS)
