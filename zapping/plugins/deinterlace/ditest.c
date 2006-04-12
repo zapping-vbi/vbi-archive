@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ditest.c,v 1.6 2006-02-25 17:37:43 mschimek Exp $ */
+/* $Id: ditest.c,v 1.7 2006-04-12 01:42:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -35,7 +35,6 @@
 #include "windows.h"
 #include "DS_Deinterlace.h"
 #include "libtv/cpu.h"		/* cpu_features */
-#include "libtv/simd-consts.h"
 
 cpu_feature_set			cpu_features;
 
