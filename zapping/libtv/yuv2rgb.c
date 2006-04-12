@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: yuv2rgb.c,v 1.1 2006-03-11 13:14:04 mschimek Exp $ */
+/* $Id: yuv2rgb.c,v 1.2 2006-04-12 01:46:51 mschimek Exp $ */
 
 /* YUV to RGB image format conversion functions:
 
@@ -111,6 +111,7 @@ SIMD_NAME (src_fmt ## _to_ ## dst_fmt ## _loop)				\
 		dst += dst_padding;					\
 	}								\
 									\
+	sfence ();							\
 	vempty ();							\
 }
 
@@ -439,6 +440,7 @@ SIMD_NAME (YUV420_to_## dst_fmt ## _loop)				\
 		dst += dst_padding;					\
 	}								\
 									\
+	sfence ();							\
 	vempty ();							\
 }
 
@@ -839,6 +841,7 @@ SIMD_NAME (NV_to_## dst_fmt ## _loop)					\
 		dst += dst_padding;					\
 	}								\
 									\
+	sfence ();							\
 	vempty ();							\
 }
 
