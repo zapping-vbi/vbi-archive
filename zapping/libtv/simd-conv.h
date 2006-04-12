@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd-conv.h,v 1.4 2006-03-21 19:01:22 mschimek Exp $ */
+/* $Id: simd-conv.h,v 1.5 2006-04-12 01:45:34 mschimek Exp $ */
 
 #include <assert.h>
 #include "pixel_format.h"
@@ -46,11 +46,9 @@ interleave			(vu8 *			o0,
 				 vu8 *			o1,
 				 vu8			i0,
 				 vu8			i1,
-				 unsigned int		dist)
+				 const unsigned int	dist)
 {
 	vu8 t;
-
-	assert (__builtin_constant_p (dist));
 
 	if (SIMD == CPU_FEATURE_SSE2) {
 		/* Another round because the vector is twice as wide. */
@@ -121,11 +119,9 @@ load_yuyv8			(vu8 *			y0,
 				 vu8 *			v,
 				 const uint8_t *	src,
 				 unsigned long		offset,
-				 tv_pixfmt		pixfmt)
+				 const tv_pixfmt	pixfmt)
 {
 	vu8 yeu0, yov0, yeu1, yov1;
-
-	assert (__builtin_constant_p (pixfmt));
 
 	interleave (&yeu0, &yov0,
 		    vload (src, offset),
@@ -175,11 +171,9 @@ load_yuyv16			(v16 *			ye,
 				 v16 *			v,
 				 const uint8_t *	src,
 				 unsigned long		offset,
-				 tv_pixfmt		pixfmt)
+				 const tv_pixfmt	pixfmt)
 {
 	vu8 yeu, yov;
-
-	assert (__builtin_constant_p (pixfmt));
 
 	interleave (&yeu, &yov,
 		    vload (src, offset),
@@ -224,11 +218,9 @@ load_rgb16			(v16 *			r,
 				 v16 *			b,
 				 const uint8_t *	src,
 				 unsigned long		offset,
-				 tv_pixfmt		pixfmt)
+				 const tv_pixfmt	pixfmt)
 {
 	vu8 t0, t1;
-
-	assert (__builtin_constant_p (pixfmt));
 
 	switch (pixfmt) {
 	case TV_PIXFMT_BGRA32_LE:
@@ -321,7 +313,7 @@ store_rggbbr			(uint8_t *		dst,
 		  _mm_shuffle_epi32 (rg, _MM_SHUFFLE (3, 1, 0, 2)));
 		/* BF-GF-RF-BE-GE-RE-BD-GD-RD-BC-GC-RC-BB-GB-RB-BA */
 
-#elif SIMD == CPU_FEATURE_SSE
+#elif SIMD == CPU_FEATURE_SSE_INT
 
 	vu8 t0;
 
@@ -376,8 +368,8 @@ store_rggbbr			(uint8_t *		dst,
 static always_inline void
 store_rgb16			(void *			dst,
 				 unsigned long		offset,
-				 tv_pixfmt		pixfmt,
-				 tv_bool		saturate,
+				 const tv_pixfmt	pixfmt,
+				 const tv_bool		saturate,
 				 v16			re,
 				 v16			ro,
 				 v16			ge,
@@ -385,9 +377,6 @@ store_rgb16			(void *			dst,
 				 v16			be,
 				 v16			bo)
 {
-	assert (__builtin_constant_p (pixfmt));
-	assert (__builtin_constant_p (saturate));
-
 	switch (pixfmt) {
 	case TV_PIXFMT_BGRA32_LE:
 	case TV_PIXFMT_BGRA32_BE:
@@ -442,23 +431,28 @@ store_rgb16			(void *			dst,
 
 			if (TV_PIXFMT_BGRA32_BE == pixfmt
 			    || TV_PIXFMT_RGBA32_BE == pixfmt) {
-				SWAP (re, ge);
-				SWAP (ro, go);
-			}
+                                SWAP (re, ge);
+                                SWAP (ro, go);
 
-			rge = vor (re, vsl16 (ge, 8)); /* .. G0 R0 */
-			rgo = vor (ro, vsl16 (go, 8));
+                                rge = vor (re, vsl16 (ge, 8)); /* .. G0 R0 */
+                                rgo = vor (ro, vsl16 (go, 8));
 
-			a = vsplat16_255;
+                                a = vsplat16_255;
 
-			bae = vor (vsl16 (be, 8), a); /* .. B0 FF */
-			bao = vor (vsl16 (bo, 8), a);
+                                bae = vor (vsl16 (be, 8), a); /* .. B0 FF */
+                                bao = vor (vsl16 (bo, 8), a);
 
-			if (TV_PIXFMT_BGRA32_BE == pixfmt
-			    || TV_PIXFMT_RGBA32_BE == pixfmt) {
-				SWAP (rge, bae);
-				SWAP (rgo, bao);
-			}
+                                SWAP (rge, bae);
+                                SWAP (rgo, bao);
+                        } else {
+                                rge = vor (re, vsl16 (ge, 8));
+                                rgo = vor (ro, vsl16 (go, 8));
+
+                                a = vsplat16_m256;
+
+                                bae = vor (be, a);
+                                bao = vor (bo, a);
+                        }
 
 			rgl = vunpacklo16 (rge, rgo); /* .. G1 R1 G0 R0 */
 			rgh = vunpackhi16 (rge, rgo);
