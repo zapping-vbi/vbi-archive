@@ -29,7 +29,6 @@
 #include "common/math.h"
 
 #include <gnome.h>
-#include "strnatcmp.h"
 #include "frequencies.h"
 
 #include "zmisc.h"

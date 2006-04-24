@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zapping 0.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-03-22 02:32+0100\n"
-"PO-Revision-Date: 2006-03-17 20:59+0100\n"
+"POT-Creation-Date: 2006-03-31 16:06+0200\n"
+"PO-Revision-Date: 2006-03-22 17:33+0100\n"
 "Last-Translator: Pavel Mlčoch <pavkamlc@centrum.cz>\n"
 "Language-Team: Czech <cs@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -171,7 +171,7 @@ msgstr "OSD"
 
 #: ../glade/zapping.glade2.h:38
 msgid "On Screen Display (OSD)"
-msgstr "On Screen Display (OSD)"
+msgstr "Zobrazuj v obrazu (OSD)"
 
 #: ../glade/zapping.glade2.h:39
 msgid "PAL"
@@ -222,11 +222,11 @@ msgstr "SECAM"
 # src/interface.c:247
 #: ../glade/zapping.glade2.h:50
 msgid "S_how toolbar as:"
-msgstr "_Zobraz toolbar jako:"
+msgstr "_Zobrazuj toolbar jako:"
 
 #: ../glade/zapping.glade2.h:51
 msgid "Save _control values per channel"
-msgstr "Ulož _hodnoty nastavení pro každý kanál"
+msgstr "Ukládej _hodnoty nastavení pro každý kanál"
 
 #: ../glade/zapping.glade2.h:52
 msgid "Select OSD font"
@@ -239,7 +239,7 @@ msgstr "Vyber V4L zařízení"
 # src/interface.c:247
 #: ../glade/zapping.glade2.h:54
 msgid "Show _tooltips"
-msgstr "_Zobraz tooltipy"
+msgstr "_Zobrazuj tooltipy"
 
 #: ../glade/zapping.glade2.h:55
 msgid "Status Bar"
@@ -350,7 +350,7 @@ msgstr "_Žádné VBI funkce"
 
 #: ../glade/zapping.glade2.h:80
 msgid "_No audio recording"
-msgstr "Žádný audio _záznam"
+msgstr "Žádné ovládání zvuku"
 
 #: ../glade/zapping.glade2.h:81
 msgid "_Remove after:"
@@ -358,7 +358,7 @@ msgstr "_Odstraň po:"
 
 #: ../glade/zapping.glade2.h:82
 msgid "_Resize using fixed increments"
-msgstr "_Měnit velikost po krocích"
+msgstr "_Měnit velikost postupně"
 
 #: ../glade/zapping.glade2.h:83
 msgid "_Start Zapping muted"
@@ -370,7 +370,7 @@ msgstr "_Použij VBI Proxy je-li dostupná"
 
 #: ../glade/zapping.glade2.h:85
 msgid "seconds"
-msgstr "sekundy"
+msgstr "sekund"
 
 #: ../libvbi/exp-gfx.c:1483
 msgid "Correct aspect ratio"
@@ -732,7 +732,7 @@ msgstr "Mezi snímky"
 #. curr version compiled
 #: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:336
 msgid "Video (Greedy, High Motion)"
-msgstr "Video (Greedy, Velký pohyb)"
+msgstr "Video (Greedy, velký pohyb)"
 
 #: ../plugins/deinterlace/DI_Misc/DI_Bob.c:150
 msgid "Simple Bob"
@@ -764,7 +764,7 @@ msgstr "Video (MoComp2)"
 
 #: ../plugins/deinterlace/DI_Misc/DI_OddOnly.c:125
 msgid "Odd Scanlines Only"
-msgstr "Pouze zbláštní scan řádky"
+msgstr "Pouze zvláštní scan řádky"
 
 #: ../plugins/deinterlace/DI_Misc/DI_ScalerBob.c:117
 msgid "Scaler Bob"
@@ -852,7 +852,7 @@ msgstr "Deinterlace plugin"
 
 #: ../plugins/deinterlace/preferences.c:48 ../src/plugin_properties.c:120
 msgid "Low"
-msgstr "Nízká"
+msgstr "Nízké"
 
 #: ../plugins/deinterlace/preferences.c:49
 msgid "Medium"
@@ -860,7 +860,7 @@ msgstr "Střední"
 
 #: ../plugins/deinterlace/preferences.c:50 ../src/plugin_properties.c:128
 msgid "High"
-msgstr "Vysoká"
+msgstr "Vysoké"
 
 #: ../plugins/deinterlace/preferences.c:287
 msgid "_Resolution:"
@@ -924,7 +924,7 @@ msgstr "Tento plugin nahrává video a audio do souboru"
 
 #: ../plugins/mpeg/mpeg.c:2893
 msgid "Record video and audio."
-msgstr "Nahrávej video a audio."
+msgstr "Nahrává obraz a zvuk."
 
 #: ../plugins/mpeg/mpeg_properties.glade2.h:1
 msgid "-"
@@ -1148,7 +1148,7 @@ msgstr "_Přidej tlačítko do toolbaru"
 
 #: ../plugins/screenshot/screenshot.glade2.h:11
 msgid "_Completion command:"
-msgstr "_Příkaz doplnění:"
+msgstr "_Příkaz pro dokončení:"
 
 #: ../plugins/screenshot/screenshot.glade2.h:12
 msgid "_Deinterlace:"
@@ -1184,20 +1184,20 @@ msgstr "Plugin titulků"
 
 #: ../plugins/subtitle/preferences.c:55 ../plugins/teletext/preferences.c:57
 msgid "Western and Central Europe"
-msgstr "Západní a střední evropa"
+msgstr "Západo a středo evropské"
 
 # src/frequencies.c:821
 #: ../plugins/subtitle/preferences.c:56 ../plugins/teletext/preferences.c:58
 msgid "Eastern Europe"
-msgstr "Východní evropa"
+msgstr "Východo evropské"
 
 #: ../plugins/subtitle/preferences.c:57 ../plugins/teletext/preferences.c:59
 msgid "Western Europe and Turkey"
-msgstr "Západní evropa a Turecko"
+msgstr "Západo evropské a Turecké"
 
 #: ../plugins/subtitle/preferences.c:58 ../plugins/teletext/preferences.c:60
 msgid "Central and Southeast Europe"
-msgstr "Střední a jihovýchodní evropa"
+msgstr "Středo a jihovýchodo evropské"
 
 #: ../plugins/subtitle/preferences.c:59 ../plugins/teletext/preferences.c:61
 msgid "Cyrillic"
@@ -1205,19 +1205,19 @@ msgstr "Cirilice"
 
 #: ../plugins/subtitle/preferences.c:60 ../plugins/teletext/preferences.c:62
 msgid "Greek and Turkish"
-msgstr "Řecko a Turecko"
+msgstr "Řecké a Turecké"
 
 #: ../plugins/subtitle/preferences.c:61 ../plugins/teletext/preferences.c:63
 msgid "Arabic"
-msgstr "Arabsky"
+msgstr "Arabské"
 
 #: ../plugins/subtitle/preferences.c:62 ../plugins/teletext/preferences.c:64
 msgid "Hebrew and Arabic"
-msgstr "Hebrejsky a arabsky"
+msgstr "Hebrejské a arabské"
 
 #: ../plugins/subtitle/preferences.c:77 ../plugins/teletext/preferences.c:97
 msgid "Nearest (fast, low quality)"
-msgstr "Blízko (rychlé, nízká kvalita)"
+msgstr "Blízké (rychlé, nízká kvalita)"
 
 #: ../plugins/subtitle/preferences.c:78 ../plugins/teletext/preferences.c:98
 msgid "Tiles"
@@ -1229,7 +1229,7 @@ msgstr "Bilinearní"
 
 #: ../plugins/subtitle/preferences.c:80 ../plugins/teletext/preferences.c:100
 msgid "Hyper (slow, high quality)"
-msgstr " Hyper (pomalý, vysoká kvalita)"
+msgstr " Hyper (pomalé, vysoká kvalita)"
 
 #: ../plugins/subtitle/preferences.c:345
 msgid "<b>Teletext</b>"
@@ -1709,7 +1709,7 @@ msgstr "Jméno kanálu"
 # glade/glade_strings.c:149, glade/glade_strings.c:155
 #: ../src/channel_editor.c:1601
 msgid "Freq (MHz)"
-msgstr "Freq. (MHz)"
+msgstr "Frekvence. (MHz)"
 
 # src/interface.c:405
 #. append
@@ -2113,7 +2113,7 @@ msgstr "%s (Mono)"
 
 #: ../src/plugin_properties.c:118
 msgid "Very low"
-msgstr "Velmi malé"
+msgstr "Velmi malá"
 
 #: ../src/plugin_properties.c:122
 msgid "Lower"
@@ -2188,7 +2188,7 @@ msgstr "Vlastnosti programu"
 
 #: ../src/properties-handler.c:86
 msgid "Can capture to memory.\n"
-msgstr "Mohu snímat do paměti.\n"
+msgstr "Může snímat do paměti.\n"
 
 #: ../src/properties-handler.c:88
 msgid "Has some tuner.\n"
@@ -2212,7 +2212,7 @@ msgstr "Podporuje obdelníkové výseče.\n"
 
 #: ../src/properties-handler.c:98
 msgid "Framebuffer memory is overwritten.\n"
-msgstr "Paměť framebufferu je přepsána.\n"
+msgstr "Paměť framebufferu je přepisovatelná.\n"
 
 #: ../src/properties-handler.c:100
 msgid "The capture can be scaled.\n"
@@ -2397,7 +2397,7 @@ msgstr "Hlasitost"
 
 #: ../src/tveng25.c:567
 msgid "Audio Mute"
-msgstr "Stlumení zvuku"
+msgstr "Ztlumení zvuku"
 
 # src/frequencies.c:827
 #: ../src/tveng25.c:568
@@ -2576,7 +2576,7 @@ msgstr "P_luginy"
 
 #: ../src/zapping.c:444 ../src/zapping.c:485
 msgid "_Window"
-msgstr "_Okno"
+msgstr "Okno"
 
 #: ../src/zapping.c:446 ../src/zapping.c:487
 msgid "_Fullscreen"
@@ -2588,7 +2588,7 @@ msgstr "_Pozadí"
 
 #: ../src/zapping.c:450
 msgid "_Overlay mode"
-msgstr "_Overlay-režim"
+msgstr "_Overlay režim"
 
 #: ../src/zapping.c:452
 msgid "_Capture mode"
@@ -2632,7 +2632,7 @@ msgstr "Změň nastavení obrazu"
 
 #: ../src/zapping.c:472
 msgid "_Mute"
-msgstr "_Stlum"
+msgstr "_Ztlum"
 
 #: ../src/zapping.c:473
 msgid "Switch audio on or off"
@@ -2660,7 +2660,7 @@ msgstr "Vrať do video režimu"
 
 #: ../src/zapping.c:502
 msgid "_New Teletext View"
-msgstr "_Nový náhled teletextu"
+msgstr "_Nové okno teletextu"
 
 #: ../src/zapping.c:508 ../src/zapping.c:513
 msgid "_Subtitles"

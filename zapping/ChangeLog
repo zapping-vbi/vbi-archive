@@ -1,5 +1,9 @@
 2006-04-24    <mschimek@users.sf.net>
 
+	* src/frequencies.c, src/strnatcmp.h, src/strnatcmp.c:
+	  strnatcmp no longer used, files removed.
+	* src/error_console.c: No longer used, file removed.
+
 	* configure.in (ALL_LINGUAS): Added ja.
 	* po/ja.po: New Japanese translation contributed by Hiroshi Hasebe.
 
