@@ -74,7 +74,6 @@ zapping_SOURCES = \
 	properties.c properties.h \
 	properties-handler.c properties-handler.h \
 	remote.c remote.h \
-	strnatcmp.c strnatcmp.h \
 	subtitle.c subtitle.h \
 	tveng.c tveng.h tveng_private.h \
 	tveng1.c tveng1.h \
