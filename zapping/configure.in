@@ -811,7 +811,7 @@ GETTEXT_PACKAGE=AC_PACKAGE_NAME
 AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [Package name])
 
-ALL_LINGUAS="cs de es fr it nl"
+ALL_LINGUAS="cs de es fr it ja nl"
 dnl da, pl, sv need update
 
 AM_GLIB_GNU_GETTEXT
@@ -921,9 +921,6 @@ zapping.desktop.in
 zapping.spec
 common/Makefile
 libtv/Makefile
-libtv/avec/Makefile
-libtv/mmx/Makefile
-libtv/sse/Makefile
 libvbi/Makefile
 src/Makefile
 po/Makefile.in
