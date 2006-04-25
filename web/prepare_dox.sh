@@ -1,14 +1,15 @@
 #!/bin/sh
-# $Id: prepare_dox.sh,v 1.10 2005-11-04 18:28:39 mschimek Exp $
+# $Id: prepare_dox.sh,v 1.11 2006-04-25 20:47:27 mschimek Exp $
 #
 # This checks out a copy of the module, runs doxygen, puts
 # the generated files online and cleans up.
 #
-# ssh shell.sourceforge.net -l username
+# ssh username@shell.sourceforge.net
 # cd /home/groups/z/za/zapping
 # ./prepare_dox.sh vbi libzvbi
 # ./prepare_dox.sh rte librte
 
+(
 # Trace execution, abort on error.
 set -e -x
 
@@ -23,6 +24,7 @@ test -e Doxyfile || exit 1
 doxygen
 cd -
 
+# FIXME doesn't work.
 #test -e cgi-bin || mkdir cgi-bin
 #test -e cgi-bin/doxysearch || cp /usr/bin/doxysearch cgi-bin/
 #cp $1/doc/html/*search.cgi cgi-bin/
@@ -41,3 +43,5 @@ chmod a+rX htdocs/doc -R
 #cd -
 
 rm -rf $1
+
+) 2>&1 | tee prepare_dox.log
