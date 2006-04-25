@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: zapping\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2006-04-22 03:07+0900\n"
-"PO-Revision-Date: 2006-04-22 23:19+0900\n"
+"PO-Revision-Date: 2006-04-25 23:15+0900\n"
 "Last-Translator: Hiroshi Hasebe <hhasebe@DVOI.COM>\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -113,7 +113,7 @@ msgstr "フォント(_F):"
 
 #: ../glade/zapping.glade2.h:24
 msgid "Favorite _picture sizes:"
-msgstr "プリセット表示サイズ(_P):"
+msgstr "解像度の登録(_P):"
 
 #: ../glade/zapping.glade2.h:25
 msgid "General options"
@@ -185,7 +185,7 @@ msgstr "プラグイン優先度:"
 
 #: ../glade/zapping.glade2.h:42
 msgid "Plugin properties"
-msgstr "Plugin properties"
+msgstr "プラグインのプロパティ"
 
 #: ../glade/zapping.glade2.h:43
 msgid "Plugin version:"
@@ -252,7 +252,7 @@ msgid ""
 "The video capture device does not report the correct video standard, please "
 "select manually:"
 msgstr ""
-"The video capture device does not report the correct video standard, please "
+"ビデオキャプチャデバイスから適正な映像規格を示す情報が得られません. 手動で指定してください:"
 "select manually:"
 
 #: ../glade/zapping.glade2.h:59
@@ -282,7 +282,7 @@ msgstr "ウィンドウ"
 
 #: ../glade/zapping.glade2.h:65
 msgid "Zapping Preferences"
-msgstr "Zapping Preferences"
+msgstr "Zappingの設定"
 
 #: ../glade/zapping.glade2.h:66
 msgid "Zapping error console"
@@ -350,7 +350,7 @@ msgstr "表示時間(_R):"
 
 #: ../glade/zapping.glade2.h:82
 msgid "_Resize using fixed increments"
-msgstr "段階的にサイズ変更(_R)"
+msgstr "ウィンドウサイズ変更時に登録済み解像度を順に辿る(_R)"
 
 #: ../glade/zapping.glade2.h:83
 msgid "_Start Zapping muted"
@@ -373,8 +373,8 @@ msgid ""
 "Approach an image aspect ratio similar to a real TV. This will double the "
 "image size."
 msgstr ""
-"Approach an image aspect ratio similar to a real TV. This will double the "
-"image size."
+"実際のテレビ画面に近いアスペクト比を設定します. これよって"
+"画像サイズが倍になります."
 
 #: ../libvbi/exp-gfx.c:1623
 msgid "PPM"
@@ -382,20 +382,20 @@ msgstr "PPM"
 
 #: ../libvbi/exp-gfx.c:1624
 msgid "Export this page as raw PPM image"
-msgstr "Export this page as raw PPM image"
+msgstr "このページをraw PPM画像としてエキスポート"
 
 #. XXX gettext encoding
 #: ../libvbi/exp-gfx.c:1824 ../libvbi/exp-html.c:532 ../libvbi/exp-sub.c:633
 #: ../libvbi/exp-sub.c:764 ../libvbi/exp-sub.c:821
 #, c-format
 msgid "Teletext Page %3x.%x"
-msgstr "Teletext Page %3x.%x"
+msgstr "Teletextページ %3x.%x"
 
 #: ../libvbi/exp-gfx.c:1828 ../libvbi/exp-html.c:535 ../libvbi/exp-sub.c:636
 #: ../libvbi/exp-sub.c:767 ../libvbi/exp-sub.c:824
 #, c-format
 msgid "Teletext Page %3x"
-msgstr "Teletext Page %3x"
+msgstr "Teletextページ %3x"
 
 #: ../libvbi/exp-gfx.c:2019
 msgid "PNG"
@@ -403,11 +403,11 @@ msgstr "PNG"
 
 #: ../libvbi/exp-gfx.c:2020
 msgid "Export this page as PNG image"
-msgstr "Export this page as PNG image"
+msgstr "このページをPNG画像としてエクスポート"
 
 #: ../libvbi/exp-html.c:110 ../libvbi/exp-txt.c:133
 msgid "Graphics char"
-msgstr "Graphics char"
+msgstr "グラフィックキャラクタ"
 
 #: ../libvbi/exp-html.c:111 ../libvbi/exp-txt.c:134
 msgid ""
@@ -454,11 +454,11 @@ msgstr "HTML"
 
 #: ../libvbi/exp-html.c:844
 msgid "Export this page as HTML page"
-msgstr "Export this page as HTML page"
+msgstr "このページをHTMLファイルとしてエクスポート"
 
 #: ../libvbi/export.c:200
 msgid "Write error."
-msgstr "Write error."
+msgstr "書き込みエラー."
 
 #: ../libvbi/export.c:210
 msgid "Out of memory."
@@ -467,7 +467,7 @@ msgstr "メモリの確保に失敗."
 #: ../libvbi/export.c:235
 #, c-format
 msgid "Export module %s has no option %s."
-msgstr "Export module %s has no option %s."
+msgstr "エキスポートモジュール %s にはオプション %s はありません."
 
 #: ../libvbi/export.c:295
 #, c-format
@@ -481,7 +481,7 @@ msgstr "未知のエラー."
 #: ../libvbi/export.c:436
 #, c-format
 msgid "Could not create %s. %s."
-msgstr "Could not create %s. %s."
+msgstr "%s. %s の作成に失敗."
 
 #: ../libvbi/export.c:1334
 #, c-format
@@ -491,20 +491,20 @@ msgstr "Invalid option string \"%s\"."
 #: ../libvbi/export.c:1438
 #, c-format
 msgid "Unknown export module '%s'."
-msgstr "Unknown export module '%s'."
+msgstr "未知のエキスポートモジュール '%s'."
 
 #: ../libvbi/export.c:1452
 #, c-format
 msgid "Cannot initialize export module '%s', probably lack of memory."
 msgstr ""
-"Cannot initialize export module '%s', probably lack of memory."
+"エキスポートモジュール '%s' の初期化に失敗, おそらくメモリが不足している."
 ""
 
 #: ../libvbi/export.c:1476
 #, c-format
 msgid "Cannot initialize export module '%s', out of memory."
 msgstr ""
-"Cannot initialize export module '%s', out of memory."
+"エキスポートモジュール '%s' の初期化に失敗, メモリを確保できなかった."
 ""
 
 #: ../libvbi/exp-sub.c:124 ../libvbi/exp-txt.c:81
@@ -513,15 +513,15 @@ msgstr "ASCII"
 
 #: ../libvbi/exp-sub.c:125 ../libvbi/exp-txt.c:82
 msgid "ISO-8859-1 (Latin-1 Western languages)"
-msgstr "ISO-8859-1 (Latin-1 Western languages)"
+msgstr "ISO-8859-1 (Latin-1 西欧語)"
 
 #: ../libvbi/exp-sub.c:126 ../libvbi/exp-txt.c:83
 msgid "ISO-8859-2 (Latin-2 Central and Eastern European languages)"
-msgstr "ISO-8859-2 (Latin-2 Central and Eastern European languages)"
+msgstr "ISO-8859-2 (Latin-2 中欧語・東欧語)"
 
 #: ../libvbi/exp-sub.c:127 ../libvbi/exp-txt.c:84
 msgid "ISO-8859-4 (Latin-3 Baltic languages)"
-msgstr "ISO-8859-4 (Latin-3 Baltic languages)"
+msgstr "ISO-8859-4 (Latin-3 バルト語)"
 
 #: ../libvbi/exp-sub.c:128 ../libvbi/exp-txt.c:85
 msgid "ISO-8859-5 (Cyrillic)"
@@ -625,11 +625,11 @@ msgstr "Can only export Teletext pages."
 
 #: ../libvbi/exp-vtx.c:89
 msgid "Page is not cached."
-msgstr "Page is not cached."
+msgstr "ページをキャッシュできません."
 
 #: ../libvbi/exp-vtx.c:98
 msgid "Cannot export this page, is not displayable."
-msgstr "Cannot export this page, is not displayable."
+msgstr "このページのエキスポートに失敗, 表示不可."
 
 #: ../libvbi/exp-vtx.c:135
 msgid "VTX"
@@ -644,7 +644,7 @@ msgstr ""
 
 #: ../plugins/alirc/alirc.c:37
 msgid "Another lirc plugin"
-msgstr "Another lirc plugin"
+msgstr "Another LIRCプラグイン"
 
 #: ../plugins/alirc/alirc.c:39
 msgid ""
@@ -653,14 +653,14 @@ msgid ""
 "To enable this plugin you must edit your ~/.lircrc\n"
 "file. See the Zapping documentation for details.\n"
 msgstr ""
-"Another plugin to control zapping through lirc\n"
+"LIRCでZappingを操作するための, \"もうひとつの\"プラグイン\n"
 "\n"
-"To enable this plugin you must edit your ~/.lircrc\n"
-"file. See the Zapping documentation for details.\n"
+"このプラグインを使うには, ~/.lircrc の設定が必要です.\n"
+"詳細についてはZappingのドキュメントを参照.\n"
 
 #: ../plugins/alirc/alirc.c:44
 msgid "Lets you control zapping through lirc"
-msgstr "Lets you control zapping through lirc"
+msgstr "LIRCでZappingを操作するためのものです"
 
 #. hash collision code
 #. Warn
@@ -846,15 +846,15 @@ msgstr "インターレース除去プラグイン"
 
 #: ../plugins/deinterlace/preferences.c:48 ../src/plugin_properties.c:120
 msgid "Low"
-msgstr "Low"
+msgstr "低"
 
 #: ../plugins/deinterlace/preferences.c:49
 msgid "Medium"
-msgstr "Medium"
+msgstr "中"
 
 #: ../plugins/deinterlace/preferences.c:50 ../src/plugin_properties.c:128
 msgid "High"
-msgstr "High"
+msgstr "高"
 
 #: ../plugins/deinterlace/preferences.c:287
 msgid "_Resolution:"
@@ -864,7 +864,7 @@ msgstr "解像度(_R):"
 #. second field in deinterlace mode.
 #: ../plugins/deinterlace/preferences.c:296
 msgid "_Field Balance:"
-msgstr "_Field Balance:"
+msgstr "フィールドバランス(_F):"
 
 #: ../plugins/deinterlace/preferences.c:708 ../src/eggcellrendererkeys.c:222
 msgid "Disabled"
@@ -873,12 +873,13 @@ msgstr "無効"
 #: ../plugins/mpeg/mpeg.c:846
 #, c-format
 msgid "Format %s is incomplete, please configure the video or audio codec."
-msgstr "Format %s is incomplete, please configure the video or audio codec."
+msgstr "フォーマット\"%s\"の設定に不備があります. ビデオかオーディオのcodecの"
+"設定をしてください."
 
 #: ../plugins/mpeg/mpeg.c:1156
 #, c-format
 msgid "Cannot create file %s: %s\n"
-msgstr "Cannot create file %s: %s\n"
+msgstr "ファイルの作成に失敗 %s: %s\n"
 
 #: ../plugins/mpeg/mpeg.c:1726 ../plugins/mpeg/options.c:407
 #: ../plugins/teletext/export.c:128
@@ -915,11 +916,11 @@ msgstr "オーディオ/ビデオレコーダ"
 
 #: ../plugins/mpeg/mpeg.c:2890
 msgid "This plugin records video and audio into a file"
-msgstr "This plugin records video and audio into a file"
+msgstr "映像と音声をファイルに記録するためのプラグインです"
 
 #: ../plugins/mpeg/mpeg.c:2893
 msgid "Record video and audio."
-msgstr "Record video and audio."
+msgstr "映像と音声の記録."
 
 #: ../plugins/mpeg/mpeg_properties.glade2.h:1
 msgid "-"
@@ -1047,7 +1048,7 @@ msgstr ""
 
 #: ../plugins/screenshot/screenshot.c:50
 msgid "This plugin takes screenshots of the video capture."
-msgstr "This plugin takes screenshots of the video capture."
+msgstr "このプラグインはキャプチャした映像のスクリーンショットを作成します."
 
 #: ../plugins/screenshot/screenshot.c:517
 #: ../plugins/screenshot/screenshot.c:542
@@ -1210,7 +1211,7 @@ msgstr "ヘブライ語・アラビア語"
 
 #: ../plugins/subtitle/preferences.c:77 ../plugins/teletext/preferences.c:97
 msgid "Nearest (fast, low quality)"
-msgstr "Nearest (fast, low quality)"
+msgstr "Nearest (高速, 低画質)"
 
 #: ../plugins/subtitle/preferences.c:78 ../plugins/teletext/preferences.c:98
 msgid "Tiles"
@@ -1222,7 +1223,7 @@ msgstr "Bilinear"
 
 #: ../plugins/subtitle/preferences.c:80 ../plugins/teletext/preferences.c:100
 msgid "Hyper (slow, high quality)"
-msgstr "Hyper (slow, high quality)"
+msgstr "Hyper (低速, 高画質)"
 
 #: ../plugins/subtitle/preferences.c:345
 msgid "<b>Teletext</b>"
@@ -1725,11 +1726,11 @@ msgstr "ショートカット"
 
 #: ../src/channel_editor.c:1685
 msgid "Do not change input"
-msgstr "入力ソースを固定"
+msgstr "共通の入力ソースを使う"
 
 #: ../src/channel_editor.c:1709
 msgid "Do not change standard"
-msgstr "放送方式を固定"
+msgstr "共通の放送方式を使う"
 
 #: ../src/channel_editor.c:1748
 msgid "Channel editor"
@@ -1795,11 +1796,11 @@ msgstr "放送方式:"
 
 #: ../src/channel_editor.c:1958
 msgid "Accelerator:"
-msgstr "ショートカット:"
+msgstr "キーボードショートカット:"
 
 #: ../src/eggcellrendererkeys.c:163 ../src/eggcellrendererkeys.c:164
 msgid "Accelerator key"
-msgstr "使用するキー"
+msgstr "ショートカットキー"
 
 #: ../src/eggcellrendererkeys.c:173 ../src/eggcellrendererkeys.c:174
 msgid "Accelerator modifiers"
@@ -1811,7 +1812,7 @@ msgstr "Accelerator Mode"
 
 #: ../src/eggcellrendererkeys.c:184
 msgid "The type of accelerator."
-msgstr "キーを押してください."
+msgstr "ショートカット種別."
 
 #: ../src/eggcellrendererkeys.c:333 ../src/eggcellrendererkeys.c:567
 msgid "Type a new accelerator, or press Backspace to clear"
