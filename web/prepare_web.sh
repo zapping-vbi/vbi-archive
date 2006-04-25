@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: prepare_web.sh,v 1.26 2006-04-25 20:56:44 mschimek Exp $
+# $Id: prepare_web.sh,v 1.27 2006-04-25 21:06:30 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
@@ -18,6 +18,12 @@ set -e -x
 umask 007
 
 cvs -z3 update -ko -dPA
+
+chmod a+rX cgi-bin
+cd cgi-bin
+# Redirect from the old Twiki scripts to our current pages.
+chmod a+r .htaccess
+cd -
 
 chmod a+rX htdocs
 cd htdocs

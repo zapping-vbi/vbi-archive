@@ -1,0 +1,4 @@
+DirectoryIndex index.html
+Redirect 301 /cgi-bin/view/Main/WebHome http://zapping.sourceforge.net/Zapping/index.html
+Redirect 301 /cgi-bin/view/ZVBI/WebHome http://zapping.sourceforge.net/ZVBI/index.html
+ErrorDocument 404 http://zapping.sourceforge.net/Zapping/index.html
