@@ -1,0 +1,472 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en-us"><head>
+<title>Zapping Commands</title><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" /><link rel="stylesheet" href="/twiki.css" type="text/css" /><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" /></head><body bgcolor="#ffffff"><table class="header" border="0" width="100%"><tbody><tr><td width="100%"><a href="/index.html">Zapping</a> &middot; <a href="/ZVBI/index.html">ZVBI</a></td><td><a href="/index.html"><img src="/images/zapping.gif" alt="Zapping Homepage" border="0" /></a></td></tr><tr><td colspan="2"><hr /></td></tr><tr><td colspan="2"><center><a href="/Zapping/News.html">News</a> | <strong><a href="/Zapping/Download.html">Download</a></strong> | <a href="/Zapping/Screenshots.html">Screenshots</a> | <a href="http://sourceforge.net/projects/zapping">Sourceforge</a> | <img src="/images/help.png" alt="Help" border="0" height="16" width="16" /><a href="/Zapping/Help.html">Help</a></center></td></tr></tbody></table>
+
+    <h1>Zapping Commands</h1>
+
+    <div class="twikiToc">
+      <ul>
+        <li><a href="#Command_Line">Command Line</a></li>
+
+        <li><a href="#Keyboard_Customization">Keyboard
+        Customization</a></li>
+
+        <li><a href="#LIRC_ALIRC_Plugin">LIRC/ALIRC Plugin</a></li>
+
+        <li>
+          <a href="#Python_Commands">Python Commands</a> 
+
+          <ul>
+            <li><a href="#General">General</a></li>
+
+            <li><a href="#Dialogs">Dialogs</a></li>
+
+            <li><a href="#Teletext">Teletext</a></li>
+
+            <li><a href="#Caption_Subtitles">Caption /
+            Subtitles</a></li>
+
+            <li><a href="#Audio">Audio</a></li>
+
+            <li><a href="#Controls">Controls</a></li>
+
+            <li><a href="#Plugins">Plugins</a></li>
+          </ul>
+        </li>
+
+        <li><a href="#Developer_Notes">Developer Notes</a></li>
+      </ul>
+    </div>
+    <hr />
+
+    <h2><a name="Command_Line"></a> Command Line</h2>
+
+    <p>Commands can be given on the command line when Zapping
+    starts. This was intended to change video device properties,
+    the program terminates after executing the command.</p>
+<pre class="userinput">
+zapping -c "command"
+</pre>
+
+    <p>Up to version 0.6.x these commands are available:</p>
+
+    <dl>
+      <dt>set_channel (name | number)</dt>
+
+      <dd>Switch to the channel. By default the command tries to
+      find the channel by its name (second column in the channel
+      editor). When no such channel exists or the parameter is a
+      number it selects the nth channel from the list, counted from
+      zero up.</dd>
+    </dl>
+
+    <p>Starting with version 0.7 these commands are superseded by
+    the new Python command set, see below. Further you can send
+    commands to a running Zapping process with the <a 
+    href="/Zapping/ZappingRemote">zapping_remote</a>
+    tool:</p>
+<pre class="userinput">
+zapping_remote "command"
+</pre>
+
+    <p><br />
+    </p>
+
+    <h2><a name="Keyboard_Customization"></a> Keyboard
+    Customization</h2>
+
+    <p>Commands can be assigned to keyboard keys in the
+    preferences. Starting with version 0.7 we use the new Python
+    command set, see below.</p>
+
+    <p>The old command set listed here is automatically converted
+    for compatibility with older versions of Zapping. The commands
+    are generally equivalent to their new Python counterparts.
+    Parameters in [square brackets] are optional.</p>
+
+    <ul>
+      <li>channel_up</li>
+
+      <li>channel_down</li>
+
+      <li>set_channel n</li>
+
+      <li>lookup_channel name</li>
+
+      <li>mute [toggle]</li>
+
+      <li>volume_incr [n]</li>
+
+      <li>ttx_open_new [page [subpage]]</li>
+
+      <li>ttx_page_incr [n]</li>
+
+      <li>ttx_subpage_incr [n]</li>
+
+      <li>ttx_home</li>
+
+      <li>ttx_hold [toggle]</li>
+
+      <li>ttx_reveal [toggle]</li>
+
+      <li>screenshot [format]</li>
+
+      <li>quickshot [format]</li>
+    </ul>
+
+    <h2><a name="LIRC_ALIRC_Plugin"></a> LIRC/ALIRC Plugin</h2>
+
+    <p>These commands are mostly superseded by the new Python
+    command set, see below. They are still supported for
+    compatibility with older versions of Zapping.</p>
+
+    <dl>
+      <dt>QUIT</dt>
+
+      <dd>Terminate the program.</dd>
+
+      <dt>CHANUP</dt>
+
+      <dd>Switch to the next channel in the list.</dd>
+
+      <dt>CHANDOWN</dt>
+
+      <dd>Switch to the previous channel in the list.</dd>
+
+      <dt>SETCHANNEL n</dt>
+
+      <dd>
+        <p>The function of this command is affected by the
+        preferences setting for entering channel numbers on the
+        numeric keypad. By the default it switches to the nth
+        channel in the list, the count starts at zero.
+        Alternatively the number is interpreted as the RF channel
+        number of the requested channel.</p>
+
+        <p>Single digits combine to numbers when the command is
+        executed repeatedly within a short period. For example
+        "SETCHANNEL 1", "SETCHANNEL 3" jumps to channel 13.</p>
+      </dd>
+
+      <dt>ZOOM</dt>
+
+      <dd>Switch between fullscreen and windowed mode.</dd>
+
+      <dt>MUTE</dt>
+
+      <dd>When audio is on, mute it, when muted switch it back
+      on.</dd>
+
+      <dt>VOL_UP</dt>
+
+      <dd>Increase the audio volume.</dd>
+
+      <dt>VOL_UP</dt>
+
+      <dd>Decrease the audio volume.</dd>
+    </dl>
+
+    <h2><a name="Python_Commands"></a> Python Commands</h2>
+
+    <p>Parameters in [square brackets] are optional. Parameters in
+    'single quotes' are strings, otherwise they are numbers. A
+    toggle parameter can be zero to switch the property off,
+    non-zero to switch it on, or it can be omitted to reverse the
+    current setting.</p>
+
+    <h3><a name="General"></a> General</h3>
+
+    <dl>
+      <dt>zapping.quit()</dt>
+
+      <dd>Terminate the program.</dd>
+
+      <dt>zapping.switch_mode('mode')</dt>
+      <dd>
+        Switch the current display mode: 
+
+        <dl>
+          <dt>'fullscreen'</dt>
+
+          <dd>display video fullscreen, in capture or overlay
+          mode</dd>
+
+          <dt>'capture'</dt>
+
+          <dd>display video in a window in capture mode</dd>
+
+          <dt>'preview'</dt>
+
+          <dd>display video in a window in overlay mode</dd>
+
+          <dt>'teletext'</dt>
+
+          <dd>display Teletext in the main window</dd>
+        </dl>
+
+          <dt>
+            <dl>
+              <dt>zapping.toggle_mode('mode')</dt>
+
+              <dd>Switch to this mode. When this is already the
+              current mode, switch to the previous mode.</dd>
+
+              <dt>zapping.restore_mode('mode')</dt>
+
+              <dd>Synonym for zapping.toggle_mode(),
+              deprecated.</dd>
+
+              <dt>zapping.channel_up()</dt>
+
+              <dd>Switch to the next channel in the list.</dd>
+
+              <dt>zapping.channel_down()</dt>
+
+              <dd>Switch to the previous channel in the list.</dd>
+
+              <dt>zapping.set_channel(nth)</dt>
+
+              <dd>Switch to the nth channel in the list, the count
+              starts at zero.</dd>
+
+              <dt>zapping.lookup_channel('name')</dt>
+
+              <dd>Switch to the channel with this name (second
+              column in the channel editor).</dd>
+
+              <dt>zapping.resize_screen(width, height)</dt>
+
+              <dd>Resize the video window.</dd>
+
+              <dt>zapping.picture_size_cycle([n])</dt>
+
+              <dd>Switch to the next entry in the list of favourite
+              picture sizes (as displayed in the context menu), +1
+              forward, -1 back.</dd>
+
+              <dt>zapping.hide_controls(toggle)</dt>
+
+              <dd>Whether to hide the main menu and toolbar.</dd>
+
+              <dt>zapping.keep_on_top(toggle)</dt>
+
+              <dd>Whether to keep the main window on top of all
+              other windows (if this is supported by the window
+              manager).</dd>
+            </dl>
+
+            <h3><a name="Dialogs"></a> Dialogs</h3>
+
+            <dl>
+              <dt>zapping.control_box()</dt>
+
+              <dd>Start the picture controls dialog.</dd>
+
+              <dt>zapping.channel_editor()</dt>
+
+              <dd>Start the channel editing dialog.</dd>
+
+              <dt>zapping.properties(['group' [, 'item']])</dt>
+
+              <dd>Start the properties dialog, optionally the given
+              group and item.</dd>
+
+              <dt>zapping.plugin_properties()</dt>
+
+              <dd>Start the plugin properties dialog.</dd>
+
+              <dt>zapping.about()</dt>
+
+              <dd>Start the about dialog.</dd>
+
+              <dt>zapping.help()</dt>
+
+              <dd>Open the Zapping documentation.</dd>
+            </dl>
+
+            <h3><a name="Teletext"></a> Teletext</h3>
+
+            <dl>
+              <dt>zapping.ttx_open_new([page [, subpage]])</dt>
+
+              <dd>Open a Teletext window. When a page number is
+              given, go to this page.</dd>
+
+              <dt>zapping.ttx_page_incr([n])</dt>
+
+              <dd>Advance the Teletext page number by n. This can
+              be a positive or negative value, by default 1.</dd>
+
+              <dt>zapping.ttx_subpage_incr([n])</dt>
+
+              <dd>Advance the Teletext subpage number by n. This
+              can be a positive or negative value, by default
+              1.</dd>
+
+              <dt>zapping.ttx_home()</dt>
+
+              <dd>Go to the Teletext home page, usually page
+              100.</dd>
+
+              <dt>zapping.ttx_history_prev()</dt>
+
+              <dd>Go to the previously visited page in the browse
+              history.</dd>
+
+              <dt>zapping.ttx_history_next()</dt>
+
+              <dd>Go to the next visited page in the browse
+              history.</dd>
+
+              <dt>zapping.ttx_hold(toggle)</dt>
+
+              <dd>Toggle the hold state of the displayed page. When
+              off, Zapzilla will rotate through all subpages of the
+              page, if it has any.</dd>
+
+              <dt>zapping.ttx_reveal(toggle)</dt>
+
+              <dd>Whether to reveal concealed characters on the
+              displayed Teletext page.</dd>
+            </dl>
+
+            <h3><a name="Caption_Subtitles"></a> Caption /
+            Subtitles</h3>
+
+            <dl>
+              <dt>zapping.closed_caption(toggle)</dt>
+
+              <dd>Whether to display closed caption superimposed
+              onto the picture.</dd>
+
+              <dt>zapping.osd_render_markup('Hello
+              &lt;i&gt;World&lt;/i&gt;!')</dt>
+
+              <dd>Display text superimposed onto the picture, with
+              Pango markup.</dd>
+
+              <dt>zapping.osd_render('Hello World!')</dt>
+
+              <dd>Display text superimposed onto the picture.</dd>
+            </dl>
+
+            <h3><a name="Audio"></a> Audio</h3>
+
+            <dl>
+              <dt>zapping.mute(toggle)</dt>
+
+              <dd>Change the audio mute control.</dd>
+
+              <dt>zapping.volume_incr([n])</dt>
+
+              <dd>
+                <p>This provisional command changed the audio
+                recording volume, it is <em>no longer
+                supported</em>.</p>
+
+                <p>As a replacement use
+                zapping.control_incr('volume'[, n]) to change the
+                soundcard mixer or video device volume as
+                configured in the preferences dialog. Note that
+                changing the volume does not unmute.</p>
+              </dd>
+            </dl>
+
+            <h3><a name="Controls"></a> Controls</h3>
+
+            <dl>
+              <dt>zapping.control_incr('name'[, n])</dt>
+
+              <dd>
+                Advance the control value by n units, usually +1 or
+                -1, default is +1. The following names are
+                presently recognized: 
+
+                <dl>
+                  <dt>'brightness'</dt>
+
+                  <dd>picture brightness</dd>
+
+                  <dt>'contrast'</dt>
+
+                  <dd>picture contrast</dd>
+
+                  <dt>'saturation'</dt>
+
+                  <dd>picture color saturation</dd>
+
+                  <dt>'hue'</dt>
+
+                  <dd>picture color hue</dd>
+
+                  <dt>'volume'</dt>
+
+                  <dd>audio volume</dd>
+
+                  <dt>'bass'</dt>
+
+                  <dd>audio bass</dd>
+
+                  <dt>'treble'</dt>
+
+                  <dd>audio treble</dd>
+                </dl>
+              </dd>
+            </dl>
+
+            <h3><a name="Plugins"></a> Plugins</h3>
+
+            <dl>
+              <dt>zapping.screenshot(['format'])</dt>
+
+              <dd>Start the screenshot dialog and if given switch
+              to the format. Currently valid formats are: 'jpeg'
+              and 'ppm'.</dd>
+
+              <dt>zapping.quickshot(['format'])</dt>
+
+              <dd>Take a screenshot without starting the dialog.
+              The last select file name will be used, with an
+              incrementing number appended. When no format is given
+              the last selected format will be used.</dd>
+
+              <dt>zapping.record(['format'])</dt>
+
+              <dd>Start the record dialog and if given switch to
+              the format. Note this is the name the user gives a
+              particular configuration, not the name of the file
+              format.</dd>
+
+              <dt>zapping.quickrec(['format'])</dt>
+
+              <dd>Start recording without confirmation. The last
+              select file name will be used, with an incrementing
+              number appended. When no format is given the last
+              selected format will be used.</dd>
+
+              <dt>zapping.stoprec()</dt>
+
+              <dd>Stop recording.</dd>
+            </dl>
+            </dl>
+
+            <h2><a name="Developer_Notes"></a> Developer Notes</h2>
+
+            <p>Switching to Python as our script language was an
+            excellent idea, however we hardly use the language
+            efficiently. Instead of zapping.mute() for example
+            'mute' should be simply a readable and writable boolean
+            property of the zapping object. The Teletext commands
+            implicitly refer to the window which has focus. Instead
+            we should have a teletext object and methods to access
+            all Teletext windows or choose the current one.</p>
+
+            <p>Python now almost forms a layer between the GUI and
+            C functions, and integrates very well into Zapping. It
+            may be worth pondering if some parts of the GUI itself
+            could be implemented in Python, using the pygtk Gtk
+            bindings, while resorting to C only for time critical
+            and low level functions.</p>
+
+  </body>
+</html>
+

@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en-us"><head>
+<title>Zapping Remote</title><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" /><link rel="stylesheet" href="/twiki.css" type="text/css" /><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" /></head><body bgcolor="#ffffff"><table class="header" border="0" width="100%"><tbody><tr><td width="100%"><a href="/index.html">Zapping</a> &middot; <a href="/ZVBI/index.html">ZVBI</a></td><td><a href="/index.html"><img src="/images/zapping.gif" alt="Zapping Homepage" border="0" /></a></td></tr><tr><td colspan="2"><hr /></td></tr><tr><td colspan="2"><center><a href="/Zapping/News.html">News</a> | <strong><a href="/Zapping/Download.html">Download</a></strong> | <a href="/Zapping/Screenshots.html">Screenshots</a> | <a href="http://sourceforge.net/projects/zapping">Sourceforge</a> | <img src="/images/help.png" alt="Help" border="0" height="16" width="16" /><a href="/Zapping/Help.html">Help</a></center></td></tr></tbody></table>
+    <h1>Controlling Zapping from the command line</h1>
+
+    <p>zapping_remote (what a silly name...) is a small command line
+    application included with Zapping 0.7 and later. Its purpose is to
+    send commands to a running Zapping process, modeled after
+    xawtv-remote. Examples:</p>
+<pre class="userinput">
+zapping_remote "zapping.quickshot('JPEG')"
+</pre>
+    <p>This sends a command to take a screen shot ("quick" because no
+    dialog appears) in JPEG format. Currently Zapping understands some
+    <a href="/Zapping/ZappingCommands.html">30
+    commands</a>. Naturally you can send any Python command, for
+    example:</p>
+<pre class="userinput">
+zapping_remote 'print "Hello!"'
+</pre>
+    <p>will print Hello! on the console you started Zapping from. Or
+    if you like it a bit more complex:</p>
+<pre class="userinput">
+zapping_remote '
+import gtk
+
+def on_quit(*args):
+        zapping.quit()
+ 
+window = gtk.Window()
+button = gtk.Button("Quit")
+button.connect("clicked", on_quit)
+window.add(button)
+window.show_all()
+'
+</pre>
+    <p>This Python scriptlet creates a new Gtk window with a Quit
+    button. When you click on the button Zapping terminates.</p>
+  </body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en-us"><head>
+<title>Zapping Remote Controls</title><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" /><link rel="stylesheet" href="/twiki.css" type="text/css" /><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" /></head><body bgcolor="#ffffff"><table class="header" border="0" width="100%"><tbody><tr><td width="100%"><a href="/index.html">Zapping</a> &middot; <a href="/ZVBI/index.html">ZVBI</a></td><td><a href="/index.html"><img src="/images/zapping.gif" alt="Zapping Homepage" border="0" /></a></td></tr><tr><td colspan="2"><hr /></td></tr><tr><td colspan="2"><center><a href="/Zapping/News.html">News</a> | <strong><a href="/Zapping/Download.html">Download</a></strong> | <a href="/Zapping/Screenshots.html">Screenshots</a> | <a href="http://sourceforge.net/projects/zapping">Sourceforge</a> | <img src="/images/help.png" alt="Help" border="0" height="16" width="16" /><a href="/Zapping/Help.html">Help</a></center></td></tr></tbody></table>
+    <h1>Using a Remote Control</h1>
+
+    <p>Zapping supports the LIRC (Linux Infrared Remote Control)
+    infrastructure. Visit <a href="http://www.lirc.org/">http://www.lirc.org</a> for more information about LIRC.
+    To use LIRC you must create a <code>.lircrc</code> file in your
+    home directory. For each remote control button add an entry
+    like these:</p>
+<pre>
+        begin
+                prog   = zapping_lirc
+                button = VOL_UP
+                config = zapping.volume_incr(+5)
+        end
+
+        begin
+                prog   = zapping_lirc
+                button = 0
+                config = SETCHANNEL 0
+        end
+
+        begin
+                prog   = zapping_lirc
+                button = 1
+                config = SETCHANNEL 1
+        end
+
+        begin
+                prog   = zapping_lirc
+                button = 9
+                config = SETCHANNEL 9
+        end
+</pre>
+
+    <dl>
+      <dt>prog</dt>
+
+      <dd>is the program interpreting the command and must be
+      <code>zapping_lirc</code>.</dd>
+
+      <dt>button</dt>
+
+      <dd>is the name of the remote control button. Presumably with
+      LIRC you installed <code>/etc/lircd.conf</code>, this file
+      lists all available buttons.</dd>
+
+      <dt>config</dt>
+
+      <dd>is a Zapping command. Commands are listed on the <a href=
+      "/Zapping/ZappingCommands">Zapping Commands</a> page.</dd>
+    </dl>
+
+    <p>Suppose your remote control has a <code>TV/RADIO</code>
+    button and you want to switch between two layers of commands,
+    much like Shift Lock switches between lower and upper case
+    characters. This can be accomplished by embracing the entries
+    above within a <code>zapping_lirc</code> section, and
+    programming the <code>TV/RADIO</code> button to enable this
+    section, "switch to this mode" in LIRC speak.</p>
+<pre>
+begin zapping_lirc
+        begin
+                button = TV/RADIO
+                mode   = radio
+        end
+
+        Zapping entries &hellip;
+end zapping_lirc
+
+begin radio
+        begin
+                button = TV/RADIO
+                mode   = zapping_lirc
+        end
+
+        Other entries &hellip;
+end radio
+
+Mode-independend entries &hellip;
+</pre>
+
+    <p>Which mode will be initially selected? Well, none. But when
+    you start Zapping it automatically switches to
+    <code>zapping_lirc</code> mode, if such a section exists.</p>
+
+    <p><img src="/images/warning.png" alt="Warning!"
+    border="0" height="16" width="16" /> LIRC applications are
+    supposed to cooperate by using <code>.lircrc</code>, but there
+    is no way (or was, at the time the LIRC plugin was written) two
+    applications can agree on the current mode, so they may both
+    respond to a button press.</p>
+
+    <p>For further instructions please see the LIRC
+    documentation.</p>
+
+    <h2><a name="Developer_Notes"></a> Developer Notes</h2>
+
+    <p>Editing a config file isn't exactly what users of Gnome app
+    should have to do. By default Zapping should find out which
+    model of RC the user has and automatically assign actions to
+    each button. If that's not possible it should prompt the user
+    with a list of known models. In any case actions must be
+    editable, and zapping should provide a GUI which lists all
+    buttons and their current action. That being either a simple
+    description like "Go to next channel" from a list or menu, or a
+    Python command for experienced users.</p>
+
+    <p><code>SETCHANNEL</code> is particularly odd. We take for
+    granted that all keyboards send the same key codes, at least
+    for the standard keys. Why can't LIRC do that? Life would be
+    easier if Zapping could handle number keys collectively.</p>
+
+    <p>Why do we have to store <em>our</em> configuration in
+    <code>.lircrc</code> anyway? It would be easier to register
+    modifiers like <code>TV/RADIO</code> with the lirc daemon, to
+    synchronize clients, then filter button events and translate to
+    actions ourselves.</p>
+
+    <p>Another issue: buttons may change their function depending
+    on the Zapping mode Video, Teletext, EPG, Recording etc.
+    <code>SETCHANNEL</code> could change semantics, but in the long
+    run we probably need more LIRC modes.</p>
+  </body>
+</html>
+

@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en-us"><head>
+<title>Zapping Change Video Input</title><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" /><link rel="stylesheet" href="/twiki.css" type="text/css" /><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" /></head><body bgcolor="#ffffff"><table class="header" border="0" width="100%"><tbody><tr><td width="100%"><a href="/index.html">Zapping</a> &middot; <a href="/ZVBI/index.html">ZVBI</a></td><td><a href="/index.html"><img src="/images/zapping.gif" alt="Zapping Homepage" border="0" /></a></td></tr><tr><td colspan="2"><hr /></td></tr><tr><td colspan="2"><center><a href="/Zapping/News.html">News</a> | <strong><a href="/Zapping/Download.html">Download</a></strong> | <a href="/Zapping/Screenshots.html">Screenshots</a> | <a href="http://sourceforge.net/projects/zapping">Sourceforge</a> | <img src="/images/help.png" alt="Help" border="0" height="16" width="16" /><a href="/Zapping/Help.html">Help</a></center></td></tr></tbody></table>
+<h1>How to Compile and Install Zapping from Source Code</h1>
+<p>
+<strong>Step 1.</strong> Compiling is as simple as
+</p><p>
+</p><pre class="userinput">cd zapping
+./configure --prefix=/usr
+make</pre>
+<p>
+Or on FreeBSD and other Unices
+</p><p>
+</p><pre class="userinput">cd zapping
+./configure --prefix=/usr/X11R6
+gmake</pre>
+<p>
+The <code>./configure</code> script configures the source for
+building. Mainly it determines if and where the required tools and
+libraries are installed and creates <code>Makefiles</code> with build instructions for the <code>make</code> (or <code>gmake</code>, because a few Gnome
+macros depend on GNU extensions) program.
+</p><p>
+The <code>--prefix</code> option tells <code>./configure</code> where Zapping shall be installed. It should go with other Gnome applications. On Linux usually <code>/usr</code> is correct, on FreeBSD Gnome seems to live
+in <code>/usr/X11R6</code>.
+Zapping will work just fine when you install elsewhere, but it may not
+be in your executable search path, cannot add itself to the Gnome
+application menu and will not appear in the Gnome documentation list.
+Note the prefix is compiled into the application to locate its images, <code>.glade</code>
+files and plugins. So you can start Zapping directly from the compile
+directory, but it will not work correctly until these files have been
+installed.
+</p><p>
+<code>./configure</code> has many more options, to see them type <code>./configure --help</code>. See also the <code>INSTALL</code> file included with the source package. In particular you might want to make sure the <code>CFLAGS</code> environment variable enables debugging or optimization.
+</p><p>
+<img src="/images/tip.png" alt="Tip!" border="0" height="16" width="16"> If <code>./configure</code>
+complains about missing libraries you may have to install development
+packages of these libraries. Most distributions ship libraries in two
+packages, one containing the binary for applications using the library
+and another with additional files to compile such applications.
+</p><p>
+<img src="/images/tip.png" alt="Tip!" border="0" height="16" width="16"> All Zapping modules support <tt>VPATH</tt>-making. That means you can keep source and object code in different directories:
+</p><p>
+</p><pre class="userinput"># We assume the source is in /usr/src/zapping
+mkdir zap
+cd zap
+/usr/src/zapping/configure --prefix=/usr
+make</pre>
+<p>
+<strong>Step 2.</strong> When <code>make</code> (<code>gmake</code>) finished successfully you can install by typing:
+</p><p>
+</p><pre class="userinput">make install</pre>
+<p>
+Likewise, to get rid of Zapping type:
+</p><p>
+</p><pre class="userinput">make uninstall</pre>
+<p>Naturally you must type this in the build directory of the version
+you want to uninstall. A newer version of Zapping may not know which
+files have been installed by an earlier version.
+</p>
+</body></html>

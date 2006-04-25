@@ -1,0 +1,163 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en-us"><head>
+<title>Zapping Download</title><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" /><link rel="stylesheet" href="/twiki.css" type="text/css" /><link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" /></head><body bgcolor="#ffffff"><table class="header" border="0" width="100%"><tbody><tr><td width="100%"><a href="/index.html">Zapping</a> &middot; <a href="/ZVBI/index.html">ZVBI</a></td><td><a href="/index.html"><img src="/images/zapping.gif" alt="Zapping Homepage" border="0" /></a></td></tr><tr><td colspan="2"><hr /></td></tr><tr><td colspan="2"><center><a href="/Zapping/News.html">News</a> | <strong><a href="/Zapping/Download.html">Download</a></strong> | <a href="/Zapping/Screenshots.html">Screenshots</a> | <a href="http://sourceforge.net/projects/zapping">Sourceforge</a> | <img src="/images/help.png" alt="Help" border="0" height="16" width="16" /><a href="/Zapping/Help.html">Help</a></center></td></tr></tbody></table>
+    <h1>Download</h1>
+
+    <div class="twikiToc">
+      <ul>
+        <li><a href="#Requirements">Requirements</a></li>
+        <li>
+          <a href="#Binaries">Binaries</a> 
+          <ul>
+            <li><a href="#RedHat">RedHat</a></li>
+            <li><a href="#Debian">Debian</a></li>
+          </ul>
+        </li>
+        <li><a href="#Source_Code">Source Code</a></li>
+        <li><a href="#Anonymous_CVS_Access">Anonymous CVS Access</a></li>
+      </ul>
+    </div>
+
+    <p>Related topics:</p>
+
+    <ul>
+      <li><a href="/Zapping/CompileAndInstall.html">Compile and Install</a></li>
+    </ul>
+
+    <hr />
+
+    <h2><a name="Requirements"></a>Requirements</h2>
+
+    <ul>
+      <li>An analog TV card with V4L, V4L2 or XVideo driver.
+      Digital TV (DVB, ATSC) is not supported yet.</li>
+
+      <li>A Gnome 2.0 or later desktop, with the common
+      libraries.</li>
+
+      <li>For Teletext and Closed Caption functions the <a href=
+      "/ZVBI/index.html">zvbi
+      library</a>. VBI capturing is only possible on <em>Linux</em>
+      and <em>FreeBSD</em>. It makes little sense to install the
+      library on other Unices.</li>
+
+      <li>The video recording plugin needs the rte library, also
+      available from the <a href=
+      "http://sourceforge.net/project/showfiles.php?group_id=2599">Zapping dowload page</a>. You need not download
+      mp1e, this codec is already included in the rte library.
+      Presently recording is only supported on <em>Linux</em>.</li>
+
+      <li>The remote control plugin needs the LIRC package. If not
+      already part of your distribution you can download LIRC from
+      <a href="http://www.lirc.org/">http://www.lirc.org</a>. Presently remote controls are
+      only supported on <em>Linux</em>.</li>
+    </ul>
+
+    <h2><a name="Binaries"></a>Binaries</h2>
+
+    <p>If possible you should use binaries which have been created
+    for your distribution.</p>
+
+    <h3><a name="RedHat"></a>RedHat</h3>
+
+    <p>RedHat RPMs are available from <a href="http://freshrpms.net/">http://freshrpms.net/</a>.</p>
+
+    <h3><a name="Debian"></a>Debian</h3>
+
+    <p>Debian packages are available from Debian mirrors. To install Zapping type</p>
+<pre class="userinput">
+apt-get install zapping
+</pre>
+    <br />
+
+    <h2><a name="Source_Code"></a>Source Code</h2>
+
+    <p>You can download the latest version of Zapping from our <a
+    href="http://sourceforge.net/projects/zapping">Sourceforge project
+    page</a>.</p>
+
+    <p>See the <a href="/Zapping/CompileAndInstall.html">Compile and Install</a>
+    page for further instructions.</p>
+
+    <h2><a name="Anonymous_CVS_Access"></a> Anonymous CVS
+    Access</h2>
+
+    <p>To get the latest development version of Zapping you can
+    access the CVS server anonymously. If you are unfamiliar with
+    using the CVS utility and the CVS commands see the CVS info or
+    manual pages or go to the <a href="http://www.cvshome.org/"
+    target="_top">CVS web site</a> for further information.</p>
+
+    <p><strong>Step 1</strong>: Set the <code>$CVSROOT</code>
+    environment variable. For sh/ksh/bash:</p>
+<pre class="userinput">
+export CVSROOT=:pserver:anonymous@cvs.sf.net:/cvsroot/zapping
+</pre>
+
+    <p>For csh/tcsh:</p>
+<pre class="userinput">
+setenv CVSROOT :pserver:anonymous@cvs.sf.net:/cvsroot/zapping
+</pre>
+
+    <p>If you don't want to set <code>$CVSROOT</code> you can use
+    the cvs -d option:</p>
+<pre class="userinput">
+cvs -d :pserver:anonymous@cvs.sf.net:/cvsroot/zapping login etc
+</pre>
+
+    <p><strong>Step 2</strong>: To log in to the Zapping CVS server
+    type the following. When asked for a password just press
+    enter.</p>
+<pre class="userinput">
+cvs login
+</pre>
+
+    <p><strong>Step 3</strong>: To download the latest version of
+    Zapping type:</p>
+<pre class="userinput">
+cvs co zapping
+</pre>
+
+    <p>You can request another version or development branch using
+    the <code>co -r TAG MODULE</code> notation. This command for
+    example requests Zapping version 0.7:</p>
+<pre class="userinput">
+cvs co -r zapping-0-7 zapping
+</pre>
+
+    <p>Other modules besides zapping are <code>vbi</code>
+    containing the zvbi library and <code>rte</code> containing the
+    rte library and mp1e. To find out which tags are available you
+    can use the <code>cvs status</code> command or <a href=
+    "http://cvs.sourceforge.net/viewcvs.py/zapping/">browse the CVS repository</a>. Select a module and open
+    the tag menu at the bottom of the page.</p>
+
+    <p>From now on you can type</p>
+<pre class="userinput">
+cvs update -d -P
+</pre>
+
+    <p>in the respective source directory to update your copy of
+    the CVS repository. As before, <code>-r</code> will choose a
+    particular version or branch and <code>-A</code> the latest
+    version.</p>
+
+    <p><strong>Step 4</strong>: Prior to the first compilation
+    run</p>
+<pre class="userinput">
+./autogen.sh --prefix=/usr
+</pre>
+
+    <p>to create missing configuration files. Change the install
+    prefix as needed. The <code>autogen.sh</code> script requires
+    several GNU build tools like <code>autoconf</code> or
+    <code>libtool</code>, will tell you if any are missing or too
+    old.</p>
+
+    <p>See the <a href="/Zapping/CompileAndInstall.html">Compile and Install</a>
+    page for further instructions.</p>
+
+    <p><strong>Problems?</strong> Contact <a href=
+    "mailto:mschimek@users.sourceforgeN0SPAM.net">mschimek@users.sourceforgeN0SPAM.net</a>.</p>
+  </body>
+</html>
+
