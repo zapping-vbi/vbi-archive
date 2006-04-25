@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: prepare_web.sh,v 1.25 2006-04-25 20:47:27 mschimek Exp $
+# $Id: prepare_web.sh,v 1.26 2006-04-25 20:56:44 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
@@ -22,7 +22,8 @@ cvs -z3 update -ko -dPA
 chmod a+rX htdocs
 cd htdocs
 
-chmod a+r favicon.ico twiki.css .htaccess
+# icon32.png is referenced by our entry on gnomefiles.org.
+chmod a+r favicon.ico twiki.css .htaccess icon32.png
 for dir in images screenshots Zapping ZVBI; do
   find $dir -name "CVS" -prune -o -exec chmod a+rX '{}' ';'
 done
