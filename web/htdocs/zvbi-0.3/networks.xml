@@ -4,7 +4,7 @@
 
   Libzvbi Networks Table
 
-  Copyright (C) 2000-2005 Michael H. Schimek
+  Copyright (C) 2000-2006 Michael H. Schimek
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License version 2 as
@@ -21,24 +21,157 @@
 
   ============================================================================
 
-  This information comes from TR 101 231 EBU rev. 2005-09, www.ebu.ch,
+  This information comes from TR 101 231 EBU rev. 2006-04b, www.ebu.ch,
 
   Table A.1: Register of Country and Network Identification
              (CNI) codes for Teletext based systems
 
   Table B.1: VPS CNI Codes used in Germany, Switzerland and Austria
 
+  and from ETS 300 231 "Specification of the domestic video Programme
+    Delivery Control system (PDC)"
+
   Please send corrections and additions to mschimek@users.sourceforge.net.
 
   ============================================================================
 
-  Highest network id is n634 (arbitrary number used to distinguish
+  Highest network id is n685 (arbitrary number used to distinguish
     networks in libzvbi-0.2).
 
-  $Id: networks.xml,v 1.3 2005-10-07 14:53:44 mschimek Exp $
+  $Id: networks.xml,v 1.4 2006-05-03 03:28:13 mschimek Exp $
 
 -->
 <networks>
+  <country>
+    <name>Albania</name>
+    <country-code>AL</country-code>
+    <cni-8302>0x1900</cni-8302>
+  </country>
+
+  <country>
+    <name>Algeria</name>
+    <country-code>DZ</country-code>
+    <cni-8302>0x1200</cni-8302>
+  </country>
+
+  <country>
+    <name>Andorra</name>
+    <country-code>AD</country-code>
+    <cni-8302>0x1300</cni-8302>
+  </country>
+
+  <country>
+    <name>Austria</name>
+    <country-code>AT</country-code>
+    <cni-8301>0x4300</cni-8301>
+    <cni-8302>0x1A00</cni-8302>
+    <network id="n193">
+      <name>ORF 1</name>
+      <cni-8301>0x4301</cni-8301>
+      <cni-vps>0x0AC1</cni-vps>
+      <pdc>
+        <near>311-315</near>
+        <near>321-325</near>
+	<far depth="8">346-353</far>
+	<symbol code="bilingual" color="red">°*</symbol>
+	<symbol code="bw" color="red">s/w</symbol>
+	<symbol code="dd51" color="red">DD</symbol>
+	<symbol code="description" color="red">HF</symbol>
+	<symbol code="ds" color="red">DS</symbol>
+	<symbol code="stereo" color="red">°°</symbol>
+	<symbol code="subtitles" color="red">UT</symbol>
+	<symbol code="surround" color="red">SS</symbol>
+	<symbol code="ws169" color="red">16:9</symbol>
+	<symbol code="children" color="red">K+</symbol>
+	<symbol code="mature" color="red">X</symbol>
+	<symbol code="adult" color="red">O</symbol>
+      </pdc>
+    </network>
+    <network id="n194">
+      <name>ORF 2</name>
+      <cni-8301>0x4302</cni-8301>
+      <cni-vps>0x0AC2</cni-vps>
+    </network>
+    <network id="n195">
+      <name>ORF 3</name>
+      <cni-vps>0x0AC3</cni-vps>
+    </network>
+    <network id="n680">
+      <name>ORF Sport+</name>
+      <cni-vps>0x0AC4</cni-vps>
+    </network>
+    <network id="n524">
+      <name>TW1</name>
+      <cni-vps>0x0AC7</cni-vps>
+      <!-- Transmits cni-vps 0xAC1 (ORF 1)? -->
+      <ttx-header>###?TW1  </ttx-header>
+    </network>
+    <network id="n681">
+      <name>Nick - Viva</name>
+      <cni-vps>0x0AC8</cni-vps>
+    </network>
+    <network id="n682">
+      <name>MTV Austria</name>
+      <cni-vps>0x0AC9</cni-vps>
+    </network>
+    <network id="n205">
+      <name>ATV+</name>
+      <cni-8301>0x430C</cni-8301>
+      <cni-vps>0x0ACA</cni-vps>
+      <pdc>
+        <near date-row="0" date-format=" %d.%m. " time-format="%H.%M">301-304</near>
+        <near date-row="0" date-format=" %d.%m. " time-format="%H.%M" time-offset="1440">305-308</near>
+        <near date-row="0" date-format=" %d.%m. " time-format="%H.%M" time-offset="2880" depth="4">309</near>
+      </pdc>
+    </network>
+    <network id="n196">
+      <name>ORF Burgenland</name>
+      <cni-vps>0x0ACB</cni-vps>
+    </network>
+    <network id="n197">
+      <name>ORF Kärnten</name>
+      <cni-vps>0x0ACC</cni-vps>
+    </network>
+    <network id="n198">
+      <name>ORF Niederösterreich</name>
+      <cni-vps>0x0ACD</cni-vps>
+    </network>
+    <network id="n199">
+      <name>ORF Oberösterreich</name>
+      <cni-vps>0x0ACE</cni-vps>
+    </network>
+    <network id="n200">
+      <name>ORF Salzburg</name>
+      <cni-vps>0x0ACF</cni-vps>
+    </network>
+    <network id="n201">
+      <name>ORF Steiermark</name>
+      <cni-vps>0x0AD0</cni-vps>
+    </network>
+    <network id="n202">
+      <name>ORF Tirol</name>
+      <cni-vps>0x0AD1</cni-vps>
+    </network>
+    <network id="n203">
+      <name>ORF Vorarlberg</name>
+      <cni-vps>0x0AD2</cni-vps>
+    </network>
+    <network id="n204">
+      <name>ORF Wien</name>
+      <cni-vps>0x0AD3</cni-vps>
+    </network>
+    <network id="n525">
+      <name>UPC Telekabel</name>
+      <ttx-header>###?Wiener?Kabel?Text  </ttx-header>
+    </network>
+  </country>
+
+  <country>
+    <name>Belarus</name>
+    <country-code>BY</country-code>
+    <cni-8302>0x1700</cni-8302>
+  </country>
+
   <country>
     <name>Belgium</name>
     <country-code>BE</country-code>
@@ -298,20 +431,42 @@
       <name>Sporza</name>
       <cni-8301>0x3226</cni-8301>
     </network>
+    <network id="n625">
+      <name>VIJF tv</name>
+      <cni-8301>0x3227</cni-8301>
+    </network>
+  </country>
+
+  <country>
+    <name>Bulgaria</name>
+    <country-code>BG</country-code>
+    <cni-8302>0x2800</cni-8302>
   </country>
 
   <country>
     <name>Croatia</name>
     <country-code>HR</country-code>
+    <!-- No 8/30-2 country code? (ETS 300 231) -->
     <network id="n8">
       <name>HRT</name>
       <cni-8301>0x0385</cni-8301>
     </network>
+    <network id="n636">
+      <name>Nova TV</name>
+      <cni-8301>0x0386</cni-8301>
+    </network>
+  </country>
+
+  <country>
+    <name>Cyprus</name>
+    <country-code>CY</country-code>
+    <cni-8302>0x2200</cni-8302>
   </country>
 
   <country>
     <name>Czech Republic</name>
     <country-code>CZ</country-code>
+    <cni-8301>0x4200</cni-8301>
     <cni-8302>0x3200</cni-8302>
     <network id="n9">
       <name>CT 1</name>
@@ -387,11 +542,20 @@
       <name>TV Brno</name>
       <cni-8301>0x4208</cni-8301>
     </network>
+    <network id="n637">
+      <name>CT24</name>
+      <cni-8301>0x4208</cni-8301>
+    </network>
+    <network id="n638">
+      <name>CT SPORT</name>
+      <cni-8301>0x4208</cni-8301>
+    </network>
   </country>
 
   <country>
     <name>Denmark</name>
     <country-code>DK</country-code>
+    <cni-8301>0x4500</cni-8301>
     <cni-8302>0x2900</cni-8302>
     <network id="n435">
       <name>Discovery Denmark</name>
@@ -444,12 +608,16 @@
   </country>
 
   <country>
+    <name>Egypt</name>
+    <country-code>EG</country-code>
+    <cni-8302>0x1F00</cni-8302>
+  </country>
+
+  <country>
     <name>Finland</name>
     <country-code>FI</country-code>
     <cni-8301>0x3500</cni-8301>
     <cni-8302>0x2600</cni-8302>
-    <cni-vps>0x00</cni-vps>
-    <cni-pdc-b>0x00</cni-pdc-b>
     <network id="n22">
       <name>OWL3</name>
       <cni-8301>0x358F</cni-8301>
@@ -475,7 +643,6 @@
     <country-code>FR</country-code>
     <cni-8301>0x3300</cni-8301>
     <cni-8302>0x2F00</cni-8302>
-    <cni-pdc-b>0x3F00</cni-pdc-b>
     <network id="n25">
       <name>AB1</name>
       <cni-8301>0x33C1</cni-8301>
@@ -488,7 +655,7 @@
       <cni-8302>0x2F20</cni-8302>
       <cni-pdc-b>0x3F20</cni-pdc-b>
     </network>
-    <!-- in TR 101 231 as Arte / La Cinquième (shared frequency) -->
+    <!-- In TR 101 231 as Arte / La Cinquième (shared frequency). -->
     <network id="n27">
       <name>Arte</name>
       <cni-8301>0x330A</cni-8301>
@@ -549,7 +716,7 @@
       <cni-8302>0x2F03</cni-8302>
       <cni-pdc-b>0x3F03</cni-pdc-b>
     </network>
-    <!-- not in TR 101 231: France 5 (La Cinquième) -->
+    <!-- Not in TR 101 231: France 5 (La Cinquième). -->
     <network id="n378">
       <name>France 5</name>
       <cni-8301>0x33F5</cni-8301>
@@ -658,14 +825,11 @@
     </network>
   </country>
 
-  <!-- Table B.1 -->
-
   <country>
     <name>Germany</name>
     <country-code>DE</country-code>
     <cni-8301>0x4900</cni-8301>
-    <cni-vps>0x0D00</cni-vps>
-    <cni-pdc-b>0x3D00</cni-pdc-b>
+    <cni-8302>0x1D00</cni-8302>
     <network id="n51">
       <name>FESTIVAL</name>
       <cni-8301>0x4941</cni-8301>
@@ -680,6 +844,14 @@
       <name>EXTRA</name>
       <cni-8301>0x4943</cni-8301>
       <cni-vps>0x0D43</cni-vps>
+    </network>
+    <network id="n664">
+      <name>MTV</name>
+      <cni-vps>0x0D73</cni-vps>
+    </network>
+    <network id="n665">
+      <name>NICK</name>
+      <cni-vps>0x0D74</cni-vps>
     </network>
     <network id="n634">
       <name>KDG Infokanal</name>
@@ -738,12 +910,26 @@
       <cni-8301>0x4982</cni-8301>
       <cni-vps>0x0D82</cni-vps>
     </network>
-    <!-- not in TR 101 231: 0x3D05 -->
+    <!-- Not in TR 101 231: 0x3D05. -->
     <network id="n60">
       <name>Arte</name>
       <cni-8301>0x490A</cni-8301>
       <cni-pdc-b>0x3D05</cni-pdc-b>
       <cni-vps>0x0D85</cni-vps>
+      <pdc>
+        <near>301-305</near>
+        <near>331-335</near>
+        <far depth="5">361-367</far>
+	<symbol code="bilingual">2K</symbol>
+	<symbol code="original">OmU</symbol>
+	<symbol code="stereo">°°</symbol>
+	<symbol code="documentary" color="green"/>
+	<symbol code="movie" color="cyan"/>
+	<symbol code="music" color="white"/>
+	<symbol code="news" color="red"/>
+	<symbol code="series" color="yellow"/>
+	<symbol code="theater" color="white"/>
+      </pdc>
     </network>
     <network id="n61">
       <name>1A-Fernsehen</name>
@@ -758,7 +944,7 @@
       <cni-vps>0x0D89</cni-vps>
     </network>
     <network id="n64">
-      <name>Super RTL</name>
+      <name>SuperRTL</name>
       <cni-vps>0x0D8A</cni-vps>
     </network>
     <network id="n65">
@@ -777,16 +963,26 @@
       <name>VOX</name>
       <cni-8301>0x490C</cni-8301>
       <cni-vps>0x0D8E</cni-vps>
+      <pdc>
+        <near date-row="4" date-format=" %d.%m. " time-format="%H:%M">301-304</near>
+        <near date-row="4" date-format=" %d.%m. " time-format="%H:%M">305-308</near>
+        <near date-row="4" date-format=" %d.%m. " time-format="%H:%M" depth="4">309</near>
+      </pdc>
     </network>
-    <!-- not in TR 101 231: 0x0D8F -->
+    <!-- Not in TR 101 231: 0x0D8F. -->
     <network id="n69">
       <name>RTL 2</name>
       <cni-8301>0x0D8F</cni-8301>
       <cni-vps>0x0D8F</cni-vps>
+      <pdc>
+        <near date-row="0" date-format=" %d.%m.%y " time-format="%k.%M" depth="2">301-304</near>
+        <near date-row="0" date-format=" %d.%m.%y " time-format="%k.%M" time-offset="1440" depth="4">305-306</near>
+      </pdc>
     </network>
     <network id="n70">
       <name>RTL 2 Regional</name>
       <cni-vps>0x0D90</cni-vps>
+      <alias type="cni-vps">0x0D8F</alias>
     </network>
     <network id="n71">
       <name>Eurosport</name>
@@ -795,108 +991,144 @@
     <network id="n72">
       <name>Kabel 1</name>
       <cni-vps>0x0D92</cni-vps>
+      <pdc>
+        <near date-row="0" date-format=" %d.%m.%y " time-format="%H.%M">301-304</near>
+        <near date-row="0" date-format=" %d.%m.%y " time-format="%H.%M" time-offset="1440">305-308</near>
+        <near date-row="0" date-format=" %d.%m.%y " time-format="%H.%M" time-offset="2880" depth="4">309</near>
+      </pdc>
     </network>
     <network id="n73">
       <name>PRO 7</name>
       <cni-vps>0x0D94</cni-vps>
+      <pdc>
+        <near date-row="0" date-format=" %d.%m " time-format="%H.%M">301-304</near>
+        <near date-row="0" date-format=" %d.%m " time-format="%H.%M" time-offset="1440">305-308</near>
+        <near date-row="0" date-format=" %d.%m " time-format="%H.%M" time-offset="2880" depth="4">309</near>
+      </pdc>
     </network>
-    <!-- not in TR 101 231: 0xAE8, 0xD14. VPS 0xD94? -->
+    <!-- Not in TR 101 231: 0xAE8, 0xD14. VPS 0xD94? -->
     <network id="n74">
       <name>PRO 7 Austria</name>
       <cni-8301>0x0AE8</cni-8301>
       <cni-vps>0x0D14</cni-vps>
+      <alias type="cni-vps">0x0D94</alias>
     </network>
     <network id="n75">
       <name>SAT 1 Brandenburg</name>
       <cni-vps>0x0D95</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n76">
       <name>SAT 1 Thüringen</name>
       <cni-vps>0x0D96</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n77">
       <name>SAT 1 Sachsen</name>
       <cni-vps>0x0D97</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n78">
       <name>SAT 1 Mecklenb.-Vorpommern</name>
       <cni-vps>0x0D98</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n79">
       <name>SAT 1 Sachsen-Anhalt</name>
       <cni-vps>0x0D99</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n80">
       <name>RTL Regional</name>
       <cni-vps>0x0D9A</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n81">
       <name>RTL Schleswig-Holstein</name>
       <cni-vps>0x0D9B</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n82">
       <name>RTL Hamburg</name>
       <cni-vps>0x0D9C</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n83">
       <name>RTL Berlin</name>
       <cni-vps>0x0D9D</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n84">
       <name>RTL Niedersachsen</name>
       <cni-vps>0x0D9E</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n85">
       <name>RTL Bremen</name>
       <cni-vps>0x0D9F</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n86">
       <name>RTL Nordrhein-Westfalen</name>
       <cni-vps>0x0DA0</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n87">
       <name>RTL Hessen</name>
       <cni-vps>0x0DA1</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n88">
       <name>RTL Rheinland-Pfalz</name>
       <cni-vps>0x0DA2</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n89">
       <name>RTL Baden-Württemberg</name>
       <cni-vps>0x0DA3</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n90">
       <name>RTL Bayern</name>
       <cni-vps>0x0DA4</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n91">
       <name>RTL Saarland</name>
       <cni-vps>0x0DA5</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n92">
       <name>RTL Sachsen-Anhalt</name>
       <cni-vps>0x0DA6</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n93">
       <name>RTL Mecklenburg-Vorpommern</name>
       <cni-vps>0x0DA7</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n94">
       <name>RTL Sachsen</name>
       <cni-vps>0x0DA8</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n95">
       <name>RTL Thüringen</name>
       <cni-vps>0x0DA9</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n96">
       <name>RTL Brandenburg</name>
       <cni-vps>0x0DAA</cni-vps>
+      <alias type="cni-vps">0x0DAB</alias>
     </network>
     <network id="n97">
       <name>RTL</name>
       <cni-vps>0x0DAB</cni-vps>
+      <pdc>
+        <near>301-308</near>
+      </pdc>
     </network>
     <network id="n98">
       <name>Premiere</name>
@@ -905,54 +1137,70 @@
     <network id="n99">
       <name>SAT 1 Regional</name>
       <cni-vps>0x0DAD</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n100">
       <name>SAT 1 Schleswig-Holstein</name>
       <cni-vps>0x0DAE</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n101">
       <name>SAT 1 Hamburg</name>
       <cni-vps>0x0DAF</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n102">
       <name>SAT 1 Berlin</name>
       <cni-vps>0x0DB0</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n103">
       <name>SAT 1 Niedersachsen</name>
       <cni-vps>0x0DB1</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n104">
       <name>SAT 1 Bremen</name>
       <cni-vps>0x0DB2</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n105">
       <name>SAT 1 Nordrhein-Westfalen</name>
       <cni-vps>0x0DB3</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n106">
       <name>SAT 1 Hessen</name>
       <cni-vps>0x0DB4</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n107">
       <name>SAT 1 Rheinland-Pfalz</name>
       <cni-vps>0x0DB5</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n108">
       <name>SAT 1 Baden-Württemberg</name>
       <cni-vps>0x0DB6</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n109">
       <name>SAT 1 Bayern</name>
       <cni-vps>0x0DB7</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n110">
       <name>SAT 1 Saarland</name>
       <cni-vps>0x0DB8</cni-vps>
+      <alias type="cni-vps">0x0DB9</alias>
     </network>
     <network id="n111">
       <name>SAT 1</name>
       <cni-vps>0x0DB9</cni-vps>
+      <pdc>
+        <near>301-308</near>
+        <near depth="4">309</near>
+      </pdc>
     </network>
     <network id="n112">
       <name>NEUN LIVE</name>
@@ -974,19 +1222,33 @@
       <name>Berlin-Mix-Channel 1</name>
       <cni-vps>0x0DBF</cni-vps>
     </network>
-    <!-- not in TR 101 231: 0x3D41 -->
+    <!-- Not in TR 101 231: 0x3D41. -->
     <network id="n117">
       <name>ARD</name>
       <cni-8301>0x4901</cni-8301>
       <cni-pdc-b>0x3D41</cni-pdc-b>
       <cni-vps>0x0DC1</cni-vps>
+      <pdc>
+        <near date-row="2" date-format=" %d.%m.%y ">301-308</near>
+        <far date-row="2" date-format=" %d.%m.%y " depth="12">351-357</far>
+	<symbol code="bw" color="yellow">s/w</symbol>
+	<symbol code="description" color="yellow">HF</symbol>
+	<symbol code="original" color="yellow">OmU</symbol>
+	<symbol code="stereo" color="yellow">°°</symbol>
+	<symbol code="subtitles" color="yellow">UT</symbol>
+	<symbol code="ws169" color="yellow">16:9</symbol>
+      </pdc>
     </network>
-    <!-- not in TR 101 231: 0x3D42 -->
+    <!-- Not in TR 101 231: 0x3D42. -->
     <network id="n118">
       <name>ZDF</name>
       <cni-8301>0x4902</cni-8301>
       <cni-pdc-b>0x3D42</cni-pdc-b>
       <cni-vps>0x0DC2</cni-vps>
+      <pdc>
+	<near>301-308</near>
+	<far depth="12">351-357</far>
+      </pdc>
     </network>
     <!--
       "NOTE: As this code is used for a time in two networks a
@@ -1010,6 +1272,22 @@
       <name>3sat</name>
       <cni-8301>0x49C7</cni-8301>
       <cni-vps>0x0DC7</cni-vps>
+      <pdc>
+        <near>301-304</near>
+        <near>329-332</near>
+        <far depth="5">361-367</far>
+	<symbol code="bilingual" color="yellow">2K</symbol>
+	<symbol code="bw" color="yellow">s/w</symbol>
+	<symbol code="dd51" color="yellow">DD</symbol>
+	<symbol code="description" color="yellow">AD</symbol>
+	<symbol code="original" color="yellow">OmU</symbol>
+	<symbol code="repeat" color="yellow">Wh.</symbol>
+	<symbol code="sign" color="yellow">GS</symbol>
+	<symbol code="stereo" color="yellow">oo</symbol>
+	<symbol code="subtitles" color="yellow">UT</symbol>
+	<symbol code="surround" color="yellow">DS</symbol>
+	<symbol code="ws169" color="yellow">16:9</symbol>
+      </pdc>
     </network>
     <network id="n123">
       <name>Phoenix</name>
@@ -1025,12 +1303,18 @@
       <name>BR-1 Regional</name>
       <cni-vps>0x0DCA</cni-vps>
     </network>
-    <!-- not in TR 101 231: 0x3D4B -->
+    <!-- Not in TR 101 231: 0x3D4B. -->
     <network id="n126">
       <name>BR-3</name>
       <cni-8301>0x49CB</cni-8301>
       <cni-pdc-b>0x3D4B</cni-pdc-b>
       <cni-vps>0x0DCB</cni-vps>
+      <pdc>
+        <near>301-309</near>
+	<near>311-319</near>
+	<near>321-329</near>
+        <far depth="12">334-340</far>
+      </pdc>
     </network>
     <network id="n377">
       <name>BR-Alpha</name>
@@ -1129,6 +1413,11 @@
       <name>SW 3 Baden-Württemberg</name>
       <cni-8301>0x49E1</cni-8301>
       <cni-vps>0x0DE1</cni-vps>
+      <pdc>
+	<near>301-304</near>
+	<near>321-324</near>
+	<far depth="12">341-347</far>
+      </pdc>
     </network>
     <network id="n149">
       <name>SW 3 Saarland</name>
@@ -1248,210 +1537,33 @@
       <name>MDR-3</name>
       <cni-8301>0x49FE</cni-8301>
       <cni-vps>0x0DFE</cni-vps>
+      <pdc>
+        <near>301-305</near>
+        <near>321-325</near>
+        <near>341-345</near>
+        <far depth="5">361-367</far>
+	<symbol code="bilingual" color="cyan">2K-Ton</symbol>
+	<symbol code="bw" color="cyan">s/w</symbol>
+	<symbol code="description" color="cyan">AD</symbol>
+	<symbol code="original" color="cyan">OmU</symbol>
+	<symbol code="stereo" color="cyan">°°</symbol>
+	<symbol code="subtitles" color="cyan">UT</symbol>
+	<symbol code="ws169" color="cyan">16:9</symbol>
+      </pdc>
     </network>
   </country>
 
   <country>
-    <name>Switzerland</name>
-    <country-code>CH</country-code>
-    <cni-8301>0x4100</cni-8301>
-    <cni-8302>0x2400</cni-8302>
-    <cni-vps>0x0400</cni-vps>
-    <cni-pdc-b>0x3400</cni-pdc-b>
-    <network id="n178">
-      <name>TeleZüri</name>
-      <cni-vps>0x0481</cni-vps>
-    </network>
-    <network id="n179">
-      <name>Teleclub Abo-Fernsehen</name>
-      <cni-vps>0x0482</cni-vps>
-    </network>
-    <network id="n180">
-      <name>Zürich 1</name>
-      <cni-vps>0x0483</cni-vps>
-    </network>
-    <network id="n181">
-      <name>TeleBern</name>
-      <cni-vps>0x0484</cni-vps>
-    </network>
-    <network id="n182">
-      <name>Tele M1</name>
-      <cni-vps>0x0485</cni-vps>
-    </network>
-    <network id="n183">
-      <name>Star TV</name>
-      <cni-vps>0x0486</cni-vps>
-    </network>
-    <network id="n184">
-      <name>Pro 7</name>
-      <cni-vps>0x0487</cni-vps>
-    </network>
-    <network id="n185">
-      <name>TopTV</name>
-      <cni-vps>0x0488</cni-vps>
-    </network>
-    <network id="n186">
-      <name>SRG Schweizer Fernsehen SF 1</name>
-      <cni-8301>0x4101</cni-8301>
-      <cni-8302>0x24C1</cni-8302>
-      <cni-pdc-b>0x3441</cni-pdc-b>
-      <cni-vps>0x04C1</cni-vps>
-    </network>
-    <network id="n187">
-      <name>SSR Télévis. Suisse TSR 1</name>
-      <cni-8301>0x4102</cni-8301>
-      <cni-8302>0x24C2</cni-8302>
-      <cni-pdc-b>0x3442</cni-pdc-b>
-      <cni-vps>0x04C2</cni-vps>
-    </network>
-    <network id="n188">
-      <name>SSR Televis. svizzera TSI 1</name>
-      <cni-8301>0x4103</cni-8301>
-      <cni-8302>0x24C3</cni-8302>
-      <cni-pdc-b>0x3443</cni-pdc-b>
-      <cni-vps>0x04C3</cni-vps>
-    </network>
-    <network id="n189">
-      <name>SRG Schweizer Fernsehen SF 2</name>
-      <cni-8301>0x4107</cni-8301>
-      <cni-8302>0x24C7</cni-8302>
-      <cni-pdc-b>0x3447</cni-pdc-b>
-      <cni-vps>0x04C7</cni-vps>
-    </network>
-    <network id="n190">
-      <name>SSR Télévis. Suisse TSR 2</name>
-      <cni-8301>0x4108</cni-8301>
-      <cni-8302>0x24C8</cni-8302>
-      <cni-pdc-b>0x3448</cni-pdc-b>
-      <cni-vps>0x04C8</cni-vps>
-    </network>
-    <network id="n191">
-      <name>SSR Televis. svizzera TSI 2</name>
-      <cni-8301>0x4109</cni-8301>
-      <cni-8302>0x24C9</cni-8302>
-      <cni-pdc-b>0x3449</cni-pdc-b>
-      <cni-vps>0x04C9</cni-vps>
-    </network>
-    <network id="n192">
-      <name>SRG SSR Sat Access</name>
-      <cni-8301>0x410A</cni-8301>
-      <cni-8302>0x24CA</cni-8302>
-      <cni-pdc-b>0x344A</cni-pdc-b>
-      <cni-vps>0x04CA</cni-vps>
-    </network>
-    <network id="n506">
-      <name>U1</name>
-      <cni-8301>0x4121</cni-8301>
-      <cni-8302>0x2421</cni-8302>
-    </network>
+    <name>Gibraltar</name>
+    <country-code>GI</country-code>
+    <cni-8302>0x2A00</cni-8302>
   </country>
-
-  <country>
-    <name>Austria</name>
-    <country-code>AT</country-code>
-    <cni-8301>0x4300</cni-8301>
-    <cni-vps>0x0A00</cni-vps>
-    <network id="n193">
-      <name>ORF 1</name>
-      <cni-8301>0x4301</cni-8301>
-      <cni-vps>0x0AC1</cni-vps>
-    </network>
-    <network id="n194">
-      <name>ORF 2</name>
-      <cni-8301>0x4302</cni-8301>
-      <cni-vps>0x0AC2</cni-vps>
-    </network>
-    <network id="n195">
-      <name>ORF 3</name>
-      <cni-vps>0x0AC3</cni-vps>
-    </network>
-    <network id="n205">
-      <name>ATV+</name>
-      <cni-8301>0x430C</cni-8301>
-      <cni-vps>0x0ACA</cni-vps>
-    </network>
-    <network id="n196">
-      <name>ORF Burgenland</name>
-      <cni-vps>0x0ACB</cni-vps>
-    </network>
-    <network id="n197">
-      <name>ORF Kärnten</name>
-      <cni-vps>0x0ACC</cni-vps>
-    </network>
-    <network id="n198">
-      <name>ORF Niederösterreich</name>
-      <cni-vps>0x0ACD</cni-vps>
-    </network>
-    <network id="n199">
-      <name>ORF Oberösterreich</name>
-      <cni-vps>0x0ACE</cni-vps>
-    </network>
-    <network id="n200">
-      <name>ORF Salzburg</name>
-      <cni-vps>0x0ACF</cni-vps>
-    </network>
-    <network id="n201">
-      <name>ORF Steiermark</name>
-      <cni-vps>0x0AD0</cni-vps>
-    </network>
-    <network id="n202">
-      <name>ORF Tirol</name>
-      <cni-vps>0x0AD1</cni-vps>
-    </network>
-    <network id="n203">
-      <name>ORF Vorarlberg</name>
-      <cni-vps>0x0AD2</cni-vps>
-    </network>
-    <network id="n204">
-      <name>ORF Wien</name>
-      <cni-vps>0x0AD3</cni-vps>
-    </network>
-    <!-- not in TR 101 231 -->
-    <network id="n524">
-      <name>TW1</name>
-      <!-- transmits cni-vps 0xAC1 (ORF 1) -->
-      <ttx-header>###?TW1  </ttx-header>
-    </network>
-    <network id="n525">
-      <name>UPC Telekabel</name>
-      <ttx-header>###?Wiener?Kabel?Text  </ttx-header>
-    </network>
-  </country>
-
-  <country>
-    <name>Ukraine</name>
-    <country-code>UA</country-code>
-    <cni-8301>0x7700</cni-8301>
-    <cni-vps>0x0700</cni-vps>
-    <network id="n518">
-      <name>1+1</name>
-      <cni-8301>0x7700</cni-8301>
-      <cni-vps>0x07C0</cni-vps>
-    </network>
-    <network id="n519">
-      <name>M1</name>
-      <cni-8301>0x7705</cni-8301>
-      <cni-vps>0x07C5</cni-vps>
-    </network>
-    <network id="n520">
-      <name>ICTV</name>
-      <cni-8301>0x7707</cni-8301>
-    </network>
-    <network id="n521">
-      <name>Novy Kanal</name>
-      <cni-8301>0x7708</cni-8301>
-      <cni-vps>0x07C8</cni-vps>
-    </network>
-  </country>
-
-  <!-- Table A.1 continued -->
 
   <country>
     <name>Greece</name>
     <country-code>GR</country-code>
     <cni-8301>0x3000</cni-8301>
     <cni-8302>0x2100</cni-8302>
-    <cni-pdc-b>0x3100</cni-pdc-b>
     <network id="n206">
       <name>ET-1</name>
       <cni-8301>0x3001</cni-8301>
@@ -1476,6 +1588,7 @@
     <name>Hungary</name>
     <country-code>HU</country-code>
     <cni-8301>0x3600</cni-8301>
+    <cni-8302>0x1B00</cni-8302>
     <network id="n209">
       <name>Duna Televizio</name>
       <cni-8301>0x3636</cni-8301>
@@ -1521,6 +1634,7 @@
   <country>
     <name>Iceland</name>
     <country-code>IS</country-code>
+    <cni-8302>0x3A00</cni-8302>
     <network id="n219">
       <name>Rikisutvarpid-Sjonvarp</name>
       <cni-8301>0x3541</cni-8301>
@@ -1528,10 +1642,15 @@
   </country>
 
   <country>
+    <name>Iraq</name>
+    <country-code>IQ</country-code>
+    <cni-8302>0x2B00</cni-8302>
+  </country>
+
+  <country>
     <name>Ireland</name>
     <country-code>IE</country-code>
     <cni-8302>0x4200</cni-8302>
-    <cni-pdc-b>0x3200</cni-pdc-b>
     <network id="n220">
       <name>Network 2</name>
       <cni-8301>0x3532</cni-8301>
@@ -1557,6 +1676,12 @@
   </country>
 
   <country>
+    <name>Israel</name>
+    <country-code>IL</country-code>
+    <cni-8302>0x1400</cni-8302>
+  </country>
+
+  <country>
     <name>Italy</name>
     <country-code>IT</country-code>
     <cni-8301>0x3900</cni-8301>
@@ -1564,14 +1689,20 @@
     <network id="n227">
       <name>RAI 1</name>
       <cni-8301>0x3901</cni-8301>
+      <cni-pdc-a>0x15101</cni-pdc-a>
+      <pdc>
+        <near>502-513</near>
+      </pdc>
     </network>
     <network id="n228">
       <name>RAI 2</name>
       <cni-8301>0x3902</cni-8301>
+      <cni-pdc-a>0x15102</cni-pdc-a>
     </network>
     <network id="n229">
       <name>RAI 3</name>
       <cni-8301>0x3903</cni-8301>
+      <cni-pdc-a>0x15103</cni-pdc-a>
     </network>
     <network id="n231">
       <name>Rete A</name>
@@ -1585,6 +1716,7 @@
     <network id="n540">
       <name>Telenova</name>
       <cni-8301>0x3909</cni-8301>
+      <cni-8302>0x1509</cni-8302>
     </network>
     <network id="n224">
       <name>Arte</name>
@@ -1640,7 +1772,7 @@
       <cni-8302>0x1519</cni-8302>
     </network>
     <network id="n449">
-      <name>RaiNews24</name>
+      <name>RaiNotizie24</name>
       <cni-8301>0x3920</cni-8301>
     </network>
     <network id="n450">
@@ -1648,23 +1780,23 @@
       <cni-8301>0x3921</cni-8301>
     </network>
     <network id="n451">
-      <name>RAI Sport</name>
+      <name>RAI SportSat</name>
       <cni-8301>0x3922</cni-8301>
     </network>
     <network id="n452">
-      <name>RAI Educational</name>
+      <name>RAI Edu1</name>
       <cni-8301>0x3923</cni-8301>
     </network>
     <network id="n453">
-      <name>RAI Edu Lab</name>
+      <name>RAI Edu2</name>
       <cni-8301>0x3924</cni-8301>
     </network>
     <network id="n454">
-      <name>RAI Nettuno 1</name>
+      <name>RAI NettunoSat1</name>
       <cni-8301>0x3925</cni-8301>
     </network>
     <network id="n455">
-      <name>RAI Nettuno 2</name>
+      <name>RAI NettunoSat2</name>
       <cni-8301>0x3926</cni-8301>
     </network>
     <network id="n456">
@@ -1672,8 +1804,20 @@
       <cni-8301>0x3927</cni-8301>
     </network>
     <network id="n457">
-      <name>RAI Mosaico</name>
+      <name>Senato</name>
       <cni-8301>0x3928</cni-8301>
+    </network>
+    <network id="n639">
+      <name>RAIUtile</name>
+      <cni-8301>0x3929</cni-8301>
+    </network>
+    <network id="n640">
+      <name>RAIDocFutura</name>
+      <cni-8301>0x392A</cni-8301>
+    </network>
+    <network id="n641">
+      <name>RAITest2</name>
+      <cni-8301>0x392B</cni-8301>
     </network>
     <network id="n438">
       <name>Discovery Italy</name>
@@ -1682,6 +1826,7 @@
     <network id="n446">
       <name>MTV Italia</name>
       <cni-8301>0x3933</cni-8301>
+      <cni-pdc-a>0x3B102</cni-pdc-a>
     </network>
     <network id="n447">
       <name>MTV Brand New</name>
@@ -1764,7 +1909,7 @@
       <cni-8301>0x3953</cni-8301>
     </network>
     <network id="n462">
-      <name>RaiSat GamberoRosso</name>
+      <name>RaiSat Gambero Rosso</name>
       <cni-8301>0x3954</cni-8301>
     </network>
     <network id="n463">
@@ -1778,6 +1923,18 @@
     <network id="n465">
       <name>RaiSat G. Rosso interattivo</name>
       <cni-8301>0x3957</cni-8301>
+    </network>
+    <network id="n642">
+      <name>RaiSat Cinema World</name>
+      <cni-8301>0x3958</cni-8301>
+    </network>
+    <network id="n643">
+      <name>RaiSat Extra</name>
+      <cni-8301>0x3959</cni-8301>
+    </network>
+    <network id="n644">
+      <name>RaiSat Premium</name>
+      <cni-8301>0x395A</cni-8301>
     </network>
     <network id="n558">
       <name>SCI FI CHANNEL</name>
@@ -1869,6 +2026,7 @@
     <network id="n445">
       <name>LA7</name>
       <cni-8301>0x3988</cni-8301>
+      <cni-pdc-a>0x3B101</cni-pdc-a>
     </network>
     <network id="n470">
       <name>PrimaTV</name>
@@ -1877,6 +2035,10 @@
     <network id="n471">
       <name>SportItalia</name>
       <cni-8301>0x398A</cni-8301>
+    </network>
+    <network id="n645">
+      <name>Espansione TV</name>
+      <cni-8301>0x398F</cni-8301>
     </network>
     <network id="n576">
       <name>STUDIO UNIVERSAL</name>
@@ -1905,16 +2067,41 @@
       <cni-8302>0x1596</cni-8302>
     </network>
     <network id="n233">
-      <name>Tele+1</name>
+      <name>Sky Sports 1</name>
       <cni-8301>0x3997</cni-8301>
     </network>
     <network id="n234">
-      <name>Tele+2</name>
+      <name>Sky Cinema 1</name>
       <cni-8301>0x3998</cni-8301>
     </network>
     <network id="n235">
       <name>Tele+3</name>
       <cni-8301>0x3999</cni-8301>
+    </network>
+    <network id="n646">
+      <name>Sitcom 1</name>
+      <cni-8301>0x399A</cni-8301>
+      <cni-8302>0x150A</cni-8302>
+    </network>
+    <network id="n647">
+      <name>Sitcom 2</name>
+      <cni-8301>0x399B</cni-8301>
+      <cni-8302>0x150B</cni-8302>
+    </network>
+    <network id="n648">
+      <name>Sitcom 3</name>
+      <cni-8301>0x399C</cni-8301>
+      <cni-8302>0x150C</cni-8302>
+    </network>
+    <network id="n649">
+      <name>Sitcom 4</name>
+      <cni-8301>0x399D</cni-8301>
+      <cni-8302>0x150D</cni-8302>
+    </network>
+    <network id="n650">
+      <name>Sitcom 5</name>
+      <cni-8301>0x399E</cni-8301>
+      <cni-8302>0x150E</cni-8302>
     </network>
     <network id="n580">
       <name>Sky Calcio 8</name>
@@ -2069,6 +2256,10 @@
       <cni-8301>0x39D8</cni-8301>
       <cni-8302>0x15D8</cni-8302>
     </network>
+    <network id="n651">
+      <name>Mediashopping</name>
+      <cni-8301>0x39DA</cni-8301>
+    </network>
     <network id="n611">
       <name>National Geographic +1</name>
       <cni-8301>0x39E1</cni-8301>
@@ -2131,27 +2322,83 @@
       <name>Italia 8 Lombardia</name>
       <cni-8301>0x39F8</cni-8301>
     </network>
+    <network id="n652">
+      <name>Radio Tele Europa</name>
+      <cni-8301>0x39F9</cni-8301>
+    </network>
     <network id="n230">
       <name>Rete 4</name>
       <cni-8301>0xFA04</cni-8301>
+      <cni-pdc-a>0x15105</cni-pdc-a>
     </network>
     <network id="n225">
       <name>Canale 5</name>
       <cni-8301>0xFA05</cni-8301>
+      <cni-pdc-a>0x15106</cni-pdc-a>
     </network>
     <network id="n226">
       <name>Italia 1</name>
       <cni-8301>0xFA06</cni-8301>
+      <cni-pdc-a>0x15107</cni-pdc-a>
     </network>
     <network id="n236">
       <name>TMC</name>
       <cni-8301>0xFA08</cni-8301>
     </network>
+    <network id="n653">
+      <name>Music Box</name>
+      <cni-8301>0x39E7</cni-8301>
+    </network>
+    <network id="n654">
+      <name>Televisiva SUPER3</name>
+      <cni-8301>0x39D9</cni-8301>
+    </network>
+    <network id="n655">
+      <name>TN7 Telenorba</name>
+      <cni-8301>0x39E9</cni-8301>
+    </network>
+    <network id="n656">
+      <name>TN8 Telenorba</name>
+      <cni-8301>0x391A</cni-8301>
+    </network>
+    <network id="n657">
+      <name>TP9 Telepuglia</name>
+      <cni-8301>0x393A</cni-8301>
+    </network>
+    <network id="n658">
+      <name>TG NORBA</name>
+      <cni-8301>0x394A</cni-8301>
+    </network>
+  </country>
+
+  <country>
+    <name>Jordan</name>
+    <country-code>JO</country-code>
+    <cni-8302>0x2500</cni-8302>
+  </country>
+
+  <country>
+    <name>Libya</name>
+    <country-code>LY</country-code>
+    <cni-8302>0x2D00</cni-8302>
+  </country>
+
+  <country>
+    <name>Liechtenstein</name>
+    <country-code>LI</country-code>
+    <cni-8302>0x3900</cni-8302>
+  </country>
+
+  <country>
+    <name>Lebanon</name>
+    <country-code>LB</country-code>
+    <cni-8302>0x4A00</cni-8302>
   </country>
 
   <country>
     <name>Luxembourg</name>
     <country-code>LU</country-code>
+    <cni-8302>0x2700</cni-8302>
     <network id="n238">
       <name>RTL Télé Letzebuerg</name>
       <cni-8301>0x4000</cni-8301>
@@ -2159,11 +2406,31 @@
   </country>
 
   <country>
+    <name>Malta</name>
+    <country-code>MT</country-code>
+    <cni-8302>0x1C00</cni-8302>
+  </country>
+
+<!-- ETS 300 231 is ambiguous
+  <country>
+    <name>Marocco</name>
+    <country-code>MA</country-code>
+    <cni-8302>0x3100</cni-8302>
+    <cni-8302>0x3800</cni-8302>
+  </country>
+-->
+
+  <country>
+    <name>Monaco</name>
+    <country-code>MC</country-code>
+    <cni-8302>0x3B00</cni-8302>
+  </country>
+
+  <country>
     <name>Netherlands</name>
     <country-code>NL</country-code>
     <cni-8301>0x3100</cni-8301>
     <cni-8302>0x4800</cni-8302>
-    <cni-pdc-b>0x3800</cni-pdc-b>
     <network id="n239">
       <name>Nederland 1</name>
       <cni-8301>0x3101</cni-8301>
@@ -2200,7 +2467,7 @@
       <cni-8302>0x4806</cni-8302>
       <cni-pdc-b>0x3806</cni-pdc-b>
     </network>
-    <network id="n625">
+    <network id="n683">
       <name>RTL 7</name>
       <cni-8301>0x3147</cni-8301>
       <cni-8302>0x4847</cni-8302>
@@ -2262,6 +2529,7 @@
     <name>Norway</name>
     <country-code>NO</country-code>
     <cni-8301>0x4700</cni-8301>
+    <cni-8302>0x3F00</cni-8302>
     <network id="n245">
       <name>NRK1</name>
       <cni-8301>0x4701</cni-8301>
@@ -2288,6 +2556,7 @@
     <name>Poland</name>
     <country-code>PL</country-code>
     <cni-8301>0x4800</cni-8301>
+    <cni-8302>0x3300</cni-8302>
     <network id="n628">
       <name>Animal Planet</name>
       <cni-8301>0x4831</cni-8301>
@@ -2373,6 +2642,7 @@
   <country>
     <name>Portugal</name>
     <country-code>PT</country-code>
+    <cni-8302>0x5800</cni-8302>
     <network id="n252">
       <name>RTP1</name>
       <cni-8301>0x3510</cni-8301>
@@ -2400,8 +2670,21 @@
   </country>
 
   <country>
+    <name>Romania</name>
+    <country-code>RO</country-code>
+    <cni-8302>0x2E00</cni-8302>
+  </country>
+
+  <country>
+    <name>Russia</name>
+    <country-code>RU</country-code>
+    <cni-8302>0x5700</cni-8302>
+  </country>
+
+  <country>
     <name>San Marino</name>
     <country-code>SM</country-code>
+    <cni-8302>0x2300</cni-8302>
     <network id="n258">
       <name>RTV</name>
       <cni-8301>0x3781</cni-8301>
@@ -2412,7 +2695,6 @@
     <name>Slovakia</name>
     <country-code>SK</country-code>
     <cni-8302>0x3500</cni-8302>
-    <cni-pdc-b>0x3500</cni-pdc-b>
     <network id="n259">
       <name>STV1</name>
       <cni-8301>0x42A1</cni-8301>
@@ -2426,7 +2708,7 @@
       <cni-pdc-b>0x3525</cni-pdc-b>
     </network>
     <network id="n261">
-      <name>STV1 Kosice</name>
+      <name>STV1 Košice</name>
       <cni-8301>0x42A3</cni-8301>
       <cni-8302>0x35A3</cni-8302>
       <cni-pdc-b>0x3523</cni-pdc-b>
@@ -2444,10 +2726,16 @@
       <cni-pdc-b>0x3526</cni-pdc-b>
     </network>
     <network id="n262">
-      <name>STV2 Kosice</name>
+      <name>STV2 Košice</name>
       <cni-8301>0x42A4</cni-8301>
       <cni-8302>0x35A4</cni-8302>
       <cni-pdc-b>0x3524</cni-pdc-b>
+    </network>
+    <network id="n659">
+      <name>TV JOJ</name>
+      <cni-8301>0x42B1</cni-8301>
+      <cni-8302>0x35B1</cni-8302>
+      <cni-pdc-b>0x3511</cni-pdc-b>
     </network>
   </country>
 
@@ -2480,6 +2768,7 @@
   <country>
     <name>Spain</name>
     <country-code>ES</country-code>
+    <cni-8302>0x3E00</cni-8302>
     <network id="n270">
       <name>Arte</name>
       <cni-8301>0x340A</cni-8301>
@@ -2508,7 +2797,7 @@
       <name>TVE2</name>
       <cni-8301>0xE100</cni-8301>
     </network>
-    <!-- not in TR 101 231: 0xA55A (valid?) -->
+    <!-- Not in TR 101 231: 0xA55A (valid?). -->
     <network id="n277">
       <name>Canal+</name>
       <cni-8301>0xA55A</cni-8301>
@@ -2529,6 +2818,24 @@
       <name>CCV</name>
       <cni-8301>0x3405</cni-8301>
     </network>
+    <network id="n660">
+      <name>Telemadrid</name>
+      <cni-8301>0x3420</cni-8301>
+      <cni-8302>0x3E20</cni-8302>
+      <cni-pdc-b>0x3E20</cni-pdc-b>
+    </network>
+    <network id="n661">
+      <name>La Otra</name>
+      <cni-8301>0x3421</cni-8301>
+      <cni-8302>0x3E21</cni-8302>
+      <cni-pdc-b>0x3E21</cni-pdc-b>
+    </network>
+    <network id="n662">
+      <name>TM SAT</name>
+      <cni-8301>0x3422</cni-8301>
+      <cni-8302>0x3E22</cni-8302>
+      <cni-pdc-b>0x3E22</cni-pdc-b>
+    </network>
     <network id="n630">
       <name>Tele5</name>
       <cni-8301>0xE500</cni-8301>
@@ -2539,6 +2846,7 @@
   <country>
     <name>Sweden</name>
     <country-code>SE</country-code>
+    <cni-8302>0x4E00</cni-8302>
     <network id="n278">
       <name>SVT 1</name>
       <cni-8301>0x4601</cni-8301>
@@ -2566,9 +2874,174 @@
   </country>
 
   <country>
+    <name>Syria</name>
+    <country-code>SY</country-code>
+    <cni-8302>0x3600</cni-8302>
+  </country>
+
+  <country>
+    <name>Switzerland</name>
+    <country-code>CH</country-code>
+    <cni-8301>0x4100</cni-8301>
+    <cni-8302>0x2400</cni-8302>
+    <network id="n178">
+      <name>TeleZüri 1</name>
+      <cni-8301>0x4122</cni-8301>
+      <cni-8302>0x2422</cni-8302>
+      <cni-vps>0x0481</cni-vps>
+    </network>
+    <network id="n179">
+      <name>Teleclub Abo-Fernsehen</name>
+      <cni-vps>0x0482</cni-vps>
+    </network>
+    <network id="n180">
+      <name>Zürich 1</name>
+      <cni-vps>0x0483</cni-vps>
+    </network>
+    <network id="n181">
+      <name>TeleBern</name>
+      <cni-vps>0x0484</cni-vps>
+    </network>
+    <network id="n182">
+      <name>Tele M1</name>
+      <cni-vps>0x0485</cni-vps>
+    </network>
+    <network id="n183">
+      <name>Star TV</name>
+      <cni-vps>0x0486</cni-vps>
+    </network>
+    <network id="n184">
+      <name>PRO 7</name>
+      <cni-vps>0x0487</cni-vps>
+    </network>
+    <network id="n185">
+      <name>TopTV</name>
+      <cni-vps>0x0488</cni-vps>
+    </network>
+    <network id="n667">
+      <name>Tele 24</name>
+      <cni-vps>0x0489</cni-vps>
+    </network>
+    <network id="n668">
+      <name>Kabel 1</name>
+      <cni-vps>0x048A</cni-vps>
+    </network>
+    <network id="n669">
+      <name>TV3</name>
+      <cni-vps>0x048B</cni-vps>
+    </network>
+    <network id="n670">
+      <name>TeleZüri 2</name>
+      <cni-vps>0x048C</cni-vps>
+    </network>
+    <network id="n671">
+      <name>Swizz</name>
+      <cni-vps>0x048D</cni-vps>
+    </network>
+    <network id="n672">
+      <name>Intro TV</name>
+      <cni-vps>0x048E</cni-vps>
+    </network>
+    <network id="n673">
+      <name>Tele Tell</name>
+      <cni-vps>0x048F</cni-vps>
+    </network>
+    <network id="n674">
+      <name>Tele Top</name>
+      <cni-vps>0x0490</cni-vps>
+    </network>
+    <network id="n675">
+      <name>TSO CH</name>
+      <cni-vps>0x0491</cni-vps>
+    </network>
+    <network id="n676">
+      <name>TVO</name>
+      <cni-vps>0x0492</cni-vps>
+    </network>
+    <network id="n677">
+      <name>Tele TI</name>
+      <cni-vps>0x0493</cni-vps>
+    </network>
+    <network id="n678">
+      <name>SHF</name>
+      <cni-vps>0x0494</cni-vps>
+    </network>
+    <network id="n506">
+      <name>U1</name>
+      <cni-8301>0x4121</cni-8301>
+      <cni-8302>0x2421</cni-8302>
+      <cni-vps>0x0495</cni-vps>
+    </network>
+    <network id="n679">
+      <name>MTV Swiss</name>
+      <cni-vps>0x0496</cni-vps>
+    </network>
+    <network id="n186">
+      <name>SF 1</name>
+      <cni-8301>0x4101</cni-8301>
+      <cni-8302>0x24C1</cni-8302>
+      <cni-pdc-b>0x3441</cni-pdc-b>
+      <cni-vps>0x04C1</cni-vps>
+    </network>
+    <network id="n187">
+      <name>TSR 1</name>
+      <cni-8301>0x4102</cni-8301>
+      <cni-8302>0x24C2</cni-8302>
+      <cni-pdc-b>0x3442</cni-pdc-b>
+      <cni-vps>0x04C2</cni-vps>
+    </network>
+    <network id="n188">
+      <name>TSI 1</name>
+      <cni-8301>0x4103</cni-8301>
+      <cni-8302>0x24C3</cni-8302>
+      <cni-pdc-b>0x3443</cni-pdc-b>
+      <cni-vps>0x04C3</cni-vps>
+    </network>
+    <network id="n189">
+      <name>SF 2</name>
+      <cni-8301>0x4107</cni-8301>
+      <cni-8302>0x24C7</cni-8302>
+      <cni-pdc-b>0x3447</cni-pdc-b>
+      <cni-vps>0x04C7</cni-vps>
+    </network>
+    <network id="n190">
+      <name>TSR 2</name>
+      <cni-8301>0x4108</cni-8301>
+      <cni-8302>0x24C8</cni-8302>
+      <cni-pdc-b>0x3448</cni-pdc-b>
+      <cni-vps>0x04C8</cni-vps>
+    </network>
+    <network id="n191">
+      <name>TSI 2</name>
+      <cni-8301>0x4109</cni-8301>
+      <cni-8302>0x24C9</cni-8302>
+      <cni-pdc-b>0x3449</cni-pdc-b>
+      <cni-vps>0x04C9</cni-vps>
+    </network>
+    <network id="n192">
+      <name>Sat Access</name>
+      <cni-8301>0x410A</cni-8301>
+      <cni-8302>0x24CA</cni-8302>
+      <cni-pdc-b>0x344A</cni-pdc-b>
+      <cni-vps>0x04CA</cni-vps>
+    </network>
+    <network id="n666">
+      <name>SFi</name>
+      <cni-vps>0x04CC</cni-vps>
+    </network>
+  </country>
+
+  <country>
+    <name>Tunisia</name>
+    <country-code>TN</country-code>
+    <cni-8302>0x3700</cni-8302>
+  </country>
+
+  <country>
     <name>Turkey</name>
     <country-code>TR</country-code>
     <cni-8301>0x9000</cni-8301>
+    <cni-8302>0x4300</cni-8302>
     <network id="n289">
       <name>ATV</name>
       <cni-8301>0x900A</cni-8301>
@@ -2610,6 +3083,10 @@
     <network id="n298">
       <name>Show TV</name>
       <cni-8301>0x9007</cni-8301>
+    </network>
+    <network id="n663">
+      <name>Show Euro</name>
+      <cni-8301>0x9017</cni-8301>
     </network>
     <network id="n507">
       <name>STAR TV</name>
@@ -2681,7 +3158,7 @@
     </network>
     <network id="n306">
       <name>TRT-INT</name>
-      <!-- NOTE transmits 0x9001, ttx-header is just TELEGUN -->
+      <!-- NOTE transmits 0x9001, ttx-header is just TELEGUN. -->
       <cni-8301>0x9005</cni-8301>
       <cni-8302>0x4305</cni-8302>
       <cni-pdc-b>0x3305</cni-pdc-b>
@@ -2693,7 +3170,6 @@
     <country-code>GB</country-code>
     <cni-8301>0x4400</cni-8301>
     <cni-8302>0x2C00</cni-8302>
-    <cni-pdc-b>0x3C00</cni-pdc-b>
     <network id="n307">
       <name>ANGLIA TV</name>
       <cni-8301>0xFB9C</cni-8301>
@@ -3104,7 +3580,8 @@
       <cni-pdc-b>0x3C20</cni-pdc-b>
     </network>
     <network id="n373">
-      <name>VH-1 German</name>
+      <!-- German language. -->
+      <name>VH-1</name>
       <cni-8301>0x4D59</cni-8301>
       <cni-8302>0x2C21</cni-8302>
       <cni-pdc-b>0x3C21</cni-pdc-b>
@@ -3130,6 +3607,38 @@
   </country>
 
   <country>
+    <name>Ukraine</name>
+    <country-code>UA</country-code>
+    <cni-8301>0x7700</cni-8301>
+    <cni-8302>0x4700</cni-8302>
+    <network id="n518">
+      <name>1+1</name>
+      <cni-8301>0x7700</cni-8301>
+      <cni-vps>0x07C0</cni-vps>
+    </network>
+    <network id="n519">
+      <name>M1</name>
+      <cni-8301>0x7705</cni-8301>
+      <cni-vps>0x07C5</cni-vps>
+    </network>
+    <network id="n520">
+      <name>ICTV</name>
+      <cni-8301>0x7707</cni-8301>
+    </network>
+    <network id="n521">
+      <name>Novy Kanal</name>
+      <cni-8301>0x7708</cni-8301>
+      <cni-vps>0x07C8</cni-vps>
+    </network>
+  </country>
+
+  <country>
+    <name>Vatican City</name>
+    <country-code>VA</country-code>
+    <cni-8302>0x3400</cni-8302>
+  </country>
+
+  <country>
     <name>Unknown</name>
     <!-- AA is a reserved code in ISO-3166. -->
     <country-code>AA</country-code>
@@ -3137,8 +3646,20 @@
       <name>MTV</name>
       <ttx-header>### MTVtext   ##.##.##  </ttx-header>
     </network>
+    <!-- Not in TR 101 231. -->
+    <network id="n684">
+      <name>Zee TV</name>
+      <cni-8301>0x04F9</cni-8301>
+    </network>
+    <!-- Not in TR 101 231. (0x1234 valid?) -->
+    <network id="n685">
+      <name>VGB V</name>
+      <cni-8301>0xFC02</cni-8301>
+      <cni-8302>0x1234</cni-8302>
+    </network>
   </country>
 </networks>
+
 <!--
 Local Variables:
 mode: sgml
