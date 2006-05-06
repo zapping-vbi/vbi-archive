@@ -1,3 +1,9 @@
+2006-04-28    <mschimek@users.sf.net>
+
+	* libvbi/caption_decoder.c (vbi3_caption_decoder_feed): Executed
+	  repeated control codes twice if interrupted by data on the
+	  second field.
+
 2006-04-24    <mschimek@users.sf.net>
 
 	* src/frequencies.c, src/strnatcmp.h, src/strnatcmp.c:

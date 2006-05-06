@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder-priv.h,v 1.1 2005-09-01 01:34:08 mschimek Exp $ */
+/* $Id: caption_decoder-priv.h,v 1.2 2006-05-06 09:11:32 mschimek Exp $ */
 
 #ifndef CAPTION_DECODER_PRIV_H
 #define CAPTION_DECODER_PRIV_H
@@ -163,8 +163,12 @@ struct _vbi3_caption_decoder {
 	/** Receiving XDS data on field 2, as opposed to caption. */
 	vbi3_bool		in_xds;
 
-	/** Caption control codes may repeat once for error correction. */
-	int			expect_ctrl[2];
+	/**
+	 * Caption control codes (two bytes) may repeat once for
+	 * error correction on the first field. expect_ctrl[1] is
+	 * only written, to save conditionals.
+	 */
+	int			expect_ctrl[2][2];
 
 	/**
 	 * Remember past parity errors: One bit for each call of
