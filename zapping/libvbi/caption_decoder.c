@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder.c,v 1.1 2005-09-01 01:32:19 mschimek Exp $ */
+/* $Id: caption_decoder.c,v 1.2 2006-05-06 09:11:09 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1636,7 +1636,7 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 	int c1;
 	int c2;
 	field_num f;
-	vbi3_bool all_success;
+	vbi3_bool all_successful;
 
 	assert (NULL != cd);
 	assert (NULL != buffer);
@@ -1668,7 +1668,7 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 	c1 = vbi3_unpar8 (buffer[0]);
 	c2 = vbi3_unpar8 (buffer[1]);
 
-	all_success = TRUE;
+	all_successful = TRUE;
 
 	if (FIELD_1 == f) {
 		/* First field. Control codes may repeat
@@ -1676,12 +1676,12 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 
 		/* According to Sec. 15.119 (2)(i)(4). */
 
-		if (c1 == cd->expect_ctrl[0]
-		    && c2 == cd->expect_ctrl[1]) {
+		if (c1 == cd->expect_ctrl[FIELD_1][0]
+		    && c2 == cd->expect_ctrl[FIELD_1][1]) {
 			/* Already acted upon. */
 			goto finish;
-		} else if (c1 < 0 && cd->expect_ctrl[0]
-			   && c2 == cd->expect_ctrl[1]) {
+		} else if (c1 < 0 && cd->expect_ctrl[FIELD_1][0]
+			   && c2 == cd->expect_ctrl[FIELD_1][1]) {
 			/* Parity error, probably in repeat control code. */
 			goto parity_error;
 		}
@@ -1689,7 +1689,7 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 		/* Second field. */
 
 		if (cd->handlers.event_mask & XDS_EVENTS) {
-/* TODO			all_success &=
+/* TODO			all_successful &=
    				vbi3_xds_demux_feed (&cd->xds.demux, buffer);
 */
 		}
@@ -1746,8 +1746,8 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 			}
 		}
 
-		cd->expect_ctrl[0] = c1;
-		cd->expect_ctrl[1] = c2;
+		cd->expect_ctrl[f][0] = c1;
+		cd->expect_ctrl[f][1] = c2;
 
 		break;
 
@@ -1755,7 +1755,7 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 		if (FIELD_1 != f && cd->in_xds)
 			break;
 
-		cd->expect_ctrl[0] = 0;
+		cd->expect_ctrl[f][0] = 0;
 
 		/* Sec. 15.119 (i)(1). */
 		if (c1 > 0x00 && c1 < 0x10) {
@@ -1763,8 +1763,8 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 		}
 
 		if (cd->in_itv) {
-			all_success &= itv_text (cd, c1);
-			all_success &= itv_text (cd, c2);
+			all_successful &= itv_text (cd, c1);
+			all_successful &= itv_text (cd, c2);
 		}
 
 		if (cd->handlers.event_mask & CAPTION_EVENTS) {
@@ -1778,8 +1778,8 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 			ch_num = ((ch_num - VBI3_CAPTION_CC1) & 5) + f * 2;
 			ch = &cd->cc.channel[ch_num];
 
-			all_success &= caption_text (cd, ch, c1, timestamp);
-			all_success &= caption_text (cd, ch, c2, timestamp);
+			all_successful &= caption_text (cd, ch, c1, timestamp);
+			all_successful &= caption_text (cd, ch, c2, timestamp);
 
 			if (cd->cc.event_pending) {
 				send_event (cd, cd->cc.event_pending,
@@ -1792,12 +1792,15 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 	}
 
  finish:
-	cd->error_history = cd->error_history * 2 + all_success;
-	return all_success;
+	cd->error_history = cd->error_history * 2 + all_successful;
+
+	return all_successful;
 
  parity_error:
-	cd->expect_ctrl[0] = 0;
+	cd->expect_ctrl[f][0] = 0;
+
 	cd->error_history *= 2;
+
 	return FALSE;
 }
 
@@ -1839,7 +1842,7 @@ _vbi3_caption_decoder_resync	(vbi3_caption_decoder *	cd)
 
 	cd->in_xds = FALSE;
 
-	cd->expect_ctrl[0] = 0;
+	CLEAR (cd->expect_ctrl);
 
 	cd->error_history = 0; /* all failed */
 }
