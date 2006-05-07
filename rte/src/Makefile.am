@@ -37,8 +37,6 @@ INCLUDES = \
 	-D_REENTRANT \
 	-D_LARGEFILE64_SOURCE
 
-EXTRA_DIST = rte.sym
-
 librte_la_SOURCES = \
 	rte.c rte.h \
 	context.c context.h \
@@ -52,6 +50,11 @@ librteinclude_HEADERS = librte.h
 BUILT_SOURCES = \
 	librte.h \
 	rte.sym
+
+EXTRA_DIST = \
+	rte.sym
+
+if MAINTAINER_MODE
 
 rte.sym: librte.h
 	sed -n '/extern.*/!d;s/\(.*\)\(rte.*\)(\(.*\)/\2/p' <$^ >$@
@@ -79,3 +82,5 @@ librte.h: $(LIBRTE_HDRS)
 	done
 	echo -e "\n#ifdef __cplusplus\n}\n#endif" >> $@
 	echo -e "\n#endif /* __LIBRTE_H__ */" >> $@
+
+endif
