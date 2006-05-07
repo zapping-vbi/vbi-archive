@@ -159,6 +159,9 @@ LN_S = @LN_S@
 @BACKEND_MP1E_TRUE@LTLIBICONV = @LTLIBICONV@
 @BACKEND_MP1E_TRUE@LTLIBINTL = @LTLIBINTL@
 LTLIBOBJS = @LTLIBOBJS@
+MAINT = @MAINT@
+MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
+MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
 @BACKEND_MP1E_TRUE@MKINSTALLDIRS = @MKINSTALLDIRS@
 @BACKEND_MP1E_TRUE@MSGFMT = @MSGFMT@
@@ -256,7 +259,7 @@ DISTCLEANFILES = site_def.h
 .SUFFIXES: .c .lo .o .obj
 @BACKEND_MP1E_FALSE@am--refresh:
 @BACKEND_MP1E_FALSE@	@:
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 @BACKEND_MP1E_FALSE@	@for dep in $?; do 	  case '$(am__configure_deps)' in 	    *$$dep*) 	      echo ' cd $(srcdir) && $(AUTOMAKE) --gnu '; 	      cd $(srcdir) && $(AUTOMAKE) --gnu  		&& exit 0; 	      exit 1;; 	  esac; 	done; 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  Makefile'; 	cd $(top_srcdir) && 	  $(AUTOMAKE) --gnu  Makefile
 @BACKEND_MP1E_TRUE@	@for dep in $?; do 	  case '$(am__configure_deps)' in 	    *$$dep*) 	      cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh 		&& exit 0; 	      exit 1;; 	  esac; 	done; 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  mp1e/Makefile'; 	cd $(top_srcdir) && 	  $(AUTOMAKE) --gnu  mp1e/Makefile
 .PRECIOUS: Makefile
@@ -268,10 +271,10 @@ $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENC
 @BACKEND_MP1E_FALSE@	$(SHELL) ./config.status --recheck
 @BACKEND_MP1E_TRUE@	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure:  $(am__configure_deps)
+$(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 @BACKEND_MP1E_FALSE@	cd $(srcdir) && $(AUTOCONF)
 @BACKEND_MP1E_TRUE@	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
+$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 @BACKEND_MP1E_FALSE@	cd $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 @BACKEND_MP1E_FALSE@
 @BACKEND_MP1E_FALSE@config.h: stamp-h1
@@ -280,7 +283,7 @@ $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 @BACKEND_MP1E_FALSE@stamp-h1: $(srcdir)/config.h.in $(top_builddir)/config.status
 @BACKEND_MP1E_FALSE@	@rm -f stamp-h1
 @BACKEND_MP1E_FALSE@	cd $(top_builddir) && $(SHELL) ./config.status config.h
-@BACKEND_MP1E_FALSE@$(srcdir)/config.h.in:  $(am__configure_deps) 
+@BACKEND_MP1E_FALSE@$(srcdir)/config.h.in: @MAINTAINER_MODE_TRUE@ $(am__configure_deps) 
 @BACKEND_MP1E_FALSE@	cd $(top_srcdir) && $(AUTOHEADER)
 @BACKEND_MP1E_FALSE@	rm -f stamp-h1
 @BACKEND_MP1E_FALSE@	touch $@

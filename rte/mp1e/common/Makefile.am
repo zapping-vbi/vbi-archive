@@ -24,13 +24,16 @@ libcommon_la_SOURCES = \
 
 structpr = structpr.pl
 
-EXTRA_DIST = \
-	$(structpr) \
+BUILT_SOURCES = \
 	_videodev.h \
 	_videodev2.h \
 	_videodev25.h
 
-BUILT_SOURCES = _videodev.h _videodev2.h _videodev25.h
+EXTRA_DIST = \
+	$(structpr) \
+	$(BUILT_SOURCES)
+
+if MAINTAINER_MODE
 
 _videodev.h: Makefile.am $(structpr) videodev.h
 	$(srcdir)/$(structpr) <$(srcdir)/videodev.h \
@@ -208,3 +211,5 @@ _bktr.h: Makefile.am $(structpr) ioctl_bt848.h ioctl_meteor.h
 	cat $(srcdir)/ioctl_bt848.h $(srcdir)/ioctl_meteor.h | \
 	$(srcdir)/$(structpr) \
 	> $@
+
+endif

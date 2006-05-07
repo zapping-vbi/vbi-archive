@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: v4l25.c,v 1.7 2005-09-11 23:07:05 mschimek Exp $ */
+/* $Id: v4l25.c,v 1.8 2006-05-07 06:01:33 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -295,6 +295,19 @@ v4l25_init(rte_video_stream_params *par, struct filter_param *fp)
 
 			ASSERT("set audio mode",
 			       0 == ioctl (fd, VIDIOCSAUDIO, &audio));
+		}
+	}
+
+	{
+		enum v4l2_priority pri;
+
+		if (0 == ioctl (fd, VIDIOC_G_PRIORITY, &pri)) {
+			/* Prohibit 2nd app channel changes et al. */
+			pri = V4L2_PRIORITY_RECORD;
+			ASSERT("give us recording priority",
+			       0 == ioctl (fd, VIDIOC_S_PRIORITY, &pri));
+		} else {
+			/* Not supported. */
 		}
 	}
 
