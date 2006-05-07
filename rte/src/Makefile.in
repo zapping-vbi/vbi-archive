@@ -166,6 +166,9 @@ LN_S = @LN_S@
 LTLIBICONV = @LTLIBICONV@
 LTLIBINTL = @LTLIBINTL@
 LTLIBOBJS = @LTLIBOBJS@
+MAINT = @MAINT@
+MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
+MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
 MKINSTALLDIRS = @MKINSTALLDIRS@
 MSGFMT = @MSGFMT@
@@ -245,7 +248,6 @@ INCLUDES = \
 	-D_REENTRANT \
 	-D_LARGEFILE64_SOURCE
 
-EXTRA_DIST = rte.sym
 librte_la_SOURCES = \
 	rte.c rte.h \
 	context.c context.h \
@@ -259,20 +261,23 @@ BUILT_SOURCES = \
 	librte.h \
 	rte.sym
 
+EXTRA_DIST = \
+	rte.sym
+
 
 # Keep order.
-LIBRTE_HDRS = \
-	option.h \
-	context.h \
-	codec.h \
-	rte.h
+@MAINTAINER_MODE_TRUE@LIBRTE_HDRS = \
+@MAINTAINER_MODE_TRUE@	option.h \
+@MAINTAINER_MODE_TRUE@	context.h \
+@MAINTAINER_MODE_TRUE@	codec.h \
+@MAINTAINER_MODE_TRUE@	rte.h
 
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -297,9 +302,9 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure:  $(am__configure_deps)
+$(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
+$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 install-libLTLIBRARIES: $(lib_LTLIBRARIES)
 	@$(NORMAL_INSTALL)
@@ -565,25 +570,25 @@ uninstall-am: uninstall-info-am uninstall-libLTLIBRARIES \
 	uninstall-librteincludeHEADERS
 
 
-rte.sym: librte.h
-	sed -n '/extern.*/!d;s/\(.*\)\(rte.*\)(\(.*\)/\2/p' <$^ >$@
+@MAINTAINER_MODE_TRUE@rte.sym: librte.h
+@MAINTAINER_MODE_TRUE@	sed -n '/extern.*/!d;s/\(.*\)\(rte.*\)(\(.*\)/\2/p' <$^ >$@
 
 # Concat the header files in this order and filter out all lines
 #   before "^/* Public", after "^/* Private" and dox between "^/**"..."*/$"
-librte.h: $(LIBRTE_HDRS)
-	sed -ne "1,/\*\//p" $(srcdir)/rte.h > $@
-	echo -e "\n/* Generated file, do not edit! */" >> $@
-	echo -e "\n#ifndef __LIBRTE_H__\n#define __LIBRTE_H__" >> $@
-	echo -e "\n#define RTE_VERSION_MAJOR" `echo @VERSION@ \
-	 | sed "s/\./\\\\\n#define RTE_VERSION_MINOR /" \
-	 | sed "s/\./\\\\\n#define RTE_VERSION_MICRO /"` >> $@
-	echo -e "\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n" >> $@
-	for fi in $(LIBRTE_HDRS); do \
-		echo "/* $$fi */" >> $@; \
-		sed -e "/^\/\* Public/,/^\/\* Private/!d;/^\/\* Public/d;/^\/\* Private/d;s/\(\/\*\*.*\*\/\)//;/^[ 	]*\/\*\*/,/\*\/[ 	]*$$/d;" $(srcdir)/$$fi >> $@; \
-	done
-	echo -e "\n#ifdef __cplusplus\n}\n#endif" >> $@
-	echo -e "\n#endif /* __LIBRTE_H__ */" >> $@
+@MAINTAINER_MODE_TRUE@librte.h: $(LIBRTE_HDRS)
+@MAINTAINER_MODE_TRUE@	sed -ne "1,/\*\//p" $(srcdir)/rte.h > $@
+@MAINTAINER_MODE_TRUE@	echo -e "\n/* Generated file, do not edit! */" >> $@
+@MAINTAINER_MODE_TRUE@	echo -e "\n#ifndef __LIBRTE_H__\n#define __LIBRTE_H__" >> $@
+@MAINTAINER_MODE_TRUE@	echo -e "\n#define RTE_VERSION_MAJOR" `echo @VERSION@ \
+@MAINTAINER_MODE_TRUE@	 | sed "s/\./\\\\\n#define RTE_VERSION_MINOR /" \
+@MAINTAINER_MODE_TRUE@	 | sed "s/\./\\\\\n#define RTE_VERSION_MICRO /"` >> $@
+@MAINTAINER_MODE_TRUE@	echo -e "\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n" >> $@
+@MAINTAINER_MODE_TRUE@	for fi in $(LIBRTE_HDRS); do \
+@MAINTAINER_MODE_TRUE@		echo "/* $$fi */" >> $@; \
+@MAINTAINER_MODE_TRUE@		sed -e "/^\/\* Public/,/^\/\* Private/!d;/^\/\* Public/d;/^\/\* Private/d;s/\(\/\*\*.*\*\/\)//;/^[ 	]*\/\*\*/,/\*\/[ 	]*$$/d;" $(srcdir)/$$fi >> $@; \
+@MAINTAINER_MODE_TRUE@	done
+@MAINTAINER_MODE_TRUE@	echo -e "\n#ifdef __cplusplus\n}\n#endif" >> $@
+@MAINTAINER_MODE_TRUE@	echo -e "\n#endif /* __LIBRTE_H__ */" >> $@
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

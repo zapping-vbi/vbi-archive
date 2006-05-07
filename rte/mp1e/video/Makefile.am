@@ -12,9 +12,13 @@ SSE2_FILES =
 endif
 
 BUILT_SOURCES = vlc_tables.h
-EXTRA_DIST = vlc_gen.c
 
-CLEANFILES = vlc_tables.h vlc_gen
+EXTRA_DIST = \
+	vlc_gen.c \
+	$(BUILT_SOURCES)
+
+MAINTAINERCLEANFILES = \
+	vlc_gen
 
 libvideo_la_SOURCES = \
 	dct.c dct_mmx.s dct.h dct_ieee.h dct_ref.c \
@@ -25,8 +29,9 @@ libvideo_la_SOURCES = \
 	motion.c motion_mmx.s motion.h \
 	$(SSE2_FILES)
 
-vlc_tables.h: vlc_gen.c
-	$(CC) $^ $(CFLAGS) $(INCLUDES) -o vlc_gen
+if MAINTAINER_MODE
+
+vlc_tables.h: vlc_gen
 	./vlc_gen <$^ >$@
 
-
+endif

@@ -134,6 +134,9 @@ LN_S = @LN_S@
 @BACKEND_MP1E_TRUE@LTLIBICONV = @LTLIBICONV@
 @BACKEND_MP1E_TRUE@LTLIBINTL = @LTLIBINTL@
 LTLIBOBJS = @LTLIBOBJS@
+MAINT = @MAINT@
+MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
+MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
 @BACKEND_MP1E_TRUE@MKINSTALLDIRS = @MKINSTALLDIRS@
 @BACKEND_MP1E_TRUE@MSGFMT = @MSGFMT@
@@ -209,8 +212,10 @@ INCLUDES = -D_GNU_SOURCE -D_REENTRANT -include $(top_builddir)/config.h 	-Wall -
 @USE_SSE2_FALSE@SSE2_FILES = 
 @USE_SSE2_TRUE@SSE2_FILES = motion_sse2.s
 BUILT_SOURCES = vlc_tables.h
-EXTRA_DIST = vlc_gen.c
-CLEANFILES = vlc_tables.h vlc_gen
+EXTRA_DIST = 	vlc_gen.c 	$(BUILT_SOURCES)
+
+MAINTAINERCLEANFILES = 	vlc_gen
+
 libvideo_la_SOURCES = 	dct.c dct_mmx.s dct.h dct_ieee.h dct_ref.c 	filter.c filter_mmx.s 	mblock.c mblock.h ratectl.h 	mpeg1.c mpeg2.c mpeg.h video.h libvideo.h 	tables.c vlc.c vlc_mmx.s vlc.h vlc_tables.h 	motion.c motion_mmx.s motion.h 	$(SSE2_FILES)
 
 all: $(BUILT_SOURCES)
@@ -218,7 +223,7 @@ all: $(BUILT_SOURCES)
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj .s
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 @BACKEND_MP1E_FALSE@	@for dep in $?; do 	  case '$(am__configure_deps)' in 	    *$$dep*) 	      cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh 		&& exit 0; 	      exit 1;; 	  esac; 	done; 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  video/Makefile'; 	cd $(top_srcdir) && 	  $(AUTOMAKE) --gnu  video/Makefile
 @BACKEND_MP1E_TRUE@	@for dep in $?; do 	  case '$(am__configure_deps)' in 	    *$$dep*) 	      cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh 		&& exit 0; 	      exit 1;; 	  esac; 	done; 	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  mp1e/video/Makefile'; 	cd $(top_srcdir) && 	  $(AUTOMAKE) --gnu  mp1e/video/Makefile
 .PRECIOUS: Makefile
@@ -228,9 +233,9 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure:  $(am__configure_deps)
+$(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
+$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
 clean-noinstLTLIBRARIES:
@@ -330,7 +335,6 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
-	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -339,6 +343,7 @@ maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
 	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
+	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
 clean: clean-am
 
 clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES 	mostlyclean-am
@@ -390,9 +395,8 @@ uninstall-am: uninstall-info-am
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic 	clean-libtool clean-noinstLTLIBRARIES ctags distclean 	distclean-compile distclean-generic distclean-libtool 	distclean-tags distdir dvi dvi-am html html-am info info-am 	install install-am install-data install-data-am install-exec 	install-exec-am install-info install-info-am install-man 	install-strip installcheck installcheck-am installdirs 	maintainer-clean maintainer-clean-generic mostlyclean 	mostlyclean-compile mostlyclean-generic mostlyclean-libtool 	pdf pdf-am ps ps-am tags uninstall uninstall-am 	uninstall-info-am
 
 
-vlc_tables.h: vlc_gen.c
-	$(CC) $^ $(CFLAGS) $(INCLUDES) -o vlc_gen
-	./vlc_gen <$^ >$@
+@MAINTAINER_MODE_TRUE@vlc_tables.h: vlc_gen
+@MAINTAINER_MODE_TRUE@	./vlc_gen <$^ >$@
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg2.c,v 1.13 2005-06-29 21:24:55 mschimek Exp $ */
+/* $Id: mpeg2.c,v 1.14 2006-05-07 06:34:46 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -1656,7 +1656,7 @@ option_set(rte_codec *codec, const char *keyword, va_list args)
 	rte_context *context = codec->context;
 
 	if (0) {
-		static char *option_print(rte_codec *, const char *, va_list);
+		char *option_print(rte_codec *, const char *, va_list);
 		char *str = option_print(codec, keyword, args);
 
 		printv(0, "mpeg1/option_set(%p, %s, %s)\n", mpeg1, keyword, str);
