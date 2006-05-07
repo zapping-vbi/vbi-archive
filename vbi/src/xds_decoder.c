@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_decoder.c,v 1.1.2.5 2004-07-09 16:10:54 mschimek Exp $ */
+/* $Id: xds_decoder.c,v 1.1.2.6 2006-05-07 06:02:16 mschimek Exp $ */
 
 #if 0 // TODO
 
@@ -29,7 +29,7 @@
 #include <stdlib.h>
 
 #include "vbi.h"
-#include "vbi_decoder-priv.h"
+#include "vbi3_decoder-priv.h"
 
 #include "hamm.h"
 #include "xds_decoder.h"
@@ -52,21 +52,21 @@ do {									\
 } while (0)
 
 static inline void
-caption_send_event(vbi_decoder *vbi, vbi_event *ev)
+caption_send_event(vbi3_decoder *vbi, vbi3_event *ev)
 {
-	/* Permits calling vbi_fetch_cc_page from handler */
+	/* Permits calling vbi3_fetch_cc_page from handler */
 #warning todo
   //	pthread_mutex_unlock(&vbi->cc.mutex);
 
 #warning obsolete
-//	vbi_send_event(vbi, ev);
+//	vbi3_send_event(vbi, ev);
 
 //	pthread_mutex_lock(&vbi->cc.mutex);
 }
 
 #define XDS_DEBUG(x)
 
-/* vbi_classify_page, program_info language */
+/* vbi3_classify_page, program_info language */
 static const char *
 language[8] = {
 	NULL,
@@ -172,66 +172,70 @@ xds_strfu(char *d, const char *s, int len)
 #define xds_intfu(d, val) (neq |= d ^ (val), d = (val)) 
 
 static void
-flush_prog_info(vbi_decoder *vbi, vbi_program_info *pi, vbi_event *e)
+flush_prog_info(vbi3_decoder *vbi, vbi3_program_info *pi, vbi3_event *e)
 {
 #warning
   //	e->ev.aspect = pi->aspect;
 
-	vbi_reset_prog_info(pi);
+	vbi3_reset_prog_info(pi);
 
 	if (memcmp(&e->ev.aspect, &pi->aspect, sizeof(pi->aspect)) != 0) {
-		e->type = VBI_EVENT_ASPECT;
+		e->type = VBI3_EVENT_ASPECT;
 		caption_send_event(vbi, e);
 	}
 
 	vbi->cc.info_cycle[pi->future] = 0;
 }
 
-vbi_bool
-vbi_decode_xds_aspect_ratio	(vbi_aspect_ratio *	r,
-				 const vbi_xds_packet *	xp)
+/**
+ * @param ar Aspect ratio information is stored here.
+ *
+ * Decodes an XDS aspect ratio (0x0109, 0x0309) packet.
+ *
+ * @returns
+ * FALSE if the buffer contains incorrect data.
+ */
+vbi3_bool
+vbi3_decode_xds_aspect_ratio	(vbi3_aspect_ratio *	ar,
+				 const vbi3_xds_packet *	xp)
 {
-	assert (NULL != r);
+	assert (NULL != ar);
 	assert (NULL != xp);
 
 	if (xp->buffer_size < 2 || xp->buffer_size > 3)
 		return FALSE;
 
-	r->start[0] = 22 + (xp->buffer[0] & 63);
-	r->start[1] = 285 + (xp->buffer[0] & 63);
-	r->count[0] = 262 - 22 - (xp->buffer[1] & 63);
-	r->count[1] = r->count[0];
+	CLEAR (*ar);
 
+	ar->start[0] = 22 + (xp->buffer[0] & 63);
+	ar->start[1] = 285 + (xp->buffer[0] & 63);
+	ar->count[0] = 262 - 22 - (xp->buffer[1] & 63);
+	ar->count[1] = ar->count[0];
+
+	ar->ratio = 1.0;
 	if (xp->buffer_size >= 3 && (xp->buffer[2] & 1))
-		r->ratio = 3.0 / 4.0;
-	else
-		r->ratio = 1.0;
-
-	r->film_mode = FALSE;
-
-	r->open_subtitles = VBI_SUBTITLES_UNKNOWN;
-	r->closed_subtitles = VBI_SUBTITLES_UNKNOWN;
+		ar->ratio = 3.0 / 4.0;
 
 	return TRUE;
 }
 
 static void
-decode_program			(vbi_decoder *		vbi,
-				 const vbi_xds_packet *	xp)
+decode_program			(vbi3_decoder *		vbi,
+				 const vbi3_xds_packet *	xp)
 {
-	vbi_program_info *pi;
-	vbi_event e;
+	vbi3_program_info *pi;
+	vbi3_event e;
 	int neq, i;
 
 	if (!(vbi->handlers.event_mask
-	      & (VBI_EVENT_ASPECT | VBI_EVENT_PROG_INFO)))
+	      & (VBI3_EVENT_ASPECT | VBI3_EVENT_PROG_INFO)))
 		return;
 
 	pi = &vbi->prog_info[xp->xds_class];
 	neq = 0;
 
 	switch (xp->xds_subclass) {
-	case VBI_XDS_PROGRAM_ID:
+	case VBI3_XDS_PROGRAM_ID:
 	{
 		int month, day, hour, min;
 
@@ -278,7 +282,7 @@ decode_program			(vbi_decoder *		vbi,
 		break;
 	}
 
-	case VBI_XDS_PROGRAM_LENGTH:
+	case VBI3_XDS_PROGRAM_LENGTH:
 	{
 		int lhour, lmin, ehour = -1, emin = -1, esec = 0;
 
@@ -316,14 +320,14 @@ decode_program			(vbi_decoder *		vbi,
 		break;
 	}
 
-	case VBI_XDS_PROGRAM_NAME:
+	case VBI3_XDS_PROGRAM_NAME:
 		if (xp->buffer_size < 2)
 			return;
 
 		XDS_DEBUG(
 			printf("program title: '");
 			for (i = 0; i < buffer_size; i++)
-			putchar(printable(buffer[i]));
+			putchar(vbi3_printable (buffer[i]));
 			printf("'\n");
 			)
 
@@ -347,7 +351,7 @@ decode_program			(vbi_decoder *		vbi,
 
 		break;
 
-	case VBI_XDS_PROGRAM_TYPE:
+	case VBI3_XDS_PROGRAM_TYPE:
 	{
 		int neq;
 
@@ -355,13 +359,13 @@ decode_program			(vbi_decoder *		vbi,
 			printf("program type: ");
 			for (i = 0; i < buffer_size; i++)
 			printf((i > 0) ? ", %s" : "%s",
-			       vbi_prog_type_str_by_id(
-				       VBI_PROG_CLASSF_EIA_608, buffer[i]));
+			       vbi3_prog_type_str_by_id(
+				       VBI3_PROG_CLASSF_EIA_608, buffer[i]));
 			printf("\n");
 			)
 
-			neq = (pi->type_classf != VBI_PROG_CLASSF_EIA_608);
-		pi->type_classf = VBI_PROG_CLASSF_EIA_608;
+			neq = (pi->type_classf != VBI3_PROG_CLASSF_EIA_608);
+		pi->type_classf = VBI3_PROG_CLASSF_EIA_608;
 
 		for (i = 0; i < xp->buffer_size; i++) {
 			neq |= pi->type_id[i] ^ xp->buffer[i];
@@ -374,9 +378,9 @@ decode_program			(vbi_decoder *		vbi,
 		break;
 	}
 
-	case VBI_XDS_PROGRAM_RATING:
+	case VBI3_XDS_PROGRAM_RATING:
 	{
-		vbi_rating_auth auth;
+		vbi3_rating_auth auth;
 		int r, g, dlsv = 0;
 
 		if (xp->buffer_size != 2)
@@ -386,24 +390,24 @@ decode_program			(vbi_decoder *		vbi,
 		g = xp->buffer[1] & 7;
 
 		if (xp->buffer[0] & 0x20)
-			dlsv |= VBI_RATING_D;
+			dlsv |= VBI3_RATING_D;
 		if (xp->buffer[1] & 0x08)
-			dlsv |= VBI_RATING_L;
+			dlsv |= VBI3_RATING_L;
 		if (xp->buffer[1] & 0x10)
-			dlsv |= VBI_RATING_S;
+			dlsv |= VBI3_RATING_S;
 		if (xp->buffer[1] & 0x20)
-			dlsv |= VBI_RATING_V;
+			dlsv |= VBI3_RATING_V;
 
 		XDS_DEBUG(
 			printf("program movie rating: %s, tv rating: ",
-			       vbi_rating_str_by_id(VBI_RATING_AUTH_MPAA, r));
+			       vbi3_rating_str_by_id(VBI3_RATING_AUTH_MPAA, r));
 			if (xp->buffer[0] & 0x10) {
 				if (xp->buffer[0] & 0x20)
-					puts(vbi_rating_str_by_id(VBI_RATING_AUTH_TV_CA_FR, g));
+					puts(vbi3_rating_str_by_id(VBI3_RATING_AUTH_TV_CA_FR, g));
 				else
-					puts(vbi_rating_str_by_id(VBI_RATING_AUTH_TV_CA_EN, g));
+					puts(vbi3_rating_str_by_id(VBI3_RATING_AUTH_TV_CA_EN, g));
 			} else {
-				printf("%s; ", vbi_rating_str_by_id(VBI_RATING_AUTH_TV_US, g));
+				printf("%s; ", vbi3_rating_str_by_id(VBI3_RATING_AUTH_TV_US, g));
 				if (xp->buffer[1] & 0x20)
 					printf("violence; ");
 				if (xp->buffer[1] & 0x10)
@@ -418,18 +422,18 @@ decode_program			(vbi_decoder *		vbi,
 
 			if ((xp->buffer[0] & 0x08) == 0) {
 				if (r == 0) return;
-				auth = VBI_RATING_AUTH_MPAA;
+				auth = VBI3_RATING_AUTH_MPAA;
 				pi->rating_dlsv = dlsv = 0;
 			} else if ((xp->buffer[0] & 0x10) == 0) {
-				auth = VBI_RATING_AUTH_TV_US;
+				auth = VBI3_RATING_AUTH_TV_US;
 				r = g;
 			} else if ((xp->buffer[1] & 0x08) == 0) {
 				if ((xp->buffer[0] & 0x20) == 0) {
 					if ((r = g) > 6) return;
-					auth = VBI_RATING_AUTH_TV_CA_EN;
+					auth = VBI3_RATING_AUTH_TV_CA_EN;
 				} else {
 					if ((r = g) > 5) return;
-					auth = VBI_RATING_AUTH_TV_CA_FR;
+					auth = VBI3_RATING_AUTH_TV_CA_FR;
 				}
 				pi->rating_dlsv = dlsv = 0;
 			} else
@@ -446,27 +450,27 @@ decode_program			(vbi_decoder *		vbi,
 		break;
 	}
 
-	case VBI_XDS_PROGRAM_AUDIO_SERVICES:
+	case VBI3_XDS_PROGRAM_AUDIO_SERVICES:
 	{
-		static const vbi_audio_mode mode[2][8] = {
+		static const vbi3_audio_mode mode[2][8] = {
 			{
-				VBI_AUDIO_MODE_UNKNOWN,
-				VBI_AUDIO_MODE_MONO,
-				VBI_AUDIO_MODE_SIMULATED_STEREO,
-				VBI_AUDIO_MODE_STEREO,
-				VBI_AUDIO_MODE_STEREO_SURROUND,
-				VBI_AUDIO_MODE_DATA_SERVICE,
-				VBI_AUDIO_MODE_UNKNOWN, /* "other" */
-				VBI_AUDIO_MODE_NONE
+				VBI3_AUDIO_MODE_UNKNOWN,
+				VBI3_AUDIO_MODE_MONO,
+				VBI3_AUDIO_MODE_SIMULATED_STEREO,
+				VBI3_AUDIO_MODE_STEREO,
+				VBI3_AUDIO_MODE_STEREO_SURROUND,
+				VBI3_AUDIO_MODE_DATA_SERVICE,
+				VBI3_AUDIO_MODE_UNKNOWN, /* "other" */
+				VBI3_AUDIO_MODE_NONE
 			}, {
-				VBI_AUDIO_MODE_UNKNOWN,
-				VBI_AUDIO_MODE_MONO,
-				VBI_AUDIO_MODE_VIDEO_DESCRIPTIONS,
-				VBI_AUDIO_MODE_NON_PROGRAM_AUDIO,
-				VBI_AUDIO_MODE_SPECIAL_EFFECTS,
-				VBI_AUDIO_MODE_DATA_SERVICE,
-				VBI_AUDIO_MODE_UNKNOWN, /* "other" */
-				VBI_AUDIO_MODE_NONE
+				VBI3_AUDIO_MODE_UNKNOWN,
+				VBI3_AUDIO_MODE_MONO,
+				VBI3_AUDIO_MODE_VIDEO_DESCRIPTIONS,
+				VBI3_AUDIO_MODE_NON_PROGRAM_AUDIO,
+				VBI3_AUDIO_MODE_SPECIAL_EFFECTS,
+				VBI3_AUDIO_MODE_DATA_SERVICE,
+				VBI3_AUDIO_MODE_UNKNOWN, /* "other" */
+				VBI3_AUDIO_MODE_NONE
 			}
 		};
 
@@ -480,7 +484,7 @@ decode_program			(vbi_decoder *		vbi,
 
 		for (i = 0; i < 2; i++) {
 			int l = (xp->buffer[i] >> 3) & 7;
-			vbi_audio_mode m = mode[i][xp->buffer[i] & 7];
+			vbi3_audio_mode m = mode[i][xp->buffer[i] & 7];
 			const char *s = ((1 << l) & 0xC1) ? NULL : language[l];
 
 			if (pi->audio[i].mode != m) {
@@ -494,7 +498,7 @@ decode_program			(vbi_decoder *		vbi,
 		break;
 	}
 
-	case VBI_XDS_PROGRAM_CAPTION_SERVICES:
+	case VBI3_XDS_PROGRAM_CAPTION_SERVICES:
 	{
 		int services = 0;
 
@@ -518,7 +522,7 @@ decode_program			(vbi_decoder *		vbi,
 				neq = 1; pi->caption_lang_code[ch] = s;
 			}
 
-			if (xp->xds_class == VBI_XDS_CLASS_CURRENT)
+			if (xp->xds_class == VBI3_XDS_CLASS_CURRENT)
 				vbi->cc.channel[ch].lang_code[0] =
 					pi->caption_lang_code[ch];
 		}
@@ -538,7 +542,7 @@ decode_program			(vbi_decoder *		vbi,
 			break;
 	}
 
-	case VBI_XDS_PROGRAM_CGMS:
+	case VBI3_XDS_PROGRAM_CGMS:
 		if (xp->buffer_size != 1)
 			return;
 
@@ -553,13 +557,13 @@ decode_program			(vbi_decoder *		vbi,
 
 		break;
 
-	case VBI_XDS_PROGRAM_ASPECT_RATIO:
+	case VBI3_XDS_PROGRAM_ASPECT_RATIO:
 	{
-		vbi_aspect_ratio *r = &e.ev.aspect;
+		vbi3_aspect_ratio *r = &e.ev.aspect;
 
 		log ("ASPECT_RATIO ");
 
-		if (!vbi_decode_xds_aspect_ratio (r, xp))
+		if (!vbi3_decode_xds_aspect_ratio (r, xp))
 			return;
 		/*
 		log ("active %u-%u%s\n",
@@ -571,7 +575,7 @@ decode_program			(vbi_decoder *		vbi,
 // TODO
 //			vbi->aspect_source = 3;
 
-			e.type = VBI_EVENT_ASPECT;
+			e.type = VBI3_EVENT_ASPECT;
 			caption_send_event (vbi, &e);
 
 			neq = 1;
@@ -580,15 +584,15 @@ decode_program			(vbi_decoder *		vbi,
 		break;
 	}
 
-	case VBI_XDS_PROGRAM_DESCRIPTION_BEGIN ...
-		(VBI_XDS_PROGRAM_DESCRIPTION_END - 1):
+	case VBI3_XDS_PROGRAM_DESCRIPTION_BEGIN ...
+		(VBI3_XDS_PROGRAM_DESCRIPTION_END - 1):
 	{
 		unsigned int line = xp->xds_subclass & 7;
 
 			XDS_DEBUG(
 				printf("program descr. line %d: >", line + 1);
 				for (i = 0; i < xp->buffer_size; i++)
-				putchar(printable(xp->buffer[i]));
+				putchar(vbi3_printable (xp->buffer[i]));
 				printf("<\n");
 				)
 
@@ -614,7 +618,7 @@ decode_program			(vbi_decoder *		vbi,
 	else if (vbi->cc.info_cycle[xp->xds_class] & (1 << xp->xds_subclass)) {
 		/* Second occurance of this type with same data */
 
-		e.type = VBI_EVENT_PROG_INFO;
+		e.type = VBI3_EVENT_PROG_INFO;
 		e.ev.prog_info = pi;
 
 		caption_send_event(vbi, &e);
@@ -624,9 +628,9 @@ decode_program			(vbi_decoder *		vbi,
 	}
 }
 
-vbi_bool
-vbi_decode_xds_tape_delay	(unsigned int *		tape_delay,
-				 const vbi_xds_packet *	xp)
+vbi3_bool
+vbi3_decode_xds_tape_delay	(unsigned int *		tape_delay,
+				 const vbi3_xds_packet *	xp)
 {
 	unsigned int hour;
 	unsigned int min;
@@ -651,15 +655,15 @@ vbi_decode_xds_tape_delay	(unsigned int *		tape_delay,
 }
 
 static void
-decode_channel			(vbi_decoder *		vbi,
-				 const vbi_xds_packet *	xp)
+decode_channel			(vbi3_decoder *		vbi,
+				 const vbi3_xds_packet *	xp)
 {
 #warning
-  //	vbi_network *n = &vbi->network.ev.network;
-	vbi_network *n = 0;
+  //	vbi3_network *n = &vbi->network.ev.network;
+	vbi3_network *n = 0;
 
 	switch (xp->xds_subclass) {
-	case VBI_XDS_CHANNEL_NAME:
+	case VBI3_XDS_CHANNEL_NAME:
 #if 0 // FIXME
 		if (xds_strfu(n->name, xp->buffer, xp->buffer_size)) {
 			n->cycle = 1;
@@ -678,11 +682,11 @@ decode_channel			(vbi_decoder *		vbi,
 				sum |= 1UL << 30;
 
 				if (n->nuid != 0)
-					vbi_chsw_reset(vbi, sum);
+					vbi3_chsw_reset(vbi, sum);
 
 				n->nuid = sum;
 
-				vbi->network.type = VBI_EVENT_NETWORK;
+				vbi->network.type = VBI3_EVENT_NETWORK;
 				caption_send_event(vbi, &vbi->network);
 
 				n->cycle = 3;
@@ -691,14 +695,14 @@ decode_channel			(vbi_decoder *		vbi,
 			XDS_DEBUG(
 				printf("Network name: '");
 				for (i = 0; i < buffer_size; i++)
-					putchar(printable(buffer[i]));
+					putchar(vbi3_printable (buffer[i]));
 				printf("'\n");
 			)
 #endif
 
 				break;
 
-	case VBI_XDS_CHANNEL_CALL_LETTERS:
+	case VBI3_XDS_CHANNEL_CALL_LETTERS:
 #if 0 // FIXME
 			if (xds_strfu(n->call, buffer, buffer_size)) {
 				if (n->cycle != 1) {
@@ -710,19 +714,19 @@ decode_channel			(vbi_decoder *		vbi,
 			XDS_DEBUG(
 				printf("Network call letters: '");
 				for (i = 0; i < buffer_size; i++)
-					putchar(printable(buffer[i]));
+					putchar(vbi3_printable (buffer[i]));
 				printf("'\n");
 			)
 
 			break;
 
-	case VBI_XDS_CHANNEL_TAPE_DELAY:
+	case VBI3_XDS_CHANNEL_TAPE_DELAY:
 	{
 		unsigned int delay;
 
 		log ("TAPE_DELAY ");
 
-		if (!vbi_decode_xds_tape_delay (&delay, xp))
+		if (!vbi3_decode_xds_tape_delay (&delay, xp))
 			return;
 
 		log ("%02d:%02d", delay / 60, delay % 60);
@@ -762,10 +766,10 @@ fprint_date_flags		(FILE *			fp,
  * @returns
  * FALSE if the buffer contains incorrect data.
  */
-vbi_bool
-vbi_decode_xds_time_of_day	(struct tm *		tm,
-				 vbi_xds_date_flags *	date_flags,
-				 const vbi_xds_packet *	xp)
+vbi3_bool
+vbi3_decode_xds_time_of_day	(struct tm *		tm,
+				 vbi3_xds_date_flags *	date_flags,
+				 const vbi3_xds_packet *	xp)
 {
 	assert (NULL != tm);
 	assert (NULL != xp);
@@ -811,10 +815,10 @@ vbi_decode_xds_time_of_day	(struct tm *		tm,
  * @returns
  * FALSE if the buffer contains incorrect data.
  */
-vbi_bool
-vbi_decode_xds_time_zone	(unsigned int *		hours_west,
-				 vbi_bool *		dso,
-				 const vbi_xds_packet *	xp)
+vbi3_bool
+vbi3_decode_xds_time_zone	(unsigned int *		hours_west,
+				 vbi3_bool *		dso,
+				 const vbi3_xds_packet *	xp)
 {
 	unsigned int hour;
 
@@ -839,10 +843,10 @@ vbi_decode_xds_time_zone	(unsigned int *		hours_west,
 /**
  *
  */
-vbi_bool
-vbi_decode_xds_impulse_capture_id
-				(vbi_program_id *	pid,
-				 const vbi_xds_packet *	xp)
+vbi3_bool
+vbi3_decode_xds_impulse_capture_id
+				(vbi3_program_id *	pid,
+				 const vbi3_xds_packet *	xp)
 {
 	unsigned int hour;
 	unsigned int min;
@@ -853,10 +857,10 @@ vbi_decode_xds_impulse_capture_id
 	if (6 != xp->buffer_size)
 		return FALSE;
 
-	pid->cni_type	= VBI_CNI_TYPE_NONE;
+	pid->cni_type	= VBI3_CNI_TYPE_NONE;
 	pid->cni	= 0;
 
-	pid->channel	= VBI_PID_CHANNEL_XDS;
+	pid->channel	= VBI3_PID_CHANNEL_XDS;
 
 	/* TZ UTC */
 
@@ -872,7 +876,7 @@ vbi_decode_xds_impulse_capture_id
 	    || pid->month > 12)
 		return FALSE;
 
-	pid->pil = VBI_PIL (pid->day, pid->month, pid->hour, pid->minute);
+	pid->pil = VBI3_PIL (pid->day, pid->month, pid->hour, pid->minute);
 
 	min  = xp->buffer[4] & 63;
 	hour = xp->buffer[5] & 63;
@@ -886,7 +890,7 @@ vbi_decode_xds_impulse_capture_id
 	pid->mi  = FALSE; /* id is not 30 s early */
 	pid->prf = FALSE; /* prepare to record unknown */
 
-	pid->pcs_audio = VBI_PCS_AUDIO_UNKNOWN;
+	pid->pcs_audio = VBI3_PCS_AUDIO_UNKNOWN;
 	pid->pty = 0; /* none / unknown */
 
 	pid->tape_delayed = !!(xp->buffer[3] & 0x10);
@@ -895,17 +899,17 @@ vbi_decode_xds_impulse_capture_id
 }
 
 static void
-decode_misc			(vbi_decoder *		vbi,
-				 const vbi_xds_packet *	xp)
+decode_misc			(vbi3_decoder *		vbi,
+				 const vbi3_xds_packet *	xp)
 {
 	switch (xp->xds_subclass) {
-	case VBI_XDS_MISC_TIME_OF_DAY:
+	case VBI3_XDS_MISC_TIME_OF_DAY:
 	{
 		struct tm tm;
 
 		log ("TIME_OF_DAY ");
 
-		if (!vbi_decode_xds_time_of_day (&tm, NULL, xp))
+		if (!vbi3_decode_xds_time_of_day (&tm, NULL, xp))
 			return;
 
 		if (XDS_DECODER_LOG) {
@@ -928,13 +932,13 @@ decode_misc			(vbi_decoder *		vbi,
 		break;
 	}
 
-	case VBI_XDS_MISC_IMPULSE_CAPTURE_ID:
+	case VBI3_XDS_MISC_IMPULSE_CAPTURE_ID:
 	{
-		vbi_program_id pi;
+		vbi3_program_id pi;
 
 		log ("IMPULSE_CAPTURE_ID ");
 
-		if (!vbi_decode_xds_impulse_capture_id (&pi, xp))
+		if (!vbi3_decode_xds_impulse_capture_id (&pi, xp))
 			return;
 
 		log ("20XX-%02u-%02u %02u:%02u UTC length %02u:%02u ",
@@ -948,7 +952,7 @@ decode_misc			(vbi_decoder *		vbi,
 		break;
 	}
 
-	case VBI_XDS_MISC_SUPPLEMENTAL_DATA_LOCATION:
+	case VBI3_XDS_MISC_SUPPLEMENTAL_DATA_LOCATION:
 	{
 		log ("SUPPLEMENTAL_DATA_LOCATION ");
 
@@ -972,14 +976,14 @@ decode_misc			(vbi_decoder *		vbi,
 		break;
 	}
 
-	case VBI_XDS_MISC_LOCAL_TIME_ZONE:
+	case VBI3_XDS_MISC_LOCAL_TIME_ZONE:
 	{
 		unsigned int hour;
-		vbi_bool dso;
+		vbi3_bool dso;
 
 		log ("LOCAL_TIME_ZONE ");
 
-		if (!vbi_decode_xds_time_zone (&hour, &dso, xp))
+		if (!vbi3_decode_xds_time_zone (&hour, &dso, xp))
 			return;
 
 		log ("UTC - %d h, dst=%u", hour, 0);
@@ -997,31 +1001,31 @@ decode_misc			(vbi_decoder *		vbi,
 }
 
 void
-_vbi_decode_xds			(vbi_xds_demux *	xd,
+_vbi3_decode_xds		(vbi3_xds_demux *	xd,
 				 void *			user_data,
-				 const vbi_xds_packet *	xp)
+				 const vbi3_xds_packet *	xp)
 {
-	vbi_decoder *vbi = user_data;
+	vbi3_decoder *vbi = user_data;
 
 	assert (xp->buffer_size > 0 && xp->buffer_size <= 32);
 
 	switch (xp->xds_class) {
-	case VBI_XDS_CLASS_CURRENT:
+	case VBI3_XDS_CLASS_CURRENT:
 		log ("XDS CURRENT ");
 		decode_program (vbi, xp);
 		break;
 
-	case VBI_XDS_CLASS_FUTURE:
+	case VBI3_XDS_CLASS_FUTURE:
 		log ("XDS FUTURE ");
 		decode_program (vbi, xp);
 		break;
 
-	case VBI_XDS_CLASS_CHANNEL:
+	case VBI3_XDS_CLASS_CHANNEL:
 		log ("XDS CHANNEL ");
 		decode_channel (vbi, xp);
 		break;
 
-	case VBI_XDS_CLASS_MISC:
+	case VBI3_XDS_CLASS_MISC:
 		log ("XDS MISC ");
 		decode_misc (vbi, xp);
 		break;
