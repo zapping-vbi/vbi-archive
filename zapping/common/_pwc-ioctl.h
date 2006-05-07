@@ -9,31 +9,6 @@
 #endif
 
 static void
-fprint_struct_pwc_serial (FILE *fp, int rw __attribute__ ((unused)), const struct pwc_serial *t)
-{
-fprintf (fp, "serial=\"%.*s\" ",
-30, (const char *) t->serial);
-}
-
-static void
-fprint_struct_pwc_probe (FILE *fp, int rw __attribute__ ((unused)), const struct pwc_probe *t)
-{
-fprintf (fp, "name=\"%.*s\" "
-"type=%ld ",
-32, (const char *) t->name, 
-(long) t->type);
-}
-
-static void
-fprint_struct_pwc_wb_speed (FILE *fp, int rw __attribute__ ((unused)), const struct pwc_wb_speed *t)
-{
-fprintf (fp, "control_speed=%ld "
-"control_delay=%ld ",
-(long) t->control_speed, 
-(long) t->control_delay);
-}
-
-static void
 fprint_symbol_pwc_wb_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
 {
 fprint_symbolic (fp, 0, value,
@@ -42,7 +17,7 @@ fprint_symbolic (fp, 0, value,
 "FL", (unsigned long) PWC_WB_FL,
 "MANUAL", (unsigned long) PWC_WB_MANUAL,
 "AUTO", (unsigned long) PWC_WB_AUTO,
-0);
+(void *) 0);
 }
 
 static void
@@ -72,42 +47,12 @@ fprintf (fp, "status=%ld "
 }
 
 static void
-fprint_struct_pwc_video_command (FILE *fp, int rw __attribute__ ((unused)), const struct pwc_video_command *t)
-{
-fprintf (fp, "type=%ld "
-"release=%ld "
-"size=%ld "
-"alternate=%ld "
-"command_len=%ld "
-"command_buf[]=? "
-"bandlength=%ld "
-"frame_size=%ld ",
-(long) t->type, 
-(long) t->release, 
-(long) t->size, 
-(long) t->alternate, 
-(long) t->command_len, 
-
-(long) t->bandlength, 
-(long) t->frame_size);
-}
-
-static void
 fprint_struct_pwc_leds (FILE *fp, int rw __attribute__ ((unused)), const struct pwc_leds *t)
 {
 fprintf (fp, "led_on=%ld "
 "led_off=%ld ",
 (long) t->led_on, 
 (long) t->led_off);
-}
-
-static void
-fprint_struct_pwc_imagesize (FILE *fp, int rw __attribute__ ((unused)), const struct pwc_imagesize *t)
-{
-fprintf (fp, "width=%ld "
-"height=%ld ",
-(long) t->width, 
-(long) t->height);
 }
 
 static void
@@ -135,22 +80,73 @@ fprintf (fp, "pan_min=%ld "
 }
 
 static void
+fprint_struct_pwc_wb_speed (FILE *fp, int rw __attribute__ ((unused)), const struct pwc_wb_speed *t)
+{
+fprintf (fp, "control_speed=%ld "
+"control_delay=%ld ",
+(long) t->control_speed, 
+(long) t->control_delay);
+}
+
+static void
+fprint_struct_pwc_serial (FILE *fp, int rw __attribute__ ((unused)), const struct pwc_serial *t)
+{
+fprintf (fp, "serial=\"%.*s\" ",
+30, (const char *) t->serial);
+}
+
+static void
+fprint_struct_pwc_imagesize (FILE *fp, int rw __attribute__ ((unused)), const struct pwc_imagesize *t)
+{
+fprintf (fp, "width=%ld "
+"height=%ld ",
+(long) t->width, 
+(long) t->height);
+}
+
+static void
+fprint_struct_pwc_video_command (FILE *fp, int rw __attribute__ ((unused)), const struct pwc_video_command *t)
+{
+fprintf (fp, "type=%ld "
+"release=%ld "
+"size=%ld "
+"alternate=%ld "
+"command_len=%ld "
+"command_buf[]=? "
+"bandlength=%ld "
+"frame_size=%ld ",
+(long) t->type, 
+(long) t->release, 
+(long) t->size, 
+(long) t->alternate, 
+(long) t->command_len, 
+
+(long) t->bandlength, 
+(long) t->frame_size);
+}
+
+static void
+fprint_struct_pwc_probe (FILE *fp, int rw __attribute__ ((unused)), const struct pwc_probe *t)
+{
+fprintf (fp, "name=\"%.*s\" "
+"type=%ld ",
+32, (const char *) t->name, 
+(long) t->type);
+}
+
+static void
 fprint_pwc_ioctl_arg (FILE *fp, unsigned int cmd, int rw, void *arg)
 {
 switch (cmd) {
-case VIDIOCPWCGSERIAL:
-if (!arg) { fputs ("VIDIOCPWCGSERIAL", fp); return; }
- fprint_struct_pwc_serial (fp, rw, arg);
+case VIDIOCPWCSAWB:
+if (!arg) { fputs ("VIDIOCPWCSAWB", fp); return; }
+case VIDIOCPWCGAWB:
+if (!arg) { fputs ("VIDIOCPWCGAWB", fp); return; }
+ fprint_struct_pwc_whitebalance (fp, rw, arg);
 break;
-case VIDIOCPWCPROBE:
-if (!arg) { fputs ("VIDIOCPWCPROBE", fp); return; }
- fprint_struct_pwc_probe (fp, rw, arg);
-break;
-case VIDIOCPWCSAWBSPEED:
-if (!arg) { fputs ("VIDIOCPWCSAWBSPEED", fp); return; }
-case VIDIOCPWCGAWBSPEED:
-if (!arg) { fputs ("VIDIOCPWCGAWBSPEED", fp); return; }
- fprint_struct_pwc_wb_speed (fp, rw, arg);
+case VIDIOCPWCMPTSTATUS:
+if (!arg) { fputs ("VIDIOCPWCMPTSTATUS", fp); return; }
+ fprint_struct_pwc_mpt_status (fp, rw, arg);
 break;
 case VIDIOCPWCSCQUAL:
 if (!arg) { fputs ("VIDIOCPWCSCQUAL", fp); return; }
@@ -182,29 +178,11 @@ case VIDIOCPWCMPTRESET:
 if (!arg) { fputs ("VIDIOCPWCMPTRESET", fp); return; }
  fprintf (fp, "%ld", (long) * (int *) arg);
 break;
-case VIDIOCPWCSAWB:
-if (!arg) { fputs ("VIDIOCPWCSAWB", fp); return; }
-case VIDIOCPWCGAWB:
-if (!arg) { fputs ("VIDIOCPWCGAWB", fp); return; }
- fprint_struct_pwc_whitebalance (fp, rw, arg);
-break;
-case VIDIOCPWCMPTSTATUS:
-if (!arg) { fputs ("VIDIOCPWCMPTSTATUS", fp); return; }
- fprint_struct_pwc_mpt_status (fp, rw, arg);
-break;
-case VIDIOCPWCGVIDCMD:
-if (!arg) { fputs ("VIDIOCPWCGVIDCMD", fp); return; }
- fprint_struct_pwc_video_command (fp, rw, arg);
-break;
 case VIDIOCPWCSLED:
 if (!arg) { fputs ("VIDIOCPWCSLED", fp); return; }
 case VIDIOCPWCGLED:
 if (!arg) { fputs ("VIDIOCPWCGLED", fp); return; }
  fprint_struct_pwc_leds (fp, rw, arg);
-break;
-case VIDIOCPWCGREALSIZE:
-if (!arg) { fputs ("VIDIOCPWCGREALSIZE", fp); return; }
- fprint_struct_pwc_imagesize (fp, rw, arg);
 break;
 case VIDIOCPWCMPTSANGLE:
 if (!arg) { fputs ("VIDIOCPWCMPTSANGLE", fp); return; }
@@ -215,6 +193,28 @@ break;
 case VIDIOCPWCMPTGRANGE:
 if (!arg) { fputs ("VIDIOCPWCMPTGRANGE", fp); return; }
  fprint_struct_pwc_mpt_range (fp, rw, arg);
+break;
+case VIDIOCPWCSAWBSPEED:
+if (!arg) { fputs ("VIDIOCPWCSAWBSPEED", fp); return; }
+case VIDIOCPWCGAWBSPEED:
+if (!arg) { fputs ("VIDIOCPWCGAWBSPEED", fp); return; }
+ fprint_struct_pwc_wb_speed (fp, rw, arg);
+break;
+case VIDIOCPWCGSERIAL:
+if (!arg) { fputs ("VIDIOCPWCGSERIAL", fp); return; }
+ fprint_struct_pwc_serial (fp, rw, arg);
+break;
+case VIDIOCPWCGREALSIZE:
+if (!arg) { fputs ("VIDIOCPWCGREALSIZE", fp); return; }
+ fprint_struct_pwc_imagesize (fp, rw, arg);
+break;
+case VIDIOCPWCGVIDCMD:
+if (!arg) { fputs ("VIDIOCPWCGVIDCMD", fp); return; }
+ fprint_struct_pwc_video_command (fp, rw, arg);
+break;
+case VIDIOCPWCPROBE:
+if (!arg) { fputs ("VIDIOCPWCPROBE", fp); return; }
+ fprint_struct_pwc_probe (fp, rw, arg);
 break;
 	default:
 		if (!arg) { fprint_unknown_ioctl (fp, cmd, arg); return; }

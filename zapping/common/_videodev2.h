@@ -9,6 +9,20 @@
 #endif
 
 static void
+fprint_struct_v4l2_performance (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_performance *t)
+{
+fprintf (fp, "frames=%ld "
+"framesdropped=%ld "
+"bytesin=%lu "
+"bytesout=%lu "
+"reserved[] ",
+(long) t->frames, 
+(long) t->framesdropped, 
+(unsigned long) t->bytesin, 
+(unsigned long) t->bytesout);
+}
+
+static void
 fprint_struct_v4l2_compression (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_compression *t)
 {
 fprintf (fp, "quality=%ld "
@@ -18,6 +32,53 @@ fprintf (fp, "quality=%ld "
 (long) t->quality, 
 (long) t->keyframerate, 
 (long) t->pframerate);
+}
+
+static void
+fprint_symbol_v4l2_pix_fmt_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
+{
+fprint_symbolic (fp, 0, value,
+"RGB332", (unsigned long) V4L2_PIX_FMT_RGB332,
+"RGB555", (unsigned long) V4L2_PIX_FMT_RGB555,
+"RGB565", (unsigned long) V4L2_PIX_FMT_RGB565,
+"RGB555X", (unsigned long) V4L2_PIX_FMT_RGB555X,
+"RGB565X", (unsigned long) V4L2_PIX_FMT_RGB565X,
+"BGR24", (unsigned long) V4L2_PIX_FMT_BGR24,
+"RGB24", (unsigned long) V4L2_PIX_FMT_RGB24,
+"BGR32", (unsigned long) V4L2_PIX_FMT_BGR32,
+"RGB32", (unsigned long) V4L2_PIX_FMT_RGB32,
+"GREY", (unsigned long) V4L2_PIX_FMT_GREY,
+"YVU410", (unsigned long) V4L2_PIX_FMT_YVU410,
+"YVU420", (unsigned long) V4L2_PIX_FMT_YVU420,
+"YUYV", (unsigned long) V4L2_PIX_FMT_YUYV,
+"UYVY", (unsigned long) V4L2_PIX_FMT_UYVY,
+"YVU422P", (unsigned long) V4L2_PIX_FMT_YVU422P,
+"YVU411P", (unsigned long) V4L2_PIX_FMT_YVU411P,
+"Y41P", (unsigned long) V4L2_PIX_FMT_Y41P,
+"YUV410", (unsigned long) V4L2_PIX_FMT_YUV410,
+"YUV420", (unsigned long) V4L2_PIX_FMT_YUV420,
+"YYUV", (unsigned long) V4L2_PIX_FMT_YYUV,
+"HI240", (unsigned long) V4L2_PIX_FMT_HI240,
+"WNVA", (unsigned long) V4L2_PIX_FMT_WNVA,
+(void *) 0);
+}
+
+static void
+fprint_struct_v4l2_fmtdesc (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_fmtdesc *t)
+{
+fprintf (fp, "index=%ld ",
+(long) t->index);
+if (1 == rw) {
+fprintf (fp, "description=\"%.*s\" "
+"pixelformat=",
+32, (const char *) t->description);
+fprint_symbol_v4l2_pix_fmt_ (fp, rw, t->pixelformat);
+fprintf (fp, " flags=0x%lx "
+"depth=%lu "
+"reserved[] ",
+(unsigned long) t->flags, 
+(unsigned long) t->depth);
+}
 }
 
 static void
@@ -34,7 +95,7 @@ fprint_symbolic (fp, 0, value,
 "L", (unsigned long) V4L2_TRANSM_STD_L,
 "M", (unsigned long) V4L2_TRANSM_STD_M,
 "N", (unsigned long) V4L2_TRANSM_STD_N,
-0);
+(void *) 0);
 }
 
 static void
@@ -54,7 +115,7 @@ fprint_symbolic (fp, 0, t->colorstandard,
 "PAL", (unsigned long) V4L2_COLOR_STD_PAL,
 "NTSC", (unsigned long) V4L2_COLOR_STD_NTSC,
 "SECAM", (unsigned long) V4L2_COLOR_STD_SECAM,
-0);
+(void *) 0);
 fputs (" ", fp);
 fputs ("colorstandard_data={", fp);
 if (V4L2_COLOR_STD_PAL == t->colorstandard) {
@@ -90,22 +151,6 @@ fputs (" reserved2 ", fp);
 }
 
 static void
-fprint_struct_v4l2_enumstd (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_enumstd *t)
-{
-fprintf (fp, "index=%ld ",
-(long) t->index);
-if (1 == rw) {
-fputs ("std={", fp);
-fprint_struct_v4l2_standard (fp, rw, &t->std);
-fprintf (fp, "} inputs=%lu "
-"outputs=%lu "
-"reserved[] ",
-(unsigned long) t->inputs, 
-(unsigned long) t->outputs);
-}
-}
-
-static void
 fprint_symbol_v4l2_tuner_cap_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
 {
 fprint_symbolic (fp, 0, value,
@@ -115,7 +160,7 @@ fprint_symbolic (fp, 0, value,
 "LANG2", (unsigned long) V4L2_TUNER_CAP_LANG2,
 "SAP", (unsigned long) V4L2_TUNER_CAP_SAP,
 "LANG1", (unsigned long) V4L2_TUNER_CAP_LANG1,
-0);
+(void *) 0);
 }
 
 static void
@@ -127,7 +172,7 @@ fprint_symbolic (fp, 0, value,
 "LANG2", (unsigned long) V4L2_TUNER_SUB_LANG2,
 "SAP", (unsigned long) V4L2_TUNER_SUB_SAP,
 "LANG1", (unsigned long) V4L2_TUNER_SUB_LANG1,
-0);
+(void *) 0);
 }
 
 static void
@@ -139,7 +184,7 @@ fprint_symbolic (fp, 0, value,
 "LANG2", (unsigned long) V4L2_TUNER_MODE_LANG2,
 "SAP", (unsigned long) V4L2_TUNER_MODE_SAP,
 "LANG1", (unsigned long) V4L2_TUNER_MODE_LANG1,
-0);
+(void *) 0);
 }
 
 static void
@@ -171,17 +216,80 @@ fprintf (fp, " signal=%ld "
 }
 
 static void
-fprint_struct_v4l2_performance (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_performance *t)
+fprint_symbol_v4l2_type_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
 {
-fprintf (fp, "frames=%ld "
-"framesdropped=%ld "
-"bytesin=%lu "
-"bytesout=%lu "
+fprint_symbolic (fp, 0, value,
+"CAPTURE", (unsigned long) V4L2_TYPE_CAPTURE,
+"CODEC", (unsigned long) V4L2_TYPE_CODEC,
+"OUTPUT", (unsigned long) V4L2_TYPE_OUTPUT,
+"FX", (unsigned long) V4L2_TYPE_FX,
+"VBI", (unsigned long) V4L2_TYPE_VBI,
+"VTR", (unsigned long) V4L2_TYPE_VTR,
+"VTX", (unsigned long) V4L2_TYPE_VTX,
+"RADIO", (unsigned long) V4L2_TYPE_RADIO,
+"VBI_INPUT", (unsigned long) V4L2_TYPE_VBI_INPUT,
+"VBI_OUTPUT", (unsigned long) V4L2_TYPE_VBI_OUTPUT,
+"PRIVATE", (unsigned long) V4L2_TYPE_PRIVATE,
+(void *) 0);
+}
+
+static void
+fprint_symbol_v4l2_flag_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
+{
+fprint_symbolic (fp, 2, value,
+"READ", (unsigned long) V4L2_FLAG_READ,
+"WRITE", (unsigned long) V4L2_FLAG_WRITE,
+"STREAMING", (unsigned long) V4L2_FLAG_STREAMING,
+"PREVIEW", (unsigned long) V4L2_FLAG_PREVIEW,
+"SELECT", (unsigned long) V4L2_FLAG_SELECT,
+"TUNER", (unsigned long) V4L2_FLAG_TUNER,
+"MONOCHROME", (unsigned long) V4L2_FLAG_MONOCHROME,
+"DATA_SERVICE", (unsigned long) V4L2_FLAG_DATA_SERVICE,
+(void *) 0);
+}
+
+static void
+fprint_struct_v4l2_capability (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_capability *t)
+{
+fprintf (fp, "name=\"%.*s\" "
+"type=",
+32, (const char *) t->name);
+fprint_symbol_v4l2_type_ (fp, rw, t->type);
+fprintf (fp, " inputs=%ld "
+"outputs=%ld "
+"audios=%ld "
+"maxwidth=%ld "
+"maxheight=%ld "
+"minwidth=%ld "
+"minheight=%ld "
+"maxframerate=%ld "
+"flags=",
+(long) t->inputs, 
+(long) t->outputs, 
+(long) t->audios, 
+(long) t->maxwidth, 
+(long) t->maxheight, 
+(long) t->minwidth, 
+(long) t->minheight, 
+(long) t->maxframerate);
+fprint_symbol_v4l2_flag_ (fp, rw, t->flags);
+fputs (" reserved[] ", fp);
+}
+
+static void
+fprint_struct_v4l2_enumstd (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_enumstd *t)
+{
+fprintf (fp, "index=%ld ",
+(long) t->index);
+if (1 == rw) {
+fputs ("std={", fp);
+fprint_struct_v4l2_standard (fp, rw, &t->std);
+fprintf (fp, "} inputs=%lu "
+"outputs=%lu "
 "reserved[] ",
-(long) t->frames, 
-(long) t->framesdropped, 
-(unsigned long) t->bytesin, 
-(unsigned long) t->bytesout);
+(unsigned long) t->inputs, 
+(unsigned long) t->outputs);
+}
 }
 
 static void
@@ -216,272 +324,7 @@ fprint_symbolic (fp, 0, value,
 "HCENTER", (unsigned long) V4L2_CID_HCENTER,
 "VCENTER", (unsigned long) V4L2_CID_VCENTER,
 "LASTP1", (unsigned long) V4L2_CID_LASTP1,
-0);
-}
-
-static void
-fprint_struct_v4l2_querymenu (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_querymenu *t)
-{
-fputs ("id=", fp);
-fprint_symbol_v4l2_cid_ (fp, rw, t->id);
-fprintf (fp, " index=%ld ",
-(long) t->index);
-if (1 == rw) {
-fprintf (fp, "name=\"%.*s\" "
-"reserved ",
-32, (const char *) t->name);
-}
-}
-
-static void
-fprint_symbol_v4l2_type_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
-{
-fprint_symbolic (fp, 0, value,
-"CAPTURE", (unsigned long) V4L2_TYPE_CAPTURE,
-"CODEC", (unsigned long) V4L2_TYPE_CODEC,
-"OUTPUT", (unsigned long) V4L2_TYPE_OUTPUT,
-"FX", (unsigned long) V4L2_TYPE_FX,
-"VBI", (unsigned long) V4L2_TYPE_VBI,
-"VTR", (unsigned long) V4L2_TYPE_VTR,
-"VTX", (unsigned long) V4L2_TYPE_VTX,
-"RADIO", (unsigned long) V4L2_TYPE_RADIO,
-"VBI_INPUT", (unsigned long) V4L2_TYPE_VBI_INPUT,
-"VBI_OUTPUT", (unsigned long) V4L2_TYPE_VBI_OUTPUT,
-"PRIVATE", (unsigned long) V4L2_TYPE_PRIVATE,
-0);
-}
-
-static void
-fprint_symbol_v4l2_flag_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
-{
-fprint_symbolic (fp, 2, value,
-"READ", (unsigned long) V4L2_FLAG_READ,
-"WRITE", (unsigned long) V4L2_FLAG_WRITE,
-"STREAMING", (unsigned long) V4L2_FLAG_STREAMING,
-"PREVIEW", (unsigned long) V4L2_FLAG_PREVIEW,
-"SELECT", (unsigned long) V4L2_FLAG_SELECT,
-"TUNER", (unsigned long) V4L2_FLAG_TUNER,
-"MONOCHROME", (unsigned long) V4L2_FLAG_MONOCHROME,
-"DATA_SERVICE", (unsigned long) V4L2_FLAG_DATA_SERVICE,
-0);
-}
-
-static void
-fprint_struct_v4l2_capability (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_capability *t)
-{
-fprintf (fp, "name=\"%.*s\" "
-"type=",
-32, (const char *) t->name);
-fprint_symbol_v4l2_type_ (fp, rw, t->type);
-fprintf (fp, " inputs=%ld "
-"outputs=%ld "
-"audios=%ld "
-"maxwidth=%ld "
-"maxheight=%ld "
-"minwidth=%ld "
-"minheight=%ld "
-"maxframerate=%ld "
-"flags=",
-(long) t->inputs, 
-(long) t->outputs, 
-(long) t->audios, 
-(long) t->maxwidth, 
-(long) t->maxheight, 
-(long) t->minwidth, 
-(long) t->minheight, 
-(long) t->maxframerate);
-fprint_symbol_v4l2_flag_ (fp, rw, t->flags);
-fputs (" reserved[] ", fp);
-}
-
-static void
-fprint_symbol_v4l2_buf_type_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
-{
-fprint_symbolic (fp, 0, value,
-"field", (unsigned long) V4L2_BUF_TYPE_field,
-"CAPTURE", (unsigned long) V4L2_BUF_TYPE_CAPTURE,
-"CODECIN", (unsigned long) V4L2_BUF_TYPE_CODECIN,
-"CODECOUT", (unsigned long) V4L2_BUF_TYPE_CODECOUT,
-"EFFECTSIN", (unsigned long) V4L2_BUF_TYPE_EFFECTSIN,
-"EFFECTSIN2", (unsigned long) V4L2_BUF_TYPE_EFFECTSIN2,
-"EFFECTSOUT", (unsigned long) V4L2_BUF_TYPE_EFFECTSOUT,
-"VIDEOOUT", (unsigned long) V4L2_BUF_TYPE_VIDEOOUT,
-"FXCONTROL", (unsigned long) V4L2_BUF_TYPE_FXCONTROL,
-"VBI", (unsigned long) V4L2_BUF_TYPE_VBI,
-"PRIVATE", (unsigned long) V4L2_BUF_TYPE_PRIVATE,
-0);
-}
-
-static void
-fprint_struct_v4l2_requestbuffers (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_requestbuffers *t)
-{
-fprintf (fp, "count=%ld "
-"type=",
-(long) t->count);
-fprint_symbol_v4l2_buf_type_ (fp, rw, t->type);
-fputs (" reserved[] ", fp);
-}
-
-static void
-fprint_symbol_v4l2_fbuf_cap_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
-{
-fprint_symbolic (fp, 0, value,
-"EXTERNOVERLAY", (unsigned long) V4L2_FBUF_CAP_EXTERNOVERLAY,
-"CHROMAKEY", (unsigned long) V4L2_FBUF_CAP_CHROMAKEY,
-"CLIPPING", (unsigned long) V4L2_FBUF_CAP_CLIPPING,
-"SCALEUP", (unsigned long) V4L2_FBUF_CAP_SCALEUP,
-"SCALEDOWN", (unsigned long) V4L2_FBUF_CAP_SCALEDOWN,
-"BITMAP_CLIPPING", (unsigned long) V4L2_FBUF_CAP_BITMAP_CLIPPING,
-0);
-}
-
-static void
-fprint_symbol_v4l2_pix_fmt_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
-{
-fprint_symbolic (fp, 0, value,
-"RGB332", (unsigned long) V4L2_PIX_FMT_RGB332,
-"RGB555", (unsigned long) V4L2_PIX_FMT_RGB555,
-"RGB565", (unsigned long) V4L2_PIX_FMT_RGB565,
-"RGB555X", (unsigned long) V4L2_PIX_FMT_RGB555X,
-"RGB565X", (unsigned long) V4L2_PIX_FMT_RGB565X,
-"BGR24", (unsigned long) V4L2_PIX_FMT_BGR24,
-"RGB24", (unsigned long) V4L2_PIX_FMT_RGB24,
-"BGR32", (unsigned long) V4L2_PIX_FMT_BGR32,
-"RGB32", (unsigned long) V4L2_PIX_FMT_RGB32,
-"GREY", (unsigned long) V4L2_PIX_FMT_GREY,
-"YVU410", (unsigned long) V4L2_PIX_FMT_YVU410,
-"YVU420", (unsigned long) V4L2_PIX_FMT_YVU420,
-"YUYV", (unsigned long) V4L2_PIX_FMT_YUYV,
-"UYVY", (unsigned long) V4L2_PIX_FMT_UYVY,
-"YVU422P", (unsigned long) V4L2_PIX_FMT_YVU422P,
-"YVU411P", (unsigned long) V4L2_PIX_FMT_YVU411P,
-"Y41P", (unsigned long) V4L2_PIX_FMT_Y41P,
-"YUV410", (unsigned long) V4L2_PIX_FMT_YUV410,
-"YUV420", (unsigned long) V4L2_PIX_FMT_YUV420,
-"YYUV", (unsigned long) V4L2_PIX_FMT_YYUV,
-"HI240", (unsigned long) V4L2_PIX_FMT_HI240,
-"WNVA", (unsigned long) V4L2_PIX_FMT_WNVA,
-0);
-}
-
-static void
-fprint_symbol_v4l2_fmt_flag_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
-{
-fprint_symbolic (fp, 2, value,
-"COMPRESSED", (unsigned long) V4L2_FMT_FLAG_COMPRESSED,
-"BYTESPERLINE", (unsigned long) V4L2_FMT_FLAG_BYTESPERLINE,
-"NOT_INTERLACED", (unsigned long) V4L2_FMT_FLAG_NOT_INTERLACED,
-"INTERLACED", (unsigned long) V4L2_FMT_FLAG_INTERLACED,
-"TOPFIELD", (unsigned long) V4L2_FMT_FLAG_TOPFIELD,
-"BOTFIELD", (unsigned long) V4L2_FMT_FLAG_BOTFIELD,
-"ODDFIELD", (unsigned long) V4L2_FMT_FLAG_ODDFIELD,
-"EVENFIELD", (unsigned long) V4L2_FMT_FLAG_EVENFIELD,
-"COMBINED", (unsigned long) V4L2_FMT_FLAG_COMBINED,
-"FIELD_field", (unsigned long) V4L2_FMT_FLAG_FIELD_field,
-"SWCONVERSION", (unsigned long) V4L2_FMT_FLAG_SWCONVERSION,
-0);
-}
-
-static void
-fprint_struct_v4l2_pix_format (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_pix_format *t)
-{
-fprintf (fp, "width=%lu "
-"height=%lu "
-"depth=%lu "
-"pixelformat=",
-(unsigned long) t->width, 
-(unsigned long) t->height, 
-(unsigned long) t->depth);
-fprint_symbol_v4l2_pix_fmt_ (fp, rw, t->pixelformat);
-fputs (" flags=", fp);
-fprint_symbol_v4l2_fmt_flag_ (fp, rw, t->flags);
-fprintf (fp, " bytesperline=%lu "
-"sizeimage=%lu "
-"priv=%lu ",
-(unsigned long) t->bytesperline, 
-(unsigned long) t->sizeimage, 
-(unsigned long) t->priv);
-}
-
-static void
-fprint_struct_v4l2_framebuffer (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_framebuffer *t)
-{
-fputs ("capability=", fp);
-fprint_symbol_v4l2_fbuf_cap_ (fp, rw, t->capability);
-fputs (" flags=", fp);
-fprint_symbolic (fp, 2, t->flags,
-"PRIMARY", (unsigned long) V4L2_FBUF_FLAG_PRIMARY,
-"OVERLAY", (unsigned long) V4L2_FBUF_FLAG_OVERLAY,
-"CHROMAKEY", (unsigned long) V4L2_FBUF_FLAG_CHROMAKEY,
-0);
-fputs (" base[]=? "
-"fmt={", fp);
-fprint_struct_v4l2_pix_format (fp, rw, &t->fmt);
-fputs ("} ", fp);
-}
-
-static void
-fprint_struct_v4l2_window (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_window *t)
-{
-fprintf (fp, "x=%ld "
-"y=%ld "
-"width=%ld "
-"height=%ld "
-"chromakey=%lu "
-"clips=%p "
-"clipcount=%ld "
-"bitmap=%p ",
-(long) t->x, 
-(long) t->y, 
-(long) t->width, 
-(long) t->height, 
-(unsigned long) t->chromakey, 
-(const void *) t->clips, 
-(long) t->clipcount, 
-(const void *) t->bitmap);
-}
-
-static void
-fprint_struct_v4l2_fmtdesc (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_fmtdesc *t)
-{
-fprintf (fp, "index=%ld ",
-(long) t->index);
-if (1 == rw) {
-fprintf (fp, "description=\"%.*s\" "
-"pixelformat=",
-32, (const char *) t->description);
-fprint_symbol_v4l2_pix_fmt_ (fp, rw, t->pixelformat);
-fprintf (fp, " flags=0x%lx "
-"depth=%lu "
-"reserved[] ",
-(unsigned long) t->flags, 
-(unsigned long) t->depth);
-}
-}
-
-static void
-fprint_struct_v4l2_cvtdesc (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_cvtdesc *t)
-{
-fprintf (fp, "index=%ld ",
-(long) t->index);
-if (1 == rw) {
-fprintf (fp, "in={pixelformat=%lu "
-"flags=0x%lx "
-"depth=%lu "
-"reserved[] ",
-(unsigned long) t->in.pixelformat, 
-(unsigned long) t->in.flags, 
-(unsigned long) t->in.depth);
-fputs ("} ", fp);
-fprintf (fp, "out={pixelformat=%lu "
-"flags=0x%lx "
-"depth=%lu "
-"reserved[] ",
-(unsigned long) t->out.pixelformat, 
-(unsigned long) t->out.flags, 
-(unsigned long) t->out.depth);
-fputs ("} ", fp);
-}
+(void *) 0);
 }
 
 static void
@@ -492,7 +335,7 @@ fprint_symbolic (fp, 0, value,
 "BOOLEAN", (unsigned long) V4L2_CTRL_TYPE_BOOLEAN,
 "MENU", (unsigned long) V4L2_CTRL_TYPE_MENU,
 "BUTTON", (unsigned long) V4L2_CTRL_TYPE_BUTTON,
-0);
+(void *) 0);
 }
 
 static void
@@ -518,17 +361,119 @@ fputs (" flags=", fp);
 fprint_symbolic (fp, 2, t->flags,
 "DISABLED", (unsigned long) V4L2_CTRL_FLAG_DISABLED,
 "GRABBED", (unsigned long) V4L2_CTRL_FLAG_GRABBED,
-0);
+(void *) 0);
 fputs (" category=", fp);
 fprint_symbolic (fp, 0, t->category,
 "VIDEO", (unsigned long) V4L2_CTRL_CAT_VIDEO,
 "AUDIO", (unsigned long) V4L2_CTRL_CAT_AUDIO,
 "EFFECT", (unsigned long) V4L2_CTRL_CAT_EFFECT,
-0);
+(void *) 0);
 fprintf (fp, " group=\"%.*s\" "
 "reserved[] ",
 32, (const char *) t->group);
 }
+}
+
+static void
+fprint_struct_v4l2_modulator (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_modulator *t)
+{
+fprintf (fp, "output=%ld ",
+(long) t->output);
+if (1 == rw) {
+fprintf (fp, "name=\"%.*s\" "
+"std={",
+32, (const char *) t->name);
+fprint_struct_v4l2_standard (fp, rw, &t->std);
+fputs ("} capability=", fp);
+fprint_symbol_v4l2_tuner_cap_ (fp, rw, t->capability);
+fprintf (fp, " rangelow=%lu "
+"rangehigh=%lu "
+"txsubchans=",
+(unsigned long) t->rangelow, 
+(unsigned long) t->rangehigh);
+fprint_symbol_v4l2_tuner_sub_ (fp, rw, t->txsubchans);
+fputs (" reserved[] ", fp);
+}
+}
+
+static void
+fprint_struct_v4l2_input (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_input *t)
+{
+fprintf (fp, "index=%ld ",
+(long) t->index);
+if (1 == rw) {
+fprintf (fp, "name=\"%.*s\" "
+"type=",
+32, (const char *) t->name);
+fprint_symbolic (fp, 0, t->type,
+"TUNER", (unsigned long) V4L2_INPUT_TYPE_TUNER,
+"CAMERA", (unsigned long) V4L2_INPUT_TYPE_CAMERA,
+(void *) 0);
+fputs (" capability=", fp);
+fprint_symbolic (fp, 0, t->capability,
+"AUDIO", (unsigned long) V4L2_INPUT_CAP_AUDIO,
+(void *) 0);
+fprintf (fp, " assoc_audio=%ld "
+"reserved[] ",
+(long) t->assoc_audio);
+}
+}
+
+static void
+fprint_symbol_v4l2_buf_type_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
+{
+fprint_symbolic (fp, 0, value,
+"field", (unsigned long) V4L2_BUF_TYPE_field,
+"CAPTURE", (unsigned long) V4L2_BUF_TYPE_CAPTURE,
+"CODECIN", (unsigned long) V4L2_BUF_TYPE_CODECIN,
+"CODECOUT", (unsigned long) V4L2_BUF_TYPE_CODECOUT,
+"EFFECTSIN", (unsigned long) V4L2_BUF_TYPE_EFFECTSIN,
+"EFFECTSIN2", (unsigned long) V4L2_BUF_TYPE_EFFECTSIN2,
+"EFFECTSOUT", (unsigned long) V4L2_BUF_TYPE_EFFECTSOUT,
+"VIDEOOUT", (unsigned long) V4L2_BUF_TYPE_VIDEOOUT,
+"FXCONTROL", (unsigned long) V4L2_BUF_TYPE_FXCONTROL,
+"VBI", (unsigned long) V4L2_BUF_TYPE_VBI,
+"PRIVATE", (unsigned long) V4L2_BUF_TYPE_PRIVATE,
+(void *) 0);
+}
+
+static void
+fprint_symbol_v4l2_fmt_flag_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
+{
+fprint_symbolic (fp, 2, value,
+"COMPRESSED", (unsigned long) V4L2_FMT_FLAG_COMPRESSED,
+"BYTESPERLINE", (unsigned long) V4L2_FMT_FLAG_BYTESPERLINE,
+"NOT_INTERLACED", (unsigned long) V4L2_FMT_FLAG_NOT_INTERLACED,
+"INTERLACED", (unsigned long) V4L2_FMT_FLAG_INTERLACED,
+"TOPFIELD", (unsigned long) V4L2_FMT_FLAG_TOPFIELD,
+"BOTFIELD", (unsigned long) V4L2_FMT_FLAG_BOTFIELD,
+"ODDFIELD", (unsigned long) V4L2_FMT_FLAG_ODDFIELD,
+"EVENFIELD", (unsigned long) V4L2_FMT_FLAG_EVENFIELD,
+"COMBINED", (unsigned long) V4L2_FMT_FLAG_COMBINED,
+"FIELD_field", (unsigned long) V4L2_FMT_FLAG_FIELD_field,
+"SWCONVERSION", (unsigned long) V4L2_FMT_FLAG_SWCONVERSION,
+(void *) 0);
+}
+
+static void
+fprint_struct_v4l2_pix_format (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_pix_format *t)
+{
+fprintf (fp, "width=%lu "
+"height=%lu "
+"depth=%lu "
+"pixelformat=",
+(unsigned long) t->width, 
+(unsigned long) t->height, 
+(unsigned long) t->depth);
+fprint_symbol_v4l2_pix_fmt_ (fp, rw, t->pixelformat);
+fputs (" flags=", fp);
+fprint_symbol_v4l2_fmt_flag_ (fp, rw, t->flags);
+fprintf (fp, " bytesperline=%lu "
+"sizeimage=%lu "
+"priv=%lu ",
+(unsigned long) t->bytesperline, 
+(unsigned long) t->sizeimage, 
+(unsigned long) t->priv);
 }
 
 static void
@@ -543,7 +488,7 @@ fprintf (fp, "sampling_rate=%lu "
 (unsigned long) t->samples_per_line);
 fprint_symbolic (fp, 0, t->sample_format,
 "UBYTE", (unsigned long) V4L2_VBI_SF_UBYTE,
-0);
+(void *) 0);
 fputs (" start[]=? "
 "count[]=? "
 "flags=", fp);
@@ -551,7 +496,7 @@ fprint_symbolic (fp, 2, t->flags,
 "SF_UBYTE", (unsigned long) V4L2_VBI_SF_UBYTE,
 "UNSYNC", (unsigned long) V4L2_VBI_UNSYNC,
 "INTERLACED", (unsigned long) V4L2_VBI_INTERLACED,
-0);
+(void *) 0);
 fputs (" reserved2 ", fp);
 }
 
@@ -581,49 +526,6 @@ fputs ("} ", fp);
 }
 
 static void
-fprint_struct_v4l2_control (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_control *t)
-{
-fputs ("id=", fp);
-fprint_symbol_v4l2_cid_ (fp, rw, t->id);
-fprintf (fp, " value=%ld ",
-(long) t->value);
-}
-
-static void
-fprint_symbol_v4l2_audmode_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
-{
-fprint_symbolic (fp, 0, value,
-"LOUDNESS", (unsigned long) V4L2_AUDMODE_LOUDNESS,
-"AVL", (unsigned long) V4L2_AUDMODE_AVL,
-"STEREO_field", (unsigned long) V4L2_AUDMODE_STEREO_field,
-"STEREO_LINEAR", (unsigned long) V4L2_AUDMODE_STEREO_LINEAR,
-"STEREO_PSEUDO", (unsigned long) V4L2_AUDMODE_STEREO_PSEUDO,
-"STEREO_SPATIAL30", (unsigned long) V4L2_AUDMODE_STEREO_SPATIAL30,
-"STEREO_SPATIAL50", (unsigned long) V4L2_AUDMODE_STEREO_SPATIAL50,
-0);
-}
-
-static void
-fprint_struct_v4l2_audio (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_audio *t)
-{
-fprintf (fp, "audio=%ld ",
-(long) t->audio);
-if (1 == rw) {
-fprintf (fp, "name=\"%.*s\" "
-"capability=",
-32, (const char *) t->name);
-fprint_symbolic (fp, 0, t->capability,
-"EFFECTS", (unsigned long) V4L2_AUDCAP_EFFECTS,
-"LOUDNESS", (unsigned long) V4L2_AUDCAP_LOUDNESS,
-"AVL", (unsigned long) V4L2_AUDCAP_AVL,
-0);
-fputs (" mode=", fp);
-fprint_symbol_v4l2_audmode_ (fp, rw, t->mode);
-fputs (" reserved[] ", fp);
-}
-}
-
-static void
 fprint_symbol_v4l2_buf_flag_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
 {
 fprint_symbolic (fp, 2, value,
@@ -638,7 +540,7 @@ fprint_symbolic (fp, 2, value,
 "ODDFIELD", (unsigned long) V4L2_BUF_FLAG_ODDFIELD,
 "EVENFIELD", (unsigned long) V4L2_BUF_FLAG_EVENFIELD,
 "TIMECODE", (unsigned long) V4L2_BUF_FLAG_TIMECODE,
-0);
+(void *) 0);
 }
 
 static void
@@ -650,7 +552,7 @@ fprint_symbolic (fp, 0, value,
 "30FPS", (unsigned long) V4L2_TC_TYPE_30FPS,
 "50FPS", (unsigned long) V4L2_TC_TYPE_50FPS,
 "60FPS", (unsigned long) V4L2_TC_TYPE_60FPS,
-0);
+(void *) 0);
 }
 
 static void
@@ -669,7 +571,7 @@ fprintf (fp, "frames=%lu "
 fprint_symbolic (fp, 2, t->flags,
 "DROPFRAME", (unsigned long) V4L2_TC_FLAG_DROPFRAME,
 "COLORFRAME", (unsigned long) V4L2_TC_FLAG_COLORFRAME,
-0);
+(void *) 0);
 fputs (" type=", fp);
 fprint_symbol_v4l2_tc_type_ (fp, rw, t->type);
 fputs (" ", fp);
@@ -703,16 +605,50 @@ fprintf (fp, "} sequence=%lu "
 }
 
 static void
+fprint_struct_v4l2_cvtdesc (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_cvtdesc *t)
+{
+fprintf (fp, "index=%ld ",
+(long) t->index);
+if (1 == rw) {
+fprintf (fp, "in={pixelformat=%lu "
+"flags=0x%lx "
+"depth=%lu "
+"reserved[] ",
+(unsigned long) t->in.pixelformat, 
+(unsigned long) t->in.flags, 
+(unsigned long) t->in.depth);
+fputs ("} ", fp);
+fprintf (fp, "out={pixelformat=%lu "
+"flags=0x%lx "
+"depth=%lu "
+"reserved[] ",
+(unsigned long) t->out.pixelformat, 
+(unsigned long) t->out.flags, 
+(unsigned long) t->out.depth);
+fputs ("} ", fp);
+}
+}
+
+static void
+fprint_struct_v4l2_control (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_control *t)
+{
+fputs ("id=", fp);
+fprint_symbol_v4l2_cid_ (fp, rw, t->id);
+fprintf (fp, " value=%ld ",
+(long) t->value);
+}
+
+static void
 fprint_struct_v4l2_captureparm (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_captureparm *t)
 {
 fputs ("capability=", fp);
 fprint_symbolic (fp, 0, t->capability,
 "TIMEPERFRAME", (unsigned long) V4L2_CAP_TIMEPERFRAME,
-0);
+(void *) 0);
 fputs (" capturemode=", fp);
 fprint_symbolic (fp, 0, t->capturemode,
 "HIGHQUALITY", (unsigned long) V4L2_MODE_HIGHQUALITY,
-0);
+(void *) 0);
 fprintf (fp, " timeperframe=%lu "
 "extendedmode=%lu "
 "reserved[] ",
@@ -760,52 +696,6 @@ fputs ("} ", fp);
 }
 
 static void
-fprint_struct_v4l2_modulator (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_modulator *t)
-{
-fprintf (fp, "output=%ld ",
-(long) t->output);
-if (1 == rw) {
-fprintf (fp, "name=\"%.*s\" "
-"std={",
-32, (const char *) t->name);
-fprint_struct_v4l2_standard (fp, rw, &t->std);
-fputs ("} capability=", fp);
-fprint_symbol_v4l2_tuner_cap_ (fp, rw, t->capability);
-fprintf (fp, " rangelow=%lu "
-"rangehigh=%lu "
-"txsubchans=",
-(unsigned long) t->rangelow, 
-(unsigned long) t->rangehigh);
-fprint_symbol_v4l2_tuner_sub_ (fp, rw, t->txsubchans);
-fputs (" reserved[] ", fp);
-}
-}
-
-static void
-fprint_struct_v4l2_output (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_output *t)
-{
-fprintf (fp, "index=%ld ",
-(long) t->index);
-if (1 == rw) {
-fprintf (fp, "name=\"%.*s\" "
-"type=",
-32, (const char *) t->name);
-fprint_symbolic (fp, 0, t->type,
-"MODULATOR", (unsigned long) V4L2_OUTPUT_TYPE_MODULATOR,
-"ANALOG", (unsigned long) V4L2_OUTPUT_TYPE_ANALOG,
-"ANALOGVGAOVERLAY", (unsigned long) V4L2_OUTPUT_TYPE_ANALOGVGAOVERLAY,
-0);
-fputs (" capability=", fp);
-fprint_symbolic (fp, 0, t->capability,
-"AUDIO", (unsigned long) V4L2_OUTPUT_CAP_AUDIO,
-0);
-fprintf (fp, " assoc_audio=%ld "
-"reserved[] ",
-(long) t->assoc_audio);
-}
-}
-
-static void
 fprint_struct_v4l2_fxdesc (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_fxdesc *t)
 {
 fprintf (fp, "index=%ld ",
@@ -824,25 +714,16 @@ fprintf (fp, "name=\"%.*s\" "
 }
 
 static void
-fprint_struct_v4l2_input (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_input *t)
+fprint_struct_v4l2_querymenu (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_querymenu *t)
 {
-fprintf (fp, "index=%ld ",
+fputs ("id=", fp);
+fprint_symbol_v4l2_cid_ (fp, rw, t->id);
+fprintf (fp, " index=%ld ",
 (long) t->index);
 if (1 == rw) {
 fprintf (fp, "name=\"%.*s\" "
-"type=",
+"reserved ",
 32, (const char *) t->name);
-fprint_symbolic (fp, 0, t->type,
-"TUNER", (unsigned long) V4L2_INPUT_TYPE_TUNER,
-"CAMERA", (unsigned long) V4L2_INPUT_TYPE_CAMERA,
-0);
-fputs (" capability=", fp);
-fprint_symbolic (fp, 0, t->capability,
-"AUDIO", (unsigned long) V4L2_INPUT_CAP_AUDIO,
-0);
-fprintf (fp, " assoc_audio=%ld "
-"reserved[] ",
-(long) t->assoc_audio);
 }
 }
 
@@ -863,98 +744,131 @@ fprintf (fp, "name=\"%.*s\" "
 }
 
 static void
+fprint_struct_v4l2_requestbuffers (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_requestbuffers *t)
+{
+fprintf (fp, "count=%ld "
+"type=",
+(long) t->count);
+fprint_symbol_v4l2_buf_type_ (fp, rw, t->type);
+fputs (" reserved[] ", fp);
+}
+
+static void
+fprint_symbol_v4l2_audmode_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
+{
+fprint_symbolic (fp, 0, value,
+"LOUDNESS", (unsigned long) V4L2_AUDMODE_LOUDNESS,
+"AVL", (unsigned long) V4L2_AUDMODE_AVL,
+"STEREO_field", (unsigned long) V4L2_AUDMODE_STEREO_field,
+"STEREO_LINEAR", (unsigned long) V4L2_AUDMODE_STEREO_LINEAR,
+"STEREO_PSEUDO", (unsigned long) V4L2_AUDMODE_STEREO_PSEUDO,
+"STEREO_SPATIAL30", (unsigned long) V4L2_AUDMODE_STEREO_SPATIAL30,
+"STEREO_SPATIAL50", (unsigned long) V4L2_AUDMODE_STEREO_SPATIAL50,
+(void *) 0);
+}
+
+static void
+fprint_struct_v4l2_audio (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_audio *t)
+{
+fprintf (fp, "audio=%ld ",
+(long) t->audio);
+if (1 == rw) {
+fprintf (fp, "name=\"%.*s\" "
+"capability=",
+32, (const char *) t->name);
+fprint_symbolic (fp, 0, t->capability,
+"EFFECTS", (unsigned long) V4L2_AUDCAP_EFFECTS,
+"LOUDNESS", (unsigned long) V4L2_AUDCAP_LOUDNESS,
+"AVL", (unsigned long) V4L2_AUDCAP_AVL,
+(void *) 0);
+fputs (" mode=", fp);
+fprint_symbol_v4l2_audmode_ (fp, rw, t->mode);
+fputs (" reserved[] ", fp);
+}
+}
+
+static void
+fprint_struct_v4l2_output (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_output *t)
+{
+fprintf (fp, "index=%ld ",
+(long) t->index);
+if (1 == rw) {
+fprintf (fp, "name=\"%.*s\" "
+"type=",
+32, (const char *) t->name);
+fprint_symbolic (fp, 0, t->type,
+"MODULATOR", (unsigned long) V4L2_OUTPUT_TYPE_MODULATOR,
+"ANALOG", (unsigned long) V4L2_OUTPUT_TYPE_ANALOG,
+"ANALOGVGAOVERLAY", (unsigned long) V4L2_OUTPUT_TYPE_ANALOGVGAOVERLAY,
+(void *) 0);
+fputs (" capability=", fp);
+fprint_symbolic (fp, 0, t->capability,
+"AUDIO", (unsigned long) V4L2_OUTPUT_CAP_AUDIO,
+(void *) 0);
+fprintf (fp, " assoc_audio=%ld "
+"reserved[] ",
+(long) t->assoc_audio);
+}
+}
+
+static void
+fprint_struct_v4l2_window (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_window *t)
+{
+fprintf (fp, "x=%ld "
+"y=%ld "
+"width=%ld "
+"height=%ld "
+"chromakey=%lu "
+"clips=%p "
+"clipcount=%ld "
+"bitmap=%p ",
+(long) t->x, 
+(long) t->y, 
+(long) t->width, 
+(long) t->height, 
+(unsigned long) t->chromakey, 
+(const void *) t->clips, 
+(long) t->clipcount, 
+(const void *) t->bitmap);
+}
+
+static void
+fprint_symbol_v4l2_fbuf_cap_ (FILE *fp, int rw __attribute__ ((unused)), unsigned long value)
+{
+fprint_symbolic (fp, 0, value,
+"EXTERNOVERLAY", (unsigned long) V4L2_FBUF_CAP_EXTERNOVERLAY,
+"CHROMAKEY", (unsigned long) V4L2_FBUF_CAP_CHROMAKEY,
+"CLIPPING", (unsigned long) V4L2_FBUF_CAP_CLIPPING,
+"SCALEUP", (unsigned long) V4L2_FBUF_CAP_SCALEUP,
+"SCALEDOWN", (unsigned long) V4L2_FBUF_CAP_SCALEDOWN,
+"BITMAP_CLIPPING", (unsigned long) V4L2_FBUF_CAP_BITMAP_CLIPPING,
+(void *) 0);
+}
+
+static void
+fprint_struct_v4l2_framebuffer (FILE *fp, int rw __attribute__ ((unused)), const struct v4l2_framebuffer *t)
+{
+fputs ("capability=", fp);
+fprint_symbol_v4l2_fbuf_cap_ (fp, rw, t->capability);
+fputs (" flags=", fp);
+fprint_symbolic (fp, 2, t->flags,
+"PRIMARY", (unsigned long) V4L2_FBUF_FLAG_PRIMARY,
+"OVERLAY", (unsigned long) V4L2_FBUF_FLAG_OVERLAY,
+"CHROMAKEY", (unsigned long) V4L2_FBUF_FLAG_CHROMAKEY,
+(void *) 0);
+fputs (" base[]=? "
+"fmt={", fp);
+fprint_struct_v4l2_pix_format (fp, rw, &t->fmt);
+fputs ("} ", fp);
+}
+
+static void
 fprint_v4l2_ioctl_arg (FILE *fp, unsigned int cmd, int rw, void *arg)
 {
 switch (cmd) {
-case VIDIOC_G_COMP:
-if (!arg) { fputs ("VIDIOC_G_COMP", fp); return; }
-case VIDIOC_S_COMP:
-if (!arg) { fputs ("VIDIOC_S_COMP", fp); return; }
- fprint_struct_v4l2_compression (fp, rw, arg);
-break;
-case VIDIOC_ENUMSTD:
-if (!arg) { fputs ("VIDIOC_ENUMSTD", fp); return; }
- fprint_struct_v4l2_enumstd (fp, rw, arg);
-break;
-case VIDIOC_G_STD:
-if (!arg) { fputs ("VIDIOC_G_STD", fp); return; }
-case VIDIOC_S_STD:
-if (!arg) { fputs ("VIDIOC_S_STD", fp); return; }
- fprint_struct_v4l2_standard (fp, rw, arg);
-break;
-case VIDIOC_G_TUNER:
-if (!arg) { fputs ("VIDIOC_G_TUNER", fp); return; }
-case VIDIOC_S_TUNER:
-if (!arg) { fputs ("VIDIOC_S_TUNER", fp); return; }
- fprint_struct_v4l2_tuner (fp, rw, arg);
-break;
 case VIDIOC_G_PERF:
 if (!arg) { fputs ("VIDIOC_G_PERF", fp); return; }
  fprint_struct_v4l2_performance (fp, rw, arg);
-break;
-case VIDIOC_QUERYMENU:
-if (!arg) { fputs ("VIDIOC_QUERYMENU", fp); return; }
- fprint_struct_v4l2_querymenu (fp, rw, arg);
-break;
-case VIDIOC_QUERYCAP:
-if (!arg) { fputs ("VIDIOC_QUERYCAP", fp); return; }
- fprint_struct_v4l2_capability (fp, rw, arg);
-break;
-case VIDIOC_REQBUFS:
-if (!arg) { fputs ("VIDIOC_REQBUFS", fp); return; }
- fprint_struct_v4l2_requestbuffers (fp, rw, arg);
-break;
-case VIDIOC_G_FBUF:
-if (!arg) { fputs ("VIDIOC_G_FBUF", fp); return; }
-case VIDIOC_S_FBUF:
-if (!arg) { fputs ("VIDIOC_S_FBUF", fp); return; }
- fprint_struct_v4l2_framebuffer (fp, rw, arg);
-break;
-case VIDIOC_G_WIN:
-if (!arg) { fputs ("VIDIOC_G_WIN", fp); return; }
-case VIDIOC_S_WIN:
-if (!arg) { fputs ("VIDIOC_S_WIN", fp); return; }
- fprint_struct_v4l2_window (fp, rw, arg);
-break;
-case VIDIOC_ENUM_PIXFMT:
-if (!arg) { fputs ("VIDIOC_ENUM_PIXFMT", fp); return; }
-case VIDIOC_ENUM_FBUFFMT:
-if (!arg) { fputs ("VIDIOC_ENUM_FBUFFMT", fp); return; }
- fprint_struct_v4l2_fmtdesc (fp, rw, arg);
-break;
-case VIDIOC_ENUMCVT:
-if (!arg) { fputs ("VIDIOC_ENUMCVT", fp); return; }
- fprint_struct_v4l2_cvtdesc (fp, rw, arg);
-break;
-case VIDIOC_QUERYCTRL:
-if (!arg) { fputs ("VIDIOC_QUERYCTRL", fp); return; }
- fprint_struct_v4l2_queryctrl (fp, rw, arg);
-break;
-case VIDIOC_G_FMT:
-if (!arg) { fputs ("VIDIOC_G_FMT", fp); return; }
-case VIDIOC_S_FMT:
-if (!arg) { fputs ("VIDIOC_S_FMT", fp); return; }
- fprint_struct_v4l2_format (fp, rw, arg);
-break;
-case VIDIOC_G_CTRL:
-if (!arg) { fputs ("VIDIOC_G_CTRL", fp); return; }
-case VIDIOC_S_CTRL:
-if (!arg) { fputs ("VIDIOC_S_CTRL", fp); return; }
- fprint_struct_v4l2_control (fp, rw, arg);
-break;
-case VIDIOC_G_AUDIO:
-if (!arg) { fputs ("VIDIOC_G_AUDIO", fp); return; }
-case VIDIOC_S_AUDIO:
-if (!arg) { fputs ("VIDIOC_S_AUDIO", fp); return; }
- fprint_struct_v4l2_audio (fp, rw, arg);
-break;
-case VIDIOC_QUERYBUF:
-if (!arg) { fputs ("VIDIOC_QUERYBUF", fp); return; }
-case VIDIOC_QBUF:
-if (!arg) { fputs ("VIDIOC_QBUF", fp); return; }
-case VIDIOC_DQBUF:
-if (!arg) { fputs ("VIDIOC_DQBUF", fp); return; }
- fprint_struct_v4l2_buffer (fp, rw, arg);
 break;
 case VIDIOC_PREVIEW:
 if (!arg) { fputs ("VIDIOC_PREVIEW", fp); return; }
@@ -980,11 +894,35 @@ case VIDIOC_S_EFFECT:
 if (!arg) { fputs ("VIDIOC_S_EFFECT", fp); return; }
  fprintf (fp, "%ld", (long) * (int *) arg);
 break;
-case VIDIOC_G_PARM:
-if (!arg) { fputs ("VIDIOC_G_PARM", fp); return; }
-case VIDIOC_S_PARM:
-if (!arg) { fputs ("VIDIOC_S_PARM", fp); return; }
- fprint_struct_v4l2_streamparm (fp, rw, arg);
+case VIDIOC_G_COMP:
+if (!arg) { fputs ("VIDIOC_G_COMP", fp); return; }
+case VIDIOC_S_COMP:
+if (!arg) { fputs ("VIDIOC_S_COMP", fp); return; }
+ fprint_struct_v4l2_compression (fp, rw, arg);
+break;
+case VIDIOC_ENUM_PIXFMT:
+if (!arg) { fputs ("VIDIOC_ENUM_PIXFMT", fp); return; }
+case VIDIOC_ENUM_FBUFFMT:
+if (!arg) { fputs ("VIDIOC_ENUM_FBUFFMT", fp); return; }
+ fprint_struct_v4l2_fmtdesc (fp, rw, arg);
+break;
+case VIDIOC_G_TUNER:
+if (!arg) { fputs ("VIDIOC_G_TUNER", fp); return; }
+case VIDIOC_S_TUNER:
+if (!arg) { fputs ("VIDIOC_S_TUNER", fp); return; }
+ fprint_struct_v4l2_tuner (fp, rw, arg);
+break;
+case VIDIOC_QUERYCAP:
+if (!arg) { fputs ("VIDIOC_QUERYCAP", fp); return; }
+ fprint_struct_v4l2_capability (fp, rw, arg);
+break;
+case VIDIOC_ENUMSTD:
+if (!arg) { fputs ("VIDIOC_ENUMSTD", fp); return; }
+ fprint_struct_v4l2_enumstd (fp, rw, arg);
+break;
+case VIDIOC_QUERYCTRL:
+if (!arg) { fputs ("VIDIOC_QUERYCTRL", fp); return; }
+ fprint_struct_v4l2_queryctrl (fp, rw, arg);
 break;
 case VIDIOC_G_MODULATOR:
 if (!arg) { fputs ("VIDIOC_G_MODULATOR", fp); return; }
@@ -992,23 +930,85 @@ case VIDIOC_S_MODULATOR:
 if (!arg) { fputs ("VIDIOC_S_MODULATOR", fp); return; }
  fprint_struct_v4l2_modulator (fp, rw, arg);
 break;
-case VIDIOC_ENUMOUTPUT:
-if (!arg) { fputs ("VIDIOC_ENUMOUTPUT", fp); return; }
- fprint_struct_v4l2_output (fp, rw, arg);
+case VIDIOC_ENUMINPUT:
+if (!arg) { fputs ("VIDIOC_ENUMINPUT", fp); return; }
+ fprint_struct_v4l2_input (fp, rw, arg);
+break;
+case VIDIOC_G_FMT:
+if (!arg) { fputs ("VIDIOC_G_FMT", fp); return; }
+case VIDIOC_S_FMT:
+if (!arg) { fputs ("VIDIOC_S_FMT", fp); return; }
+ fprint_struct_v4l2_format (fp, rw, arg);
+break;
+case VIDIOC_QUERYBUF:
+if (!arg) { fputs ("VIDIOC_QUERYBUF", fp); return; }
+case VIDIOC_QBUF:
+if (!arg) { fputs ("VIDIOC_QBUF", fp); return; }
+case VIDIOC_DQBUF:
+if (!arg) { fputs ("VIDIOC_DQBUF", fp); return; }
+ fprint_struct_v4l2_buffer (fp, rw, arg);
+break;
+case VIDIOC_ENUMCVT:
+if (!arg) { fputs ("VIDIOC_ENUMCVT", fp); return; }
+ fprint_struct_v4l2_cvtdesc (fp, rw, arg);
+break;
+case VIDIOC_G_CTRL:
+if (!arg) { fputs ("VIDIOC_G_CTRL", fp); return; }
+case VIDIOC_S_CTRL:
+if (!arg) { fputs ("VIDIOC_S_CTRL", fp); return; }
+ fprint_struct_v4l2_control (fp, rw, arg);
+break;
+case VIDIOC_G_PARM:
+if (!arg) { fputs ("VIDIOC_G_PARM", fp); return; }
+case VIDIOC_S_PARM:
+if (!arg) { fputs ("VIDIOC_S_PARM", fp); return; }
+ fprint_struct_v4l2_streamparm (fp, rw, arg);
 break;
 case VIDIOC_ENUMFX:
 if (!arg) { fputs ("VIDIOC_ENUMFX", fp); return; }
  fprint_struct_v4l2_fxdesc (fp, rw, arg);
 break;
-case VIDIOC_ENUMINPUT:
-if (!arg) { fputs ("VIDIOC_ENUMINPUT", fp); return; }
- fprint_struct_v4l2_input (fp, rw, arg);
+case VIDIOC_QUERYMENU:
+if (!arg) { fputs ("VIDIOC_QUERYMENU", fp); return; }
+ fprint_struct_v4l2_querymenu (fp, rw, arg);
 break;
 case VIDIOC_G_AUDOUT:
 if (!arg) { fputs ("VIDIOC_G_AUDOUT", fp); return; }
 case VIDIOC_S_AUDOUT:
 if (!arg) { fputs ("VIDIOC_S_AUDOUT", fp); return; }
  fprint_struct_v4l2_audioout (fp, rw, arg);
+break;
+case VIDIOC_REQBUFS:
+if (!arg) { fputs ("VIDIOC_REQBUFS", fp); return; }
+ fprint_struct_v4l2_requestbuffers (fp, rw, arg);
+break;
+case VIDIOC_G_AUDIO:
+if (!arg) { fputs ("VIDIOC_G_AUDIO", fp); return; }
+case VIDIOC_S_AUDIO:
+if (!arg) { fputs ("VIDIOC_S_AUDIO", fp); return; }
+ fprint_struct_v4l2_audio (fp, rw, arg);
+break;
+case VIDIOC_ENUMOUTPUT:
+if (!arg) { fputs ("VIDIOC_ENUMOUTPUT", fp); return; }
+ fprint_struct_v4l2_output (fp, rw, arg);
+break;
+case VIDIOC_G_WIN:
+if (!arg) { fputs ("VIDIOC_G_WIN", fp); return; }
+case VIDIOC_S_WIN:
+if (!arg) { fputs ("VIDIOC_S_WIN", fp); return; }
+ fprint_struct_v4l2_window (fp, rw, arg);
+break;
+case VIDIOC_G_FBUF:
+if (!arg) { fputs ("VIDIOC_G_FBUF", fp); return; }
+case VIDIOC_S_FBUF:
+if (!arg) { fputs ("VIDIOC_S_FBUF", fp); return; }
+ fprint_struct_v4l2_framebuffer (fp, rw, arg);
+break;
+case VIDIOC_G_STD:
+if (!arg) { fputs ("VIDIOC_G_STD", fp); return; }
+case VIDIOC_S_STD:
+if (!arg) { fputs ("VIDIOC_S_STD", fp); return; }
+ fprint_struct_v4l2_standard (fp, rw, arg);
 break;
 	default:
 		if (!arg) { fprint_unknown_ioctl (fp, cmd, arg); return; }
