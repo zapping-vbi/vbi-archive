@@ -1,10 +1,11 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $Id: configure.in,v 1.40 2005-10-22 15:53:07 mschimek Exp $
+dnl $Id: configure.in,v 1.41 2006-05-07 05:56:23 mschimek Exp $
 
 AC_INIT(configure.in)
 AM_INIT_AUTOMAKE(rte, 0.5.7)
 AM_CONFIG_HEADER(config.h)
 AM_ACLOCAL_INCLUDE(m4)
+AM_MAINTAINER_MODE
 
 dnl curr (added interf) : rev (of curr) : age (curr-age compat)
 AC_SUBST(LIBRTE_SO_VERSION, [1:4:0])
