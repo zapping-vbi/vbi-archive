@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: glyph.c,v 1.3.2.2 2004-04-08 23:36:49 mschimek Exp $ */
+/* $Id: glyph.c,v 1.3.2.3 2006-05-07 06:05:00 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -29,16 +29,16 @@
 
 #include "src/zvbi.h"
 
-extern unsigned int	vbi_teletext_composed_unicode(unsigned int a, unsigned int c);
+extern unsigned int	vbi3_teletext_composed_unicode(unsigned int a, unsigned int c);
 
-static vbi_page *pg;
-static vbi_char ac;
-static int cx, cy;
+static vbi3_page *pg;
+static vbi3_char ac;
+static unsigned int cx, cy;
 
 static void
 new_page(void)
 {
-	int i;
+	unsigned int i;
 
 	cx = 0;
 	cy = 0;
@@ -77,7 +77,7 @@ putwchar(int c)
 }
 
 static void
-putwstr(unsigned char *s)
+putwstr(const char *s)
 {
 	for (; *s; s++)
 		putwchar(*s);
@@ -92,22 +92,22 @@ national[] = {
 static void
 store(int s)
 {
-	vbi_export *e;
+	vbi3_export *e;
 	char buf[80];
 
-	assert((e = vbi_export_new("ppm", NULL)));
+	assert((e = vbi3_export_new("ppm", NULL)));
 
 	snprintf(buf, sizeof(buf) - 1, "char_set_%u.ppm", s);
 
-	vbi_export_file(e, buf, pg);
+	vbi3_export_file(e, buf, pg);
 
-	vbi_export_delete(e);
+	vbi3_export_delete(e);
 
 	free(pg);
 }
 
 static void
-print_set(char *name, int s)
+print_set(const char *name, int s)
 {
 	int i, j;
 
@@ -118,7 +118,7 @@ print_set(char *name, int s)
 
 	for (i = 0; i < 16; i++) {
 		for (j = 2; j < 8; j++) {
-			putwchar(vbi_teletext_unicode(s, 0, j * 16 + i));
+			putwchar(vbi3_teletext_unicode(s, 0, j * 16 + i));
 			putwchar(' ');
 		}
 		putwchar('\n');
@@ -128,9 +128,13 @@ print_set(char *name, int s)
 }
 
 int
-main(int argc, char **argv)
+main				(int			argc,
+				 char **		argv)
 {
-	int i, j;
+	unsigned int i, j;
+
+	argc = argc;
+	argv = argv;
 
 	new_page();
 
@@ -138,7 +142,7 @@ main(int argc, char **argv)
 
 	for (i = 1; i < 14; i++) {
 		for (j = 0; j < sizeof(national) / sizeof(national[0]); j++) {
-			putwchar(vbi_teletext_unicode(1, i, national[j]));
+			putwchar(vbi3_teletext_unicode(1, i, national[j]));
 			putwchar(' ');
 		}
 		putwchar('\n');
@@ -167,7 +171,7 @@ main(int argc, char **argv)
 			if (j == 4 || j == 5)
 				putwchar(' ');
 			else
-				putwchar(vbi_teletext_unicode(12, 0, j * 16 + i));
+				putwchar(vbi3_teletext_unicode(12, 0, j * 16 + i));
 			putwchar(' ');
 		}
 		putwchar('\n');
@@ -182,14 +186,14 @@ main(int argc, char **argv)
 	putwstr("Teletext composed glyphs\n\n   ");
 
 	for (i = 0x40; i < 0x60; i++)
-		putwchar(vbi_teletext_unicode(1, 0, i));
+		putwchar(vbi3_teletext_unicode(1, 0, i));
 	putwstr("\n\n");
 
 	for (i = 0; i < 16; i++) {
-		putwchar(vbi_teletext_unicode(2, 0, 0x40 + i));
+		putwchar(vbi3_teletext_unicode(2, 0, 0x40 + i));
 		putwstr("  ");
 		for (j = 0x40; j < 0x60; j++) {
-			unsigned int c = _vbi_teletext_composed_unicode(i, j);
+			unsigned int c = _vbi3_teletext_composed_unicode(i, j);
 
 			putwchar((c == 0) ? '-' : c);
 		}
@@ -203,14 +207,14 @@ main(int argc, char **argv)
 	putwstr("Teletext composed glyphs\n\n   ");
 
 	for (i = 0x60; i < 0x80; i++)
-		putwchar(vbi_teletext_unicode(1, 0, i));
+		putwchar(vbi3_teletext_unicode(1, 0, i));
 	putwstr("\n\n");
 
 	for (i = 0; i < 16; i++) {
-		putwchar(vbi_teletext_unicode(2, 0, 0x40 + i));
+		putwchar(vbi3_teletext_unicode(2, 0, 0x40 + i));
 		putwstr("  ");
 		for (j = 0x60; j < 0x80; j++) {
-			unsigned int c = _vbi_teletext_composed_unicode(i, j);
+			unsigned int c = _vbi3_teletext_composed_unicode(i, j);
 
 			putwchar((c == 0) ? '-' : c);
 		}
@@ -227,7 +231,7 @@ main(int argc, char **argv)
 
 	for (i = 0; i < 8; i++) {
 		for (j = 0x20; j < 0x80; j += 8) {
-			putwchar(vbi_caption_unicode(j + i));
+			putwchar(vbi3_caption_unicode(j + i));
 			putwchar(' ');
 		}
 		putwchar('\n');
@@ -242,7 +246,7 @@ main(int argc, char **argv)
 	putwstr("EIA 608 Closed Captioning Special Characters\n\n");
 
 	for (i = 0; i < 16; i++) {
-		putwchar(vbi_caption_unicode(i));
+		putwchar(vbi3_caption_unicode(i));
 	}
 
 	store(17);

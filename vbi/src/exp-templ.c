@@ -2,7 +2,7 @@
  *  Template for export modules
  */
 
-/* $Id: exp-templ.c,v 1.6.2.4 2004-10-14 07:54:00 mschimek Exp $ */
+/* $Id: exp-templ.c,v 1.6.2.5 2006-05-07 06:04:58 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -15,7 +15,7 @@
 typedef struct tmpl_instance
 {
 	/* Common to all export modules */
-	vbi_export		export;
+	vbi3_export		export;
 
 	/* Our private stuff */
 
@@ -30,12 +30,14 @@ typedef struct tmpl_instance
 	int			counter;
 } tmpl_instance;
 
-static vbi_export *
-tmpl_new			(const _vbi_export_module *unused)
+static vbi3_export *
+tmpl_new			(const _vbi3_export_module *unused)
 {
 	tmpl_instance *tmpl;
 
-	if (!(tmpl = vbi_malloc (sizeof (*tmpl))))
+	unused = unused;
+
+	if (!(tmpl = vbi3_malloc (sizeof (*tmpl))))
 		return NULL;
 
 	CLEAR (*tmpl);
@@ -52,16 +54,16 @@ tmpl_new			(const _vbi_export_module *unused)
 }
 
 static void
-tmpl_delete			(vbi_export *		e)
+tmpl_delete			(vbi3_export *		e)
 {
-/* Safer than tmpl_instance *tmpl = (tmpl_instance *)(vbi_export *) e */
+/* Safer than tmpl_instance *tmpl = (tmpl_instance *)(vbi3_export *) e */
 	tmpl_instance *tmpl = PARENT (e, tmpl_instance, export);
 
 	/* Uninitialize our private stuff and options */
 
-	vbi_free (tmpl->comment);
+	vbi3_free (tmpl->comment);
 
-	vbi_free (tmpl);
+	vbi3_free (tmpl);
 }
 
 /* N_(), _() are NLS functions, see info gettext. */
@@ -81,9 +83,9 @@ int_menu_items [] = {
 	1, 3, 5, 7, 11, 13, 17, 19
 };
 
-static const vbi_option_info
+static const vbi3_option_info
 option_info [] = {
-	_VBI_OPTION_BOOL_INITIALIZER
+	_VBI3_OPTION_BOOL_INITIALIZER
 	  /*
 	   *  Option keywords must be unique within their module
 	   *  and shall contain only "AZaz09_".
@@ -92,22 +94,22 @@ option_info [] = {
 	   */
 	("flip", N_("Boolean option"),
 	 FALSE, N_("This is a boolean option")),
-	_VBI_OPTION_INT_RANGE_INITIALIZER
+	_VBI3_OPTION_INT_RANGE_INITIALIZER
 	("day", N_("Select a month day"),
 	 /* default, min, max, step, has no tooltip */
 	    13,       1,   31,  1,      NULL),
-	_VBI_OPTION_INT_MENU_INITIALIZER
+	_VBI3_OPTION_INT_MENU_INITIALIZER
 	("prime", N_("Select a prime"),
 	 0, int_menu_items, N_ELEMENTS (int_menu_items),
 	 N_("Default is the first, '1'")),
-	_VBI_OPTION_REAL_RANGE_INITIALIZER
+	_VBI3_OPTION_REAL_RANGE_INITIALIZER
 	("quality", N_("Compression quality"),
 	 100, 1, 100, 0.01, NULL),
-	/* VBI_OPTION_REAL_MENU_INITIALIZER like int */
-	_VBI_OPTION_STRING_INITIALIZER
+	/* VBI3_OPTION_REAL_MENU_INITIALIZER like int */
+	_VBI3_OPTION_STRING_INITIALIZER
 	("comment", N_("Add a comment"),
 	 "default comment", N_("Another tooltip")),
-	_VBI_OPTION_MENU_INITIALIZER
+	_VBI3_OPTION_MENU_INITIALIZER
 	("weekday", N_("Select a weekday"),
 	 2, string_menu_items, 7, N_("Default is Tuesday"))
 };
@@ -115,10 +117,10 @@ option_info [] = {
 #define KEYWORD(str) (0 == strcmp (keyword, str))
 
 /* Get an option (optional if we have no options). */
-static vbi_bool
-option_get			(vbi_export *		e,
+static vbi3_bool
+option_get			(vbi3_export *		e,
 				 const char *		keyword,
-				 vbi_option_value *	value)
+				 vbi3_option_value *	value)
 {
 	tmpl_instance *tmpl = PARENT (e, tmpl_instance, export);
 
@@ -131,13 +133,13 @@ option_get			(vbi_export *		e,
 	} else if (KEYWORD ("quality")) {
 		value->dbl = tmpl->quality;
 	} else if (KEYWORD ("comment")) {
-		if (!(value->str = _vbi_export_strdup (e, NULL,
+		if (!(value->str = _vbi3_export_strdup (e, NULL,
 			tmpl->comment ? tmpl->comment : "")))
 			return FALSE;
 	} else if (KEYWORD ("weekday")) {
 		value->num = tmpl->weekday;
 	} else {
-		_vbi_export_unknown_option (e, keyword);
+		_vbi3_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
@@ -145,20 +147,20 @@ option_get			(vbi_export *		e,
 }
 
 /* Set an option (optional if we have no options). */
-static vbi_bool
-option_set			(vbi_export *		e,
+static vbi3_bool
+option_set			(vbi3_export *		e,
 				 const char *		keyword,
 				 va_list		ap)
 {
 	tmpl_instance *tmpl = PARENT (e, tmpl_instance, export);
 
 	if (KEYWORD ("flip")) {
-		tmpl->flip = !!va_arg (ap, vbi_bool);
+		tmpl->flip = !!va_arg (ap, vbi3_bool);
 	} else if (KEYWORD ("day")) {
 		int day = va_arg (ap, int);
 
 		if (day < 1 || day > 31) {
-			_vbi_export_invalid_option (e, keyword, day);
+			_vbi3_export_invalid_option (e, keyword, day);
 			return FALSE;
 		}
 
@@ -189,7 +191,7 @@ option_set			(vbi_export *		e,
 		const char *comment = va_arg (ap, const char *);
 
 		/* Note the option remains unchanged in case of error */
-		if (!_vbi_export_strdup (e, &tmpl->comment, comment))
+		if (!_vbi3_export_strdup (e, &tmpl->comment, comment))
 			return FALSE;
 	} else if (KEYWORD ("weekday")) {
 		unsigned int day = va_arg (ap, unsigned int);
@@ -197,7 +199,7 @@ option_set			(vbi_export *		e,
 		/* or return an error */
 		tmpl->weekday = day % 7;
 	} else {
-		_vbi_export_unknown_option (e, keyword);
+		_vbi3_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
@@ -205,9 +207,9 @@ option_set			(vbi_export *		e,
 }
 
 /* The output function, mandatory. */
-static vbi_bool
-export				(vbi_export *		e,
-				 const vbi_page *	pg)
+static vbi3_bool
+export				(vbi3_export *		e,
+				 const vbi3_page *	pg)
 {
 	tmpl_instance *tmpl = PARENT (e, tmpl_instance, export);
 
@@ -220,14 +222,14 @@ export				(vbi_export *		e,
 	   they better post a description of the problem.
 	   Parameters like printf, no linefeeds '\n' please. */
 	/*
-	vbi_export_error_printf (_("Writing failed: %s"), strerror (errno));
+	vbi3_export_error_printf (_("Writing failed: %s"), strerror (errno));
          */
 
 	return FALSE; /* no success (since we didn't write anything) */
 }
 
 /* Let's describe us. You can leave away assignments unless mandatory. */
-static const vbi_export_info
+static const vbi3_export_info
 export_info = {
 	/* The mandatory keyword must be unique and shall
            contain only "AZaz09_" */
@@ -241,13 +243,13 @@ export_info = {
 	.extension		= "tmpl",
 };
 
-const _vbi_export_module
-_vbi_export_module_tmpl = {
+const _vbi3_export_module
+_vbi3_export_module_tmpl = {
 	.export_info		= &export_info,
 
-	/* Functions to allocate and free a tmpl_class vbi_export instance.
+	/* Functions to allocate and free a tmpl_class vbi3_export instance.
 	   When you omit these, libzvbi will allocate a bare struct
-	   vbi_export */
+	   vbi3_export */
 	._new			= tmpl_new,
 	._delete		= tmpl_delete,
 

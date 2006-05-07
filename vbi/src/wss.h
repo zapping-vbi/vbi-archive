@@ -18,29 +18,32 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: wss.h,v 1.1.1.1.2.4 2004-07-09 16:10:54 mschimek Exp $ */
+/* $Id: wss.h,v 1.1.1.1.2.5 2006-05-07 06:04:59 mschimek Exp $ */
 
-#ifndef __ZVBI_WSS_H__
-#define __ZVBI_WSS_H__
+#ifndef __ZVBI3_WSS_H__
+#define __ZVBI3_WSS_H__
 
 #include <inttypes.h>		/* uint8_t */
 #include "macros.h"
-#include "aspect_ratio.h"	/* vbi_aspect_ratio */
+#include "aspect_ratio.h"	/* vbi3_aspect_ratio */
 
-VBI_BEGIN_DECLS
+VBI3_BEGIN_DECLS
 
 /**
  * @addtogroup AspectRatio
  * @{
  */
-extern vbi_bool
-vbi_decode_wss_625		(vbi_aspect_ratio *	r,
+extern vbi3_bool
+vbi3_decode_wss_625		(vbi3_aspect_ratio *	ar,
 				 const uint8_t		buffer[2]);
-extern vbi_bool
-vbi_decode_wss_cpr1204		(vbi_aspect_ratio *	r,
+extern vbi3_bool
+vbi3_encode_wss_625		(uint8_t		buffer[2],
+				 const vbi3_aspect_ratio *ar);
+extern vbi3_bool
+vbi3_decode_wss_cpr1204		(vbi3_aspect_ratio *	ar,
 				 const uint8_t		buffer[3]);
 /** @} */
 
-VBI_END_DECLS
+VBI3_END_DECLS
 
-#endif /* __ZVBI_WSS_H__ */
+#endif /* __ZVBI3_WSS_H__ */

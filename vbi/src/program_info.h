@@ -18,21 +18,21 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: program_info.h,v 1.1.2.1 2004-07-09 16:10:53 mschimek Exp $ */
+/* $Id: program_info.h,v 1.1.2.2 2006-05-07 06:04:58 mschimek Exp $ */
 
-#ifndef __ZVBI_PROGRAM_INFO_H__
-#define __ZVBI_PROGRAM_INFO_H__
+#ifndef __ZVBI3_PROGRAM_INFO_H__
+#define __ZVBI3_PROGRAM_INFO_H__
 
 #include <stdlib.h>		/* FILE */
 
 #include <time.h>		/* time_t */
 #include "bcd.h"
 #include "network.h"
-#include "link.h"		/* vbi_link */
-#include "aspect_ratio.h"	/* vbi_aspect_ratio */
-#include "pdc.h"		/* vbi_program_id */
+#include "link.h"		/* vbi3_link */
+#include "aspect_ratio.h"	/* vbi3_aspect_ratio */
+#include "pdc.h"		/* vbi3_program_id */
 
-VBI_BEGIN_DECLS
+VBI3_BEGIN_DECLS
 
 
 /*
@@ -49,31 +49,31 @@ VBI_BEGIN_DECLS
  * U. S. as V-Chip data), this describes which rating scheme is
  * being used: U. S. film, U. S. TV, Canadian English or French TV. 
  * You can convert the rating code to a string with
- * vbi_rating_string().
+ * vbi3_rating_string().
  *
- * When the scheme is @c VBI_RATING_TV_US, additionally the
+ * When the scheme is @c VBI3_RATING_TV_US, additionally the
  * DLSV rating flags will be set.
  */
 typedef enum {
-	VBI_RATING_AUTH_NONE = 0,
-	VBI_RATING_AUTH_MPAA,
-	VBI_RATING_AUTH_TV_US,
-	VBI_RATING_AUTH_TV_CA_EN,
-	VBI_RATING_AUTH_TV_CA_FR
-} vbi_rating_auth;
+	VBI3_RATING_AUTH_NONE = 0,
+	VBI3_RATING_AUTH_MPAA,
+	VBI3_RATING_AUTH_TV_US,
+	VBI3_RATING_AUTH_TV_CA_EN,
+	VBI3_RATING_AUTH_TV_CA_FR
+} vbi3_rating_auth;
 
 /**
  * @ingroup Event
  * @name US TV rating flags
  * @{
  */
-#define VBI_RATING_D 0x08 /**< "sexually suggestive dialog" */
-#define VBI_RATING_L 0x04 /**< "indecent language" */
-#define VBI_RATING_S 0x02 /**< "sexual situations" */
-#define VBI_RATING_V 0x01 /**< "violence" */
+#define VBI3_RATING_D 0x08 /**< "sexually suggestive dialog" */
+#define VBI3_RATING_L 0x04 /**< "indecent language" */
+#define VBI3_RATING_S 0x02 /**< "sexual situations" */
+#define VBI3_RATING_V 0x01 /**< "violence" */
 /** @} */
 
-extern const char *	vbi_rating_string(vbi_rating_auth auth, int id);
+extern const char *	vbi3_rating_string(vbi3_rating_auth auth, int id);
 
 /**
  * @ingroup Event
@@ -82,19 +82,19 @@ extern const char *	vbi_rating_string(vbi_rating_auth auth, int id);
  * libzvbi understands two different program classification schemes,
  * the EIA-608 based in the United States and the ETS 300 231 based
  * one in Europe. You can convert the program type code into a
- * string with vbi_prog_type_string().
+ * string with vbi3_prog_type_string().
  **/
 typedef enum {
-	VBI_PROG_CLASSF_NONE = 0,
-	VBI_PROG_CLASSF_EIA_608,
-	VBI_PROG_CLASSF_ETS_300231
-} vbi_prog_classf;
+	VBI3_PROG_CLASSF_NONE = 0,
+	VBI3_PROG_CLASSF_EIA_608,
+	VBI3_PROG_CLASSF_ETS_300231
+} vbi3_prog_classf;
 
 /**
  * @addtogroup Event
  * @{
  */
-extern const char *	vbi_prog_type_string(vbi_prog_classf classf, int id);
+extern const char *	vbi3_prog_type_string(vbi3_prog_classf classf, int id);
 /** @} */
 
 /**
@@ -147,26 +147,26 @@ typedef struct {
 	/* 04 Program type */
 
 	/*
-	 *  If unknown type_classf == VBI_PROG_CLASSF_NONE.
-	 *  VBI_PROG_CLASSF_EIA_608 can have up to 32 tags
+	 *  If unknown type_classf == VBI3_PROG_CLASSF_NONE.
+	 *  VBI3_PROG_CLASSF_EIA_608 can have up to 32 tags
 	 *  identifying 96 keywords. Their numerical value
 	 *  is given here instead of composing a string for
-	 *  easier filtering. Use vbi_prog_type_str_by_id to
+	 *  easier filtering. Use vbi3_prog_type_str_by_id to
 	 *  get the keywords. A zero marks the end.
 	 */
-	vbi_prog_classf		type_classf;
+	vbi3_prog_classf		type_classf;
 	int			type_id[33];
 
 	/* 05 Program rating */
 
 	/*
 	 *  For details STFW for "v-chip"
-	 *  If unknown rating_auth == VBI_RATING_NONE
+	 *  If unknown rating_auth == VBI3_RATING_NONE
 	 */
-	vbi_rating_auth		rating_auth;
+	vbi3_rating_auth		rating_auth;
 	int			rating_id;
 
-	/* Only valid when auth == VBI_RATING_TV_US */
+	/* Only valid when auth == VBI3_RATING_TV_US */
 	int			rating_dlsv;
 
 	/* 06 Program Audio Services */
@@ -177,8 +177,8 @@ typedef struct {
 	 *  mono/mono for bilingual transmissions.
 	 */
 	struct {
-		/* If unknown mode == VBI_AUDIO_MODE_UNKNOWN */
-//		vbi_audio_mode		mode;
+		/* If unknown mode == VBI3_AUDIO_MODE_UNKNOWN */
+//		vbi3_audio_mode		mode;
 		/* If unknown lang_code == NULL */
 		const char *		lang_code; /* ISO 639 */
 	}			audio[2];	/* primary and secondary */
@@ -188,7 +188,7 @@ typedef struct {
 	/*
 	 *  Bits 0...7 corresponding to Caption page 1...8.
 	 *  Note for the current program this information is also
-	 *  available via vbi_classify_page().
+	 *  available via vbi3_classify_page().
 	 *
 	 *  If unknown caption_services == -1, _lang_code[] = NULL
 	 */
@@ -204,11 +204,11 @@ typedef struct {
 
 	/*
 	 *  Note for the current program this information is also
-	 *  available via VBI_EVENT_ASPECT.
+	 *  available via VBI3_EVENT_ASPECT.
 	 *
 	 *  If unknown first_line == last_line == -1, ratio == 0.0
 	 */
-	vbi_aspect_ratio	aspect;
+	vbi3_aspect_ratio	aspect;
 
 	/* 10 - 17 Program Description */
 
@@ -217,64 +217,64 @@ typedef struct {
 	 *  if unknown description[0...7][0] == 0
 	 */
 	char			description[8][33];
-} __vbi_program_info;
+} __vbi3_program_info;
 
 /**
  * @addtogroup Event
  * @{
  */
-extern void		vbi_reset_prog_info(__vbi_program_info *pi);
+extern void		vbi3_reset_prog_info(__vbi3_program_info *pi);
 /** @} */
 
 /* code depends on order, don't change */
 typedef enum {
-	VBI_XDS_AUDIO_NONE = 0,			/**< No sound. */
-	VBI_XDS_AUDIO_MONO,			/**< Mono audio. */
-	VBI_XDS_AUDIO_STEREO,			/**< Stereo audio. */
-	VBI_XDS_AUDIO_STEREO_SURROUND,		/**< Surround. */
-	VBI_XDS_AUDIO_SIMULATED_STEREO,		/**< ? */
+	VBI3_XDS_AUDIO_NONE = 0,			/**< No sound. */
+	VBI3_XDS_AUDIO_MONO,			/**< Mono audio. */
+	VBI3_XDS_AUDIO_STEREO,			/**< Stereo audio. */
+	VBI3_XDS_AUDIO_STEREO_SURROUND,		/**< Surround. */
+	VBI3_XDS_AUDIO_SIMULATED_STEREO,		/**< ? */
 	/**
 	 * Spoken descriptions of the program for the blind,
 	 * on a secondary audio track.
 	 */
-	VBI_XDS_AUDIO_VIDEO_DESCRIPTIONS,
+	VBI3_XDS_AUDIO_VIDEO_DESCRIPTIONS,
 	/**
 	 * Unrelated to the current program.
 	 */
-	VBI_XDS_AUDIO_NON_PROGRAM_AUDIO,
-	VBI_XDS_AUDIO_SPECIAL_EFFECTS,		/**< ? */
-	VBI_XDS_AUDIO_DATA_SERVICE,		/**< ? */
+	VBI3_XDS_AUDIO_NON_PROGRAM_AUDIO,
+	VBI3_XDS_AUDIO_SPECIAL_EFFECTS,		/**< ? */
+	VBI3_XDS_AUDIO_DATA_SERVICE,		/**< ? */
 	/**
 	 * We have no information what is transmitted.
 	 */
-	VBI_XDS_AUDIO_UNKNOWN
-} vbi_xds_audio;
+	VBI3_XDS_AUDIO_UNKNOWN
+} vbi3_xds_audio;
 
 typedef struct {
 	char *			title;
 
 	struct {
-		vbi_xds_audio		mode;
+		vbi3_xds_audio		mode;
 		char *			lang_code;
 	}			audio[2];
 
 	char *			description;
-} vbi_program_info;
+} vbi3_program_info;
 
 extern const char *
-vbi_xds_audio_name		(vbi_xds_audio		mode);
+vbi3_xds_audio_name		(vbi3_xds_audio		mode);
 
 extern void
-vbi_program_info_destroy	(vbi_program_info *	pi);
+vbi3_program_info_destroy	(vbi3_program_info *	pi);
 extern void
-vbi_program_info_init		(vbi_program_info *	pi);
+vbi3_program_info_init		(vbi3_program_info *	pi);
 
 /* Private */
 
 extern void
-_vbi_program_info_dump		(const vbi_program_info *pi,
+_vbi3_program_info_dump		(const vbi3_program_info *pi,
 				 FILE *			fp);
 
-VBI_END_DECLS
+VBI3_END_DECLS
 
-#endif /* __ZVBI_PROGRAM_INFO_H__ */
+#endif /* __ZVBI3_PROGRAM_INFO_H__ */

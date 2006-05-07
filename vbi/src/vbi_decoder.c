@@ -22,171 +22,114 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.1.2.3 2004-10-14 07:54:02 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.1.2.4 2006-05-07 06:04:59 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>		/* malloc() */
 #include "vbi_decoder-priv.h"
 #include "misc.h"
-#include "vps.h"
-#include "wss.h"
+#ifndef ZAPPING8
+#  include "vps.h"
+#  include "wss.h"
+#endif
 
 /**
- * @param vbi VBI decoder allocated with vbi_decoder_new().
- * @param nk Identifies the network to query, can be @c NULL for the
- *   current network.
- * @param array_size Number of elements in the array will be stored here.
- *
- * Returns all Teletext TOP (Table Of Pages) titles received,
- * sorted by ascending page number.
- *
- * @returns
- * Array of vbi_top_title structures which must be freed with
- * vbi_top_title_array_delete() when done. @c NULL on error.
- */
-vbi_top_title *
-vbi_decoder_get_top_titles	(vbi_decoder *		vbi,
-				 const vbi_network *	nk,
-				 unsigned int *		array_size)
-{
-	return vbi_teletext_decoder_get_top_titles
-		(&vbi->vt, nk, array_size);
-}
-
-/**
- * @param vbi VBI decoder allocated with vbi_decoder_new().
- * @param tt TOP title structure will be stored here.
- * @param nk Identifies the network to query, can be @c NULL for the
- *   current network.
- * @param pgno Teletext page number.
- * @param subno Teletext subpage number, can be @c VBI_ANY_SUBNO.
- *
- * Returns the Teletext TOP (Table Of Pages) title of a page.
- * 
- * @returns
- * vbi_top_title structure in @a *tt which must be destroyed with
- * vbi_top_title_destroy() when done. @c FALSE on error, in this
- * case @a *tt will be cleared so vbi_top_title_destroy() is safe.
- */
-vbi_bool
-vbi_decoder_get_top_title	(vbi_decoder *		vbi,
-				 vbi_top_title *	tt,
-				 const vbi_network *	nk,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno)
-{
-	return vbi_teletext_decoder_get_top_title
-		(&vbi->vt, tt, nk, pgno, subno);
-}
-
-/**
- * @param vbi VBI decoder allocated with vbi_decoder_new().
- * @param ps Page information will be stored here.
- * @param nk Identifies the network to query, can be @c NULL for the
- *   current network.
- * @param pgno Teletext page number.
- *
- * Returns information about the Teletext page.
- *
- * @returns
- * vbi_ttx_page_stat structure in @a *ps. @c FALSE on error.
- */
-vbi_bool
-vbi_decoder_get_ttx_page_stat	(vbi_decoder *		vbi,
-				 vbi_ttx_page_stat *	ps,
-				 const vbi_network *	nk,
-				 vbi_pgno		pgno)
-{
-	return vbi_teletext_decoder_get_ttx_page_stat (&vbi->vt, ps, nk, pgno);
-}
-
-/**
- * @param vbi VBI decoder allocated with vbi_decoder_new().
+ * @param vbi VBI decoder allocated with vbi3_decoder_new().
  * @param nk Identifies the network transmitting the page.
- * @param pgno Teletext page number.
- * @param subno Teletext subpage number, can be @c VBI_ANY_SUBNO
+ * @param pgno Teletext page number or Closed Caption channel.
+ * @param subno Teletext subpage number, can be @c VBI3_ANY_SUBNO
  *   (most recently received subpage, if any).
- * @param format_options Array of pairs of a vbi_format_option and value,
- *   terminated by a @c 0 option. See vbi_decoder_get_teletext_page().
+ * @param format_options Array of pairs of a vbi3_format_option and value,
+ *   terminated by a @c 0 option. See vbi3_decoder_get_page().
  *
- * Allocates a new vbi_page, formatted from a cached Teletext page.
+ * Allocates a new vbi3_page, formatted from a cached Teletext page.
  *
  * @returns
- * vbi_page which must be freed with vbi_page_delete() when done.
+ * vbi3_page which must be freed with vbi3_page_delete() when done.
  * @c NULL on error.
  */
-vbi_page *
-vbi_decoder_get_teletext_page_va_list
-				(vbi_decoder *		vbi,
-				 const vbi_network *	nk,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
+vbi3_page *
+vbi3_decoder_get_page_va_list	(vbi3_decoder *		vbi,
+				 const vbi3_network *	nk,
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
 				 va_list		format_options)
 {
-	return vbi_teletext_decoder_get_page_va_list
-		(&vbi->vt, nk, pgno, subno, format_options);
+	if (pgno < 0x100)
+		return vbi3_caption_decoder_get_page_va_list
+			(&vbi->cc, pgno, format_options);
+	else
+		return vbi3_teletext_decoder_get_page_va_list
+			(&vbi->vt, nk, pgno, subno, format_options);
 }
 
 /**
- * @param vbi VBI decoder allocated with vbi_decoder_new().
+ * @param vbi VBI decoder allocated with vbi3_decoder_new().
  * @param nk Identifies the network transmitting the page.
- * @param pgno Teletext page number.
- * @param subno Teletext subpage number, can be @c VBI_ANY_SUBNO
+ * @param pgno Teletext page number or Closed Caption channel.
+ * @param subno Teletext subpage number, can be @c VBI3_ANY_SUBNO
  *   (most recently received subpage, if any).
- * @param ... Array of pairs of a vbi_format_option and value,
+ * @param ... Array of pairs of a vbi3_format_option and value,
  *   terminated by a @c 0 option.
  *
- * Allocates a new vbi_page, formatted from a cached Teletext page.
+ * Allocates a new vbi3_page, formatted from a cached Teletext
+ * or Closed Caption page.
  *
  * Example:
  *
  * @code
- * vbi_page *pg;
+ * vbi3_page *pg;
  *
- * pg = vbi_decoder_get_teletext_page (vbi, NULL, 0x100, VBI_ANY_SUBNO,
- *				       VBI_NAVIGATION, TRUE,
- *				       VBI_WST_LEVEL, VBI_LEVEL_2p5,
- *				       0);
+ * pg = vbi3_decoder_get_page (vbi, NULL, 0x100, VBI3_ANY_SUBNO,
+ *			      VBI3_NAVIGATION, TRUE,
+ *			      VBI3_WST_LEVEL, VBI3_LEVEL_2p5,
+ *			      0);
  * @endcode
  *
  * @returns
- * vbi_page which must be freed with vbi_page_delete() when done.
+ * vbi3_page which must be freed with vbi3_page_delete() when done.
  * @c NULL on error.
  */
-vbi_page *
-vbi_decoder_get_teletext_page	(vbi_decoder *		vbi,
-				 const vbi_network *	nk,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
+vbi3_page *
+vbi3_decoder_get_page		(vbi3_decoder *		vbi,
+				 const vbi3_network *	nk,
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
 				 ...)
 {
-	vbi_page *pg;
+	vbi3_page *pg;
 	va_list format_options;
 
 	va_start (format_options, subno);
 
-	pg = vbi_teletext_decoder_get_page_va_list
-		(&vbi->vt, nk, pgno, subno, format_options);
+	if (pgno < 0x100)
+		pg = vbi3_caption_decoder_get_page_va_list
+			(&vbi->cc, pgno, format_options);
+	else
+		pg = vbi3_teletext_decoder_get_page_va_list
+			(&vbi->vt, nk, pgno, subno, format_options);
 
 	va_end (format_options);
 
 	return pg;
 }
 
+#ifndef ZAPPING8
+
 /**
- * @param vbi VBI decoder allocated with vbi_decoder_new().
+ * @param vbi VBI decoder allocated with vbi3_decoder_new().
  * @param pid Program ID will be stored here.
  * @param channel Logical channel transmitting the ID.
  *
  * Returns the most recently on a logical channel received program ID.
  *
- * Sources can be VBI_SLICED_TELETEXT_B and VBI_SLICED_VPS (EN 300 231 PDC),
- * and VBI_SLICED_CAPTION_525 (EIA 608 XDS) data.
+ * Sources can be VBI3_SLICED_TELETEXT_B and VBI3_SLICED_VPS (EN 300 231 PDC),
+ * and VBI3_SLICED_CAPTION_525 (EIA 608 XDS) data.
  */
 void
-vbi_decoder_get_program_id	(vbi_decoder *		vbi,
-				 vbi_program_id *	pid,
-				 vbi_pid_channel	channel)
+vbi3_decoder_get_program_id	(vbi3_decoder *		vbi,
+				 vbi3_program_id *	pid,
+				 vbi3_pid_channel	channel)
 {
 	cache_network *cn;
 
@@ -201,17 +144,17 @@ vbi_decoder_get_program_id	(vbi_decoder *		vbi,
 }
 
 /**
- * @param vbi VBI decoder allocated with vbi_decoder_new().
+ * @param vbi VBI decoder allocated with vbi3_decoder_new().
  * @param ar Aspect ratio information will be stored here.
  *
  * Returns the most recently received aspect ratio information.
  *
- * Sources can be VBI_SLICED_WSS_625 (EN 300 294), VBI_SLICED_WSS_CPR1204
- * (EIA-J CPR-1204) and VBI_SLICED_CAPTION_525 (EIA 608 XDS) data.
+ * Sources can be VBI3_SLICED_WSS_625 (EN 300 294), VBI3_SLICED_WSS_CPR1204
+ * (EIA-J CPR-1204) and VBI3_SLICED_CAPTION_525 (EIA 608 XDS) data.
  */
 void
-vbi_decoder_get_aspect_ratio	(vbi_decoder *		vbi,
-				 vbi_aspect_ratio *	ar)
+vbi3_decoder_get_aspect_ratio	(vbi3_decoder *		vbi,
+				 vbi3_aspect_ratio *	ar)
 {
 	assert (NULL != vbi);
 	assert (NULL != ar);
@@ -219,55 +162,90 @@ vbi_decoder_get_aspect_ratio	(vbi_decoder *		vbi,
 	*ar = vbi->vt.network->aspect_ratio;
 }
 
+#endif /* !ZAPPING8 */
+
+vbi3_teletext_decoder *
+vbi3_decoder_cast_to_teletext_decoder
+				(vbi3_decoder *		vbi)
+{
+	assert (NULL != vbi);
+
+	return &vbi->vt;
+}
+
+vbi3_caption_decoder *
+vbi3_decoder_cast_to_caption_decoder
+				(vbi3_decoder *		vbi)
+{
+	assert (NULL != vbi);
+
+	return &vbi->cc;
+}
+
 /**
  * @internal
- * @param vbi VBI decoder allocated with vbi_decoder_new().
- * @param cn New network, can be @c NULL if 0.0 == time.
+ * @param vbi VBI decoder allocated with vbi3_decoder_new().
+ * @param cn New network, can be @c NULL if 0.0 != time.
  * @param time Deferred reset when time is greater than
- *   vbi_decoder_decode() time. Pass a negative number to
+ *   vbi3_decoder_feed() timestamp. Pass a negative number to
  *   cancel a deferred reset, 0.0 to reset immediately.
  *
  * Internal reset function.
  */
 static void
-reset				(vbi_decoder *		vbi,
+internal_reset			(vbi3_decoder *		vbi,
 				 cache_network *	cn,
 				 double			time)
 {
-	vbi_event e;
+	vbi3_event e;
 
-	if (time <= 0.0 || time > vbi->reset_time)
+	if (time <= 0.0 /* reset now or cancel deferred reset */
+	    || time > vbi->reset_time)
 		vbi->reset_time = time;
 
 	vbi->teletext_reset (&vbi->vt, cn, time);
 	vbi->caption_reset (&vbi->cc, cn, time);
 
-	if (0 == time /* reset now */) {
-		e.type		= VBI_EVENT_RESET;
+	if (0.0 == time /* reset now */) {
+		e.type		= VBI3_EVENT_RESET;
 		e.network	= &vbi->vt.network->network;
-		e.timestamp	= vbi->time;
+		e.timestamp	= vbi->timestamp;
 
-		_vbi_event_handler_list_send (&vbi->handlers, &e);
+		_vbi3_event_handler_list_send (&vbi->handlers, &e);
 	}
 }
 
+void
+vbi3_decoder_detect_channel_change
+				(vbi3_decoder *		vbi,
+				 vbi3_bool		enable)
+{
+	/* XXX different methods? */
+	vbi->dcc = enable;
+}
+
+#ifndef ZAPPING8
+
 static void
-cni_change			(vbi_decoder *		vbi,
-				 vbi_cni_type		type,
+cni_change			(vbi3_decoder *		vbi,
+				 vbi3_cni_type		type,
 				 unsigned int		cni)
 {
 	cache_network *cn;
 	double timeout;
 
 	cn = vbi->vt.network;
+
+	/* Timeout is variable because VPS and 8/30 repeat at
+	   different rates. */
 	timeout = 0.0;
 
-	if (VBI_CNI_TYPE_VPS != type
+	if (VBI3_CNI_TYPE_VPS != type
 	    && 0 != cn->network.cni_vps
 	    && (cn->network.cni_vps
-		!= vbi_convert_cni (VBI_CNI_TYPE_VPS, type, cni))) {
+		!= vbi3_convert_cni (VBI3_CNI_TYPE_VPS, type, cni))) {
 		/* We cannot say with certainty if cni and cni_vps belong
-		   to the same network. If 0 == vbi_convert_cni() we cannot
+		   to the same network. If 0 == vbi3_convert_cni() we cannot
 		   convert, otherwise CNIs mismatch because the channel
 		   changed, the network transmits wrong CNIs or the
 		   conversion is incorrect.
@@ -279,34 +257,37 @@ cni_change			(vbi_decoder *		vbi,
 		timeout = vbi->vt.cni_vps_timeout;
 	}
 
-	if (VBI_CNI_TYPE_8301 != type
+	if (VBI3_CNI_TYPE_8301 != type
 	    && 0 != cn->network.cni_8301
 	    && (cn->network.cni_8301
-		!= vbi_convert_cni (VBI_CNI_TYPE_8301, type, cni))) {
+		!= vbi3_convert_cni (VBI3_CNI_TYPE_8301, type, cni))) {
 		cn->confirm_cni_8301 = cn->network.cni_8301;
 		timeout = vbi->vt.cni_830_timeout;
 	}
 
-	if (VBI_CNI_TYPE_8302 != type
+	if (VBI3_CNI_TYPE_8302 != type
 	    && 0 != cn->network.cni_8302
 	    && (cn->network.cni_8302
-		!= vbi_convert_cni (VBI_CNI_TYPE_8302, type, cni))) {
+		!= vbi3_convert_cni (VBI3_CNI_TYPE_8302, type, cni))) {
 		cn->confirm_cni_8302 = cn->network.cni_8302;
 		timeout = vbi->vt.cni_830_timeout;
 	}
 
-	if (timeout > 0.0)
-		reset (vbi, NULL, vbi->time + timeout);
+	if (timeout > 0.0) {
+		/* Arrange for a reset in timeout seconds
+		   and discard all data received in the meantime. */
+		internal_reset (vbi, cn, vbi->timestamp + timeout);
+	}
 }
 
-static vbi_bool
-decode_vps			(vbi_decoder *		vbi,
+static vbi3_bool
+decode_vps			(vbi3_decoder *		vbi,
 				 const uint8_t		buffer[13])
 {
 	unsigned int cni;
 	cache_network *cn;
 
-	if (!vbi_decode_vps_cni (&cni, buffer))
+	if (!vbi3_decode_vps_cni (&cni, buffer))
 		return FALSE;
 
 	cn = vbi->vt.network;
@@ -321,99 +302,104 @@ decode_vps			(vbi_decoder *		vbi,
 		if (0 == cn->confirm_cni_8301
 		    && 0 == cn->confirm_cni_8302) {
 			/* All CNIs valid, cancel reset requests. */
-			reset (vbi, NULL, -1);
+			internal_reset (vbi, cn, -1);
 		}
 	} else if (cni == cn->confirm_cni_vps) {
-		vbi_event e;
+		vbi3_event e;
 
 		/* The CNI is correct. */
 
 		if (0 == cn->network.cni_vps) {
-			/* First CNI, assume no channel change. */
+			/* First time CNI, assume no channel change. */
 
-			vbi_network_set_cni (&cn->network,
-					     VBI_CNI_TYPE_VPS, cni);
+			vbi3_network_set_cni (&cn->network,
+					     VBI3_CNI_TYPE_VPS, cni);
 
 			cn->confirm_cni_vps = 0;
 
 			if (0 == cn->confirm_cni_8301
 			    && 0 == cn->confirm_cni_8302) {
 				/* All CNIs valid, cancel reset requests. */
-				reset (vbi, NULL, -1);
+				internal_reset (vbi, cn, -1);
 			}
 		} else {
-			vbi_network nk;
+			vbi3_network nk;
 			cache_network *cn;
 
 			/* Different CNI, channel change detected. */
 
-			vbi_network_init (&nk);
-			vbi_network_set_cni (&nk, VBI_CNI_TYPE_VPS, cni);
+			vbi3_network_init (&nk);
+			vbi3_network_set_cni (&nk, VBI3_CNI_TYPE_VPS, cni);
 
-			cn = _vbi_cache_add_network
+			cn = _vbi3_cache_add_network
 				(vbi->vt.cache, &nk, vbi->vt.videostd_set);
 
-			reset (vbi, cn, 0 /* now */);
+			internal_reset (vbi, cn, 0.0 /* now */);
 
-			cache_network_release (cn);
+			cache_network_unref (cn);
 
-			vbi_network_destroy (&nk);
+			vbi3_network_destroy (&nk);
 		}
 
-		/* NB reset() invalidates cn. */
+		/* internal_reset() may have changed this. */
+		cn = vbi->vt.network;
 
-		e.type = VBI_EVENT_NETWORK;
-		e.network = &vbi->vt.network->network;
-		e.timestamp = vbi->time;
+		e.type = VBI3_EVENT_NETWORK;
+		e.network = &cn->network;
+		e.timestamp = vbi->timestamp;
 
-		_vbi_event_handler_list_send (&vbi->handlers, &e);
+		_vbi3_event_handler_list_send (&vbi->handlers, &e);
 	} else {
-		/* VPS is poorly error protected. We accept this CNI
-		   after receiving it twice in a row. */
+		/* VPS is poorly error protected but repeats once per frame.
+		   We accept this CNI after receiving it twice in a row. */
 		cn->confirm_cni_vps = cni;
 
 		if (0 == cn->network.cni_vps) {
-			/* First CNI, channel change possible. */
-			cni_change (vbi, VBI_CNI_TYPE_VPS, cni);
+			/* First time CNI, channel change possible. */
+			cni_change (vbi, VBI3_CNI_TYPE_VPS, cni);
 		} else {
 			/* Assume a channel change with unknown CNI if we
 			   cannot confirm the new CNI or receive the old
-			   CNI again within n seconds. */
-			reset (vbi, NULL, vbi->time
-			       + vbi->vt.cni_vps_timeout);
+			   CNI again within timeout seconds. */
+			internal_reset (vbi, cn, vbi->timestamp
+					+ vbi->vt.cni_vps_timeout);
 		}
+
+		/* Discard PDC data until we identified the network. */
 
 		return TRUE;
 	}
 
-	if ((vbi->handlers.event_mask & VBI_EVENT_PROG_ID)
+	if ((vbi->handlers.event_mask & VBI3_EVENT_PROG_ID)
 	    && vbi->reset_time <= 0.0 /* not suspended */) {
-		vbi_program_id pid;
-		vbi_program_id *p;
+		vbi3_program_id pid;
+		vbi3_program_id *p;
 		cache_network *cn;
 
-		if (!vbi_decode_vps_pdc (&pid, buffer))
+		if (!vbi3_decode_vps_pdc (&pid, buffer))
 			return FALSE;
 
 		cn = vbi->vt.network;
 
-		p = &cn->program_id[VBI_PID_CHANNEL_VPS];
+		p = &cn->program_id[VBI3_PID_CHANNEL_VPS];
 
 		if (p->cni != pid.cni
 		    || p->pil != pid.pil
 		    || p->pcs_audio != pid.pcs_audio
 		    || p->pty != pid.pty) {
-			vbi_event e;
+			vbi3_event e;
+
+			/* Program ID changed. */
 
 			*p = pid;
 
-			e.type = VBI_EVENT_PROG_ID;
+			e.type = VBI3_EVENT_PROG_ID;
 			e.network = &cn->network;
-			e.timestamp = vbi->time;
+			e.timestamp = vbi->timestamp;
 
 			e.ev.prog_id = p;
 
-			_vbi_event_handler_list_send (&vbi->handlers, &e);
+			_vbi3_event_handler_list_send (&vbi->handlers, &e);
 		}
 	}
 
@@ -421,143 +407,174 @@ decode_vps			(vbi_decoder *		vbi,
 }
 
 static void
-aspect_event			(vbi_decoder *		vbi,
-				 const vbi_aspect_ratio *ar)
+aspect_event			(vbi3_decoder *		vbi,
+				 const vbi3_aspect_ratio *ar)
 {
 	cache_network *cn;
-	vbi_event e;
+	vbi3_event e;
 
 	cn = vbi->vt.network;
 
-	if (0 == memcmp (&cn->aspect_ratio, ar, sizeof (cn->aspect_ratio)))
+	if (0 == memcmp (&cn->aspect_ratio, ar, sizeof (cn->aspect_ratio))) {
+		/* No change. */
 		return;
+	}
+
+	/* WSS is poorly error protected but repeats once per frame.
+	   We accept this aspect ratio after receiving it twice. */
+	if (0 != memcmp (&vbi->confirm_aspect_ratio, ar,
+			 sizeof (vbi->confirm_aspect_ratio))) {
+		vbi->confirm_aspect_ratio = *ar;
+		return;
+	}
 
 	cn->aspect_ratio = *ar;
 
-	e.type = VBI_EVENT_ASPECT;
-	e.network = &vbi->vt.network->network;
-	e.timestamp = vbi->time;
+	e.type = VBI3_EVENT_ASPECT;
+	e.network = &cn->network;
+	e.timestamp = vbi->timestamp;
 
 	e.ev.aspect = &cn->aspect_ratio;
 
-	_vbi_event_handler_list_send (&vbi->handlers, &e);
+	_vbi3_event_handler_list_send (&vbi->handlers, &e);
 }
+
+#endif /* !ZAPPING8 */
 
 /**
  */
 void
-vbi_decoder_decode		(vbi_decoder *		vbi,
-				 vbi_sliced *		sliced,
-				 unsigned int		lines,
-				 double			time)
+vbi3_decoder_feed		(vbi3_decoder *		vbi,
+				 const vbi3_sliced *	sliced,
+				 unsigned int		n_lines,
+				 double			timestamp)
 {
-	vbi_bool r;
-	double d;
+	vbi3_bool all_success;
 
-	r = TRUE;
+	if (vbi->dcc) {
+		double dt;
 
-	d = time - vbi->time;
+		dt = timestamp - vbi->timestamp;
 
-	if (vbi->time > 0 && (d < 0.025 || d > 0.050)) {
-	  /*
-	   *  Since (dropped >= channel switch) we give
-	   *  ~1.5 s, then assume a switch.
-	   */
-	  //obsolete	  pthread_mutex_lock(&vbi->chswcd_mutex);
+		if (vbi->timestamp > 0.0 && (dt < 0.025 || dt > 0.050)) {
+			if (0)
+				fprintf (stderr,
+					 "vbi frame/s dropped at %f, dt=%f\n",
+					 timestamp, dt);
 
-#warning later
-	  //	  if (vbi->chswcd == 0)
-	  //		  vbi->chswcd = 40;
+			if (0 != vbi->vt.handlers.event_mask
+			    || (VBI3_EVENT_NETWORK & vbi->handlers.event_mask)) {
+				_vbi3_teletext_decoder_resync (&vbi->vt);
+			}
 
-	  //	  pthread_mutex_unlock(&vbi->chswcd_mutex);
+			if (0 != vbi->cc.handlers.event_mask
+			    || (VBI3_EVENT_NETWORK & vbi->handlers.event_mask)) {
+				_vbi3_caption_decoder_resync (&vbi->cc);
+			}
 
-	  if (0)
-		  fprintf(stderr, "vbi frame/s dropped at %f, D=%f\n",
-			  time, time - vbi->time);
+			/* Set to all failed. */
+			vbi->error_history_vps = 0;
+			vbi->error_history_wss_625 = 0;
+			vbi->error_history_wss_cpr1204 = 0;
 
-	  if (vbi->handlers.event_mask &
-	      (VBI_EVENT_TTX_PAGE | VBI_EVENT_NETWORK))
-		  _vbi_teletext_decoder_resync (&vbi->vt);
-	  if (vbi->handlers.event_mask &
-	      (VBI_EVENT_CAPTION | VBI_EVENT_NETWORK))
-		  vbi_caption_decoder_resync (&vbi->cc);
-	} else {
-	  //		pthread_mutex_lock(&vbi->chswcd_mutex);
+			vbi->timestamp = timestamp;
 
-		if (0) { //vbi->chswcd > 0 && --vbi->chswcd == 0) {
-		  //			pthread_mutex_unlock(&vbi->chswcd_mutex);
-//			vbi_chsw_reset(vbi, 0);
+			/* Assuming a channel change, arrange for a reset in 1.5
+			   seconds if we don't receive the old or a new network ID,
+			   and discard all data received in the meantime. */
+			internal_reset (vbi, /* cn */ NULL, vbi->timestamp + 1.5);
 		} else {
-		  //			pthread_mutex_unlock(&vbi->chswcd_mutex);
+// FIXME deferred reset here
 		}
 	}
 
-	if (time > vbi->time)
-		vbi->time = time;
+	if (timestamp > vbi->timestamp) {
+		vbi->timestamp = timestamp;
 
-	while (lines) {
-		if (sliced->id & VBI_SLICED_TELETEXT_B_625) {
-			vbi->time_teletext = vbi->time;
+		if (vbi->handlers.event_mask & VBI3_EVENT_TIMER) {
+			vbi3_event e;
 
-			r &= vbi_teletext_decoder_decode
-				(&vbi->vt, sliced->data, time);
-		} else if ((sliced->id & VBI_SLICED_CAPTION_525)
-			   && (0 == sliced->line || 21 == sliced->line)) {
-			vbi->time_caption = vbi->time;
+			e.type = VBI3_EVENT_TIMER;
+			e.network = &vbi->vt.network->network;
+			e.timestamp = timestamp;
 
-			vbi_decode_caption (&vbi->cc, sliced->line,
-					    sliced->data);
-		} else if ((sliced->id & VBI_SLICED_CAPTION_625)
-			   && (0 == sliced->line || 22 == sliced->line)) {
-			vbi->time_caption = vbi->time;
+			_vbi3_event_handler_list_send (&vbi->handlers, &e);
+		}
+	}
 
-			vbi_decode_caption (&vbi->cc, sliced->line,
-					    sliced->data);
-		} else if ((sliced->id & VBI_SLICED_VPS)
+	all_success = TRUE;
+
+	while (n_lines > 0) {
+		if (sliced->id & VBI3_SLICED_TELETEXT_B_625) {
+			vbi->timestamp_teletext = vbi->timestamp;
+			all_success &= vbi3_teletext_decoder_feed
+				(&vbi->vt, sliced->data, vbi->timestamp);
+		} else if (sliced->id & VBI3_SLICED_CAPTION_525) {
+			vbi->timestamp_caption = vbi->timestamp;
+			all_success &= vbi3_caption_decoder_feed
+				(&vbi->cc, sliced->data,
+				 sliced->line, vbi->timestamp);
+#ifndef ZAPPING8
+		} else if ((sliced->id & VBI3_SLICED_VPS)
 			   && (0 == sliced->line || 16 == sliced->line)) {
-			vbi->time_vps = vbi->time;
-
-			r &= decode_vps (vbi, sliced->data);
-		} else if ((sliced->id & VBI_SLICED_WSS_625)
+			vbi->timestamp_vps = vbi->timestamp;
+			all_success &= decode_vps (vbi, sliced->data);
+		} else if ((sliced->id & VBI3_SLICED_WSS_625)
 			   && (0 == sliced->line || 23 == sliced->line)) {
-			vbi_aspect_ratio aspect;
+			vbi3_aspect_ratio aspect;
+			vbi3_bool success;
 
-			vbi->time_wss_625 = vbi->time;
+			vbi->timestamp_wss_625 = vbi->timestamp;
 
-			CLEAR (aspect); /* no random gaps in memcmp */
+			/* Make sure memcmp() won't see random bits in
+			   gaps in the structure. */
+			CLEAR (aspect);
 
-			if (vbi_decode_wss_625 (&aspect, sliced->data))
+			success = vbi3_decode_wss_625 (&aspect, sliced->data);
+			vbi->error_history_wss_625 =
+				vbi->error_history_wss_625 * 2 + success;
+			all_success &= success;
+
+			if (success) {
 				aspect_event (vbi, &aspect);
-			else
-				r = FALSE;
-		} else if (sliced->id & VBI_SLICED_WSS_CPR1204) {
-			vbi_aspect_ratio aspect;
+			}
+		} else if (sliced->id & VBI3_SLICED_WSS_CPR1204) {
+			vbi3_aspect_ratio aspect;
+			vbi3_bool success;
 
-			vbi->time_wss_cpr1204 = vbi->time;
+			vbi->timestamp_wss_cpr1204 = vbi->timestamp;
 
-			CLEAR (aspect); /* no random gaps */
+			CLEAR (aspect);
 
-			if (vbi_decode_wss_cpr1204 (&aspect, sliced->data))
+			success = vbi3_decode_wss_cpr1204 (&aspect,
+							   sliced->data);
+			vbi->error_history_wss_cpr1204 =
+				vbi->error_history_wss_cpr1204 * 2 + success;
+			all_success &= success;
+
+			if (success) {
 				aspect_event (vbi, &aspect);
-			else
-				r = FALSE;
+			}
+#endif /* !ZAPPING8 */
 		}
 
-		sliced++;
-		lines--;
+		++sliced;
+		--n_lines;
 	}
 
-//	if (vbi->handlers.event_mask & VBI_EVENT_TRIGGER)
-//		vbi_deferred_trigger(vbi);
+#if 0 /* TODO */
+	if (vbi->handlers.event_mask & VBI3_EVENT_TRIGGER)
+		vbi3_deferred_trigger(vbi);
 
-//	if (0 && (rand() % 511) == 0)
-//		vbi_eacem_trigger
-//		  (vbi, (unsigned char *) /* Latin-1 */
-//		   "<http://zapping.sourceforge.net>[n:Zapping][5450]");
+	if (0 && (rand() % 511) == 0)
+		vbi3_eacem_trigger
+		  (vbi, (unsigned char *) /* Latin-1 */
+		   "<http://zapping.sourceforge.net>[n:Zapping][5450]");
+#endif
 }
 
 /**
- * @param vbi VBI decoder allocated with vbi_decoder_new().
+ * @param vbi VBI decoder allocated with vbi3_decoder_new().
  * @param callback Function to be called on events.
  * @param user_data User pointer passed through to the @a callback function.
  * 
@@ -566,143 +583,156 @@ vbi_decoder_decode		(vbi_decoder *		vbi,
  * itself or another handler.
  */
 void
-vbi_decoder_remove_event_handler
-				(vbi_decoder *		vbi,
-				 vbi_event_cb *		callback,
+vbi3_decoder_remove_event_handler
+				(vbi3_decoder *		vbi,
+				 vbi3_event_cb *		callback,
 				 void *			user_data)
 {
 	assert (NULL != vbi);
 
-	vbi_teletext_decoder_remove_event_handler
+	vbi3_teletext_decoder_remove_event_handler
 		(&vbi->vt, callback, user_data);
 
-	vbi_caption_decoder_remove_event_handler
+	vbi3_caption_decoder_remove_event_handler
 		(&vbi->cc, callback, user_data);
 
-	_vbi_event_handler_list_remove_by_callback
+	_vbi3_event_handler_list_remove_by_callback
 		(&vbi->handlers, callback, user_data);
 }
 
 /**
- * @param vbi VBI decoder allocated with vbi_decoder_new().
- * @param event_mask Set of events (@c VBI_EVENT_) the handler is waiting
+ * @param vbi VBI decoder allocated with vbi3_decoder_new().
+ * @param event_mask Set of events (@c VBI3_EVENT_) the handler is waiting
  *   for, can be -1 for all and 0 for none.
  * @param callback Function to be called on events by
- *   vbi_decoder_decode() and other vbi_decoder functions as noted.
+ *   vbi3_decoder_feed() and other vbi3_decoder methods as noted.
  * @param user_data User pointer passed through to the @a callback function.
  * 
  * Adds a new event handler to the VBI decoder. When the @a callback
  * with @a user_data is already registered the function merely changes the
  * set of events it will receive in the future. When the @a event_mask is
- * empty the function does nothing or removes an already registered event
+ * empty the function does nothing or removes a registered event
  * handler. You can safely call this function from an event handler.
  *
  * Any number of handlers can be added, also different handlers for the
  * same event which will be called in registration order.
  *
  * @returns
- * @c FALSE on failure.
+ * @c FALSE on failure (out of memory), removing the handler.
  */
-vbi_bool
-vbi_decoder_add_event_handler	(vbi_decoder *		vbi,
-				 unsigned int		event_mask,
-				 vbi_event_cb *		callback,
+vbi3_bool
+vbi3_decoder_add_event_handler	(vbi3_decoder *		vbi,
+				 vbi3_event_mask	event_mask,
+				 vbi3_event_cb *	callback,
 				 void *			user_data)
 {
-	static const unsigned int virtual_events =
-		VBI_EVENT_CLOSE |
-		VBI_EVENT_RESET;
+	vbi3_event_mask child_events;
 
 	assert (NULL != vbi);
 
-	if (!vbi_teletext_decoder_add_event_handler
-	    (&vbi->vt, event_mask & ~virtual_events, callback, user_data))
-		return FALSE;
+	child_events = event_mask & ~(VBI3_EVENT_CLOSE |
+				      VBI3_EVENT_RESET |
+				      VBI3_EVENT_TIMER);
 
-	if (!vbi_caption_decoder_add_event_handler
-	    (&vbi->cc, event_mask & ~virtual_events, callback, user_data)) {
-		vbi_teletext_decoder_remove_event_handler
+	if (vbi3_teletext_decoder_add_event_handler
+	    (&vbi->vt, child_events, callback, user_data)) {
+
+		if (vbi3_caption_decoder_add_event_handler
+		    (&vbi->cc, child_events, callback, user_data)) {
+
+			event_mask &= (VBI3_EVENT_CLOSE |
+				       VBI3_EVENT_RESET |
+				       VBI3_EVENT_NETWORK |
+				       VBI3_EVENT_PROG_ID |
+				       VBI3_EVENT_ASPECT |
+				       VBI3_EVENT_TIMER);
+
+			if (0 == event_mask) {
+				return TRUE;
+			}
+
+			if (_vbi3_event_handler_list_add
+			    (&vbi->handlers, event_mask,
+			     callback, user_data)) {
+				return TRUE;
+			}
+
+			vbi3_caption_decoder_remove_event_handler
+				(&vbi->cc, callback, user_data);
+		}
+
+		vbi3_teletext_decoder_remove_event_handler
 			(&vbi->vt, callback, user_data);
-		return FALSE;
 	}
 
-	event_mask &=
-		virtual_events |
-		VBI_EVENT_NETWORK |
-		VBI_EVENT_PROG_ID |
-		VBI_EVENT_ASPECT;
-
-	if (event_mask && !_vbi_event_handler_list_add
-	    (&vbi->handlers, event_mask, callback, user_data)) {
-		vbi_teletext_decoder_remove_event_handler
-			(&vbi->vt, callback, user_data);
-		vbi_caption_decoder_remove_event_handler
-			(&vbi->cc, callback, user_data);
-		return FALSE;
-	}
-
-	return TRUE;
+	return FALSE;
 }
 
 /**
- * @param vbi VBI decoder allocated with vbi_decoder_new().
+ * @param vbi VBI decoder allocated with vbi3_decoder_new().
  * @param nk Identifies the new network, can be @c NULL.
+ * @param videostd_set The new video standard.
  *
  * Resets the VBI decoder, useful for example after a channel change.
  *
- * This function sends a @c VBI_EVENT_RESET.
+ * This function sends a @c VBI3_EVENT_RESET.
  */
 void
-vbi_decoder_reset		(vbi_decoder *		vbi,
-				 const vbi_network *	nk,
-				 vbi_videostd_set	videostd_set)
+vbi3_decoder_reset		(vbi3_decoder *		vbi,
+				 const vbi3_network *	nk,
+				 vbi3_videostd_set	videostd_set)
 {
 	cache_network *cn;
 
-	cn = _vbi_cache_add_network (vbi->vt.cache, nk, videostd_set);
-	reset (vbi, cn, 0.0);
-	cache_network_release (cn);
+	cn = _vbi3_cache_add_network (vbi->vt.cache, nk, videostd_set);
+
+	vbi->vt.videostd_set = videostd_set;
+	vbi->cc.videostd_set = videostd_set;
+
+	internal_reset (vbi, cn, 0.0);
+
+	cache_network_unref (cn);
 }
 
 static void
-teletext_reset_trampoline	(vbi_teletext_decoder *	td,
+teletext_reset_trampoline	(vbi3_teletext_decoder *	td,
 				 cache_network *	cn,
 				 double			time)
 {
-	reset (PARENT (td, vbi_decoder, vt), cn, time);
+	internal_reset (PARENT (td, vbi3_decoder, vt), cn, time);
 }
 
 static void
-caption_reset_trampoline	(vbi_caption_decoder *	cd,
+caption_reset_trampoline	(vbi3_caption_decoder *	cd,
 				 cache_network *	cn,
 				 double			time)
 {
-	reset (PARENT (cd, vbi_decoder, cc), cn, time);
+	internal_reset (PARENT (cd, vbi3_decoder, cc), cn, time);
 }
 
 /**
  * @param vbi VBI decoder structure to be destroyed.
  *
  * Frees all resources associated with @a vbi, except the structure itself.
- * This function sends a @c VBI_EVENT_CLOSE.
+ * This function sends a @c VBI3_EVENT_CLOSE.
  */
 void
-_vbi_decoder_destroy		(vbi_decoder *		vbi)
+_vbi3_decoder_destroy		(vbi3_decoder *		vbi)
 {
-	vbi_event e;
+	vbi3_event e;
 
 	assert (NULL != vbi);
 
-	e.type		= VBI_EVENT_CLOSE;
+	e.type		= VBI3_EVENT_CLOSE;
 	e.network	= &vbi->vt.network->network;
-	e.timestamp	= vbi->time;
+	e.timestamp	= vbi->timestamp;
 
-	_vbi_event_handler_list_send (&vbi->handlers, &e);
+	_vbi3_event_handler_list_send (&vbi->handlers, &e);
 
-	_vbi_caption_decoder_destroy (&vbi->cc);
-	_vbi_teletext_decoder_destroy (&vbi->vt);
+	_vbi3_caption_decoder_destroy (&vbi->cc);
+	_vbi3_teletext_decoder_destroy (&vbi->vt);
 
-	_vbi_event_handler_list_destroy (&vbi->handlers);
+	_vbi3_event_handler_list_destroy (&vbi->handlers);
 
 	CLEAR (*vbi);
 }
@@ -711,56 +741,60 @@ _vbi_decoder_destroy		(vbi_decoder *		vbi)
  * @internal
  * @param vbi VBI decoder structure to be initialized.
  * @param ca Cache to be used by this decoder, can be @c NULL.
- *   To allocate a cache call vbi_cache_new(). Caches have a reference
- *   counter, you can vbi_cache_release() after calling this function.
- * @param nk Initial network (see vbi_decoder_reset()),
- *   can be @c NULL.
+ *   To allocate a cache call vbi3_cache_new(). Caches have a reference
+ *   counter, you can vbi3_cache_unref() after calling this function.
+ * @param nk Current network, can be @c NULL.
+ * @param videostd_set The current video standard.
  *
  * Initialize a VBI decoder structure.
  *
  * @returns
  * @c FALSE on failure (out of memory).
  */
-vbi_bool
-_vbi_decoder_init		(vbi_decoder *		vbi,
-				 vbi_cache *		ca,
-				 const vbi_network *	nk,
-				 vbi_videostd_set	videostd_set)
+vbi3_bool
+_vbi3_decoder_init		(vbi3_decoder *		vbi,
+				 vbi3_cache *		ca,
+				 const vbi3_network *	nk,
+				 vbi3_videostd_set	videostd_set)
 {
-	vbi_cache *cache;
+	vbi3_cache *cache;
 
 	assert (NULL != vbi);
 
 	CLEAR (*vbi);
 
-	vbi->time		= 0.0;
+	vbi->dcc = TRUE;
 
-	vbi->time_teletext	= -1000000.0;
-	vbi->time_caption	= -1000000.0;
-	vbi->time_vps		= -1000000.0;
-	vbi->time_wss_625	= -1000000.0;
-	vbi->time_wss_cpr1204	= -1000000.0;
+	/* Most recent VBI data timestamp. */
+	vbi->timestamp			= -1000000.0;
+
+	/* Ditto for each service, to detect activity. */
+	vbi->timestamp_teletext		= -1000000.0;
+	vbi->timestamp_caption		= -1000000.0;
+	vbi->timestamp_vps		= -1000000.0;
+	vbi->timestamp_wss_625		= -1000000.0;
+	vbi->timestamp_wss_cpr1204	= -1000000.0;
 
 	if (ca) {
 		cache = ca;
 	} else {
-		if (!(cache = vbi_cache_new ()))
+		if (!(cache = vbi3_cache_new ()))
 			return FALSE;
 	}
 
-	_vbi_event_handler_list_init (&vbi->handlers);
+	_vbi3_event_handler_list_init (&vbi->handlers);
 
-	_vbi_teletext_decoder_init (&vbi->vt, cache, nk, videostd_set);
-	_vbi_caption_decoder_init (&vbi->cc, cache, nk, videostd_set);
+	_vbi3_teletext_decoder_init (&vbi->vt, cache, nk, videostd_set);
+	_vbi3_caption_decoder_init (&vbi->cc, cache, nk, videostd_set);
 
 	if (!ca) {
 		/* Drop our reference. */
-		vbi_cache_release (cache);
+		vbi3_cache_unref (cache);
 	}
 
-	vbi->reset_time = 0.0;
+	vbi->reset_time = 0.0; /* no deferred reset */
 
-	/* Redirect reset requests to parent vbi_decoder. */
+	/* Redirect reset requests to parent vbi3_decoder. */
 
 	vbi->teletext_reset = vbi->vt.virtual_reset;
 	vbi->vt.virtual_reset = teletext_reset_trampoline;
@@ -772,50 +806,68 @@ _vbi_decoder_init		(vbi_decoder *		vbi,
 }
 
 /**
- * @param vbi VBI decoder allocated with vbi_decoder_new(), can be @c NULL.
+ * @param vbi VBI decoder allocated with vbi3_decoder_new(), can be @c NULL.
  *
  * Frees all resources associated with @a vbi. This function sends a
- * @c VBI_EVENT_CLOSE.
+ * @c VBI3_EVENT_CLOSE.
  */
 void
-vbi_decoder_delete		(vbi_decoder *		vbi)
+vbi3_decoder_delete		(vbi3_decoder *		vbi)
 {
 	if (NULL == vbi)
 		return;
 
-	_vbi_decoder_destroy (vbi);
+	_vbi3_decoder_destroy (vbi);
 
-	vbi_free (vbi);
+	vbi3_free (vbi);
+}
+
+static void
+teletext_delete_trampoline	(vbi3_teletext_decoder *td)
+{
+	vbi3_decoder_delete (PARENT (td, vbi3_decoder, vt));
+}
+
+static void
+caption_delete_trampoline	(vbi3_caption_decoder *	cd)
+{
+	vbi3_decoder_delete (PARENT (cd, vbi3_decoder, cc));
 }
 
 /**
  * @param ca Cache to be used by this decoder, can be @c NULL.
- *   To allocate a cache call vbi_cache_new(). Caches have a reference
- *   counter, you can vbi_cache_release() after calling this function.
+ *   To allocate a cache call vbi3_cache_new(). Caches have a reference
+ *   counter, you can vbi3_cache_unref() after calling this function.
+ * @param nk Current network, can be @c NULL.
+ * @param videostd_set The current video standard.
  *
- * Allocates a new VBI (Teletext, Closed Caption, VPS, WSS) decoder.
+ * Allocates a new VBI (Teletext, Closed Caption, VPS, WSS, etc) decoder.
  *
  * @returns
  * Pointer to newly allocated VBI decoder which must be freed with
- * vbi_decoder_delete() when done. @c NULL on failure (out of memory).
+ * vbi3_decoder_delete() when done. @c NULL on failure (out of memory).
  */
-vbi_decoder *
-vbi_decoder_new			(vbi_cache *		ca,
-				 const vbi_network *	nk,
-				 vbi_videostd_set	videostd_set)
+vbi3_decoder *
+vbi3_decoder_new		(vbi3_cache *		ca,
+				 const vbi3_network *	nk,
+				 vbi3_videostd_set	videostd_set)
 {
-	vbi_decoder *vbi;
+	vbi3_decoder *vbi;
 
-	if (!(vbi = vbi_malloc (sizeof (*vbi)))) {
-		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
-				"Out of memory (%u)", sizeof (*vbi));
+	if (!(vbi = vbi3_malloc (sizeof (*vbi)))) {
+		error ("Out of memory (%u bytes)", sizeof (*vbi));
 		return NULL;
 	}
 
-        if (!_vbi_decoder_init (vbi, ca, nk, videostd_set)) {
-		vbi_free (vbi);
+        if (!_vbi3_decoder_init (vbi, ca, nk, videostd_set)) {
+		vbi3_free (vbi);
 		vbi = NULL;
 	}
+
+	/* Make it safe to delete a vbi3_teletext/caption_decoder
+	   cast from a vbi3_decoder. */
+	vbi->vt.virtual_delete = teletext_delete_trampoline;
+	vbi->cc.virtual_delete = caption_delete_trampoline;
 
 	return vbi;
 }

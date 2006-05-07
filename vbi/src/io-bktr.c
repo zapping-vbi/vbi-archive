@@ -17,7 +17,8 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-bktr.c,v 1.2.2.9 2004-10-14 07:54:00 mschimek Exp $";
+static char rcsid [] =
+  "$Id: io-bktr.c,v 1.2.2.10 2006-05-07 06:04:58 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -53,31 +54,31 @@ do {									\
 	}								\
 } while (0)
 
-typedef struct vbi_capture_bktr {
-	vbi_capture		capture;
+typedef struct vbi3_capture_bktr {
+	vbi3_capture		capture;
 
 	int			fd;
-	vbi_bool		select;
+	vbi3_bool		select;
 
-	vbi_raw_decoder		dec;
+	vbi3_raw_decoder		dec;
 
 	double			time_per_frame;
 
-	vbi_capture_buffer	*raw_buffer;
+	vbi3_capture_buffer	*raw_buffer;
 	int			num_raw_buffers;
 
-	vbi_capture_buffer	sliced_buffer;
+	vbi3_capture_buffer	sliced_buffer;
 
-} vbi_capture_bktr;
+} vbi3_capture_bktr;
 
 static int
-bktr_read			(vbi_capture *		vc,
-				 vbi_capture_buffer **	raw,
-				 vbi_capture_buffer **	sliced,
+bktr_read			(vbi3_capture *		vc,
+				 vbi3_capture_buffer **	raw,
+				 vbi3_capture_buffer **	sliced,
 				 struct timeval *	timeout)
 {
-	vbi_capture_bktr *v = PARENT(vc, vbi_capture_bktr, capture);
-	vbi_capture_buffer *my_raw = v->raw_buffer;
+	vbi3_capture_bktr *v = PARENT(vc, vbi3_capture_bktr, capture);
+	vbi3_capture_buffer *my_raw = v->raw_buffer;
 	struct timeval tv;
 	int r;
 
@@ -130,50 +131,50 @@ bktr_read			(vbi_capture *		vc,
 		int lines;
 
 		if (*sliced) {
-			lines = vbi_raw_decode(&v->dec, (*raw)->data,
-					       (vbi_sliced *)(*sliced)->data);
+			lines = vbi3_raw_decode(&v->dec, (*raw)->data,
+					       (vbi3_sliced *)(*sliced)->data);
 		} else {
 			*sliced = &v->sliced_buffer;
-			lines = vbi_raw_decode(&v->dec, (*raw)->data,
-					       (vbi_sliced *)(v->sliced_buffer.data));
+			lines = vbi3_raw_decode(&v->dec, (*raw)->data,
+					       (vbi3_sliced *)(v->sliced_buffer.data));
 		}
 
-		(*sliced)->size = lines * sizeof(vbi_sliced);
+		(*sliced)->size = lines * sizeof(vbi3_sliced);
 		(*sliced)->timestamp = (*raw)->timestamp;
 	}
 
 	return 1;
 }
 
-static vbi_raw_decoder *
-bktr_parameters(vbi_capture *vc)
+static vbi3_raw_decoder *
+bktr_parameters(vbi3_capture *vc)
 {
-	vbi_capture_bktr *v = PARENT(vc, vbi_capture_bktr, capture);
+	vbi3_capture_bktr *v = PARENT(vc, vbi3_capture_bktr, capture);
 
 	return &v->dec;
 }
 
 static void
-bktr_delete(vbi_capture *vc)
+bktr_delete(vbi3_capture *vc)
 {
-	vbi_capture_bktr *v = PARENT(vc, vbi_capture_bktr, capture);
+	vbi3_capture_bktr *v = PARENT(vc, vbi3_capture_bktr, capture);
 
 	if (v->sliced_buffer.data)
-		vbi_free(v->sliced_buffer.data);
+		vbi3_free(v->sliced_buffer.data);
 
 	for (; v->num_raw_buffers > 0; v->num_raw_buffers--)
-		vbi_free(v->raw_buffer[v->num_raw_buffers - 1].data);
+		vbi3_free(v->raw_buffer[v->num_raw_buffers - 1].data);
 
 	if (v->fd != -1)
 		device_close(log_fp, v->fd);
 
-	vbi_free(v);
+	vbi3_free(v);
 }
 
 static int
-bktr_fd(vbi_capture *vc)
+bktr_fd(vbi3_capture *vc)
 {
-	vbi_capture_bktr *v = PARENT(vc, vbi_capture_bktr, capture);
+	vbi3_capture_bktr *v = PARENT(vc, vbi3_capture_bktr, capture);
 
 	return v->fd;
 }
@@ -183,26 +184,26 @@ bktr_fd(vbi_capture *vc)
  *  (tested w/xawtv). Something I overlooked or a driver feature?
  */
 
-vbi_capture *
-vbi_capture_bktr_new		(const char *		dev_name,
+vbi3_capture *
+vbi3_capture_bktr_new		(const char *		dev_name,
 				 int			scanning,
 				 unsigned int *		services,
 				 int			strict,
 				 char **		errstr,
-				 vbi_bool		trace)
+				 vbi3_bool		trace)
 {
 	char *driver_name = _("BKTR driver");
-	vbi_capture_bktr *v;
+	vbi3_capture_bktr *v;
 
-	//	pthread_once (&vbi_init_once, vbi_init);
+	//	pthread_once (&vbi3_init_once, vbi3_init);
 
 	assert(services && *services != 0);
 
 	printv("Try to open bktr vbi device, libzvbi interface rev.\n"
 	       "%s", rcsid);
 
-	if (!(v = vbi_malloc(sizeof(*v)))) {
-		_vbi_asprintf(errstr, _("Virtual memory exhausted."));
+	if (!(v = vbi3_malloc(sizeof(*v)))) {
+		_vbi3_asprintf(errstr, _("Virtual memory exhausted."));
 		errno = ENOMEM;
 		return NULL;
 	}
@@ -214,7 +215,7 @@ vbi_capture_bktr_new		(const char *		dev_name,
 	v->capture.get_fd = bktr_fd;
 
 	if ((v->fd = device_open(log_fp, dev_name, O_RDONLY)) == -1) {
-		_vbi_asprintf(errstr, _("Cannot open '%s': %d, %s."),
+		_vbi3_asprintf(errstr, _("Cannot open '%s': %d, %s."),
 			     dev_name, errno, strerror(errno));
 		goto io_error;
 	}
@@ -265,13 +266,13 @@ vbi_capture_bktr_new		(const char *		dev_name,
 
 	printv("Guessed videostandard %d\n", v->dec.scanning);
 
-	v->dec.sampling_format = VBI_PIXFMT_Y8;
+	v->dec.sampling_format = VBI3_PIXFMT_Y8;
 
-	if (*services & ~(VBI_SLICED_VBI_525 | VBI_SLICED_VBI_625)) {
-		*services = vbi_raw_decoder_add_services (&v->dec, *services, strict);
+	if (*services & ~(VBI3_SLICED_VBI3_525 | VBI3_SLICED_VBI3_625)) {
+		*services = vbi3_raw_decoder_add_services (&v->dec, *services, strict);
 
 		if (*services == 0) {
-			_vbi_asprintf(errstr, _("Sorry, %s (%s) cannot "
+			_vbi3_asprintf(errstr, _("Sorry, %s (%s) cannot "
 						 "capture any of "
 						 "the requested data services."),
 				     dev_name, driver_name);
@@ -279,11 +280,11 @@ vbi_capture_bktr_new		(const char *		dev_name,
 		}
 
 		v->sliced_buffer.data =
-			vbi_malloc((v->dec.count[0] + v->dec.count[1])
-			       * sizeof(vbi_sliced));
+			vbi3_malloc((v->dec.count[0] + v->dec.count[1])
+			       * sizeof(vbi3_sliced));
 
 		if (!v->sliced_buffer.data) {
-			_vbi_asprintf(errstr, _("Virtual memory exhausted."));
+			_vbi3_asprintf(errstr, _("Virtual memory exhausted."));
 			errno = ENOMEM;
 			goto failure;
 		}
@@ -298,10 +299,10 @@ vbi_capture_bktr_new		(const char *		dev_name,
 
 	v->capture.read = bktr_read;
 
-	v->raw_buffer = vbi_malloc (sizeof(v->raw_buffer[0]));
+	v->raw_buffer = vbi3_malloc (sizeof(v->raw_buffer[0]));
 
 	if (!v->raw_buffer) {
-		_vbi_asprintf(errstr, _("Virtual memory exhausted."));
+		_vbi3_asprintf(errstr, _("Virtual memory exhausted."));
 		errno = ENOMEM;
 		goto failure;
 	}
@@ -311,10 +312,10 @@ vbi_capture_bktr_new		(const char *		dev_name,
 	v->raw_buffer[0].size = (v->dec.count[0] + v->dec.count[1])
 		* v->dec.bytes_per_line;
 
-	v->raw_buffer[0].data = vbi_malloc(v->raw_buffer[0].size);
+	v->raw_buffer[0].data = vbi3_malloc(v->raw_buffer[0].size);
 
 	if (!v->raw_buffer[0].data) {
-		_vbi_asprintf(errstr, _("Not enough memory to allocate "
+		_vbi3_asprintf(errstr, _("Not enough memory to allocate "
 					 "vbi capture buffer (%d KB)."),
 			     (v->raw_buffer[0].size + 1023) >> 10);
 		goto failure;
@@ -340,17 +341,24 @@ io_error:
 
 #include "misc.h"
 
-vbi_capture *
-vbi_capture_bktr_new		(const char *		dev_name,
+vbi3_capture *
+vbi3_capture_bktr_new		(const char *		dev_name,
 				 int			scanning,
 				 unsigned int *		services,
 				 int			strict,
 				 char **		errstr,
-				 vbi_bool		trace)
+				 vbi3_bool		trace)
 {
-  //	pthread_once (&vbi_init_once, vbi_init);
+	dev_name = dev_name;
+	scanning = scanning;
+	services = services;
+	strict = strict;
+	errstr = errstr;
+	trace = trace;
 
-	_vbi_asprintf(errstr, _("BKTR interface not compiled."));
+  //	pthread_once (&vbi3_init_once, vbi3_init);
+
+	_vbi3_asprintf(errstr, _("BKTR interface not compiled."));
 
 	return NULL;
 }

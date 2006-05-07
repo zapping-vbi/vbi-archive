@@ -1,7 +1,7 @@
 /*
- *  libzvbi - Macros
+ *  libzvbi - Useful macros
  *
- *  Copyright (C) 2002-2004 Michael H. Schimek
+ *  Copyright (C) 2002, 2003, 2004 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,42 +18,47 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: macros.h,v 1.1.2.3 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: macros.h,v 1.1.2.4 2006-05-07 06:04:58 mschimek Exp $ */
 
-#ifndef __ZVBI_MACROS_H__
-#define __ZVBI_MACROS_H__
+#ifndef __ZVBI3_MACROS_H__
+#define __ZVBI3_MACROS_H__
 
 #ifdef __cplusplus
-#  define VBI_BEGIN_DECLS extern "C" {
-#  define VBI_END_DECLS }
+#  define VBI3_BEGIN_DECLS extern "C" {
+#  define VBI3_END_DECLS }
 #else
-#  define VBI_BEGIN_DECLS
-#  define VBI_END_DECLS
+#  define VBI3_BEGIN_DECLS
+#  define VBI3_END_DECLS
 #endif
 
-VBI_BEGIN_DECLS
+VBI3_BEGIN_DECLS
 
-#if __GNUC__ >= 2
-   /* Inline this function at -O2 and higher. */
-#  define vbi_inline static __inline__
+#if __GNUC__ >= 4
+#  define _vbi3_sentinel sentinel(0)
 #else
-#  define vbi_inline static
+#  define _vbi3_sentinel
+#  define __restrict__
+#endif
+
+#if (__GNUC__ == 3 && __GNUC_MINOR__ >= 3) || __GNUC__ >= 4
+#  define _vbi3_nonnull(args...) nonnull(args)
+#else
+#  define _vbi3_nonnull(args...)
 #endif
 
 #if __GNUC__ >= 3
-   /* Function has no side effects and return value depends
-      only on parameters and non-volatile globals or
-      memory pointed to by parameters. */
-#  define vbi_pure __attribute__ ((pure))
-   /* Function has no side effects and return value depends
-      only on parameters. */
-#  define vbi_const __attribute__ ((const))
-   /* Function returns pointer which does not alias anything. */
-#  define vbi_alloc __attribute__ ((malloc))
+#  define _vbi3_pure pure
+#  define _vbi3_alloc malloc
 #else
-#  define vbi_pure
-#  define vbi_const
-#  define vbi_alloc
+#  define _vbi3_pure
+#  define _vbi3_alloc
+#endif
+
+#if __GNUC__ >= 2
+#  define vbi3_inline static __inline__
+#else
+#  define vbi3_inline static
+#  define __attribute__(args...)
 #endif
 
 /**
@@ -68,22 +73,27 @@ VBI_BEGIN_DECLS
 #  define FALSE 0
 #endif
 
-typedef int vbi_bool;
+typedef int vbi3_bool;
 /** @} */
 
 #ifndef NULL
 #  ifdef __cplusplus
 #    define NULL (0L)
 #  else
-#    define NULL ((void*)0)
+#    define NULL ((void *) 0)
 #  endif
 #endif
 
-typedef void
-vbi_lock_fn			(void *			user_data);
-typedef void
-vbi_unlock_fn			(void *			user_data);
+/** XXX Document me - for variadic funcs.
+  (this is a pointer not int to take advantage of
+  __attribute__((sentinel))). */
+#define VBI3_END ((void *) 0)
 
-VBI_END_DECLS
+typedef void
+vbi3_lock_fn			(void *			user_data);
+typedef void
+vbi3_unlock_fn			(void *			user_data);
 
-#endif /* __ZVBI_MACROS_H__ */
+VBI3_END_DECLS
+
+#endif /* __ZVBI3_MACROS_H__ */

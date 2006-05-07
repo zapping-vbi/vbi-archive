@@ -30,7 +30,7 @@ export
 
 caption
 	Closed Caption test displaying a hello world message or the
-        CC sample stream on stdin, for debugging the CC decoder.
+        CC sample stream on stdin, to debug the CC decoder.
 	Note this works only on a X11 5:6:5 LE display. The keys
 	F1-F8 switch between the Closed Caption channels 1-4
 	and Text channels 1-4.

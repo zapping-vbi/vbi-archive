@@ -21,53 +21,47 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.h,v 1.2.2.3 2004-07-09 16:10:54 mschimek Exp $ */
+/* $Id: search.h,v 1.2.2.4 2006-05-07 06:04:58 mschimek Exp $ */
 
-#ifndef SEARCH_H
-#define SEARCH_H
+#ifndef __ZVBI3_SEARCH_H__
+#define __ZVBI3_SEARCH_H__
 
-#include "vbi_decoder.h"
-#ifndef VBI_DECODER
-#define VBI_DECODER
-//typedef struct vbi_decoder vbi_decoder;
-#endif
+#include <stdarg.h>		/* va_list */
+#include "page.h"
 
-/* Public */
-
-#include <stdarg.h>
-#include "format.h"
+VBI3_BEGIN_DECLS
 
 /**
  * @ingroup Search
- * Return codes of the vbi_search_next() function.
+ * Return codes of the vbi3_search_next() function.
  */
 typedef enum {
 	/**
-	 * Some error occured, condition unclear. Call vbi_search_delete().
+	 * Some error occured, condition unclear. Call vbi3_search_delete().
 	 */
-	VBI_SEARCH_ERROR = -3,
+	VBI3_SEARCH_ERROR = -3,
 	/**
 	 * No pages in the cache, @a pg is invalid.
 	 */
-	VBI_SEARCH_CACHE_EMPTY,
+	VBI3_SEARCH_CACHE_EMPTY,
 	/**
 	 * The search has been aborted by the progress callback function.
 	 * @a pg points to the current page as in success case, except
-	 * no text is highlighted. Another vbi_search_next() call
+	 * no text is highlighted. Another vbi3_search_next() call
 	 * continues from this page.
 	 */
-	VBI_SEARCH_ABORTED,
+	VBI3_SEARCH_ABORTED,
 	/**
-	 * Pattern not found, @a pg is invalid. Another vbi_search_next()
+	 * Pattern not found, @a pg is invalid. Another vbi3_search_next()
 	 * call restarts from the original starting point.
 	 */
-	VBI_SEARCH_NOT_FOUND = 0,
+	VBI3_SEARCH_NOT_FOUND = 0,
 	/**
 	 * Pattern found. @a pg points to the page ready for display with
 	 * the found pattern highlighted.
 	 */
-	VBI_SEARCH_SUCCESS
-} vbi_search_status;
+	VBI3_SEARCH_SUCCESS
+} vbi3_search_status;
 
 /**
  * @ingroup Search
@@ -75,67 +69,76 @@ typedef enum {
  *
  * The contents of this structure are private.
  *
- * Call vbi_search_new_ucs2() or vbi_search_new_utf8() to
+ * Call vbi3_search_new_ucs2() or vbi3_search_new_utf8() to
  * allocate a search context.
  */
-typedef struct vbi_search vbi_search;
+typedef struct _vbi3_search vbi3_search;
 
 /**
  * @ingroup Search
- * @param search Search context passed to vbi_search_next().
+ * @param search Search context passed to vbi3_search_next().
  * @param pg Current page being searched, formatted as requested
- *   with vbi_search_next(). Do not modify or free this page, if
- *   necessary you can call vbi_page_copy().
- * @param user_data User data pointer passed to vbi_search_next().
+ *   with vbi3_search_next(). Do not modify or free this page, if
+ *   necessary you can call vbi3_page_copy().
+ * @param user_data User data pointer passed to vbi3_search_next().
  *
  * Search progress callback function.
  *
  * @returns:
- * @c FALSE to abort the search, then vbi_search_next() will return
- * @c VBI_SEARCH_ABORTED.
+ * @c FALSE to abort the search, then vbi3_search_next() will return
+ * @c VBI3_SEARCH_ABORTED.
  */
-typedef vbi_bool
-vbi_search_progress_cb		(vbi_search *		search,
-				 const vbi_page *	pg,
+typedef vbi3_bool
+vbi3_search_progress_cb		(vbi3_search *		search,
+				 const vbi3_page *	pg,
 				 void *			user_data);
 
 /**
  * @addtogroup Search
  * @{
  */
-extern vbi_search *
-vbi_search_new_ucs2		(vbi_decoder *		vbi,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
-				 const uint16_t *	pattern,
-				 unsigned int		pattern_size,
-				 vbi_bool		casefold,
-				 vbi_bool		regexp,
-				 vbi_search_progress_cb *progress,
-				 void *			user_data);
-extern vbi_search *
-vbi_search_new_utf8		(vbi_decoder *		vbi,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
-				 const char *		pattern,
-				 vbi_bool		casefold,
-				 vbi_bool		regexp,
-				 vbi_search_progress_cb *progress,
-				 void *			user_data);
+extern vbi3_search_status
+vbi3_search_next_va_list	(vbi3_search *		s,
+				 const vbi3_page **	pg,
+				 int			dir,
+				 va_list		format_options)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
+extern vbi3_search_status
+vbi3_search_next		(vbi3_search *		s,
+				 const vbi3_page **	pg,
+				 int			dir,
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2),
+		  _vbi3_sentinel));
 extern void
-vbi_search_delete		(vbi_search *		search);
-extern vbi_search_status
-vbi_search_next_va_list		(vbi_search *		search,
-				 vbi_page **		pg,
-				 int			dir,
-				 va_list		format_options);
-extern vbi_search_status
-vbi_search_next			(vbi_search *		search,
-				 vbi_page **		pg,
-				 int			dir,
-				 ...);
+vbi3_search_delete		(vbi3_search *		s);
+extern vbi3_search *
+vbi3_search_ucs2_new		(vbi3_cache *		ca,
+				 const vbi3_network *	nk,
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
+				 const uint16_t *	pattern,
+				 unsigned long		pattern_size,
+				 vbi3_bool		casefold,
+				 vbi3_bool		regexp,
+				 vbi3_search_progress_cb *progress,
+				 void *			user_data)
+  __attribute__ ((malloc,
+		  _vbi3_nonnull (1, 2, 5)));
+extern vbi3_search *
+vbi3_search_utf8_new		(vbi3_cache *		ca,
+				 const vbi3_network *	nk,
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
+				 const char *		pattern,
+				 vbi3_bool		casefold,
+				 vbi3_bool		regexp,
+				 vbi3_search_progress_cb *progress,
+				 void *			user_data)
+  __attribute__ ((malloc,
+		  _vbi3_nonnull (1, 2, 5)));
 /** @} */
 
-/* Private */
+VBI3_END_DECLS
 
-#endif /* SEARCH_H */
+#endif /* __ZVBI3_CACHE_H__ */

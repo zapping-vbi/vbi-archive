@@ -18,10 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_decoder.h,v 1.1.2.2 2004-04-08 23:36:26 mschimek Exp $ */
+/* $Id: xds_decoder.h,v 1.1.2.3 2006-05-07 06:04:59 mschimek Exp $ */
 
-#ifndef __ZVBI_XDS_DECODER_H__
-#define __ZVBI_XDS_DECODER_H__
+#ifndef __ZVBI3_XDS_DECODER_H__
+#define __ZVBI3_XDS_DECODER_H__
 
 #include <time.h>
 #include <inttypes.h>
@@ -30,37 +30,37 @@
 #include "pdc.h"
 #include "aspect_ratio.h"
 
-VBI_BEGIN_DECLS
+VBI3_BEGIN_DECLS
 
-typedef unsigned int vbi_xds_date_flags; /* todo */
+typedef unsigned int vbi3_xds_date_flags; /* todo */
 
 /**
  * @addtogroup XDSDecoder
  * @{
  */
-extern vbi_bool
-vbi_decode_xds_aspect_ratio	(vbi_aspect_ratio *	ar,
-				 const vbi_xds_packet *	xp);
-extern vbi_bool
-vbi_decode_xds_tape_delay	(unsigned int *		tape_delay,
-				 const vbi_xds_packet *	xp);
-extern vbi_bool
-vbi_decode_xds_time_of_day	(struct tm *		tm,
-				 vbi_xds_date_flags *	date_flags,
-				 const vbi_xds_packet *	xp);
-extern vbi_bool
-vbi_decode_xds_time_zone	(unsigned int *		hours_west,
-				 vbi_bool *		dso,
-				 const vbi_xds_packet *	xp);
-extern vbi_bool
-vbi_decode_xds_impulse_capture_id
-				(vbi_program_id *	pid,
-				 const vbi_xds_packet *	xp);
+extern vbi3_bool
+vbi3_decode_xds_aspect_ratio	(vbi3_aspect_ratio *	ar,
+				 const vbi3_xds_packet *	xp);
+extern vbi3_bool
+vbi3_decode_xds_tape_delay	(unsigned int *		tape_delay,
+				 const vbi3_xds_packet *	xp);
+extern vbi3_bool
+vbi3_decode_xds_time_of_day	(struct tm *		tm,
+				 vbi3_xds_date_flags *	date_flags,
+				 const vbi3_xds_packet *	xp);
+extern vbi3_bool
+vbi3_decode_xds_time_zone	(unsigned int *		hours_west,
+				 vbi3_bool *		dso,
+				 const vbi3_xds_packet *	xp);
+extern vbi3_bool
+vbi3_decode_xds_impulse_capture_id
+				(vbi3_program_id *	pid,
+				 const vbi3_xds_packet *	xp);
 /** @} */
 
 void
-_vbi_decode_xds (vbi_xds_demux *xd, void *user_data, const vbi_xds_packet *xp);
+_vbi3_decode_xds (vbi3_xds_demux *xd, void *user_data, const vbi3_xds_packet *xp);
 
-VBI_END_DECLS
+VBI3_END_DECLS
 
-#endif /* __ZVBI_XDS_DECODER_H__ */
+#endif /* __ZVBI3_XDS_DECODER_H__ */

@@ -18,21 +18,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: unicode.c,v 1.4.2.2 2004-04-08 23:36:49 mschimek Exp $ */
-
-#undef NDEBUG
+/* $Id: unicode.c,v 1.4.2.3 2006-05-07 06:05:00 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 
 #include "src/zvbi.h"
 
-/* Private function, used here for testing only. */
-extern unsigned int	vbi_teletext_composed_unicode (unsigned int a, unsigned int c);
-
 static void
-putwchar (unsigned int c)
+putwchar			(unsigned int		c)
 {
 	if (c < 0x80) {
 		putchar (c);
@@ -48,24 +42,25 @@ putwchar (unsigned int c)
 		putchar (0x80 | ((c >> 12) & 0x3F));
 		putchar (0x80 | ((c >> 6) & 0x3F));
 		putchar (0x80 | (c & 0x3F));
-	}	
+	}
 }
 
 static void
-putwstr (const char *s)
+putwstr				(const char *		s)
 {
 	for (; *s; s++)
 		putwchar (*s);
 }
 
 static const unsigned int
-national[] = {
+national [] = {
 	0x23, 0x24, 0x40, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
 	0x60, 0x7B, 0x7C, 0x7D, 0x7E
 };
 
 static void
-print_set (const char *name, unsigned int s)
+print_set			(const char *		name,
+				 unsigned int		s)
 {
 	unsigned int i, j;
 
@@ -73,9 +68,9 @@ print_set (const char *name, unsigned int s)
 	putwchar ('\n');
 	putwchar ('\n');
 
-	for (i = 0; i < 16; i++) {
-		for (j = 2; j < 8; j++) {
-			putwchar (vbi_teletext_unicode (s, 0, j * 16 + i));
+	for (i = 0; i < 16; ++i) {
+		for (j = 2; j < 8; ++j) {
+			putwchar (vbi3_teletext_unicode (s, 0, j * 16 + i));
 			putwchar (' ');
 		}
 
@@ -86,16 +81,17 @@ print_set (const char *name, unsigned int s)
 }
 
 int
-main (int argc, char **argv)
+main				(int			argc,
+				 char **		argv)
 {
 	unsigned int i, j;
 
 	putwstr ("libzvbi unicode test -*- coding: utf-8 -*-\n\n");
 	putwstr ("ETS 300 706 Table 36: Latin National Option Sub-sets\n\n");
 
-	for (i = 1; i < 14; i++) {
-		for (j = 0; j < sizeof (national) / sizeof (national[0]); j++) {
-			putwchar (vbi_teletext_unicode (1, i, national[j]));
+	for (i = 1; i < 14; ++i) {
+		for (j = 0; j < N_ELEMENTS (national); ++j) {
+			putwchar (vbi3_teletext_unicode (1, i, national[j]));
 			putwchar (' ');
 		}
 
@@ -106,9 +102,12 @@ main (int argc, char **argv)
 
 	print_set ("ETS 300 706 Table 35: Latin G0 Primary Set\n", 1);
 	print_set ("ETS 300 706 Table 37: Latin G2 Supplementary Set\n", 2);
-	print_set ("ETS 300 706 Table 38: Cyrillic G0 Primary Set - Option 1 - Serbian/Croatian\n", 3);
-	print_set ("ETS 300 706 Table 39: Cyrillic G0 Primary Set - Option 2 - Russian/Bulgarian\n", 4);
-	print_set ("ETS 300 706 Table 40: Cyrillic G0 Primary Set - Option 3 - Ukrainian\n", 5);
+	print_set ("ETS 300 706 Table 38: Cyrillic G0 Primary Set "
+		   "- Option 1 - Serbian/Croatian\n", 3);
+	print_set ("ETS 300 706 Table 39: Cyrillic G0 Primary Set "
+		   "- Option 2 - Russian/Bulgarian\n", 4);
+	print_set ("ETS 300 706 Table 40: Cyrillic G0 Primary Set "
+		   "- Option 3 - Ukrainian\n", 5);
 	print_set ("ETS 300 706 Table 41: Cyrillic G2 Supplementary Set\n", 6);
 	print_set ("ETS 300 706 Table 42: Greek G0 Primary Set\n", 7);
 	print_set ("ETS 300 706 Table 43: Greek G2 Supplementary Set\n", 8);
@@ -118,12 +117,13 @@ main (int argc, char **argv)
 
 	putwstr ("ETS 300 706 Table 47: G1 Block Mosaics Set\n\n");
 
-	for (i = 0; i < 16; i++) {
-		for (j = 2; j < 8; j++) {
+	for (i = 0; i < 16; ++i) {
+		for (j = 2; j < 8; ++j) {
 			if (j == 4 || j == 5)
 				putwchar (' ');
 			else
-				putwchar (vbi_teletext_unicode (12, 0, j * 16 + i));
+				putwchar (vbi3_teletext_unicode
+					  (12, 0, j * 16 + i));
 
 			putwchar (' ');
 		}
@@ -133,23 +133,25 @@ main (int argc, char **argv)
 
 	putwchar ('\n');
 
-	print_set ("ETS 300 706 Table 48: G3 Smooth Mosaics and Line Drawing Set\n", 13);
+	print_set ("ETS 300 706 Table 48: G3 Smooth Mosaics and "
+		   "Line Drawing Set\n", 13);
 
 	putwstr ("Teletext composed glyphs\n\n   ");
 
-	for (i = 0x40; i < 0x60; i++)
-		putwchar (vbi_teletext_unicode (1, 0, i));
+	for (i = 0x40; i < 0x60; ++i)
+		putwchar (vbi3_teletext_unicode (1, 0, i));
 
 	putwstr ("\n\n");
 
-	for (i = 0; i < 16; i++) {
-		putwchar (vbi_teletext_unicode (2, 0, 0x40 + i));
+	for (i = 0; i < 16; ++i) {
+		putwchar (vbi3_teletext_unicode (2, 0, 0x40 + i));
 		putwstr ("  ");
 
-		for (j = 0x40; j < 0x60; j++) {
-			unsigned int c = _vbi_teletext_composed_unicode (i, j);
+		for (j = 0x40; j < 0x60; ++j) {
+			unsigned int c;
 
-			putwchar ((c == 0) ? '-' : c);
+			c = _vbi3_teletext_composed_unicode (i, j);
+			putwchar ((0 == c) ? '-' : c);
 		}
 
 		putwchar ('\n');
@@ -159,19 +161,20 @@ main (int argc, char **argv)
 
 	putwstr ("Teletext composed glyphs\n\n   ");
 
-	for (i = 0x60; i < 0x80; i++)
-		putwchar (vbi_teletext_unicode (1, 0, i));
+	for (i = 0x60; i < 0x80; ++i)
+		putwchar (vbi3_teletext_unicode (1, 0, i));
 
 	putwstr ("\n\n");
 
-	for (i = 0; i < 16; i++) {
-		putwchar (vbi_teletext_unicode (2, 0, 0x40 + i));
+	for (i = 0; i < 16; ++i) {
+		putwchar (vbi3_teletext_unicode (2, 0, 0x40 + i));
 		putwstr ("  ");
 
-		for (j = 0x60; j < 0x80; j++) {
-			unsigned int c = _vbi_teletext_composed_unicode (i, j);
+		for (j = 0x60; j < 0x80; ++j) {
+			unsigned int c;
 
-			putwchar ((c == 0) ? '-' : c);
+			c = _vbi3_teletext_composed_unicode (i, j);
+			putwchar ((0 == c) ? '-' : c);
 		}
 
 		putwchar ('\n');
@@ -181,9 +184,9 @@ main (int argc, char **argv)
 
 	putwstr ("EIA 608 Closed Captioning Basic Character Set\n\n");
 
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < 8; ++i) {
 		for (j = 0x20; j < 0x80; j += 8) {
-			putwchar (vbi_caption_unicode (j + i));
+			putwchar (vbi3_caption_unicode (j + i));
 			putwchar (' ');
 		}
 
@@ -194,8 +197,8 @@ main (int argc, char **argv)
 
 	putwstr ("EIA 608 Closed Captioning Special Characters\n\n");
 
-	for (i = 0; i < 16; i++) {
-		putwchar (vbi_caption_unicode (i));
+	for (i = 0; i < 16; ++i) {
+		putwchar (vbi3_caption_unicode (i));
 	}
 
 	putwchar ('\n');

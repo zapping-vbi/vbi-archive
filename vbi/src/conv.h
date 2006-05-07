@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Unicode conversion helper functions
  *
- *  Copyright (C) 2003-2004 Michael H. Schimek
+ *  Copyright (C) 2003, 2004 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,68 +18,102 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.h,v 1.1.2.4 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: conv.h,v 1.1.2.5 2006-05-07 06:04:58 mschimek Exp $ */
 
-#ifndef __ZVBI_CONV_H__
-#define __ZVBI_CONV_H__
+#ifndef __ZVBI3_CONV_H__
+#define __ZVBI3_CONV_H__
 
 #include <stdio.h>
 #include <inttypes.h>		/* uint16_t */
 #include <iconv.h>		/* iconv_t */
-#include "lang.h"		/* vbi_character_set */
+#include "lang.h"		/* vbi3_character_set */
 #include "macros.h"
 
-VBI_BEGIN_DECLS
+VBI3_BEGIN_DECLS
 
-extern iconv_t
-vbi_iconv_ucs2_open		(const char *		dst_format,
-				 char **		dst,
-				 unsigned int		dst_size);
+#define VBI3_NUL_TERMINATED -1L
+
 extern void
-vbi_iconv_ucs2_close		(iconv_t		cd);
-extern vbi_bool
-vbi_iconv_ucs2			(iconv_t		cd,
+vbi3_iconv_close		(iconv_t		cd);
+extern iconv_t
+vbi3_iconv_open			(const char *		dst_format,
 				 char **		dst,
-				 unsigned int		dst_size,
+				 unsigned long		dst_size)
+  __attribute__ ((_vbi3_nonnull (2)));
+extern vbi3_bool
+vbi3_iconv_ucs2			(iconv_t		cd,
+				 char **		dst,
+				 unsigned long		dst_size,
 				 const uint16_t *	src,
-				 unsigned int		src_size);
-extern vbi_bool
-vbi_iconv_unicode		(iconv_t		cd,
+				 long			src_size)
+  __attribute__ ((_vbi3_nonnull (2)));
+extern vbi3_bool
+vbi3_iconv_unicode		(iconv_t		cd,
 				 char **		dst,
-				 unsigned int		dst_size,
-				 unsigned int		unicode);
+				 unsigned long		dst_size,
+				 unsigned int		unicode)
+  __attribute__ ((_vbi3_nonnull (2)));
+
 extern char *
-vbi_strdup_iconv_ucs2		(const char *		dst_format,
+vbi3_strndup_iconv_ucs2		(const char *		dst_format,
 				 const uint16_t *	src,
-				 unsigned int		src_size);
-extern vbi_bool
-vbi_stdio_cd_ucs2		(FILE *			fp,
+				 long			src_size)
+  __attribute__ ((_vbi3_alloc));
+
+extern char *
+vbi3_strndup_locale_utf8	(const char *		src,
+				 long			src_size)
+  __attribute__ ((_vbi3_alloc));
+
+extern char *
+vbi3_strndup_iconv_teletext	(const char *		dst_format,
+				 const uint8_t *	src,
+				 long			src_size,
+				 const vbi3_character_set *cs)
+  __attribute__ ((_vbi3_alloc,
+		  _vbi3_nonnull (4)));
+
+
+
+
+
+
+extern char *
+vbi3_strndup_utf8_ucs2		(const uint16_t *	src,
+				 long			src_size)
+  __attribute__ ((_vbi3_alloc));
+
+
+extern vbi3_bool
+vbi3_fputs_cd_ucs2		(FILE *			fp,
 				 iconv_t		cd,
 				 const uint16_t *	src,
-				 unsigned int		src_size);
-extern vbi_bool
-vbi_stdio_iconv_ucs2		(FILE *			fp,
+				 long			src_size)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern vbi3_bool
+vbi3_fputs_iconv_ucs2		(FILE *			fp,
 				 const char *		dst_format,
 				 const uint16_t *	src,
-				 unsigned int		src_size);
+				 long			src_size)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern vbi3_bool
+vbi3_fputs_locale_utf8		(FILE *			fp,
+				 const char *		src,
+				 long			src_size)
+  __attribute__ ((_vbi3_nonnull (1)));
+
+extern const char *
+vbi3_locale_codeset		(void);
 
 /* Private */
 
 extern char *
-_vbi_strdup_locale_ucs2		(const uint16_t *	src,
-				 unsigned int		src_size);
-extern char *
-_vbi_strdup_locale_utf8		(const char *		src);
-extern char *
-_vbi_strndup_locale_utf8	(const char *		src,
-				 unsigned int		src_size);
-extern char *
-_vbi_strdup_locale_teletext	(const uint8_t *	src,
-				 unsigned int		src_size,
-				 const vbi_character_set *cs);
+_vbi3_strdup_locale		(const char *		src)
+  __attribute__ ((_vbi3_alloc));
 extern uint16_t *
-_vbi_strdup_ucs2_utf8		(const char *		src);
+_vbi3_strdup_ucs2_utf8		(const char *		src)
+  __attribute__ ((_vbi3_alloc));
 
-VBI_END_DECLS
+VBI3_END_DECLS
 
-#endif /* __ZVBI_CONV_H__ */
+#endif /* __ZVBI3_CONV_H__ */

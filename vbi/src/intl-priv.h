@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: intl-priv.h,v 1.1.2.2 2004-07-16 00:08:18 mschimek Exp $ */
+/* $Id: intl-priv.h,v 1.1.2.3 2006-05-07 06:04:58 mschimek Exp $ */
 
 #ifndef INTL_PRIV_H
 #define INTL_PRIV_H
@@ -28,7 +28,7 @@
 #ifdef ENABLE_NLS
 #  include <libintl.h>
 #  include <locale.h>
-#  define _(String) dgettext (vbi_intl_domainname, String)
+#  define _(String) dgettext (vbi3_intl_domainname, String)
 #  ifdef gettext_noop
 #    define N_(String) gettext_noop (String)
 #  else

@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Links
  *
- *  Copyright (C) 2001-2004 Michael H. Schimek
+ *  Copyright (C) 2001, 2002, 2003, 2004 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: link.c,v 1.1.2.4 2004-10-14 07:54:00 mschimek Exp $ */
+/* $Id: link.c,v 1.1.2.5 2006-05-07 06:04:58 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -29,12 +29,12 @@
 
 /** */
 const char *
-vbi_link_type_name		(vbi_link_type		type)
+vbi3_link_type_name		(vbi3_link_type		type)
 {
 	switch (type) {
 
 #undef CASE
-#define CASE(type) case VBI_LINK_##type : return #type ;
+#define CASE(type) case VBI3_LINK_##type : return #type ;
 
 	CASE (NONE)
 	CASE (MESSAGE)
@@ -53,7 +53,7 @@ vbi_link_type_name		(vbi_link_type		type)
 
 /** @internal */
 void
-_vbi_link_dump			(const vbi_link *	ld,
+_vbi3_link_dump			(const vbi3_link *	ld,
 				 FILE *			fp)
 {
 	assert (NULL != ld);
@@ -61,7 +61,7 @@ _vbi_link_dump			(const vbi_link *	ld,
 
 	fprintf (fp, "%s eacem=%u name='%s' url='%s' script='%s' "
 		 "pgno=%x subno=%x expires=%f itv=",
-		 vbi_link_type_name (ld->type),
+		 vbi3_link_type_name (ld->type),
 		 ld->eacem,
 		 ld->name ? ld->name : "none",
 		 ld->url ? ld->url : "none",
@@ -69,12 +69,12 @@ _vbi_link_dump			(const vbi_link *	ld,
 		 ld->pgno, ld->subno, ld->expires);
 
 	switch (ld->itv_type) {
-	case VBI_WEBLINK_UNKNOWN:	  fputs ("UNKNOWN", fp); break;
-	case VBI_WEBLINK_PROGRAM_RELATED: fputs ("PROGRAM", fp); break;
-	case VBI_WEBLINK_NETWORK_RELATED: fputs ("NETWORK", fp); break;
-	case VBI_WEBLINK_STATION_RELATED: fputs ("STATION", fp); break;
-	case VBI_WEBLINK_SPONSOR_MESSAGE: fputs ("SPONSOR", fp); break;
-	case VBI_WEBLINK_OPERATOR:	  fputs ("OPERATOR", fp); break;
+	case VBI3_WEBLINK_UNKNOWN:	  fputs ("UNKNOWN", fp); break;
+	case VBI3_WEBLINK_PROGRAM_RELATED: fputs ("PROGRAM", fp); break;
+	case VBI3_WEBLINK_NETWORK_RELATED: fputs ("NETWORK", fp); break;
+	case VBI3_WEBLINK_STATION_RELATED: fputs ("STATION", fp); break;
+	case VBI3_WEBLINK_SPONSOR_MESSAGE: fputs ("SPONSOR", fp); break;
+	case VBI3_WEBLINK_OPERATOR:	  fputs ("OPERATOR", fp); break;
 	default:
 		fprintf (fp, "%u??", ld->itv_type);
 		break;
@@ -83,37 +83,37 @@ _vbi_link_dump			(const vbi_link *	ld,
 	fputc ('\n', fp);
 
 	if (ld->network) {
-		_vbi_network_dump (ld->network, fp);
+		_vbi3_network_dump (ld->network, fp);
 		fputc ('\n', fp);
 	}
 }
 
 /**
- * @param lk vbi_link structure initialized with vbi_link_init()
- *   or vbi_link_copy().
+ * @param lk vbi3_link structure initialized with vbi3_link_init()
+ *   or vbi3_link_copy().
  *
  * Frees all resources associated with @a lk, except the structure itself.
  */
 void
-vbi_link_destroy		(vbi_link *		ld)
+vbi3_link_destroy		(vbi3_link *		ld)
 {
 	assert (NULL != ld);
 
-	vbi_free (ld->name);
-	vbi_free (ld->url);
-	vbi_free (ld->script);
+	vbi3_free (ld->name);
+	vbi3_free (ld->url);
+	vbi3_free (ld->script);
 
 	if (ld->nk_alloc) {
-		vbi_network_destroy (ld->network);
-		vbi_free (ld->network);
+		vbi3_network_destroy (ld->network);
+		vbi3_free (ld->network);
 	}
 
 	CLEAR (*ld);
 }
 
 /**
- * @param dst vbi_link structure to initialize.
- * @param src Initialized vbi_link structure, can be @c NULL.
+ * @param dst vbi3_link structure to initialize.
+ * @param src Initialized vbi3_link structure, can be @c NULL.
  *
  * Initializes all fields of @a dst by copying from @a src. Does
  * nothing if @a dst and @a src are the same.
@@ -121,22 +121,22 @@ vbi_link_destroy		(vbi_link *		ld)
  * @returns
  * @c FALSE on failure (out of memory).
  */
-vbi_bool
-vbi_link_copy			(vbi_link *		dst,
-				 const vbi_link *	src)
+vbi3_bool
+vbi3_link_copy			(vbi3_link *		dst,
+				 const vbi3_link *	src)
 {
+	assert (NULL != dst);
+
 	if (dst == src)
 		return TRUE;
 
-	assert (NULL != dst);
-
 	if (!src) {
-		vbi_link_init (dst);
+		vbi3_link_init (dst);
 	} else if (dst != src) {
 		char *name;
 		char *url;
 		char *script;
-		vbi_network *nk;
+		vbi3_network *nk;
 
 		name	= NULL;
 		url	= NULL;
@@ -147,25 +147,25 @@ vbi_link_copy			(vbi_link *		dst,
 			return FALSE;
 
 		if (src->url && !(url = strdup (src->url))) {
-			vbi_free (name);
+			vbi3_free (name);
 			return FALSE;
 		}
 
 		if (src->script && !(script = strdup (src->script))) {
-			vbi_free (url);
-			vbi_free (name);
+			vbi3_free (url);
+			vbi3_free (name);
 			return FALSE;
 		}
 
 		if (src->network) {
-			if (!(nk = vbi_malloc (sizeof (*nk)))) {
-				vbi_free (script);
-				vbi_free (url);
-				vbi_free (name);
+			if (!(nk = vbi3_malloc (sizeof (*nk)))) {
+				vbi3_free (script);
+				vbi3_free (url);
+				vbi3_free (name);
 				return FALSE;
 			}
 
-			vbi_network_copy (nk, src->network);
+			vbi3_network_copy (nk, src->network);
 		}
 
 		dst->type	= src->type;
@@ -191,7 +191,7 @@ vbi_link_copy			(vbi_link *		dst,
 }
 
 /**
- * @param ld vbi_link structure to initialize.
+ * @param ld vbi3_link structure to initialize.
  *
  * Initializes all fields of @a ld to zero.
  *
@@ -199,11 +199,11 @@ vbi_link_copy			(vbi_link *		dst,
  * @c TRUE.
  */
 void
-vbi_link_init		(vbi_link *		ld)
+vbi3_link_init		(vbi3_link *		ld)
 {
 	assert (NULL != ld);
 
-	ld->type	= VBI_LINK_NONE;
+	ld->type	= VBI3_LINK_NONE;
 
 	ld->eacem	= FALSE;
 
@@ -215,10 +215,10 @@ vbi_link_init		(vbi_link *		ld)
 	ld->nk_alloc	= FALSE;
 
 	ld->pgno	= 0;
-	ld->subno	= VBI_ANY_SUBNO;
+	ld->subno	= VBI3_ANY_SUBNO;
 
 	ld->expires	= 0.0;
-	ld->itv_type	= VBI_WEBLINK_UNKNOWN;
+	ld->itv_type	= VBI3_WEBLINK_UNKNOWN;
 	ld->priority	= 9;
 	ld->autoload	= FALSE;
 }

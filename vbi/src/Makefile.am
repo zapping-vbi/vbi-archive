@@ -15,7 +15,7 @@ BUILT_SOURCES = \
 	wstfont2.xbm
 
 EXTRA_DIST = $(structpr) network-table.pl $(BUILT_SOURCES)
-CLEANFILES = $(BUILT_SOURCES)
+CLEANFILES = $(BUILT_SOURCES) fontgen
 
 INCLUDES = \
 	-W -Wall -Wunused -Wfloat-equal \
@@ -23,7 +23,7 @@ INCLUDES = \
 	-Wwrite-strings -Winline -Wmissing-prototypes \
 	-Wmissing-declarations
 #	-Wpadded -Wconversion
-INCLUDES += -D_REENTRANT # -D_XOPEN_SOURCE -D_BSD_SOURCE
+INCLUDES += -D_REENTRANT -D_GNU_SOURCE
 INCLUDES += $(X_CFLAGS) $(UNICODE_CFLAGS)
 
 INSTALLHDRS = \
@@ -33,112 +33,123 @@ INSTALLHDRS = \
 	cache.h \
 	caption_decoder.h \
 	conv.h \
+	dvb_mux.h \
+	dvb_demux.h \
 	event.h \
 	export.h \
 	exp-gfx.h \
 	exp-txt.h \
-	format.h \
-	graphics.h \
 	hamm.h \
+	idl_demux.h \
 	intl.h \
 	io.h \
-	io-dvb.h \
 	io-sim.h \
 	lang.h \
 	link.h \
 	macros.h \
 	network.h \
 	packet-830.h \
+	packet_filter.h \
+	page.h \
 	pdc.h \
 	pfc_demux.h \
 	program_info.h \
 	raw_decoder.h \
-	sampling.h \
+	sampling_par.h \
 	search.h \
 	sliced.h \
 	teletext_decoder.h \
+	top_title.h \
 	trigger.h \
-	vbi.h \
 	vbi_decoder.h \
-	version.h \
 	vps.h \
 	wss.h \
-	xds_demux.h \
-	xds_decoder.h
+	xds_decoder.h \
+	xds_demux.h
 
 libzvbi_0_3_la_SOURCES = \
-	$(INSTALLHDRS) \
-	bcd.c \
-	bit_slicer.c \
-	cache.c cache-priv.h \
-	caption.c cc.h \
-	conv.c \
+	aspect_ratio.h \
+	bcd.c bcd.h \
+	bit_slicer.c bit_slicer.h \
+	cache.c cache.h cache-priv.h \
+	caption_decoder.c caption_decoder.h caption_decoder-priv.h \
+	conv.c conv.h \
 	dlist.h \
-	event.c \
-	export.c export-priv.h \
-	exp-gfx.c \
+	dvb.h \
+	dvb_mux.c dvb_mux.h \
+	dvb_demux.c dvb_demux.h \
+	event.c event.h event-priv.h \
+	export.c export.h export-priv.h \
+	exp-gfx.c exp-gfx.h \
 	exp-html.c \
 	exp-sub.c \
 	exp-templ.c \
-	exp-txt.c \
+	exp-txt.c exp-txt.h \
 	exp-vtx.c \
-	format.h \
-	graphics.c \
-	hamm.c \
-	intl-priv.h \
-	io.c io-priv.h \
+	hamm.c hamm.h \
+	idl_demux.c idl_demux.h \
+	image_format.c image_format.h \
+	intl.h intl-priv.h \
+	io.c io.h io-priv.h \
 	io-bktr.c \
 	io-dvb.c \
-	io-sim.c \
+	io-sim.c io-sim.h \
 	io-v4l2k.c videodev2k.h \
 	io-v4l2.c videodev2.h \
 	io-v4l.c videodev.h \
-	lang.c \
-	link.c \
-	misc.h \
-	network.c \
-	packet.c vt.h \
-	packet-830.c \
-	page-priv.h \
-	pdc.c \
-	pfc_demux.c \
-	program_info.c \
-	raw_decoder.c \
-	sampling.c \
-	search.c \
+	lang.c lang.h \
+	link.c link.h \
+	macros.h \
+	misc.c misc.h \
+	network.c network.h \
+	network-table.pl network-table.h \
+	packet-830.c packet-830.h \
+	packet_filter.c packet_filter.h \
+	page.h page-priv.h \
+	pdc.c pdc.h \
+	pfc_demux.c pfc_demux.h \
+	program_info.c program_info.h \
+	raw_decoder.c raw_decoder.h \
+	sampling_par.c sampling_par.h \
+	search.c search.h \
+	sliced.h \
+	structpr.pl \
 	tables.c tables.h \
 	teletext.c \
-	top.c \
-	trigger.c \
+	teletext_decoder.c teletext_decoder.h teletext_decoder-priv.h \
+	top_title.c top_title.h \
+	trigger.c trigger.h \
 	ure.c ure.h \
-	vbi_decoder.c vbi_decoder-priv.h \
-	vbi.c \
-	vps.c \
-	wss.c \
-	xds_demux.c \
-	xds_decoder.c
+	vbi_decoder.c vbi_decoder.h vbi_decoder-priv.h \
+	vbi.c vbi.h \
+	vps.c vps.h \
+	wss.c wss.h \
+	xds_decoder.c xds_decoder.h \
+	xds_demux.c xds_demux.h
 
 libzvbi_0_3includedir = $(includedir)/zvbi-0.3/zvbi
 libzvbi_0_3include_HEADERS = $(INSTALLHDRS) version.h zvbi.h
 
 exp-gfx.c: wstfont2.xbm ccfont3.xbm
 
-wstfont2.xbm: wstfont2.pbm fontgen Makefile.am
-	$(top_builddir)/src/fontgen xbm wstfont2 10 < $< > $@
-ccfont3.xbm: ccfont3.pbm fontgen Makefile.am
-	$(top_builddir)/src/fontgen xbm ccfont3 13 < $< > $@
+wstfont2.xbm: wstfont2.pbm Makefile.am
+	$(MAKE) $(AM_MAKEFLAGS) fontgen$(EXEEXT)
+	$(top_builddir)/src/fontgen$(EXEEXT) xbm wstfont2 10 < $< > $@
+ccfont3.xbm: ccfont3.pbm Makefile.am
+	$(MAKE) $(AM_MAKEFLAGS) fontgen$(EXEEXT)
+	$(top_builddir)/src/fontgen$(EXEEXT) xbm ccfont3 13 < $< > $@
 
 libzvbi_0_3_la_LIBADD = $(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS)
 libzvbi_0_3_la_LDFLAGS = -version-info $(LIBZVBI_SO_VERSION)
 
 version.h: Makefile.am
-	echo -e "#ifndef __ZVBI_VERSION_H__" > $@
-	echo -e "#define __ZVBI_VERSION_H__\n" >> $@
+	echo -e "#ifndef __ZVBI3_VERSION_H__" > $@
+	echo -e "#define __ZVBI3_VERSION_H__\n" >> $@
 	echo -e "\n#define VBI_VERSION_MAJOR" `echo @VERSION@ \
 	 | sed "s/[^0-9.]//g" \
 	 | sed "s/\./\\\\\n#define VBI_VERSION_MINOR /" \
 	 | sed "s/\./\\\\\n#define VBI_VERSION_MICRO /"` >> $@
-	echo -e "\n#endif /* __ZVBI_VERSION_H__ */" >> $@
+	echo -e "\n#endif /* __ZVBI3_VERSION_H__ */" >> $@
 
 zvbi.h: $(INSTALLHDRS) version.h Makefile.am
 	echo -e "#ifndef __ZVBI_H__\n#define __ZVBI_H__\n" > $@
@@ -149,8 +160,9 @@ zvbi.h: $(INSTALLHDRS) version.h Makefile.am
 	echo -e "\n#endif /* __ZVBI_H__ */" >> $@
 
 network-table.h: network-table.pl Makefile.am
-	wget -q -O- http://zapping.sourceforge.net/zvbi-0.3/networks.xml | \
-	  $(srcdir)/network-table.pl > $@
+	cat /vid/txt/networks.xml | $(srcdir)/network-table.pl > $@
+#	wget -q -O- --proxy=yes http://zapping.sourceforge.net/zvbi-0.3/networks.xml | \
+#	  $(srcdir)/network-table.pl > $@
 
 icheck: $(libzvbi_0_3include_HEADERS)
 	for i in $(libzvbi_0_3include_HEADERS); do \
@@ -338,3 +350,10 @@ _bktr.h: Makefile.am $(structpr) ioctl_bt848.h ioctl_meteor.h
 	cat $(srcdir)/ioctl_bt848.h $(srcdir)/ioctl_meteor.h | \
 	$(srcdir)/$(structpr) \
 	> $@
+
+# must prevent link conflict with libvbi 0.2 (temporary)
+great_rename:
+	for file in *.c *.h; do \
+	  sed "s/vbi_/vbi3_/g;s/VBI_/VBI3_/g" <$$file >tmp; \
+	  mv tmp $$file; \
+	done

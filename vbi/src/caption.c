@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.9.2.10 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: caption.c,v 1.9.2.11 2006-05-07 06:04:58 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,11 +31,10 @@
 #include "lang.h"
 #include "hamm.h"
 #include "tables.h"
-#include "vbi_decoder-priv.h"
+#include "vbi3_decoder-priv.h"
 #include "misc.h"
 #include "cc.h"
 
-#define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 #define elements(array) (sizeof(array) / sizeof(array[0]))
 
 #define XDS_DEBUG(x) /* x */
@@ -45,14 +44,14 @@
 #define CC_DUMP(x) /* x */
 #define CC_TEXT_DUMP(x) /* x */
 
-vbi_inline void
-caption_send_event(vbi_decoder *vbi, vbi_event *ev)
+vbi3_inline void
+caption_send_event(vbi3_decoder *vbi, vbi3_event *ev)
 {
-	/* Permits calling vbi_fetch_cc_page from handler */
+	/* Permits calling vbi3_fetch_cc_page from handler */
   //	pthread_mutex_unlock(&vbi->cc.mutex);
 
 // obsolete
-//	vbi_send_event(vbi, ev);
+//	vbi3_send_event(vbi, ev);
 
 //	pthread_mutex_lock(&vbi->cc.mutex);
 }
@@ -62,10 +61,10 @@ caption_send_event(vbi_decoder *vbi, vbi_event *ev)
  */
 
 static void
-itv_separator(vbi_decoder *vbi, vbi_caption_decoder *cc, char c)
+itv_separator(vbi3_decoder *vbi, vbi3_caption_decoder *cc, char c)
 {
   	if (ITV_DEBUG(0 &&) !(vbi->handlers.event_mask
-  			      & VBI_EVENT_TRIGGER))
+  			      & VBI3_EVENT_TRIGGER))
   		return;
 
 	if (c >= 0x20) {
@@ -84,7 +83,7 @@ itv_separator(vbi_decoder *vbi, vbi_caption_decoder *cc, char c)
 
 	ITV_DEBUG(printf("ITV: <%s>\n", cc->itv_buf));
 
-	//	vbi_atvef_trigger(vbi, cc->itv_buf);
+	//	vbi3_atvef_trigger(vbi, cc->itv_buf);
 }
 
 /*
@@ -95,9 +94,9 @@ itv_separator(vbi_decoder *vbi, vbi_caption_decoder *cc, char c)
 #define COLUMNS			34
 
 static void
-render(vbi_page *pg, int row)
+render(vbi3_page *pg, int row)
 {
-	vbi_event event;
+	vbi3_event event;
 
 	if (row < 0 || pg->dirty.roll) {
 		/* no particular row or not fetched
@@ -110,31 +109,31 @@ render(vbi_page *pg, int row)
 		pg->dirty.y1 = MAX(row, pg->dirty.y1);
 	}
 
-	event.type = VBI_EVENT_CAPTION;
+	event.type = VBI3_EVENT_CAPTION;
 	event.ev.caption.channel = pg->pgno;
 
 	//TODO	caption_send_event(pg->vbi, &event);
 }
 
 static void
-clear(vbi_page *pg)
+clear(vbi3_page *pg)
 {
-	vbi_event event;
+	vbi3_event event;
 
 	pg->dirty.y0 = 0;
 	pg->dirty.y1 = ROWS - 1;
 	pg->dirty.roll = -ROWS;
 
-	event.type = VBI_EVENT_CAPTION;
+	event.type = VBI3_EVENT_CAPTION;
 	event.ev.caption.channel = pg->pgno;
 
 	// TODO	caption_send_event(pg->vbi, &event);
 }
 
 static void
-roll_up(vbi_page *pg, int first_row, int last_row)
+roll_up(vbi3_page *pg, int first_row, int last_row)
 {
-	vbi_event event;
+	vbi3_event event;
 
 	if (pg->dirty.roll != 0 || pg->dirty.y0 <= pg->dirty.y1) {
 		/* not fetched since last update, redraw all */
@@ -147,31 +146,31 @@ roll_up(vbi_page *pg, int first_row, int last_row)
 		pg->dirty.y1 = last_row;
 	}
 
-	event.type = VBI_EVENT_CAPTION;
+	event.type = VBI3_EVENT_CAPTION;
 	event.ev.caption.channel = pg->pgno;
 
 	// TODO	caption_send_event(pg->vbi, &event);
 }
 
-vbi_inline void
+vbi3_inline void
 update(cc_channel *ch)
 {
-	vbi_char *acp = ch->line - ch->pg[0].text + ch->pg[1].text;
+	vbi3_char *acp = ch->line - ch->pg[0].text + ch->pg[1].text;
 
 	memcpy(acp, ch->line, sizeof(*acp) * COLUMNS);
 }
 
 static void
-word_break(vbi_caption_decoder *cc, cc_channel *ch, int upd)
+word_break(vbi3_caption_decoder *cc, cc_channel *ch, int upd)
 {
 	/*
 	 *  Add a leading and trailing space.
 	 */
 	if (ch->col > ch->col1) {
-		vbi_char c = ch->line[ch->col1];
+		vbi3_char c = ch->line[ch->col1];
 
 		if ((c.unicode & 0x7F) != 0x20
-		    && ch->line[ch->col1 - 1].opacity == VBI_TRANSPARENT_SPACE) {
+		    && ch->line[ch->col1 - 1].opacity == VBI3_TRANSPARENT_SPACE) {
 			c.unicode = 0x20;
 			ch->line[ch->col1 - 1] = c;
 		}
@@ -179,7 +178,7 @@ word_break(vbi_caption_decoder *cc, cc_channel *ch, int upd)
 		c = ch->line[ch->col - 1];
 
 		if ((c.unicode & 0x7F) != 0x20
-		    && ch->line[ch->col].opacity == VBI_TRANSPARENT_SPACE) {
+		    && ch->line[ch->col].opacity == VBI3_TRANSPARENT_SPACE) {
 			c.unicode = 0x20;
 			ch->line[ch->col] = c;
 		}
@@ -202,7 +201,7 @@ word_break(vbi_caption_decoder *cc, cc_channel *ch, int upd)
 	render(ch->pg + 1, ch->row);
 }
 
-vbi_inline void
+vbi3_inline void
 set_cursor(cc_channel *ch, int col, int row)
 {
 	ch->col = ch->col1 = col;
@@ -212,7 +211,7 @@ set_cursor(cc_channel *ch, int col, int row)
 }
 
 static void
-put_char(vbi_caption_decoder *cc, cc_channel *ch, vbi_char c)
+put_char(vbi3_caption_decoder *cc, cc_channel *ch, vbi3_char c)
 {
 	/* c.foreground = rand() & 7; */
 	/* c.background = rand() & 7; */
@@ -229,8 +228,8 @@ put_char(vbi_caption_decoder *cc, cc_channel *ch, vbi_char c)
 		word_break(cc, ch, 1);
 }
 
-vbi_inline cc_channel *
-switch_channel(vbi_caption_decoder *cc, cc_channel *ch, int new_chan)
+vbi3_inline cc_channel *
+switch_channel(vbi3_caption_decoder *cc, cc_channel *ch, int new_chan)
 {
 	word_break(cc, ch, 1); // we leave for a number of frames
 
@@ -238,11 +237,11 @@ switch_channel(vbi_caption_decoder *cc, cc_channel *ch, int new_chan)
 }
 
 static void
-erase_memory(vbi_caption_decoder *cc, cc_channel *ch, int page)
+erase_memory(vbi3_caption_decoder *cc, cc_channel *ch, int page)
 {
-	vbi_page *pg = ch->pg + page;
-	vbi_char *acp = pg->text;
-	vbi_char c = cc->transp_space[ch >= &cc->channel[4]];
+	vbi3_page *pg = ch->pg + page;
+	vbi3_char *acp = pg->text;
+	vbi3_char c = cc->transp_space[ch >= &cc->channel[4]];
 	int i;
 
 	for (i = 0; i < COLUMNS * ROWS; acp++, i++)
@@ -253,10 +252,10 @@ erase_memory(vbi_caption_decoder *cc, cc_channel *ch, int page)
 	pg->dirty.roll = ROWS;
 }
 
-static const vbi_color
+static const vbi3_color
 palette_mapping[8] = {
-	VBI_WHITE, VBI_GREEN, VBI_BLUE, VBI_CYAN,
-	VBI_RED, VBI_YELLOW, VBI_MAGENTA, VBI_BLACK
+	VBI3_WHITE, VBI3_GREEN, VBI3_BLUE, VBI3_CYAN,
+	VBI3_RED, VBI3_YELLOW, VBI3_MAGENTA, VBI3_BLACK
 };
 
 static int
@@ -268,8 +267,8 @@ row_mapping[] = {
 // sample stream yet
 
 static void
-caption_command(vbi_decoder *vbi, vbi_caption_decoder *cc,
-	unsigned char c1, unsigned char c2, vbi_bool field2)
+caption_command(vbi3_decoder *vbi, vbi3_caption_decoder *cc,
+	unsigned char c1, unsigned char c2, vbi3_bool field2)
 {
 	cc_channel *ch;
 	int chan, col, i;
@@ -286,11 +285,11 @@ caption_command(vbi_decoder *vbi, vbi_caption_decoder *cc,
 		if (row < 0 || !ch->mode)
 			return;
 
-		COPY_SET_COND (ch->attr.attr, VBI_UNDERLINE, c2 & 1);
+		COPY_SET_COND (ch->attr.attr, VBI3_UNDERLINE, c2 & 1);
 
-		ch->attr.background = VBI_BLACK;
-		ch->attr.opacity = VBI_OPAQUE;
-		ch->attr.attr &= ~VBI_FLASH;
+		ch->attr.background = VBI3_BLACK;
+		ch->attr.opacity = VBI3_OPAQUE;
+		ch->attr.attr &= ~VBI3_FLASH;
 
 		word_break(cc, ch, 1);
 
@@ -319,18 +318,18 @@ caption_command(vbi_decoder *vbi, vbi_caption_decoder *cc,
 			if (col > ch->col)
 				ch->col = ch->col1 = col;
 
-			ch->attr.attr &= ~VBI_ITALIC;
-			ch->attr.foreground = VBI_WHITE;
+			ch->attr.attr &= ~VBI3_ITALIC;
+			ch->attr.foreground = VBI3_WHITE;
 		} else {
 // not verified
 			c2 = (c2 >> 1) & 7;
 
 			if (c2 < 7) {
-				ch->attr.attr &= ~VBI_ITALIC;
+				ch->attr.attr &= ~VBI3_ITALIC;
 				ch->attr.foreground = palette_mapping[c2];
 			} else {
-				ch->attr.attr |= VBI_ITALIC;
-				ch->attr.foreground = VBI_WHITE;
+				ch->attr.attr |= VBI3_ITALIC;
+				ch->attr.foreground = VBI3_WHITE;
 			}
 		}
 
@@ -340,7 +339,7 @@ caption_command(vbi_decoder *vbi, vbi_caption_decoder *cc,
 	switch (c1) {
 	case 0:		/* Optional Attributes		001 c000  010 xxxt */
 // not verified
-		ch->attr.opacity = (c2 & 1) ? VBI_SEMI_TRANSPARENT : VBI_OPAQUE;
+		ch->attr.opacity = (c2 & 1) ? VBI3_TRANSLUCENT : VBI3_OPAQUE;
 		ch->attr.background = palette_mapping[(c2 >> 1) & 7];
 		return;
 
@@ -357,25 +356,25 @@ caption_command(vbi_decoder *vbi, vbi_caption_decoder *cc,
 					ch->line[COLUMNS - 2] = cc->transp_space[chan >> 2];
 					// XXX boxed logic?
 			} else {
-				vbi_char c = ch->attr;
+				vbi3_char c = ch->attr;
 
-				c.unicode = vbi_caption_unicode(c2 & 15);
+				c.unicode = vbi3_caption_unicode(c2 & 15);
 
 				put_char(cc, ch, c);
 			}
 		} else {		/* Midrow Codes		001 c001  010 xxxu */
 // not verified
-			ch->attr.attr &= ~VBI_FLASH;
-			COPY_SET_COND (ch->attr.attr, VBI_UNDERLINE, c2 & 1);
+			ch->attr.attr &= ~VBI3_FLASH;
+			COPY_SET_COND (ch->attr.attr, VBI3_UNDERLINE, c2 & 1);
 
 			c2 = (c2 >> 1) & 7;
 
 			if (c2 < 7) {
-				ch->attr.attr &= ~VBI_ITALIC;
+				ch->attr.attr &= ~VBI3_ITALIC;
 				ch->attr.foreground = palette_mapping[c2];
 			} else {
-				ch->attr.attr |= VBI_ITALIC;
-				ch->attr.foreground = VBI_WHITE;
+				ch->attr.attr |= VBI3_ITALIC;
+				ch->attr.foreground = VBI3_WHITE;
 			}
 		}
 
@@ -466,7 +465,7 @@ caption_command(vbi_decoder *vbi, vbi_caption_decoder *cc,
 
 		case 8:		/* Flash On			001 c10f  010 1000 */
 // not verified
-			ch->attr.attr |= VBI_FLASH;
+			ch->attr.attr |= VBI3_FLASH;
 			return;
 
 		case 1:		/* Backspace			001 c10f  010 0001 */
@@ -496,7 +495,7 @@ caption_command(vbi_decoder *vbi, vbi_caption_decoder *cc,
 				word_break(cc, ch, 1);
 				set_cursor(ch, 1, ch->row + 1);
 			} else {
-				vbi_char *acp = &ch->pg[ch->hidden ^ (ch->mode != MODE_POP_ON)]
+				vbi3_char *acp = &ch->pg[ch->hidden ^ (ch->mode != MODE_POP_ON)]
 					.text[ch->row1 * COLUMNS];
 
 				word_break(cc, ch, 1);
@@ -575,14 +574,14 @@ caption_command(vbi_decoder *vbi, vbi_caption_decoder *cc,
 
 		case 0x2D:		/* Optional Attributes		001 c111  010 11xx */
 // not verified
-			ch->attr.opacity = VBI_TRANSPARENT_FULL;
+			ch->attr.opacity = VBI3_TRANSPARENT_FULL;
 			break;
 
 		case 0x2E:		/* Optional Attributes		001 c111  010 11xx */
 		case 0x2F:
 // not verified
-			ch->attr.foreground = VBI_BLACK;
-			COPY_SET_COND (ch->attr.attr, VBI_UNDERLINE, c2 & 1);
+			ch->attr.foreground = VBI3_BLACK;
+			COPY_SET_COND (ch->attr.attr, VBI3_UNDERLINE, c2 & 1);
 			break;
 
 		default:
@@ -592,7 +591,7 @@ caption_command(vbi_decoder *vbi, vbi_caption_decoder *cc,
 		/* Optional Attributes, backspace magic */
 
 		if (ch->col > 1 && (ch->line[ch->col - 1].unicode & 0x7F) == 0x20) {
-			vbi_char c = ch->attr;
+			vbi3_char c = ch->attr;
 
 			c.unicode = 0x0020;
 			ch->line[ch->col - 1] = c;
@@ -610,14 +609,14 @@ caption_command(vbi_decoder *vbi, vbi_caption_decoder *cc,
  * updating the decoder state accordingly. May send events.
  */
 void
-vbi_decode_caption(vbi_caption_decoder *cd, int line, uint8_t *buf)
+vbi3_decode_caption(vbi3_caption_decoder *cd, int line, uint8_t *buf)
 {
 
 	char c1 = buf[0] & 0x7F;
 	int field2 = 1, i;
 
 /*
-	vbi_hook_call (vbi, VBI_HOOK_CLOSED_CAPTION,
+	vbi3_hook_call (vbi, VBI3_HOOK_CLOSED_CAPTION,
 		       buf, 2, 0);
  */
 
@@ -634,26 +633,26 @@ vbi_decode_caption(vbi_caption_decoder *cd, int line, uint8_t *buf)
 
 	case 284:	/* NTSC */
 		CC_DUMP(
-			putchar(printable(buf[0]));
-			putchar(printable(buf[1]));
+			putchar(vbi3_printable (buf[0]));
+			putchar(vbi3_printable (buf[1]));
 			fflush(stdout);
 		)
 
-		if (vbi_ipar8 (buf[0]) >= 0) {
+		if (vbi3_unpar8 (buf[0]) >= 0) {
 			if (c1 == 0) {
 				goto finish;
 			} else if (c1 <= 0x0F) {
-//TODO				vbi_xds_demux_demux (&vbi->cc.xds_demux, buf);
+//TODO				vbi3_xds_demux_demux (&vbi->cc.xds_demux, buf);
 				cd->xds = (c1 != 0x0F);
 				goto finish;
 			} else if (c1 <= 0x1F) {
 				cd->xds = FALSE;
 			} else if (cd->xds) {
-//				vbi_xds_demux_demux (&vbi->cc.xds_demux, buf);
+//				vbi3_xds_demux_demux (&vbi->cc.xds_demux, buf);
 				goto finish;
 			}
 		} else if (cd->xds) {
-			vbi_xds_demux_demux (&cd->xds_demux, buf);
+			vbi3_xds_demux_demux (&cd->xds_demux, buf);
 			goto finish;
 		}
  
@@ -663,21 +662,21 @@ vbi_decode_caption(vbi_caption_decoder *cd, int line, uint8_t *buf)
 		goto finish;
 	}
 
-	if (vbi_ipar8 (buf[0]) < 0) {
+	if (vbi3_unpar8 (buf[0]) < 0) {
 		c1 = 127;
 		buf[0] = c1; /* traditional 'bad' glyph, ccfont has */
 		buf[1] = c1; /*  room, design a special glyph? */
 	}
 
 	CC_DUMP(
-		putchar(printable(buf[0]));
-		putchar(printable(buf[1]));
+		putchar(vbi3_printable (buf[0]));
+		putchar(vbi3_printable (buf[1]));
 		fflush(stdout);
 	)
 
 	switch (c1) {
 		cc_channel *ch;
-		vbi_char c;
+		vbi3_char c;
 
 	case 0x01 ... 0x0F:
 		if (!field2)
@@ -685,7 +684,7 @@ vbi_decode_caption(vbi_caption_decoder *cd, int line, uint8_t *buf)
 		break; /* XDS field 1?? */
 
 	case 0x10 ... 0x1F:
-		if (vbi_ipar8 (buf[1]) >= 0) {
+		if (vbi3_unpar8 (buf[1]) >= 0) {
 			if (!field2
 			    && buf[0] == cd->last[0]
 			    && buf[1] == cd->last[1]) {
@@ -707,8 +706,8 @@ vbi_decode_caption(vbi_caption_decoder *cd, int line, uint8_t *buf)
 
 	default:
 		CC_TEXT_DUMP(
-			putchar(printable(buf[0]));
-			putchar(printable(buf[1]));
+			putchar(vbi3_printable (buf[0]));
+			putchar(vbi3_printable (buf[1]));
 			fflush(stdout);
 		)
 
@@ -737,7 +736,7 @@ vbi_decode_caption(vbi_caption_decoder *cd, int line, uint8_t *buf)
 		c = ch->attr;
 
 		for (i = 0; i < 2; i++) {
-			char ci = vbi_ipar8 (buf[i]) & 0x7F; /* 127 if bad */
+			char ci = vbi3_unpar8 (buf[i]) & 0x7F; /* 127 if bad */
 
 			if (ci <= 0x1F) /* 0x00 no char, 0x01 ... 0x1F invalid */
 				continue;
@@ -745,7 +744,7 @@ vbi_decode_caption(vbi_caption_decoder *cd, int line, uint8_t *buf)
 //TODO			if (ch == cd->channel + 5) // 'T2'
 //				itv_separator(vbi, cc, ci);
 
-			c.unicode = vbi_caption_unicode(ci);
+			c.unicode = vbi3_caption_unicode(ci);
 
 			put_char(cd, ch, c);
 		}
@@ -758,12 +757,12 @@ vbi_decode_caption(vbi_caption_decoder *cd, int line, uint8_t *buf)
 
 
 
-static vbi_rgba
+static vbi3_rgba
 default_color_map[8] = {
-	VBI_RGBA(0x00, 0x00, 0x00), VBI_RGBA(0xFF, 0x00, 0x00),
-	VBI_RGBA(0x00, 0xFF, 0x00), VBI_RGBA(0xFF, 0xFF, 0x00),	
-	VBI_RGBA(0x00, 0x00, 0xFF), VBI_RGBA(0xFF, 0x00, 0xFF),
-	VBI_RGBA(0x00, 0xFF, 0xFF), VBI_RGBA(0xFF, 0xFF, 0xFF)
+	VBI3_RGBA(0x00, 0x00, 0x00), VBI3_RGBA(0xFF, 0x00, 0x00),
+	VBI3_RGBA(0x00, 0xFF, 0x00), VBI3_RGBA(0xFF, 0xFF, 0x00),	
+	VBI3_RGBA(0x00, 0x00, 0xFF), VBI3_RGBA(0xFF, 0x00, 0xFF),
+	VBI3_RGBA(0x00, 0xFF, 0xFF), VBI3_RGBA(0xFF, 0xFF, 0xFF)
 };
 
 /**
@@ -775,11 +774,11 @@ default_color_map[8] = {
 XXX changed
  */
 void
-vbi_caption_color_level(vbi_caption_decoder *cd)
+vbi3_caption_color_level(vbi3_caption_decoder *cd)
 {
 	int i;
 
-	//	vbi_transp_colormap (vbi, vbi->cc.channel[0].pg[0].color_map,
+	//	vbi3_transp_colormap (vbi, vbi->cc.channel[0].pg[0].color_map,
 	//		     default_color_map, 8);
 
 	memcpy (cd->channel[0].pg[0].color_map, default_color_map,
@@ -794,8 +793,8 @@ vbi_caption_color_level(vbi_caption_decoder *cd)
 /**
  * @param vbi Initialized vbi decoding context.
  * @param pg Place to store the formatted page.
- * @param pgno Page number 1 ... 8 of the page to fetch, see vbi_pgno.
- * @param reset @c TRUE resets the vbi_page dirty fields in cache after
+ * @param pgno Page number 1 ... 8 of the page to fetch, see vbi3_pgno.
+ * @param reset @c TRUE resets the vbi3_page dirty fields in cache after
  *   fetching. Pass @c FALSE only if you plan to call this function again
  *   to update other displays.
  * 
@@ -803,10 +802,10 @@ vbi_caption_color_level(vbi_caption_decoder *cd)
  * formats and stores it in @a pg. CC pages are transmitted basically in
  * two modes: at once and character by character ("roll-up" mode).
  * Either way you get a snapshot of the page as it should appear on
- * screen at present. With vbi_event_handler_add() you can request a
- * @c VBI_EVENT_CAPTION event to be notified about pending changes
+ * screen at present. With vbi3_event_handler_add() you can request a
+ * @c VBI3_EVENT_CAPTION event to be notified about pending changes
  * (in case of "roll-up" mode that is with each new word received)
- * and the vbi_page->dirty fields will mark the lines actually in
+ * and the vbi3_page->dirty fields will mark the lines actually in
  * need of updates, to speed up rendering.
  * 
  * Although safe to do, this function is not supposed to be
@@ -816,11 +815,11 @@ vbi_caption_color_level(vbi_caption_decoder *cd)
  * @return
  * @c FALSE if some error occured.
  */
-vbi_bool
-vbi_fetch_cc_page(vbi_caption_decoder *cd, vbi_page *pg, vbi_pgno pgno, vbi_bool reset)
+vbi3_bool
+vbi3_fetch_cc_page(vbi3_caption_decoder *cd, vbi3_page *pg, vbi3_pgno pgno, vbi3_bool reset)
 {
 	cc_channel *ch = cd->channel + ((pgno - 1) & 7);
-	vbi_page *spg;
+	vbi3_page *spg;
 
 	if (pgno < 1 || pgno > 8)
 		return FALSE;
@@ -849,27 +848,27 @@ vbi_fetch_cc_page(vbi_caption_decoder *cd, vbi_page *pg, vbi_pgno pgno, vbi_bool
 
 
 
-const vbi_program_id *
-vbi_caption_decoder_program_id	(vbi_caption_decoder *	cd)
+const vbi3_program_id *
+vbi3_caption_decoder_program_id	(vbi3_caption_decoder *	cd)
 {
 	/* TODO */
 	return NULL;
 }
 
 void
-vbi_caption_decoder_remove_event_handler
-				(vbi_caption_decoder *	cd,
-				 vbi_event_cb *		callback,
+vbi3_caption_decoder_remove_event_handler
+				(vbi3_caption_decoder *	cd,
+				 vbi3_event_cb *		callback,
 				 void *			user_data)
 {
 	/* TODO */
 }
 
-vbi_bool
-vbi_caption_decoder_add_event_handler
-				(vbi_caption_decoder *	cd,
+vbi3_bool
+vbi3_caption_decoder_add_event_handler
+				(vbi3_caption_decoder *	cd,
 				 unsigned int		event_mask,
-				 vbi_event_cb *		callback,
+				 vbi3_event_cb *		callback,
 				 void *			user_data)
 {
 	/* TODO */
@@ -882,7 +881,7 @@ vbi_caption_decoder_add_event_handler
 
 /** @internal */
 void
-vbi_caption_decoder_resync	(vbi_caption_decoder *	cd)
+vbi3_caption_decoder_resync	(vbi3_caption_decoder *	cd)
 {
 
 
@@ -890,14 +889,14 @@ vbi_caption_decoder_resync	(vbi_caption_decoder *	cd)
 
 	cd->xds = FALSE;
 
-	vbi_xds_demux_reset (&cd->xds_demux);
+	vbi3_xds_demux_reset (&cd->xds_demux);
 
 	cd->itv_count = 0;
 }
 
 void
-vbi_caption_decoder_reset	(vbi_caption_decoder *	cd,
-				 const vbi_network *	nk)
+vbi3_caption_decoder_reset	(vbi3_caption_decoder *	cd,
+				 const vbi3_network *	nk)
 {
 
 	cc_channel *ch;
@@ -917,9 +916,9 @@ vbi_caption_decoder_reset	(vbi_caption_decoder *	cd,
 			ch->roll = ROWS;
 		}
 
-		ch->attr.opacity = VBI_OPAQUE;
-		ch->attr.foreground = VBI_WHITE;
-		ch->attr.background = VBI_BLACK;
+		ch->attr.opacity = VBI3_OPAQUE;
+		ch->attr.foreground = VBI3_WHITE;
+		ch->attr.background = VBI3_BLACK;
 
 		set_cursor(ch, 1, ch->row);
 
@@ -938,16 +937,16 @@ vbi_caption_decoder_reset	(vbi_caption_decoder *	cd,
 
 	cd->xds = FALSE;
 
-	vbi_xds_demux_reset (&cd->xds_demux);
+	vbi3_xds_demux_reset (&cd->xds_demux);
 
 	cd->info_cycle[0] = 0;
 	cd->info_cycle[1] = 0;
 
-	vbi_caption_decoder_resync (cd);
+	vbi3_caption_decoder_resync (cd);
 }
 
-vbi_bool
-vbi_caption_decoder_decode	(vbi_caption_decoder *	cd,
+vbi3_bool
+vbi3_caption_decoder_decode	(vbi3_caption_decoder *	cd,
 				 const uint8_t		buffer[2],
 				 double			timestamp)
 {
@@ -969,26 +968,26 @@ cache_network_init_caption	(cache_network *	cn)
 
 /** @internal */
 void
-_vbi_caption_decoder_destroy	(vbi_caption_decoder *	cd)
+_vbi3_caption_decoder_destroy	(vbi3_caption_decoder *	cd)
 {
 	assert (NULL != cd);
 
 //	pthread_mutex_destroy(&vbi->cc.mutex);
 
-	_vbi_xds_demux_destroy (&cd->xds_demux);
+	_vbi3_xds_demux_destroy (&cd->xds_demux);
 }
 
-void reset (vbi_caption_decoder *cd, cache_network *cn, double time)
+void reset (vbi3_caption_decoder *cd, cache_network *cn, double time)
 {
 // TODO
 }
 
 /** @internal */
 void
-_vbi_caption_decoder_init	(vbi_caption_decoder *	cd,
-				 vbi_cache *		ca,
-				 const vbi_network *	nk,
-				 vbi_videostd_set	videostd_set)
+_vbi3_caption_decoder_init	(vbi3_caption_decoder *	cd,
+				 vbi3_cache *		ca,
+				 const vbi3_network *	nk,
+				 vbi3_videostd_set	videostd_set)
 {
 	cc_channel *ch;
 	int i;
@@ -1011,41 +1010,41 @@ _vbi_caption_decoder_init	(vbi_caption_decoder *	cd,
 		ch->pg[0].columns = COLUMNS;
 
 		ch->pg[0].screen_color = 0;
-		ch->pg[0].screen_opacity = (i < 4) ? VBI_TRANSPARENT_SPACE : VBI_OPAQUE;
+		ch->pg[0].screen_opacity = (i < 4) ? VBI3_TRANSPARENT_SPACE : VBI3_OPAQUE;
 
 #warning todo
-//		ch->pg[0].font[0] = vbi_font_descriptors; /* English */
-//		ch->pg[0].font[1] = vbi_font_descriptors;
+//		ch->pg[0].font[0] = vbi3_font_descriptors; /* English */
+//		ch->pg[0].font[1] = vbi3_font_descriptors;
 
 		memcpy(&ch->pg[1], &ch->pg[0], sizeof(ch->pg[1]));
 	}
 
        	for (i = 0; i < 2; i++) {
-		cd->transp_space[i].foreground = VBI_WHITE;
-		cd->transp_space[i].background = VBI_BLACK;
+		cd->transp_space[i].foreground = VBI3_WHITE;
+		cd->transp_space[i].background = VBI3_BLACK;
 		cd->transp_space[i].unicode = 0x0020;
 	}
 
-	cd->transp_space[0].opacity = VBI_TRANSPARENT_SPACE;
-	cd->transp_space[1].opacity = VBI_OPAQUE;
+	cd->transp_space[0].opacity = VBI3_TRANSPARENT_SPACE;
+	cd->transp_space[1].opacity = VBI3_OPAQUE;
 
-//TODO	_vbi_xds_demux_init (&cd->xds_demux, _vbi_decode_xds, vbi);
+//TODO	_vbi3_xds_demux_init (&cd->xds_demux, _vbi3_decode_xds, vbi);
 
-//TODO	vbi_caption_channel_switched(vbi);
+//TODO	vbi3_caption_channel_switched(vbi);
 
-//TODO	vbi_caption_color_level(vbi);
+//TODO	vbi3_caption_color_level(vbi);
 
 	cd->virtual_reset = reset;
 }
 
 void
-vbi_caption_decoder_delete	(vbi_caption_decoder *	cd)
+vbi3_caption_decoder_delete	(vbi3_caption_decoder *	cd)
 {
 	/* TODO */
 }
 
-vbi_caption_decoder *
-vbi_caption_decoder_new		(vbi_cache *		ca)
+vbi3_caption_decoder *
+vbi3_caption_decoder_new		(vbi3_cache *		ca)
 {
 	/* TODO */
 	return NULL;

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: program_info.c,v 1.1.2.2 2004-10-14 07:54:01 mschimek Exp $ */
+/* $Id: program_info.c,v 1.1.2.3 2006-05-07 06:04:58 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -29,12 +29,12 @@
 /**
  */
 const char *
-vbi_xds_audio_name		(vbi_xds_audio		mode)
+vbi3_xds_audio_name		(vbi3_xds_audio		mode)
 {
 	switch (mode) {
 
 #undef CASE
-#define CASE(s) case VBI_XDS_AUDIO_##s : return #s ;
+#define CASE(s) case VBI3_XDS_AUDIO_##s : return #s ;
 
 	CASE (NONE)
 	CASE (MONO)
@@ -55,7 +55,7 @@ vbi_xds_audio_name		(vbi_xds_audio		mode)
 /**
  */
 void
-_vbi_program_info_dump		(const vbi_program_info *pi,
+_vbi3_program_info_dump		(const vbi3_program_info *pi,
 				 FILE *			fp)
 {
 	assert (NULL != pi);
@@ -65,11 +65,11 @@ _vbi_program_info_dump		(const vbi_program_info *pi,
 		 pi->title ? pi->title : "none");
 
 	fprintf (fp, "audio[0]=%s lang=%s\n",
-		 vbi_xds_audio_name (pi->audio[0].mode),
+		 vbi3_xds_audio_name (pi->audio[0].mode),
 		 pi->audio[0].lang_code ? pi->audio[0].lang_code : "unknown");
 
 	fprintf (fp, "audio[1]=%s lang=%s\n",
-		 vbi_xds_audio_name (pi->audio[1].mode),
+		 vbi3_xds_audio_name (pi->audio[1].mode),
 		 pi->audio[1].lang_code ? pi->audio[1].lang_code : "unknown");
 
 	fprintf (fp, "descr='%s'\n",
@@ -79,12 +79,12 @@ _vbi_program_info_dump		(const vbi_program_info *pi,
 /**
  */
 void
-vbi_program_info_destroy	(vbi_program_info *	pi)
+vbi3_program_info_destroy	(vbi3_program_info *	pi)
 {
 	assert (NULL != pi);
 
-	vbi_free (pi->title);
-	vbi_free (pi->description);
+	vbi3_free (pi->title);
+	vbi3_free (pi->description);
 
 	CLEAR (*pi);
 }
@@ -92,12 +92,12 @@ vbi_program_info_destroy	(vbi_program_info *	pi)
 /**
  */
 void
-vbi_program_info_init		(vbi_program_info *	pi)
+vbi3_program_info_init		(vbi3_program_info *	pi)
 {
 	assert (NULL != pi);
 	
 	CLEAR (*pi);
 
-	pi->audio[0].mode = VBI_XDS_AUDIO_UNKNOWN;
-	pi->audio[1].mode = VBI_XDS_AUDIO_UNKNOWN;
+	pi->audio[0].mode = VBI3_XDS_AUDIO_UNKNOWN;
+	pi->audio[1].mode = VBI3_XDS_AUDIO_UNKNOWN;
 }

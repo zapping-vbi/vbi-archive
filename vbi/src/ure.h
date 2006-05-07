@@ -20,13 +20,13 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ure.h,v 1.6 2002-10-22 04:41:27 mschimek Exp $ */
+/* $Id: ure.h,v 1.6.2.1 2006-05-07 06:04:59 mschimek Exp $ */
 
 #ifndef _h_ure
 #define _h_ure
 
 #ifdef HAVE_CONFIG_H
-#  include "../config.h"
+#  include "config.h"
 #endif
 
 #if defined(HAVE_GLIBC21) || defined(HAVE_LIBUNICODE)
@@ -106,7 +106,7 @@ extern void ure_buffer_free __((ure_buffer_t buf));
  * @return
  * The compiled DFA, @c NULL on error.
  */
-extern ure_dfa_t ure_compile __((ucs2_t *re, unsigned long relen,
+extern ure_dfa_t ure_compile __((const ucs2_t *re, unsigned long relen,
                                  int casefold, ure_buffer_t buf));
 
 extern void ure_dfa_free __((ure_dfa_t dfa));

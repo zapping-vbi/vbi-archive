@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Export modules
  *
- *  Copyright (C) 2001, 2002 Michael H. Schimek
+ *  Copyright (C) 2001, 2002, 2003, 2004 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998, 1999 Edgar Toernig <froese@gmx.de>
@@ -21,9 +21,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.13.2.11 2004-10-14 07:54:00 mschimek Exp $ */
+/* $Id: export.c,v 1.13.2.12 2006-05-07 06:04:58 mschimek Exp $ */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,11 +34,14 @@
 #include <ctype.h>
 #include <sys/stat.h>
 #include <iconv.h>
-#include <math.h>
+#include <math.h>		/* fabs() */
 #include "misc.h"
-#include "intl-priv.h"
+#ifdef ZAPPING8
+#  include "common/intl-priv.h"
+#else
+#  include "intl-priv.h"
+#endif
 #include "export-priv.h"
-#include "vbi.h"		/* vbi_asprintf */
 
 /**
  * @addtogroup Export Exporting formatted Teletext and Closed Caption pages
@@ -47,28 +52,28 @@
  * text or store it in various formats.
  *
  * Fortunately you don't have to do it all by yourself. libzvbi provides
- * export modules converting a vbi_page into the desired format or
+ * export modules converting a vbi3_page into the desired format or
  * rendering directly into memory.
  *
  * A minimalistic export example:
  *
  * @code
  * static void
- * export_my_page (vbi_page *pg)
+ * export_my_page (vbi3_page *pg)
  * {
- *         vbi_export *ex;
+ *         vbi3_export *ex;
  *         char *errstr;
  *
- *         if (!(ex = vbi_export_new ("html", &errstr))) {
+ *         if (!(ex = vbi3_export_new ("html", &errstr))) {
  *                 fprintf (stderr, "Cannot export as HTML: %s\n", errstr);
  *                 free (errstr);
  *                 return;
  *         }
  *
- *         if (!vbi_export_file (ex, "my_page.html", pg))
- *                 puts (vbi_export_errstr (ex));
+ *         if (!vbi3_export_file (ex, "my_page.html", pg))
+ *                 puts (vbi3_export_errstr (ex));
  *
- *         vbi_export_delete (ex);
+ *         vbi3_export_delete (ex);
  * }
  * @endcode
  */
@@ -94,64 +99,61 @@
  * functions of some important export modules.
  */
 
-extern _vbi_export_module _vbi_export_module_html;
-extern _vbi_export_module _vbi_export_module_mpsub;
-extern _vbi_export_module _vbi_export_module_png;
-extern _vbi_export_module _vbi_export_module_ppm;
-extern _vbi_export_module _vbi_export_module_qttext;
-extern _vbi_export_module _vbi_export_module_realtext;
-extern _vbi_export_module _vbi_export_module_sami;
-extern _vbi_export_module _vbi_export_module_subrip;
-extern _vbi_export_module _vbi_export_module_subviewer;
-extern _vbi_export_module _vbi_export_module_text;
-extern _vbi_export_module _vbi_export_module_tmpl;
-extern _vbi_export_module _vbi_export_module_vtx;
+extern _vbi3_export_module _vbi3_export_module_html;
+extern _vbi3_export_module _vbi3_export_module_mpsub;
+extern _vbi3_export_module _vbi3_export_module_png;
+extern _vbi3_export_module _vbi3_export_module_ppm;
+extern _vbi3_export_module _vbi3_export_module_qttext;
+extern _vbi3_export_module _vbi3_export_module_realtext;
+extern _vbi3_export_module _vbi3_export_module_sami;
+extern _vbi3_export_module _vbi3_export_module_subrip;
+extern _vbi3_export_module _vbi3_export_module_subviewer;
+extern _vbi3_export_module _vbi3_export_module_text;
+extern _vbi3_export_module _vbi3_export_module_tmpl;
+extern _vbi3_export_module _vbi3_export_module_vtx;
 
-static const _vbi_export_module *
+static const _vbi3_export_module *
 export_modules [] = {
-	&_vbi_export_module_ppm,
+	&_vbi3_export_module_ppm,
 #ifdef HAVE_LIBPNG
-	&_vbi_export_module_png,
+	&_vbi3_export_module_png,
 #endif
-	&_vbi_export_module_html,
-	&_vbi_export_module_text,
-	&_vbi_export_module_vtx,
-#if 1
-	&_vbi_export_module_mpsub,
-	&_vbi_export_module_qttext,
-	&_vbi_export_module_realtext,
-	&_vbi_export_module_sami,
-	&_vbi_export_module_subrip,
-	&_vbi_export_module_subviewer,
-#warning
-	&_vbi_export_module_tmpl,
-#endif
+	&_vbi3_export_module_html,
+	&_vbi3_export_module_text,
+	&_vbi3_export_module_vtx,
+	&_vbi3_export_module_mpsub,
+	&_vbi3_export_module_qttext,
+	&_vbi3_export_module_realtext,
+	&_vbi3_export_module_sami,
+	&_vbi3_export_module_subrip,
+	&_vbi3_export_module_subviewer,
+	/* &_vbi3_export_module_tmpl, */
 };
 
-static vbi_export_info
+static vbi3_export_info
 local_export_info [N_ELEMENTS (export_modules)];
 
-static const vbi_option_info
+static const vbi3_option_info
 generic_options [] = {
-	_VBI_OPTION_STRING_INITIALIZER
+	_VBI3_OPTION_STRING_INITIALIZER
 	("creator", NULL, PACKAGE " " VERSION, NULL),
-	_VBI_OPTION_STRING_INITIALIZER
+	_VBI3_OPTION_STRING_INITIALIZER
 	("network", NULL, "", NULL),
-	_VBI_OPTION_BOOL_INITIALIZER
+	_VBI3_OPTION_BOOL_INITIALIZER
 	("reveal", NULL, FALSE, NULL)
 };
 
 static void
-reset_error			(vbi_export *		e)
+reset_error			(vbi3_export *		e)
 {
 	if (e->errstr) {
-		vbi_free (e->errstr);
+		vbi3_free (e->errstr);
 		e->errstr = NULL;
 	}
 }
 
 /**
- * @param e Initialized vbi_export object.
+ * @param e Initialized vbi3_export object.
  * @param templ See printf().
  * @param ... See printf(). 
  * 
@@ -159,7 +161,7 @@ reset_error			(vbi_export *		e)
  * current error description (to append or prepend) is safe.
  */
 void
-_vbi_export_error_printf	(vbi_export *		e,
+_vbi3_export_error_printf	(vbi3_export *		e,
 				 const char *		templ,
 				 ...)
 {
@@ -179,40 +181,39 @@ _vbi_export_error_printf	(vbi_export *		e,
 }
 
 /**
- * @param e Initialized vbi_export object.
+ * @param e Initialized vbi3_export object.
  * 
- * Like vbi_export_error_printf this function stores an error
+ * Like vbi3_export_error_printf this function stores an error
  * description in the @a export object, after examining the errno
  * variable and choosing an appropriate message. Only export
  * modules call this function.
  */
 void
-_vbi_export_write_error		(vbi_export *		e)
+_vbi3_export_write_error		(vbi3_export *		e)
 {
-	char buf[512];
-	char *t;
-
 	if (!e)
 		return;
 
-	if (e->name)
-		snprintf (t = buf, sizeof (buf),
-			  _("Error while writing file '%s'"), e->name);
-	else
- 		t = _("Error while writing file");
-
 	if (errno) {
-		_vbi_export_error_printf (e, "%s: Error %d, %s", t,
-					  errno, strerror (errno));
+		_vbi3_export_error_printf (e, "%s.", strerror (errno));
 	} else {
-		_vbi_export_error_printf (e, "%s.", t);
+		_vbi3_export_error_printf (e, _("Write error."));
 	}
 }
 
-static const char *
-module_name			(vbi_export *		e)
+void
+_vbi3_export_malloc_error		(vbi3_export *		e)
 {
-	const vbi_export_info *xi = e->module->export_info;
+	if (!e)
+		return;
+
+	_vbi3_export_error_printf (e, _("Out of memory."));
+}
+
+static const char *
+module_name			(vbi3_export *		e)
+{
+	const vbi3_export_info *xi = e->module->export_info;
 
 	if (xi->label)
 		return _(xi->label);
@@ -221,55 +222,55 @@ module_name			(vbi_export *		e)
 }
 
 /**
- * @param e Initialized vbi_export object.
+ * @param e Initialized vbi3_export object.
  * @param keyword Name of the unknown option.
  * 
  * Stores an error description in the export object.
  */
 void
-_vbi_export_unknown_option	(vbi_export *		e,
+_vbi3_export_unknown_option	(vbi3_export *		e,
 				 const char *		keyword)
 {
-	_vbi_export_error_printf
-		(e, _("Export module '%s' has no option '%s'."),
+	_vbi3_export_error_printf
+		(e, _("Export module %s has no option %s."),
 		 module_name (e), keyword);
 }
 
 /**
- * @param e Initialized vbi_export object.
+ * @param e Initialized vbi3_export object.
  * @param keyword Name of the unknown option.
  * @param ... Invalid value, type depending on the option.
  * 
  * Stores an error description in the export object.
  */
 void
-_vbi_export_invalid_option	(vbi_export *		e,
+_vbi3_export_invalid_option	(vbi3_export *		e,
 				 const char *		keyword,
 				 ...)
 {
 	char buf[512];
-	const vbi_option_info *oi;
+	const vbi3_option_info *oi;
 
-	if ((oi = vbi_export_option_info_by_keyword (e, keyword))) {
+	if ((oi = vbi3_export_option_info_by_keyword (e, keyword))) {
 		va_list ap;
 		const char *s;
 
 		va_start (ap, keyword);
 
 		switch (oi->type) {
-		case VBI_OPTION_BOOL:
-		case VBI_OPTION_INT:
-		case VBI_OPTION_MENU:
+		case VBI3_OPTION_BOOL:
+		case VBI3_OPTION_INT:
+		case VBI3_OPTION_MENU:
 			snprintf (buf, sizeof (buf) - 1,
 				  "'%d'", va_arg (ap, int));
 			break;
 
-		case VBI_OPTION_REAL:
+		case VBI3_OPTION_REAL:
 			snprintf (buf, sizeof (buf) - 1,
 				  "'%f'", va_arg (ap, double));
 			break;
 
-		case VBI_OPTION_STRING:
+		case VBI3_OPTION_STRING:
 			s = va_arg (ap, const char *);
 
 			if (!s)
@@ -281,7 +282,7 @@ _vbi_export_invalid_option	(vbi_export *		e,
 
 		default:
 			fprintf (stderr, "%s: unknown export option type %d\n",
-				 __PRETTY_FUNCTION__, oi->type);
+				 __FUNCTION__, oi->type);
 			STRCOPY (buf, "?");
 			break;
 		}
@@ -291,13 +292,13 @@ _vbi_export_invalid_option	(vbi_export *		e,
 		buf[0] = 0;
 	}
 
-	_vbi_export_error_printf (e, _("Invalid argument %s "
+	_vbi3_export_error_printf (e, _("Invalid argument %s "
 				       "for option %s of export module %s."),
 				  buf, keyword, module_name (e));
 }
 
 /**
- * @param e Initialized vbi_export object.
+ * @param e Initialized vbi3_export object.
  * @param d If non-zero, store pointer to allocated string here. When *d
  *   is non-zero, free(*d) the old string first.
  * @param s String to be duplicated.
@@ -311,23 +312,21 @@ _vbi_export_invalid_option	(vbi_export *		e,
  * @c NULL on failure, pointer to malloc()ed string otherwise.
  */
 char *
-_vbi_export_strdup		(vbi_export *		e,
+_vbi3_export_strdup		(vbi3_export *		e,
 				 char **		d,
 				 const char *		s)
 {
 	char *new_string = strdup (s ? s : "");
 
 	if (!new_string) {
-		_vbi_export_error_printf
-			(e, _("Out of memory in export module '%s'."),
-			 module_name (e));
+		_vbi3_export_malloc_error (e);
 		errno = ENOMEM;
 		return NULL;
 	}
 
 	if (d) {
 		if (*d)
-			vbi_free (*d);
+			vbi3_free (*d);
 		*d = new_string;
 	}
 
@@ -335,7 +334,7 @@ _vbi_export_strdup		(vbi_export *		e,
 }
 
 /**
- * @param e Initialized vbi_export object.
+ * @param e Initialized vbi3_export object.
  * 
  * @returns
  * After an export function failed, this function returns a pointer
@@ -343,7 +342,7 @@ _vbi_export_strdup		(vbi_export *		e,
  * next call of an export function.
  */
 const char *
-vbi_export_errstr		(vbi_export *		e)
+vbi3_export_errstr		(vbi3_export *		e)
 {
 	assert (NULL != e);
 
@@ -354,7 +353,7 @@ vbi_export_errstr		(vbi_export *		e)
 }
 
 /**
- * @param e Initialized vbi_export object.
+ * @param e Initialized vbi3_export object.
  * @param fp Buffered i/o stream to write to.
  * @param pg Page to be exported.
  * 
@@ -365,17 +364,17 @@ vbi_export_errstr		(vbi_export *		e)
  * when an error occurs.
  *
  * You can call this function as many times as you want, it does not
- * change vbi_export state or the vbi_page.
+ * change vbi3_export state or the vbi3_page.
  * 
  * @return 
  * @c TRUE on success.
  */
-vbi_bool
-vbi_export_stdio		(vbi_export *		e,
+vbi3_bool
+vbi3_export_stdio		(vbi3_export *		e,
 				 FILE *			fp,
-				 const vbi_page *	pg)
+				 const vbi3_page *	pg)
 {
-	vbi_bool success;
+	vbi3_bool success;
 
 	assert (NULL != e);
 	assert (NULL != fp);
@@ -394,7 +393,7 @@ vbi_export_stdio		(vbi_export *		e,
 	success = e->module->export (e, pg);
 
 	if (success && ferror (fp)) {
-		_vbi_export_write_error (e);
+		_vbi3_export_write_error (e);
 		success = FALSE;
 	}
 
@@ -404,7 +403,7 @@ vbi_export_stdio		(vbi_export *		e,
 }
 
 /**
- * @param export Initialized vbi_export object.
+ * @param export Initialized vbi3_export object.
  * @param name File to be created.
  * @param pg Page to be exported.
  * 
@@ -413,18 +412,18 @@ vbi_export_stdio		(vbi_export *		e,
  * occured the incomplete file will be deleted.
  * 
  * You can call this function as many times as you want, it does not
- * change vbi_export state or the vbi_page.
+ * change vbi3_export state or the vbi3_page.
  * 
  * @returns
  * @c TRUE on success.
  */
-vbi_bool
-vbi_export_file			(vbi_export *		e,
+vbi3_bool
+vbi3_export_file			(vbi3_export *		e,
 				 const char *		name,
-				 const vbi_page *	pg)
+				 const vbi3_page *	pg)
 {
 	struct stat st;
-	vbi_bool success;
+	vbi3_bool success;
 
 	assert (NULL != e);
 	assert (NULL != name);
@@ -433,9 +432,9 @@ vbi_export_file			(vbi_export *		e,
 	reset_error (e);
 
 	if (!(e->fp = fopen (name, "w"))) {
-		_vbi_export_error_printf
-			(e, _("Cannot create file '%s': Error %d, %s."),
-			 name, errno, strerror (errno));
+		_vbi3_export_error_printf
+			(e, _("Could not create %s. %s."),
+			 name, strerror (errno));
 		return FALSE;
 	}
 
@@ -444,13 +443,13 @@ vbi_export_file			(vbi_export *		e,
 	success = e->module->export (e, pg);
 
 	if (success && ferror (e->fp)) {
-		_vbi_export_write_error (e);
+		_vbi3_export_write_error (e);
 		success = FALSE;
 	}
 
 	if (fclose (e->fp)) {
 		if (success) {
-			_vbi_export_write_error (e);
+			_vbi3_export_write_error (e);
 			success = FALSE;
 		}
 	}
@@ -467,34 +466,36 @@ vbi_export_file			(vbi_export *		e,
 	return success;
 }
 
+#ifndef ZAPPING8
+
 static void
-export_stream			(vbi_event *		ev,
+export_stream			(vbi3_event *		ev,
 				 void *			user_data)
 {
 	ev = ev;
 	user_data = user_data;
 
 #if 0
-	vbi_export *e = (vbi_export *) user_data;
-	vbi_page_private pgp;
+	vbi3_export *e = (vbi3_export *) user_data;
+	vbi3_page_private pgp;
 
-	if (!(VBI_EVENT_TTX_PAGE == ev->type)
+	if (!(VBI3_EVENT_TTX_PAGE == ev->type)
 	    || e->stream.pgno != ev.ttx_page.pgno)
 		return;
 
-	if (VBI_ANY_SUBNO != e->stream.subno
+	if (VBI3_ANY_SUBNO != e->stream.subno
 	    && e->stream.subno != ev.ttx_page.subno)
 		return;
 
 	/* to do get page */
 
-	if (!vbi_format_vt_page (ev->vbi,
+	if (!vbi3_format_vt_page (ev->vbi,
 				 ev->ev.ttx_page.pgno,
 				 ev->ev.ttx_page.subno,
 				 0))
 		return;
 
-	if (!vbi_export_stdio (e, e->fp, &pgp.pg)) {
+	if (!vbi3_export_stdio (e, e->fp, &pgp.pg)) {
 		/* to do */
 	}
 
@@ -503,11 +504,11 @@ export_stream			(vbi_event *		ev,
 }
 
 /**
- * @param e Initialized vbi_export object.
+ * @param e Initialized vbi3_export object.
  *
  * Finalizes a file created by a streaming export context. Closes the
- * file when streaming was started with vbi_export_stream_file(). Detaches
- * the vbi_export context from the vbi_decoder.
+ * file when streaming was started with vbi3_export_stream_file(). Detaches
+ * the vbi3_export context from the vbi3_decoder.
  *
  * @returns
  * FALSE on failure.
@@ -515,8 +516,8 @@ export_stream			(vbi_event *		ev,
  * @bugs
  * Not implemented yet.
  */
-vbi_bool
-vbi_export_stream_close		(vbi_export *		e)
+vbi3_bool
+vbi3_export_stream_close		(vbi3_export *		e)
 {
 	e = e;
 
@@ -525,16 +526,16 @@ vbi_export_stream_close		(vbi_export *		e)
 }
 
 /**
- * @param e Initialized vbi_export object.
+ * @param e Initialized vbi3_export object.
  * @param fp Buffered i/o stream to write to.
- * @param vbi VBI decoder providing vbi_pages.
+ * @param vbi VBI decoder providing vbi3_pages.
  * @param pgno Page number of the page to export.
  * @param subno Subpage number of the page to export, can be
- *   @c VBI_ANY_SUBNO.
+ *   @c VBI3_ANY_SUBNO.
  * @param format_options Format option list, see
- *   vbi_fetch_vt_page() for details.
+ *   vbi3_fetch_vt_page() for details.
  *
- * Attaches a vbi_export context to a vbi_decoder, to export page
+ * Attaches a vbi3_export context to a vbi3_decoder, to export page
  * @a pgno, @a subno every time it is received. This is most useful to
  * convert subtitle pages to a subtitle file.
  *
@@ -544,12 +545,12 @@ vbi_export_stream_close		(vbi_export *		e)
  * @bugs
  * Not implemented yet.
  */
-vbi_bool
-vbi_export_stream_stdio_va_list	(vbi_export *		e,
+vbi3_bool
+vbi3_export_stream_stdio_va_list	(vbi3_export *		e,
 				 FILE *			fp,
-				 vbi_decoder *		vbi,
-	    			 vbi_pgno		pgno,
-				 vbi_subno		subno,
+				 vbi3_decoder *		vbi,
+	    			 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
 				 va_list		format_options)
 {
 	e = e;
@@ -567,15 +568,15 @@ vbi_export_stream_stdio_va_list	(vbi_export *		e,
 }
 
 /**
- * @param e Initialized vbi_export object.
+ * @param e Initialized vbi3_export object.
  * @param fp Buffered i/o stream to write to.
- * @param vbi VBI decoder providing vbi_pages.
+ * @param vbi VBI decoder providing vbi3_pages.
  * @param pgno Page number of the page to export.
  * @param subno Subpage number of the page to export, can be
- *   @c VBI_ANY_SUBNO.
- * @param ... Format option list, see vbi_fetch_vt_page() for details.
+ *   @c VBI3_ANY_SUBNO.
+ * @param ... Format option list, see vbi3_fetch_vt_page() for details.
  *
- * Attaches a vbi_export context to a vbi_decoder, to export page
+ * Attaches a vbi3_export context to a vbi3_decoder, to export page
  * @a pgno, @a subno every time it is received. This is most useful to
  * convert subtitle pages to a subtitle file.
  *
@@ -585,19 +586,19 @@ vbi_export_stream_stdio_va_list	(vbi_export *		e,
  * @bugs
  * Not implemented yet.
  */
-vbi_bool
-vbi_export_stream_stdio		(vbi_export *		e,
+vbi3_bool
+vbi3_export_stream_stdio		(vbi3_export *		e,
 				 FILE *			fp,
-				 vbi_decoder *		vbi,
-	    			 vbi_pgno		pgno,
-				 vbi_subno		subno,
+				 vbi3_decoder *		vbi,
+	    			 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
 				 ...)
 {
 	va_list format_options;
-	vbi_bool r;
+	vbi3_bool r;
 
 	va_start (format_options, subno);
-	r = vbi_export_stream_stdio_va_list
+	r = vbi3_export_stream_stdio_va_list
 		(e, fp, vbi, pgno, subno, format_options);
 	va_end (format_options);
 
@@ -605,16 +606,16 @@ vbi_export_stream_stdio		(vbi_export *		e,
 }
 
 /**
- * @param e Initialized vbi_export object.
+ * @param e Initialized vbi3_export object.
  * @param name File to be created.
- * @param vbi VBI decoder providing vbi_pages.
+ * @param vbi VBI decoder providing vbi3_pages.
  * @param pgno Page number of the page to export.
  * @param subno Subpage number of the page to export, can be
- *   @c VBI_ANY_SUBNO.
+ *   @c VBI3_ANY_SUBNO.
  * @param format_options Format option list, see
- *   vbi_fetch_vt_page() for details.
+ *   vbi3_fetch_vt_page() for details.
  *
- * Attaches a vbi_export context to a vbi_decoder, to export page
+ * Attaches a vbi3_export context to a vbi3_decoder, to export page
  * @a pgno, @a subno every time it is received. This is most useful to
  * convert subtitle pages to a subtitle file.
  *
@@ -624,12 +625,12 @@ vbi_export_stream_stdio		(vbi_export *		e,
  * @bugs
  * Not implemented yet.
  */
-vbi_bool
-vbi_export_stream_file_va_list	(vbi_export *		e,
+vbi3_bool
+vbi3_export_stream_file_va_list	(vbi3_export *		e,
 				 const char *		name,
-				 vbi_decoder *		vbi,
-	    			 vbi_pgno		pgno,
-				 vbi_subno		subno,
+				 vbi3_decoder *		vbi,
+	    			 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
 				 va_list		format_options)
 {
 	e = e;
@@ -645,15 +646,15 @@ vbi_export_stream_file_va_list	(vbi_export *		e,
 }
 
 /**
- * @param e Initialized vbi_export object.
+ * @param e Initialized vbi3_export object.
  * @param name File to be created.
- * @param vbi VBI decoder providing vbi_pages.
+ * @param vbi VBI decoder providing vbi3_pages.
  * @param pgno Page number of the page to export.
  * @param subno Subpage number of the page to export, can be
- *   @c VBI_ANY_SUBNO.
- * @param ... Format option list, see vbi_fetch_vt_page() for details.
+ *   @c VBI3_ANY_SUBNO.
+ * @param ... Format option list, see vbi3_fetch_vt_page() for details.
  *
- * Attaches a vbi_export context to a vbi_decoder, to export page
+ * Attaches a vbi3_export context to a vbi3_decoder, to export page
  * @a pgno, @a subno every time it is received. This is most useful to
  * convert subtitle pages to a subtitle file.
  *
@@ -663,30 +664,32 @@ vbi_export_stream_file_va_list	(vbi_export *		e,
  * @bugs
  * Not implemented yet.
  */
-vbi_bool
-vbi_export_stream_file		(vbi_export *		e,
+vbi3_bool
+vbi3_export_stream_file		(vbi3_export *		e,
 				 const char *		name,
-				 vbi_decoder *		vbi,
-	    			 vbi_pgno		pgno,
-				 vbi_subno		subno,
+				 vbi3_decoder *		vbi,
+	    			 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
 				 ...)
 {
 	va_list format_options;
-	vbi_bool r;
+	vbi3_bool r;
 
 	va_start (format_options, subno);
-	r = vbi_export_stream_file_va_list
+	r = vbi3_export_stream_file_va_list
 		(e, name, vbi, pgno, subno, format_options);
 	va_end (format_options);
 
 	return r;
 }
 
+#endif /* !ZAPPING8 */
+
 /**
  */
 void
-vbi_export_set_link_cb		(vbi_export *		e,
-				 vbi_export_link_cb *	callback,
+vbi3_export_set_link_cb		(vbi3_export *		e,
+				 vbi3_export_link_cb *	callback,
 				 void *			user_data)
 {
 	assert (NULL != e);
@@ -698,8 +701,8 @@ vbi_export_set_link_cb		(vbi_export *		e,
 /**
  */
 void
-vbi_export_set_pdc_cb		(vbi_export *		e,
-				 vbi_export_pdc_cb *	callback,
+vbi3_export_set_pdc_cb		(vbi3_export *		e,
+				 vbi3_export_pdc_cb *	callback,
 				 void *			user_data)
 {
 	assert (NULL != e);
@@ -711,20 +714,25 @@ vbi_export_set_pdc_cb		(vbi_export *		e,
 /**
  */
 void
-vbi_export_set_timestamp	(vbi_export *		e,
+vbi3_export_set_timestamp	(vbi3_export *		e,
 				 double			timestamp)
 {
 	assert (NULL != e);
+
+	if (!e->stream.have_timestamp) {
+		e->stream.start_timestamp = timestamp;
+		e->stream.have_timestamp = TRUE;
+	}
 
 	e->stream.timestamp = timestamp;
 }
 
 /**
- * @param e Initialized vbi_export object.
- * @param keyword Keyword identifying the option as in vbi_option_info.
+ * @param e Initialized vbi3_export object.
+ * @param keyword Keyword identifying the option as in vbi3_option_info.
  * @param entry A place to store the current menu entry.
  * 
- * Similar to vbi_export_option_get() this function queries the current
+ * Similar to vbi3_export_option_get() this function queries the current
  * value of the named option, but returns the value as number of the
  * corresponding menu entry. Naturally this must be an option with
  * menu.
@@ -732,54 +740,52 @@ vbi_export_set_timestamp	(vbi_export *		e,
  * @return 
  * @c TRUE on success, otherwise @c FALSE @a *entry is unchanged.
  */
-vbi_bool
-vbi_export_option_menu_get	(vbi_export *		e,
+vbi3_bool
+vbi3_export_option_menu_get	(vbi3_export *		e,
 				 const char *		keyword,
 				 unsigned int *		entry)
 {
-	const vbi_option_info *oi;
-	vbi_option_value val;
-	vbi_bool r;
+	const vbi3_option_info *oi;
+	vbi3_option_value val;
+	vbi3_bool r;
 	unsigned int i;
 
 	assert (NULL != e);
+	assert (NULL != keyword);
 	assert (NULL != entry);
-
-	if (!keyword)
-		return FALSE;
 
 	reset_error (e);
 
-	if (!(oi = vbi_export_option_info_by_keyword (e, keyword)))
+	if (!(oi = vbi3_export_option_info_by_keyword (e, keyword)))
 		return FALSE;
 
-	if (!vbi_export_option_get (e, keyword, &val))
+	if (!vbi3_export_option_get (e, keyword, &val))
 		return FALSE;
 
 	r = FALSE;
 
 	for (i = 0; i <= (unsigned int) oi->max.num; ++i) {
 		switch (oi->type) {
-		case VBI_OPTION_BOOL:
-		case VBI_OPTION_INT:
+		case VBI3_OPTION_BOOL:
+		case VBI3_OPTION_INT:
 			if (!oi->menu.num)
 				return FALSE;
 			r = (oi->menu.num[i] == val.num);
 			break;
 
-		case VBI_OPTION_REAL:
+		case VBI3_OPTION_REAL:
 			if (!oi->menu.dbl)
 				return FALSE;
 			r = fabs (oi->menu.dbl[i] - val.dbl) < 1e-3;
 			break;
 
-		case VBI_OPTION_MENU:
+		case VBI3_OPTION_MENU:
 			r = (i == (unsigned int) val.num);
 			break;
 
 		default:
 			fprintf (stderr, "%s: unknown export option type %d\n",
-				 __PRETTY_FUNCTION__, oi->type);
+				 __FUNCTION__, oi->type);
 			exit (EXIT_FAILURE);
 		}
 
@@ -793,57 +799,55 @@ vbi_export_option_menu_get	(vbi_export *		e,
 }
 
 /**
- * @param export Initialized vbi_export object.
- * @param keyword Keyword identifying the option, as in vbi_option_info.
+ * @param export Initialized vbi3_export object.
+ * @param keyword Keyword identifying the option, as in vbi3_option_info.
  * @param entry Menu entry to be selected.
  * 
- * Similar to vbi_export_option_set() this function sets the value of
+ * Similar to vbi3_export_option_set() this function sets the value of
  * the named option, however it does so by number of the corresponding
  * menu entry. Naturally this must be an option with menu.
  *
  * @return 
  * @c TRUE on success, otherwise @c FALSE and the option is not changed.
  */
-vbi_bool
-vbi_export_option_menu_set	(vbi_export *		e,
+vbi3_bool
+vbi3_export_option_menu_set	(vbi3_export *		e,
 				 const char *		keyword,
 				 unsigned int		entry)
 {
-	const vbi_option_info *oi;
+	const vbi3_option_info *oi;
 
 	assert (NULL != e);
-
-	if (!keyword)
-		return FALSE;
+	assert (NULL != keyword);
 
 	reset_error (e);
 
-	if (!(oi = vbi_export_option_info_by_keyword (e, keyword)))
+	if (!(oi = vbi3_export_option_info_by_keyword (e, keyword)))
 		return FALSE;
 
 	if (entry > (unsigned int) oi->max.num)
 		return FALSE;
 
 	switch (oi->type) {
-	case VBI_OPTION_BOOL:
-	case VBI_OPTION_INT:
+	case VBI3_OPTION_BOOL:
+	case VBI3_OPTION_INT:
 		if (!oi->menu.num)
 			return FALSE;
-		return vbi_export_option_set
+		return vbi3_export_option_set
 			(e, keyword, oi->menu.num[entry]);
 
-	case VBI_OPTION_REAL:
+	case VBI3_OPTION_REAL:
 		if (!oi->menu.dbl)
 			return FALSE;
-		return vbi_export_option_set
+		return vbi3_export_option_set
 			(e, keyword, oi->menu.dbl[entry]);
 
-	case VBI_OPTION_MENU:
-		return vbi_export_option_set (e, keyword, entry);
+	case VBI3_OPTION_MENU:
+		return vbi3_export_option_set (e, keyword, entry);
 
 	default:
 		fprintf (stderr, "%s: unknown export option type %d\n",
-			 __PRETTY_FUNCTION__, oi->type);
+			 __FUNCTION__, oi->type);
 		exit (EXIT_FAILURE);
 	}
 }
@@ -851,31 +855,29 @@ vbi_export_option_menu_set	(vbi_export *		e,
 #define KEYWORD(str) (0 == strcmp (keyword, str))
 
 /**
- * @param e Initialized vbi_export object.
- * @param keyword Keyword identifying the option as in vbi_option_info.
+ * @param e Initialized vbi3_export object.
+ * @param keyword Keyword identifying the option as in vbi3_option_info.
  * @param value A place to store the current option value.
  *
  * This function queries the current value of the named option.
- * When the option is of type VBI_OPTION_STRING @a value.str must be
- * freed with vbi_free() when the string is no longer needed. When the
- * option is of type VBI_OPTION_MENU then @a value.num contains the
+ * When the option is of type VBI3_OPTION_STRING @a value.str must be
+ * freed with vbi3_free() when the string is no longer needed. When the
+ * option is of type VBI3_OPTION_MENU then @a value.num contains the
  * selected entry.
  *
  * @returns
  * @c TRUE on success, otherwise @c FALSE and @a value is unchanged.
  */
-vbi_bool
-vbi_export_option_get		(vbi_export *		e,
+vbi3_bool
+vbi3_export_option_get		(vbi3_export *		e,
 				 const char *		keyword,
-				 vbi_option_value *	value)
+				 vbi3_option_value *	value)
 {
-	vbi_bool r;
+	vbi3_bool r;
 
 	assert (NULL != e);
+	assert (NULL != keyword);
 	assert (NULL != value);
-
-	if (!keyword)
-		return FALSE;
 
 	reset_error (e);
 
@@ -886,7 +888,7 @@ vbi_export_option_get		(vbi_export *		e,
 	} else if (KEYWORD ("network")) {
 		char *s;
 
-		s = _vbi_export_strdup (e, NULL, e->network ? : "");
+		s = _vbi3_export_strdup (e, NULL, e->network ? : "");
 		if (s)
 			value->str = s;
 		else
@@ -894,20 +896,20 @@ vbi_export_option_get		(vbi_export *		e,
 	} else if (KEYWORD ("creator")) {
 		char *s;
 
-		s = _vbi_export_strdup (e, NULL, e->creator);
+		s = _vbi3_export_strdup (e, NULL, e->creator);
 		if (s)
 			value->str = s;
 		else
 			r = FALSE;
 	} else {
-		const _vbi_export_module *xc;
+		const _vbi3_export_module *xc;
 
 		xc = e->module;
 
 		if (xc->option_get) {
 			r = xc->option_get (e, keyword, value);
 		} else {
-			_vbi_export_unknown_option (e, keyword);
+			_vbi3_export_unknown_option (e, keyword);
 			r = FALSE;
 		}
 	}
@@ -916,39 +918,37 @@ vbi_export_option_get		(vbi_export *		e,
 }
 
 /**
- * @param e Initialized vbi_export object.
- * @param keyword Keyword identifying the option as in vbi_option_info.
+ * @param e Initialized vbi3_export object.
+ * @param keyword Keyword identifying the option as in vbi3_option_info.
  * @param Varargs New value to set.
  *
  * Sets the value of the named option. Make sure the value is casted
  * to the correct type (int, double, char *).
  *
- * Typical usage of vbi_export_option_set():
+ * Typical usage of vbi3_export_option_set():
  * @code
- * vbi_export_option_set (export, "quality", 75.5);
+ * vbi3_export_option_set (export, "quality", 75.5);
  * @endcode
  *
- * Mind that options of type @c VBI_OPTION_MENU must be set by menu
+ * Mind that options of type @c VBI3_OPTION_MENU must be set by menu
  * entry number (int), all other options by value. If necessary it will
  * be replaced by the closest value possible. Use function
- * vbi_export_option_menu_set() to set options with menu
+ * vbi3_export_option_menu_set() to set options with menu
  * by menu entry.
  *
  * @return
  * @c TRUE on success, otherwise @c FALSE and the option is not changed.
  */
-vbi_bool
-vbi_export_option_set		(vbi_export *		e,
+vbi3_bool
+vbi3_export_option_set		(vbi3_export *		e,
 				 const char *		keyword,
 				 ...)
 {
-	vbi_bool r;
+	vbi3_bool r;
 	va_list ap;
 
 	assert (NULL != e);
-
-	if (!keyword)
-		return FALSE;
+	assert (NULL != keyword);
 
 	reset_error (e);
 
@@ -957,25 +957,25 @@ vbi_export_option_set		(vbi_export *		e,
 	va_start (ap, keyword);
 
 	if (KEYWORD ("reveal")) {
-		e->reveal = !!va_arg (ap, vbi_bool);
+		e->reveal = !!va_arg (ap, vbi3_bool);
 	} else if (KEYWORD ("network")) {
 		const char *network = va_arg (ap, const char *);
 
 		if (!network || !network[0]) {
 			if (e->network) {
-				vbi_free (e->network);
+				vbi3_free (e->network);
 				e->network = NULL;
 			}
-		} else if (!_vbi_export_strdup (e, &e->network, network)) {
+		} else if (!_vbi3_export_strdup (e, &e->network, network)) {
 			r = FALSE;
 		}
 	} else if (KEYWORD ("creator")) {
 		const char *creator = va_arg (ap, const char *);
 
-		if (!_vbi_export_strdup (e, &e->creator, creator))
+		if (!_vbi3_export_strdup (e, &e->creator, creator))
 			r = FALSE;
 	} else {
-		const _vbi_export_module *xc;
+		const _vbi3_export_module *xc;
 
 		xc = e->module;
 
@@ -991,19 +991,19 @@ vbi_export_option_set		(vbi_export *		e,
 }
 
 /**
- * @param e Initialized vbi_export object.
- * @param index Index into the option table 0 ... n.
+ * @param e Initialized vbi3_export object.
+ * @param indx Index into the option table 0 ... n.
  *
  * Enumerates the options available for the given export module. You
  * should start at index 0, incrementing.
  *
  * @returns
- * Pointer to a vbi_option_info structure,
- * @c NULL if @a index is out of bounds.
+ * Pointer to a vbi3_option_info structure,
+ * @c NULL if @a indx is out of bounds.
  */
-const vbi_option_info *
-vbi_export_option_info_enum	(vbi_export *		e,
-				 unsigned int		index)
+const vbi3_option_info *
+vbi3_export_option_info_enum	(vbi3_export *		e,
+				 unsigned int		indx)
 {
 	unsigned int size;
 
@@ -1013,26 +1013,26 @@ vbi_export_option_info_enum	(vbi_export *		e,
 
 	size = N_ELEMENTS (generic_options) + e->module->option_info_size;
 
-	if (index >= size)
+	if (indx >= size)
 		return NULL;
 
-	return e->local_option_info + index;
+	return e->local_option_info + indx;
 }
 
 /**
- * @param e Initialized vbi_export object.
- * @param keyword Option identifier as in vbi_option_info.
+ * @param e Initialized vbi3_export object.
+ * @param keyword Option identifier as in vbi3_option_info.
  *
- * Like vbi_export_option_info_enum(), except this function tries to
+ * Like vbi3_export_option_info_enum(), except this function tries to
  * find the option by keyword.
  *
  * @returns
- * Pointer to a vbi_option_info structure,
+ * Pointer to a vbi3_option_info structure,
  * @c NULL if the named option was not found.
  */
-const vbi_option_info *
-vbi_export_option_info_by_keyword
-				(vbi_export *		e,
+const vbi3_option_info *
+vbi3_export_option_info_by_keyword
+				(vbi3_export *		e,
 				 const char *		keyword)
 {
 	unsigned int size;
@@ -1052,58 +1052,57 @@ vbi_export_option_info_by_keyword
 				 e->local_option_info[i].keyword))
 			return e->local_option_info + i;
 
-	_vbi_export_unknown_option (e, keyword);
+	_vbi3_export_unknown_option (e, keyword);
 
 	return NULL;
 }
 
 /**
- * @param index Index into the export module list 0 ... n.
+ * @param indx Index into the export module list 0 ... n.
  *
  * Enumerates available export modules. You should start at index 0,
  * incrementing. Some modules may depend on machine features or the presence
  * of certain libraries, thus the list can vary from session to session.
  *
  * @return
- * Pointer to a vbi_export_info structure,
- * @c NULL if the index is out of bounds.
+ * Pointer to a vbi3_export_info structure,
+ * @c NULL if the @a indx is out of bounds.
  */
-const vbi_export_info *
-vbi_export_info_enum		(unsigned int		index)
+const vbi3_export_info *
+vbi3_export_info_enum		(unsigned int		indx)
 {
-	const _vbi_export_module *xc;
-	vbi_export_info *xi;
+	const _vbi3_export_module *xc;
+	vbi3_export_info *xi;
 
-	if (index >= N_ELEMENTS (export_modules))
+	if (indx >= N_ELEMENTS (export_modules))
 		return NULL;
 
-	xc = export_modules[index];
-	xi = local_export_info + index;
+	xc = export_modules[indx];
+	xi = local_export_info + indx;
 
 	xi->keyword	= xc->export_info->keyword;
-	xi->label	= dgettext (vbi_intl_domainname,
-				    xc->export_info->label);
-	xi->tooltip	= dgettext (vbi_intl_domainname,
-				    xc->export_info->tooltip);
+	xi->label	= _(xc->export_info->label);
+	xi->tooltip	= _(xc->export_info->tooltip);
 	xi->mime_type	= xc->export_info->mime_type;
 	xi->extension	= xc->export_info->extension;
+	xi->open_format	= xc->export_info->open_format;
 
 	return xi;
 }
 
 /**
- * @param keyword Export module identifier as in vbi_export_info and
- *   vbi_export_new().
+ * @param keyword Export module identifier as in vbi3_export_info and
+ *   vbi3_export_new().
  * 
- * Like vbi_export_info_enum(), except this function tries to find
+ * Like vbi3_export_info_enum(), except this function tries to find
  * an export module by keyword.
  * 
  * @return
- * Pointer to a vbi_export_info structure,
+ * Pointer to a vbi3_export_info structure,
  * @c NULL if the named export module was not found.
  */
-const vbi_export_info *
-vbi_export_info_by_keyword	(const char *		keyword)
+const vbi3_export_info *
+vbi3_export_info_by_keyword	(const char *		keyword)
 {
 	unsigned int keylen;
 	unsigned int i;
@@ -1117,12 +1116,12 @@ vbi_export_info_by_keyword	(const char *		keyword)
 			break;
 
 	for (i = 0; i < N_ELEMENTS (export_modules); ++i) {
-		const vbi_export_info *xi;
+		const vbi3_export_info *xi;
 
 		xi = export_modules[i]->export_info;
 
 		if (0 == strncmp (keyword, xi->keyword, keylen)) {
-			return vbi_export_info_enum (i);
+			return vbi3_export_info_enum (i);
 		}
 	}
 
@@ -1130,16 +1129,16 @@ vbi_export_info_by_keyword	(const char *		keyword)
 }
 
 /**
- * @param e vbi_export object allocated with vbi_export_new().
+ * @param e vbi3_export object allocated with vbi3_export_new().
  *
  * Returns the export module info for the given @a export object.
  *
  * @return
- * Pointer to vbi_export_info structure or
+ * Pointer to vbi3_export_info structure or
  * @c NULL if @a e is @c NULL.
  */
-const vbi_export_info *
-vbi_export_info_from_export	(const vbi_export *	e)
+const vbi3_export_info *
+vbi3_export_info_from_export	(const vbi3_export *	e)
 {
 	assert (NULL != e);
 
@@ -1147,36 +1146,36 @@ vbi_export_info_from_export	(const vbi_export *	e)
 }
 
 static void
-free_option_info		(vbi_option_info *	oi,
+free_option_info		(vbi3_option_info *	oi,
 				 unsigned int		oi_size)
 {
 	unsigned int i;
 
 	for (i = 0; i < oi_size; ++i) {
-		if (VBI_OPTION_MENU == oi[i].type) {
-			vbi_free ((char *) oi[i].menu.str);
+		if (VBI3_OPTION_MENU == oi[i].type) {
+			vbi3_free (oi[i].menu.str);
 		}
 	}
 
-	vbi_free (oi);
+	vbi3_free (oi);
 }
 
 /**
- * @param e vbi_export object allocated with vbi_export_new().
+ * @param e vbi3_export object allocated with vbi3_export_new().
  * 
  * Frees all resources associated with the export object.
  */
 void
-vbi_export_delete		(vbi_export *		e)
+vbi3_export_delete		(vbi3_export *		e)
 {
-	const _vbi_export_module *xc;
+	const _vbi3_export_module *xc;
 
 	if (!e)
 		return;
 
-	vbi_free (e->errstr);
-	vbi_free (e->network);
-	vbi_free (e->creator);
+	vbi3_free (e->errstr);
+	vbi3_free (e->network);
+	vbi3_free (e->creator);
 
  	xc = e->module;
 
@@ -1186,21 +1185,21 @@ vbi_export_delete		(vbi_export *		e)
 	if (xc->_new && xc->_delete) {
 		xc->_delete (e);
 	} else {
-		vbi_free (e);
+		vbi3_free (e);
 	}
 }
 
-static vbi_option_info *
-localize_option_info		(const vbi_option_info *oi,
+static vbi3_option_info *
+localize_option_info		(const vbi3_option_info *oi,
 				 unsigned int		oi_size)
 {
-	vbi_option_info *loi;
+	vbi3_option_info *loi;
 	unsigned int size;
 	unsigned int i;
 
 	size = (N_ELEMENTS (generic_options) + oi_size) * sizeof (*loi);
 
-	if (!(loi = vbi_malloc (size)))
+	if (!(loi = vbi3_malloc (size)))
 		return NULL;
 
 	memcpy (loi, generic_options,
@@ -1212,26 +1211,24 @@ localize_option_info		(const vbi_option_info *oi,
 	oi_size += N_ELEMENTS (generic_options);
 
 	for (i = 0; i < oi_size; ++i) {
-		loi[i].label = dgettext (vbi_intl_domainname, loi[i].label);
-		loi[i].tooltip = dgettext (vbi_intl_domainname,
-					   loi[i].tooltip);
+		loi[i].label = _(loi[i].label);
+		loi[i].tooltip = _(loi[i].tooltip);
 
-		if (VBI_OPTION_MENU == loi[i].type) {
+		if (VBI3_OPTION_MENU == loi[i].type) {
 			unsigned int j;
-			char **menu;
+			const char **menu;
 
 			size = loi[i].max.num + 1;
 
-			if (!(menu = vbi_malloc (size * sizeof (*menu)))) {
+			if (!(menu = vbi3_malloc (size * sizeof (*menu)))) {
 				free_option_info (loi, i);
 				return NULL;
 			}
 
 			for (j = 0; j < size; ++j)
-				menu[j] = dgettext (vbi_intl_domainname,
-						    loi[i].menu.str[j]);
+				menu[j] = _(loi[i].menu.str[j]);
 
-			loi[i].menu.str = (const char * const *) menu;
+			loi[i].menu.str = menu;
 		}
 	}
 
@@ -1239,69 +1236,69 @@ localize_option_info		(const vbi_option_info *oi,
 }
 
 static void
-reset_options			(vbi_export *		e)
+reset_options			(vbi3_export *		e)
 {
-	const vbi_option_info *oi;
+	const vbi3_option_info *oi;
 	unsigned int i;
 
-	for (i = 0; (oi = vbi_export_option_info_enum (e, i)); ++i) {
+	for (i = 0; (oi = vbi3_export_option_info_enum (e, i)); ++i) {
 		switch (oi->type) {
-		case VBI_OPTION_BOOL:
-		case VBI_OPTION_INT:
+		case VBI3_OPTION_BOOL:
+		case VBI3_OPTION_INT:
 			if (oi->menu.num)
-				vbi_export_option_set
+				vbi3_export_option_set
 					(e, oi->keyword,
 					 oi->menu.num[oi->def.num]);
 			else
-				vbi_export_option_set
+				vbi3_export_option_set
 					(e, oi->keyword, oi->def.num);
 			break;
 
-		case VBI_OPTION_REAL:
+		case VBI3_OPTION_REAL:
 			if (oi->menu.dbl)
-				vbi_export_option_set
+				vbi3_export_option_set
 					(e, oi->keyword,
 					 oi->menu.dbl[oi->def.num]);
 			else
-				vbi_export_option_set
+				vbi3_export_option_set
 					(e, oi->keyword, oi->def.dbl);
 			break;
 
-		case VBI_OPTION_STRING:
+		case VBI3_OPTION_STRING:
 			if (oi->menu.str)
-				vbi_export_option_set
+				vbi3_export_option_set
 					(e, oi->keyword,
 					 oi->menu.str[oi->def.num]);
 			else
-				vbi_export_option_set
+				vbi3_export_option_set
 					(e, oi->keyword, oi->def.str);
 			break;
 
-		case VBI_OPTION_MENU:
-			vbi_export_option_set (e, oi->keyword, oi->def.num);
+		case VBI3_OPTION_MENU:
+			vbi3_export_option_set (e, oi->keyword, oi->def.num);
 			break;
 
 		default:
 			fprintf (stderr, "%s: unknown export option type %u\n",
-				__PRETTY_FUNCTION__, oi->type);
+				__FUNCTION__, oi->type);
 			exit (EXIT_FAILURE);
 		}
 	}
 }
 
-static vbi_bool
-option_string			(vbi_export *		e,
+static vbi3_bool
+option_string			(vbi3_export *		e,
 				 const char *		s2)
 {
-	const vbi_option_info *oi;
+	const vbi3_option_info *oi;
 	char *s;
 	char *s1;
 	char *keyword;
 	char *string;
 	char quote;
-	vbi_bool r = TRUE;
+	vbi3_bool r = TRUE;
 
-	if (!(s = s1 = _vbi_export_strdup (e, NULL, s2)))
+	if (!(s = s1 = _vbi3_export_strdup (e, NULL, s2)))
 		return FALSE;
 
 	do {
@@ -1314,7 +1311,7 @@ option_string			(vbi_export *		e,
 		}
 
 		if (!*s) {
-			vbi_free (s1);
+			vbi3_free (s1);
 			return TRUE;
 		}
 
@@ -1333,28 +1330,28 @@ option_string			(vbi_export *		e,
 
 		if (!*s) {
  invalid:
-			_vbi_export_error_printf
+			_vbi3_export_error_printf
 				(e, _("Invalid option string \"%s\"."), s2);
 			break;
 		}
 
-		if (!(oi = vbi_export_option_info_by_keyword (e, keyword)))
+		if (!(oi = vbi3_export_option_info_by_keyword (e, keyword)))
 			break;
 
 		switch (oi->type) {
-		case VBI_OPTION_BOOL:
-		case VBI_OPTION_INT:
-		case VBI_OPTION_MENU:
-			r = vbi_export_option_set
+		case VBI3_OPTION_BOOL:
+		case VBI3_OPTION_INT:
+		case VBI3_OPTION_MENU:
+			r = vbi3_export_option_set
 				(e, keyword, (int) strtol (s, &s, 0));
 			break;
 
-		case VBI_OPTION_REAL:
-			r = vbi_export_option_set
+		case VBI3_OPTION_REAL:
+			r = vbi3_export_option_set
 				(e, keyword, (double) strtod (s, &s));
 			break;
 
-		case VBI_OPTION_STRING:
+		case VBI3_OPTION_STRING:
 			quote = 0;
 
 			if ('\'' == *s || '\"' == *s) /* " */
@@ -1367,47 +1364,47 @@ option_string			(vbi_export *		e,
 			if (*s)
 				*s++ = 0;
 
-			r = vbi_export_option_set (e, keyword, string);
+			r = vbi3_export_option_set (e, keyword, string);
 
 			break;
 
 		default:
 			fprintf (stderr, "%s: unknown export option type %d\n",
-				 __PRETTY_FUNCTION__, oi->type);
+				 __FUNCTION__, oi->type);
 			exit (EXIT_FAILURE);
 		}
 	} while (r);
 
-	vbi_free (s1);
+	vbi3_free (s1);
 
 	return FALSE;
 }
 
 /**
- * @param keyword Export module identifier as in vbi_export_info.
+ * @param keyword Export module identifier as in vbi3_export_info.
  * @param errstr If not @c NULL this function stores a pointer to an error
  *   description here. You must free() this string when no longer needed.
  * 
- * Creates a new export module instance to export a vbi_page in
+ * Creates a new export module instance to export a vbi3_page in
  * the respective module format. As a special service you can
  * initialize options by appending to the @param keyword like this:
  * 
  * @code
- * vbi_export_new ("keyword; quality=75.5, comment=\"example text\"");
+ * vbi3_export_new ("keyword; quality=75.5, comment=\"example text\"");
  * @endcode
  * 
  * @return
- * Pointer to a newly allocated vbi_export object which must be
- * freed by calling vbi_export_delete(). @c NULL is returned and
+ * Pointer to a newly allocated vbi3_export object which must be
+ * freed by calling vbi3_export_delete(). @c NULL is returned and
  * the @a errstr may be set (else @a NULL) if some problem occurred.
  */
-vbi_export *
-vbi_export_new			(const char *		keyword,
+vbi3_export *
+vbi3_export_new			(const char *		keyword,
 				 char **		errstr)
 {
 	char key[256];
-	const _vbi_export_module *xc;
-	vbi_export *e;
+	const _vbi3_export_module *xc;
+	vbi3_export *e;
 	unsigned int keylen;
 	unsigned int i;
 
@@ -1426,7 +1423,7 @@ vbi_export_new			(const char *		keyword,
 	key[keylen] = 0;
 
 	for (i = 0; i < N_ELEMENTS (export_modules); ++i) {
-		const vbi_export_info *xi;
+		const vbi3_export_info *xi;
 
 		xc = export_modules[i];
 		xi = xc->export_info;
@@ -1436,43 +1433,50 @@ vbi_export_new			(const char *		keyword,
 	}
 
 	if (i >= N_ELEMENTS (export_modules)) {
-		_vbi_asprintf (errstr, _("Unknown export module '%s'."), key);
+		if (errstr)
+			_vbi3_asprintf (errstr,
+					_("Unknown export module '%s'."), key);
 		return NULL;
 	}
 
 	if (!xc->_new) {
-		e = vbi_malloc (sizeof (*e));
-		CLEAR (e);
+		if ((e = vbi3_malloc (sizeof (*e))))
+			CLEAR (*e);
 	} else {
 		e = xc->_new (xc);
 	}
 
 	if (!e) {
-		_vbi_asprintf (errstr,
-			       _("Cannot initialize export module '%s', "
-				 "probably lack of memory."),
-			      xc->export_info->label ?
-			      xc->export_info->label : keyword);
+		if (errstr)
+			_vbi3_asprintf (errstr,
+					_("Cannot initialize export "
+					  "module '%s', "
+					  "probably lack of memory."),
+					xc->export_info->label ?
+					xc->export_info->label : keyword);
 		return NULL;
 	}
 
 	e->module = xc;
 	e->errstr = NULL;
 
+	e->stream.start_timestamp = 0.0;
 	e->stream.timestamp = 0.0;
 
-	e->local_export_info = vbi_export_info_enum (i);
+	e->local_export_info = vbi3_export_info_enum (i);
 
 	e->local_option_info =
 		localize_option_info (xc->option_info,
 				      xc->option_info_size);
 
 	if (!e->local_option_info) {
-		vbi_free (e);
-		_vbi_asprintf (errstr, _("Cannot initialize export module "
-					 "'%s', out of memory."),
-			      xc->export_info->label ?
-			      xc->export_info->label : keyword);
+		vbi3_free (e);
+		if (errstr)
+			_vbi3_asprintf (errstr,
+					_("Cannot initialize export module "
+					  "'%s', out of memory."),
+					xc->export_info->label ?
+					xc->export_info->label : keyword);
 		return NULL;
 	}
 
@@ -1482,8 +1486,8 @@ vbi_export_new			(const char *		keyword,
 
 	if (keyword[keylen] && !option_string (e, keyword + keylen + 1)) {
 		if (errstr)
-			*errstr = strdup(vbi_export_errstr(e));
-		vbi_export_delete(e);
+			*errstr = strdup(vbi3_export_errstr(e));
+		vbi3_export_delete(e);
 		return NULL;
 	}
 

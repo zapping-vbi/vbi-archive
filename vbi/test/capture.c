@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: capture.c,v 1.7.2.7 2004-07-16 00:08:19 mschimek Exp $ */
+/* $Id: capture.c,v 1.7.2.8 2006-05-07 06:05:00 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -27,6 +27,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+#include <locale.h>
 #include <errno.h>
 #include <assert.h>
 #include <unistd.h>
@@ -35,11 +37,16 @@
 #endif
 
 #include "src/zvbi.h"
+#include "src/misc.h"
+#include "sliced.h"
 
-vbi_capture *		cap;
-vbi_raw_decoder *	rd;
-vbi_sampling_par	sp;
-vbi_bool		quit;
+#define _(x) x
+
+vbi3_capture *		cap;
+vbi3_raw_decoder *	rd;
+vbi3_sampling_par	sp;
+vbi3_dvb_mux *		mx;
+vbi3_bool		quit;
 int			src_w, src_h;
 
 int			dump;
@@ -48,10 +55,11 @@ int			dump_cc;
 int			dump_wss;
 int			dump_sliced;
 int			bin_sliced;
+int			bin_pes;
+int			bin_ts;
 int			do_read = TRUE;
 int			do_sim;
-
-#include "sim.c"
+int			desync;
 
 /*
  *  Dump
@@ -68,12 +76,12 @@ odd_parity(uint8_t c)
 }
 
 static inline int
-vbi_hamm16(uint8_t *p)
+vbi3_hamm16(uint8_t *p)
 {
-	return vbi_iham16p (p);
+	return vbi3_unham16p (p);
 }
 
-#define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
+extern int vbi3_printable (int);
 
 static void
 decode_xds(uint8_t *buf)
@@ -82,10 +90,10 @@ decode_xds(uint8_t *buf)
 		char c;
 
 		c = odd_parity(buf[0]) ? buf[0] & 0x7F : '?';
-		c = printable(c);
+		c = vbi3_printable (c);
 		putchar(c);
 		c = odd_parity(buf[1]) ? buf[1] & 0x7F : '?';
-		c = printable(c);
+		c = vbi3_printable (c);
 		putchar(c);
 		fflush(stdout);
 	}
@@ -94,7 +102,7 @@ decode_xds(uint8_t *buf)
 static void
 decode_caption(uint8_t *buf, int line)
 {
-	static vbi_bool xds_transport = FALSE;
+	static vbi3_bool xds_transport = FALSE;
 	char c = buf[0] & 0x7F;
 
 	if (line >= 280) { /* field 2 */
@@ -111,10 +119,10 @@ decode_caption(uint8_t *buf, int line)
 
 	if (dump_cc) {
 		c = odd_parity(buf[0]) ? buf[0] & 0x7F : '?';
-		c = printable(c);
+		c = vbi3_printable (c);
 		putchar(c);
 		c = odd_parity(buf[1]) ? buf[1] & 0x7F : '?';
-		c = printable(c);
+		c = vbi3_printable (c);
 		putchar(c);
 		fflush(stdout);
 	}
@@ -187,15 +195,17 @@ decode_wss_cpr1204(uint8_t *buf)
 }
 
 static void
-decode_sliced(vbi_sliced *s, double time, int lines)
+decode_sliced(vbi3_sliced *s, double time, int lines)
 {
 	if (dump_sliced) {
-		vbi_sliced *q = s;
-		int i, j;
+		vbi3_sliced *q = s;
+		int i;
 
 		printf("Sliced time: %f\n", time);
 
 		for (i = 0; i < lines; q++, i++) {
+			unsigned int j;
+
 			printf("%04x %3d > ", q->id, q->line);
 
 			for (j = 0; j < sizeof(q->data); j++) {
@@ -205,7 +215,7 @@ decode_sliced(vbi_sliced *s, double time, int lines)
 			putchar(' ');
 
 			for (j = 0; j < sizeof(q->data); j++) {
-				char c = printable(q->data[j]);
+				char c = vbi3_printable (q->data[j]);
 				putchar(c);
 			}
 
@@ -216,15 +226,15 @@ decode_sliced(vbi_sliced *s, double time, int lines)
 	for (; lines > 0; s++, lines--) {
 		if (s->id == 0) {
 			continue;
-		} else if (s->id & VBI_SLICED_VPS) {
-		} else if (s->id & VBI_SLICED_TELETEXT_B) {
-		} else if (s->id & VBI_SLICED_CAPTION_525) {
+		} else if (s->id & VBI3_SLICED_VPS) {
+		} else if (s->id & VBI3_SLICED_TELETEXT_B) {
+		} else if (s->id & VBI3_SLICED_CAPTION_525) {
 			decode_caption(s->data, s->line);
-		} else if (s->id & VBI_SLICED_CAPTION_625) {
+		} else if (s->id & VBI3_SLICED_CAPTION_625) {
 			decode_caption(s->data, s->line);
-		} else if (s->id & VBI_SLICED_WSS_625) {
+		} else if (s->id & VBI3_SLICED_WSS_625) {
 			decode_wss_625(s->data);
-		} else if (s->id & VBI_SLICED_WSS_CPR1204) {
+		} else if (s->id & VBI3_SLICED_WSS_CPR1204) {
 			decode_wss_cpr1204(s->data);
 		} else {
 			fprintf(stderr, "Oops. Unhandled vbi service %08x\n",
@@ -233,78 +243,52 @@ decode_sliced(vbi_sliced *s, double time, int lines)
 	}
 }
 
-/*
- *  Sliced, binary
- */
-
-/* hysterical compatibility */
-const int
-services[][2] = {
-	{ VBI_SLICED_TELETEXT_B, 42 },
-	{ VBI_SLICED_CAPTION_625, 2 },
-	{ VBI_SLICED_VPS | VBI_SLICED_VPS_F2, 13 },
-	{ VBI_SLICED_WSS_625, 2 },
-	{ VBI_SLICED_WSS_CPR1204, 3 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ VBI_SLICED_CAPTION_525, 2 }
-};
-
-static void
-binary_sliced(vbi_sliced *s, double time, int lines)
+static vbi3_bool
+binary_ts_pes			(vbi3_dvb_mux *		mx,
+				 void *			user_data,
+				 const uint8_t *	packet,
+				 unsigned int		packet_size)
 {
-	static double last = 0.0;
-	int i;
+	size_t r;
 
-	if (last > 0.0)
-		printf("%f\n%c", time - last, lines);
-	else
-		printf("%f\n%c", 0.04, lines);
+	mx = mx;
+	user_data = user_data;
 
-	for (; lines > 0; s++, lines--) {
-		for (i = 0; i < 8; i++) {
-			if (s->id & services[i][0]) {
-				printf("%c%c%c", i,
-				       s->line & 0xFF, s->line >> 8);
-				fwrite(s->data, 1, services[i][1], stdout);
-				last = time;
-				break;
-			}
-		}
-	}
+	r = fwrite (packet, 1, packet_size, stdout);
+
+	return (r == packet_size);
 }
 
 static void
 mainloop(void)
 {
 	uint8_t	*raw;
-	vbi_sliced *sliced;
-	int lines;
-	vbi_capture_buffer *raw_buffer;
-	vbi_capture_buffer *sliced_buffer;
+	vbi3_sliced *sliced;
+	int n_lines;
+	vbi3_capture_buffer *raw_buffer;
+	vbi3_capture_buffer *sliced_buffer;
 	double timestamp;
 	struct timeval tv;
+	int64_t pts;
 
 	tv.tv_sec = 2;
 	tv.tv_usec = 0;
 
 	raw = malloc(src_w * src_h);
-	sliced = malloc(sizeof(vbi_sliced) * src_h);
+	sliced = malloc(sizeof(vbi3_sliced) * src_h);
 
 	assert(raw && sliced);
+
+	pts = 0;
 
 	for (quit = FALSE; !quit;) {
 		int r;
 
-		if (do_sim) {
-			read_sim(raw, src_w * src_h,
-				 sliced, &lines, &timestamp);
-			r = 1;
-		} else if (do_read) {
-			r = vbi_capture_read(cap, raw, sliced,
-					     &lines, &timestamp, &tv);
+		if (do_read) {
+			r = vbi3_capture_read(cap, raw, sliced,
+					     &n_lines, &timestamp, &tv);
 		} else {
-			r = vbi_capture_pull(cap, &raw_buffer,
+			r = vbi3_capture_pull(cap, &raw_buffer,
 					     &sliced_buffer, &tv);
 		}
 
@@ -322,58 +306,144 @@ mainloop(void)
 			assert(!"reached");
 		}
 
-		if (do_read) {
-			if (dump)
-				decode_sliced(sliced, timestamp, lines);
-			if (bin_sliced)
-				binary_sliced(sliced, timestamp, lines);
-		} else {
-			if (dump)
-				decode_sliced(sliced_buffer->data,
-					      sliced_buffer->timestamp,
-					      sliced_buffer->size
-					      / sizeof(vbi_sliced));
-			if (bin_sliced)
-				binary_sliced(sliced_buffer->data,
-					      sliced_buffer->timestamp,
-					      sliced_buffer->size
-					      / sizeof(vbi_sliced));
+		if (!do_read) {
+			sliced = sliced_buffer->data;
+			n_lines = sliced_buffer->size / sizeof (vbi3_sliced);
+			timestamp = sliced_buffer->timestamp;
+		}
+
+		if (dump)
+			decode_sliced(sliced, timestamp, n_lines);
+
+		if (bin_sliced) {
+			/* Error ignored. */
+			write_sliced (sliced, n_lines, timestamp);
+		}
+
+		if (bin_pes || bin_ts) {
+			/* XXX shouldn't use system time. */
+			pts = timestamp * 90000;
+			/* Error ignored. */
+			_vbi3_dvb_mux_mux(mx, sliced, n_lines, -1, pts);
 		}
 	}
 }
 
 static void
-logfn    			(vbi_log_level		level,
+logfn    			(unsigned int		level,
 				 const char *		function,
 				 const char *		message,
 				 void *			user_data)
 {
+	level = level;
+	user_data = user_data;
+
 	fprintf (stderr, "%s: %s\n", function, message);
 }
 
 
-static const char short_options[] = "d:lnpstv";
+static const char short_options[] = "cd:elnpstvPT";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
 long_options[] = {
+	{ "desync",	no_argument,		NULL,		'c' },
 	{ "device",	required_argument,	NULL,		'd' },
 	{ "dump-xds",	no_argument,		&dump_xds,	TRUE },
 	{ "dump-cc",	no_argument,		&dump_cc,	TRUE },
 	{ "dump-wss",	no_argument,		&dump_wss,	TRUE },
 	{ "dump-sliced",no_argument,		&dump_sliced,	TRUE },
+	{ "pes",	no_argument,		NULL,		'P' },
 	{ "sliced",	no_argument,		NULL,		'l' },
+	{ "ts",		no_argument,		NULL,		'T' },
 	{ "read",	no_argument,		&do_read,	TRUE },
 	{ "pull",	no_argument,		&do_read,	FALSE },
 	{ "sim",	no_argument,		NULL,		's' },
 	{ "ntsc",	no_argument,		NULL,		'n' },
 	{ "pal",	no_argument,		NULL,		'p' },
 	{ "verbose",	no_argument,		NULL,		'v' },
-	{ 0, 0, 0, 0 }
+	{ NULL, 0, 0, 0 }
 };
 #else
 #define getopt_long(ac, av, s, l, i) getopt(ac, av, s)
 #endif
+
+static void
+option_vps			(void)
+{
+	static const _vbi3_key_value pcs_audio [] = {
+		{ "unknown",	VBI3_PCS_AUDIO_UNKNOWN },
+		{ "mono",	VBI3_PCS_AUDIO_MONO },
+		{ "stereo",	VBI3_PCS_AUDIO_STEREO },
+		{ "bilingual",	VBI3_PCS_AUDIO_BILINGUAL },
+		{ NULL, 0 },
+	};
+	char *s = optarg;
+	vbi3_program_id pid;
+
+	CLEAR (pid);
+
+	pid.cni_type	= VBI3_CNI_TYPE_VPS;
+	pid.channel	= VBI3_PID_CHANNEL_VPS;
+	pid.pil		= VBI3_PIL_TIMER_CONTROL;
+
+	while (isspace (*s))
+		++s;
+	if (',' != *s) {
+		pid.cni = strtol (s, &s, 16);
+		if ((unsigned int) pid.cni > 0xFFF) {
+			fprintf (stderr, _("Invalid VPS CNI %x.\n"), pid.cni);
+			goto failed;
+		}
+	}
+
+	while (isspace (*s))
+		++s;
+	if (',' != *s)
+		goto failed;
+	while (isspace (*s))
+		++s;
+	if (',' != *s) {
+		if (!_vbi3_str_to_pil (&pid.pil, &s)) {
+			fprintf (stderr, _("Invalid PDC time '%s'.\n"), optarg);
+			goto failed;
+		}
+	}
+
+	while (isspace (*s))
+		++s;
+	if (',' != *s)
+		goto failed;
+	while (isspace (*s))
+		++s;
+	if (',' != *s) {
+		if (!_vbi3_keystr (&pid.pcs_audio, &s, pcs_audio)) {
+			fprintf (stderr,
+				 _("Invalid audio status '%s'.\n"),
+				 optarg);
+			goto failed;
+		}
+	}
+
+	while (isspace (*s))
+		++s;
+	if (',' != *s)
+		goto failed;
+	while (isspace (*s))
+		++s;
+	if (0 != *s) {
+		pid.pty = strtol (s, &s, 10);
+		if ((unsigned int) pid.pty > 0xFF) {
+			fprintf (stderr, _("Invalid VPS PTY %u.\n"), pid.pty);
+			goto failed;
+		}
+	}
+
+	return;
+
+ failed:
+	;
+}
 
 int
 main(int argc, char **argv)
@@ -382,16 +452,24 @@ main(int argc, char **argv)
 	char *errstr;
 	unsigned int services;
 	int scanning = 625;
-	vbi_bool verbose = FALSE;
+	vbi3_bool verbose = FALSE;
 	int c, index;
+
+	setlocale (LC_ALL, "");
 
 	while ((c = getopt_long(argc, argv, short_options,
 				long_options, &index)) != -1) {
 		switch (c) {
 		case 0: /* set flag */
 			break;
+		case 'c':
+			desync ^= TRUE;
+			break;
 		case 'd':
 			dev_name = optarg;
+			break;
+		case 'P':
+			bin_pes ^= TRUE;
 			break;
 		case 'l':
 			bin_sliced ^= TRUE;
@@ -405,6 +483,9 @@ main(int argc, char **argv)
 		case 's':
 			do_sim ^= TRUE;
 			break;
+		case 'T':
+			bin_ts ^= TRUE;
+			break;
 		case 'v':
 			verbose ^= TRUE;
 			break;
@@ -417,78 +498,112 @@ main(int argc, char **argv)
 	dump = dump_xds | dump_cc
 		| dump_wss | dump_sliced;
 
-	services = VBI_SLICED_VBI_525 | VBI_SLICED_VBI_625
-		| VBI_SLICED_TELETEXT_B | VBI_SLICED_CAPTION_525
-		| VBI_SLICED_CAPTION_625
-	  	| VBI_SLICED_VPS | VBI_SLICED_VPS_F2
-		| VBI_SLICED_WSS_625 | VBI_SLICED_WSS_CPR1204;
+	services = VBI3_SLICED_VBI3_525 | VBI3_SLICED_VBI3_625
+		| VBI3_SLICED_TELETEXT_B | VBI3_SLICED_CAPTION_525
+		| VBI3_SLICED_CAPTION_625
+	  	| VBI3_SLICED_VPS | VBI3_SLICED_VPS_F2
+		| VBI3_SLICED_WSS_625 | VBI3_SLICED_WSS_CPR1204;
 
-	if (verbose)
-		vbi_set_log_fn (logfn, NULL);
-
-	if (do_sim) {
-		rd = init_sim (scanning, services);
-	} else {
-		do {
-			cap = vbi_capture_v4l2_new (dev_name,
-						    /* buffers */ 5,
-						    &services,
-						    /* strict */ 0,
-						    &errstr,
-						    /* trace */ verbose);
-			if (cap)
-				break;
-
-			fprintf (stderr, "Cannot capture vbi data "
-				 "with v4l2 interface:\n%s\n", errstr);
-
-			free (errstr);
-
-			cap = vbi_capture_v4l_new (dev_name,
-						   scanning,
-						   &services,
-						   /* strict */ 0,
-						   &errstr,
-						   /* trace */ verbose);
-			if (cap)
-				break;
-
-			fprintf (stderr, "Cannot capture vbi data "
-				 "with v4l interface:\n%s\n", errstr);
-
-			free (errstr);
-
-			cap = vbi_capture_bktr_new (dev_name,
-						    scanning,
-						    &services,
-						    /* strict */ 0,
-						    &errstr,
-						    /* trace */ verbose);
-			if (cap)
-				break;
-
-			fprintf (stderr, "Cannot capture vbi data "
-				 "with bktr interface:\n%s\n", errstr);
-
-			free (errstr);
-
-			exit(EXIT_FAILURE);
-		} while (0);
-
-		assert ((rd = vbi_capture_parameters(cap)));
+	if (verbose) {
+		vbi3_set_log_fn (logfn, NULL);
 	}
 
-	vbi_raw_decoder_get_sampling_par (rd, &sp);
+	do {
+		if (do_sim) {
+			cap = _vbi3_capture_sim_new (scanning, &services,
+						     /* interlaced */ FALSE,
+						     !desync);
+			assert (NULL != cap);
+			break;
+		}
 
-	assert (sp.sampling_format == VBI_PIXFMT_Y8);
+		cap = vbi3_capture_v4l2_new (dev_name,
+					     /* buffers */ 5,
+					     &services,
+					     /* strict */ 0,
+					     &errstr,
+					     /* trace */ verbose);
+		if (cap)
+			break;
+
+		fprintf (stderr, "Cannot capture vbi data "
+			 "with v4l2 interface:\n%s\n", errstr);
+
+		free (errstr);
+
+		cap = vbi3_capture_v4l_new (dev_name,
+					    scanning,
+					    &services,
+					    /* strict */ 0,
+					    &errstr,
+					    /* trace */ verbose);
+		if (cap)
+			break;
+
+		fprintf (stderr, "Cannot capture vbi data "
+			 "with v4l interface:\n%s\n", errstr);
+
+		free (errstr);
+
+		cap = vbi3_capture_bktr_new (dev_name,
+					     scanning,
+					     &services,
+					     /* strict */ 0,
+					     &errstr,
+					     /* trace */ verbose);
+		if (cap)
+			break;
+
+		fprintf (stderr, "Cannot capture vbi data "
+			 "with bktr interface:\n%s\n", errstr);
+
+		free (errstr);
+
+		exit(EXIT_FAILURE);
+	} while (0);
+
+	assert ((rd = vbi3_capture_parameters(cap)));
+
+	vbi3_raw_decoder_get_sampling_par (rd, &sp);
+
+	assert (sp.sampling_format == VBI3_PIXFMT_Y8);
 
 	src_w = sp.bytes_per_line / 1;
 	src_h = sp.count[0] + sp.count[1];
 
+	if (bin_sliced) {
+		struct timeval tv;
+		double timestamp;
+		vbi3_bool success;
+		int r;
+
+		r = gettimeofday (&tv, NULL);
+		assert (0 == r);
+
+		timestamp = tv.tv_sec + tv.tv_usec * (1 / 1e6);
+
+		success = open_sliced_write (stdout, timestamp);
+		assert (success);
+	} else if (bin_pes) {
+		mx = _vbi3_dvb_mux_pes_new (/* data_identifier */ 0x10,
+					   /* packet_size */ 8 * 184,
+					   VBI3_VIDEOSTD_SET_625_50,
+					   binary_ts_pes,
+					   /* user_data */ NULL);
+		assert (NULL != mx);
+	} else if (bin_ts) {
+		mx = _vbi3_dvb_mux_ts_new (/* pid */ 123,
+					  /* data_identifier */ 0x10,
+					  /* packet_size */ 8 * 184,
+					  VBI3_VIDEOSTD_SET_625_50,
+					  binary_ts_pes,
+					  /* user_data */ NULL);
+		assert (NULL != mx);
+	}
+
 	mainloop();
 
-	if (!do_sim)
-		vbi_capture_delete(cap);
+	vbi3_capture_delete (cap);
 
 	exit(EXIT_SUCCESS);	
 }

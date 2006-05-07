@@ -1,7 +1,7 @@
 /*
  *  libzvbi
  *
- *  Copyright (C) 2003-2004 Michael H. Schimek
+ *  Copyright (C) 2003, 2004 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,26 +17,26 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: graphics.c,v 1.1.2.4 2004-04-15 00:11:16 mschimek Exp $ */
+/* $Id: image_format.c,v 1.1.2.1 2006-05-07 06:04:58 mschimek Exp $ */
 
-#include "graphics.h"
+#include "image_format.h"
 
 /**
  * @param pixfmt Pixel format.
  *
- * Returns the name of a pixel format like VBI_PIXFMT_YUYV ->
+ * Returns the name of a pixel format like VBI3_PIXFMT_YUYV ->
  * "YUYV". This is mainly intended for debugging.
  * 
  * @return
  * Static ASCII string, NULL if @a pixfmt is invalid.
  */
 const char *
-vbi_pixfmt_name			(vbi_pixfmt		pixfmt)
+vbi3_pixfmt_name			(vbi3_pixfmt		pixfmt)
 {
 	switch (pixfmt) {
 
 #undef CASE
-#define CASE(fmt) case VBI_PIXFMT_##fmt : return #fmt ;
+#define CASE(fmt) case VBI3_PIXFMT_##fmt : return #fmt ;
 
 	CASE (NONE)
 	CASE (YUV444)
@@ -95,10 +95,10 @@ vbi_pixfmt_name			(vbi_pixfmt		pixfmt)
 	CASE (ARGB7)
 	CASE (ABGR7)
 
-	case VBI_PIXFMT_RESERVED0:
-	case VBI_PIXFMT_RESERVED1:
-	case VBI_PIXFMT_RESERVED2:
-	case VBI_PIXFMT_RESERVED3:
+	case VBI3_PIXFMT_RESERVED0:
+	case VBI3_PIXFMT_RESERVED1:
+	case VBI3_PIXFMT_RESERVED2:
+	case VBI3_PIXFMT_RESERVED3:
 		break;
 
 		/* No default, gcc warns. */
@@ -108,14 +108,14 @@ vbi_pixfmt_name			(vbi_pixfmt		pixfmt)
 }
 
 unsigned int
-_vbi_pixfmt_bytes_per_pixel	(vbi_pixfmt		pixfmt)
+_vbi3_pixfmt_bytes_per_pixel	(vbi3_pixfmt		pixfmt)
 {
-	vbi_pixfmt_set set = VBI_PIXFMT_SET (pixfmt);
+	vbi3_pixfmt_set set = VBI3_PIXFMT_SET (pixfmt);
 
-	if (set & (_VBI_PIXFMT_SET_4 | _VBI_PIXFMT_SET_3))
-		return (set & _VBI_PIXFMT_SET_4) ? 4 : 3;
-	else if (set & (_VBI_PIXFMT_SET_2 | _VBI_PIXFMT_SET_1))
-		return (set & _VBI_PIXFMT_SET_2) ? 2 : 1;
+	if (set & (_VBI3_PIXFMT_SET_4 | _VBI3_PIXFMT_SET_3))
+		return (set & _VBI3_PIXFMT_SET_4) ? 4 : 3;
+	else if (set & (_VBI3_PIXFMT_SET_2 | _VBI3_PIXFMT_SET_1))
+		return (set & _VBI3_PIXFMT_SET_2) ? 2 : 1;
 
 	return 0;
 }

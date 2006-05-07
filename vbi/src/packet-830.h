@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Teletext packet decoder, packet 8/30
  *
- *  Copyright (C) 2003-2004 Michael H. Schimek
+ *  Copyright (C) 2003, 2004 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,38 +17,42 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.h,v 1.1.2.3 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: packet-830.h,v 1.1.2.4 2006-05-07 06:04:58 mschimek Exp $ */
 
-#ifndef __ZVBI_PACKET_830_H__
-#define __ZVBI_PACKET_830_H__
+#ifndef __ZVBI3_PACKET_830_H__
+#define __ZVBI3_PACKET_830_H__
 
 #include <inttypes.h>		/* uint8_t */
 #include <time.h>		/* time_t */
 #include "macros.h"
-#include "pdc.h"		/* vbi_program_id */
+#include "pdc.h"		/* vbi3_program_id */
 
-VBI_BEGIN_DECLS
+VBI3_BEGIN_DECLS
 
 /**
  * @addtogroup Packet830
  * @{
  */
-extern vbi_bool
-vbi_decode_teletext_8301_cni	(unsigned int *		cni,
-				 const uint8_t		buffer[42]);
-extern vbi_bool
-vbi_decode_teletext_8301_local_time
-				(time_t *		time,
+extern vbi3_bool
+vbi3_decode_teletext_8301_cni	(unsigned int *		cni,
+				 const uint8_t		buffer[42])
+  __attribute__ ((_vbi3_nonnull (1, 2)));
+extern vbi3_bool
+vbi3_decode_teletext_8301_local_time
+				(time_t *		tme,
 				 int *			gmtoff,
-				 const uint8_t		buffer[42]);
-extern vbi_bool
-vbi_decode_teletext_8302_cni	(unsigned int *		cni,
-				 const uint8_t		buffer[42]);
-extern vbi_bool
-vbi_decode_teletext_8302_pdc	(vbi_program_id *	pid,
-				 const uint8_t		buffer[42]);
+				 const uint8_t		buffer[42])
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+extern vbi3_bool
+vbi3_decode_teletext_8302_cni	(unsigned int *		cni,
+				 const uint8_t		buffer[42])
+  __attribute__ ((_vbi3_nonnull (1, 2)));
+extern vbi3_bool
+vbi3_decode_teletext_8302_pdc	(vbi3_program_id *	pid,
+				 const uint8_t		buffer[42])
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 /** @} */
 
-VBI_END_DECLS
+VBI3_END_DECLS
 
-#endif /* __ZVBI__PACKET_830_H__ */
+#endif /* __ZVBI3__PACKET_830_H__ */

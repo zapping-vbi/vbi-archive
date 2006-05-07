@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.h,v 1.1.2.4 2004-07-09 16:10:53 mschimek Exp $ */
+/* $Id: raw_decoder.h,v 1.1.2.5 2006-05-07 06:04:58 mschimek Exp $ */
 
 #ifndef RAW_DECODER_H
 #define RAW_DECODER_H
@@ -26,78 +26,110 @@
 #include "macros.h"
 #include "bit_slicer.h"
 
-VBI_BEGIN_DECLS
+VBI3_BEGIN_DECLS
 
 /**
  * @ingroup RawDecoder
  * @brief Raw VBI decoder.
  *
  * The contents of this structure are private.
- * Call vbi_raw_decoder_new() to allocate a raw VBI decoder.
+ * Call vbi3_raw_decoder_new() to allocate a raw VBI decoder.
  */
-typedef struct _vbi_raw_decoder vbi_raw_decoder;
+typedef struct _vbi3_raw_decoder vbi3_raw_decoder;
 
 /**
  * @addtogroup RawDecoder
  * @{
  */
-extern vbi_raw_decoder *
-vbi_raw_decoder_new		(const vbi_sampling_par *sp);
-extern void
-vbi_raw_decoder_delete		(vbi_raw_decoder *	rd);
-extern void
-vbi_raw_decoder_get_sampling_par
-				(const vbi_raw_decoder *rd,
-				 vbi_sampling_par *	sp);
-extern vbi_service_set
-vbi_raw_decoder_set_sampling_par
-				(vbi_raw_decoder *	rd,
-				 const vbi_sampling_par *sp,
-				 unsigned int		strict);
-extern vbi_service_set
-vbi_raw_decoder_add_services	(vbi_raw_decoder *	rd,
-				 vbi_service_set	services,
-				 unsigned int		strict);
-extern vbi_service_set
-vbi_raw_decoder_remove_services	(vbi_raw_decoder *	rd,
-				 vbi_service_set	services);
-extern void
-vbi_raw_decoder_reset		(vbi_raw_decoder *	rd);
+extern vbi3_bool
+vbi3_raw_decoder_get_point	(vbi3_raw_decoder *	rd,
+				 vbi3_bit_slicer_point *point,
+				 unsigned int		row,
+				 unsigned int		nth_bit);
 extern unsigned int
-vbi_raw_decoder_decode		(vbi_raw_decoder *	rd,
-				 vbi_sliced *		sliced,
+vbi3_raw_decoder_decode		(vbi3_raw_decoder *	rd,
+				 vbi3_sliced *		sliced,
 				 unsigned int		sliced_lines,
 				 const uint8_t *	raw);
+extern void
+vbi3_raw_decoder_reset		(vbi3_raw_decoder *	rd);
+extern vbi3_service_set
+vbi3_raw_decoder_remove_services	(vbi3_raw_decoder *	rd,
+				 vbi3_service_set	services);
+extern vbi3_service_set
+vbi3_raw_decoder_add_services	(vbi3_raw_decoder *	rd,
+				 vbi3_service_set	services,
+				 unsigned int		strict);
+extern vbi3_bool
+vbi3_raw_decoder_collect_points	(vbi3_raw_decoder *	rd,
+				 vbi3_bool		enable);
+extern vbi3_service_set
+vbi3_raw_decoder_set_sampling_par
+				(vbi3_raw_decoder *	rd,
+				 const vbi3_sampling_par *sp,
+				 unsigned int		strict);
+extern void
+vbi3_raw_decoder_get_sampling_par
+				(const vbi3_raw_decoder *rd,
+				 vbi3_sampling_par *	sp);
+extern void
+vbi3_raw_decoder_set_log_fn	(vbi3_raw_decoder *	rd,
+				 vbi3_log_fn *		log_fn,
+				 void *			user_data,
+				 vbi3_log_level		max_level);
+extern void
+vbi3_raw_decoder_delete		(vbi3_raw_decoder *	rd);
+extern vbi3_raw_decoder *
+vbi3_raw_decoder_new		(const vbi3_sampling_par *sp);
+
 /** @} */
 
 /* Private */
 
 /** @internal */
-#define _VBI_RAW_DECODER_MAX_JOBS 8
+#define _VBI3_RAW_DECODER_MAX_JOBS 8
 /** @internal */
-#define _VBI_RAW_DECODER_MAX_WAYS 8
+#define _VBI3_RAW_DECODER_MAX_WAYS 8
 
 /** @internal */
 typedef struct {
-	vbi_service_set		id;
-	vbi_bit_slicer		slicer;
-} _vbi_raw_decoder_job;
+	vbi3_service_set	id;
+	vbi3_bit_slicer		slicer;
+} _vbi3_raw_decoder_job;
 
 /** @internal */
-struct _vbi_raw_decoder {
-	vbi_sampling_par	sampling;
-	vbi_service_set		services;
+typedef struct {
+	vbi3_bit_slicer_point   points[64];
+	unsigned int		n_points;
+} _vbi3_raw_decoder_sp_line;
+
+/** @internal */
+struct _vbi3_raw_decoder {
+	vbi3_sampling_par	sampling;
+	vbi3_service_set	services;
+	vbi3_bool		collect_points;
+	vbi3_log_fn *		log_fn;
+	void *			log_user_data;
 	unsigned int		n_jobs;
+	unsigned int		n_sp_lines;
 	int			readjust;
 	int8_t *		pattern;	/* n scan lines * MAX_WAYS */
-	_vbi_raw_decoder_job	jobs[_VBI_RAW_DECODER_MAX_JOBS];
+	_vbi3_raw_decoder_job	jobs[_VBI3_RAW_DECODER_MAX_JOBS];
+	_vbi3_raw_decoder_sp_line *sp_lines;
 };
 
-/* typedef vbi_service_par in sliced.h */
+typedef enum {
+	/** Requires field line numbers. */ 
+	_VBI3_SP_LINE_NUM	= (1 << 0),
+	/** Requires field numbers. */
+	_VBI3_SP_FIELD_NUM	= (1 << 1),
+} _vbi3_service_par_flag;
+
+/* typedef vbi3_service_par in sliced.h */
 
 /** @internal */
-struct _vbi_service_par {
-	vbi_service_set		id;
+struct _vbi3_service_par {
+	vbi3_service_set		id;
 	const char *		label;
 
 	/**
@@ -105,7 +137,7 @@ struct _vbi_service_par {
 	 * - 525 lines, FV = 59.94 Hz, FH = 15734 Hz
 	 * - 625 lines, FV = 50 Hz, FH = 15625 Hz
 	 */
-	vbi_videostd_set	videostd_set;
+	vbi3_videostd_set	videostd_set;
 
 	/**
 	 * Most scan lines used by the data service, first and last
@@ -138,20 +170,22 @@ struct _vbi_service_par {
 	unsigned int		frc_bits;
 
 	unsigned int		payload;	/**< bits */
-	vbi_modulation		modulation;
+	vbi3_modulation		modulation;
+
+	_vbi3_service_par_flag	flags;
 };
 
-extern const vbi_service_par _vbi_service_table [];
+extern const vbi3_service_par _vbi3_service_table [];
 
-extern vbi_bool
-_vbi_raw_decoder_init		(vbi_raw_decoder *	rd,
-				 const vbi_sampling_par *sp);
 extern void
-_vbi_raw_decoder_destroy	(vbi_raw_decoder *	rd);
-extern void
-_vbi_raw_decoder_dump		(const vbi_raw_decoder *rd,
+_vbi3_raw_decoder_dump		(const vbi3_raw_decoder *rd,
 				 FILE *			fp);
+extern void
+_vbi3_raw_decoder_destroy	(vbi3_raw_decoder *	rd);
+extern vbi3_bool
+_vbi3_raw_decoder_init		(vbi3_raw_decoder *	rd,
+				 const vbi3_sampling_par *sp);
 
-VBI_END_DECLS
+VBI3_END_DECLS
 
 #endif /* RAW_DECODER_H */

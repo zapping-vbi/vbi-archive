@@ -18,16 +18,23 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.c,v 1.1.2.6 2004-10-14 07:54:02 mschimek Exp $ */
+/* $Id: xds_demux.c,v 1.1.2.7 2006-05-07 06:04:59 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
 
-#include <assert.h>
 #include <stdlib.h>		/* malloc() */
 #include <string.h>		/* memcpy() */
-#include "hamm.h"		/* vbi_ipar8() */
-#include "misc.h"		/* vbi_log_printf */
+#include <errno.h>
+#include <assert.h>
+
+#ifdef ZAPPING8
+#  include "common/intl-priv.h"
+#else
+#  include "intl-priv.h"
+#endif
+#include "hamm.h"		/* vbi3_ipar8() */
+#include "misc.h"		/* vbi3_log_printf */
 #include "xds_demux.h"
 
 /**
@@ -47,12 +54,9 @@ do {									\
 		fprintf (stderr, format , ##args);			\
 } while (0)
 
-#define printable(c)							\
-	((((c) & 0x7F) < 0x20 || ((c) & 0x7F) >= 0x7F) ? '.' : (c) & 0x7F)
-
 /** @internal */
 void
-_vbi_xds_packet_dump		(const vbi_xds_packet *	xp,
+_vbi3_xds_packet_dump		(const vbi3_xds_packet *	xp,
 				 FILE *			fp)
 {
 	unsigned int i;
@@ -69,18 +73,18 @@ _vbi_xds_packet_dump		(const vbi_xds_packet *	xp,
 	fputs (" '", fp);
 
 	for (i = 0; i < xp->buffer_size; ++i)
-		fputc (printable (xp->buffer[i]), fp);
+		fputc (vbi3_printable (xp->buffer[i]), fp);
 
 	fputs ("'\n", fp);
 }
 
 /**
- * @param xd XDS demultiplexer context allocated with vbi_xds_demux_new().
+ * @param xd XDS demultiplexer context allocated with vbi3_xds_demux_new().
  *
  * Resets the XDS demux, useful for example after a channel change.
  */
 void
-vbi_xds_demux_reset		(vbi_xds_demux *	xd)
+vbi3_xds_demux_reset		(vbi3_xds_demux *	xd)
 {
 	unsigned int n;
 	unsigned int i;
@@ -96,20 +100,20 @@ vbi_xds_demux_reset		(vbi_xds_demux *	xd)
 }
 
 /**
- * @param xd XDS demultiplexer context allocated with vbi_xds_demux_new().
- * @param buffer Closed Caption character pair, as in struct vbi_sliced.
+ * @param xd XDS demultiplexer context allocated with vbi3_xds_demux_new().
+ * @param buffer Closed Caption character pair, as in struct vbi3_sliced.
  *
  * This function takes two successive bytes of a raw Closed Caption
  * stream, filters out XDS data and calls the output function given to
- * vbi_xds_demux_new() when a new packet is complete.
+ * vbi3_xds_demux_new() when a new packet is complete.
  *
  * You should feed only data from NTSC line 284.
  */
-vbi_bool
-vbi_xds_demux_demux		(vbi_xds_demux *	xd,
+vbi3_bool
+vbi3_xds_demux_feed		(vbi3_xds_demux *	xd,
 				 const uint8_t		buffer[2])
 {
-	_vbi_xds_subpacket *sp;
+	_vbi3_xds_subpacket *sp;
 	int c1, c2;
 
 	assert (NULL != xd);
@@ -119,8 +123,8 @@ vbi_xds_demux_demux		(vbi_xds_demux *	xd,
 
 	log ("XDS demux %02x %02x\n", buffer[0], buffer[1]);
 
-	c1 = vbi_ipar8 (buffer[0]);
-	c2 = vbi_ipar8 (buffer[1]);
+	c1 = vbi3_unpar8 (buffer[0]);
+	c2 = vbi3_unpar8 (buffer[1]);
 
 	if ((c1 | c2) < 0) {
 		log ("XDS tx error, discard current packet\n");
@@ -131,6 +135,13 @@ vbi_xds_demux_demux		(vbi_xds_demux *	xd,
 		}
 
 		xd->curr_sp = NULL;
+
+		free (xd->errstr);
+
+		/* Error ignored. */
+		xd->errstr = strdup (_("Parity error."));
+
+		errno = EINVAL;
 
 		return FALSE;
 	}
@@ -143,15 +154,15 @@ vbi_xds_demux_demux		(vbi_xds_demux *	xd,
 
 	case 0x01 ... 0x0E:
 	{
-		vbi_xds_class xds_class;
-		vbi_xds_subclass xds_subclass;
+		vbi3_xds_class xds_class;
+		vbi3_xds_subclass xds_subclass;
 
 		/* Packet header. */
 
 		xds_class = (c1 - 1) >> 1;
 		xds_subclass = c2;
 
-		if (xds_class > VBI_XDS_CLASS_MISC
+		if (xds_class > VBI3_XDS_CLASS_MISC
 		    || xds_subclass > N_ELEMENTS (xd->subpacket[0])) {
 			log ("XDS ignore packet 0x%x/0x%02x, "
 			     "unknown class or subclass\n",
@@ -207,9 +218,9 @@ vbi_xds_demux_demux		(vbi_xds_demux *	xd,
 			xd->curr.buffer[sp->count - 2] = 0;
 
 			if (XDS_DEMUX_LOG)
-				_vbi_xds_packet_dump (&xd->curr, stderr);
+				_vbi3_xds_packet_dump (&xd->curr, stderr);
 
-			xd->callback (xd, xd->user_data, &xd->curr);
+			xd->callback (xd, &xd->curr, xd->user_data);
 		}
 
 		/* fall through */
@@ -258,23 +269,25 @@ vbi_xds_demux_demux		(vbi_xds_demux *	xd,
 
 /** @internal */
 void
-_vbi_xds_demux_destroy		(vbi_xds_demux *	xd)
+_vbi3_xds_demux_destroy		(vbi3_xds_demux *	xd)
 {
 	assert (NULL != xd);
+
+	free (xd->errstr);
 
 	CLEAR (*xd);
 }
 
 /** @internal */
-vbi_bool
-_vbi_xds_demux_init		(vbi_xds_demux *	xd,
-				 vbi_xds_demux_cb *	callback,
+vbi3_bool
+_vbi3_xds_demux_init		(vbi3_xds_demux *	xd,
+				 vbi3_xds_demux_cb *	callback,
 				 void *			user_data)
 {
 	assert (NULL != xd);
 	assert (NULL != callback);
 
-	vbi_xds_demux_reset (xd);
+	vbi3_xds_demux_reset (xd);
 
 	xd->callback = callback;
 	xd->user_data = user_data;
@@ -282,25 +295,33 @@ _vbi_xds_demux_init		(vbi_xds_demux *	xd,
 	return TRUE;
 }
 
+const char *
+vbi3_xds_demux_errstr		(vbi3_xds_demux *	xd)
+{
+	assert (NULL != xd);
+
+	return xd->errstr;
+}
+
 /**
  * @param xd XDS demultiplexer context allocated with
- *   vbi_xds_demux_new(), can be @c NULL.
+ *   vbi3_xds_demux_new(), can be @c NULL.
  *
  * Frees all resources associated with @a xd.
  */
 void
-vbi_xds_demux_delete		(vbi_xds_demux *	xd)
+vbi3_xds_demux_delete		(vbi3_xds_demux *	xd)
 {
 	if (NULL == xd)
 		return;
 
-	_vbi_xds_demux_destroy (xd);
+	_vbi3_xds_demux_destroy (xd);
 
-	vbi_free (xd);		
+	vbi3_free (xd);		
 }
 
 /**
- * @param callback Function to be called by vbi_xds_demux_demux() when
+ * @param callback Function to be called by vbi3_xds_demux_demux() when
  *   a new packet is available.
  * @param user_data User pointer passed through to @a callback function.
  *
@@ -308,24 +329,23 @@ vbi_xds_demux_delete		(vbi_xds_demux *	xd)
  *
  * @returns
  * Pointer to newly allocated XDS demux context which must be
- * freed with vbi_xds_demux_delete() when done. @c NULL on failure
+ * freed with vbi3_xds_demux_delete() when done. @c NULL on failure
  * (out of memory).
  */
-vbi_xds_demux *
-vbi_xds_demux_new		(vbi_xds_demux_cb *	callback,
+vbi3_xds_demux *
+vbi3_xds_demux_new		(vbi3_xds_demux_cb *	callback,
 				 void *			user_data)
 {
-	vbi_xds_demux *xd;
+	vbi3_xds_demux *xd;
 
 	assert (NULL != callback);
 
-	if (!(xd = vbi_malloc (sizeof (*xd)))) {
-		vbi_log_printf (VBI_DEBUG, __FUNCTION__,
-				"Out of memory (%u)", sizeof (*xd));
+	if (!(xd = vbi3_malloc (sizeof (*xd)))) {
+		error ("Out of memory (%u bytes)", sizeof (*xd));
 		return NULL;
 	}
 
-	_vbi_xds_demux_init (xd, callback, user_data);
+	_vbi3_xds_demux_init (xd, callback, user_data);
 
 	return xd;
 }

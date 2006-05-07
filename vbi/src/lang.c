@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Teletext and Closed Caption character set
  *
- *  Copyright (C) 2000-2003 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002, 2003 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,9 +17,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.4.2.4 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: lang.c,v 1.4.2.5 2006-05-07 06:04:58 mschimek Exp $ */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <assert.h>
 #include <inttypes.h>		/* uint8_t, uint16_t */
@@ -32,51 +34,51 @@
 
 /* Teletext character set designation defined in
    ETS 300 706 Table 32, 33, 34 */
-static const vbi_character_set
+static const vbi3_character_set
 character_set_table [88] = {
-	{  0, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_ENGLISH,			{ "en", } },
-	{  1, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_GERMAN,			{ "de", } },
-	{  2, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_SWEDISH_FINNISH_HUNGARIAN,	{ "sv", "fi", "hu", } },
-	{  3, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_ITALIAN,			{ "it", } },
-	{  4, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_FRENCH,			{ "fr", } },
-	{  5, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_PORTUGUESE_SPANISH,	{ "es", "pt", } },
-	{  6, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_CZECH_SLOVAK,		{ "cs", "sk", } },
-	{  7, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_NONE,			{ "en", } },
+	{  0, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_ENGLISH,			{ "en", } },
+	{  1, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_GERMAN,			{ "de", } },
+	{  2, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_SWEDISH_FINNISH_HUNGARIAN,	{ "sv", "fi", "hu", } },
+	{  3, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_ITALIAN,			{ "it", } },
+	{  4, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_FRENCH,			{ "fr", } },
+	{  5, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_PORTUGUESE_SPANISH,	{ "es", "pt", } },
+	{  6, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_CZECH_SLOVAK,		{ "cs", "sk", } },
+	{  7, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_NONE,			{ "en", } },
 
-	{  8, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_POLISH,			{ "pl", } },
-	{  9, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_GERMAN,			{ "de", } },
-	{ 10, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_SWEDISH_FINNISH_HUNGARIAN,	{ "sv", "fi", "hu", } },
-	{ 11, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_ITALIAN,			{ "it", } },
-	{ 12, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_FRENCH,			{ "fr", } },
-	{ 13, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_NONE,			{ "en", } },
-	{ 14, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_CZECH_SLOVAK,		{ "cs", "sk", } },
-	{ 15, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_NONE,			{ "en", } },
+	{  8, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_POLISH,			{ "pl", } },
+	{  9, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_GERMAN,			{ "de", } },
+	{ 10, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_SWEDISH_FINNISH_HUNGARIAN,	{ "sv", "fi", "hu", } },
+	{ 11, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_ITALIAN,			{ "it", } },
+	{ 12, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_FRENCH,			{ "fr", } },
+	{ 13, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_NONE,			{ "en", } },
+	{ 14, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_CZECH_SLOVAK,		{ "cs", "sk", } },
+	{ 15, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_NONE,			{ "en", } },
 
-	{ 16, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_ENGLISH,			{ "en", } },
-	{ 17, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_GERMAN,			{ "de", } },
-	{ 18, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_SWEDISH_FINNISH_HUNGARIAN,	{ "sv", "fi", "hu", } },
-	{ 19, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_ITALIAN,			{ "it", } },
-	{ 20, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_FRENCH,			{ "fr", } },
-	{ 21, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_PORTUGUESE_SPANISH,	{ "es", "pt", } },
-	{ 22, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_TURKISH,			{ "tr", } },
-	{ 23, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_NONE,			{ "en", } },
+	{ 16, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_ENGLISH,			{ "en", } },
+	{ 17, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_GERMAN,			{ "de", } },
+	{ 18, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_SWEDISH_FINNISH_HUNGARIAN,	{ "sv", "fi", "hu", } },
+	{ 19, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_ITALIAN,			{ "it", } },
+	{ 20, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_FRENCH,			{ "fr", } },
+	{ 21, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_PORTUGUESE_SPANISH,	{ "es", "pt", } },
+	{ 22, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_TURKISH,			{ "tr", } },
+	{ 23, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_NONE,			{ "en", } },
 
-	{ 24, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_NONE,			{ "en", } },
-	{ 25, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_NONE,			{ "en", } },
-	{ 26, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_NONE,			{ "en", } },
-	{ 27, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_NONE,			{ "en", } },
-	{ 28, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_NONE,			{ "en", } },
-	{ 29, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_SERBIAN_CROATIAN_SLOVENIAN, { "sr", "hr", "sl", } },
-	{ 30, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_NONE,			{ "en", } },
-	{ 31, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_RUMANIAN,			{ "ro", } },
+	{ 24, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_NONE,			{ "en", } },
+	{ 25, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_NONE,			{ "en", } },
+	{ 26, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_NONE,			{ "en", } },
+	{ 27, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_NONE,			{ "en", } },
+	{ 28, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_NONE,			{ "en", } },
+	{ 29, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_SERBIAN_CROATIAN_SLOVENIAN, { "sr", "hr", "sl", } },
+	{ 30, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_NONE,			{ "en", } },
+	{ 31, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_RUMANIAN,			{ "ro", } },
 
-	{ 32, VBI_CHARSET_CYRILLIC1_G0, VBI_CHARSET_CYRILLIC_G2, VBI_SUBSET_NONE, 		{ "sr", "hr", "sl", } },
-	{ 33, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_GERMAN,			{ "de", } },
-	{ 34, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_ESTONIAN,			{ "et", } },
-	{ 35, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_LETTISH_LITHUANIAN,	{ "lv", "lt", } },
-	{ 36, VBI_CHARSET_CYRILLIC2_G0, VBI_CHARSET_CYRILLIC_G2, VBI_SUBSET_NONE,		{ "ru", "bg", } },
-	{ 37, VBI_CHARSET_CYRILLIC3_G0, VBI_CHARSET_CYRILLIC_G2, VBI_SUBSET_NONE,		{ "uk", } },
-	{ 38, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_CZECH_SLOVAK,		{ "cs", "sk", } },
+	{ 32, VBI3_CHARSET_CYRILLIC1_G0, VBI3_CHARSET_CYRILLIC_G2, VBI3_SUBSET_NONE, 		{ "sr", "hr", "sl", } },
+	{ 33, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_GERMAN,			{ "de", } },
+	{ 34, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_ESTONIAN,			{ "et", } },
+	{ 35, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_LETTISH_LITHUANIAN,	{ "lv", "lt", } },
+	{ 36, VBI3_CHARSET_CYRILLIC2_G0, VBI3_CHARSET_CYRILLIC_G2, VBI3_SUBSET_NONE,		{ "ru", "bg", } },
+	{ 37, VBI3_CHARSET_CYRILLIC3_G0, VBI3_CHARSET_CYRILLIC_G2, VBI3_SUBSET_NONE,		{ "uk", } },
+	{ 38, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_CZECH_SLOVAK,		{ "cs", "sk", } },
 	UNUSED (39),
 
 	UNUSED (40),
@@ -94,8 +96,8 @@ character_set_table [88] = {
 	UNUSED (51),
 	UNUSED (52),
 	UNUSED (53),
-	{ 54, VBI_CHARSET_LATIN_G0, VBI_CHARSET_LATIN_G2, VBI_SUBSET_TURKISH,			{ "tr", } },
-	{ 55, VBI_CHARSET_GREEK_G0, VBI_CHARSET_GREEK_G2, VBI_SUBSET_NONE,			{ "el", } },
+	{ 54, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_TURKISH,			{ "tr", } },
+	{ 55, VBI3_CHARSET_GREEK_G0, VBI3_CHARSET_GREEK_G2, VBI3_SUBSET_NONE,			{ "el", } },
 
 	UNUSED (56),
 	UNUSED (57),
@@ -106,14 +108,14 @@ character_set_table [88] = {
 	UNUSED (62),
 	UNUSED (63),
 
-	{ 64, VBI_CHARSET_LATIN_G0, VBI_CHARSET_ARABIC_G2, VBI_SUBSET_ENGLISH,			{ "ar", "en", } },
+	{ 64, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_ARABIC_G2, VBI3_SUBSET_ENGLISH,			{ "ar", "en", } },
 	UNUSED (65),
 	UNUSED (66),
 	UNUSED (67),
-	{ 68, VBI_CHARSET_LATIN_G0, VBI_CHARSET_ARABIC_G2, VBI_SUBSET_FRENCH,			{ "ar", "fr", } },
+	{ 68, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_ARABIC_G2, VBI3_SUBSET_FRENCH,			{ "ar", "fr", } },
 	UNUSED (69),
 	UNUSED (70),
-	{ 71, VBI_CHARSET_ARABIC_G0, VBI_CHARSET_ARABIC_G2, VBI_SUBSET_NONE,			{ "ar", } },
+	{ 71, VBI3_CHARSET_ARABIC_G0, VBI3_CHARSET_ARABIC_G2, VBI3_SUBSET_NONE,			{ "ar", } },
 
 	UNUSED (72),
 	UNUSED (73),
@@ -129,18 +131,25 @@ character_set_table [88] = {
 	UNUSED (82),
 	UNUSED (83),
 	UNUSED (84),
-	{ 85, VBI_CHARSET_HEBREW_G0, VBI_CHARSET_ARABIC_G2, VBI_SUBSET_NONE,			{ "he", } },
+	{ 85, VBI3_CHARSET_HEBREW_G0, VBI3_CHARSET_ARABIC_G2, VBI3_SUBSET_NONE,			{ "he", } },
 	UNUSED (86),
-	{ 87, VBI_CHARSET_ARABIC_G0, VBI_CHARSET_ARABIC_G2, VBI_SUBSET_NONE,			{ "ar", } },
+	{ 87, VBI3_CHARSET_ARABIC_G0, VBI3_CHARSET_ARABIC_G2, VBI3_SUBSET_NONE,			{ "ar", } },
 };
 
-const vbi_character_set *
-vbi_character_set_from_code	(vbi_character_set_code code)
+const vbi3_character_set *
+vbi3_character_set_from_code	(vbi3_charset_code	code)
 {
+	const vbi3_character_set *cs;
+
 	if (code >= N_ELEMENTS (character_set_table))
 		return NULL;
 
-	return character_set_table + code;
+	cs = character_set_table + code;
+
+	if (0 == cs->g0 || 0 == cs->g2)
+		return NULL;
+
+	return cs;
 }
 
 /*
@@ -174,7 +183,7 @@ ascii_art [] = {
 };
 
 unsigned int
-_vbi_teletext_ascii_art		(unsigned int		c)
+_vbi3_teletext_ascii_art		(unsigned int		c)
 {
 	if (c >= 0xEE00 && c < (0xEE00 + N_ELEMENTS (ascii_art)))
 		if (ascii_art[c - 0xEE00])
@@ -185,7 +194,7 @@ _vbi_teletext_ascii_art		(unsigned int		c)
 
 /* ETS 300 706 Table 36: Latin National Option Sub-sets
    Latin G0 character code to Unicode mapping per national subset,
-   unmodified codes (VBI_SUBSET_NONE) in row zero. */
+   unmodified codes (VBI3_SUBSET_NONE) in row zero. */
 static const uint16_t
 national_subset[14][13] = {
 	{ 0x0023, 0x0024, 0x0040, 0x005B, 0x005C, 0x005D, 0x005E, 0x005F, 0x0060, 0x007B, 0x007C, 0x007D, 0x007E },
@@ -421,14 +430,14 @@ hebrew_g0 [37] = {
  * Unicode value.
  */
 unsigned int
-vbi_teletext_unicode		(vbi_charset		charset,
-				 vbi_subset		subset,
+vbi3_teletext_unicode		(vbi3_charset		charset,
+				 vbi3_subset		subset,
 				 unsigned int		c)
 {
 	assert (c >= 0x20 && c <= 0x7F);
 
 	switch (charset) {
-	case VBI_CHARSET_LATIN_G0:
+	case VBI3_CHARSET_LATIN_G0:
 		/* Shortcut. */
 		if (0xF8000019UL & (1 << (c & 31))) {
 			if (subset > 0) {
@@ -451,16 +460,16 @@ vbi_teletext_unicode		(vbi_charset		charset,
 
 		return c;
 
-	case VBI_CHARSET_LATIN_G2:
+	case VBI3_CHARSET_LATIN_G2:
 		return latin_g2[c - 0x20];
 
-	case VBI_CHARSET_CYRILLIC1_G0:
+	case VBI3_CHARSET_CYRILLIC1_G0:
 		if (c < 0x40)
 			return c;
 		else
 			return cyrillic1_g0[c - 0x40];
 
-	case VBI_CHARSET_CYRILLIC2_G0:
+	case VBI3_CHARSET_CYRILLIC2_G0:
 		if (c == 0x26)
 			return 0x044B;
 		else if (c < 0x40)
@@ -468,7 +477,7 @@ vbi_teletext_unicode		(vbi_charset		charset,
 		else
 			return cyrillic2_g0[c - 0x40];
 
-	case VBI_CHARSET_CYRILLIC3_G0:
+	case VBI3_CHARSET_CYRILLIC3_G0:
 		if (c == 0x26)
 			return 0x00EF;
 		else if (c < 0x40)
@@ -476,10 +485,10 @@ vbi_teletext_unicode		(vbi_charset		charset,
 		else
 			return cyrillic3_g0[c - 0x40];
 
-	case VBI_CHARSET_CYRILLIC_G2:
+	case VBI3_CHARSET_CYRILLIC_G2:
 		return cyrillic_g2[c - 0x20];
 
-	case VBI_CHARSET_GREEK_G0:
+	case VBI3_CHARSET_GREEK_G0:
 		if (c == 0x3C)
 			return 0x00AB;
 		else if (c == 0x3E)
@@ -489,22 +498,22 @@ vbi_teletext_unicode		(vbi_charset		charset,
 		else
 			return greek_g0[c - 0x40];
 
-	case VBI_CHARSET_GREEK_G2:
+	case VBI3_CHARSET_GREEK_G2:
 		return greek_g2[c - 0x20];
 
-	case VBI_CHARSET_ARABIC_G0:
+	case VBI3_CHARSET_ARABIC_G0:
 		return arabic_g0[c - 0x20];
 
-	case VBI_CHARSET_ARABIC_G2:
+	case VBI3_CHARSET_ARABIC_G2:
 		return arabic_g2[c - 0x20];
 
-	case VBI_CHARSET_HEBREW_G0:
+	case VBI3_CHARSET_HEBREW_G0:
 		if (c < 0x5B)
 			return c;
 		else
 			return hebrew_g0[c - 0x5B];
 
-	case VBI_CHARSET_BLOCK_MOSAIC_G1:
+	case VBI3_CHARSET_BLOCK_MOSAIC_G1:
 		/* 0x20 ... 0x3F -> 0xEE00 ... 0xEE1F separated */
 		/*                  0xEE20 ... 0xEE3F contiguous */
 		/* 0x60 ... 0x7F -> 0xEE40 ... 0xEE5F separated */
@@ -512,12 +521,12 @@ vbi_teletext_unicode		(vbi_charset		charset,
 		assert (c < 0x40 || c >= 0x60);
 		return 0xEE00u + c;
 
-	case VBI_CHARSET_SMOOTH_MOSAIC_G3:
+	case VBI3_CHARSET_SMOOTH_MOSAIC_G3:
 		return 0xEF00u + c;
 
 	default:
 		fprintf (stderr, "%s: unknown char set %d\n",
-			 __PRETTY_FUNCTION__, charset);
+			 __FUNCTION__, charset);
 		exit (EXIT_FAILURE);
 	}
 }
@@ -554,7 +563,7 @@ composed [12 * 16] = {
  * Unicode value or 0.
  */
 unsigned int
-_vbi_teletext_composed_unicode	(unsigned int		a,
+_vbi3_teletext_composed_unicode	(unsigned int		a,
 				 unsigned int		c)
 {
 	unsigned int i;
@@ -563,8 +572,8 @@ _vbi_teletext_composed_unicode	(unsigned int		a,
 	assert (c >= 0x20 && c <= 0x7F);
 
 	if (0 == a)
-		return vbi_teletext_unicode (VBI_CHARSET_LATIN_G0,
-					     VBI_SUBSET_NONE, c);
+		return vbi3_teletext_unicode (VBI3_CHARSET_LATIN_G0,
+					     VBI3_SUBSET_NONE, c);
 
 	c += a << 12;
 
@@ -617,7 +626,7 @@ caption_special [] = {
  * Unicode value.
  */
 unsigned int
-vbi_caption_unicode		(unsigned int		c)
+vbi3_caption_unicode		(unsigned int		c)
 {
 	assert (c <= 0x0F || (c >= 0x20 && c <= 0x7F));
 

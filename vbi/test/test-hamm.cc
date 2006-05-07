@@ -3,7 +3,7 @@
  *  Copyright (C) 2003 Michael H. Schimek
  */
 
-/* $Id: test-hamm.cc,v 1.1.2.3 2004-04-08 23:36:49 mschimek Exp $ */
+/* $Id: test-hamm.cc,v 1.1.2.4 2006-05-07 06:05:00 mschimek Exp $ */
 
 #include <iostream>
 #include <iomanip>
@@ -14,45 +14,45 @@
 
 namespace vbi {
   static inline unsigned int rev8 (uint8_t c)
-    { return vbi_rev8 (c); };
+    { return vbi3_rev8 (c); };
   static inline unsigned int rev8 (const uint8_t* p)
-    { return vbi_rev8 (*p); };
+    { return vbi3_rev8 (*p); };
   static inline unsigned int rev16 (uint16_t c)
-    { return vbi_rev16 (c); }
+    { return vbi3_rev16 (c); }
   static inline unsigned int rev16 (const uint8_t* p)
-    { return vbi_rev16p (p); };
+    { return vbi3_rev16p (p); };
 
-  static inline unsigned int fpar8 (uint8_t c)
-    { return vbi_fpar8 (c); };
-  static inline void fpar (uint8_t* p, unsigned int n)
-    { vbi_fpar (p, n); };
-  static inline void fpar (uint8_t* begin, uint8_t* end)
-    { vbi_fpar (begin, end - begin); };
+  static inline unsigned int par8 (uint8_t c)
+    { return vbi3_par8 (c); };
+  static inline void par (uint8_t* p, unsigned int n)
+    { vbi3_par (p, n); };
+  static inline void par (uint8_t* begin, uint8_t* end)
+    { vbi3_par (begin, end - begin); };
 
-  static inline int ipar8 (uint8_t c)
-    { return vbi_ipar8 (c); };
-  static inline int ipar (uint8_t* p, unsigned int n)
-    { return vbi_ipar (p, n); };
-  static inline int ipar (uint8_t* begin, uint8_t* end)
-    { return vbi_ipar (begin, end - begin); };
+  static inline int unpar8 (uint8_t c)
+    { return vbi3_unpar8 (c); };
+  static inline int unpar (uint8_t* p, unsigned int n)
+    { return vbi3_unpar (p, n); };
+  static inline int unpar (uint8_t* begin, uint8_t* end)
+    { return vbi3_unpar (begin, end - begin); };
 
-  static inline unsigned int fham8 (unsigned int c)
-    { return vbi_fham8 (c); };
-  static inline void fham16 (uint8_t* p, uint8_t c)
+  static inline unsigned int ham8 (unsigned int c)
+    { return vbi3_ham8 (c); };
+  static inline void ham16 (uint8_t* p, uint8_t c)
     {
-      p[0] = vbi_fham8 (c);
-      p[1] = vbi_fham8 (c >> 4);
+      p[0] = vbi3_ham8 (c);
+      p[1] = vbi3_ham8 (c >> 4);
     }
 
-  static inline int iham8 (uint8_t c)
-    { return vbi_iham8 (c); };
-  static inline int iham16 (uint16_t c)
-    { return ((int) vbi_hamm8_inv[c & 255])
-	| ((int) vbi_hamm8_inv[c >> 8] << 4); };
-  static inline int iham16 (uint8_t* p)
-    { return vbi_iham16p (p); };
-  static inline int iham24 (uint8_t* p)
-    { return vbi_iham24p (p); };
+  static inline int unham8 (uint8_t c)
+    { return vbi3_unham8 (c); };
+  static inline int unham16 (uint16_t c)
+    { return ((int) _vbi3_hamm8_inv[c & 255])
+	| ((int) _vbi3_hamm8_inv[c >> 8] << 4); };
+  static inline int unham16 (uint8_t* p)
+    { return vbi3_unham16p (p); };
+  static inline int unham24 (uint8_t* p)
+    { return vbi3_unham24p (p); };
 };
 
 static unsigned int
@@ -106,14 +106,14 @@ main				(int			argc,
 		assert (vbi::rev16 (n) == vbi::rev16 (buf));
 
 		if (parity (n & 0xFF))
-			assert (vbi::ipar8 (n) == (int)(n & 127));
+			assert (vbi::unpar8 (n) == (int)(n & 127));
 		else
-			assert (vbi::ipar8 (n) == -1);
+			assert (vbi::unpar8 (n) == -1);
 
-		assert (vbi::ipar8 (vbi::fpar8 (n)) >= 0);
+		assert (vbi::unpar8 (vbi::par8 (n)) >= 0);
 
-		vbi::fpar (buf, sizeof (buf));
-		assert (vbi::ipar (buf, sizeof (buf)) >= 0);
+		vbi::par (buf, sizeof (buf));
+		assert (vbi::unpar (buf, sizeof (buf)) >= 0);
 	}
 
 	for (i = 0; i < 10000; ++i) {
@@ -137,23 +137,23 @@ main				(int			argc,
 
 			nn = D ? n : (n ^ 0x40);
 
-			assert (vbi::fham8 (d) == (nn & 255));
-			assert (vbi::iham8 (nn) == d);
+			assert (vbi::ham8 (d) == (nn & 255));
+			assert (vbi::unham8 (nn) == d);
 		} else if (!D) {
 			unsigned int nn;
 			int dd;
 
-			dd = vbi::iham8 (n);
+			dd = vbi::unham8 (n);
 			assert (dd >= 0 && dd <= 15);
 
-			nn = vbi::fham8 (dd);
+			nn = vbi::ham8 (dd);
 			assert (hamming_distance (n & 255, nn) == 1);
 		} else {
-			assert (vbi::iham8 (n) == -1);
+			assert (vbi::unham8 (n) == -1);
 		}
 
-		vbi::fham16 (buf, n);
-		assert (vbi::iham16 (buf) == (int)(n & 255));
+		vbi::ham16 (buf, n);
+		assert (vbi::unham16 (buf) == (int)(n & 255));
 	}
 
 	for (i = 0; i < (1 << 24); ++i) {
@@ -174,9 +174,9 @@ main				(int			argc,
 		     + ((i & 0x7F0000) >> (17 - 12)));
 		
 		if (A && B && C && D && E) {
-			assert (vbi::iham24 (buf) == d);
+			assert (vbi::unham24 (buf) == d);
 		} else if (F) {
-			assert (vbi::iham24 (buf) < 0);
+			assert (vbi::unham24 (buf) < 0);
 		} else {
 			unsigned int err;
 			unsigned int ii;
@@ -187,7 +187,7 @@ main				(int			argc,
 			assert (err > 0);
 
 			if (err >= 24) {
-				assert (vbi::iham24 (buf) < 0);
+				assert (vbi::unham24 (buf) < 0);
 				continue;
 			}
 
@@ -207,7 +207,7 @@ main				(int			argc,
 			     + ((ii & 0x007F00) >> (9 - 5))
 			     + ((ii & 0x7F0000) >> (17 - 12)));
 
-			assert (vbi::iham24 (buf) == d);
+			assert (vbi::unham24 (buf) == d);
 		}
 	}
 

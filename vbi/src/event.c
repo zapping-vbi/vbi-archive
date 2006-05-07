@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Events
  *
- *  Copyright (C) 2000-2004 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002, 2003, 2004 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998,1999 Edgar Toernig (froese@gmx.de)
@@ -21,12 +21,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.c,v 1.1.2.5 2004-10-14 07:54:00 mschimek Exp $ */
+/* $Id: event.c,v 1.1.2.6 2006-05-07 06:04:58 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>		/* malloc() */
 #include "misc.h"		/* CLEAR() */
-#include "event.h"
+#include "event-priv.h"
 
 /**
  * @addtogroup Event Events
@@ -40,7 +40,7 @@
  *
  * Clients can register any number of handlers needed, also different
  * handlers for the same event. They will be called in the order registered
- * from the vbi_decode() function. Since they block decoding, they should
+ * from the vbi3_decode() function. Since they block decoding, they should
  * return as soon as possible. The event structure and all data
  * pointed to from there must be read only. The data is only valid until
  * the handler returns.
@@ -48,18 +48,18 @@
 
 /** @internal */
 const char *
-_vbi_event_name			(unsigned int		event)
+_vbi3_event_name			(vbi3_event_mask	event)
 {
 	switch (event) {
 
 #undef CASE
-#define CASE(s) case VBI_EVENT_##s : return #s ;
+#define CASE(s) case VBI3_EVENT_##s : return #s ;
 
 	CASE (NONE)
 	CASE (CLOSE)
 	CASE (RESET)
 	CASE (TTX_PAGE)
-	CASE (CAPTION)
+	CASE (CC_PAGE)
 	CASE (NETWORK)
 	CASE (TRIGGER)
 	CASE (ASPECT)
@@ -68,7 +68,7 @@ _vbi_event_name			(unsigned int		event)
 	CASE (TOP_CHANGE)
 	CASE (LOCAL_TIME)
 	CASE (PROG_ID)
-
+	CASE (CC_RAW)
 	}
 
 	return NULL;
@@ -83,11 +83,11 @@ _vbi_event_name			(unsigned int		event)
  * for this @a ev->type of event, passing @a ev as parameter.
  */
 void
-__vbi_event_handler_list_send	(_vbi_event_handler_list *es,
-				 const vbi_event *	ev)
+__vbi3_event_handler_list_send	(_vbi3_event_handler_list *es,
+				 const vbi3_event *	ev)
 {
-	vbi_event_handler *eh;
-	vbi_event_handler *current;
+	vbi3_event_handler *eh;
+	vbi3_event_handler *current;
 
 	assert (NULL != es);
 	assert (NULL != ev);
@@ -103,12 +103,12 @@ __vbi_event_handler_list_send	(_vbi_event_handler_list *es,
 		if ((eh->event_mask & ev->type)
 		    && eh->callback
 		    && 0 == eh->blocked) {
-			vbi_bool cont;
+			vbi3_bool done;
 
 			es->current = eh;
 			eh->blocked = 1;
 
-			cont = eh->callback (ev, eh->user_data);
+			done = eh->callback (ev, eh->user_data);
 
 			if (es->current == eh) {
 				eh->blocked = 0;
@@ -118,7 +118,7 @@ __vbi_event_handler_list_send	(_vbi_event_handler_list *es,
 				eh = es->current;
 			}
 
-			if (!cont)
+			if (done)
 				break;
 		} else {
 			eh = eh->next;
@@ -137,12 +137,12 @@ __vbi_event_handler_list_send	(_vbi_event_handler_list *es,
  * only events given in the @a event_mask.
  */
 void
-_vbi_event_handler_list_remove_by_event
-			    	(_vbi_event_handler_list *es,
-				 unsigned int		event_mask)
+_vbi3_event_handler_list_remove_by_event
+			    	(_vbi3_event_handler_list *es,
+				 vbi3_event_mask	event_mask)
 {
-	vbi_event_handler *eh, **ehp;
-	unsigned int clear_mask;
+	vbi3_event_handler *eh, **ehp;
+	vbi3_event_mask clear_mask;
 
 	assert (NULL != es);
 
@@ -159,7 +159,7 @@ _vbi_event_handler_list_remove_by_event
 			if (es->current == eh)
 				es->current = eh->next;
 
-			vbi_free (eh);
+			vbi3_free (eh);
 		} else {
 			ehp = &eh->next;
 		}
@@ -178,12 +178,12 @@ _vbi_event_handler_list_remove_by_event
  * itself or another handler.
  */
 void
-_vbi_event_handler_list_remove_by_callback
-				(_vbi_event_handler_list *es,
-				 vbi_event_cb *		callback,
+_vbi3_event_handler_list_remove_by_callback
+				(_vbi3_event_handler_list *es,
+				 vbi3_event_cb *		callback,
 				 void *			user_data)
 {
-	_vbi_event_handler_list_add (es, 0, callback, user_data);
+	_vbi3_event_handler_list_add (es, 0, callback, user_data);
 }
 
 /**
@@ -195,16 +195,18 @@ _vbi_event_handler_list_remove_by_callback
  * handler.
  */
 void
-_vbi_event_handler_list_remove	(_vbi_event_handler_list *es,
-				 vbi_event_handler *	eh)
+_vbi3_event_handler_list_remove	(_vbi3_event_handler_list *es,
+				 vbi3_event_handler *	eh)
 {
-	vbi_event_handler *eh1, **ehp;
-	unsigned int event_union;
+	vbi3_event_handler *eh1, **ehp;
+	vbi3_event_mask event_union;
 
 	assert (NULL != es);
 	assert (NULL != eh);
 
 	ehp = &es->first;
+
+	event_union = 0;
 
 	while ((eh1 = *ehp)) {
 		if (eh == eh1) {
@@ -215,7 +217,7 @@ _vbi_event_handler_list_remove	(_vbi_event_handler_list *es,
 			if (es->current == eh)
 				es->current = eh->next;
 
-			vbi_free (eh);
+			vbi3_free (eh);
 		} else {
 			event_union |= eh1->event_mask;
 			ehp = &eh1->next;
@@ -227,7 +229,7 @@ _vbi_event_handler_list_remove	(_vbi_event_handler_list *es,
 
 /**
  * @param es Event handler list.
- * @param event_mask Set of events (@c VBI_EVENT_) the handler is waiting
+ * @param event_mask Set of events (@c VBI3_EVENT_) the handler is waiting
  *   for, can be -1 for all and 0 for none.
  * @param callback Function to be called on events.
  * @param user_data User pointer passed through to the @a callback function.
@@ -243,18 +245,17 @@ _vbi_event_handler_list_remove	(_vbi_event_handler_list *es,
  * not recursively called when they trigger events.
  *
  * @return
- * Pointer to opaque vbi_event_handler object, @c NULL on failure or if
+ * Pointer to opaque vbi3_event_handler object, @c NULL on failure or if
  * no handler has been added.
  */
-vbi_event_handler *
-_vbi_event_handler_list_add	(_vbi_event_handler_list *es,
-				 unsigned int		event_mask,
-				 vbi_event_cb *		callback,
+vbi3_event_handler *
+_vbi3_event_handler_list_add	(_vbi3_event_handler_list *es,
+				 vbi3_event_mask	event_mask,
+				 vbi3_event_cb *		callback,
 				 void *			user_data)
 {
-	vbi_event_handler *eh, **ehp;
-	unsigned int event_union;
-	vbi_bool found;
+	vbi3_event_handler *eh, **ehp, *found;
+	vbi3_event_mask event_union;
 
 	assert (NULL != es);
 
@@ -262,12 +263,12 @@ _vbi_event_handler_list_add	(_vbi_event_handler_list *es,
 
 	event_union = 0;
 
-	found = FALSE;
+	found = NULL;
 
 	while ((eh = *ehp)) {
 		if (eh->callback == callback
 		    && eh->user_data == user_data) {
-			found = TRUE;
+			found = eh;
 
 			if (0 == event_mask) {
 				/* Remove handler. */
@@ -277,7 +278,7 @@ _vbi_event_handler_list_add	(_vbi_event_handler_list *es,
 				if (es->current == eh)
 					es->current = eh->next;
 
-				vbi_free (eh);
+				vbi3_free (eh);
 
 				continue;
 			} else {
@@ -289,44 +290,44 @@ _vbi_event_handler_list_add	(_vbi_event_handler_list *es,
 		ehp = &eh->next;
 	}
 
-	eh = NULL;
-
-	if (!found && event_mask) {
+	if (NULL == found && event_mask) {
 		/* Add handler. */
 
-		if ((eh = vbi_malloc (sizeof (*eh)))) {
-			eh->next	= NULL;
-			eh->event_mask	= event_mask;
+		if ((found = vbi3_malloc (sizeof (*found)))) {
+			CLEAR (*found);
 
-			eh->callback	= callback;
-			eh->user_data	= user_data;
+			found->next		= NULL;
+			found->event_mask	= event_mask;
+
+			found->callback		= callback;
+			found->user_data	= user_data;
 
 			/* Whoops. Remalloc'ed ourselves? */
-			eh->blocked	= (es->current == eh);
+			found->blocked = (es->current == found);
 
 			event_union |= event_mask;
 
-			*ehp = eh;
+			*ehp = found;
 		}
 	}
 
 	es->event_mask = event_union;
 
-	return eh;
+	return found;
 }
 
 void
-_vbi_event_handler_list_destroy	(_vbi_event_handler_list *es)
+_vbi3_event_handler_list_destroy	(_vbi3_event_handler_list *es)
 {
 	assert (NULL != es);
 
-	_vbi_event_handler_list_remove_by_event (es, (unsigned int) -1);
+	_vbi3_event_handler_list_remove_by_event (es, (vbi3_event_mask) -1);
 
 	CLEAR (*es);
 }
 
-vbi_bool
-_vbi_event_handler_list_init	(_vbi_event_handler_list *es)
+vbi3_bool
+_vbi3_event_handler_list_init	(_vbi3_event_handler_list *es)
 {
 	assert (NULL != es);
 

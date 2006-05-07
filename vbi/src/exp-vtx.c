@@ -1,7 +1,7 @@
 /*
  *  libzvbi - VTX export function
  *
- *  Copyright (C) 2001 Michael H. Schimek
+ *  Copyright (C) 2001, 2002, 2003, 2004 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998, 1999 Edgar Toernig <froese@gmx.de>
@@ -26,25 +26,32 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.4.2.6 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.4.2.7 2006-05-07 06:04:58 mschimek Exp $ */
 
 /* VTX is the file format used by the VideoteXt application. It stores
    Teletext pages in raw level 1.0 format. Level 1.5 additional characters
    (e.g. accents), the FLOF and TOP navigation bars and the level 2.5
    chrome will be lost.
  
-   Since restoring the raw page from a fmt_page is complicated we violate
-   encapsulation by fetching a raw copy from the cache. :-( */
+   Since restoring the raw page from a fmt_page is complicated if not
+   impossible, we violate encapsulation by fetching a raw copy from
+   the cache. :-( */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <assert.h>
 #include <inttypes.h>
 
-#include "hamm.h"		/* vbi_rev8() */
+#include "hamm.h"		/* vbi3_rev8() */
 #include "cache-priv.h"		/* cache_page */
-#include "page-priv.h"		/* vbi_page_priv */
-#include "intl-priv.h"
+#include "page-priv.h"		/* vbi3_page_priv */
+#ifdef ZAPPING8
+#  include "common/intl-priv.h"
+#else
+#  include "intl-priv.h"
+#endif
 #include "export-priv.h"
 
 struct header {
@@ -62,24 +69,24 @@ struct header {
  *  VTX - VideoteXt File (VTXV4)
  */
 
-static vbi_bool
-export				(vbi_export *		e,
-				 const vbi_page *	pg)
+static vbi3_bool
+export				(vbi3_export *		e,
+				 const vbi3_page *	pg)
 {
-	const vbi_page_priv *pgp;
+	const vbi3_page_priv *pgp;
 	const cache_page *cp;
 	struct header h;
 
 	if (pg->pgno < 0x100 || pg->pgno > 0x8FF) {
-		_vbi_export_error_printf
+		_vbi3_export_error_printf
 			(e, _("Can only export Teletext pages."));
 		return FALSE;
 	}
 
-	pgp = CONST_PARENT (pg, vbi_page_priv, pg);
+	pgp = CONST_PARENT (pg, vbi3_page_priv, pg);
 
 	if (pg->priv != pgp || !pgp->cp) {
-		_vbi_export_error_printf (e, _("Page is not cached, sorry."));
+		_vbi3_export_error_printf (e, _("Page is not cached."));
 		return FALSE;
 	}
 
@@ -87,8 +94,8 @@ export				(vbi_export *		e,
 
 	if (cp->function != PAGE_FUNCTION_UNKNOWN
 	    && cp->function != PAGE_FUNCTION_LOP) {
-		_vbi_export_error_printf
-			(e, _("Cannot export this page, not displayable."));
+		_vbi3_export_error_printf
+			(e, _("Cannot export this page, is not displayable."));
 		goto error;
 	}
 
@@ -103,7 +110,7 @@ export				(vbi_export *		e,
 	h.charset = cp->national & 7;
 
 	h.wst_flags = cp->flags & C4_ERASE_PAGE;
-	h.wst_flags |= vbi_rev8 (cp->flags >> 12);
+	h.wst_flags |= vbi3_rev8 (cp->flags >> 12);
 	h.vtx_flags = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 4) | (0 << 3);
 	/* notfound, pblf (?), hamming error, virtual, seven bits */
 
@@ -116,13 +123,13 @@ export				(vbi_export *		e,
 	return TRUE;
 
  write_error:
-	_vbi_export_write_error (e);
+	_vbi3_export_write_error (e);
 
  error:
 	return FALSE;
 }
 
-static const vbi_export_info
+static const vbi3_export_info
 export_info = {
 	.keyword		= "vtx",
 	.label			= N_("VTX"),
@@ -134,8 +141,8 @@ export_info = {
 	.extension		= "vtx",
 };
 
-const _vbi_export_module
-_vbi_export_module_vtx = {
+const _vbi3_export_module
+_vbi3_export_module_vtx = {
 	.export_info		= &export_info,
 
 	/* no private data, no options */

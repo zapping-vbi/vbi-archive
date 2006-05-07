@@ -17,14 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.h,v 1.3.2.2 2004-02-13 02:11:20 mschimek Exp $ */
+/* $Id: tables.h,v 1.3.2.3 2006-05-07 06:04:58 mschimek Exp $ */
 
 #ifndef TABLES_H
 #define TABLES_H
 
 #include <inttypes.h>
 
-#include "event.h" /* vbi_rating_auth, vbi_prog_classf */
+#include "event.h" /* vbi3_rating_auth, vbi3_prog_classf */
 
 /* Public */
 
@@ -32,8 +32,8 @@
  * @addtogroup Event
  * @{
  */
-extern const char *	vbi_rating_string(vbi_rating_auth auth, int id);
-extern const char *	vbi_prog_type_string(vbi_prog_classf classf, int id);
+extern const char *	vbi3_rating_string(vbi3_rating_auth auth, int id);
+extern const char *	vbi3_prog_type_string(vbi3_prog_classf classf, int id);
 /** @} */
 
 /* Private */

@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Closed Caption and Teletext rendering
  *
- *  Copyright (C) 2000, 2001, 2002 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002, 2004 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998, 1999 Edgar Toernig <froese@gmx.de>
@@ -22,80 +22,102 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.h,v 1.2.2.5 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: exp-gfx.h,v 1.2.2.6 2006-05-07 06:04:58 mschimek Exp $ */
 
-#ifndef __ZVBI_EXP_GFX_H__
-#define __ZVBI_EXP_GFX_H__
+#ifndef __ZVBI3_EXP_GFX_H__
+#define __ZVBI3_EXP_GFX_H__
 
 #include <stdarg.h>		/* va_list */
 #include "macros.h"
-#include "format.h"		/* vbi_page */
-#include "graphics.h"		/* vbi_image_format */
+#include "page.h"		/* vbi3_page */
+#include "image_format.h"	/* vbi3_image_format */
 
-VBI_BEGIN_DECLS
+VBI3_BEGIN_DECLS
 
 /**
  * @addtogroup Render
  * @{
  */
-extern vbi_bool
-vbi_draw_vt_page_region_va_list	(const vbi_page *	pg,
+extern vbi3_bool
+vbi3_page_draw_teletext_region_va_list
+				(const vbi3_page *	pg,
 				 void *			buffer,
-				 const vbi_image_format *format,
+				 const vbi3_image_format *format,
+				 unsigned int		x,
+				 unsigned int		y,
 				 unsigned int		column,
 				 unsigned int		row,
-				 unsigned int		width,
-				 unsigned int		height,
-				 va_list		export_options);
-extern vbi_bool
-vbi_draw_vt_page_region		(const vbi_page *	pg,
+				 unsigned int		n_columns,
+				 unsigned int		n_rows,
+				 va_list		export_options)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+extern vbi3_bool
+vbi3_page_draw_teletext_region	(const vbi3_page *	pg,
 				 void *			buffer,
-				 const vbi_image_format *format,
+				 const vbi3_image_format *format,
+				 unsigned int		x,
+				 unsigned int		y,
 				 unsigned int		column,
 				 unsigned int		row,
-				 unsigned int		width,
-				 unsigned int		height,
-				 ...);
-extern vbi_bool
-vbi_draw_vt_page_va_list	(const vbi_page *	pg,
+				 unsigned int		n_columns,
+				 unsigned int		n_rows,
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3),
+		  _vbi3_sentinel));
+extern vbi3_bool
+vbi3_page_draw_teletext_va_list	(const vbi3_page *	pg,
 				 void *			buffer,
-				 const vbi_image_format *format,
-				 va_list		export_options);
-extern vbi_bool
-vbi_draw_vt_page		(const vbi_page *	pg,
+				 const vbi3_image_format *format,
+				 va_list		export_options)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+extern vbi3_bool
+vbi3_page_draw_teletext		(const vbi3_page *	pg,
 				 void *			buffer,
-				 const vbi_image_format *format,
-				 ...);
-extern vbi_bool
-vbi_draw_cc_page_region_va_list	(const vbi_page *	pg,
+				 const vbi3_image_format *format,
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3),
+		  _vbi3_sentinel));
+extern vbi3_bool
+vbi3_page_draw_caption_region_va_list
+				(const vbi3_page *	pg,
 				 void *			buffer,
-				 const vbi_image_format *format,
+				 const vbi3_image_format *format,
+				 unsigned int		x,
+				 unsigned int		y,
 				 unsigned int		column,
 				 unsigned int		row,
-				 unsigned int		width,
-				 unsigned int		height,
-				 va_list		export_options);
-extern vbi_bool
-vbi_draw_cc_page_region		(const vbi_page *	pg,
+				 unsigned int		n_columns,
+				 unsigned int		n_rows,
+				 va_list		export_options)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+extern vbi3_bool
+vbi3_page_draw_caption_region	(const vbi3_page *	pg,
 				 void *			buffer,
-				 const vbi_image_format *format,
+				 const vbi3_image_format *format,
+				 unsigned int		x,
+				 unsigned int		y,
 				 unsigned int		column,
 				 unsigned int		row,
-				 unsigned int		width,
-				 unsigned int		height,
-				 ...);
-extern vbi_bool
-vbi_draw_cc_page_va_list	(const vbi_page *	pg,
+				 unsigned int		n_columns,
+				 unsigned int		n_rows,
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3),
+		  _vbi3_sentinel));
+extern vbi3_bool
+vbi3_page_draw_caption_va_list	(const vbi3_page *	pg,
 				 void *			buffer,
-				 const vbi_image_format *format,
-				 va_list		export_options);
-extern vbi_bool
-vbi_draw_cc_page		(const vbi_page *	pg,
+				 const vbi3_image_format *format,
+				 va_list		export_options)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+extern vbi3_bool
+vbi3_page_draw_caption		(const vbi3_page *	pg,
 				 void *			buffer,
-				 const vbi_image_format *format,
-				 ...);
+				 const vbi3_image_format *format,
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2),
+		  _vbi3_sentinel));
 /** @} */
 
-VBI_END_DECLS
+VBI3_END_DECLS
 
-#endif /* __ZVBI_EXP_GFX_H__ */
+#endif /* __ZVBI3_EXP_GFX_H__ */

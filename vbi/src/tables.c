@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.c,v 1.4.2.3 2004-02-13 02:11:10 mschimek Exp $ */
+/* $Id: tables.c,v 1.4.2.4 2006-05-07 06:04:58 mschimek Exp $ */
 
 #include <stdlib.h>
 
@@ -251,10 +251,10 @@ eia608_program_type[96] =
 };
 
 /**
- * @param auth From vbi_program_info.rating_auth.
- * @param id From vbi_program_info.rating_id.
+ * @param auth From vbi3_program_info.rating_auth.
+ * @param id From vbi3_program_info.rating_id.
  * 
- * Translate a vbi_program_info program rating code into a
+ * Translate a vbi3_program_info program rating code into a
  * Latin-1 string, native language.
  * 
  * @a return
@@ -262,7 +262,7 @@ eia608_program_type[96] =
  * this code is undefined.
  */
 const char *
-vbi_rating_string(vbi_rating_auth auth, int id)
+vbi3_rating_string(vbi3_rating_auth auth, int id)
 {
 	static const char *ratings[4][8] = {
 		{ NULL, "G", "PG", "PG-13", "R", "NC-17", "X", "Not rated" },
@@ -275,16 +275,16 @@ vbi_rating_string(vbi_rating_auth auth, int id)
 		return NULL;
 
 	switch (auth) {
-	case VBI_RATING_AUTH_MPAA:
+	case VBI3_RATING_AUTH_MPAA:
 		return ratings[0][id];
 
-	case VBI_RATING_AUTH_TV_US:
+	case VBI3_RATING_AUTH_TV_US:
 		return ratings[1][id];
 
-	case VBI_RATING_AUTH_TV_CA_EN:
+	case VBI3_RATING_AUTH_TV_CA_EN:
 		return ratings[2][id];
 
-	case VBI_RATING_AUTH_TV_CA_FR:
+	case VBI3_RATING_AUTH_TV_CA_FR:
 		return ratings[3][id];
 
 	default:
@@ -293,10 +293,10 @@ vbi_rating_string(vbi_rating_auth auth, int id)
 }
 
 /**
- * @param classf From vbi_program_info.type_classf.
- * @param id From vbi_program_info.type_id.
+ * @param classf From vbi3_program_info.type_classf.
+ * @param id From vbi3_program_info.type_id.
  * 
- * Translate a vbi_program_info program type code into a
+ * Translate a vbi3_program_info program type code into a
  * Latin-1 string, currently English only.
  * 
  * @return 
@@ -304,15 +304,15 @@ vbi_rating_string(vbi_rating_auth auth, int id)
  * this code is undefined.
  */
 const char *
-vbi_prog_type_string(vbi_prog_classf classf, int id)
+vbi3_prog_type_string(vbi3_prog_classf classf, int id)
 {
 	switch (classf) {
-	case VBI_PROG_CLASSF_EIA_608:
+	case VBI3_PROG_CLASSF_EIA_608:
 		if (id < 0x20 || id > 0x7F)
 			return NULL;
 		return eia608_program_type[id - 0x20];
 
-	case VBI_PROG_CLASSF_ETS_300231:
+	case VBI3_PROG_CLASSF_ETS_300231:
 		if (id < 0x00 || id > 0x7F)
 			return NULL;
 		return ets_program_type[0][id];

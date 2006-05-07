@@ -1,6 +1,6 @@
 /*
  *  libzvbi - Closed Caption and Teletext
- *            Subtitle/Caption export functions
+ *            caption / subtitle export functions
  *
  *  Copyright (C) 2004 Michael H. Schimek
  *
@@ -19,21 +19,27 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-sub.c,v 1.1.2.5 2004-10-14 07:54:00 mschimek Exp $ */
+/* $Id: exp-sub.c,v 1.1.2.6 2006-05-07 06:04:58 mschimek Exp $ */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <assert.h>
 #include <inttypes.h>
 #include <stdlib.h>		/* malloc() */
 #include <math.h>		/* floor() */
 #include <setjmp.h>
-#include "format.h"		/* vbi_page */
+#include "page.h"		/* vbi3_page */
 #include "conv.h"
 #include "misc.h"
-#include "lang.h"		/* vbi_character_set, ... */
-#include "intl-priv.h"
-#include "export-priv.h"	/* vbi_export */
+#include "lang.h"		/* vbi3_character_set, ... */
+#ifdef ZAPPING8
+#  include "common/intl-priv.h"
+#else
+#  include "intl-priv.h"
+#endif
+#include "export-priv.h"	/* vbi3_export */
 
 /*
     Resources:
@@ -62,38 +68,39 @@
     http://www.subviewer.com/
 */
 
-typedef struct {
+struct vec {
 	uint16_t *		buffer;
         uint16_t *		bp;
 	uint16_t *		end;
-} vec;
+};
 
-typedef enum {
+enum format {
 	FORMAT_MPSUB,
 	FORMAT_QTTEXT,
 	FORMAT_REALTEXT,
 	FORMAT_SAMI,
 	FORMAT_SUBRIP,
 	FORMAT_SUBVIEWER,
-} format;
+};
 
 typedef struct sub_instance {
-	vbi_export		export;
+	vbi3_export		export;
 
 	jmp_buf			main;
 
-	vec			text1;
-	vec			text2;
+	struct vec		text1;
+	struct vec		text2;
 	iconv_t			cd;
 
-	format			format;
+	enum format		format;
 	int			encoding;
 	char *			charset;
 	char *			font;
 
-	vbi_bool		have_header;
+	vbi3_bool		have_header;
 
-	double			first_timestamp;
+	vbi3_pgno		last_pgno;
+
 	double			last_timestamp;
 
 	double			delay_time;
@@ -101,15 +108,15 @@ typedef struct sub_instance {
 	unsigned int		n_pages;
 	unsigned int		blank_pages;
 
-	vbi_char		para_ac;
-	vbi_char		last_ac;
+	vbi3_char		para_ac;
+	vbi3_char		last_ac;
 
 	unsigned int		last_just;
 
-	vbi_bool		in_span;
-	vbi_bool		in_underline;
-	vbi_bool		in_bold;
-	vbi_bool		in_italic;
+	vbi3_bool		in_span;
+	vbi3_bool		in_underline;
+	vbi3_bool		in_bold;
+	vbi3_bool		in_italic;
 } sub_instance;
 
 static const char *
@@ -142,29 +149,39 @@ iconv_encodings [] = {
 	"UTF-8"
 };
 
-static const vbi_option_info
-option_info [] = {
-	_VBI_OPTION_MENU_INITIALIZER
+static const vbi3_option_info
+option_info1 [] = {
+	_VBI3_OPTION_MENU_INITIALIZER
 	("format", N_("Encoding"),
 	 1, user_encodings, N_ELEMENTS (user_encodings), NULL),
         /* one for users, another for programs */
-	_VBI_OPTION_STRING_INITIALIZER
+	_VBI3_OPTION_STRING_INITIALIZER
 	("charset", NULL, "ISO-8859-1", NULL),
-	_VBI_OPTION_STRING_INITIALIZER
-	("font", NULL, "Tahoma", NULL),
+};
+
+static const vbi3_option_info
+option_info2 [] = {
+	_VBI3_OPTION_MENU_INITIALIZER
+	("format", N_("Encoding"),
+	 0, user_encodings, N_ELEMENTS (user_encodings), NULL),
+        /* one for users, another for programs */
+	_VBI3_OPTION_STRING_INITIALIZER
+	("charset", NULL, "ISO-8859-1", NULL),
+	_VBI3_OPTION_STRING_INITIALIZER
+	("font", N_("Font face"), "Tahoma", NULL),
 };
 
 #undef KEYWORD
 #define KEYWORD(str) (0 == strcmp (em->export_info->keyword, str))
 
-static vbi_export *
-sub_new			(const _vbi_export_module *em)
+static vbi3_export *
+sub_new			(const _vbi3_export_module *em)
 {
 	sub_instance *sub;
 
 	assert (sizeof (user_encodings) == sizeof (iconv_encodings));
 
-	if (!(sub = vbi_malloc (sizeof (*sub))))
+	if (!(sub = vbi3_malloc (sizeof (*sub))))
 		return NULL;
 
 	CLEAR (*sub);
@@ -191,52 +208,52 @@ sub_new			(const _vbi_export_module *em)
 }
 
 static void
-sub_delete			(vbi_export *		e)
+sub_delete			(vbi3_export *		e)
 {
 	sub_instance *sub = PARENT (e, sub_instance, export);
 
-	vbi_free (sub->text1.buffer);
-	vbi_free (sub->text2.buffer);
+	vbi3_free (sub->text1.buffer);
+	vbi3_free (sub->text2.buffer);
 
-	vbi_free (sub->charset);
-	vbi_free (sub->font);
+	vbi3_free (sub->charset);
+	vbi3_free (sub->font);
 
 	if ((iconv_t) -1 == sub->cd)
-		vbi_iconv_ucs2_close (sub->cd);
+		vbi3_iconv_close (sub->cd);
 
-	vbi_free (sub);
+	vbi3_free (sub);
 }
 
 #undef KEYWORD
 #define KEYWORD(str) (0 == strcmp (keyword, str))
 
-static vbi_bool
-option_get			(vbi_export *		e,
+static vbi3_bool
+option_get			(vbi3_export *		e,
 				 const char *		keyword,
-				 vbi_option_value *	value)
+				 vbi3_option_value *	value)
 {
 	sub_instance *sub = PARENT (e, sub_instance, export);
 
 	if (KEYWORD ("format") || KEYWORD ("encoding")) {
 		value->num = sub->encoding;
 	} else if (KEYWORD ("charset")) {
-		value->str = _vbi_export_strdup (e, NULL, sub->charset);
+		value->str = _vbi3_export_strdup (e, NULL, sub->charset);
 		if (!value->str)
 			return FALSE;
 	} else if (KEYWORD ("font")) {
-		value->str = _vbi_export_strdup (e, NULL, sub->font);
+		value->str = _vbi3_export_strdup (e, NULL, sub->font);
 		if (!value->str)
 			return FALSE;
 	} else {
-		_vbi_export_unknown_option (e, keyword);
+		_vbi3_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
 	return TRUE; /* success */
 }
 
-static vbi_bool
-option_set			(vbi_export *		e,
+static vbi3_bool
+option_set			(vbi3_export *		e,
 				 const char *		keyword,
 				 va_list		ap)
 {
@@ -246,11 +263,11 @@ option_set			(vbi_export *		e,
 		unsigned int encoding = va_arg (ap, unsigned int);
 
 		if (encoding >= N_ELEMENTS (user_encodings)) {
-			_vbi_export_invalid_option (e, keyword, encoding);
+			_vbi3_export_invalid_option (e, keyword, encoding);
 			return FALSE;
 		}
 
-		if (!_vbi_export_strdup (e, &sub->charset,
+		if (!_vbi3_export_strdup (e, &sub->charset,
 					 iconv_encodings[encoding]))
 			return FALSE;
 
@@ -259,24 +276,24 @@ option_set			(vbi_export *		e,
 		const char *string = va_arg (ap, const char *);
 
 		if (!string) {
-			_vbi_export_invalid_option (e, keyword, string);
+			_vbi3_export_invalid_option (e, keyword, string);
 			return FALSE;
 		}
 
-		if (!_vbi_export_strdup (e, &sub->charset, string))
+		if (!_vbi3_export_strdup (e, &sub->charset, string))
 			return FALSE;
 	} else if (KEYWORD ("font")) {
 		const char *string = va_arg (ap, const char *);
 
 		if (!string) {
-			_vbi_export_invalid_option (e, keyword, string);
+			_vbi3_export_invalid_option (e, keyword, string);
 			return FALSE;
 		}
 
-		if (!_vbi_export_strdup (e, &sub->font, string))
+		if (!_vbi3_export_strdup (e, &sub->font, string))
 			return FALSE;
 	} else {
-		_vbi_export_unknown_option (e, keyword);
+		_vbi3_export_unknown_option (e, keyword);
 		return FALSE;
 	}
 
@@ -285,15 +302,15 @@ option_set			(vbi_export *		e,
 
 /* We write UCS-2 into an automatically growing buffer. */
 static void
-extend				(sub_instance *	sub,
-				 vec *			v)
+extend				(sub_instance *		sub,
+				 struct vec *		v)
 {
 	uint16_t *buffer;
 	unsigned int n;
 
 	n = v->end - v->buffer + 2048;
 
-	if (!(buffer = vbi_realloc (v->buffer, n * sizeof (*v->buffer)))) {
+	if (!(buffer = vbi3_realloc (v->buffer, n * sizeof (*v->buffer)))) {
 		longjmp (sub->main, -1);
 	}
 
@@ -304,12 +321,12 @@ extend				(sub_instance *	sub,
 
 static void
 putws				(sub_instance *		sub,
-				 vbi_bool		escape,
+				 vbi3_bool		escape,
 				 const char *		s);
 
 static void
 putwc				(sub_instance *		sub,
-				 vbi_bool		escape,
+				 vbi3_bool		escape,
 				 unsigned int		wc)
 {
 	if (escape) {
@@ -348,7 +365,7 @@ putwc				(sub_instance *		sub,
 
 static void
 putws				(sub_instance *		sub,
-				 vbi_bool		escape,
+				 vbi3_bool		escape,
 				 const char *		s)
 {
 	if (escape) {
@@ -374,7 +391,7 @@ putws				(sub_instance *		sub,
 
 static void
 wprintf				(sub_instance *		sub,
-				 vbi_bool		escape,
+				 vbi3_bool		escape,
 				 const char *		template,
 				 ...)
 {
@@ -396,24 +413,24 @@ wprintf				(sub_instance *		sub,
 static void
 color				(sub_instance *		sub,
 				 const char *		label,
-				 vbi_rgba		color)
+				 vbi3_rgba		color)
 {
 	switch (sub->format) {
 	case FORMAT_QTTEXT:
 		wprintf (sub, FALSE, "{%s%u,%u,%u}",
 			 label,
-			 VBI_R (color) * 0x0101,
-			 VBI_G (color) * 0x0101,
-			 VBI_B (color) * 0x0101);
+			 VBI3_R (color) * 0x0101,
+			 VBI3_G (color) * 0x0101,
+			 VBI3_B (color) * 0x0101);
 		break;
 
 	case FORMAT_REALTEXT:
 	case FORMAT_SAMI:
 		wprintf (sub, FALSE, "%s#%02x%02x%02x",
 			 label,
-			 VBI_R (color),
-			 VBI_G (color),
-			 VBI_B (color));
+			 VBI3_R (color),
+			 VBI3_G (color),
+			 VBI3_B (color));
 		break;
 
 	default:
@@ -423,8 +440,8 @@ color				(sub_instance *		sub,
 
 static void
 sami_span			(sub_instance *		sub,
-				 const vbi_page *	pg,
-				 const vbi_char *	ac)
+				 const vbi3_page *	pg,
+				 const vbi3_char *	ac)
 {
 	unsigned int ct = 0;
 
@@ -444,28 +461,28 @@ sami_span			(sub_instance *		sub,
 		       pg->color_map[ac->background]);
 	}
 
-	if (ac->attr & VBI_UNDERLINE) {
+	if (ac->attr & VBI3_UNDERLINE) {
 		if (ct)
 			putwc (sub, FALSE, ';');
 		ct = 1;
 		putws (sub, FALSE, "text-decoration:underline");
 	}
 
-	if (ac->attr & VBI_BOLD) {
+	if (ac->attr & VBI3_BOLD) {
 		if (ct)
 			putwc (sub, FALSE, ';');
 		ct = 1;
 		putws (sub, FALSE, "font-weight:bold");
 	}
 
-	if (ac->attr & VBI_ITALIC) {
+	if (ac->attr & VBI3_ITALIC) {
 		if (ct)
 			putwc (sub, FALSE, ';');
 		ct = 1;
 		putws (sub, FALSE, "font-style:italic");
 	}
 
-	if (ac->attr & VBI_FLASH) {
+	if (ac->attr & VBI3_FLASH) {
 		if (ct)
 			putwc (sub, FALSE, ';');
 		ct = 1;
@@ -481,8 +498,8 @@ sami_span			(sub_instance *		sub,
 
 static void
 qt_style			(sub_instance *		sub,
-				 const vbi_page *	pg,
-				 const vbi_char *	ac)
+				 const vbi3_page *	pg,
+				 const vbi3_char *	ac)
 {
 	unsigned int attr;
 
@@ -499,13 +516,13 @@ qt_style			(sub_instance *		sub,
 	if (attr) /* reset */
 		putws (sub, FALSE, "{plain}");
 
-	if (attr & VBI_UNDERLINE)
+	if (attr & VBI3_UNDERLINE)
 		putws (sub, FALSE, "{underline}");
 
-	if (attr & VBI_BOLD)
+	if (attr & VBI3_BOLD)
 		putws (sub, FALSE, "{bold}");
 
-	if (attr & VBI_ITALIC)
+	if (attr & VBI3_ITALIC)
 		putws (sub, FALSE, "{italic}");
 
 	sub->last_ac = *ac;
@@ -513,8 +530,8 @@ qt_style			(sub_instance *		sub,
 
 static void
 real_style			(sub_instance *		sub,
-				 const vbi_page *	pg,
-				 const vbi_char *	ac)
+				 const vbi3_page *	pg,
+				 const vbi3_char *	ac)
 {
 	if (ac->foreground != sub->last_ac.foreground
 	    || ac->background != sub->last_ac.background) {
@@ -540,17 +557,17 @@ real_style			(sub_instance *		sub,
 		sub->in_span = TRUE;
 	}
 
-	if (ac->attr & VBI_UNDERLINE) {
+	if (ac->attr & VBI3_UNDERLINE) {
 		putws (sub, FALSE, "<u>");
 		sub->in_underline = TRUE;
 	}
 
-	if (ac->attr & VBI_BOLD) {
+	if (ac->attr & VBI3_BOLD) {
 		putws (sub, FALSE, "<b>");
 		sub->in_bold = TRUE;
 	}
 
-	if (ac->attr & VBI_ITALIC) {
+	if (ac->attr & VBI3_ITALIC) {
 		putws (sub, FALSE, "<i>");
 		sub->in_italic = TRUE;
 	}
@@ -587,10 +604,12 @@ real_style_end			(sub_instance *		sub)
 static void
 flush				(sub_instance *		sub)
 {
-	if (!vbi_stdio_cd_ucs2 (sub->export.fp, sub->cd,
-				sub->text1.buffer,
-				(unsigned int)(sub->text1.bp
-					       - sub->text1.buffer))) {
+	long length;
+
+	length = (long)(sub->text1.bp - sub->text1.buffer);
+
+	if (!vbi3_fputs_cd_ucs2 (sub->export.fp, sub->cd,
+				 sub->text1.buffer, length)) {
 		longjmp (sub->main, -1);
 	}
 
@@ -599,7 +618,7 @@ flush				(sub_instance *		sub)
 
 static void
 header				(sub_instance *		sub,
-				 const vbi_page *	pg)
+				 const vbi3_page *	pg)
 {
 	switch (sub->format) {
 	case FORMAT_MPSUB:
@@ -612,7 +631,7 @@ header				(sub_instance *		sub,
 
 		if (pg->pgno < 0x100) {
 			putws (sub, FALSE, "Closed Caption");
-		} else if (pg->subno && pg->subno != VBI_ANY_SUBNO) {
+		} else if (pg->subno && pg->subno != VBI3_ANY_SUBNO) {
 			wprintf (sub, TRUE, _("Teletext Page %3x.%x"),
 				 pg->pgno, pg->subno);
 		} else {
@@ -646,14 +665,22 @@ header				(sub_instance *		sub,
 			"sl", "yi", "sr", "mk",
 			"bg", "uk",
 		};
-		static const vbi_character_set *cs;
+		static const vbi3_character_set *cs;
 		unsigned int lc;
 
-		cs = vbi_page_get_character_set (pg, 0);
+		cs = vbi3_page_get_character_set (pg, 0);
 
-		for (lc = 0; lc < N_ELEMENTS (languages); ++lc)
-			if (0 == strcmp (languages[lc], cs->language_code[0]))
-				break;
+		if (!cs) {
+			lc = 0;
+		} else {
+			for (lc = 0; lc < N_ELEMENTS (languages); ++lc)
+				if (0 == strcmp (languages[lc],
+						 cs->language_code[0]))
+					break;
+
+			if (lc >= N_ELEMENTS (languages))
+				lc = 0;
+		}
 
 		CLEAR (sub->last_ac);
 
@@ -712,12 +739,12 @@ header				(sub_instance *		sub,
 
 	case FORMAT_SAMI:
 	{
-		static const vbi_character_set *cs;
+		static const vbi3_character_set *cs;
 		const char *lang;
 
 		lang = "en";
 
-		cs = vbi_page_get_character_set (pg, 0);
+		cs = vbi3_page_get_character_set (pg, 0);
 
 		if (cs && cs->language_code[0])
 			lang = cs->language_code[0];
@@ -734,7 +761,7 @@ header				(sub_instance *		sub,
 
 		if (pg->pgno < 0x100) {
 			putws (sub, FALSE, "Closed Caption");
-		} else if (pg->subno && pg->subno != VBI_ANY_SUBNO) {
+		} else if (pg->subno && pg->subno != VBI3_ANY_SUBNO) {
 			/* XXX gettext encoding */
 			wprintf (sub, TRUE, _("Teletext Page %3x.%x"),
 				 pg->pgno, pg->subno);
@@ -791,7 +818,7 @@ header				(sub_instance *		sub,
 
 		if (pg->pgno < 0x100) {
 			putws (sub, FALSE, "Closed Caption");
-		} else if (pg->subno && pg->subno != VBI_ANY_SUBNO) {
+		} else if (pg->subno && pg->subno != VBI3_ANY_SUBNO) {
 			/* XXX gettext encoding */
 			wprintf (sub, FALSE, _("Teletext Page %3x.%x"),
 				 pg->pgno, pg->subno);
@@ -907,7 +934,7 @@ timestamp			(sub_instance *		sub)
 		double elapsed;
 
 		elapsed = sub->export.stream.timestamp
-			- sub->first_timestamp;
+			- sub->export.stream.start_timestamp;
 
 		/* Presentation time in ms since start. */
 		/* Note MPlayer cannot handle "start=\"%llu\"". */
@@ -918,9 +945,9 @@ timestamp			(sub_instance *		sub)
 	}
 
 	case FORMAT_SUBRIP:
-		/* XXX encoding/charset */
 		/* n  number of page, starting at one.
 		   hh:mm:ss,xxx --> hh:mm:ss,xxx\n  display duration */
+		/* XXX encoding/charset */
 		wprintf (sub, FALSE,
 			 "%u\n"
 			 "%02u:%02u:%02u,%03u --> "
@@ -949,10 +976,10 @@ timestamp			(sub_instance *		sub)
 	}
 }
 
-static vbi_bool
+static vbi3_bool
 same_style			(sub_instance *		sub,
-				 const vbi_char *	ac1,
-				 const vbi_char *	ac2)
+				 const vbi3_char *	ac1,
+				 const vbi3_char *	ac2)
 {
 	if (ac1->background != ac2->background)
 		return FALSE;
@@ -967,19 +994,19 @@ same_style			(sub_instance *		sub,
 	case FORMAT_MPSUB:
 	case FORMAT_SUBRIP:
 	case FORMAT_SUBVIEWER:
-		/* No attributes. */
+		/* Has no text attributes. */
 		break;
 
 	case FORMAT_QTTEXT:
 	case FORMAT_REALTEXT:
 		if ((ac1->attr ^ ac2->attr)
-		    & (VBI_UNDERLINE | VBI_BOLD | VBI_ITALIC))
+		    & (VBI3_UNDERLINE | VBI3_BOLD | VBI3_ITALIC))
 			return FALSE;
 		break;
 
 	case FORMAT_SAMI:
 		if ((ac1->attr ^ ac2->attr)
-		    & (VBI_UNDERLINE | VBI_BOLD | VBI_ITALIC | VBI_FLASH))
+		    & (VBI3_UNDERLINE | VBI3_BOLD | VBI3_ITALIC | VBI3_FLASH))
 			return FALSE;
 		break;
 	}
@@ -989,8 +1016,8 @@ same_style			(sub_instance *		sub,
 
 static void
 style_change			(sub_instance *		sub,
-				 const vbi_page *	pg,
-				 const vbi_char *	ac)
+				 const vbi3_page *	pg,
+				 const vbi3_char *	ac)
 {
 	switch (sub->format) {
 	case FORMAT_QTTEXT:
@@ -1014,6 +1041,7 @@ style_change			(sub_instance *		sub,
 		if (!same_style (sub, ac, &sub->last_ac)) {
 			if (sub->in_span)
 				putws (sub, FALSE, "</SPAN>");
+
 			sub->in_span = FALSE;
 
 			sub->last_ac = sub->para_ac;
@@ -1029,13 +1057,198 @@ style_change			(sub_instance *		sub,
 	}
 }
 
-static vbi_bool
-export				(vbi_export *		e,
-				 const vbi_page *	pg)
+static void
+page_layout			(unsigned int *		top,
+				 unsigned int *		bottom,
+				 unsigned int *		left,
+				 unsigned int *		right,
+				 unsigned int *		hjust,
+				 const vbi3_page *	pg)
+{
+	unsigned int row;
+	unsigned int left_min;
+	unsigned int left_max;
+	unsigned int right_min;
+	unsigned int right_max;
+
+	*top = pg->rows;
+	*bottom = 0;
+
+	left_min = pg->columns;
+	left_max = 0;
+
+	right_min = pg->columns;
+	right_max = 0;
+
+	row = 0;
+	if (pg->pgno >= 0x100)
+		row = 1;
+
+	for (; row < pg->rows; ++row) {
+		const vbi3_char *cp;
+		unsigned int column;
+
+		cp = pg->text + row * pg->columns;
+
+		for (column = 0; column < pg->columns; ++column)
+			if (0x0020 != cp[column].unicode
+			    && cp[column].size < VBI3_OVER_TOP
+			    && vbi3_is_print (cp[column].unicode))
+				break;
+
+		if (column >= pg->columns)
+			continue; /* empty row */
+
+		*top = MIN (*top, row);
+		*bottom = MAX (*bottom, row);
+
+		left_min = MIN (left_min, column);
+		left_max = MAX (left_max, column);
+
+		for (column = pg->columns; column > 0; --column)
+			if (0x0020 != cp[column - 1].unicode
+			    && cp[column - 1].size < VBI3_OVER_TOP
+			    && vbi3_is_print (cp[column - 1].unicode))
+				break;
+
+		right_min = MIN (right_min, column);
+		right_max = MAX (right_max, column);
+	}
+
+	*left = left_min;
+	*right = right_max - 1;
+
+	*hjust = 0; /* not justified */
+
+	if (left_min == left_max)
+		*hjust |= 1; /* left */
+
+	if (right_min == right_max)
+		*hjust |= 2; /* right */
+}
+
+static void
+paragraph			(sub_instance *		sub,
+				 const vbi3_page *	pg,
+				 unsigned int		top,
+				 unsigned int		bottom,
+				 unsigned int		left,
+				 unsigned int		right)
+{
+	unsigned int row;
+	unsigned int width;
+
+	width = right - left + 1;
+
+	for (row = top; row <= bottom; ++row) {
+		const vbi3_char *cp;
+		unsigned int column;
+		unsigned int spaces;
+		unsigned int fluff;
+
+		cp = pg->text + row * pg->columns;
+
+		spaces = 0;
+		fluff = 0;
+
+		for (column = left; column <= right; ++column) {
+			unsigned int c;
+
+			if (cp[column].size >= VBI3_OVER_TOP) {
+				++fluff;
+				continue;
+			}
+
+			c = cp[column].unicode;
+
+			if (0x0020 == c || !vbi3_is_print (c)) {
+				switch (sub->format) {
+				case FORMAT_SAMI:
+					if (sub->last_ac.background
+					    != cp[column].background)
+						break;
+
+					/* fall through */
+
+				default:
+					++spaces;
+					continue;
+				}
+
+				c = 0x0020;
+			}
+
+			if (spaces > 0) {
+				if (spaces + fluff >= (column - left)) {
+					/* Discard leading spaces. */
+				} else if (spaces > 1) {
+					/* Runs of spaces. */
+
+					switch (sub->format) {
+					case FORMAT_SAMI:
+						while (spaces-- > 0)
+							putws (sub, FALSE,
+							       "&nbsp;");
+						break;
+
+					default:
+						/* Collapse to single space. */
+						putwc (sub, FALSE, 0x0020);
+						break;
+					}
+				} else {
+					putwc (sub, FALSE, 0x0020);
+				}
+
+				spaces = 0;
+			}
+
+			fluff = 0;
+
+			style_change (sub, pg, cp + column);
+
+			putwc (sub, /* escape */ TRUE, c);
+		}
+
+		if (spaces > 0) {
+			/* Discard trailing spaces. */
+		}
+
+		/* Line separator. */
+
+		switch (sub->format) {
+		case FORMAT_MPSUB:
+		case FORMAT_QTTEXT:
+		case FORMAT_SUBRIP:
+			if (spaces + fluff >= width) {
+				/* Suppress blank line. */
+			} else {
+				putwc (sub, /* escape */ FALSE, 10);
+			}
+
+			break;
+
+		case FORMAT_REALTEXT:
+		case FORMAT_SAMI:
+			if (row < bottom)
+				putws (sub, FALSE, "<br/>");
+			break;
+
+		case FORMAT_SUBVIEWER:
+			if (row < bottom)
+				putws (sub, FALSE, "[br]");
+			else
+				putwc (sub, FALSE, 10);
+			break;
+		}
+	}
+}
+
+static vbi3_bool
+export				(vbi3_export *		e,
+				 const vbi3_page *	pg)
 {
 	sub_instance *sub = PARENT (e, sub_instance, export);
-	const vbi_char *acp;
-	unsigned int row;
 	unsigned int top;
 	unsigned int bottom;
 	unsigned int left;
@@ -1050,6 +1263,11 @@ export				(vbi_export *		e,
 	}
 
 	if (!pg) {
+		/* Finalize the stream. */
+
+		if (!sub->have_header)
+			return TRUE;
+
 		if (sub->text1.bp > sub->text1.buffer) {
 			/* Put timestamp in front of page (text1). */
 			SWAP (sub->text1, sub->text2);
@@ -1063,12 +1281,21 @@ export				(vbi_export *		e,
 
 		sub->have_header = FALSE;
 
-		vbi_iconv_ucs2_close (sub->cd);
-
+		vbi3_iconv_close (sub->cd);
 		sub->cd = (iconv_t) -1;
 
 		return TRUE;
 	}
+
+	if (0 != sub->last_pgno
+	    && pg->pgno != sub->last_pgno) {
+		fprintf (stderr, "Multilingual subtitle recording "
+				 "not supported yet: pgno=%x last_pgno=%x\n",
+				 pg->pgno, sub->last_pgno);
+		return FALSE;
+	}
+
+	sub->last_pgno = pg->pgno;
 
 	if (!sub->have_header) {
 		char buffer[256];
@@ -1077,8 +1304,8 @@ export				(vbi_export *		e,
 
 		d = buffer;
 
-		sub->cd = vbi_iconv_ucs2_open (sub->charset, &d,
-					       sizeof (buffer));
+		sub->cd = vbi3_iconv_open (sub->charset, &d,
+					   sizeof (buffer));
 		if ((iconv_t) -1 == sub->cd) {
 			return FALSE;
 		}
@@ -1094,10 +1321,10 @@ export				(vbi_export *		e,
 
 		sub->have_header = TRUE;
 
-		sub->first_timestamp = e->stream.timestamp;
-		sub->last_timestamp = e->stream.timestamp;
+		sub->last_timestamp = e->stream.start_timestamp;
 
-		sub->delay_time = 0.0;
+		sub->delay_time = e->stream.timestamp
+			- e->stream.start_timestamp;
 
 		sub->n_pages = 0;
 		sub->blank_pages = 0;
@@ -1106,56 +1333,12 @@ export				(vbi_export *		e,
 	/* First let's determine where the text is, and if
 	   it's left or right justified or centered. Not handled
 	   are split cases, e. g. one para at top right, another
-	   bottom centered. */
+	   bottom centered. When the page is empty top > bottom. */
 
-	top = pg->rows;
-	bottom = 0;
-	left = pg->columns;
-	right = 0;
+	page_layout (&top, &bottom, &left, &right, &hjust, pg);
 
-	hjust = 3; /* left and right */
-
-	if (pg->pgno >= 0x100)
-		acp = pg->text + pg->columns; /* skip header */
-	else
-		acp = pg->text;
-
-	for (row = 1; row < pg->rows; ++row) {
-		unsigned int column;
-		unsigned int spaces;
-
-		spaces = 0;
-
-		for (column = 0; column < pg->columns; ++column) {
-			unsigned int c = acp[column].unicode;
-
-			if (0x0020 == c || !vbi_is_print (c)) {
-				++spaces;
-				continue;
-			}
-
-			top = MIN (top, row);
-			bottom = MAX (bottom, row);
-
-			if (column != left) {
-				if (left < pg->columns)
-					hjust &= ~1;
-				if (column < left)
-					left = column;
-			}
-
-			if (column != right) {
-				if (right > 0)
-					hjust &= ~2;
-				if (column > right)
-					right = column;
-			}
-
-			spaces = 0;
-		}
-
-		acp += pg->columns;
-	}
+	/* Finalize the previous page
+	   and write text position/justification tags. */
 
 	switch (sub->format) {
 	case FORMAT_MPSUB:
@@ -1182,7 +1365,7 @@ export				(vbi_export *		e,
 		sub->delay_time = e->stream.timestamp - sub->last_timestamp;
 		sub->blank_pages = 0;
 
-		/* Always centered at bottom. */
+		/* MPSub is always centered at bottom. */
 		hjust = 0;
 
 		break;
@@ -1199,12 +1382,13 @@ export				(vbi_export *		e,
 		timestamp (sub);
 
 		if (top > bottom)
-			goto blank_page;
+			goto page_separator;
 
 		if (1 && 0 == hjust) {
-			if ((left + right + 4) < (pg->columns))
+			if ((int)(left + right + 8) < (int) pg->columns * 2)
 				hjust = 1; /* left */
-			else if ((left + right - 4) > pg->columns)
+			else
+			if ((int)(left + right - 8) > (int) pg->columns * 2)
 				hjust = 2; /* right */
 			/* else center */
 		}
@@ -1248,21 +1432,23 @@ export				(vbi_export *		e,
 
 		if (top > bottom) {
 			putws (sub, FALSE, "<P>&nbsp;");
-			goto blank_page;
+			goto page_separator;
 		}
 
 		/* Pity we cannot just define a screen center
 		   relative position. */
 
 		if (1 && 0 == hjust) {
-			if ((left + right + 4) < (pg->columns))
+			if ((int)(left + right + 8) < (int) pg->columns * 2)
 				hjust = 1; /* left */
-			else if ((left + right - 4) > pg->columns)
+			else
+			if ((int)(left + right - 8) > (int) pg->columns * 2)
 				hjust = 2; /* right */
 			/* else center */
 		}
 
 		if (0 == hjust || 3 == hjust) {
+			/* Can only justify left or right. */
 			/* Note MPlayer cannot handle "<p>". */
 			putws (sub, FALSE, "<P>");
 		} else {
@@ -1302,92 +1488,9 @@ export				(vbi_export *		e,
 
 	/* Write paragraph. */
 
-	acp = pg->text + pg->columns * top;
+	paragraph (sub, pg, top, bottom, left, right);
 
-	for (row = top; row <= bottom; ++row) {
-		unsigned int column;
-		unsigned int spaces;
-
-		spaces = 0;
-
-		for (column = left; column <= right; ++column) {
-			unsigned int c = acp[column].unicode;
-
-			if (0x0020 == c || !vbi_is_print (c)) {
-				if (FORMAT_SAMI != sub->format
-				    || (sub->last_ac.background
-					== acp[column].background)) {
-					++spaces;
-					continue;
-				}
-
-				c = 0x0020;
-			}
-
-			if (spaces > 0) {
-				if (spaces >= (column - left)) {
-					/* Discard leading spaces. */
-				} else if (spaces > 1) {
-					/* Runs of spaces. */
-					switch (sub->format) {
-					case FORMAT_SAMI:
-						while (spaces-- > 0)
-							putws (sub, FALSE,
-							       "&nbsp;");
-						break;
-
-					default:
-						/* Collapse to single space. */
-						putwc (sub, FALSE, 0x0020);
-						break;
-					}
-				} else {
-					putwc (sub, FALSE, 0x0020);
-				}
-
-				spaces = 0;
-			}
-
-			style_change (sub, pg, acp + column);
-
-			putwc (sub, TRUE, c);
-		}
-
-		if (spaces < (right - left + 1)) {
-			if (spaces > 0) {
-				/* Discard trailing spaces. */
-			}
-
-			/* Line separator. */
-
-			switch (sub->format) {
-			case FORMAT_MPSUB:
-			case FORMAT_QTTEXT:
-			case FORMAT_SUBRIP:
-				putwc (sub, FALSE, 10);
-				break;
-
-			case FORMAT_REALTEXT:
-			case FORMAT_SAMI:
-				if (row < bottom)
-					putws (sub, FALSE, "<br/>");
-				break;
-
-			case FORMAT_SUBVIEWER:
-				if (row < bottom)
-					putws (sub, FALSE, "[br]");
-				else
-					putwc (sub, FALSE, 10);
-				break;
-			}
-		} else {
-			/* Suppress blank line. */
-		}
-
-		acp += pg->columns;
-	}
-
- blank_page:
+ page_separator:
 
 	/* Page separator. */
 
@@ -1426,133 +1529,144 @@ export				(vbi_export *		e,
 	return TRUE;
 }
 
-static const vbi_export_info
+static const vbi3_export_info
 export_info_mpsub = {
 	.keyword		= "mpsub",
-	.label			= N_("MPSub"),
-	.tooltip		= N_("MPSub subtitle file"),
+	.label			= "MPSub",
+	/* TRANSLATORS:
+	   Caption is an aid for the hearing impaired,
+	   subtitles for foreign language viewers. */
+	.tooltip		= N_("MPlayer caption/subtitle file"),
 	.mime_type		= NULL,
 	.extension		= "sub",
 	.open_format		= TRUE,
 };
 
-const _vbi_export_module
-_vbi_export_module_mpsub = {
+const _vbi3_export_module
+_vbi3_export_module_mpsub = {
 	.export_info		= &export_info_mpsub,
 	._new			= sub_new,
 	._delete		= sub_delete,
-	.option_info		= option_info,
-	.option_info_size	= N_ELEMENTS (option_info),
+	.option_info		= option_info1,
+	.option_info_size	= N_ELEMENTS (option_info1),
 	.option_get		= option_get,
 	.option_set		= option_set,
 	.export			= export
 };
 
-static const vbi_export_info
+static const vbi3_export_info
 export_info_qttext = {
 	.keyword		= "qttext",
-	.label			= N_("QTText"),
-	.tooltip		= N_("QuickTime Text subtitle/caption file"),
+	.label			= "QTText",
+	/* TRANSLATORS:
+	   Styles like bold, italic, underlined, etc.
+	   Justification to the left, right, centered. */
+	.tooltip		= N_("QuickTime Text caption/subtitle file "
+				     "preserving text styles, justification "
+				     "and color"),
 	.mime_type		= NULL,
 	.extension		= "txt",
 	.open_format		= TRUE,
 };
 
-const _vbi_export_module
-_vbi_export_module_qttext = {
+const _vbi3_export_module
+_vbi3_export_module_qttext = {
 	.export_info		= &export_info_qttext,
 	._new			= sub_new,
 	._delete		= sub_delete,
-	.option_info		= option_info,
-	.option_info_size	= N_ELEMENTS (option_info),
+	.option_info		= option_info2,
+	.option_info_size	= N_ELEMENTS (option_info2),
 	.option_get		= option_get,
 	.option_set		= option_set,
 	.export			= export
 };
 
-static const vbi_export_info
+static const vbi3_export_info
 export_info_realtext = {
 	.keyword		= "realtext",
-	.label			= N_("RealText"),
-	.tooltip		= N_("RealText subtitle/caption file"),
+	.label			= "RealText",
+	.tooltip		= N_("RealText caption/subtitle file "
+				     "preserving text styles and color"),
 	.mime_type		= NULL,
 	.extension		= "rt",
 	.open_format		= TRUE,
 };
 
-const _vbi_export_module
-_vbi_export_module_realtext = {
+const _vbi3_export_module
+_vbi3_export_module_realtext = {
 	.export_info		= &export_info_realtext,
 	._new			= sub_new,
 	._delete		= sub_delete,
-	.option_info		= option_info,
-	.option_info_size	= N_ELEMENTS (option_info),
+	.option_info		= option_info2,
+	.option_info_size	= N_ELEMENTS (option_info2),
 	.option_get		= option_get,
 	.option_set		= option_set,
 	.export			= export
 };
 
-static const vbi_export_info
+static const vbi3_export_info
 export_info_sami = {
 	.keyword		= "sami",
-	.label			= N_("SAMI"),
-	.tooltip		= N_("SAMI 1.0 subtitle/caption file"),
+	.label			= "SAMI",
+	.tooltip		= N_("SAMI 1.0 caption/subtitle file "
+				     "preserving text styles, justification "
+				     "and color"),
 	.mime_type		= NULL,
 	.extension		= "sami,smi",
 	.open_format		= TRUE,
 };
 
-const _vbi_export_module
-_vbi_export_module_sami = {
+const _vbi3_export_module
+_vbi3_export_module_sami = {
 	.export_info		= &export_info_sami,
 	._new			= sub_new,
 	._delete		= sub_delete,
-	.option_info		= option_info,
-	.option_info_size	= N_ELEMENTS (option_info),
+	.option_info		= option_info1,
+	.option_info_size	= N_ELEMENTS (option_info1),
 	.option_get		= option_get,
 	.option_set		= option_set,
 	.export			= export
 };
 
-static const vbi_export_info
+static const vbi3_export_info
 export_info_subrip = {
 	.keyword		= "subrip",
-	.label			= N_("SubRip"),
-	.tooltip		= N_("SubRip subtitle file"),
+	.label			= "SubRip",
+	.tooltip		= N_("SubRip caption/subtitle file"),
 	.mime_type		= NULL,
 	.extension		= "srt",
 	.open_format		= TRUE,
 };
 
-const _vbi_export_module
-_vbi_export_module_subrip = {
+const _vbi3_export_module
+_vbi3_export_module_subrip = {
 	.export_info		= &export_info_subrip,
 	._new			= sub_new,
 	._delete		= sub_delete,
-	.option_info		= option_info,
-	.option_info_size	= N_ELEMENTS (option_info),
+	.option_info		= option_info1,
+	.option_info_size	= N_ELEMENTS (option_info1),
 	.option_get		= option_get,
 	.option_set		= option_set,
 	.export			= export
 };
 
-static const vbi_export_info
+static const vbi3_export_info
 export_info_subviewer = {
 	.keyword		= "subviewer",
-	.label			= N_("SubViewer"),
-	.tooltip		= N_("SubViewer 2.x subtitle file"),
+	.label			= "SubViewer",
+	.tooltip		= N_("SubViewer 2.x caption/subtitle file"),
 	.mime_type		= NULL,
 	.extension		= "sub",
 	.open_format		= TRUE,
 };
 
-const _vbi_export_module
-_vbi_export_module_subviewer = {
+const _vbi3_export_module
+_vbi3_export_module_subviewer = {
 	.export_info		= &export_info_subviewer,
 	._new			= sub_new,
 	._delete		= sub_delete,
-	.option_info		= option_info,
-	.option_info_size	= N_ELEMENTS (option_info),
+	.option_info		= option_info2,
+	.option_info_size	= N_ELEMENTS (option_info2),
 	.option_get		= option_get,
 	.option_set		= option_set,
 	.export			= export

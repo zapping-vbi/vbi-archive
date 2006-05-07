@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.4.2.8 2004-10-14 07:54:02 mschimek Exp $ */
+/* $Id: trigger.c,v 1.4.2.9 2006-05-07 06:04:59 mschimek Exp $ */
 
 /*
    Based on EACEM TP 14-99-16 "Data Broadcasting", rev 0.8;
@@ -35,21 +35,21 @@
 #include <time.h>		/* time_t, mktime() */
 #include <limits.h>		/* INT_MAX */
 #include <math.h>		/* fabs() */
-#include "conv.h"		/* _vbi_strdup_locale_utf8() */
-#include "misc.h"		/* CLEAR(), _vbi_strndup() */
+#include "conv.h"		/* _vbi3_strdup_locale_utf8() */
+#include "misc.h"		/* CLEAR(), _vbi3_strndup() */
 #include "trigger.h"
 
-struct _vbi_trigger {
-	_vbi_trigger *		next;
-	vbi_link		link;
-	vbi_network		source_network;
-	vbi_network		target_network;
+struct _vbi3_trigger {
+	_vbi3_trigger *		next;
+	vbi3_link		link;
+	vbi3_network		source_network;
+	vbi3_network		target_network;
 	double			fire_time;
 	int			view;
-	vbi_bool		_delete;
+	vbi3_bool		_delete;
 };
 
-static vbi_bool
+static vbi3_bool
 verify_checksum			(const uint8_t *	s,
 				 unsigned int		s_size,
 				 unsigned int		checksum)
@@ -153,10 +153,14 @@ parse_date			(const uint8_t *	s)
 static int
 parse_time			(const uint8_t *	s)
 {
+	const char *csrc;
+	char *src;
 	int seconds;
 	int frames;
 
-	seconds = strtoul (s, &s, 10);
+	csrc = (const char *) s;
+	seconds = strtoul (csrc, &src, 10);
+	csrc = src; 
 	frames = 0;
 
 	if ('F' == *s)
@@ -169,9 +173,11 @@ parse_time			(const uint8_t *	s)
 static int
 parse_bool			(const uint8_t *	s)
 {
-	return (0 == strcmp (s, "1")
-		|| 0 == strcmp (s, "true")
-		|| 0 == strcmp (s, "TRUE"));
+	const char *cs = s;
+
+	return (0 == strcmp (cs, "1")
+		|| 0 == strcmp (cs, "true")
+		|| 0 == strcmp (cs, "TRUE"));
 }
 
 static const uint8_t *
@@ -216,7 +222,7 @@ parse_quoted			(uint8_t *		buffer,
 				 int			delimiter)
 {
 	uint8_t *end;
-        vbi_bool quote;
+        vbi3_bool quote;
 	int c;
 
 	quote = FALSE;
@@ -283,18 +289,18 @@ keyword				(const uint8_t *	s,
 }
 
 static void
-_vbi_trigger_dump		(_vbi_trigger *		t,
+_vbi3_trigger_dump		(_vbi3_trigger *		t,
 				 FILE *			fp,
 				 const char *		type,
 				 double			current_time)
 {
 	fprintf (fp, "Time %f %s link\n", current_time, type);
 
-	_vbi_link_dump (&t->link, fp);
+	_vbi3_link_dump (&t->link, fp);
 	
 	fputs ("source: ", fp);
 
-	_vbi_network_dump (&t->source_network, fp);
+	_vbi3_network_dump (&t->source_network, fp);
 
 	fprintf (fp, "fire=%f view=%u ('%c') delete=%u\n",
 		 t->fire_time, t->view, t->view, t->_delete);
@@ -302,31 +308,31 @@ _vbi_trigger_dump		(_vbi_trigger *		t,
 
 /** @internal */
 void
-_vbi_trigger_destroy		(_vbi_trigger *		t)
+_vbi3_trigger_destroy		(_vbi3_trigger *		t)
 {
 	assert (NULL != t);
 
-	vbi_link_destroy (&t->link);
-	vbi_network_destroy (&t->source_network);
-	vbi_network_destroy (&t->target_network);
+	vbi3_link_destroy (&t->link);
+	vbi3_network_destroy (&t->source_network);
+	vbi3_network_destroy (&t->target_network);
 
 	CLEAR (*t);
 }
 
 /** @internal */
-vbi_bool
-_vbi_trigger_init		(_vbi_trigger *		t,
-				 const vbi_network *	nk,
+vbi3_bool
+_vbi3_trigger_init		(_vbi3_trigger *		t,
+				 const vbi3_network *	nk,
 				 double			current_time)
 {
 	assert (NULL != t);
 
-	vbi_link_init (&t->link);
+	vbi3_link_init (&t->link);
 
-	if (!vbi_network_copy (&t->source_network, nk))
+	if (!vbi3_network_copy (&t->source_network, nk))
 		return FALSE;
 
-	vbi_network_init (&t->target_network);
+	vbi3_network_init (&t->target_network);
 
 	t->fire_time	  = current_time;
 	t->view		  = 'w';
@@ -337,26 +343,26 @@ _vbi_trigger_init		(_vbi_trigger *		t,
 
 /** @internal */
 void
-_vbi_trigger_delete		(_vbi_trigger *		t)
+_vbi3_trigger_delete		(_vbi3_trigger *		t)
 {
 	if (NULL == t)
 		return;
 
-	_vbi_trigger_destroy (t);
+	_vbi3_trigger_destroy (t);
 
-	vbi_free (t);
+	vbi3_free (t);
 }
 
 static const uint8_t *
-_vbi_trigger_from_eacem		(_vbi_trigger *		t,
+_vbi3_trigger_from_eacem		(_vbi3_trigger *		t,
 				 const uint8_t *	s,
-				 const vbi_network *	nk,
+				 const vbi3_network *	nk,
 				 double			current_time)
 {
 	const uint8_t *s1;
 	int active;
 
-	if (!_vbi_trigger_init (t, nk, current_time))
+	if (!_vbi3_trigger_init (t, nk, current_time))
 		return NULL;
 
 	active = INT_MAX;
@@ -380,7 +386,7 @@ _vbi_trigger_from_eacem		(_vbi_trigger *		t,
 					goto failure;
 			}
 
-			t->link.url = _vbi_strndup (begin + 1, s - begin - 1);
+			t->link.url = _vbi3_strndup (begin + 1, s - begin - 1);
 			if (!t->link.url)
 				goto failure;
 
@@ -454,7 +460,8 @@ _vbi_trigger_from_eacem		(_vbi_trigger *		t,
 				break;
 
 			case 4: /* name */
-				t->link.name = _vbi_strdup_locale_utf8 (buf2);
+				t->link.name = vbi3_strndup_locale_utf8
+					(buf2, VBI3_NUL_TERMINATED);
 				if (!t->link.name)
 					goto failure;
 				break;
@@ -492,11 +499,11 @@ _vbi_trigger_from_eacem		(_vbi_trigger *		t,
 		t->link.expires = t->fire_time + active * (1 / 25.0);
 
 	if (0 == strncmp (t->link.url, "http://", 7)) {
-		t->link.type = VBI_LINK_HTTP;
+		t->link.type = VBI3_LINK_HTTP;
 	} else if (0 == strncmp (t->link.url, "lid://", 6)) {
-		t->link.type = VBI_LINK_LID;
+		t->link.type = VBI3_LINK_LID;
 	} else if (0 == strncmp (t->link.url, "tw://", 5)) {
-		t->link.type = VBI_LINK_TELEWEB;
+		t->link.type = VBI3_LINK_TELEWEB;
 	} else if (0 == strncmp (t->link.url, "ttx://", 6)) {
 		int cni;
 
@@ -515,21 +522,21 @@ _vbi_trigger_from_eacem		(_vbi_trigger *		t,
 			goto failure;
 
 		if (cni > 0) {
-			vbi_bool r;
+			vbi3_bool r;
 
 			switch (cni >> 8) {
 			case 0x04: /* Switzerland */
 			case 0x07: /* Ukraine */
 			case 0x0A: /* Austria */
 			case 0x0D: /* Germany */
-				r = vbi_network_set_cni (&t->target_network,
-							 VBI_CNI_TYPE_VPS,
+				r = vbi3_network_set_cni (&t->target_network,
+							 VBI3_CNI_TYPE_VPS,
 							 cni);
 				break;
 
 			default:
-				r = vbi_network_set_cni (&t->target_network,
-							 VBI_CNI_TYPE_8301,
+				r = vbi3_network_set_cni (&t->target_network,
+							 VBI3_CNI_TYPE_8301,
 							 cni);
 				break;
 			}
@@ -542,7 +549,7 @@ _vbi_trigger_from_eacem		(_vbi_trigger *		t,
 			t->link.network = &t->source_network;
 		}
 
-		t->link.type = VBI_LINK_PAGE;
+		t->link.type = VBI3_LINK_PAGE;
 	} else {
 		goto failure;
 	}
@@ -550,19 +557,19 @@ _vbi_trigger_from_eacem		(_vbi_trigger *		t,
 	return s;
 
 	failure:
-	_vbi_trigger_destroy (t);
+	_vbi3_trigger_destroy (t);
 	return NULL;
 }
 
 static const uint8_t *
-_vbi_trigger_from_atvef		(_vbi_trigger *		t,
+_vbi3_trigger_from_atvef		(_vbi3_trigger *		t,
 				 const uint8_t *	s,
-				 const vbi_network *	nk,
+				 const vbi3_network *	nk,
 				 double			current_time)
 {
 	const uint8_t *s1;
 
-	if (!_vbi_trigger_init (t, nk, current_time))
+	if (!_vbi3_trigger_init (t, nk, current_time))
 		return NULL;
 
 	for (s1 = s;; ++s) {
@@ -584,7 +591,7 @@ _vbi_trigger_from_atvef		(_vbi_trigger *		t,
 					goto failure;
 			}
 
-			t->link.url = _vbi_strndup (begin + 1, s - begin - 1);
+			t->link.url = _vbi3_strndup (begin + 1, s - begin - 1);
 			if (!t->link.url)
 				goto failure;
 
@@ -641,7 +648,8 @@ _vbi_trigger_from_atvef		(_vbi_trigger *		t,
 				break;
 
 			case 2: /* name */
-				t->link.name = _vbi_strdup_locale_utf8 (buf2);
+				t->link.name = vbi3_strndup_locale_utf8
+					(buf2, VBI3_NUL_TERMINATED);
 				if (!t->link.name)
 					goto failure;
 				break;
@@ -662,7 +670,7 @@ _vbi_trigger_from_atvef		(_vbi_trigger *		t,
 					"operator",
 				};
 
-				/* -1 -> VBI_WEBLINK_UNKNOWN */
+				/* -1 -> VBI3_WEBLINK_UNKNOWN */
 				t->link.itv_type =
 					1 + keyword (buf2, types,
 						     N_ELEMENTS (types));
@@ -699,9 +707,9 @@ _vbi_trigger_from_atvef		(_vbi_trigger *		t,
 		goto failure;
 
 	if (0 == strncmp (t->link.url, "http://", 7)) {
-		t->link.type = VBI_LINK_HTTP;
+		t->link.type = VBI3_LINK_HTTP;
 	} else if (0 == strncmp (t->link.url, "lid://", 6)) {
-		t->link.type = VBI_LINK_LID;
+		t->link.type = VBI3_LINK_LID;
 	} else {
 		goto failure;
 	}
@@ -709,7 +717,7 @@ _vbi_trigger_from_atvef		(_vbi_trigger *		t,
 	return s;
 
  failure:
-	_vbi_trigger_destroy (t);
+	_vbi3_trigger_destroy (t);
 	return NULL;
 }
 
@@ -720,13 +728,13 @@ _vbi_trigger_from_atvef		(_vbi_trigger *		t,
  * Deletes a list of triggers.
  */
 void
-_vbi_trigger_list_delete	(_vbi_trigger **	list)
+_vbi3_trigger_list_delete	(_vbi3_trigger **	list)
 {
-	_vbi_trigger *t;
+	_vbi3_trigger *t;
 
 	while ((t = *list)) {
 		*list = t->next;
-		_vbi_trigger_delete (t);
+		_vbi3_trigger_delete (t);
 	}
 }
 
@@ -742,28 +750,28 @@ _vbi_trigger_list_delete	(_vbi_trigger **	list)
  * fire time.
  */
 unsigned int
-_vbi_trigger_list_fire		(_vbi_trigger **	list,
-				 _vbi_event_handler_list *handlers,
+_vbi3_trigger_list_fire		(_vbi3_trigger **	list,
+				 _vbi3_event_handler_list *handlers,
 				 double		current_time)
 {
-	_vbi_trigger *t;
+	_vbi3_trigger *t;
 	unsigned int count;
 
 	count = 0;
 
 	while ((t = *list)) {
 		if (t->fire_time <= current_time) {
-			vbi_event e;
+			vbi3_event e;
 
-			e.type		= VBI_EVENT_TRIGGER;
+			e.type		= VBI3_EVENT_TRIGGER;
 			e.network	= &t->source_network;
 			e.timestamp	= current_time;
 			e.ev.trigger	= &t->link;
 
-			_vbi_event_handler_list_send (handlers, &e);           
+			_vbi3_event_handler_list_send (handlers, &e);           
 
 			*list = t->next;
-			_vbi_trigger_delete (t);
+			_vbi3_trigger_delete (t);
 
 			++count;
 		} else {
@@ -774,28 +782,29 @@ _vbi_trigger_list_fire		(_vbi_trigger **	list,
 	return count;
 }
 
-static vbi_bool
-add_trigger			(_vbi_trigger **	list,
-				 _vbi_event_handler_list *handlers,
-				 _vbi_trigger *		t1,
+static vbi3_bool
+add_trigger			(_vbi3_trigger **	list,
+				 _vbi3_event_handler_list *handlers,
+				 _vbi3_trigger *		t1,
 				 double			current_time)
 {
-	_vbi_trigger *t;
+	_vbi3_trigger *t;
 
+#warning t = ?
 	if (t->_delete) {
-		_vbi_trigger **l;
+		_vbi3_trigger **l;
 
 		for (l = list; (t = *l); l = &t->next) {
 			if (0 == strcmp (t1->link.url, t->link.url)
 			    && fabs (t1->fire_time - t->fire_time) < 0.1) {
 				*l = t->next;
-				_vbi_trigger_delete (t);
+				_vbi3_trigger_delete (t);
 			} else {
 				l = &t->next;
 			}
 		}
 
-		_vbi_trigger_destroy (t1);
+		_vbi3_trigger_destroy (t1);
 
 		return TRUE;
 	}
@@ -803,27 +812,27 @@ add_trigger			(_vbi_trigger **	list,
 	for (t = *list; t; t = t->next) {
 		if (0 == strcmp (t1->link.url, t->link.url)
 		    && fabs (t1->fire_time - t->fire_time) < 0.1) {
-			_vbi_trigger_destroy (t1);
+			_vbi3_trigger_destroy (t1);
 			return TRUE; /* retransmitted; is already listed */
 		}
 	}
 
 	if (t1->fire_time <= current_time) {
-		vbi_event e;
+		vbi3_event e;
 
-		e.type		= VBI_EVENT_TRIGGER;
+		e.type		= VBI3_EVENT_TRIGGER;
 		e.network	= &t1->source_network;
 		e.timestamp	= current_time;
 		e.ev.trigger	= &t1->link;
 
-		_vbi_event_handler_list_send (handlers, &e);           
+		_vbi3_event_handler_list_send (handlers, &e);           
 
-		_vbi_trigger_destroy (t1);
+		_vbi3_trigger_destroy (t1);
 
 		return TRUE;
 	}
 
-	if (!(t = vbi_malloc (sizeof (*t))))
+	if (!(t = vbi3_malloc (sizeof (*t))))
 		return FALSE;
 
 	*t = *t1;
@@ -842,24 +851,24 @@ add_trigger			(_vbi_trigger **	list,
  * Parse an EACEM trigger string and add it to the trigger list, where it
  * may fire immediately or at a later time.
  */
-vbi_bool
-_vbi_trigger_list_add_eacem	(_vbi_trigger **	list,
-				 _vbi_event_handler_list *handlers,
+vbi3_bool
+_vbi3_trigger_list_add_eacem	(_vbi3_trigger **	list,
+				 _vbi3_event_handler_list *handlers,
 				 const uint8_t *	s,
-				 const vbi_network *	nk,
+				 const vbi3_network *	nk,
 				 double			current_time)
 {
-	_vbi_trigger t;
+	_vbi3_trigger t;
 
-	while ((s = _vbi_trigger_from_eacem (&t, s, nk, current_time))) {
+	while ((s = _vbi3_trigger_from_eacem (&t, s, nk, current_time))) {
 		if (0)
-			_vbi_trigger_dump (&t, stderr, "EACEM", current_time);
+			_vbi3_trigger_dump (&t, stderr, "EACEM", current_time);
 
 		t.link.eacem = TRUE;
 
-		if (VBI_LINK_LID == t.link.type
-		    || VBI_LINK_TELEWEB == t.link.type) {
-			_vbi_trigger_destroy (&t);
+		if (VBI3_LINK_LID == t.link.type
+		    || VBI3_LINK_TELEWEB == t.link.type) {
+			_vbi3_trigger_destroy (&t);
 			return FALSE;
 		}
 
@@ -877,25 +886,25 @@ _vbi_trigger_list_add_eacem	(_vbi_trigger **	list,
  * Parse an ATVEF trigger string and add it to the trigger list, where it
  * may fire immediately or at a later time.
  */
-vbi_bool
-_vbi_trigger_list_add_atvef	(_vbi_trigger **	list,
-				 _vbi_event_handler_list *handlers,
+vbi3_bool
+_vbi3_trigger_list_add_atvef	(_vbi3_trigger **	list,
+				 _vbi3_event_handler_list *handlers,
 				 const uint8_t *	s,
-				 const vbi_network *	nk,
+				 const vbi3_network *	nk,
 				 double			current_time)
 {
-	_vbi_trigger t;
+	_vbi3_trigger t;
 
-	if (_vbi_trigger_from_atvef (&t, s, nk, current_time)) {
+	if (_vbi3_trigger_from_atvef (&t, s, nk, current_time)) {
 		if (0)
-			_vbi_trigger_dump (&t, stderr, "ATVEF", current_time);
+			_vbi3_trigger_dump (&t, stderr, "ATVEF", current_time);
 
 		t.link.eacem = FALSE;
 
 		if ('t' == t.view /* WebTV */
 		    || strchr (t.link.url, '*') /* trigger matching */
-		    || VBI_LINK_LID == t.link.type) {
-			_vbi_trigger_destroy (&t);
+		    || VBI3_LINK_LID == t.link.type) {
+			_vbi3_trigger_destroy (&t);
 			return FALSE;
 		}
 

@@ -17,39 +17,52 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top.c,v 1.1.2.3 2004-10-14 07:54:01 mschimek Exp $ */
+/* $Id: top_title.c,v 1.1.2.1 2006-05-07 06:04:59 mschimek Exp $ */
 
 #include <stdlib.h>		/* malloc(), qsort() */
-#include "conv.h"		/* _vbi_strdup_locale_teletext() */
+#include "conv.h"		/* _vbi3_strdup_locale_teletext() */
+#include "lang.h"		/* vbi3_character_set_code */
 #include "cache-priv.h"
 
-#ifndef TOP_LOG
-#define TOP_LOG 0
+
+#ifndef TOP_TITLE_LOG
+#define TOP_TITLE_LOG 0
 #endif
 
 #define log(templ, args...)						\
 do {									\
-	if (TOP_LOG)							\
+	if (TOP_TITLE_LOG)						\
 		fprintf (stderr, templ , ##args);			\
 } while (0)
 
 /**
+ * Frees all resources associate with this vbi3_top_title
+ * except the structure itself.
  */
 void
-vbi_top_title_destroy		(vbi_top_title *	tt)
+vbi3_top_title_destroy		(vbi3_top_title *	tt)
 {
 	assert (NULL != tt);
 
-	vbi_free (tt->title);
+	vbi3_free (tt->title_);
 
 	CLEAR (*tt);
 }
 
 /**
+ * @param dst A copy of @a src will be stored here.
+ * @param src vbi3_top_title to be copied. If @c NULL this function
+ *   has the same effect as vbi3_top_title_init().
+ *
+ * Creates a deep copy of @a src in @a dst, overwriting the data
+ * previously stored at @a dst.
+ *
+ * @returns
+ * @c FALSE on failure (out of memory).
  */
-vbi_bool
-vbi_top_title_copy		(vbi_top_title *	dst,
-				 const vbi_top_title *	src)
+vbi3_bool
+vbi3_top_title_copy		(vbi3_top_title *	dst,
+				 const vbi3_top_title *	src)
 {
 	if (dst == src)
 		return TRUE;
@@ -59,11 +72,12 @@ vbi_top_title_copy		(vbi_top_title *	dst,
 	if (src) {
 		char *title;
 
-		if (!(title = strdup (src->title)))
+		title = strdup (src->title_);
+		if (NULL == title)
 			return FALSE;
 
 		*dst = *src;
-		dst->title = title;
+		dst->title_ = title;
 	} else {
 		CLEAR (*dst);
 	}
@@ -72,9 +86,12 @@ vbi_top_title_copy		(vbi_top_title *	dst,
 }
 
 /**
+ * @param tt vbi3_top_title to be initialized.
+ *
+ * Initializes (clears) a vbi3_top_title structure.
  */
 void
-vbi_top_title_init		(vbi_top_title *	tt)
+vbi3_top_title_init		(vbi3_top_title *	tt)
 {
 	assert (NULL != tt);
 
@@ -82,42 +99,47 @@ vbi_top_title_init		(vbi_top_title *	tt)
 }
 
 /**
+ * @param tt Array of vbi3_top_title structures, can be @c NULL.
+ * @param n_elements Number of structures in the array.
+ *
+ * Deletes an array of vbi3_top_title structures and all resources
+ * associated with it.
  */
 void
-vbi_top_title_array_delete	(vbi_top_title *	tt,
-				 unsigned int		tt_size)
+vbi3_top_title_array_delete	(vbi3_top_title *	tt,
+				 unsigned int		n_elements)
 {
 	unsigned int i;
 
-	if (NULL == tt || 0 == tt_size)
+	if (NULL == tt || 0 == n_elements)
 		return;
 
-	for (i = 0; i < tt_size; ++i)
-		vbi_top_title_destroy (tt + i);
+	for (i = 0; i < n_elements; ++i)
+		vbi3_top_title_destroy (tt + i);
 
-	vbi_free (tt);
+	vbi3_free (tt);
 }
 
 /**
  * @internal
  */
-const ait_title *
+const struct ait_title *
 cache_network_get_ait_title	(cache_network *	cn,
 				 cache_page **		ait_cp,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno)
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno)
 {
 	unsigned int i;
 
 	for (i = 0; i < 8; ++i) {
 		cache_page *cp;
-		const ait_title *ait;
+		const struct ait_title *ait;
 		unsigned int j;
 
 		if (cn->btt_link[i].function != PAGE_FUNCTION_AIT)
 			continue;
 
-		cp = _vbi_cache_get_page (cn->cache, cn,
+		cp = _vbi3_cache_get_page (cn->cache, cn,
 					  cn->btt_link[i].pgno,
 					  cn->btt_link[i].subno, 0x3f7f);
 		if (!cp) {
@@ -126,7 +148,7 @@ cache_network_get_ait_title	(cache_network *	cn,
 			continue;
 		} else if (cp->function != PAGE_FUNCTION_AIT) {
 			log ("...no ait page %x\n", cp->pgno);
-			cache_page_release (cp);
+			cache_page_unref (cp);
 			continue;
 		}
 
@@ -134,7 +156,7 @@ cache_network_get_ait_title	(cache_network *	cn,
 
 		for (j = 0; j < N_ELEMENTS (cp->data.ait.title); ++j) {
 			if (ait->page.pgno == pgno
-			    && (VBI_ANY_SUBNO == subno
+			    && (VBI3_ANY_SUBNO == subno
 				|| ait->page.subno == subno)) {
 				*ait_cp = cp;
 				return ait;
@@ -143,7 +165,7 @@ cache_network_get_ait_title	(cache_network *	cn,
 			++ait;
 		}
 
-		cache_page_release (cp);
+		cache_page_unref (cp);
 	}
 
 	*ait_cp = NULL;
@@ -151,33 +173,32 @@ cache_network_get_ait_title	(cache_network *	cn,
 	return NULL;
 }
 
-static vbi_bool
-_vbi_top_title_from_ait_title	
-				(vbi_top_title *	tt,
+static vbi3_bool
+_vbi3_top_title_from_ait_title	
+				(vbi3_top_title *	tt,
 				 const cache_network *	cn,
-				 const ait_title *	ait,
-				 const vbi_character_set *cs)
+				 const struct ait_title *ait,
+				 const vbi3_character_set *cs)
 {
-	const page_stat *ps;
+	const struct page_stat *ps;
 	char *title;
 
-	title = _vbi_strdup_locale_teletext
-		(ait->text, N_ELEMENTS (ait->text), cs);
-
-	if (!title) {
-		/* Make vbi_top_title_destroy() safe. */
-		vbi_top_title_init (tt);
+	title = vbi3_strndup_utf8_teletext (ait->text,
+					    N_ELEMENTS (ait->text), cs);
+	if (NULL == title) {
+		/* Make vbi3_top_title_destroy() safe. */
+		vbi3_top_title_init (tt);
 		return FALSE;
 	}
 
-	tt->title = title;
+	tt->title_ = title;
 
 	tt->pgno = ait->page.pgno;
 	tt->subno = ait->page.subno;
 
 	ps = cache_network_const_page_stat (cn, ait->page.pgno);
 
-	tt->group = (VBI_TOP_GROUP == ps->page_type);
+	tt->group = (VBI3_TOP_GROUP == ps->page_type);
 
 	return TRUE;
 }
@@ -185,71 +206,70 @@ _vbi_top_title_from_ait_title
 /**
  * @internal
  */
-vbi_bool
+vbi3_bool
 cache_network_get_top_title	(cache_network *	cn,
-				 vbi_top_title *	tt,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno)
+				 vbi3_top_title *	tt,
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno)
 {
 	cache_page *ait_cp;
-	const ait_title *ait;
-	vbi_character_set_code default_csc[2];
-	const vbi_character_set *char_set[2];
-	vbi_bool r;
+	const struct ait_title *ait;
+	const vbi3_character_set *char_set[2];
+	vbi3_bool r;
 
 	assert (NULL != cn);
 	assert (NULL != tt);
 
 	if (!(ait = cache_network_get_ait_title (cn, &ait_cp, pgno, subno))) {
-		/* Make vbi_top_title_destroy() safe. */
-		vbi_top_title_init (tt);
+		/* Make vbi3_top_title_destroy() safe. */
+		vbi3_top_title_init (tt);
 		return FALSE;
 	}
 
 	if (NO_PAGE (ait->page.pgno)) {
-		cache_page_release (ait_cp);
-		vbi_top_title_init (tt);
+		cache_page_unref (ait_cp);
+		vbi3_top_title_init (tt);
 		return FALSE;
 	}
 
-	_vbi_character_set_init (char_set,
+	_vbi3_character_set_init (char_set,
 				 /* default en */ 0,
 				 /* default en */ 0,
 				 /* extension */ NULL,
 				 ait_cp);
 
-	r = _vbi_top_title_from_ait_title (tt, cn, ait, char_set[0]);
+	r = _vbi3_top_title_from_ait_title (tt, cn, ait, char_set[0]);
 
-	cache_page_release (ait_cp);
+	cache_page_unref (ait_cp);
 
 	return r;
 }
 
 /**
  */
-vbi_bool
-vbi_cache_get_top_title		(vbi_cache *		ca,
-				 vbi_top_title *	tt,
-				 const vbi_network *	nk,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno)
+vbi3_bool
+vbi3_cache_get_top_title		(vbi3_cache *		ca,
+				 vbi3_top_title *	tt,
+				 const vbi3_network *	nk,
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno)
 {
 	cache_network *cn;
-	vbi_bool r;
+	vbi3_bool r;
 
 	assert (NULL != ca);
 	assert (NULL != tt);
 	assert (NULL != nk);
 
-	if (!(cn = _vbi_cache_get_network (ca, nk))) {
-		/* Make vbi_top_title_destroy() safe. */
-		vbi_top_title_init (tt);
+	if (!(cn = _vbi3_cache_get_network (ca, nk))) {
+		/* Make vbi3_top_title_destroy() safe. */
+		vbi3_top_title_init (tt);
 		return FALSE;
 	}
 
 	r = cache_network_get_top_title (cn, tt, pgno, subno);
 
-	cache_network_release (cn);
+	cache_network_unref (cn);
 	
 	return r;
 }
@@ -258,8 +278,8 @@ static int
 top_title_cmp			(const void *		p1,
 				 const void *		p2)
 {
-	const vbi_top_title *tt1 = p1;
-	const vbi_top_title *tt2 = p2;
+	const vbi3_top_title *tt1 = p1;
+	const vbi3_top_title *tt2 = p2;
 
 	if (tt1->pgno == tt2->pgno)
 		return tt2->pgno - tt1->pgno;
@@ -270,34 +290,34 @@ top_title_cmp			(const void *		p1,
 /**
  * @internal
  */
-vbi_top_title *
+vbi3_top_title *
 cache_network_get_top_titles	(cache_network *	cn,
-				 unsigned int *		array_size)
+				 unsigned int *		n_elements)
 {
-	vbi_top_title *tt;
+	vbi3_top_title *tt;
 	unsigned int size;
 	unsigned int capacity;
 	unsigned int i;
 
 	assert (NULL != cn);
-	assert (NULL != array_size);
+	assert (NULL != n_elements);
 
 	capacity = 64;
 	size = 0;
 
-	if (!(tt = vbi_malloc (capacity * sizeof (*tt))))
+	if (!(tt = vbi3_malloc (capacity * sizeof (*tt))))
 		return NULL;
 
 	for (i = 0; i < 8; ++i) {
 		cache_page *cp;
-		const ait_title *ait;
-		const vbi_character_set *char_set[2];
+		const struct ait_title *ait;
+		const vbi3_character_set *char_set[2];
 		unsigned int j;
 
 		if (cn->btt_link[i].function != PAGE_FUNCTION_AIT)
 			continue;
 
-		cp = _vbi_cache_get_page (cn->cache, cn,
+		cp = _vbi3_cache_get_page (cn->cache, cn,
 					  cn->btt_link[i].pgno,
 					  cn->btt_link[i].subno, 0x3f7f);
 		if (!cp) {
@@ -306,11 +326,11 @@ cache_network_get_top_titles	(cache_network *	cn,
 			continue;
 		} else if (cp->function != PAGE_FUNCTION_AIT) {
 			log ("...no ait page %x\n", cp->pgno);
-			cache_page_release (cp);
+			cache_page_unref (cp);
 			continue;
 		}
 
-		_vbi_character_set_init (char_set,
+		_vbi3_character_set_init (char_set,
 					 /* default en */ 0,
 					 /* default en */ 0,
 					 /* extension */ NULL,
@@ -325,13 +345,13 @@ cache_network_get_top_titles	(cache_network *	cn,
 			}
 
 			if (size + 1 >= capacity) {
-				vbi_top_title *tt1;
-				unsigned int n;
+				vbi3_top_title *tt1;
+				unsigned long n;
 
 				n = sizeof (*tt) * 2 * capacity;
-				if (!(tt1 = vbi_realloc (tt, n))) {
-					vbi_top_title_array_delete (tt, size);
-					cache_page_release (cp);
+				if (!(tt1 = vbi3_realloc (tt, n))) {
+					vbi3_top_title_array_delete (tt, size);
+					cache_page_unref (cp);
 					return NULL;
 				}
 
@@ -339,7 +359,7 @@ cache_network_get_top_titles	(cache_network *	cn,
 				capacity *= 2;
 			}
 
-			if (_vbi_top_title_from_ait_title
+			if (_vbi3_top_title_from_ait_title
 			    (tt + size, cn, ait, char_set[0])) {
 				++size;
 			}
@@ -347,42 +367,44 @@ cache_network_get_top_titles	(cache_network *	cn,
 			++ait;
 		}
 
-		cache_page_release (cp);
+		cache_page_unref (cp);
 	}
 
 	/* Last element empty. */
-	vbi_top_title_init (tt + size);
+	vbi3_top_title_init (tt + size);
 
-	/* Make sure we're sorted by pgno. */
-	qsort (tt, size, sizeof (*tt), top_title_cmp);
+	if (0) {
+		/* Make sure we're sorted by pgno. */
+		qsort (tt, size, sizeof (*tt), top_title_cmp);
+	}
 
-	*array_size = size;
+	*n_elements = size;
 
 	return tt;
 }
 
 /**
  */
-vbi_top_title *
-vbi_cache_get_top_titles	(vbi_cache *		ca,
-				 const vbi_network *	nk,
-				 unsigned int *		array_size)
+vbi3_top_title *
+vbi3_cache_get_top_titles	(vbi3_cache *		ca,
+				 const vbi3_network *	nk,
+				 unsigned int *		n_elements)
 {
 	cache_network *cn;
-	vbi_top_title *tt;
+	vbi3_top_title *tt;
 
 	assert (NULL != ca);
 	assert (NULL != nk);
-	assert (NULL != array_size);
+	assert (NULL != n_elements);
 
-	*array_size = 0;
+	*n_elements = 0;
 
-	if (!(cn = _vbi_cache_get_network (ca, nk)))
+	if (!(cn = _vbi3_cache_get_network (ca, nk)))
 		return NULL;
 
-	tt = cache_network_get_top_titles (cn, array_size);
+	tt = cache_network_get_top_titles (cn, n_elements);
 
-	cache_network_release (cn);
+	cache_network_unref (cn);
 
 	return tt;
 }

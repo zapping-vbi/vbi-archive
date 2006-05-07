@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Error correction functions
  *
- *  Copyright (C) 2001-2003 Michael H. Schimek
+ *  Copyright (C) 2001, 2002, 2003, 2004 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998, 1999 Edgar Toernig <froese@gmx.de>
@@ -21,20 +21,20 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.h,v 1.4.2.6 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: hamm.h,v 1.4.2.7 2006-05-07 06:04:58 mschimek Exp $ */
 
-#ifndef __ZVBI_HAMM_H__
-#define __ZVBI_HAMM_H__
+#ifndef __ZVBI3_HAMM_H__
+#define __ZVBI3_HAMM_H__
 
 #include <inttypes.h>		/* uintN_t */
 #include "macros.h"
 
-VBI_BEGIN_DECLS
+VBI3_BEGIN_DECLS
 
-extern const uint8_t		vbi_bit_reverse [256];
-extern const uint8_t		vbi_hamm8_fwd [16];
-extern const int8_t		vbi_hamm8_inv [256];
-extern const int8_t		vbi_hamm24_inv_par [3][256];
+extern const uint8_t		_vbi3_bit_reverse [256];
+extern const uint8_t		_vbi3_hamm8_fwd [16];
+extern const int8_t		_vbi3_hamm8_inv [256];
+extern const int8_t		_vbi3_hamm24_inv_par [3][256];
 
 /**
  * @addtogroup Error Error correction functions
@@ -51,10 +51,10 @@ extern const int8_t		vbi_hamm24_inv_par [3][256];
  * @returns
  * Data bits 0 [msb] ... 7 [lsb].
  */
-vbi_inline unsigned int
-vbi_rev8			(unsigned int		c)
+vbi3_inline unsigned int
+vbi3_rev8			(unsigned int		c)
 {
-	return vbi_bit_reverse[(uint8_t) c];
+	return _vbi3_bit_reverse[(uint8_t) c];
 }
 
 /**
@@ -65,11 +65,11 @@ vbi_rev8			(unsigned int		c)
  * @returns
  * Data bits 0 [msb] ... 15 [lsb].
  */
-vbi_inline unsigned int
-vbi_rev16			(unsigned int		c)
+vbi3_inline unsigned int
+vbi3_rev16			(unsigned int		c)
 {
-	return vbi_bit_reverse[(uint8_t) c] * 256
-		+ vbi_bit_reverse[(uint8_t)(c >> 8)];
+	return _vbi3_bit_reverse[(uint8_t) c] * 256
+		+ _vbi3_bit_reverse[(uint8_t)(c >> 8)];
 }
 
 /**
@@ -81,11 +81,11 @@ vbi_rev16			(unsigned int		c)
  * @returns
  * Data bits 0 [msb] ... 15 [lsb].
  */
-vbi_inline unsigned int
-vbi_rev16p			(const uint8_t *	p)
+vbi3_inline unsigned int
+vbi3_rev16p			(const uint8_t *	p)
 {
-	return vbi_bit_reverse[p[0]] * 256
-		+ vbi_bit_reverse[p[1]];
+	return _vbi3_bit_reverse[p[0]] * 256
+		+ _vbi3_bit_reverse[p[1]];
 }
 
 /**
@@ -95,13 +95,13 @@ vbi_rev16p			(const uint8_t *	p)
  * Changes the most significant bit of the byte
  * to make the number of set bits odd.
  */
-vbi_inline unsigned int
-vbi_fpar8			(unsigned int		c)
+vbi3_inline unsigned int
+vbi3_par8			(unsigned int		c)
 {
 	c &= 255;
 
-	if (0 == (vbi_hamm24_inv_par[0][c] & 32))
-		c ^= 128;
+	/* if 0 == (inv_par[] & 32) change bit 7 of c. */
+	c ^= 128 & ~(_vbi3_hamm24_inv_par[0][c] << 2);
 
 	return c;
 }
@@ -113,8 +113,8 @@ vbi_fpar8			(unsigned int		c)
  * If the byte has odd parity (sum of bits modulo 2 is 1) the
  * byte AND 127, otherwise a negative value.
  */
-vbi_inline int
-vbi_ipar8			(unsigned int		c)
+vbi3_inline int
+vbi3_unpar8			(unsigned int		c)
 {
 #ifdef __GNUC__
 #if #cpu (i686)
@@ -127,7 +127,7 @@ vbi_ipar8			(unsigned int		c)
 	return r;
 #endif
 #endif
-	if (vbi_hamm24_inv_par[0][(uint8_t) c] & 32) {
+	if (_vbi3_hamm24_inv_par[0][(uint8_t) c] & 32) {
 		return c & 127;
 	} else {
 		/* The idea is to OR results together to find a parity
@@ -138,11 +138,11 @@ vbi_ipar8			(unsigned int		c)
 }
 
 extern void
-vbi_fpar			(uint8_t *		p,
-				 unsigned int		n);
+vbi3_par				(uint8_t *		p,
+				 unsigned long		n);
 extern int
-vbi_ipar			(uint8_t *		p,
-				 unsigned int		n);
+vbi3_unpar			(uint8_t *		p,
+				 unsigned long		n);
 
 /**
  * @param c Integer between 0 ... 15.
@@ -153,10 +153,10 @@ vbi_ipar			(uint8_t *		p,
  * @returns
  * Hamming encoded unsigned byte, lsb first transmitted.
  */
-vbi_inline unsigned int
-vbi_fham8			(unsigned int		c)
+vbi3_inline unsigned int
+vbi3_ham8			(unsigned int		c)
 {
-	return vbi_hamm8_fwd[c & 15];
+	return _vbi3_hamm8_fwd[c & 15];
 }
 
 /**
@@ -169,10 +169,10 @@ vbi_fham8			(unsigned int		c)
  * Data bits (D4 [msb] ... D1 [lsb]) or a negative
  * value if the byte contained incorrectable errors.
  */
-vbi_inline unsigned int
-vbi_iham8			(unsigned int		c)
+vbi3_inline int
+vbi3_unham8			(unsigned int		c)
 {
-	return vbi_hamm8_inv[(uint8_t) c];
+	return _vbi3_hamm8_inv[(uint8_t) c];
 }
 
 /**
@@ -187,18 +187,19 @@ vbi_iham8			(unsigned int		c)
  * of second byte, or a negative value if any of the bytes
  * contained incorrectable errors.
  */
-vbi_inline int
-vbi_iham16p			(const uint8_t *	p)
+vbi3_inline int
+vbi3_unham16p			(const uint8_t *	p)
 {
-	return ((int) vbi_hamm8_inv[p[0]])
-	  | (((int) vbi_hamm8_inv[p[1]]) << 4);
+	return ((int) _vbi3_hamm8_inv[p[0]])
+	  | (((int) _vbi3_hamm8_inv[p[1]]) << 4);
 }
 
 extern int
-vbi_iham24p			(const uint8_t *	p) vbi_pure;
+vbi3_unham24p			(const uint8_t *	p)
+  __attribute__ ((_vbi3_pure));
 
 /** @} */
 
-VBI_END_DECLS
+VBI3_END_DECLS
 
-#endif /* __ZVBI_HAMM_H__ */
+#endif /* __ZVBI3_HAMM_H__ */

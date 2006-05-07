@@ -22,35 +22,23 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.17 2004-09-14 04:52:00 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.18 2006-05-07 06:04:59 mschimek Exp $ */
 
-#ifndef VBI_H
-#define VBI_H
+#ifndef VBI3_H
+#define VBI3_H
 
 #include <stdarg.h>
 #include "macros.h"
 
-VBI_BEGIN_DECLS
-
-typedef enum {
-	VBI_DEBUG = 7,
-} vbi_log_level;
+VBI3_BEGIN_DECLS
 
 extern void
-vbi_init			(void) __attribute__ ((constructor));
+vbi3_init			(void) __attribute__ ((constructor));
 extern unsigned int
-vbi_version			(unsigned int *		major,
+vbi3_version			(unsigned int *		major,
 				 unsigned int *		minor,
 				 unsigned int *		micro);
 
-typedef void vbi_log_fn		(vbi_log_level		level,
-				 const char *		function,
-				 const char *		message,
-				 void *			user_data);
-extern void
-vbi_set_log_fn			(vbi_log_fn *		function,
-				 void *			user_data);
+VBI3_END_DECLS
 
-VBI_END_DECLS
-
-#endif /* VBI_H */
+#endif /* VBI3_H */

@@ -18,9 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.c,v 1.1.2.2 2004-01-30 00:37:57 mschimek Exp $ */
+/* $Id: bcd.c,v 1.1.2.3 2006-05-07 06:04:58 mschimek Exp $ */
 
 #include "bcd.h"
+#include "misc.h"		/* unlikely() */
 
 /**
  * @addtogroup BCD BCD arithmetic for Teletext page numbers
@@ -32,52 +33,53 @@
  * numbers containing digits 0xA to 0xF are reserved for various
  * system purposes and not intended for display.
  *
- * BCD numbers are stored in int types. Negative BCDs are expressed
- * as ten's complement, for example -1 as 0xF999&nbsp;9999, assumed
- * sizeof(int) is four. Their precision as signed packed bcd value
- * is VBI_BCD_MIN .. VBI_BCD_MAX, as two's complement
- * binary VBI_BCD_DEC_MIN ... VBI_BCD_DEC_MAX. That is -10 ** n ...
+ * BCD numbers are stored in int types. The four most significant bits
+ * contain the sign. Negative BCDs are expressed
+ * as ten's complement, for example -1 as 0xF9999999, assumed
+ * sizeof(int) is 4. Their limits as signed packed bcd value
+ * is VBI3_BCD_MIN .. VBI3_BCD_MAX, as two's complement
+ * binary VBI3_BCD_BIN_MIN ... VBI3_BCD_BIN_MAX. That is -10 ** n ...
  * (10 ** n) - 1, where n = 2 * sizeof(int) - 1.
  */
 
 /**
  * @ingroup BCD
- * @param dec Binary number.
+ * @param bin Binary number.
  * 
  * Converts a two's complement binary to a signed packed bcd value.
- * The argument @a dec must be in range VBI_BCD_DEC_MIN ...
- * VBI_BCD_DEC_MAX. Other values yield an undefined result.
+ * The argument @a bin must be in range VBI3_BCD_BIN_MIN ...
+ * VBI3_BCD_BIN_MAX. Other values yield an undefined result.
  * 
  * @return
  * BCD number.
  */
 int
-vbi_dec2bcd			(int			dec)
+vbi3_bin2bcd			(int			bin)
 {
 	int t = 0;
 
-	/* XXX should try x87 bcd for large values. */
+	/* Try x87 bcd for large values? */
 
-	/* Unlikely, Teletext page numbers are unsigned. */
-	if (__builtin_expect (dec < 0, 0)) {
-		t |= VBI_BCD_MIN;
-		dec += -VBI_BCD_DEC_MIN;
+	/* Teletext page numbers are unsigned. */
+	if (unlikely (bin < 0)) {
+		t |= VBI3_BCD_MIN;
+		bin += -VBI3_BCD_BIN_MIN;
 	}
 
 	/* Most common case 2-4 digits, as in Teletext
 	   page and subpage numbers. */
 
-	t += (dec % 10) << 0; dec /= 10;
-	t += (dec % 10) << 4; dec /= 10;
-	t += (dec % 10) << 8; dec /= 10;
-	t += (dec % 10) << 12;
+	t += (bin % 10) << 0; bin /= 10;
+	t += (bin % 10) << 4; bin /= 10;
+	t += (bin % 10) << 8; bin /= 10;
+	t += (bin % 10) << 12;
 
-	if (__builtin_expect (dec >= 10, 0)) {
+	if (unlikely (bin >= 10)) {
 		unsigned int i;
 
 		for (i = 16; i < sizeof (int) * 8; i += 4) {
-			dec /= 10;
-			t += (dec % 10) << i;
+			bin /= 10;
+			t += (bin % 10) << i;
 		}
 	}
 
@@ -95,20 +97,20 @@ vbi_dec2bcd			(int			dec)
  * contains hex digits 0xA ... 0xF, except for the sign nibble.
  */
 int
-vbi_bcd2dec			(int			bcd)
+vbi3_bcd2bin			(int			bcd)
 {
 	int s;
 	int t;
 
 	s = bcd;
 
-	/* Unlikely, Teletext page numbers are unsigned. */
-	if (__builtin_expect (bcd < 0, 0)) {
+	/* Teletext page numbers are unsigned. */
+	if (unlikely (bcd < 0)) {
 		/* Cannot negate minimum. */
-		if (__builtin_expect (VBI_BCD_MIN == bcd, 0))
-			return VBI_BCD_DEC_MIN;
+		if (unlikely (VBI3_BCD_MIN == bcd))
+			return VBI3_BCD_BIN_MIN;
 
-		bcd = vbi_neg_bcd (bcd);
+		bcd = vbi3_neg_bcd (bcd);
 	}
 
 	/* Most common case 2-4 digits, as in Teletext
@@ -119,7 +121,7 @@ vbi_bcd2dec			(int			bcd)
 	t += (bcd & 15) * 100; bcd >>= 4;
 	t += (bcd & 15) * 1000;
 
-	if (__builtin_expect (bcd & -16, 0)) {
+	if (unlikely (bcd & -16)) {
 		unsigned int u;
 		unsigned int i;
 
@@ -131,8 +133,8 @@ vbi_bcd2dec			(int			bcd)
 		t += u * 10000;
 	}
 
-	/* Unlikely, Teletext page numbers are unsigned. */
-	if (__builtin_expect (s < 0, 0))
+	/* Teletext page numbers are unsigned. */
+	if (unlikely (s < 0))
 		t = -t;
 
 	return t;

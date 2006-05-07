@@ -17,22 +17,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pfc_demux.c,v 1.1.2.4 2004-10-14 07:54:01 mschimek Exp $ */
+/* $Id: pfc_demux.c,v 1.1.2.5 2006-05-07 06:04:58 mschimek Exp $ */
 
 #include "../config.h"
 
 #include <assert.h>
 #include <stdlib.h>		/* malloc() */
 #include <string.h>		/* memcpy() */
-#include "hamm.h"		/* vbi_iham8(), vbi_iham16p() */
-#include "misc.h"		/* vbi_log_printf */
+#include "hamm.h"		/* vbi3_iham8(), vbi3_iham16p() */
+#include "misc.h"		/* vbi3_log_printf */
 #include "pfc_demux.h"
 
 #define BLOCK_SEPARATOR 0x0C
 #define FILLER_BYTE 0x03
-
-#define printable(c)							\
-	((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
 
 /**
  * @addtogroup PFCDemux Teletext Page Function Clear Demultiplexer
@@ -43,9 +40,9 @@
 
 /** @internal */
 void
-_vbi_pfc_block_dump		(const vbi_pfc_block *	pb,
+_vbi3_pfc_block_dump		(const vbi3_pfc_block *	pb,
 				 FILE *			fp,
-				 vbi_bool		binary)
+				 vbi3_bool		binary)
 {
 	assert (NULL != pb);
 	assert (NULL != fp);
@@ -61,7 +58,7 @@ _vbi_pfc_block_dump		(const vbi_pfc_block *	pb,
 		unsigned int i;
 
 		for (i = 0; i < pb->block_size; ++i) {
-			fputc (printable (pb->block[i]), fp);
+			fputc (vbi3_to_ascii (pb->block[i]), fp);
 
 			if ((i % 75) == 75)
 				fputc ('\n', fp);
@@ -73,13 +70,13 @@ _vbi_pfc_block_dump		(const vbi_pfc_block *	pb,
 }
 
 /**
- * @param pc PFC demultiplexer context allocated with vbi_pfc_demux_new().
+ * @param pc PFC demultiplexer context allocated with vbi3_pfc_demux_new().
  *
  * Resets the PFC demux context, useful for example after a channel
  * change.
  */
 void
-vbi_pfc_demux_reset		(vbi_pfc_demux *	pc)
+vbi3_pfc_demux_reset		(vbi3_pfc_demux *	pc)
 {
 	assert (NULL != pc);
 
@@ -94,14 +91,14 @@ vbi_pfc_demux_reset		(vbi_pfc_demux *	pc)
 }
 
 /** @internal */
-vbi_bool
-_vbi_pfc_demux_decode		(vbi_pfc_demux *	pc,
+vbi3_bool
+_vbi3_pfc_demux_decode		(vbi3_pfc_demux *	pc,
 				 const uint8_t		buffer[42])
 {
 	unsigned int col;
 	int bp;
 
-	bp = vbi_iham8 (buffer[2]) * 3;
+	bp = vbi3_unham8 (buffer[2]) * 3;
 	if (bp < 0 || bp > 39) {
 		/* Invalid pointer or hamming error (-1). */
 		goto desynced;
@@ -132,8 +129,8 @@ _vbi_pfc_demux_decode		(vbi_pfc_demux *	pc,
 			if ((int) pc->block.application_id < 0) {
 				int sh; /* structure header */
 
-				sh = vbi_iham16p (pc->block.block)
-					+ vbi_iham16p (pc->block.block + 2)
+				sh = vbi3_unham16p (pc->block.block)
+					+ vbi3_unham16p (pc->block.block + 2)
 					* 256;
 
 				if (sh < 0) {
@@ -163,10 +160,10 @@ _vbi_pfc_demux_decode		(vbi_pfc_demux *	pc,
 			}
 
 			col = bp + 4; /* 2 pmag, 1 bp, 1 bs */
-			bs = vbi_iham8 (buffer[col - 1]);
+			bs = vbi3_unham8 (buffer[col - 1]);
 		} else {
 			while (FILLER_BYTE ==
-			       (bs = vbi_iham8 (buffer[col++]))) {
+			       (bs = vbi3_unham8 (buffer[col++]))) {
 				if (col >= 42) {
 					/* No more data in this packet. */
 					return TRUE;
@@ -193,31 +190,31 @@ _vbi_pfc_demux_decode		(vbi_pfc_demux *	pc,
 
  desynced:
 	/* Incorrectable error, discard current block. */
-	vbi_pfc_demux_reset (pc);
+	vbi3_pfc_demux_reset (pc);
 
 	return FALSE;
 }
 
 /**
- * @param pc PFC demultiplexer context allocated with vbi_pfc_demux_new().
+ * @param pc PFC demultiplexer context allocated with vbi3_pfc_demux_new().
  * @param buffer Teletext packet (last 42 bytes, i. e. without clock
- *   run-in and framing code), as in struct vbi_sliced.
+ *   run-in and framing code), as in struct vbi3_sliced.
  *
  * This function takes a raw stream of Teletext packets, filters out the page
- * and stream requested with vbi_pfc_demux_new() and assembles the
+ * and stream requested with vbi3_pfc_demux_new() and assembles the
  * data transmitted in this page in a buffer. When a data block is complete
- * it calls the output function given to vbi_pfc_demux_new().
+ * it calls the output function given to vbi3_pfc_demux_new().
  *
  * @returns
  * FALSE if the packet contained incorrectable errors.
  */
-vbi_bool
-vbi_pfc_demux_demux		(vbi_pfc_demux *	pc,
+vbi3_bool
+vbi3_pfc_demux_demux		(vbi3_pfc_demux *	pc,
 				 const uint8_t		buffer[42])
 {
 	int pmag;
-	vbi_pgno pgno;
-	vbi_subno subno;
+	vbi3_pgno pgno;
+	vbi3_subno subno;
 	unsigned int packet;
 
 	assert (NULL != pc);
@@ -225,7 +222,7 @@ vbi_pfc_demux_demux		(vbi_pfc_demux *	pc,
 
 	/* Packet filter. */
 
-	if ((pmag = vbi_iham16p (buffer)) < 0)
+	if ((pmag = vbi3_unham16p (buffer)) < 0)
 		goto desynced;
 
 	pgno = pmag & 7;
@@ -240,7 +237,7 @@ vbi_pfc_demux_demux		(vbi_pfc_demux *	pc,
 		unsigned int stream;
 		unsigned int ci;
 
-		pgno |= vbi_iham16p (buffer + 2);
+		pgno |= vbi3_unham16p (buffer + 2);
 		if (pgno < 0)
 			goto desynced;
 
@@ -249,8 +246,8 @@ vbi_pfc_demux_demux		(vbi_pfc_demux *	pc,
 			return TRUE;
 		}
 
-		subno = vbi_iham16p (buffer + 4)
-			+ vbi_iham16p (buffer + 6) * 256;
+		subno = vbi3_unham16p (buffer + 4)
+			+ vbi3_unham16p (buffer + 6) * 256;
 		if (subno < 0)
 			goto desynced;
 
@@ -263,7 +260,7 @@ vbi_pfc_demux_demux		(vbi_pfc_demux *	pc,
 		ci = subno & 15;
 		if (ci != pc->ci) {
 			/* Page continuity lost, wait for new block. */
-			vbi_pfc_demux_reset (pc);
+			vbi3_pfc_demux_reset (pc);
 		}
 
 		pc->ci = (ci + 1) & 15; /* next ci expected */
@@ -294,7 +291,7 @@ vbi_pfc_demux_demux		(vbi_pfc_demux *	pc,
 	    || packet > pc->n_packets) {
 		/* Packet continuity lost, wait for new
 		   block and page header. */
-		vbi_pfc_demux_reset (pc);
+		vbi3_pfc_demux_reset (pc);
 		return TRUE;
 	}
 
@@ -302,11 +299,11 @@ vbi_pfc_demux_demux		(vbi_pfc_demux *	pc,
 
 	/* Now the actual decoding. */	
 
-	return _vbi_pfc_demux_decode (pc, buffer);
+	return _vbi3_pfc_demux_decode (pc, buffer);
 
  desynced:
 	/* Incorrectable error, discard current block. */
-	vbi_pfc_demux_reset (pc);
+	vbi3_pfc_demux_reset (pc);
 
 	return FALSE;
 }
@@ -315,7 +312,7 @@ vbi_pfc_demux_demux		(vbi_pfc_demux *	pc,
  * @internal
  */
 void
-_vbi_pfc_demux_destroy		(vbi_pfc_demux *	pc)
+_vbi3_pfc_demux_destroy		(vbi3_pfc_demux *	pc)
 {
 	assert (NULL != pc);
 
@@ -325,17 +322,17 @@ _vbi_pfc_demux_destroy		(vbi_pfc_demux *	pc)
 /**
  * @internal
  */
-vbi_bool
-_vbi_pfc_demux_init		(vbi_pfc_demux *	pc,
-				 vbi_pgno		pgno,
+vbi3_bool
+_vbi3_pfc_demux_init		(vbi3_pfc_demux *	pc,
+				 vbi3_pgno		pgno,
 				 unsigned int		stream,
-				 vbi_pfc_demux_cb *	callback,
+				 vbi3_pfc_demux_cb *	callback,
 				 void *			user_data)
 {
 	assert (NULL != pc);
 	assert (NULL != callback);
 
-	vbi_pfc_demux_reset (pc);
+	vbi3_pfc_demux_reset (pc);
 
 	pc->callback		= callback;
 	pc->user_data		= user_data;
@@ -348,25 +345,25 @@ _vbi_pfc_demux_init		(vbi_pfc_demux *	pc,
 
 /**
  * @param pc PFC demultiplexer context allocated with
- *   vbi_pfc_demux_new(), can be @c NULL.
+ *   vbi3_pfc_demux_new(), can be @c NULL.
  *
  * Frees all resources associated with @a pc.
  */
 void
-vbi_pfc_demux_delete		(vbi_pfc_demux *	pc)
+vbi3_pfc_demux_delete		(vbi3_pfc_demux *	pc)
 {
 	if (NULL == pc)
 		return;
 
-	_vbi_pfc_demux_destroy (pc);
+	_vbi3_pfc_demux_destroy (pc);
 
-	vbi_free (pc);		
+	vbi3_free (pc);		
 }
 
 /**
  * @param pgno Page to take PFC data from.
  * @param stream PFC stream to be demultiplexed.
- * @param cb Function to be called by vbi_pfc_demux_demux() when
+ * @param cb Function to be called by vbi3_pfc_demux_demux() when
  *   a new data block is available.
  * @param user_data User pointer passed through to @a cb function.
  *
@@ -375,25 +372,25 @@ vbi_pfc_demux_delete		(vbi_pfc_demux *	pc)
  *
  * @returns
  * Pointer to newly allocated PFC demux context which must be
- * freed with vbi_pfc_demux_delete() when done. @c NULL on failure
+ * freed with vbi3_pfc_demux_delete() when done. @c NULL on failure
  * (out of memory).
  */
-vbi_pfc_demux *
-vbi_pfc_demux_new		(vbi_pgno		pgno,
+vbi3_pfc_demux *
+vbi3_pfc_demux_new		(vbi3_pgno		pgno,
 				 unsigned int		stream,
-				 vbi_pfc_demux_cb *	callback,
+				 vbi3_pfc_demux_cb *	callback,
 				 void *			user_data)
 {
-	vbi_pfc_demux *pc;
+	vbi3_pfc_demux *pc;
 
-	if (!(pc = vbi_malloc (sizeof (*pc)))) {
-		vbi_log_printf (VBI_DEBUG, __FUNCTION__, "Out of memory");
+	pc = vbi3_malloc (sizeof (*pc));
+	if (NULL == pc) {
 		return NULL;
 	}
 
-	if (!_vbi_pfc_demux_init (pc, pgno, stream,
+	if (!_vbi3_pfc_demux_init (pc, pgno, stream,
 				  callback, user_data)) {
-		vbi_free (pc);
+		vbi3_free (pc);
 		pc = NULL;
 	}
 

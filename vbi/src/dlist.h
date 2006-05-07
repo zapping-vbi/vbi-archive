@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dlist.h,v 1.1.2.3 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: dlist.h,v 1.1.2.4 2006-05-07 06:04:58 mschimek Exp $ */
 
 #ifndef DLIST_H
 #define DLIST_H
@@ -30,29 +30,124 @@
 #include "macros.h"
 #include "misc.h"
 
-typedef struct node node;
+#ifndef DLIST_CONSISTENCY
+#  define DLIST_CONSISTENCY 0
+#endif
 
 struct node {
-	node *			succ;
-	node *			pred;
+	struct node *		_succ;
+	struct node *		_pred;
 };
 
-typedef struct {
-	node *			head;
-	node *			null;
-	node *			tail;
-} list;
+vbi3_inline void
+verify_ring			(const struct node *	n)
+{
+	unsigned int counter;
+	const struct node *start;
+
+	if (!DLIST_CONSISTENCY)
+		return;
+
+	start = n;
+	counter = 0;
+
+	do {
+		const struct node *_succ = n->_succ;
+
+		assert (counter++ < 30000);
+		assert (n == _succ->_pred);
+		n = _succ;
+	} while (n != start);
+}
+
+vbi3_inline struct node *
+_remove_nodes			(struct node *		before,
+				 struct node *		after,
+				 struct node *		first,
+				 struct node *		last,
+				 vbi3_bool		close_ring,
+				 vbi3_bool		return_ring)
+{
+	verify_ring (before);
+
+	if (close_ring) {
+		before->_succ = after;
+		after->_pred = before;
+	} else {
+		before->_succ = NULL;
+		after->_pred = NULL;
+	}
+
+	if (return_ring) {
+		first->_pred = last;
+		last->_succ = first;
+	} else {
+		first->_pred = NULL;
+		last->_succ = NULL;
+	}
+
+	return first;
+}
+
+vbi3_inline struct node *
+_insert_nodes			(struct node *		before,
+				 struct node *		after,
+				 struct node *		first,
+				 struct node *		last)
+{
+	verify_ring (before);
+
+	first->_pred = before;
+        last->_succ = after;
+
+	after->_pred = last;
+	before->_succ = first;
+
+	return first;
+}
+
+/**
+ * @internal
+ * Adds struct node n to a list or ring after struct node a.
+ */
+vbi3_inline struct node *
+insert_after			(struct node *		a,
+				 struct node *		n)
+{
+	return _insert_nodes (a, a->_succ, n, n);
+}
+
+/**
+ * @internal
+ * Adds struct node n to a list or ring before struct node b.
+ */
+vbi3_inline struct node *
+insert_before			(struct node *		b,
+				 struct node *		n)
+{
+	return _insert_nodes (b->_pred, b, n, n);
+}
+
+/**
+ * @internal
+ * Removes struct node n from its list or ring.
+ */
+vbi3_inline struct node *
+unlink_node			(struct node *		n)
+{
+	return _remove_nodes (n->_pred, n->_succ, n, n, TRUE, FALSE);
+}
 
 /**
  * @internal
  *
  * Traverses a list. p points to the parent structure of a node. p1 is
- * a pointer of same type as p, used to remember the next node in the
+ * a pointer of same type as p, used to remember the _succ struct node in the
  * list. This permits unlink_node(p) in the loop. Resist the temptation
- * to unlink p->succ or p->pred. l points to the list to traverse.
- * _node is the name of the node element. Example:
+ * to unlink p->_succ or p->_pred. l points to the list to traverse.
+ * _node is the name of the struct node element. Example:
  *
- * struct mystruct { node foo; int bar; };
+ * struct mystruct { struct node foo; int bar; };
  *
  * list mylist; // assumed initialized
  * struct mystruct *p, *p1;
@@ -61,194 +156,204 @@ typedef struct {
  *   do_something (p);
  */
 #define FOR_ALL_NODES(p, p1, l, _node)					\
-for (p = PARENT ((l)->head, __typeof__ (* p), _node);			\
-     (p1 = PARENT ((p)->_node.succ, typeof (* p1), _node)); p = p1)
+for (verify_ring (l), p = PARENT ((l)->_succ, __typeof__ (* p), _node);	\
+     p1 = PARENT (p->_node._succ, __typeof__ (* p), _node), 		\
+     &p->_node != (l); p = p1)
 
 #define FOR_ALL_NODES_REVERSE(p, p1, l, _node)				\
-for (p = PARENT ((l)->tail, __typeof__ (* p), _node);			\
-     (p1 = PARENT ((p)->_node.pred, typeof (* p1), _node)); p = p1)
+for (verify_ring (l), p = PARENT ((l)->_pred, __typeof__ (* p), _node);	\
+     p1 = PARENT (p->_node._pred, __typeof__ (* p), _node),		\
+     &p->_node != (l); p = p1)
 
 /**
  * @internal
  * Destroys list l (not its nodes).
  */
-vbi_inline void
-list_destroy			(list *			l)
+vbi3_inline struct node *
+list_destroy			(struct node *		l)
 {
-	CLEAR (*l);
+	return _remove_nodes (l->_pred, l->_succ, l, l, FALSE, FALSE);
 }
 
 /**
  * @internal
  * Initializes list l.
  */
-vbi_inline list *
-list_init			(list *			l)
+vbi3_inline struct node *
+list_init			(struct node *		l)
 {
-	l->head = (node *) &l->null;
-	l->null = (node *) 0;
-	l->tail = (node *) &l->head;
+	l->_succ = l;
+	l->_pred = l;
 
 	return l;
 }
 
 /**
  * @internal
+ * TRUE if struct node n is at head of list l.
+ */
+vbi3_inline vbi3_bool
+is_head				(const struct node *	l,
+				 const struct node *	n)
+{
+	verify_ring (l);
+
+	return (n == l->_succ);
+}
+
+/**
+ * @internal
+ * TRUE if struct node n is at tail of list l.
+ */
+vbi3_inline vbi3_bool
+is_tail				(const struct node *	l,
+				 const struct node *	n)
+{
+	verify_ring (l);
+
+	return (n == l->_pred);
+}
+
+/**
+ * @internal
  * TRUE if list l is empty.
  */
-vbi_inline int
-empty_list			(const list *		l)
+vbi3_inline int
+is_empty			(const struct node *	l)
 {
-	return l->head == (const node *) &l->null;
+	return is_head (l, l);
 }
 
 /**
  * @internal
- * Adds node n at begin of list l.
+ * TRUE if struct node n is a member of list l.
  */
-vbi_inline node *
-add_head			(list *			l,
-				 node *			n)
+vbi3_inline vbi3_bool
+is_member			(const struct node *	l,
+				 const struct node *	n)
 {
-	n->pred = (node *) &l->head;
-	n->succ = l->head;
-	l->head->pred = n;
-	l->head = n;
+	const struct node *q;
 
-	return n;
-}
+	verify_ring (l);
 
-/**
- * @internal
- * Adds node n at end of list l.
- */
-vbi_inline node *
-add_tail			(list *			l,
-				 node *			n)
-{
-	n->succ = (node *) &l->null;
-	n->pred = l->tail;
-	l->tail->succ = n;
-	l->tail = n;
-
-	return n;
-}
-
-/**
- * @internal
- * Removes all nodes from list l2 and adds them at end of list l1.
- */
-vbi_inline node *
-add_tail_list			(list *			l1,
-				 list *			l2)
-{
-	node *n = l2->head;
-
-	n->succ = (node *) &l1->null;
-	n->pred = l1->tail;
-	l1->tail->succ = n;
-	l1->tail = l2->tail;
-
-	l2->head = (node *) &l2->null;
-	l2->tail = (node *) &l2->head;
-
-	return n;
-}
-
-/**
- * @internal
- * TRUE if node n is at head of list l.
- */
-vbi_inline vbi_bool
-is_head				(const list *		l,
-				 const node *		n)
-{
-	return l->head == n;
-}
-
-/**
- * @internal
- * TRUE if node n is a member of list l.
- */
-vbi_inline vbi_bool
-is_member			(const list *		l,
-				 const node *		n)
-{
-	const node *q;
-
-	for (q = l->head; q->succ; q = q->succ)
-		if (__builtin_expect (n == q, 0))
+	for (q = l->_succ; q != l; q = q->_succ) {
+		if (unlikely (q == n)) {
 			return TRUE;
+		}
+	}
 
 	return FALSE;
 }
 
 /**
  * @internal
- * Removes first node of list l, returns NULL if empty list.
+ * Adds struct node n at begin of list l.
  */
-vbi_inline node *
-rem_head			(list *			l)
+vbi3_inline struct node *
+add_head			(struct node *		l,
+				 struct node *		n)
 {
-	node *n = l->head, *s = n->succ;
+	return _insert_nodes (l, l->_succ, n, n);
+}
 
-	if (__builtin_expect (s != NULL, 1)) {
-		s->pred = (node *) &l->head;
-		l->head = s;
-	} else {
-		n = NULL;
+/**
+ * @internal
+ * Adds struct node n at end of list l.
+ */
+vbi3_inline struct node *
+add_tail			(struct node *		l,
+				 struct node *		n)
+{
+	return _insert_nodes (l->_pred, l, n, n);
+}
+
+/**
+ * @internal
+ * Removes all nodes from list l2 and adds them at end of list l1.
+ */
+vbi3_inline struct node *
+add_tail_list			(struct node *		l1,
+				 struct node *		l2)
+{
+	struct node *h2 = l2->_succ;
+
+	verify_ring (l2);
+
+	if (unlikely (l2 == h2)) {
+		return NULL;
 	}
 
-	return n;
+	_insert_nodes (l1->_pred, l1, h2, l2->_pred);
+
+	l2->_succ = l2;
+	l2->_pred = l2;
+
+	return h2;
 }
 
 /**
  * @internal
- * Removes last node of list l, returns NULL if empty list.
+ * Removes struct node n if member of list l.
  */
-vbi_inline node *
-rem_tail			(list *			l)
-{
-	node *n = l->tail, *p = n->pred;
-
-	if (__builtin_expect (p != NULL, 1)) {
-		p->succ = (node *) &l->null;
-		l->tail = p;
-	} else {
-		n = NULL;
-	}
-
-	return n;
-}
-
-/**
- * @internal
- * Removes node n from its list. The node must
- * be a member of the list, this is not verified.
- */
-vbi_inline node *
-unlink_node			(node *			n)
-{
-	n->pred->succ = n->succ;
-	n->succ->pred = n->pred;
-
-	return n;
-}
-
-/**
- * @internal
- * Removes node n if member of list l.
- */
-vbi_inline node *
-rem_node			(list *			l,
-				 node *			n)
+vbi3_inline struct node *
+rem_node			(struct node *		l,
+				 struct node *		n)
 {
 	if (is_member (l, n)) {
-		unlink_node (n);
-		return n;
+		return unlink_node (n);
+	} else {
+		return NULL;
 	}
+}
 
-	return NULL;
+/**
+ * @internal
+ * Removes first struct node of list l, returns NULL if empty list.
+ */
+vbi3_inline struct node *
+rem_head			(struct node *		l)
+{
+	struct node *n = l->_succ;
+
+	if (likely (n != l)) {
+		return _remove_nodes (l, n->_succ, n, n, TRUE, FALSE);
+	} else {
+		return NULL;
+	}
+}
+
+/**
+ * @internal
+ * Removes last struct node of list l, returns NULL if empty list.
+ */
+vbi3_inline struct node *
+rem_tail			(struct node *		l)
+{
+	struct node *n = l->_pred;
+
+	if (likely (n != l)) {
+		return _remove_nodes (n->_pred, l, n, n, TRUE, FALSE);
+	} else {
+		return NULL;
+	}
+}
+
+/**
+ * @internal
+ * Returns number of nodes in list l.
+ */
+vbi3_inline unsigned int
+list_length			(struct node *		l)
+{
+	unsigned int count = 0;
+	struct node *n;
+
+	verify_ring (l);
+
+	for (n = l->_succ; n != l; n = n->_succ)
+		++count;
+
+	return count;
 }
 
 #endif /* DLIST_H */

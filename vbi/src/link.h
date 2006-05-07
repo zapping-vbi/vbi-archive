@@ -1,7 +1,7 @@
 /*
- *  libzvbi
+ *  libzvbi - Links
  *
- *  Copyright (C) 2000-2004 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002, 2003, 2004 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,64 +18,65 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: link.h,v 1.1.2.3 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: link.h,v 1.1.2.4 2006-05-07 06:04:58 mschimek Exp $ */
 
-#ifndef __ZVBI_LINK_H__
-#define __ZVBI_LINK_H__
+#ifndef __ZVBI3_LINK_H__
+#define __ZVBI3_LINK_H__
 
 #include <stdio.h>		/* FILE */
 #include "macros.h"
-#include "network.h"		/* vbi_nuid */
-#include "bcd.h"		/* vbi_pgno, vbi_subno */
+#include "network.h"		/* vbi3_nuid */
+#include "bcd.h"		/* vbi3_pgno, vbi3_subno */
 
-VBI_BEGIN_DECLS
+VBI3_BEGIN_DECLS
 
 /**
  * @brief Link type.
  */
 typedef enum {
 	/**
-	 * vbi_resolve_link() may return a link of this type on failure.
+	 * vbi3_resolve_link() may return a link of this type on failure.
 	 */
-	VBI_LINK_NONE = 0,
+	VBI3_LINK_NONE = 0,
 	/**
-	 * Not really a link, only vbi_link->name will be set. (Probably
+	 * Not really a link, only vbi3_link->name will be set. (Probably
 	 * something like "Help! Help! The station is on fire!")
 	 */
-	VBI_LINK_MESSAGE,
+	VBI3_LINK_MESSAGE,
 	/**
-	 * Points to a Teletext page, vbi_link->pgno and vbi_link->subno,
-	 * eventually vbi_link->nuid and a descriptive text in vbi_link->name.
+	 * Points to a Teletext page, vbi3_link->pgno and vbi3_link->subno,
+	 * eventually vbi3_link->nuid and a descriptive text in vbi3_link->name.
 	 */
-	VBI_LINK_PAGE,
+	VBI3_LINK_PAGE,
 	/**
 	 * Also a Teletext page link, but this one is used exclusively
 	 * to link subpages of the page containing the link.
 	 */
-	VBI_LINK_SUBPAGE,
+	VBI3_LINK_SUBPAGE,
 	/**
-	 * vbi_link->url is a HTTP URL (like "http://zapping.sf.net"),
-	 * eventually accompanied by a descriptive text vbi_link->name.
+	 * vbi3_link->url is a HTTP URL (like "http://zapping.sf.net"),
+	 * eventually accompanied by a descriptive text vbi3_link->name.
 	 */
-	VBI_LINK_HTTP,
+	VBI3_LINK_HTTP,
 	/**
-	 * vbi_link->url is a FTP URL (like "ftp://foo.bar.com/baz"),
-	 * eventually accompanied by a descriptive text vbi_link->name.
+	 * vbi3_link->url is a FTP URL (like "ftp://foo.bar.com/baz"),
+	 * eventually accompanied by a descriptive text vbi3_link->name.
 	 */
-	VBI_LINK_FTP,
+	VBI3_LINK_FTP,
 	/**
-	 * vbi_link->url is an e-mail address (like "mailto:foo@bar"),
-	 * eventually accompanied by a descriptive text vbi_link->name.
+	 * vbi3_link->url is an e-mail address (like "mailto:foo@bar"),
+	 * eventually accompanied by a descriptive text vbi3_link->name.
 	 */
-	VBI_LINK_EMAIL,
+	VBI3_LINK_EMAIL,
 	/** Is a trigger link id. Not useful, just ignore. */
-	VBI_LINK_LID,
+	VBI3_LINK_LID,
 	/** Is a SuperTeletext link, ignore. */
-	VBI_LINK_TELEWEB
-} vbi_link_type;
+	VBI3_LINK_TELEWEB
+} vbi3_link_type;
 
 extern const char *
-vbi_link_type_name		(vbi_link_type		type);
+vbi3_link_type_name		(vbi3_link_type		type)
+  __attribute__ ((const));
 
 /**
  * @ingroup Event
@@ -83,16 +84,16 @@ vbi_link_type_name		(vbi_link_type		type);
  *
  * Some ITV (WebTV, ATVEF) triggers include a type id intended
  * to filter relevant information. The names should speak for
- * themselves. EACEM triggers always have type @c VBI_WEBLINK_UNKNOWN.
+ * themselves. EACEM triggers always have type @c VBI3_WEBLINK_UNKNOWN.
  */
 typedef enum {
-	VBI_WEBLINK_UNKNOWN = 0,
-	VBI_WEBLINK_PROGRAM_RELATED,
-	VBI_WEBLINK_NETWORK_RELATED,
-	VBI_WEBLINK_STATION_RELATED,
-	VBI_WEBLINK_SPONSOR_MESSAGE,
-	VBI_WEBLINK_OPERATOR
-} vbi_itv_type;
+	VBI3_WEBLINK_UNKNOWN = 0,
+	VBI3_WEBLINK_PROGRAM_RELATED,
+	VBI3_WEBLINK_NETWORK_RELATED,
+	VBI3_WEBLINK_STATION_RELATED,
+	VBI3_WEBLINK_SPONSOR_MESSAGE,
+	VBI3_WEBLINK_OPERATOR
+} vbi3_itv_type;
 
 /**
  * @ingroup Event
@@ -104,15 +105,15 @@ typedef enum {
  * not all fields will be used.
  */
 typedef struct {
-	/** See vbi_link_type. */
-	vbi_link_type			type;
+	/** See vbi3_link_type. */
+	vbi3_link_type			type;
 	/**
-	 * Links can be obtained two ways, via @ref VBI_EVENT_TRIGGER,
+	 * Links can be obtained two ways, via @ref VBI3_EVENT_TRIGGER,
 	 * then it arrived either through the EACEM or ATVEF transport
 	 * method as flagged by this field. Or it is a navigational link
-	 * returned by vbi_resolve_link(), then this field does not apply.
+	 * returned by vbi3_resolve_link(), then this field does not apply.
 	 */
-	vbi_bool			eacem;
+	vbi3_bool			eacem;
 	/**
 	 * Some descriptive text, Latin-1, possibly blank.
 	 */
@@ -128,21 +129,21 @@ typedef struct {
 	/**
 	 * Teletext page links (no Closed Caption counterpart) can
 	 * can actually reach across networks. That happens for example
-	 * when vbi_resolve_link() picked up a link on a page after we
+	 * when vbi3_resolve_link() picked up a link on a page after we
 	 * switch away from that channel, or with EACEM triggers
 	 * deliberately pointing to a page on another network (sic!).
 	 * So the network id (if known, otherwise 0) is part of the
-	 * page number. See vbi_nuid.
+	 * page number. See vbi3_nuid.
 	 */
-	vbi_network *			network;
-	// bah. ugly
-	vbi_bool			nk_alloc;
+	vbi3_network *			network;
+  /* bah. ugly */
+	vbi3_bool			nk_alloc;
 	/**
-	 * @a pgno and @a subno Teletext page number, see vbi_pgno, vbi_subno.
-	 * Note subno can be VBI_ANY_SUBNO.
+	 * @a pgno and @a subno Teletext page number, see vbi3_pgno, vbi3_subno.
+	 * Note subno can be VBI3_ANY_SUBNO.
 	 */
-	vbi_pgno			pgno;
-	vbi_subno			subno;
+	vbi3_pgno			pgno;
+	vbi3_subno			subno;
 	/**
 	 * The time in seconds and fractions since
 	 * 1970-01-01 00:00 when the link should no longer be offered
@@ -150,10 +151,10 @@ typedef struct {
 	 */
 	double				expires;
 	/**
-	 * See vbi_itv_type. This field applies only to
-	 * ATVEF triggers, is otherwise @c VBI_WEBLINK_UNKNOWN.
+	 * See vbi3_itv_type. This field applies only to
+	 * ATVEF triggers, is otherwise @c VBI3_WEBLINK_UNKNOWN.
 	 */
-	vbi_itv_type			itv_type;
+	vbi3_itv_type			itv_type;
 	/**
 	 * Trigger priority. 0 = emergency, should never be
 	 * blocked. 1 or 2 = "high", 3 ... 5 = "medium", 6 ... 9 =
@@ -168,23 +169,27 @@ typedef struct {
 	 * this flag will be used to trigger scripts, not to open pages,
 	 * but I have yet to see such a trigger.)
 	 */
-	vbi_bool			autoload;
-} vbi_link;
+	vbi3_bool			autoload;
+} vbi3_link;
 
 extern void
-vbi_link_destroy		(vbi_link *		lk);
-extern vbi_bool
-vbi_link_copy			(vbi_link *		dst,
-				 const vbi_link *	src);
+vbi3_link_destroy		(vbi3_link *		lk)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern vbi3_bool
+vbi3_link_copy			(vbi3_link *		dst,
+				 const vbi3_link *	src)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
-vbi_link_init			(vbi_link *		lk);
+vbi3_link_init			(vbi3_link *		lk)
+  __attribute__ ((_vbi3_nonnull (1)));
 
 /* Private */
 
 extern void
-_vbi_link_dump			(const vbi_link *	ld,
-				 FILE *			fp);
+_vbi3_link_dump			(const vbi3_link *	lk,
+				 FILE *			fp)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 
-VBI_END_DECLS
+VBI3_END_DECLS
 
-#endif /* __ZVBI_LINK_H__ */
+#endif /* __ZVBI3_LINK_H__ */

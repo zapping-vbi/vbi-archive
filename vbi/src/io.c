@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.c,v 1.4.2.3 2004-05-12 01:40:44 mschimek Exp $ */
+/* $Id: io.c,v 1.4.2.4 2006-05-07 06:04:58 mschimek Exp $ */
 
 #include <assert.h>
 #include <string.h>
@@ -34,8 +34,8 @@
  */
 
 /**
- * @param capture Initialized vbi_capture context.
- * @param data Store the raw vbi data here. Use vbi_capture_parameters() to
+ * @param capture Initialized vbi3_capture context.
+ * @param data Store the raw vbi data here. Use vbi3_capture_parameters() to
  *   determine the buffer size.
  * @param timestamp On success the capture instant in seconds and fractions
  *   since 1970-01-01 00:00 of the video frame will be stored here.
@@ -48,10 +48,10 @@
  * vbi data is not available in raw format. 0 on timeout, 1 on success.
  */
 int
-vbi_capture_read_raw(vbi_capture *capture, void *data,
+vbi3_capture_read_raw(vbi3_capture *capture, void *data,
 		     double *timestamp, struct timeval *timeout)
 {
-	vbi_capture_buffer buffer, *bp = &buffer;
+	vbi3_capture_buffer buffer, *bp = &buffer;
 	int r;
 
 	assert (capture != NULL);
@@ -68,7 +68,7 @@ vbi_capture_read_raw(vbi_capture *capture, void *data,
 
 /**
  * @param capture Initialized vbi capture context.
- * @param data Stores the sliced vbi data here. Use vbi_capture_parameters() to
+ * @param data Stores the sliced vbi data here. Use vbi3_capture_parameters() to
  *   determine the buffer size.
  * @param lines Stores number of vbi lines decoded and stored in @a data,
  *   which can be zero, here.
@@ -76,17 +76,17 @@ vbi_capture_read_raw(vbi_capture *capture, void *data,
  *   since 1970-01-01 00:00 will be stored here.
  * @param timeout Wait timeout, will be read only.
  * 
- * Read a sliced vbi frame, that is an array of vbi_sliced structures,
+ * Read a sliced vbi frame, that is an array of vbi3_sliced structures,
  * from the capture device. 
  * 
  * @return
  * -1 on error, examine @c errno for details. 0 on timeout, 1 on success.
  */
 int
-vbi_capture_read_sliced(vbi_capture *capture, vbi_sliced *data, int *lines,
+vbi3_capture_read_sliced(vbi3_capture *capture, vbi3_sliced *data, int *lines,
 			double *timestamp, struct timeval *timeout)
 {
-	vbi_capture_buffer buffer, *bp = &buffer;
+	vbi3_capture_buffer buffer, *bp = &buffer;
 	int r;
 
 	assert (capture != NULL);
@@ -97,7 +97,7 @@ vbi_capture_read_sliced(vbi_capture *capture, vbi_sliced *data, int *lines,
 	buffer.data = data;
 
 	if ((r = capture->read(capture, NULL, &bp, timeout)) > 0) {
-		*lines = ((unsigned int) buffer.size) / sizeof(vbi_sliced);
+		*lines = ((unsigned int) buffer.size) / sizeof(vbi3_sliced);
 		*timestamp = buffer.timestamp;
 	}
 
@@ -106,9 +106,9 @@ vbi_capture_read_sliced(vbi_capture *capture, vbi_sliced *data, int *lines,
 
 /**
  * @param capture Initialized vbi capture context.
- * @param raw_data Stores the raw vbi data here. Use vbi_capture_parameters() to
+ * @param raw_data Stores the raw vbi data here. Use vbi3_capture_parameters() to
  *   determine the buffer size.
- * @param sliced_data Stores the sliced vbi data here. Use vbi_capture_parameters() to
+ * @param sliced_data Stores the sliced vbi data here. Use vbi3_capture_parameters() to
  *   determine the buffer size.
  * @param lines Stores number of vbi lines decoded and stored in @a data,
  *   which can be zero, here.
@@ -117,7 +117,7 @@ vbi_capture_read_sliced(vbi_capture *capture, vbi_sliced *data, int *lines,
  * @param timeout Wait timeout, will be read only.
  * 
  * Read a raw vbi frame from the capture device, decode to sliced data
- * and also read the sliced vbi frame, that is an array of vbi_sliced
+ * and also read the sliced vbi frame, that is an array of vbi3_sliced
  * structures, from the capture device.
  * 
  * @return
@@ -125,12 +125,12 @@ vbi_capture_read_sliced(vbi_capture *capture, vbi_sliced *data, int *lines,
  * is not available in raw format. 0 on timeout, 1 on success.
  */
 int
-vbi_capture_read(vbi_capture *capture, void *raw_data,
-		 vbi_sliced *sliced_data, int *lines,
+vbi3_capture_read(vbi3_capture *capture, void *raw_data,
+		 vbi3_sliced *sliced_data, int *lines,
 		 double *timestamp, struct timeval *timeout)
 {
-	vbi_capture_buffer rbuffer, *rbp = &rbuffer;
-	vbi_capture_buffer sbuffer, *sbp = &sbuffer;
+	vbi3_capture_buffer rbuffer, *rbp = &rbuffer;
+	vbi3_capture_buffer sbuffer, *sbp = &sbuffer;
 	int r;
 
 	assert (capture != NULL);
@@ -142,7 +142,7 @@ vbi_capture_read(vbi_capture *capture, void *raw_data,
 	sbuffer.data = sliced_data;
 
 	if ((r = capture->read(capture, &rbp, &sbp, timeout)) > 0) {
-		*lines = ((unsigned int) sbuffer.size) / sizeof(vbi_sliced);
+		*lines = ((unsigned int) sbuffer.size) / sizeof(vbi3_sliced);
 		*timestamp = sbuffer.timestamp;
 	}
 
@@ -151,20 +151,20 @@ vbi_capture_read(vbi_capture *capture, void *raw_data,
 
 /**
  * @param capture Initialized vbi capture context.
- * @param buffer Store pointer to a vbi_capture_buffer here.
+ * @param buffer Store pointer to a vbi3_capture_buffer here.
  * @param timeout Wait timeout, will be read only.
  * 
  * Read a raw vbi frame from the capture device, returning a
  * pointer to the image in @a buffer->data, which has @a buffer->size.
  * The data remains valid until the next
- * vbi_capture_pull_raw() call and must be read only.
+ * vbi3_capture_pull_raw() call and must be read only.
  * 
  * @return
  * -1 on error, examine @c errno for details. The function also fails
  * if vbi data is not available in raw format. 0 on timeout, 1 on success.
  */
 int
-vbi_capture_pull_raw(vbi_capture *capture, vbi_capture_buffer **buffer,
+vbi3_capture_pull_raw(vbi3_capture *capture, vbi3_capture_buffer **buffer,
 		     struct timeval *timeout)
 {
 	assert (capture != NULL);
@@ -178,20 +178,20 @@ vbi_capture_pull_raw(vbi_capture *capture, vbi_capture_buffer **buffer,
 
 /**
  * @param capture Initialized vbi capture context.
- * @param buffer Store pointer to a vbi_capture_buffer here.
+ * @param buffer Store pointer to a vbi3_capture_buffer here.
  * @param timeout Wait timeout, will be read only.
  * 
- * Read a sliced vbi frame, that is an array of vbi_sliced,
+ * Read a sliced vbi frame, that is an array of vbi3_sliced,
  * from the capture device, returning a pointer to the array as @a buffer->data.
  * @a buffer->size is the size of the array, that is the number of lines decoded,
- * which can be zero, <u>times the size of structure vbi_sliced</u>. The data
- * remains valid until the next vbi_capture_pull_sliced() call and must be read only.
+ * which can be zero, <u>times the size of structure vbi3_sliced</u>. The data
+ * remains valid until the next vbi3_capture_pull_sliced() call and must be read only.
  * 
  * @return
  * -1 on error, examine @c errno for details. 0 on timeout, 1 on success.
  */
 int
-vbi_capture_pull_sliced(vbi_capture *capture, vbi_capture_buffer **buffer,
+vbi3_capture_pull_sliced(vbi3_capture *capture, vbi3_capture_buffer **buffer,
 			struct timeval *timeout)
 {
 	assert (capture != NULL);
@@ -205,27 +205,27 @@ vbi_capture_pull_sliced(vbi_capture *capture, vbi_capture_buffer **buffer,
 
 /**
  * @param capture Initialized vbi capture context.
- * @param raw_buffer Store pointer to a vbi_capture_buffer here.
- * @param sliced_buffer Store pointer to a vbi_capture_buffer here.
+ * @param raw_buffer Store pointer to a vbi3_capture_buffer here.
+ * @param sliced_buffer Store pointer to a vbi3_capture_buffer here.
  * @param timeout Wait timeout, will be read only.
  * 
  * Read a raw vbi frame from the capture device and decode to sliced
  * data. Both raw and sliced data is returned, a pointer to the raw image
- * as raw_buffer->data and a pointer to an array of vbi_sliced as
+ * as raw_buffer->data and a pointer to an array of vbi3_sliced as
  * sliced_buffer->data. Note sliced_buffer->size is the size of the array
  * in bytes. That is the number of lines decoded, which can be zero,
- * times the size of the vbi_sliced structure.
+ * times the size of the vbi3_sliced structure.
  *
  * The raw and sliced data remains valid
- * until the next vbi_capture_pull_raw() call and must be read only.
+ * until the next vbi3_capture_pull_raw() call and must be read only.
  * 
  * @return
  * -1 on error, examine @c errno for details. The function also fails if vbi data
  * is not available in raw format. 0 on timeout, 1 on success.
  */
 int
-vbi_capture_pull(vbi_capture *capture, vbi_capture_buffer **raw_buffer,
-		 vbi_capture_buffer **sliced_buffer, struct timeval *timeout)
+vbi3_capture_pull(vbi3_capture *capture, vbi3_capture_buffer **raw_buffer,
+		 vbi3_capture_buffer **sliced_buffer, struct timeval *timeout)
 {
 	assert (capture != NULL);
 	assert (timeout != NULL);
@@ -242,17 +242,17 @@ vbi_capture_pull(vbi_capture *capture, vbi_capture_buffer **raw_buffer,
  * @param capture Initialized vbi capture context.
  * 
  * Describe the captured data. Raw vbi frames consist of
- * vbi_raw_decoder.count[0] + vbi_raw_decoder.count[1] lines in
- * vbi_raw_decoder.sampling_format, each vbi_raw_decoder.bytes_per_line.
+ * vbi3_raw_decoder.count[0] + vbi3_raw_decoder.count[1] lines in
+ * vbi3_raw_decoder.sampling_format, each vbi3_raw_decoder.bytes_per_line.
  * Sliced vbi arrays consist of zero to
- * vbi_raw_decoder.count[0] + vbi_raw_decoder.count[1] vbi_sliced
+ * vbi3_raw_decoder.count[0] + vbi3_raw_decoder.count[1] vbi3_sliced
  * structures.
  * 
  * @return
- * Pointer to a vbi_raw_decoder structure, read only.
+ * Pointer to a vbi3_raw_decoder structure, read only.
  **/
-vbi_raw_decoder *
-vbi_capture_parameters(vbi_capture *capture)
+vbi3_raw_decoder *
+vbi3_capture_parameters(vbi3_capture *capture)
 {
 	assert (capture != NULL);
 
@@ -268,7 +268,7 @@ vbi_capture_parameters(vbi_capture *capture)
  * will be returned.
  */
 int
-vbi_capture_fd(vbi_capture *capture)
+vbi3_capture_fd(vbi3_capture *capture)
 {
 	if (capture)
 		return capture->get_fd(capture);
@@ -282,7 +282,7 @@ vbi_capture_fd(vbi_capture *capture)
  * Free all resources associated with the @a capture context.
  */
 void
-vbi_capture_delete(vbi_capture *capture)
+vbi3_capture_delete(vbi3_capture *capture)
 {
 	if (capture)
 		capture->_delete(capture);

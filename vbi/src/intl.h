@@ -18,14 +18,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: intl.h,v 1.1.2.2 2004-04-08 23:36:25 mschimek Exp $ */
+/* $Id: intl.h,v 1.1.2.3 2006-05-07 06:04:58 mschimek Exp $ */
 
-#ifndef __ZVBI_INTL_H__
-#define __ZVBI_INTL_H__
+#ifndef __ZVBI3_INTL_H__
+#define __ZVBI3_INTL_H__
 
 #include "macros.h"
 
-VBI_BEGIN_DECLS
+VBI3_BEGIN_DECLS
 
 /**
  * @addtogroup Basic
@@ -35,8 +35,8 @@ VBI_BEGIN_DECLS
  * Can be used for example with bind_textdomain_codeset() to specify
  * a character set different from the current locale.
  */
-extern const char vbi_intl_domainname [];
+extern const char vbi3_intl_domainname [];
 
-VBI_END_DECLS
+VBI3_END_DECLS
 
-#endif /* __ZVBI_INTL_H__ */
+#endif /* __ZVBI3_INTL_H__ */

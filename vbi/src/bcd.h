@@ -18,19 +18,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.h,v 1.6.2.10 2004-07-09 16:10:51 mschimek Exp $ */
+/* $Id: bcd.h,v 1.6.2.11 2006-05-07 06:04:58 mschimek Exp $ */
 
-#ifndef __ZVBI_BCD_H__
-#define __ZVBI_BCD_H__
+#ifndef __ZVBI3_BCD_H__
+#define __ZVBI3_BCD_H__
 
 #include "macros.h"
 
-VBI_BEGIN_DECLS
+VBI3_BEGIN_DECLS
 
 #ifndef DOXYGEN_SHOULD_IGNORE_THIS
 
-#define _VBI_BCD_10 (((int) 0x1111111111111111LL) << 4)
-#define _VBI_BCD_06 (((int) 0x6666666666666666LL) >> 4)
+#define _VBI3_BCD_10 (((int) 0x1111111111111111LL) << 4)
+#define _VBI3_BCD_06 (((int) 0x6666666666666666LL) >> 4)
 
 #endif
 
@@ -39,17 +39,24 @@ VBI_BEGIN_DECLS
  * @{
  */
 
-#define VBI_BCD_MIN (0xF << (sizeof (int) * 8 - 4))
-#define VBI_BCD_MAX (VBI_BCD_MIN ^ ~_VBI_BCD_06)
+#define VBI3_BCD_MIN (0xF << (sizeof (int) * 8 - 4))
+#define VBI3_BCD_MAX (VBI3_BCD_MIN ^ ~_VBI3_BCD_06)
 
-#define VBI_BCD_DEC_MAX	   /* FEDCBA9876543210    F6543210 */		\
+#define VBI3_BCD_BIN_MAX   /* FEDCBA9876543210    F6543210 */		\
 	((8 == sizeof (int)) ? 999999999999999LL : 9999999)
-#define VBI_BCD_DEC_MIN ((-VBI_BCD_DEC_MAX) - 1)
+#define VBI3_BCD_BIN_MIN ((-VBI3_BCD_BIN_MAX) - 1)
+
+/** Older name. */
+#define vbi3_dec2bcd vbi3_bin2bcd
+/** Older name. */
+#define vbi3_bcd2dec vbi3_bcd2bin
 
 extern int
-vbi_dec2bcd			(int			dec) vbi_const;
+vbi3_bin2bcd			(int			bin)
+  __attribute__ ((const));
 extern int
-vbi_bcd2dec			(int			bcd) vbi_const;
+vbi3_bcd2bin			(int			bcd)
+  __attribute__ ((const));
 
 /**
  * @param a BCD number.
@@ -61,13 +68,13 @@ vbi_bcd2dec			(int			bcd) vbi_const;
  * BCD number. The result is undefined when any of the arguments
  * contain hex digits 0xA ... 0xF, except for the sign nibble.
  */
-vbi_inline int
-vbi_add_bcd			(int			a,
+vbi3_inline int
+vbi3_add_bcd			(int			a,
 				 int			b)
 {
-	int t = a + (b += _VBI_BCD_06);
+	int t = a + (b += _VBI3_BCD_06);
 
-	a  = ((~(b ^ a ^ t) & _VBI_BCD_10) >> 3) * 3;
+	a  = ((~(b ^ a ^ t) & _VBI3_BCD_10) >> 3) * 3;
 
 	return t - a;
 }
@@ -76,23 +83,23 @@ vbi_add_bcd			(int			a,
  * @param bcd BCD number.
  * 
  * Calculates the ten's complement of a signed packed bcd. The most
- * significant nibble is the sign, e.g. 0xF999&nbsp;9999 = vbi_neg_bcd
- * (0x0000&nbsp;00001), presumed sizeof(int) is 4.
+ * significant nibble is the sign, e.g. 0xF9999999 = vbi3_neg_bcd
+ * (0x000000001), assumed sizeof(int) is 4.
  *
  * @return
  * BCD number. The result is undefined when any of the arguments
  * contain hex digits 0xA ... 0xF, except for the sign nibble.
  *
- * Note the ten's complement of VBI_BCD_MIN is not representable
- * as signed packed bcd, this function will return VBI_BCD_MAX + 1
+ * Note the ten's complement of VBI3_BCD_MIN is not representable
+ * as signed packed bcd, this function will return VBI3_BCD_MAX + 1
  * (0x1000&nbsp;0000) instead.
  */
-vbi_inline int
-vbi_neg_bcd			(int			bcd)
+vbi3_inline int
+vbi3_neg_bcd			(int			bcd)
 {
 	int t = -bcd;
 
-	return t - (((bcd ^ t) & _VBI_BCD_10) >> 3) * 3;
+	return t - (((bcd ^ t) & _VBI3_BCD_10) >> 3) * 3;
 }
 
 /**
@@ -100,17 +107,17 @@ vbi_neg_bcd			(int			bcd)
  * @param b BCD number.
  * 
  * Subtracts two signed packed bcd numbers, returning a - b. The result
- * may be negative (ten's complement), see vbi_neg_bcd().
+ * may be negative (ten's complement), see vbi3_neg_bcd().
  * 
  * @return
  * BCD number. The result is undefined when any of the arguments
  * contain hex digits 0xA ... 0xF, except for the sign nibble.
  */
-vbi_inline int
-vbi_sub_bcd			(int			a,
+vbi3_inline int
+vbi3_sub_bcd			(int			a,
 				 int			b)
 {
-	return vbi_add_bcd (a, vbi_neg_bcd (b));
+	return vbi3_add_bcd (a, vbi3_neg_bcd (b));
 }
 
 /**
@@ -122,12 +129,13 @@ vbi_sub_bcd			(int			a,
  * @c FALSE if @a bcd contains hex digits 0xA ... 0xF, ignoring
  * the four most significant bits i.e. the sign nibble.
  */
-vbi_inline vbi_bool
-vbi_is_bcd			(int			bcd)
+vbi3_inline vbi3_bool
+vbi3_is_bcd			(int			bcd)
 {
-	bcd &= ~VBI_BCD_MIN;
+	bcd &= ~VBI3_BCD_MIN;
 
-	return 0 == (((bcd + _VBI_BCD_06) ^ bcd ^ _VBI_BCD_06) & _VBI_BCD_10);
+	return 0 == (((bcd + _VBI3_BCD_06) ^ bcd ^ _VBI3_BCD_06)
+		     & _VBI3_BCD_10);
 }
 
 /**
@@ -135,20 +143,21 @@ vbi_is_bcd			(int			bcd)
  * @param maximum Unsigned maximum value.
  *
  * Compares an unsigned packed bcd number digit-wise against a maximum
- * value, for example 0x295959. The function takes about six instructions.
- * @a maximum can contain digits 0x0 ... 0xF.
+ * value, for example 0x295959. The function operates in constant time
+ * and takes about six machine instructions. @a maximum can contain
+ * digits 0x0 ... 0xF.
  *
  * @return
  * @c TRUE if any digit of @a bcd is greater than the
  * corresponding digit of @a maximum.
  */
-vbi_inline vbi_bool
-vbi_bcd_digits_greater		(unsigned int		bcd,
+vbi3_inline vbi3_bool
+vbi3_bcd_digits_greater		(unsigned int		bcd,
 				 unsigned int		maximum)
 {
 	maximum ^= ~0;
 
-	return 0 != (((bcd + maximum) ^ bcd ^ maximum) & _VBI_BCD_10);
+	return 0 != (((bcd + maximum) ^ bcd ^ maximum) & _VBI3_BCD_10);
 }
 
 /** @} */
@@ -188,7 +197,16 @@ vbi_bcd_digits_greater		(unsigned int		bcd,
  *   "Additional text channel"</td></tr>
  * </table>
  */
-typedef int vbi_pgno;
+typedef int vbi3_pgno;
+
+#define VBI3_CAPTION_CC1 1
+#define VBI3_CAPTION_CC2 2
+#define VBI3_CAPTION_CC3 3
+#define VBI3_CAPTION_CC4 4
+#define VBI3_CAPTION_T1 5
+#define VBI3_CAPTION_T2 6
+#define VBI3_CAPTION_T3 7
+#define VBI3_CAPTION_T4 8
 
 /**
  * This is the subpage number only applicable to Teletext pages,
@@ -201,17 +219,91 @@ typedef int vbi_pgno;
  * not actually subpages.
  *
  * Finally the non-BCD value 0x3F7F is possible, symbolic
- * @c VBI_ANY_SUBNO and @c VBI_NO_SUBNO depending on context.
+ * @c VBI3_ANY_SUBNO and @c VBI3_NO_SUBNO depending on context.
  */
-typedef int vbi_subno;
+typedef int vbi3_subno;
 
 /* Magic constants from EN 300 706. */
 
-#define VBI_ANY_SUBNO ((vbi_subno) 0x3F7F)
-#define VBI_NO_SUBNO ((vbi_subno) 0x3F7F)
+#define VBI3_ANY_SUBNO ((vbi3_subno) 0x3F7F)
+#define VBI3_NO_SUBNO ((vbi3_subno) 0x3F7F)
 
 /** @} */
 
-VBI_END_DECLS
+VBI3_END_DECLS
 
-#endif /* __ZVBI_BCD_H__ */
+#ifdef __cplusplus
+
+namespace vbi {
+  class Bcd {
+    int	value;
+
+  public:
+    Bcd () {};
+    Bcd (int n) : value (n) {};
+
+    operator int () const
+      { return value; };
+
+    int bin (void)
+      { return vbi3_bcd2bin (value); };
+    Bcd& bcd (int n)
+      { value = vbi3_bin2bcd (n); return *this; };
+
+    Bcd operator + ()
+      { return *this; };
+    Bcd operator - ()
+      { Bcd t (vbi3_neg_bcd (value)); return t; };
+
+    Bcd& operator += (const Bcd& other)
+      { value = vbi3_add_bcd (value, other.value); return *this; };
+    Bcd& operator ++ ()
+      { value = vbi3_add_bcd (value, 0x1); return *this; };
+    Bcd operator ++ (int)
+      { Bcd t = *this; ++*this; return t; };
+
+    Bcd& operator -= (const Bcd& other)
+      { value = vbi3_sub_bcd (value, other.value); return *this; };
+    Bcd& operator -- ()
+      { value = vbi3_sub_bcd (value, 0x1); return *this; };
+    Bcd operator -- (int)
+      { Bcd t = *this; --*this; return t; };
+
+    bool operator == (int n) const
+      { return value == n; };
+    bool operator == (const Bcd& other) const
+      { return value == other.value; };
+    bool operator != (int n) const
+      { return value != n; };
+    bool operator != (const Bcd& other) const
+      { return value != other.value; };
+
+    bool valid () const
+      { return vbi3_is_bcd (value); };
+  };
+
+  static inline Bcd operator +	(Bcd a, const Bcd& b)
+    { a += b; return a; }
+  static inline Bcd operator -	(Bcd a, const Bcd& b)
+    { a -= b; return a; }
+  static inline
+    std::ostream& operator <<	(std::ostream&		stream,
+				 const Bcd&		b)
+    {
+      std::ios::fmtflags flags = stream.flags ();
+
+      stream << std::hex << (int) b;
+      stream.flags (flags);
+      return stream;
+    }
+
+  typedef Bcd Pgno;
+  typedef Bcd Subno;
+
+  static const Bcd any_subno (VBI3_ANY_SUBNO);
+  static const Bcd no_subno (VBI3_NO_SUBNO);
+};
+
+#endif /* __cplusplus */
+
+#endif /* __ZVBI3_BCD_H__ */

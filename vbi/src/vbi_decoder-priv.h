@@ -22,71 +22,62 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder-priv.h,v 1.1.2.2 2004-07-09 16:10:54 mschimek Exp $ */
+/* $Id: vbi_decoder-priv.h,v 1.1.2.3 2006-05-07 06:04:59 mschimek Exp $ */
 
-#ifndef VBI_DECODER_PRIV_H
-#define VBI_DECODER_PRIV_H
+#ifndef VBI3_DECODER_PRIV_H
+#define VBI3_DECODER_PRIV_H
 
-#include "cc.h"
+#include "caption_decoder-priv.h"
+#include "teletext_decoder-priv.h"	/* vbi3_teletext_decoder */
 #include "event.h"
-#include "trigger.h"
-#include "teletext_decoder-priv.h"	/* vbi_teletext_decoder */
+#ifndef ZAPPING8
+#  include "trigger.h"
+#endif
 #include "vbi_decoder.h"
 
-struct vbi_decoder {
-
-	double			time;
-
+struct vbi3_decoder {
 	/** Activity monitoring. */
-	double			time_teletext;
-	double			time_caption;
-	double			time_vps;
-	double			time_wss_625;
-	double			time_wss_cpr1204;
+	double			timestamp_teletext;
+	double			timestamp_caption;
+	double			timestamp_vps;
+	double			timestamp_wss_625;
+	double			timestamp_wss_cpr1204;
 
+#ifndef ZAPPING8
+	vbi3_aspect_ratio	confirm_aspect_ratio;
+#endif
+#if 0 /* TODO */
+	vbi3_trigger *		triggers;
+#endif
 
+	vbi3_bool		dcc;
 
-  //	pthread_mutex_t		chswcd_mutex;
-  //      int                     chswcd;
+	/**
+	 * Remember past transmission errors: One bit for each call of
+	 * the decoder, most recent result in lsb.
+	 */
+	unsigned int		error_history_vps;
+	unsigned int		error_history_wss_625;
+	unsigned int		error_history_wss_cpr1204;
 
-  //	vbi_event		network;
+	vbi3_teletext_decoder	vt;
+	vbi3_caption_decoder	cc;
 
-  // TODO	vbi_trigger *		triggers;
-
-
-	vbi_teletext_decoder	vt;
-	vbi_caption_decoder	cc;
-
-
-
+	double			timestamp;
 	double 			reset_time;
 
-	void (* teletext_reset)	(vbi_teletext_decoder *	td,
-				 cache_network *	cn,
-				 double			time);
+	teletext_reset_fn *	teletext_reset;
+	caption_reset_fn *	caption_reset;
 
-	void (* caption_reset)	(vbi_caption_decoder *	cd,
-				 cache_network *	cn,
-				 double			time);
-
-
-  //	cache *		cache;
-
-	/* preliminary */
-	int			pageref;
-
-	_vbi_event_handler_list handlers;
-
-
-
+	_vbi3_event_handler_list handlers;
 };
 
 extern void
-_vbi_decoder_destroy		(vbi_decoder *		vbi);
-extern vbi_bool
-_vbi_decoder_init		(vbi_decoder *		vbi,
-				 vbi_cache *		ca,
-				 const vbi_network *	nk,
-				 vbi_videostd_set	videostd_set);
+_vbi3_decoder_destroy		(vbi3_decoder *		vbi);
+extern vbi3_bool
+_vbi3_decoder_init		(vbi3_decoder *		vbi,
+				 vbi3_cache *		ca,
+				 const vbi3_network *	nk,
+				 vbi3_videostd_set	videostd_set);
 
-#endif /* VBI_DECODER_PRIV_H */
+#endif /* VBI3_DECODER_PRIV_H */

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.21 2004-10-14 07:54:02 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.22 2006-05-07 06:04:59 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -43,7 +43,7 @@
 #include "lang.h"
 #include "export.h"
 #include "tables.h"
-#include "format.h"
+#include "page.h"
 #include "wss.h"
 #include "version.h"
 #include "vps.h"
@@ -77,10 +77,10 @@
 /** @defgroup LowDec Low Level Decoding */
 /** @defgroup HiDec High Level Decoding */
 
-//pthread_once_t vbi_init_once = PTHREAD_ONCE_INIT;
+//pthread_once_t vbi3_init_once = PTHREAD_ONCE_INIT;
 
 void
-vbi_init			(void)
+vbi3_init			(void)
 {
 #ifdef ENABLE_NLS
 	bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
@@ -101,7 +101,7 @@ vbi_init			(void)
  * Version number like 0x000205.
  */
 unsigned int
-vbi_version			(unsigned int *		major,
+vbi3_version			(unsigned int *		major,
 				 unsigned int *		minor,
 				 unsigned int *		micro)
 {
@@ -112,164 +112,4 @@ vbi_version			(unsigned int *		major,
 	return (+ (VBI_VERSION_MAJOR << 16)
 		+ (VBI_VERSION_MINOR << 8)
 		+ (VBI_VERSION_MICRO << 0));
-}
-
-#ifndef HAVE_STRLCPY
-
-/**
- * @internal
- * strlcpy() is a BSD/GNU extension.
- */
-size_t
-_vbi_strlcpy			(char *			dst,
-				 const char *		src,
-				 size_t			len)
-{
-	char *dst1;
-	char *end;
-	char c;
-
-	assert (NULL != dst);
-	assert (NULL != src);
-	assert (len > 0);
-
-	dst1 = dst;
-
-	end = dst + len - 1;
-
-	while (dst < end && (c = *src++))
-		*dst++ = c;
-
-	*dst = 0;
-
-	return dst - dst1;
-}
-
-#endif /* !HAVE_STRLCPY */
-
-#ifndef HAVE_STRNDUP
-
-/**
- * @internal
- * strndup() is a BSD/GNU extension.
- */
-char *
-_vbi_strndup			(const char *		s,
-				 size_t			len)
-{
-	size_t n;
-	char *r;
-
-	if (NULL == s)
-		return NULL;
-
-	n = strlen (s);
-	len = MIN (len, n);
-
-	r = vbi_malloc (len + 1);
-
-	if (r) {
-		memcpy (r, s, len);
-		r[len] = 0;
-	}
-
-	return r;
-}
-
-#endif /* !HAVE_STRNDUP */
-
-#ifndef HAVE_ASPRINTF
-
-/**
- * @internal
- * asprintf() is a GNU extension.
- */
-int
-_vbi_asprintf			(char **		dstp,
-				 const char *		templ,
-				 ...)
-{
-	char *buf;
-	int size;
-	int temp;
-
-	assert (NULL != dstp);
-	assert (NULL != templ);
-
-	temp = errno;
-
-	buf = NULL;
-	size = 64;
-
-	for (;;) {
-		va_list ap;
-		char *buf2;
-		int len;
-
-		if (!(buf2 = vbi_realloc (buf, size)))
-			break;
-
-		buf = buf2;
-
-		va_start (ap, templ);
-		len = vsnprintf (buf, size, templ, ap);
-		va_end (ap);
-
-		if (len < 0) {
-			/* Not enough. */
-			size *= 2;
-		} else if (len < size) {
-			*dstp = buf;
-			errno = temp;
-			return len;
-		} else {
-			/* Size needed. */
-			size = len + 1;
-		}
-	}
-
-	vbi_free (buf);
-	*dstp = NULL;
-	errno = temp;
-
-	return -1;
-}
-
-#endif /* !HAVE_ASPRINTF */
-
-static vbi_log_fn *		log_function;
-static void *			log_user_data;
-
-void
-vbi_set_log_fn			(vbi_log_fn *		function,
-				 void *			user_data)
-{
-	log_function = function;
-	log_user_data = user_data;
-}
-
-void
-vbi_log_printf			(vbi_log_level		level,
-				 const char *		function,
-				 const char *		template,
-				 ...)
-{
-	char buf[512];
-	va_list ap;
-	int temp;
-
-	if (NULL == log_function)
-		return;
-
-	temp = errno;
-
-	va_start (ap, template);
-
-	vsnprintf (buf, sizeof (buf) - 1, template, ap);
-
-	va_end (ap);
-
-	log_function (level, function, buf, log_user_data);
-
-	errno = temp;
 }

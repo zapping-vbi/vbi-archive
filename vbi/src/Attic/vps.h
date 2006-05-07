@@ -17,29 +17,35 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vps.h,v 1.1.2.4 2004-04-08 23:36:26 mschimek Exp $ */
+/* $Id: vps.h,v 1.1.2.5 2006-05-07 06:04:59 mschimek Exp $ */
 
-#ifndef __ZVBI_VPS_H__
-#define __ZVBI_VPS_H__
+#ifndef __ZVBI3_VPS_H__
+#define __ZVBI3_VPS_H__
 
 #include <inttypes.h>		/* uint8_t */
 #include "macros.h"
-#include "pdc.h"		/* vbi_program_id */
+#include "pdc.h"		/* vbi3_program_id */
 
-VBI_BEGIN_DECLS
+VBI3_BEGIN_DECLS
 
 /**
  * @addtogroup VPS
  * @{
  */
-extern vbi_bool
-vbi_decode_vps_cni		(unsigned int *		cni,
+extern vbi3_bool
+vbi3_decode_vps_cni		(unsigned int *		cni,
 				 const uint8_t		buffer[13]);
-extern vbi_bool
-vbi_decode_vps_pdc		(vbi_program_id *	pid,
+extern vbi3_bool
+vbi3_encode_vps_cni		(uint8_t		buffer[13],
+				 unsigned int		cni);
+extern vbi3_bool
+vbi3_decode_vps_pdc		(vbi3_program_id *	pid,
 				 const uint8_t		buffer[13]);
+extern vbi3_bool
+vbi3_encode_vps_pdc		(uint8_t		buffer[13],
+				 const vbi3_program_id *pid);
 /** @} */
 
-VBI_END_DECLS
+VBI3_END_DECLS
 
-#endif /* __ZVBI_VPS_H__ */
+#endif /* __ZVBI3_VPS_H__ */

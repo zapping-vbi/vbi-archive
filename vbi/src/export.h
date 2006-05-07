@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Export modules
  *
- *  Copyright (C) 2001-2004 Michael H. Schimek
+ *  Copyright (C) 2001, 2002, 2003, 2004 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998, 1999 Edgar Toernig <froese@gmx.de>
@@ -21,38 +21,38 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.8.2.5 2004-07-09 16:10:52 mschimek Exp $ */
+/* $Id: export.h,v 1.8.2.6 2006-05-07 06:04:58 mschimek Exp $ */
 
-#ifndef __ZVBI_EXPORT_H__
-#define __ZVBI_EXPORT_H__
+#ifndef __ZVBI3_EXPORT_H__
+#define __ZVBI3_EXPORT_H__
 
 #include <stdarg.h>		/* va_list */
 #include <stdio.h>		/* FILE */
 #include "macros.h"
-#include "bcd.h"		/* vbi_pgno, vbi_subno */
-#include "link.h"		/* vbi_link */
-#include "pdc.h"		/* vbi_preselection */
-#include "format.h"		/* vbi_page */
-#include "vbi_decoder.h"	/* vbi_decoder */
+#include "bcd.h"		/* vbi3_pgno, vbi3_subno */
+#include "link.h"		/* vbi3_link */
+#include "pdc.h"		/* vbi3_preselection */
+#include "page.h"		/* vbi3_page */
+#include "vbi_decoder.h"	/* vbi3_decoder */
 
-VBI_BEGIN_DECLS
+VBI3_BEGIN_DECLS
 
 /**
  * @ingroup Export
  * @brief Export context.
  *
  * The contents of this structure are private.
- * Call vbi_export_new() to allocate an export module instance.
+ * Call vbi3_export_new() to allocate an export module instance.
  */
-typedef struct _vbi_export vbi_export;
+typedef struct _vbi3_export vbi3_export;
 
 /**
  * @ingroup Export
  * @brief Information about an export module.
  *
- * You can obtain this information with vbi_export_info_enum().
+ * You can obtain this information with vbi3_export_info_enum().
  */
-typedef struct vbi_export_info {
+typedef struct vbi3_export_info {
 	/**
 	 * Unique (within this library) keyword identifying
 	 * this export module, a NUL terminated ASCII string.
@@ -82,11 +82,11 @@ typedef struct vbi_export_info {
 	const char *		extension;
 	/**
 	 * The file format is open, it can contain more than one
-	 * vbi_page. Call vbi_export_stdio() with a NULL vbi_page
+	 * vbi3_page. Call vbi3_export_stdio() with a NULL vbi3_page
 	 * pointer to finalize the file.
 	 */
-	vbi_bool		open_format;
-} vbi_export_info;
+	vbi3_bool		open_format;
+} vbi3_export_info;
 
 /**
  * @ingroup Export
@@ -102,7 +102,7 @@ typedef enum {
 	 * <tr><td>Menu:</td><td>%NULL</td></tr>
 	 * </table>
 	 */
-	VBI_OPTION_BOOL = 1,
+	VBI3_OPTION_BOOL = 1,
 	/**
 	 * A signed integer value. When only a few discrete values rather than
 	 * a range are permitted @p menu points to a vector of integers. Note
@@ -117,7 +117,7 @@ typedef enum {
 	 * step.num (1)</td></tr>
 	 * </table>
 	 */
-	VBI_OPTION_INT,
+	VBI3_OPTION_INT,
 	/**
 	 * A real value, optional a vector of suggested values.
 	 * <table>
@@ -129,10 +129,10 @@ typedef enum {
 	 * step.num (1)</td></tr>
 	 * </table>
 	 */
-	VBI_OPTION_REAL,
+	VBI3_OPTION_REAL,
 	/**
 	 * A null terminated string. Note the menu version differs from
-	 * VBI_OPTION_MENU in its argument, which is the string itself.
+	 * VBI3_OPTION_MENU in its argument, which is the string itself.
 	 * For example:
 	 * @code
 	 * menu.str[0] = "red"
@@ -147,7 +147,7 @@ typedef enum {
 	 * step.num (1)</td></tr>
 	 * </table>
 	 */
-	VBI_OPTION_STRING,
+	VBI3_OPTION_STRING,
 	/**
 	 * Choice between a number of named options. For example:
 	 * @code
@@ -166,8 +166,8 @@ typedef enum {
 	 * </td></tr>
 	 * </table>
 	 */
-	VBI_OPTION_MENU
-} vbi_option_type;
+	VBI3_OPTION_MENU
+} vbi3_option_type;
 
 /**
  * @ingroup Export
@@ -177,7 +177,7 @@ typedef union {
 	int			num;
 	double			dbl;
 	char *			str;
-} vbi_option_value;
+} vbi3_option_value;
 
 /**
  * @ingroup Export
@@ -187,7 +187,7 @@ typedef union {
 	int *			num;
 	double *		dbl;
 	char **			str;
-} vbi_option_value_ptr;
+} vbi3_option_value_ptr;
 
 /**
  * @ingroup Export
@@ -197,11 +197,11 @@ typedef union {
  * options and use the information in this structure for proper
  * presentation and access.
  *
- * You can obtain this information with vbi_export_option_info_enum().
+ * You can obtain this information with vbi3_export_option_info_enum().
  */
 typedef struct {
-	/** @see vbi_option_type */
-  	vbi_option_type		type;
+	/** @see vbi3_option_type */
+  	vbi3_option_type		type;
 	/**
 	 * Unique (within the export module) keyword to identify
 	 * this option, a NUL terminated ASCII string.
@@ -212,42 +212,42 @@ typedef struct {
 	 * be @c NULL if the option is not supposed to be listed in the UI.
 	 */
 	const char *		label;
-	/** @see vbi_option_type */
+	/** @see vbi3_option_type */
 	union {
 		int			num;
 		double			dbl;
 		const char *		str;
 	}			def;
-	/** @see vbi_option_type */
+	/** @see vbi3_option_type */
 	union {
 		int			num;
 		double			dbl;
 	}			min, max, step;
-	/** @see vbi_option_type */
+	/** @see vbi3_option_type */
 	union {
 		int *			num;
 		double *		dbl;
-		const char * const *	str;
+		const char **		str;
 	}			menu;
 	/**
 	 * A localized description of the option for the user,
 	 * can be @c NULL.
 	 */
 	const char *		tooltip;
-} vbi_option_info;
+} vbi3_option_info;
 
 /**
- * @param e Export context passed to vbi_export_stdio() or
+ * @param e Export context passed to vbi3_export_stdio() or
  *   other output functions.
  * @param user_data User pointer passed through by
- *   vbi_export_set_link_cb().
+ *   vbi3_export_set_link_cb().
  * @param fp Output stream.
  * @param link Structure describing the link.
  *
  * Export modules call this type of function to write a link text
  * with metadata. Might do something like this:
  * @code
- * if (VBI_LINK_HTTP == link->type)
+ * if (VBI3_LINK_HTTP == link->type)
  *         fprintf (fp, "<a href="%s">%s</a>", link->url, link->text);
  * @endcode
  *
@@ -255,16 +255,16 @@ typedef struct {
  * FALSE on failure, which causes the export module to abort and
  * return FALSE to its caller.
  */
-typedef vbi_bool
-vbi_export_link_cb		(vbi_export *		e,
+typedef vbi3_bool
+vbi3_export_link_cb		(vbi3_export *		e,
 				 void *			user_data,
 				 FILE *			fp,
-				 const vbi_link *	link);
+				 const vbi3_link *	lnk);
 /**
- * @param e Export context passed to vbi_export_stdio() or
+ * @param e Export context passed to vbi3_export_stdio() or
  *   other output functions.
  * @param user_data User pointer passed through by
- *   vbi_export_set_pdc_cb().
+ *   vbi3_export_set_pdc_cb().
  * @param fp Output stream.
  * @param ps Structure describing the program.
  * @param text Text of the link.
@@ -276,11 +276,11 @@ vbi_export_link_cb		(vbi_export *		e,
  * FALSE on failure, which causes the export module to abort and
  * return FALSE to its caller.
  */
-typedef vbi_bool
-vbi_export_pdc_cb		(vbi_export *		e,
+typedef vbi3_bool
+vbi3_export_pdc_cb		(vbi3_export *		e,
 				 void *			user_data,
 				 FILE *			fp,
-				 const vbi_preselection *ps,
+				 const vbi3_preselection *ps,
 				 const char *		text);
 
 /**
@@ -288,92 +288,115 @@ vbi_export_pdc_cb		(vbi_export *		e,
  * @{
  */
 extern const char *
-vbi_export_errstr		(vbi_export *		e);
-extern vbi_bool
-vbi_export_stdio		(vbi_export *		e,
+vbi3_export_errstr		(vbi3_export *		e)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern vbi3_bool
+vbi3_export_stdio		(vbi3_export *		e,
 				 FILE *			fp,
-				 const vbi_page *	pg);
-extern vbi_bool
-vbi_export_file			(vbi_export *		e,
+				 const vbi3_page *	pg)
+  __attribute__ ((_vbi3_nonnull (1, 2))); /* sic */
+extern vbi3_bool
+vbi3_export_file			(vbi3_export *		e,
 				 const char *		name,
-				 const vbi_page *	pg);
-extern vbi_bool
-vbi_export_stream_close		(vbi_export *		e);
-extern vbi_bool
-vbi_export_stream_stdio_va_list	(vbi_export *		e,
+				 const vbi3_page *	pg)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+#ifndef ZAPPING8
+extern vbi3_bool
+vbi3_export_stream_close		(vbi3_export *		e)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern vbi3_bool
+vbi3_export_stream_stdio_va_list	(vbi3_export *		e,
 				 FILE *			fp,
-				 vbi_decoder *		vbi,
-	    			 vbi_pgno		pgno,
-				 vbi_subno		subno,
-				 va_list		format_options);
-extern vbi_bool
-vbi_export_stream_stdio		(vbi_export *		e,
+				 vbi3_decoder *		vbi,
+	    			 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
+				 va_list		format_options)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+extern vbi3_bool
+vbi3_export_stream_stdio		(vbi3_export *		e,
 				 FILE *			fp,
-				 vbi_decoder *		vbi,
-	    			 vbi_pgno		pgno,
-				 vbi_subno		subno,
-				 ...);
-extern vbi_bool
-vbi_export_stream_file_va_list	(vbi_export *		e,
+				 vbi3_decoder *		vbi,
+	    			 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3),
+		  _vbi3_sentinel));
+extern vbi3_bool
+vbi3_export_stream_file_va_list	(vbi3_export *		e,
 				 const char *		name,
-				 vbi_decoder *		vbi,
-	    			 vbi_pgno		pgno,
-				 vbi_subno		subno,
-				 va_list		format_options);
-extern vbi_bool
-vbi_export_stream_file		(vbi_export *		e,
+				 vbi3_decoder *		vbi,
+	    			 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
+				 va_list		format_options)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+extern vbi3_bool
+vbi3_export_stream_file		(vbi3_export *		e,
 				 const char *		name,
-				 vbi_decoder *		vbi,
-	    			 vbi_pgno		pgno,
-				 vbi_subno		subno,
-				 ...);
+				 vbi3_decoder *		vbi,
+	    			 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3),
+		  _vbi3_sentinel));
+#endif /* !ZAPPING8 */
 extern void
-vbi_export_set_link_cb		(vbi_export *		e,
-				 vbi_export_link_cb *	callback,
-				 void *			user_data);
+vbi3_export_set_link_cb		(vbi3_export *		e,
+				 vbi3_export_link_cb *	callback,
+				 void *			user_data)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
-vbi_export_set_pdc_cb		(vbi_export *		e,
-				 vbi_export_pdc_cb *	callback,
-				 void *			user_data);
+vbi3_export_set_pdc_cb		(vbi3_export *		e,
+				 vbi3_export_pdc_cb *	callback,
+				 void *			user_data)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
-vbi_export_set_timestamp	(vbi_export *		e,
-				 double			timestamp);
-extern vbi_bool
-vbi_export_option_menu_get	(vbi_export *		e,
+vbi3_export_set_timestamp	(vbi3_export *		e,
+				 double			timestamp)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern vbi3_bool
+vbi3_export_option_menu_get	(vbi3_export *		e,
 				 const char *		keyword,
-				 unsigned int *		entry);
-extern vbi_bool
-vbi_export_option_menu_set	(vbi_export *		e,
+				 unsigned int *		entry)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+extern vbi3_bool
+vbi3_export_option_menu_set	(vbi3_export *		e,
 				 const char *		keyword,
-				 unsigned int		entry);
-extern vbi_bool
-vbi_export_option_get		(vbi_export *		e,
+				 unsigned int		entry)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
+extern vbi3_bool
+vbi3_export_option_get		(vbi3_export *		e,
 				 const char *		keyword,
-				 vbi_option_value *	value);
-extern vbi_bool
-vbi_export_option_set		(vbi_export *		e,
+				 vbi3_option_value *	value)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+extern vbi3_bool
+vbi3_export_option_set		(vbi3_export *		e,
 				 const char *		keyword,
-				 ...);
-extern const vbi_option_info *
-vbi_export_option_info_enum	(vbi_export *		e,
-				 unsigned int		index);
-extern const vbi_option_info *
-vbi_export_option_info_by_keyword
-				(vbi_export *		e,
-				 const char *		keyword);
-extern const vbi_export_info *
-vbi_export_info_enum		(unsigned int		index);
-extern const vbi_export_info *
-vbi_export_info_by_keyword	(const char *		keyword);
-extern const vbi_export_info *
-vbi_export_info_from_export	(const vbi_export *	e);
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
+extern const vbi3_option_info *
+vbi3_export_option_info_enum	(vbi3_export *		e,
+				 unsigned int		indx)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern const vbi3_option_info *
+vbi3_export_option_info_by_keyword
+				(vbi3_export *		e,
+				 const char *		keyword)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern const vbi3_export_info *
+vbi3_export_info_enum		(unsigned int		indx);
+extern const vbi3_export_info *
+vbi3_export_info_by_keyword	(const char *		keyword);
+extern const vbi3_export_info *
+vbi3_export_info_from_export	(const vbi3_export *	e)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
-vbi_export_delete		(vbi_export *		e);
-extern vbi_export *
-vbi_export_new			(const char *		keyword,
-				 char **		errstr);
+vbi3_export_delete		(vbi3_export *		e);
+extern vbi3_export *
+vbi3_export_new			(const char *		keyword,
+				 char **		errstr)
+  __attribute__ ((malloc));
 /** @} */
 
-VBI_END_DECLS
+VBI3_END_DECLS
 
-#endif /* __ZVBI_EXPORT_H__ */
+#endif /* __ZVBI3_EXPORT_H__ */

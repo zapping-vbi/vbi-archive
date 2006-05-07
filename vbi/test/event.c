@@ -18,164 +18,249 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.c,v 1.1.2.1 2004-07-09 16:10:55 mschimek Exp $ */
+/* $Id: event.c,v 1.1.2.2 2006-05-07 06:05:00 mschimek Exp $ */
 
-#undef NDEBUG
-
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <locale.h>
 #include <assert.h>
 #include <unistd.h>
+#include <errno.h>
 #ifdef HAVE_GETOPT_LONG
-#include <getopt.h>
+#  include <getopt.h>
 #endif
 
 #include "src/zvbi.h"
 
-vbi_decoder *		vbi;
-vbi_teletext_decoder *	td;
-vbi_caption_decoder *	cd;
-unsigned int		decoder;
-vbi_bool		quit;
-vbi_bool		option_header;
+#define _(x) x /* TODO */
+
+#define PROGRAM_NAME "zvbi-event"
+
+static vbi3_dvb_demux *		dx;
+static vbi3_decoder *		dec;
+static vbi3_teletext_decoder *	td;
+static vbi3_caption_decoder *	cd;
+
+static vbi3_bool		source_is_pes;
+
+static vbi3_bool		option_header;
+
+#ifndef HAVE_PROGRAM_INVOCATION_NAME
+static char *			program_invocation_name;
+static char *			program_invocation_short_name;
+#endif
+
+static void
+error_exit			(const char *		template,
+				 ...)
+{
+	va_list ap;
+
+	fprintf (stderr, "%s: ", program_invocation_short_name);
+
+	va_start (ap, template);
+	vfprintf (stderr, template, ap);
+	va_end (ap);         
+
+	fputc ('\n', stderr);
+
+	exit (EXIT_FAILURE);
+}
+
+static void
+no_mem_exit			(void)
+{
+	error_exit (_("Out of memory."));
+}
 
 static void
 dump_stats			(void)
 {
-	vbi_pgno pgno;
-	vbi_ttx_page_stat ps;
+	vbi3_pgno pgno;
+	vbi3_ttx_page_stat ps;
 
 	for (pgno = 0x100; pgno <= 0x8FF; pgno += 0x001) {
-		vbi_bool r;
+		vbi3_bool success;
 
-		r = vbi_decoder_get_ttx_page_stat (vbi, &ps, NULL, pgno);
-
-		if (!r)
+		success = vbi3_teletext_decoder_get_ttx_page_stat
+			(td, &ps, /* network: current */ NULL, pgno);
+		if (!success)
 			continue;
 
-		printf ("%03x: %02x=%s %02x subp=%d (%02x-%02x)\n",
+		printf ("  Page %03x: %02x=%s %02x subp=%d (%02x-%02x)\n",
 			pgno,
 			ps.page_type,
-			vbi_ttx_page_type_name (ps.page_type),
-			ps.charset_code,
+			vbi3_page_type_name (ps.page_type),
+			ps.character_set ? ps.character_set->code : 0,
 			ps.subpages,
 			ps.subno_min,
 			ps.subno_max);
-	} 
+	}
 }
 
 static void
 dump_top			(void)
 {
-	vbi_top_title *tt;
-	unsigned int size;
+	vbi3_top_title *tt;
+	unsigned int n_titles;
 	unsigned int i;
 
-	tt = vbi_decoder_get_top_titles (vbi, NULL, &size);
-
-	if (!tt) {
-		printf ("top NULL\n");
+	tt = vbi3_teletext_decoder_get_top_titles
+		(td, /* network: current */ NULL, &n_titles);
+	if (NULL == tt) {
+		printf ("  No TOP titles.\n");
 		return;
 	}
 
-	for (i = 0; i < size; ++i) {
-		printf ("%2u %3x.%04x %u '%s'\n",
+	for (i = 0; i < n_titles; ++i) {
+		printf ("  TOP title %u: %3x.%04x group=%u '",
 			i, tt[i].pgno,
 			tt[i].subno,
-			tt[i].group,
-			tt[i].title);
+			tt[i].group);
+		vbi3_fputs_locale_utf8 (stdout, tt[i].title_,
+					VBI3_NUL_TERMINATED);
+		puts ("'");
 	}
 
-	vbi_top_title_array_delete (tt, size);
+	vbi3_top_title_array_delete (tt, n_titles);
 }
 
-static vbi_bool
-handler				(const vbi_event *	ev,
-				 void *			unused)
+static vbi3_bool
+handler				(const vbi3_event *	ev,
+				 void *			user_data)
 {
-	static vbi_bool closed = FALSE;
+	static vbi3_bool closed = FALSE;
 
+	user_data = user_data; /* unused */
+
+	/* Must not send anything after close event. */
 	assert (!closed);
 
 	if (option_header) {
-		printf ("Event %f %p ", ev->timestamp, ev->network);
-		_vbi_network_dump (ev->network, stdout);
+		printf ("Event time=%f network=%p ",
+			ev->timestamp, ev->network);
+
+		_vbi3_network_dump (ev->network, stdout);
+
 		putchar ('\n');
 	}
 
 	switch (ev->type) {
-	case VBI_EVENT_NONE:
+	case VBI3_EVENT_NONE:
 		printf ("NONE\n");
-		assert (!"reached");
+		assert (0);
 
-	case VBI_EVENT_CLOSE:
+	case VBI3_EVENT_CLOSE:
 		printf ("CLOSE\n");
 		closed = TRUE;
 		break;
 
-	case VBI_EVENT_RESET:
+	case VBI3_EVENT_RESET:
 		printf ("RESET\n");
 		break;
 
-	case VBI_EVENT_TTX_PAGE:
+	case VBI3_EVENT_TTX_PAGE:
 		printf ("TTX_PAGE %03x.%02x "
 			"roll=%u news=%u subt=%u upd=%u serial=%u\n",
 			ev->ev.ttx_page.pgno,
 			ev->ev.ttx_page.subno,
-			!!(ev->ev.ttx_page.flags & VBI_ROLL_HEADER),
-			!!(ev->ev.ttx_page.flags & VBI_NEWSFLASH),
-			!!(ev->ev.ttx_page.flags & VBI_SUBTITLE),
-			!!(ev->ev.ttx_page.flags & VBI_UPDATE),
-			!!(ev->ev.ttx_page.flags & VBI_SERIAL));
+			!!(ev->ev.ttx_page.flags & VBI3_ROLL_HEADER),
+			!!(ev->ev.ttx_page.flags & VBI3_NEWSFLASH),
+			!!(ev->ev.ttx_page.flags & VBI3_SUBTITLE),
+			!!(ev->ev.ttx_page.flags & VBI3_UPDATE),
+			!!(ev->ev.ttx_page.flags & VBI3_SERIAL));
+
+		assert (NULL != td);
+
 		break;
 
-	case VBI_EVENT_CAPTION:
-		printf ("CAPTION %u\n",
-			ev->ev.caption.channel);
+	case VBI3_EVENT_CC_RAW:
+	{
+		unsigned int i;
+
+		printf ("CC_RAW ch=%u row=%u text='",
+			ev->ev.cc_raw.channel,
+			ev->ev.cc_raw.row);
+
+		for (i = 0; i < ev->ev.cc_raw.length; ++i) {
+			int c;
+
+			c = vbi3_printable (ev->ev.cc_raw.text[i].unicode);
+			putchar (c);
+		}
+
+		puts ("'");
+
+		assert (NULL != cd);
+
+		break;
+	}
+
+	case VBI3_EVENT_CC_PAGE:
+		printf ("CC_PAGE ch=%u char_update=%u word=%u "
+			"row=%u page_update=%u start_rolling=%u\n",
+			ev->ev.caption.channel,
+			!!(ev->ev.caption.flags & VBI3_CHAR_UPDATE),
+			!!(ev->ev.caption.flags & VBI3_WORD_UPDATE),
+			!!(ev->ev.caption.flags & VBI3_ROW_UPDATE),
+			!!(ev->ev.caption.flags & VBI3_PAGE_UPDATE),
+			!!(ev->ev.caption.flags & VBI3_START_ROLLING));
+
+		assert (NULL != cd);
+
 		break;
 
-	case VBI_EVENT_NETWORK:
+	case VBI3_EVENT_NETWORK:
 		printf ("NETWORK ");
-		if (!option_header)
-			_vbi_network_dump (ev->network, stdout);
+
+		if (option_header) {
+			/* Already printed. */
+		} else {
+			_vbi3_network_dump (ev->network, stdout);
+		}
+
 		putchar ('\n');
+
 		break;
 
-	case VBI_EVENT_TRIGGER:
+	case VBI3_EVENT_TRIGGER:
 		printf ("TRIGGER ");
-		_vbi_link_dump (ev->ev.trigger, stdout);
+		_vbi3_link_dump (ev->ev.trigger, stdout);
+		assert (NULL != dec);
 		break;
 
-	case VBI_EVENT_ASPECT:
+	case VBI3_EVENT_ASPECT:
 		printf ("ASPECT ");
-		_vbi_aspect_ratio_dump (ev->ev.aspect, stdout);
+		_vbi3_aspect_ratio_dump (ev->ev.aspect, stdout);
 		putchar ('\n');
 		break;
 
-	case VBI_EVENT_PROG_INFO:
+	case VBI3_EVENT_PROG_INFO:
 		printf ("PROG_INFO\n");
-		_vbi_program_info_dump (ev->ev.prog_info, stdout);
+		_vbi3_program_info_dump (ev->ev.prog_info, stdout);
 		break;
 
-	case VBI_EVENT_PAGE_TYPE:
+	case VBI3_EVENT_PAGE_TYPE:
 		printf ("PAGE_TYPE\n");
 		dump_stats ();
 		break;
 
-	case VBI_EVENT_TOP_CHANGE:
+	case VBI3_EVENT_TOP_CHANGE:
 		printf ("TOP_CHANGE\n");
 		dump_top ();
+		assert (NULL != td);
 		break;
 
-	case VBI_EVENT_LOCAL_TIME:
+	case VBI3_EVENT_LOCAL_TIME:
 	{
-		time_t time;
 		struct tm tm;
 
-		printf ("LOCAL_TIME %f %d ",
+		printf ("LOCAL_TIME time=%f gmtoff=%d ",
 			(double) ev->ev.local_time.time,
 			ev->ev.local_time.gmtoff);
 
@@ -188,80 +273,165 @@ handler				(const vbi_event *	ev,
 		break;
 	}
 
-	case VBI_EVENT_PROG_ID:
+	case VBI3_EVENT_PROG_ID:
 		printf ("PROG_ID\n");
-		_vbi_program_id_dump (ev->ev.prog_id, stdout);
+		_vbi3_program_id_dump (ev->ev.prog_id, stdout);
 		putchar ('\n');
 		break;
 
+	case VBI3_EVENT_TIMER:
+		printf ("TIMER\n");
+		break;
+
 	default:
-		printf ("%u\n", ev->type);
-		assert (!"reached");
+		printf ("Unknown event 0x%x\n", ev->type);
+		assert (0);
 	}
 
-	return TRUE; /* pass on */
+	return FALSE; /* not handled, pass on */
 }
 
 static void
-stream(void)
+decode				(const vbi3_sliced *	sliced,
+				 unsigned int		n_lines,
+				 double			sample_time,
+				 int64_t		stream_time)
 {
-	char buf[256];
-	double time = 0.0, dt;
-	int index, items, i;
-	vbi_sliced *s, sliced[40];
+	stream_time = stream_time; /* unused */
 
-	while (!quit) {
-		if (ferror(stdin) || !fgets(buf, 255, stdin))
+	if (dec) {
+		vbi3_decoder_feed (dec, sliced, n_lines, sample_time);
+	} else if (td) {
+		unsigned int i;
+
+		for (i = 0; i < n_lines; ++i) {
+			if (sliced[i].id & VBI3_SLICED_TELETEXT_B)
+				vbi3_teletext_decoder_feed
+					(td, sliced[i].data, sample_time);
+		}
+	} else if (cd) {
+		unsigned int i;
+
+		for (i = 0; i < n_lines; ++i) {
+			if (sliced[i].id & VBI3_SLICED_CAPTION_525)
+				vbi3_caption_decoder_feed
+					(cd, sliced[i].data,
+					 sliced[i].line, sample_time);
+		}
+	} else {
+		assert (0);
+	}
+}
+
+static void
+pes_mainloop			(void)
+{
+	uint8_t buffer[2048];
+
+	while (1 == fread (buffer, sizeof (buffer), 1, stdin)) {
+		const uint8_t *bp;
+		unsigned int left;
+
+		bp = buffer;
+		left = sizeof (buffer);
+
+		while (left > 0) {
+			vbi3_sliced sliced[64];
+			unsigned int n_lines;
+			int64_t pts;
+
+			n_lines = _vbi3_dvb_demux_cor (dx,
+						    sliced, 64,
+						    &pts,
+						    &bp, &left);
+			if (n_lines > 0)
+				decode (sliced, n_lines, 0, pts);
+		}
+	}
+
+	fprintf (stderr, "\rEnd of stream\n");
+}
+
+static void
+old_mainloop			(void)
+{
+	double time;
+
+	time = 0.0;
+
+	for (;;) {
+		char buf[256];
+		double dt;
+		unsigned int n_items;
+		vbi3_sliced sliced[40];
+		vbi3_sliced *s;
+
+		if (ferror (stdin) || !fgets (buf, 255, stdin))
 			goto abort;
 
-		dt = strtod(buf, NULL);
-		items = fgetc(stdin);
+		dt = strtod (buf, NULL);
+		n_items = fgetc (stdin);
 
-		assert(items < 40);
+		assert (n_items < 40);
 
-		for (s = sliced, i = 0; i < items; s++, i++) {
-			index = fgetc(stdin);
-			s->line = (fgetc(stdin) + 256 * fgetc(stdin)) & 0xFFF;
+		s = sliced;
+
+		while (n_items-- > 0) {
+			int index;
+
+			index = fgetc (stdin);
+
+			s->line = (fgetc (stdin)
+				   + 256 * fgetc (stdin)) & 0xFFF;
 
 			if (index < 0)
 				goto abort;
 
 			switch (index) {
 			case 0:
-				s->id = VBI_SLICED_TELETEXT_B;
-				fread(s->data, 1, 42, stdin);
+				s->id = VBI3_SLICED_TELETEXT_B;
+				fread (s->data, 1, 42, stdin);
 				break;
+
 			case 1:
-				s->id = VBI_SLICED_CAPTION_625; 
-				fread(s->data, 1, 2, stdin);
+				s->id = VBI3_SLICED_CAPTION_625; 
+				fread (s->data, 1, 2, stdin);
 				break; 
+
 			case 2:
-				s->id = VBI_SLICED_VPS; 
-				fread(s->data, 1, 13, stdin);
+				s->id = VBI3_SLICED_VPS;
+				fread (s->data, 1, 13, stdin);
 				break;
+
 			case 3:
-				s->id = VBI_SLICED_WSS_625; 
-				fread(s->data, 1, 2, stdin);
+				s->id = VBI3_SLICED_WSS_625; 
+				fread (s->data, 1, 2, stdin);
 				break;
+
 			case 4:
-				s->id = VBI_SLICED_WSS_CPR1204; 
-				fread(s->data, 1, 3, stdin);
+				s->id = VBI3_SLICED_WSS_CPR1204; 
+				fread (s->data, 1, 3, stdin);
 				break;
+
 			case 7:
-				s->id = VBI_SLICED_CAPTION_525; 
+				s->id = VBI3_SLICED_CAPTION_525; 
 				fread(s->data, 1, 2, stdin);
 				break;
+
 			default:
-				fprintf(stderr, "\nOops! Unknown data %d "
-					"in sample file\n", index);
-				exit(EXIT_FAILURE);
+				fprintf (stderr,
+					 "\nOops! Unknown data type %d "
+					 "in sample file\n", index);
+				exit (EXIT_FAILURE);
 			}
+
+			++s;
 		}
 
-		if (feof(stdin) || ferror(stdin))
-			goto abort;
+		decode (sliced, s - sliced, time, 0);
 
-		vbi_decoder_decode (vbi, sliced, items, time);
+		if (feof (stdin) || ferror (stdin))
+			goto abort;
 
 		time += dt;
 	}
@@ -269,11 +439,44 @@ stream(void)
 	return;
 
 abort:
-	fprintf (stderr, "End of stream\n");
+	fprintf (stderr, "\rEnd of stream\n");
+}
+
+static void
+usage				(FILE *			fp)
+{
+	fprintf (fp, _("\
+%s %s -- VBI decoder event test\n\n\
+Copyright (C) 2004, 2006 Michael H. Schimek\n\
+This program is licensed under GPL 2 or later. NO WARRANTIES.\n\n\
+Usage: %s [options] < sliced VBI data\n\n\
+-P | --pes        Source is a DVB PES\n\
+\n\
+-1 | --teletext   Use only teletext decoder\n\
+-2 | --caption    Use only caption decoder\n\
+\n\
+-a                Print all events\n\
+-c | --caption    VBI3_EVENT_CAPTION\n\
+-f | --prog_info  VBI3_EVENT_PROG_INFO\n\
+-g | --trigger    VBI3_EVENT_TRIGGER\n\
+-i | --prog_id    VBI3_EVENT_PROG_ID\n\
+-l | --local_time VBI3_EVENT_LOCAL_TIME\n\
+-m | --timer      VBI3_EVENT_TIMER\n\
+-n | --network    VBI3_EVENT_NETWORK\n\
+-o | --close      VBI3_EVENT_CLOSE\n\
+-p | --top_change VBI3_EVENT_TOP_CHANGE\n\
+-r | --reset      VBI3_EVENT_RESET\n\
+-s | --aspect     VBI3_EVENT_ASPECT\n\
+-t | --ttx_page   VBI3_EVENT_TTX_PAGE\n\
+-y | --page_type  VBI3_EVENT_PAGE_TYPE\n\
+\n\
+-d | --header     Print event header\n\
+"),
+		 PROGRAM_NAME, VERSION, program_invocation_name);
 }
 
 static const char
-short_options [] = "acdfghilnoprsty";
+short_options [] = "12acdfghilmnoprstyP";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
@@ -288,6 +491,7 @@ long_options [] = {
 	{ "help",	no_argument,		NULL,		'h' },
 	{ "prog_id",	no_argument,		NULL,		'i' },
 	{ "local_time",	no_argument,		NULL,		'l' },
+	{ "timer",	no_argument,		NULL,		'm' },
 	{ "network",	no_argument,		NULL,		'n' },
 	{ "close",	no_argument,		NULL,		'o' },
 	{ "top_change",	no_argument,		NULL,		'p' },
@@ -295,52 +499,50 @@ long_options [] = {
 	{ "aspect",	no_argument,		NULL,		's' },
 	{ "ttx_page",	no_argument,		NULL,		't' },
 	{ "page_type",	no_argument,		NULL,		'y' },
-	{ 0, 0, 0, 0 }
+	{ "pes",	no_argument,		NULL,		'P' },
+	{ NULL, 0, 0, 0 }
 };
 #else
 #define getopt_long(ac, av, s, l, i) getopt(ac, av, s)
 #endif
 
-static void
-usage				(FILE *			fp,
-				 char **		argv)
-{
-	fprintf (fp,
-		 "Usage: %s [options] < sliced vbi data\n\n"
-		 "Decoding options:\n"
-		 "-a		    All events\n"
-		 "-c | --caption    VBI_EVENT_CAPTION\n"
-		 "-f | --prog_info  VBI_EVENT_PROG_INFO\n"
-		 "-g | --trigger    VBI_EVENT_TRIGGER\n"
-		 "-i | --prog_id    VBI_EVENT_PROG_ID\n"
-		 "-l | --local_time VBI_EVENT_LOCAL_TIME\n"
-		 "-n | --network    VBI_EVENT_NETWORK\n"
-		 "-o | --close      VBI_EVENT_CLOSE\n"
-		 "-p | --top_change VBI_EVENT_TOP_CHANGE\n"
-		 "-r | --reset      VBI_EVENT_RESET\n"
-		 "-s | --aspect     VBI_EVENT_ASPECT\n"
-		 "-t | --ttx_page   VBI_EVENT_TTX_PAGE\n"
-		 "-y | --page_type  VBI_EVENT_PAGE_TYPE\n"
-		 "\n"
-		 "-1 | --teletext   Use teletext decoder\n"
-		 "-2 | --caption    Use caption decoder\n"
-		 "-d | --header     Print event header\n"
-		 "", argv[0]);
-}
+static int			option_index;
 
 int
-main(int argc, char **argv)
+main				(int			argc,
+				 char **		argv)
 {
 	unsigned int events;
-	int index;
+	int decoder;
 	int c;
+
+#ifndef HAVE_PROGRAM_INVOCATION_NAME
+	{
+		unsigned int i;
+
+		for (i = strlen (argv[0]); i > 0; --i) {
+			if ('/' == argv[0][i - 1])
+				break;
+		}
+
+		program_invocation_short_name = &argv[0][i];
+	}
+#endif
+
+	setlocale (LC_ALL, "");
 
 	events = 0;
 
-	while (-1 != (c = getopt_long (argc, argv, short_options,
-				       long_options, &index))) {
+	for (;;) {
+		int c;
+
+		c = getopt_long (argc, argv, short_options,
+				 long_options, &option_index);
+		if (-1 == c)
+			break;
+
 		switch (c) {
-		case 0:
+		case 0: /* getopt_long() flag */
 			break;
 
 		case '1':
@@ -353,7 +555,7 @@ main(int argc, char **argv)
 			break;
 
 		case 'c':
-			events ^= VBI_EVENT_CAPTION;
+			events ^= VBI3_EVENT_CC_PAGE;
 			break;
 
 		case 'd':
@@ -361,85 +563,142 @@ main(int argc, char **argv)
 			break;
 
 		case 'f':
-			events ^= VBI_EVENT_PROG_INFO;
+			events ^= VBI3_EVENT_PROG_INFO;
 			break;
 
 		case 'g':
-			events ^= VBI_EVENT_TRIGGER;
+			events ^= VBI3_EVENT_TRIGGER;
 			break;
 
 		case 'h':
-			usage (stdout, argv);
+			usage (stdout);
 			exit (EXIT_SUCCESS);
-			break;
 
 		case 'i':
-			events ^= VBI_EVENT_PROG_ID;
+			events ^= VBI3_EVENT_PROG_ID;
 			break;
 
 		case 'l':
-			events ^= VBI_EVENT_LOCAL_TIME;
+			events ^= VBI3_EVENT_LOCAL_TIME;
+			break;
+
+		case 'm':
+			events ^= VBI3_EVENT_TIMER;
 			break;
 
 		case 'n':
-			events ^= VBI_EVENT_NETWORK;
+			events ^= VBI3_EVENT_NETWORK;
 			break;
 
 		case 'o':
-			events ^= VBI_EVENT_CLOSE;
+			events ^= VBI3_EVENT_CLOSE;
 			break;
 
 		case 'p':
-			events ^= VBI_EVENT_TOP_CHANGE;
+			events ^= VBI3_EVENT_TOP_CHANGE;
 			break;
 
 		case 'r':
-			events ^= VBI_EVENT_RESET;
+			events ^= VBI3_EVENT_RESET;
 			break;
 
 		case 's':
-			events ^= VBI_EVENT_ASPECT;
+			events ^= VBI3_EVENT_ASPECT;
 			break;
 
 		case 't':
-			events ^= VBI_EVENT_TTX_PAGE;
+			events ^= VBI3_EVENT_TTX_PAGE;
 			break;
 
 		case 'y':
-			events ^= VBI_EVENT_PAGE_TYPE;
+			events ^= VBI3_EVENT_PAGE_TYPE;
+			break;
+
+		case 'P':
+			source_is_pes ^= TRUE;
 			break;
 
 		default:
-			usage (stderr, argv);
+			usage (stderr);
 			exit (EXIT_FAILURE);
 		}
 	}
 
 	if (0 == events) {
-		usage (stderr, argv);
+		usage (stderr);
 		exit (EXIT_FAILURE);
 	}
 
-	if (isatty (STDIN_FILENO)) {
-		fprintf (stderr, "No VBI data on stdin\n");
-		exit (EXIT_FAILURE);
-	}
+	if (isatty (STDIN_FILENO))
+		error_exit (_("No VBI data on standard input."));
 
 	switch (decoder) {
+		vbi3_bool success;
+
 	case 0:
-		assert ((vbi = vbi_decoder_new
-			 (NULL, NULL, VBI_VIDEOSTD_SET_625_50)));
-		assert (vbi_decoder_add_event_handler
-			(vbi, events, handler, NULL));
+		dec = vbi3_decoder_new (/* cache */ NULL,
+					/* network */ NULL,
+					VBI3_VIDEOSTD_SET_625_50);
+		if (NULL == dec)
+			no_mem_exit ();
+
+		td = vbi3_decoder_cast_to_teletext_decoder (dec);
+		cd = vbi3_decoder_cast_to_caption_decoder (dec);
+
+		success = vbi3_decoder_add_event_handler
+			(dec, events, handler, /* user_data */ NULL);
+		if (!success)
+			no_mem_exit ();
+
 		break;
 
 	case 1:
+		td = vbi3_teletext_decoder_new (/* cache */ NULL,
+						/* network */ NULL,
+						VBI3_VIDEOSTD_SET_625_50);
+		if (NULL == td)
+			no_mem_exit ();
+
+		success = vbi3_teletext_decoder_add_event_handler
+			(td, events, handler, /* user_data */ NULL);
+		if (!success)
+			no_mem_exit ();
+
+		break;
+
 	case 2:
-		fprintf (stderr, "Not implemented yet\n");
-		exit (EXIT_FAILURE);
+		cd = vbi3_caption_decoder_new (/* cache */ NULL,
+					       /* network */ NULL,
+					       VBI3_VIDEOSTD_SET_625_50);
+		if (NULL == cd)
+			no_mem_exit ();
+
+		success = vbi3_caption_decoder_add_event_handler
+			(cd, events, handler, /* user_data */ NULL);
+		if (!success)
+			no_mem_exit ();
+
+		break;
+
+	default:
+		assert (0);
 	}
 
-	stream ();
+	c = getchar ();
+	ungetc (c, stdin);
+
+	if (0 == c || source_is_pes) {
+		dx = _vbi3_dvb_pes_demux_new (/* callback */ NULL,
+					      /* used_data */ NULL);
+		if (NULL == dx)
+			no_mem_exit ();
+
+		pes_mainloop ();
+	} else {
+		old_mainloop ();
+	}
 
 	exit (EXIT_SUCCESS);
+
+	return 0;
 }

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: explist.c,v 1.7.2.2 2004-04-08 23:36:49 mschimek Exp $ */
+/* $Id: explist.c,v 1.7.2.3 2006-05-07 06:05:00 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -40,16 +40,16 @@
 
 #include "src/zvbi.h"
 
-vbi_bool check = FALSE;
+vbi3_bool check = FALSE;
 
-#define IS_REAL_TYPE(oi) (VBI_OPTION_REAL == (oi)->type)
+#define IS_REAL_TYPE(oi) (VBI3_OPTION_REAL == (oi)->type)
 #define IS_MENU_TYPE(oi) (NULL != (oi)->menu.str)
 
 #define ASSERT_ERRSTR(expr)						\
 do {									\
 	if (!(expr)) {							\
 		printf("Assertion '" #expr "' failed; errstr=\"%s\"\n",	\
-		        vbi_export_errstr (e));				\
+		        vbi3_export_errstr (e));				\
 		exit (EXIT_FAILURE);					\
 	}								\
 } while (0)
@@ -91,8 +91,8 @@ keyword_check			(const char *		keyword)
 }
 
 static void
-print_current			(const vbi_option_info *oi,
-				 vbi_option_value	current)
+print_current			(const vbi3_option_info *oi,
+				 vbi3_option_value	current)
 {
 	if (IS_REAL_TYPE (oi)) {
 		printf ("    current value=%f\n", current.dbl);
@@ -108,9 +108,9 @@ print_current			(const vbi_option_info *oi,
 }
 
 static void
-test_modified			(const vbi_option_info *oi,
-				 vbi_option_value	old,
-				 vbi_option_value	new)
+test_modified			(const vbi3_option_info *oi,
+				 vbi3_option_value	old,
+				 vbi3_option_value	new)
 {
 	if (IS_REAL_TYPE (oi)) {
 		if (old.dbl != new.dbl) {
@@ -126,27 +126,27 @@ test_modified			(const vbi_option_info *oi,
 }
 
 static void
-test_set_int			(vbi_export *		e,
-				 const vbi_option_info *oi,
-				 vbi_option_value *	current,
+test_set_int			(vbi3_export *		e,
+				 const vbi3_option_info *oi,
+				 vbi3_option_value *	current,
 				 int			value)
 {
-	vbi_option_value new_current;
-	vbi_bool r;
+	vbi3_option_value new_current;
+	vbi3_bool r;
 
 	printf ("    try to set %d: ", value);
-	r = vbi_export_option_set (e, oi->keyword, value);
+	r = vbi3_export_option_set (e, oi->keyword, value);
 
 	if (r)
 		printf ("success.");
 	else
-		printf ("failed, errstr=\"%s\".", vbi_export_errstr (e));
+		printf ("failed, errstr=\"%s\".", vbi3_export_errstr (e));
 
 	new_current.num = 0x54321;
 
-	if (!vbi_export_option_get (e, oi->keyword, &new_current)) {
-		printf ("vbi_export_option_get failed, errstr==\"%s\"\n",
-			vbi_export_errstr (e));
+	if (!vbi3_export_option_get (e, oi->keyword, &new_current)) {
+		printf ("vbi3_export_option_get failed, errstr==\"%s\"\n",
+			vbi3_export_errstr (e));
 
 		if (new_current.num != 0x54321)
 			printf ("but modified destination to %d\n",
@@ -162,27 +162,27 @@ test_set_int			(vbi_export *		e,
 }
 
 static void
-test_set_real			(vbi_export *		e,
-				 const vbi_option_info *oi,
-				 vbi_option_value *	current,
+test_set_real			(vbi3_export *		e,
+				 const vbi3_option_info *oi,
+				 vbi3_option_value *	current,
 				 double			value)
 {
-	vbi_option_value new_current;
-	vbi_bool r;
+	vbi3_option_value new_current;
+	vbi3_bool r;
 
 	printf ("    try to set %f: ", value);
-	r = vbi_export_option_set (e, oi->keyword, value);
+	r = vbi3_export_option_set (e, oi->keyword, value);
 
 	if (r)
 		printf ("success.");
 	else
-		printf ("failed, errstr=\"%s\".", vbi_export_errstr (e));
+		printf ("failed, errstr=\"%s\".", vbi3_export_errstr (e));
 
 	new_current.dbl = 8192.0;
 
-	if (!vbi_export_option_get (e, oi->keyword, &new_current)) {
-		printf ("vbi_export_option_get failed, errstr==\"%s\"\n",
-			vbi_export_errstr (e));
+	if (!vbi3_export_option_get (e, oi->keyword, &new_current)) {
+		printf ("vbi3_export_option_get failed, errstr==\"%s\"\n",
+			vbi3_export_errstr (e));
 
 		if (new_current.dbl != 8192.0)
 			printf ("but modified destination to %f\n",
@@ -214,32 +214,32 @@ do {									\
 } while (0)
 
 static void
-test_set_entry			(vbi_export *		e,
-				 const vbi_option_info *oi,
-				 vbi_option_value *	current,
+test_set_entry			(vbi3_export *		e,
+				 const vbi3_option_info *oi,
+				 vbi3_option_value *	current,
 				 int			entry)
 {
-	vbi_option_value new_current;
+	vbi3_option_value new_current;
 	int new_entry;
-	vbi_bool r0, r1;
-	vbi_bool valid;
+	vbi3_bool r0, r1;
+	vbi3_bool valid;
 
 	valid = (IS_MENU_TYPE (oi)
 		 && entry >= oi->min.num
 		 && entry <= oi->max.num);
 
 	printf ("    try to set menu entry %d: ", entry);
-	r0 = vbi_export_option_menu_set (e, oi->keyword, entry);
+	r0 = vbi3_export_option_menu_set (e, oi->keyword, entry);
 
 	switch (r0 = r0 * 2 + valid) {
 	case 0:
 		printf ("failed as expected, errstr=\"%s\".",
-			vbi_export_errstr (e));
+			vbi3_export_errstr (e));
 		break;
 
 	case 1:
 		printf ("failed, errstr=\"%s\".", 
-			vbi_export_errstr (e));
+			vbi3_export_errstr (e));
 		break;
 
 	case 2:
@@ -250,7 +250,7 @@ test_set_entry			(vbi_export *		e,
 		printf ("success.");
 	}
 
-	ASSERT_ERRSTR (vbi_export_option_get (e, oi->keyword, &new_current));
+	ASSERT_ERRSTR (vbi3_export_option_get (e, oi->keyword, &new_current));
 
 	if (r0 == 0 || r0 == 1)
 		test_modified (oi, *current, new_current);
@@ -258,16 +258,16 @@ test_set_entry			(vbi_export *		e,
 	valid = IS_MENU_TYPE (oi);
 
 	new_entry = 0x33333;
-	r1 = vbi_export_option_menu_get (e, oi->keyword, &new_entry);
+	r1 = vbi3_export_option_menu_get (e, oi->keyword, &new_entry);
 
 	switch (r1 = r1 * 2 + valid) {
 	case 1:
-		printf ("\nvbi_export_option_menu_get failed, "
-			"errstr==\"%s\"\n", vbi_export_errstr (e));
+		printf ("\nvbi3_export_option_menu_get failed, "
+			"errstr==\"%s\"\n", vbi3_export_errstr (e));
 		break;
 
 	case 2:
-		printf ("\nvbi_export_option_menu_get: unexpected success.\n");
+		printf ("\nvbi3_export_option_menu_get: unexpected success.\n");
 		break;
 
 	default:
@@ -275,7 +275,7 @@ test_set_entry			(vbi_export *		e,
 	}
 
 	if ((r1 == 0 || r1 == 1) && new_entry != 0x33333) {
-		printf ("vbi_export_option_menu_get failed, "
+		printf ("vbi3_export_option_menu_get failed, "
 			"but modified destination to %d\n",
 			new_current.num);
 		exit (EXIT_FAILURE);
@@ -285,8 +285,8 @@ test_set_entry			(vbi_export *		e,
 		exit (EXIT_FAILURE);
 
 	switch (oi->type) {
-	case VBI_OPTION_BOOL:
-	case VBI_OPTION_INT:
+	case VBI3_OPTION_BOOL:
+	case VBI3_OPTION_INT:
 		if (oi->menu.num)
 			assert (new_current.num == oi->menu.num[new_entry]);
 		else
@@ -294,7 +294,7 @@ test_set_entry			(vbi_export *		e,
 		print_current (oi, *current = new_current);
 		break;
 
-	case VBI_OPTION_REAL:
+	case VBI3_OPTION_REAL:
 		if (oi->menu.dbl)
 			assert (new_current.dbl == oi->menu.dbl[new_entry]);
 		else
@@ -302,7 +302,7 @@ test_set_entry			(vbi_export *		e,
 		print_current (oi, *current = new_current);
 		break;
 
-	case VBI_OPTION_MENU:
+	case VBI3_OPTION_MENU:
 		print_current (oi, *current = new_current);
 		break;
 
@@ -321,10 +321,10 @@ do {									\
 } while (0)
 
 static void
-dump_option_info		(vbi_export *		e,
-				 const vbi_option_info *oi)
+dump_option_info		(vbi3_export *		e,
+				 const vbi3_option_info *oi)
 {
-	vbi_option_value val;
+	vbi3_option_value val;
 	char *type_str;
 	int i;
 
@@ -333,11 +333,11 @@ dump_option_info		(vbi_export *		e,
 #undef CASE
 #define CASE(type) case type: type_str = #type; break;
 
-	CASE (VBI_OPTION_BOOL);
-	CASE (VBI_OPTION_INT);
-	CASE (VBI_OPTION_REAL);
-	CASE (VBI_OPTION_STRING);
-	CASE (VBI_OPTION_MENU);
+	CASE (VBI3_OPTION_BOOL);
+	CASE (VBI3_OPTION_INT);
+	CASE (VBI3_OPTION_REAL);
+	CASE (VBI3_OPTION_STRING);
+	CASE (VBI3_OPTION_MENU);
 	default:
 		printf ("  * Option %s has invalid type %d\n",
 			oi->keyword, oi->type);
@@ -350,8 +350,8 @@ dump_option_info		(vbi_export *		e,
 	keyword_check (oi->keyword);
 
 	switch (oi->type) {
-	case VBI_OPTION_BOOL:
-	case VBI_OPTION_INT:
+	case VBI3_OPTION_BOOL:
+	case VBI3_OPTION_INT:
 		BOUNDS_CHECK (num, num);
 		if (oi->menu.num) {
 			printf ("    %d menu entries, default=%d: ",
@@ -366,7 +366,7 @@ dump_option_info		(vbi_export *		e,
 				oi->max.num, oi->step.num);
 		}
 
-		ASSERT_ERRSTR (vbi_export_option_get (e, oi->keyword, &val));
+		ASSERT_ERRSTR (vbi3_export_option_get (e, oi->keyword, &val));
 		print_current (oi, val);
 
 		if (check) {
@@ -381,7 +381,7 @@ dump_option_info		(vbi_export *		e,
 
 		break;
 
-	case VBI_OPTION_REAL:
+	case VBI3_OPTION_REAL:
 		BOUNDS_CHECK (dbl, dbl);
 		if (oi->menu.dbl) {
 			printf ("    %d menu entries, default=%d: ",
@@ -395,7 +395,7 @@ dump_option_info		(vbi_export *		e,
 				oi->max.dbl, oi->step.dbl);
 		}
 
-		ASSERT_ERRSTR (vbi_export_option_get (e, oi->keyword, &val));
+		ASSERT_ERRSTR (vbi3_export_option_get (e, oi->keyword, &val));
 		print_current (oi, val);
 
 		if (check) {
@@ -410,7 +410,7 @@ dump_option_info		(vbi_export *		e,
 		
 		break;
 
-	case VBI_OPTION_STRING:
+	case VBI3_OPTION_STRING:
 		if (oi->menu.str) {
 			BOUNDS_CHECK (str, num);
 
@@ -424,7 +424,7 @@ dump_option_info		(vbi_export *		e,
 			printf("    default=\"%s\"\n", oi->def.str);
 		}
 
-		ASSERT_ERRSTR (vbi_export_option_get (e, oi->keyword, &val));
+		ASSERT_ERRSTR (vbi3_export_option_get (e, oi->keyword, &val));
 
 		printf("    current value=\"%s\"\n", val.str);
 		assert (NULL != val.str);
@@ -432,13 +432,13 @@ dump_option_info		(vbi_export *		e,
 
 		if (check) {
 			printf ("    try to set \"foobar\": ");
-			if (vbi_export_option_set (e, oi->keyword, "foobar"))
+			if (vbi3_export_option_set (e, oi->keyword, "foobar"))
 				printf ("success.");
 			else
 				printf ("failed, errstr=\"%s\".",
-					vbi_export_errstr (e));
+					vbi3_export_errstr (e));
 
-			ASSERT_ERRSTR (vbi_export_option_get
+			ASSERT_ERRSTR (vbi3_export_option_get
 				       (e, oi->keyword, &val));
 
 			printf ("    current value=\"%s\"\n", val.str);
@@ -448,7 +448,7 @@ dump_option_info		(vbi_export *		e,
 
 		break;
 
-	case VBI_OPTION_MENU:
+	case VBI3_OPTION_MENU:
 		printf ("    %d menu entries, default=%d: ",
 			oi->max.num - oi->min.num + 1, oi->def.num);
 
@@ -460,7 +460,7 @@ dump_option_info		(vbi_export *		e,
 
 		printf("\n");
 
-		ASSERT_ERRSTR (vbi_export_option_get (e, oi->keyword, &val));
+		ASSERT_ERRSTR (vbi3_export_option_get (e, oi->keyword, &val));
 
 		print_current (oi, val);
 
@@ -477,16 +477,16 @@ dump_option_info		(vbi_export *		e,
 }
 
 static void
-list_options			(vbi_export *		e)
+list_options			(vbi3_export *		e)
 {
-	const vbi_option_info *oi;
+	const vbi3_option_info *oi;
 	int i;
 
 	puts ("  List of options:");
 
-	for (i = 0; (oi = vbi_export_option_info_enum (e, i)); ++i) {
+	for (i = 0; (oi = vbi3_export_option_info_enum (e, i)); ++i) {
 		assert (oi->keyword != NULL);
-		ASSERT_ERRSTR (oi == vbi_export_option_info_by_keyword
+		ASSERT_ERRSTR (oi == vbi3_export_option_info_by_keyword
 			       (e, oi->keyword));
 		dump_option_info (e, oi);
 	}
@@ -495,16 +495,16 @@ list_options			(vbi_export *		e)
 static void
 list_modules			(void)
 {
-	const vbi_export_info *xi;
-	vbi_export *e;
+	const vbi3_export_info *xi;
+	vbi3_export *e;
 	char *errstr;
 	int i;
 
 	puts ("List of export modules:");
 
-	for (i = 0; (xi = vbi_export_info_enum (i)); ++i) {
+	for (i = 0; (xi = vbi3_export_info_enum (i)); ++i) {
 		assert (xi->keyword != NULL);
-		assert (xi == vbi_export_info_by_keyword (xi->keyword));
+		assert (xi == vbi3_export_info_by_keyword (xi->keyword));
 
 		printf ("* keyword=%s label=\"%s\"\n"
 			"  tooltip=\"%s\" mime_type=%s extension=%s\n",
@@ -513,17 +513,17 @@ list_modules			(void)
 
 		keyword_check (xi->keyword);
 
-		if (!(e = vbi_export_new (xi->keyword, &errstr))) {
+		if (!(e = vbi3_export_new (xi->keyword, &errstr))) {
 			printf ("Could not open '%s': %s\n",
 				xi->keyword, errstr);
 			exit (EXIT_FAILURE);
 		}
 
-		ASSERT_ERRSTR (xi == vbi_export_info_from_export (e));
+		ASSERT_ERRSTR (xi == vbi3_export_info_from_export (e));
 
 		list_options (e);
 
-		vbi_export_delete (e);
+		vbi3_export_delete (e);
 	}
 
 	puts ("-- end of list --");
@@ -535,7 +535,7 @@ static const char short_options [] = "c";
 static const struct option
 long_options[] = {
 	{ "check",	no_argument,		NULL,		'c' },
-	{ 0, 0, 0, 0 }
+	{ NULL, 0, 0, 0 }
 };
 #else
 #define getopt_long(ac, av, s, l, i) getopt(ac, av, s)

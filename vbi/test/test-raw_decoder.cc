@@ -3,7 +3,7 @@
  *  Copyright (C) 2004 Michael H. Schimek
  */
 
-/* $Id: test-raw_decoder.cc,v 1.1.2.4 2004-07-09 16:10:55 mschimek Exp $ */
+/* $Id: test-raw_decoder.cc,v 1.1.2.5 2006-05-07 06:05:00 mschimek Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -44,9 +44,9 @@ dump_hex			(const uint8_t *	p,
 }
 
 static void
-sliced_rand_lines		(const vbi_sliced *	s_start,
-				 const vbi_sliced *	s_end,
-				 vbi_sliced *		s,
+sliced_rand_lines		(const vbi3_sliced *	s_start,
+				 const vbi3_sliced *	s_end,
+				 vbi3_sliced *		s,
 				 unsigned int		service,
 				 unsigned int		first_line,
 				 unsigned int		last_line)
@@ -54,7 +54,7 @@ sliced_rand_lines		(const vbi_sliced *	s_start,
 	unsigned int line;
 
 	for (line = first_line; line <= last_line; ++line) {
-		const vbi_sliced *t;
+		const vbi3_sliced *t;
 
 		assert (s < s_end);
 
@@ -71,11 +71,11 @@ sliced_rand_lines		(const vbi_sliced *	s_start,
 }
 
 static unsigned int
-sliced_rand			(vbi_sliced *		s,
+sliced_rand			(vbi3_sliced *		s,
 				 unsigned int		s_lines,
 				 const block *		b)
 {
-	const vbi_sliced *s_start;
+	const vbi3_sliced *s_start;
 	unsigned int services;
 
 	s_start = s;
@@ -102,8 +102,8 @@ sliced_rand			(vbi_sliced *		s,
 
 static unsigned int
 create_raw			(uint8_t **		raw,
-				 vbi_sliced **		sliced,
-				 const vbi_sampling_par *sp,
+				 vbi3_sliced **		sliced,
+				 const vbi3_sampling_par *sp,
 				 const block *		b,
 				 unsigned int		pixel_mask)
 {
@@ -115,7 +115,7 @@ create_raw			(uint8_t **		raw,
 	*raw = (uint8_t *) malloc (sp->bytes_per_line * scan_lines);
 	assert (NULL != *raw);
 
-	*sliced = (vbi_sliced *) malloc (sizeof (**sliced) * 50);
+	*sliced = (vbi3_sliced *) malloc (sizeof (**sliced) * 50);
 	assert (NULL != *sliced);
 
 	sliced_lines = sliced_rand (*sliced, 50, b);
@@ -123,22 +123,22 @@ create_raw			(uint8_t **		raw,
 	if (pixel_mask) {
 		memset_rand (*raw, sp->bytes_per_line * scan_lines);
 
-		assert (_vbi_test_image_video (*raw, 0, sp, pixel_mask,
+		assert (_vbi3_test_image_video (*raw, 0, sp, pixel_mask,
 					      *sliced, sliced_lines));
 	} else {
-		assert (_vbi_test_image_vbi (*raw, 0, sp,
+		assert (_vbi3_test_image_vbi (*raw, 0, sp,
 					     *sliced, sliced_lines));
 	}
 
 	return sliced_lines;
 }
 
-static vbi_raw_decoder *
-create_decoder			(const vbi_sampling_par *sp,
+static vbi3_raw_decoder *
+create_decoder			(const vbi3_sampling_par *sp,
 				 const block *		b,
 				 unsigned int		strict)
 {
-	vbi_raw_decoder *rd;
+	vbi3_raw_decoder *rd;
 	unsigned int services;
 
 	services = 0;
@@ -148,25 +148,25 @@ create_decoder			(const vbi_sampling_par *sp,
 		++b;
 	}
 
-	assert (NULL != (rd = vbi_raw_decoder_new (sp)));
+	assert (NULL != (rd = vbi3_raw_decoder_new (sp)));
 
-	assert (services == vbi_raw_decoder_add_services
+	assert (services == vbi3_raw_decoder_add_services
 		(rd, services, strict));
 
 	return rd;
 }
 
 static void
-compare_sliced			(const vbi_sliced *	in,
-				 const vbi_sliced *	out,
-				 const vbi_sliced *	old,
+compare_sliced			(const vbi3_sliced *	in,
+				 const vbi3_sliced *	out,
+				 const vbi3_sliced *	old,
 				 unsigned int		in_lines,
 				 unsigned int		out_lines,
 				 unsigned int		old_lines)
 {
 	unsigned int i;
 	unsigned int min;
-	const vbi_sliced *s;
+	const vbi3_sliced *s;
 
 	min = 0;
 
@@ -179,10 +179,10 @@ compare_sliced			(const vbi_sliced *	in,
 
 		/* Valid service id */
 		assert (0 != out[i].id);
-		payload = (vbi_sliced_payload_bits (out[i].id) + 7) >> 3;
+		payload = (vbi3_sliced_payload_bits (out[i].id) + 7) >> 3;
 		assert (payload > 0);
 
-		/* vbi_sliced big enough */
+		/* vbi3_sliced big enough */
 		assert (payload <= sizeof (out[i].data));
 
 		/* Writes more than payload */
@@ -211,7 +211,7 @@ compare_sliced			(const vbi_sliced *	in,
 		assert (s->id == out->id);
 
 		/* Same data as sent */
-		payload = vbi_sliced_payload_bits (out->id);
+		payload = vbi3_sliced_payload_bits (out->id);
 		assert (0 == memcmp (s->data, out->data, payload >> 3));
 
 		if (payload & 7) {
@@ -229,16 +229,16 @@ compare_sliced			(const vbi_sliced *	in,
 }
 
 static void
-test_cycle			(const vbi_sampling_par *sp,
+test_cycle			(const vbi3_sampling_par *sp,
 				 const block *		b,
 				 unsigned int		pixel_mask,
 				 unsigned int		strict)
 {
-	vbi_sliced *in;
-	vbi_sliced out[50];
-	vbi_sliced old[50];
+	vbi3_sliced *in;
+	vbi3_sliced out[50];
+	vbi3_sliced old[50];
 	uint8_t *raw;
-	vbi_raw_decoder *rd;
+	vbi3_raw_decoder *rd;
 	unsigned int in_lines;
 	unsigned int out_lines;
 
@@ -252,12 +252,12 @@ test_cycle			(const vbi_sampling_par *sp,
 	memset_rand (out, sizeof (out));
 	memcpy (old, out, sizeof (old));
 
-	out_lines = vbi_raw_decoder_decode (rd, out, 40, raw);
+	out_lines = vbi3_raw_decoder_decode (rd, out, 40, raw);
 
 	if (verbose)
 		fprintf (stderr, "%s %s in=%u out=%u\n",
 			 __FUNCTION__,
-			 vbi_pixfmt_name (sp->sampling_format),
+			 vbi3_pixfmt_name (sp->sampling_format),
 			 in_lines, out_lines);
 
 	assert (in_lines == out_lines);
@@ -269,7 +269,7 @@ test_cycle			(const vbi_sampling_par *sp,
 }
 
 static void
-test_vbi			(const vbi_sampling_par *sp,
+test_vbi			(const vbi3_sampling_par *sp,
 				 const block *		b,
 				 unsigned int		strict)
 {
@@ -277,27 +277,27 @@ test_vbi			(const vbi_sampling_par *sp,
 }
 
 static void
-test_video			(const vbi_sampling_par *sp,
+test_video			(const vbi3_sampling_par *sp,
 				 const block *		b,
 				 unsigned int		strict)
 {
-	vbi_sampling_par sp2;
+	vbi3_sampling_par sp2;
 	unsigned int pixel_mask;
-	vbi_pixfmt pixfmt;
+	vbi3_pixfmt pixfmt;
 
 	sp2 = *sp;
 
-	for (pixfmt = (vbi_pixfmt) 0; pixfmt < VBI_MAX_PIXFMTS;
-	     pixfmt = (vbi_pixfmt)(pixfmt + 1)) {
-		if (0 == (VBI_PIXFMT_SET_ALL & VBI_PIXFMT_SET (pixfmt)))
+	for (pixfmt = (vbi3_pixfmt) 0; pixfmt < VBI3_MAX_PIXFMTS;
+	     pixfmt = (vbi3_pixfmt)(pixfmt + 1)) {
+		if (0 == (VBI3_PIXFMT_SET_ALL & VBI3_PIXFMT_SET (pixfmt)))
 			continue;
 
 		sp2.sampling_format = pixfmt;
 		sp2.bytes_per_line = sp2.samples_per_line
-			* vbi_pixfmt_bytes_per_pixel (pixfmt);
+			* vbi3_pixfmt_bytes_per_pixel (pixfmt);
 
 		/* Check bit slicer looks at Y/G */
-		if (VBI_PIXFMT_IS_YUV (pixfmt))
+		if (VBI3_PIXFMT_IS_YUV (pixfmt))
 			pixel_mask = 0xFF;
 		else
 			pixel_mask = 0xFF00;
@@ -307,78 +307,78 @@ test_video			(const vbi_sampling_par *sp,
 }
 
 static const block ttx_a [] = {
-	{ VBI_SLICED_TELETEXT_A,	6, 22 },
-	{ VBI_SLICED_TELETEXT_A,	318, 335 },
+	{ VBI3_SLICED_TELETEXT_A,	6, 22 },
+	{ VBI3_SLICED_TELETEXT_A,	318, 335 },
 	BLOCK_END,
 };
 
 static const block ttx_c_625 [] = {
-	{ VBI_SLICED_TELETEXT_C_625,	6, 22 },
-	{ VBI_SLICED_TELETEXT_C_625,	318, 335 },
+	{ VBI3_SLICED_TELETEXT_C_625,	6, 22 },
+	{ VBI3_SLICED_TELETEXT_C_625,	318, 335 },
 	BLOCK_END,
 };
 
 static const block ttx_d_625 [] = {
-	{ VBI_SLICED_TELETEXT_D_625,	6, 22 },
-	{ VBI_SLICED_TELETEXT_D_625,	318, 335 },
+	{ VBI3_SLICED_TELETEXT_D_625,	6, 22 },
+	{ VBI3_SLICED_TELETEXT_D_625,	318, 335 },
 	BLOCK_END,
 };
 
 static const block hi_625 [] = {
-	{ VBI_SLICED_TELETEXT_B_625,	6, 21 },
-	{ VBI_SLICED_TELETEXT_B_625,	318, 334 },
-	{ VBI_SLICED_CAPTION_625,	22, 22 },
-	{ VBI_SLICED_CAPTION_625,	335, 335 },
-	{ VBI_SLICED_WSS_625,		23, 23 },
+	{ VBI3_SLICED_TELETEXT_B_625,	6, 21 },
+	{ VBI3_SLICED_TELETEXT_B_625,	318, 334 },
+	{ VBI3_SLICED_CAPTION_625,	22, 22 },
+	{ VBI3_SLICED_CAPTION_625,	335, 335 },
+	{ VBI3_SLICED_WSS_625,		23, 23 },
 	BLOCK_END,
 };
 
 static const block low_625 [] = {
 /* No simulation yet.
-	{ VBI_SLICED_VPS,		16, 16 },
+	{ VBI3_SLICED_VPS,		16, 16 },
 */
-	{ VBI_SLICED_CAPTION_625,	22, 22 },
-	{ VBI_SLICED_CAPTION_625,	335, 335 },
-	{ VBI_SLICED_WSS_625,		23, 23 },
+	{ VBI3_SLICED_CAPTION_625,	22, 22 },
+	{ VBI3_SLICED_CAPTION_625,	335, 335 },
+	{ VBI3_SLICED_WSS_625,		23, 23 },
 	BLOCK_END,
 };
 
 static const block cc_625 [] = {
-	{ VBI_SLICED_CAPTION_625,	22, 22 },
-	{ VBI_SLICED_CAPTION_625,	335, 335 },
+	{ VBI3_SLICED_CAPTION_625,	22, 22 },
+	{ VBI3_SLICED_CAPTION_625,	335, 335 },
 	BLOCK_END,
 };
 
 static const block ttx_c_525 [] = {
-	{ VBI_SLICED_TELETEXT_C_525,	10, 21 },
-	{ VBI_SLICED_TELETEXT_C_525,	272, 284 },
+	{ VBI3_SLICED_TELETEXT_C_525,	10, 21 },
+	{ VBI3_SLICED_TELETEXT_C_525,	272, 284 },
 	BLOCK_END,
 };
 
 static const block ttx_d_525 [] = {
-	{ VBI_SLICED_TELETEXT_D_525,	10, 21 },
-	{ VBI_SLICED_TELETEXT_D_525,	272, 284 },
+	{ VBI3_SLICED_TELETEXT_D_525,	10, 21 },
+	{ VBI3_SLICED_TELETEXT_D_525,	272, 284 },
 	BLOCK_END,
 };
 
 static const block hi_525 [] = {
-	{ VBI_SLICED_TELETEXT_B_525,	10, 20 },
-	{ VBI_SLICED_TELETEXT_B_525,	272, 283 },
-	{ VBI_SLICED_CAPTION_525,	21, 21 },
-	{ VBI_SLICED_CAPTION_525,	284, 284 },
+	{ VBI3_SLICED_TELETEXT_B_525,	10, 20 },
+	{ VBI3_SLICED_TELETEXT_B_525,	272, 283 },
+	{ VBI3_SLICED_CAPTION_525,	21, 21 },
+	{ VBI3_SLICED_CAPTION_525,	284, 284 },
 	BLOCK_END,
 };
 
 static const block low_525 [] = {
-	{ VBI_SLICED_CAPTION_525,	21, 21 },
-	{ VBI_SLICED_CAPTION_525,	284, 284 },
+	{ VBI3_SLICED_CAPTION_525,	21, 21 },
+	{ VBI3_SLICED_CAPTION_525,	284, 284 },
 	BLOCK_END,
 };
 
 static void
-test2				(const vbi_sampling_par *sp)
+test2				(const vbi3_sampling_par *sp)
 {
-	if (sp->videostd_set & VBI_VIDEOSTD_SET_625_50) {
+	if (sp->videostd_set & VBI3_VIDEOSTD_SET_625_50) {
 		if (sp->sampling_rate >= 13500000) {
 			/* We cannot mix Teletext standards; bit rate and
 			   FRC are too similar to reliable distinguish. */
@@ -416,7 +416,7 @@ test2				(const vbi_sampling_par *sp)
 }
 
 static void
-test1				(const vbi_sampling_par *sp)
+test1				(const vbi3_sampling_par *sp)
 {
 	static const struct {
 		unsigned int	sampling_rate;
@@ -432,7 +432,7 @@ test1				(const vbi_sampling_par *sp)
 		{ 13500000,	 720 },
 		{  3000000,	 176 },
 	};
-	vbi_sampling_par sp2;
+	vbi3_sampling_par sp2;
 	unsigned int i;
 
 	for (i = 0; i < N_ELEMENTS (res); ++i) {
@@ -451,58 +451,61 @@ test1				(const vbi_sampling_par *sp)
 	}
 }
 
+#if 0
 static void
-log	       			(vbi_log_level		level,
+log	       			(vbi3_log_level		level,
 				 const char *		function,
 				 const char *		message,
 				 void *			user_data)
 {
 	fprintf (stderr, "%s: %s\n", function, message);
 }
+#endif
 
 int
 main				(int			argc,
 				 char **		argv)
 {
-	vbi_sampling_par sp;
-	vbi_service_set set;
+	vbi3_sampling_par sp;
+	vbi3_service_set set;
 
 	verbose = (argc > 1);
 
-	if (verbose)
-		vbi_set_log_fn (log, NULL);
+	/*	if (verbose)
+		vbi3_set_log_fn (log, NULL);
+	*/
 
 	memset (&sp, 0x55, sizeof (sp));
 
-	set = vbi_sampling_par_from_services (&sp, NULL,
-					      VBI_VIDEOSTD_SET_625_50,
-					      ~0 & ~VBI_SLICED_VBI_625);
-	assert (set == (VBI_SLICED_TELETEXT_A |
-			VBI_SLICED_TELETEXT_B_625 |
-			VBI_SLICED_TELETEXT_C_625 |
-			VBI_SLICED_TELETEXT_D_625 |
-			VBI_SLICED_VPS |
-			VBI_SLICED_VPS_F2 |
-			VBI_SLICED_CAPTION_625 |
-			VBI_SLICED_WSS_625));
+	set = vbi3_sampling_par_from_services (&sp, NULL,
+					      VBI3_VIDEOSTD_SET_625_50,
+					      ~0 & ~VBI3_SLICED_VBI3_625);
+	assert (set == (VBI3_SLICED_TELETEXT_A |
+			VBI3_SLICED_TELETEXT_B_625 |
+			VBI3_SLICED_TELETEXT_C_625 |
+			VBI3_SLICED_TELETEXT_D_625 |
+			VBI3_SLICED_VPS |
+			VBI3_SLICED_VPS_F2 |
+			VBI3_SLICED_CAPTION_625 |
+			VBI3_SLICED_WSS_625));
 	test2 (&sp);
 
-	set = vbi_sampling_par_from_services (&sp, NULL,
-					      VBI_VIDEOSTD_SET_525_60,
-					      ~0 & ~VBI_SLICED_VBI_525);
-	assert (set == (VBI_SLICED_TELETEXT_B_525 |
-			VBI_SLICED_TELETEXT_C_525 |
-			VBI_SLICED_TELETEXT_D_525 |
-			VBI_SLICED_CAPTION_525 |
-			VBI_SLICED_2xCAPTION_525
+	set = vbi3_sampling_par_from_services (&sp, NULL,
+					      VBI3_VIDEOSTD_SET_525_60,
+					      ~0 & ~VBI3_SLICED_VBI3_525);
+	assert (set == (VBI3_SLICED_TELETEXT_B_525 |
+			VBI3_SLICED_TELETEXT_C_525 |
+			VBI3_SLICED_TELETEXT_D_525 |
+			VBI3_SLICED_CAPTION_525 |
+			VBI3_SLICED_2xCAPTION_525
 			/* Needs fix */
-			/* | VBI_SLICED_WSS_CPR1204 */ ));
+			/* | VBI3_SLICED_WSS_CPR1204 */ ));
 	test2 (&sp);
 
 	memset (&sp, 0x55, sizeof (sp));
 
-	sp.videostd_set		= VBI_VIDEOSTD_SET_PAL_BG;
-	sp.sampling_format	= VBI_PIXFMT_YUV420;
+	sp.videostd_set		= VBI3_VIDEOSTD_SET_PAL_BG;
+	sp.sampling_format	= VBI3_PIXFMT_YUV420;
 	sp.start[0]		= 6;
 	sp.count[0]		= 23 - 6 + 1;
 	sp.start[1]		= 318;
@@ -516,8 +519,8 @@ main				(int			argc,
 
 	test1 (&sp);
 
-	sp.videostd_set		= VBI_VIDEOSTD_SET_NTSC;
-	sp.sampling_format	= VBI_PIXFMT_YUV420;
+	sp.videostd_set		= VBI3_VIDEOSTD_SET_NTSC;
+	sp.sampling_format	= VBI3_PIXFMT_YUV420;
 	sp.start[0]		= 10;
 	sp.count[0]		= 21 - 10 + 1;
 	sp.start[1]		= 272;

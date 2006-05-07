@@ -1,7 +1,7 @@
 /*
- *  libzvbi
+ *  libzvbi - vbi3_page private stuff
  *
- *  Copyright (C) 2000, 2001 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002, 2003, 2004 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,47 +18,47 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: page-priv.h,v 1.1.2.3 2004-09-14 04:52:00 mschimek Exp $ */
+/* $Id: page-priv.h,v 1.1.2.4 2006-05-07 06:04:58 mschimek Exp $ */
 
 #ifndef PAGE_PRIV_H
 #define PAGE_PRIV_H
 
-#include "format.h"		/* vbi_page, vbi_opacity */
+#include "page.h"		/* vbi3_page, vbi3_opacity */
 #include "vt.h"			/* magazine, extension, pagenum */
-#include "pdc.h"		/* vbi_preselection */
-#include "lang.h"		/* vbi_character_set */
-#include "cache-priv.h"		/* cache_network, cache_page, vbi_wst_level */
+#include "pdc.h"		/* vbi3_preselection */
+#include "lang.h"		/* vbi3_character_set */
+#include "cache-priv.h"		/* cache_network, cache_page, vbi3_wst_level */
 
-struct _vbi_page_priv {
-	vbi_page		pg;
+struct _vbi3_page_priv {
+	vbi3_page		pg;
 
 	/* Source network, implicitely reference counted. */
 	cache_network *		cn;
 
-	/* Only used in _vbi_page_priv_from_cache_page_va_list(). */
-	const magazine *	mag;
-	const extension *	ext;
+	/* Only used in _vbi3_page_priv_from_cache_page_va_list(). */
+	const struct magazine *	mag;
+	const struct extension *ext;
 
 	/* Source page, reference counted. */
 	cache_page *		cp;
 
-	/* _vbi_page_priv_from_cache_page_va_list() parameter. */
-	vbi_wst_level		max_level;
+	/* _vbi3_page_priv_from_cache_page_va_list() parameter. */
+	vbi3_wst_level		max_level;
 
 	/* PDC preselection data, if requested and available. */
-	vbi_preselection *	pdc_table;
+	vbi3_preselection *	pdc_table;
 	unsigned int		pdc_table_size;
 
 	/* Referenced DRCS download pages. */
 	cache_page *		drcs_cp[32];
 
 	/** Default primary and secondary character set. */
-	const vbi_character_set *char_set[2];
+	const vbi3_character_set *char_set[2];
 	/** 0 header, 1 other rows. */
-	vbi_opacity		page_opacity[2];
-	vbi_opacity		boxed_opacity[2];
+	vbi3_opacity		page_opacity[2];
+	vbi3_opacity		boxed_opacity[2];
 	/** TOP navigation. */
-	vbi_link		link[6];
+	vbi3_link		link[6];
 	/**
 	 * Points from each character in TOP/FLOF row 25 (max 64 columns)
 	 * to a link[] element. -1 if no link.
@@ -67,23 +67,26 @@ struct _vbi_page_priv {
 };
 
 /* in teletext.c */
-extern vbi_bool
-_vbi_page_priv_from_cache_page_va_list
-				(vbi_page_priv *	pgp,
+extern vbi3_bool
+_vbi3_page_priv_from_cache_page_va_list
+				(vbi3_page_priv *	pgp,
 				 cache_page *		cp,
 				 va_list		format_options);
-extern vbi_bool
-_vbi_page_priv_from_cache_page
-				(vbi_page_priv *	pgp,
+extern vbi3_bool
+_vbi3_page_priv_from_cache_page
+				(vbi3_page_priv *	pgp,
 				 cache_page *		cp,
 				 ...);
 extern void
-_vbi_page_priv_dump		(const vbi_page_priv *	pgp,
+_vbi3_pdc_title_post_proc	(vbi3_page *		pg,
+				 vbi3_preselection *	p);
+extern void
+_vbi3_page_priv_dump		(const vbi3_page_priv *	pgp,
 				 FILE *			fp,
 				 unsigned int		mode);
 extern void
-_vbi_page_priv_destroy		(vbi_page_priv *	pgp);
+_vbi3_page_priv_destroy		(vbi3_page_priv *	pgp);
 extern void
-_vbi_page_priv_init		(vbi_page_priv *	pgp);
+_vbi3_page_priv_init		(vbi3_page_priv *	pgp);
 
 #endif /* PAGE_PRIV_H */

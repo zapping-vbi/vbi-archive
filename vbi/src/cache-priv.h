@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Teletext page cache
  *
- *  Copyright (C) 2001-2003 Michael H. Schimek
+ *  Copyright (C) 2001, 2002, 2003, 2004 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998, 1999 Edgar Toernig
@@ -21,15 +21,18 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache-priv.h,v 1.1.2.4 2004-10-14 07:54:00 mschimek Exp $ */
+/* $Id: cache-priv.h,v 1.1.2.5 2006-05-07 06:04:58 mschimek Exp $ */
 
 #ifndef CACHE_PRIV_H
 #define CACHE_PRIV_H
 
 #include "cache.h"
 #include "dlist.h"		/* list, node & funcs */
-#include "aspect_ratio.h"	/* vbi_aspect_ratio */
-#include "program_info.h"	/* vbi_program_info */
+#ifndef ZAPPING8
+#  include "aspect_ratio.h"	/* vbi3_aspect_ratio */
+#  include "program_info.h"	/* vbi3_program_info */
+#endif
+#include "sampling_par.h"	/* vbi3_videostd_set */
 #include "vt.h"			/* Teletext definitions */
 
 #define HASH_SIZE 113
@@ -60,35 +63,37 @@ typedef struct {
 	/* Cache internal stuff. */
 
 	/** Network chain. */
-	node			node;
+	struct node		node;
 
 	/** Cache this network belongs to. */
-	vbi_cache *		cache;
+	vbi3_cache *		cache;
+
 	unsigned int		ref_count;
 
 	/** To be deleted when no longer referenced. */
-	vbi_bool		zombie;
+	vbi3_bool		zombie;
 
 
 	/* Decoder stuff. */
 
 	/** Network identification. */
-	vbi_network		network;
+	vbi3_network		network;
 
-	/** Used by vbi_decoder and vbi_teletext_decoder, see there. */
+	/** Used by vbi3_decoder and vbi3_teletext_decoder, see there. */
 	unsigned int		confirm_cni_vps;
 	unsigned int		confirm_cni_8301;
 	unsigned int		confirm_cni_8302;
 
+#ifndef ZAPPING8
 	/** Last received program information. */
-	vbi_program_info	program_info;
+	vbi3_program_info	program_info;
 
 	/** Last received aspect ratio information. */
-	vbi_aspect_ratio	aspect_ratio;
+	vbi3_aspect_ratio	aspect_ratio;
 
-	/** Last received program ID, sorted by vbi_program_id.channel. */
-	vbi_program_id		program_id[6];
-
+	/** Last received program ID, sorted by vbi3_program_id.channel. */
+	vbi3_program_id		program_id[6];
+#endif
 
 	/* Caption stuff. */
 
@@ -110,16 +115,16 @@ typedef struct {
 
 	/** BTT links to TOP pages. */
 	pagenum			btt_link[2 * 5];
-	vbi_bool		have_top;
+	vbi3_bool		have_top;
 
 	/** Magazine defaults. Use vt_network_magazine() to access. */
-	magazine		_magazines[8];
+	struct magazine		_magazines[8];
 
 	/** Last packet 8/30 Status Display, with parity. */
 	uint8_t			status[20];
 
-	/** Page statistics. Use vt_network_page_stat() to access. */
-	page_stat		_pages[0x800];
+	/** Page statistics. Use cache_network_page_stat() to access. */
+	struct page_stat	_pages[0x800];
 } cache_network;
 
 /**
@@ -134,9 +139,9 @@ typedef struct {
 typedef struct {
 	/* Cache internal stuff. */
 
-	/** See struct vbi_cache. */
-	node			hash_node;
-	node			pri_node;
+	/** See struct vbi3_cache. */
+	struct node		hash_node;
+	struct node		pri_node;
 
 	/** Network sending this page. */
 	cache_network *		network;
@@ -156,12 +161,12 @@ typedef struct {
 	page_function		function;
 
 	/** Page and subpage number. */
-	vbi_pgno		pgno;
-	vbi_subno		subno;
+	vbi3_pgno		pgno;
+	vbi3_subno		subno;
 
 	/**
 	 * National character set designator 0 ... 7
-	 * (3 lsb of a vbi_character_set_code).
+	 * (3 lsb of a vbi3_charset_code).
 	 */
 	int			national;
 
@@ -185,26 +190,26 @@ typedef struct {
 
 	union {
 		/** Raw page, content unknown. */
-		struct lop	unknown;
+		struct lop		unknown;
 
 		/** Plain level one page. */
-		struct lop	lop;
+		struct lop		lop;
 
 		/** Level one page with X/26 page enhancements. */
 		struct {
-			struct lop	lop;
-			enhancement	enh;
-		}		enh_lop;
+			struct lop		lop;
+			enhancement		enh;
+		}			enh_lop;
 
 		/**
 		 * Level one page with X/26 page enhancements
 		 * and X/28 extensions for Level 2.5 / 3.5.
 		 */
 		struct {
-			struct lop	lop;
-			enhancement	enh;
-			extension	ext;
-		}		ext_lop;
+			struct lop		lop;
+			enhancement		enh;
+			struct extension	ext;
+		}			ext_lop;
 
 		/** (Global) public object page. */
 		struct {
@@ -213,7 +218,7 @@ typedef struct {
 			 * Valid range 0 ... 506 (39 packets * 13 triplets),
 			 * unused pointers 511 (10.5.1.2), broken -1.
 			 */
-			uint16_t	pointer[4 * 12 * 2];
+			uint16_t		pointer[4 * 12 * 2];
 
 			/**
 			 * 13 triplets from each of packet 3 ... 25 and
@@ -221,8 +226,8 @@ typedef struct {
 			 *
 			 * Valid range of mode 0x00 ... 0x1F, broken -1.
 			 */
-		  	triplet			triplet[39 * 13 + 1];
-		}		gpop, pop;
+		  	struct triplet		triplet[39 * 13 + 1];
+		}			gpop, pop;
 
 		/**
 		 * (Global) dynamically redefinable characters
@@ -230,7 +235,7 @@ typedef struct {
 		 */
 		struct {
 			/** DRCS in raw format for error correction. */
-			struct lop	lop;
+			struct lop		lop;
 
 			/**
 			 * Each character consists of 12x10 pixels, stored
@@ -242,7 +247,7 @@ typedef struct {
 			uint8_t		chars[DRCS_PTUS_PER_PAGE][12 * 10 / 2];
 
 			/** See 9.4.6. */
-			uint8_t		mode[DRCS_PTUS_PER_PAGE];
+			uint8_t			mode[DRCS_PTUS_PER_PAGE];
 
 			/**
 			 * 1 << (0 ... (DRCS_PTUS_PER_PAGE - 1)).
@@ -250,94 +255,95 @@ typedef struct {
 			 * Note characters can span multiple successive PTUs,
 			 * see get_drcs_data().
 			 */
-			uint64_t	invalid;
-		}		gdrcs, drcs;
+			uint64_t		invalid;
+		}			gdrcs, drcs;
 
 		/** TOP AIT page. */
 		struct {
-			ait_title	title[46];
+			struct ait_title	title[46];
 
 			/** Used to detect changes. */
-			unsigned int	checksum;
-		}		ait;
+			unsigned int		checksum;
+		}			ait;
 
-	}		data;
+	}			data;
 
 	/* Dynamic size, add no fields below unless
 	   cache_page is statically allocated. */
 } cache_page;
 
 /** @internal */
-vbi_inline magazine *
+vbi3_inline struct magazine *
 cache_network_magazine		(cache_network *	cn,
-				 vbi_pgno		pgno)
+				 vbi3_pgno		pgno)
 {
 	assert (pgno >= 0x100 && pgno <= 0x8FF);
 	return &cn->_magazines[(pgno >> 8) - 1];
 }
 
 /** @internal */
-vbi_inline const magazine *
+vbi3_inline const struct magazine *
 cache_network_const_magazine	(const cache_network *	cn,
-				 vbi_pgno		pgno)
+				 vbi3_pgno		pgno)
 {
 	assert (pgno >= 0x100 && pgno <= 0x8FF);
 	return &cn->_magazines[(pgno >> 8) - 1];
 }
 
 /** @internal */
-vbi_inline page_stat *
+vbi3_inline struct page_stat *
 cache_network_page_stat		(cache_network *	cn,
-				 vbi_pgno		pgno)
+				 vbi3_pgno		pgno)
 {
 	assert (pgno >= 0x100 && pgno <= 0x8FF);
 	return &cn->_pages[pgno - 0x100];
 }
 
 /** @internal */
-vbi_inline const page_stat *
+vbi3_inline const struct page_stat *
 cache_network_const_page_stat	(const cache_network *	cn,
-				 vbi_pgno		pgno)
+				 vbi3_pgno		pgno)
 {
 	assert (pgno >= 0x100 && pgno <= 0x8FF);
 	return &cn->_pages[pgno - 0x100];
 }
 
 /* in top.c */
-extern const ait_title *
+extern const struct ait_title *
 cache_network_get_ait_title	(cache_network *	cn,
 				 cache_page **		ait_cp,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno);
-extern vbi_bool
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno);
+extern vbi3_bool
 cache_network_get_top_title	(cache_network *	cn,
-				 vbi_top_title *	tt,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno);
-extern vbi_top_title *
+				 vbi3_top_title *	tt,
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno);
+extern vbi3_top_title *
 cache_network_get_top_titles	(cache_network *	cn,
 				 unsigned int *		n_elements);
 /* in cache.c */
 extern void
 cache_network_get_ttx_page_stat	(const cache_network *	cn,
-				 vbi_ttx_page_stat *	ps,
-				 vbi_pgno		pgno);
+				 vbi3_ttx_page_stat *	ps,
+				 vbi3_pgno		pgno);
 extern void
-cache_network_release		(cache_network *	cn);
+cache_network_unref		(cache_network *	cn);
 extern cache_network *
-cache_network_new_ref		(cache_network *	cn);
+cache_network_ref		(cache_network *	cn);
 extern cache_network *
-_vbi_cache_get_network		(vbi_cache *		ca,
-				 const vbi_network *	nk);
+_vbi3_cache_get_network		(vbi3_cache *		ca,
+				 const vbi3_network *	nk);
 extern cache_network *
-_vbi_cache_add_network		(vbi_cache *		ca,
-				 const vbi_network *	nk,
-				 vbi_videostd_set	videostd_set);
+_vbi3_cache_add_network		(vbi3_cache *		ca,
+				 const vbi3_network *	nk,
+				 vbi3_videostd_set	videostd_set);
 /* in caption.c */
 extern void
 cache_network_destroy_caption	(cache_network *	cn);
 extern void
 cache_network_init_caption	(cache_network *	cn);
+
 /* in packet.c */
 extern void
 cache_network_dump_teletext	(const cache_network *	cn,
@@ -348,41 +354,55 @@ extern void
 cache_network_init_teletext	(cache_network *	cn);
 
 /* in cache.c */
+extern void
+cache_page_dump			(const cache_page *	cp,
+				 FILE *			fp);
 extern unsigned int
 cache_page_size			(const cache_page *	cp);
-extern vbi_bool
+extern vbi3_bool
 cache_page_copy			(cache_page *		dst,
 				 const cache_page *	src);
 extern void
-cache_page_release		(cache_page *		cp);
+cache_page_unref		(cache_page *		cp);
 extern cache_page *
-cache_page_new_ref		(cache_page *		cp);
+cache_page_ref			(cache_page *		cp);
 extern cache_page *
-_vbi_cache_get_page		(vbi_cache *		ca,
+_vbi3_cache_get_page		(vbi3_cache *		ca,
 				 cache_network *	cn,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
-				 vbi_subno		subno_mask);
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
+				 vbi3_subno		subno_mask);
 extern cache_page *
-_vbi_cache_put_page		(vbi_cache *		ca,
+_vbi3_cache_put_page		(vbi3_cache *		ca,
 				 cache_network *	cn,
 				 const cache_page *	cp);
+extern void
+_vbi3_cache_dump		(const vbi3_cache *	ca,
+				 FILE *			fp);
 
 /* Other stuff. */
 
+typedef int
+_vbi3_cache_foreach_cb		(cache_page *		cp,
+				 vbi3_bool		wrapped,
+				 void *			user_data);
+
+/* in cache.c */
+extern int
+_vbi3_cache_foreach_page	(vbi3_cache *		ca,
+				 cache_network *	cn,
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
+				 int			dir,
+				 _vbi3_cache_foreach_cb *callback,
+				 void *			user_data);
+
 /* in teletext.c */
 extern void
-_vbi_character_set_init		(const vbi_character_set *charset[2],
-				 vbi_character_set_code default_code_0,
-				 vbi_character_set_code default_code_1,
-				 const extension *	ext,
+_vbi3_character_set_init	(const vbi3_character_set *charset[2],
+				 vbi3_charset_code	default_code_0,
+				 vbi3_charset_code	default_code_1,
+				 const struct extension *ext,
 				 const cache_page *	cp);
-/* in cache.c */
-extern void
-_vbi_cache_set_memory_limit	(vbi_cache *		ca,
-				 unsigned int		limit);
-extern void
-_vbi_cache_set_network_limit	(vbi_cache *		ca,
-				 unsigned int		limit);
 
 #endif /* CACHE_PRIV_H */

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.h,v 1.6.2.5 2004-10-14 07:54:00 mschimek Exp $ */
+/* $Id: io.h,v 1.6.2.6 2006-05-07 06:04:58 mschimek Exp $ */
 
 #ifndef IO_H
 #define IO_H
@@ -32,63 +32,63 @@
 /**
  * @ingroup Device
  */
-typedef struct vbi_capture_buffer {
+typedef struct vbi3_capture_buffer {
 	void *			data;
 	int			size;
 	double			timestamp;
-} vbi_capture_buffer;
+} vbi3_capture_buffer;
 
 /**
  * @ingroup Device
  * @brief Opaque device interface handle.
  **/
-typedef struct vbi_capture vbi_capture;
+typedef struct vbi3_capture vbi3_capture;
 
 /**
  * @addtogroup Device
  * @{
  */
-extern vbi_capture *	vbi_capture_v4l2_new(const char *dev_name, int buffers,
+extern vbi3_capture *	vbi3_capture_v4l2_new(const char *dev_name, int buffers,
 					     unsigned int *services, int strict,
-					     char **errorstr, vbi_bool trace);
-extern vbi_capture *	vbi_capture_v4l2k_new(const char *	dev_name,
+					     char **errorstr, vbi3_bool trace);
+extern vbi3_capture *	vbi3_capture_v4l2k_new(const char *	dev_name,
 					      int		fd,
 					      int		buffers,
 					      unsigned int *	services,
 					      int		strict,
 					      char **		errorstr,
-					      vbi_bool		trace);
-extern vbi_capture *	vbi_capture_v4l_new(const char *dev_name, int scanning,
+					      vbi3_bool		trace);
+extern vbi3_capture *	vbi3_capture_v4l_new(const char *dev_name, int scanning,
 					    unsigned int *services, int strict,
-					    char **errorstr, vbi_bool trace);
-extern vbi_capture *	vbi_capture_v4l_sidecar_new(const char *dev_name, int given_fd,
+					    char **errorstr, vbi3_bool trace);
+extern vbi3_capture *	vbi3_capture_v4l_sidecar_new(const char *dev_name, int given_fd,
 						    unsigned int *services,
 						    int strict, char **errorstr, 
-						    vbi_bool trace);
-extern vbi_capture *	vbi_capture_bktr_new (const char *	dev_name,
+						    vbi3_bool trace);
+extern vbi3_capture *	vbi3_capture_bktr_new (const char *	dev_name,
 					      int		scanning,
 					      unsigned int *	services,
 					      int		strict,
 					      char **		errstr,
-					      vbi_bool		trace);
+					      vbi3_bool		trace);
 
-extern int		vbi_capture_read_raw(vbi_capture *capture, void *data,
+extern int		vbi3_capture_read_raw(vbi3_capture *capture, void *data,
 					     double *timestamp, struct timeval *timeout);
-extern int		vbi_capture_read_sliced(vbi_capture *capture, vbi_sliced *data, int *lines,
+extern int		vbi3_capture_read_sliced(vbi3_capture *capture, vbi3_sliced *data, int *lines,
 						double *timestamp, struct timeval *timeout);
-extern int		vbi_capture_read(vbi_capture *capture, void *raw_data,
-					 vbi_sliced *sliced_data, int *lines,
+extern int		vbi3_capture_read(vbi3_capture *capture, void *raw_data,
+					 vbi3_sliced *sliced_data, int *lines,
 					 double *timestamp, struct timeval *timeout);
-extern int		vbi_capture_pull_raw(vbi_capture *capture, vbi_capture_buffer **buffer,
+extern int		vbi3_capture_pull_raw(vbi3_capture *capture, vbi3_capture_buffer **buffer,
 					     struct timeval *timeout);
-extern int		vbi_capture_pull_sliced(vbi_capture *capture, vbi_capture_buffer **buffer,
+extern int		vbi3_capture_pull_sliced(vbi3_capture *capture, vbi3_capture_buffer **buffer,
 						struct timeval *timeout);
-extern int		vbi_capture_pull(vbi_capture *capture, vbi_capture_buffer **raw_buffer,
-					 vbi_capture_buffer **sliced_buffer, struct timeval *timeout);
-extern vbi_raw_decoder *vbi_capture_parameters(vbi_capture *capture);
-extern int		vbi_capture_fd(vbi_capture *capture);
+extern int		vbi3_capture_pull(vbi3_capture *capture, vbi3_capture_buffer **raw_buffer,
+					 vbi3_capture_buffer **sliced_buffer, struct timeval *timeout);
+extern vbi3_raw_decoder *vbi3_capture_parameters(vbi3_capture *capture);
+extern int		vbi3_capture_fd(vbi3_capture *capture);
 
-extern void		vbi_capture_delete(vbi_capture *capture);
+extern void		vbi3_capture_delete(vbi3_capture *capture);
 /** @} */
 
 /* Private */
@@ -100,30 +100,35 @@ extern void		vbi_capture_delete(vbi_capture *capture);
 typedef struct {
 	void *			data;
 	unsigned int		size;
+
 	struct timeval		capture_time;
-	uint64_t		stream_time;
-} vbi_buffer;
+	int64_t			stream_time;
+} vbi3_buffer;
 
 typedef struct {
 	void *			data;
 	unsigned int		size;
+
 	struct timeval		capture_time;
-	uint64_t		stream_time;
+	int64_t			stream_time;
+
 	const sampling_par *	sampling_par;
-} vbi_raw_buffer;
+} vbi3_raw_buffer;
 
 typedef struct {
-	vbi_sliced *		data,
+	vbi3_sliced *		data,
 	unsigned int		size,
+
 	struct timeval		capture_time;
-	uint64_t		stream_time;
+	int64_t			stream_time;
+
 	unsigned int		lines;
-} vbi_sliced_buffer;
+} vbi3_sliced_buffer;
 
-typedef struct vbi_capture vbi_capture;
+typedef struct vbi3_capture vbi3_capture;
 
-vbi_capture_delete
-vbi_capture_new
+vbi3_capture_delete
+vbi3_capture_new
 get error string
 open v4l
 find v4l video standard

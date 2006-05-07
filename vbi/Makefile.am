@@ -9,3 +9,6 @@ SUBDIRS = m4 src po test doc contrib
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = zvbi-0.3.pc
+
+dist-hook:
+	chown -R 500:100 $(distdir)

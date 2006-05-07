@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.15 2004-10-14 07:54:01 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.16 2006-05-07 06:04:58 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -26,7 +26,8 @@
 #include <stddef.h>
 #include <string.h>
 #include <assert.h>
-#include "vbi.h"		/* vbi_log_level */
+
+#include "macros.h"
 
 #define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
 
@@ -34,7 +35,11 @@
 
 #if __GNUC__ < 3
 /* Expect expression usually true/false, schedule accordingly. */
-#  define __builtin_expect(expr, c) (expr)
+#  define likely(expr) (expr)
+#  define unlikely(expr) (expr)
+#else
+#  define likely(expr) __builtin_expect(expr, 1)
+#  define unlikely(expr) __builtin_expect(expr, 0)
 #endif
 
 #undef __i386__
@@ -49,6 +54,7 @@
 /* &x == PARENT (&x.tm_min, struct tm, tm_min),
    safer than &x == (struct tm *) &x.tm_min. A NULL _ptr is safe and
    will return NULL, not -offsetof(_member). */
+#undef PARENT
 #define PARENT(_ptr, _type, _member) ({					\
 	__typeof__ (&((_type *) 0)->_member) _p = (_ptr);		\
 	(_p != 0) ? (_type *)(((char *) _p) - offsetof (_type,		\
@@ -65,14 +71,19 @@
 /* Note the following macros have no side effects only when you
    compile with GCC, so don't expect this. */
 
-/* Absolute value of int without a branch.
-   Note ABS (INT_MIN) == INT_MAX + 1. */
+/* Absolute value of int, long or long long without a branch.
+   Note ABS (INT_MIN) -> INT_MAX + 1. */
 #undef ABS
 #define ABS(n) ({							\
-	register int _n = (n), _t = _n;					\
-	_t >>= sizeof (_t) * 8 - 1; /* assumes signed shift, safe? */	\
-	_n ^= _t;							\
-	_n -= _t;							\
+	register __typeof__ (n) _n = (n), _t = _n;			\
+	if (-1 == (-1 >> 1)) { /* do we have signed shifts? */		\
+		_t >>= sizeof (_t) * 8 - 1;				\
+		_n ^= _t;						\
+		_n -= _t;						\
+	} else if (_n < 0) { /* also warns if n is unsigned */		\
+		_n = -_n;						\
+	}								\
+	/* return */ _n;						\
 })
 
 #undef MIN
@@ -91,6 +102,8 @@
 	(_x > _y) ? _x : _y;						\
 })
 
+/* Note other compilers may swap only int, long or pointer. */
+#undef SWAP
 #define SWAP(x, y)							\
 do {									\
 	__typeof__ (x) _x = x;						\
@@ -98,7 +111,8 @@ do {									\
 	y = _x;								\
 } while (0)
 
-#ifdef __i686__ /* has conditional move. */
+#undef SATURATE
+#ifdef __i686__ /* has conditional move */
 #define SATURATE(n, min, max) ({					\
 	__typeof__ (n) _n = (n);					\
 	__typeof__ (n) _min = (min);					\
@@ -109,7 +123,7 @@ do {									\
 		_n = _min;						\
 	if (_n > _max)							\
 		_n = _max;						\
-	_n;								\
+	/* return */ _n;						\
 })
 #else
 #define SATURATE(n, min, max) ({					\
@@ -122,37 +136,31 @@ do {									\
 		_n = _min;						\
 	else if (_n > _max)						\
 		_n = _max;						\
-	_n;								\
+	/* return */ _n;						\
 })
 #endif
 
-extern void
-vbi_log_printf			(vbi_log_level		level,
-				 const char *		function,
-				 const char *		template,
-				 ...)
-     __attribute__ ((format (__printf__, 3, 4)));
-
 #else /* !__GNUC__ */
 
-#define __builtin_expect(expr, c) (expr)
+#define likely(expr) (expr)
+#define unlikely(expr) (expr)
 #undef __i386__
 #undef __i686__
-#define __attribute__(x)
+#define __attribute__(args...)
 
 static char *
 PARENT_HELPER (char *p, unsigned int offset)
-{ return (p == 0) ? 0 : p - offset; }
+{ return (0 == p) ? ((char *) 0) : p - offset; }
 
 static const char *
 CONST_PARENT_HELPER (const char *p, unsigned int offset)
-{ return (p == 0) ? 0 : p - offset; }
+{ return (0 == p) ? ((char *) 0) : p - offset; }
 
 #define PARENT(_ptr, _type, _member)					\
-	((offsetof (_type, _member) == 0) ? (_type *)(_ptr)		\
+	((0 == offsetof (_type, _member)) ? (_type *)(_ptr)		\
 	 : (_type *) PARENT_HELPER ((char *)(_ptr), offsetof (_type, _member)))
 #define CONST_PARENT(_ptr, _type, _member)				\
-	((offsetof (const _type, _member) == 0) ? (const _type *)(_ptr)	\
+	((0 == offsetof (const _type, _member)) ? (const _type *)(_ptr)	\
 	 : (const _type *) CONST_PARENT_HELPER ((const char *)(_ptr),	\
 	  offsetof (const _type, _member)))
 
@@ -165,6 +173,7 @@ CONST_PARENT_HELPER (const char *p, unsigned int offset)
 #undef MAX
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
+#undef SWAP
 #define SWAP(x, y)							\
 do {									\
 	long _x = x;							\
@@ -172,71 +181,119 @@ do {									\
 	y = _x;								\
 } while (0)
 
-#define SATURATE(n, min, max) MIN (MAX (n, min), max)
-
-extern void
-vbi_log_printf			(const char *		function,
-				 const char *		template,
-				 ...);
+#undef SATURATE
+#define SATURATE(n, min, max) MIN (MAX (min, n), max)
 
 #endif /* !__GNUC__ */
 
-#define CLAMP(n, min, max) SATURATE (n, min, max)
+/* 32 bit constant byte reverse, e.g. 0xAABBCCDD -> 0xDDCCBBAA. */
+#define SWAB32(m)							\
+	(+ (((m) & 0xFF000000) >> 24)					\
+	 + (((m) & 0xFF0000) >> 8)					\
+	 + (((m) & 0xFF00) << 16)					\
+	 + (((m) & 0xFF) << 8))
 
-/* NB gcc inlines and optimizes when size is const. */
+/* NB GCC inlines and optimizes these functions when size is const. */
 #define SET(var) memset (&(var), ~0, sizeof (var))
 #define CLEAR(var) memset (&(var), 0, sizeof (var))
 #define COPY(d, s) /* useful to copy arrays, otherwise use assignment */ \
 	(assert (sizeof (d) == sizeof (s)), memcpy (d, s, sizeof (d)))
 
-/* Use this instead of strncpy(), is a BSD/GNU extension.*/
+typedef struct {
+	const char *		key;
+	int			value;
+} _vbi3_key_value_pair;
+
+extern vbi3_bool
+_vbi3_keyword_lookup		(int *			value,
+				 const char **		inout_s,
+				 const _vbi3_key_value_pair * table);
+
+/* Use this instead of strncpy(). strlcpy() is a BSD/GNU extension. */
 #ifdef HAVE_STRLCPY
-#  define _vbi_strlcpy strlcpy
+#  define _vbi3_strlcpy strlcpy
 #else
 extern size_t
-_vbi_strlcpy			(char *			dst,
+_vbi3_strlcpy			(char *			dst,
 				 const char *		src,
 				 size_t			len);
 #endif
 
-/* strndup is a BSD/GNU extension. */
+/* strndup() is a BSD/GNU extension. */
 #ifdef HAVE_STRNDUP
-#  define _vbi_strndup strndup
+#  define _vbi3_strndup strndup
 #else
 extern char *
-_vbi_strndup			(const char *		s,
+_vbi3_strndup			(const char *		s,
 				 size_t			len);
 #endif
 
+/* asprintf() is a GNU extension. */
 #ifdef HAVE_ASPRINTF
-#  define _vbi_asprintf asprintf
+#  define _vbi3_asprintf asprintf
 #else
 extern int
-_vbi_asprintf			(char **		dstp,
+_vbi3_asprintf			(char **		dstp,
 				 const char *		templ,
 				 ...);
 #endif
 
-#define STRCOPY(d, s) (_vbi_strlcpy (d, s, sizeof (d)) < sizeof (d))
+/* Copy a string const, returns FALSE if not NUL terminated. */
+#define STRCOPY(d, s) (_vbi3_strlcpy (d, s, sizeof (d)) < sizeof (d))
 
 /* Copy bits through mask. */
-#define COPY_SET_MASK(to, from, mask)					\
-	(to ^= (from) ^ (to & (mask)))
-/* Set bits if cond is true, clear if false. */
-#define COPY_SET_COND(to, bits, cond)					\
-	 ((cond) ? (to |= (bits)) : (to &= ~(bits)))
+#define COPY_SET_MASK(dest, from, mask)					\
+	(dest ^= (from) ^ (dest & (mask)))
+/* Set bits if cond is TRUE, clear if FALSE. */
+#define COPY_SET_COND(dest, bits, cond)					\
+	 ((cond) ? (dest |= (bits)) : (dest &= ~(bits)))
 /* Set and clear bits. */
-#define COPY_SET_CLEAR(to, set, clear)					\
-	(to = (to & ~(clear)) | (set))
+#define COPY_SET_CLEAR(dest, set, clear)				\
+	(dest = (dest & ~(clear)) | (set))
 
-#ifndef __BYTE_ORDER
-/* Should be __LITTLE_ENDIAN or __BIG_ENDIAN, but I guess
-   that's a GNU/Linuxism. Alternatives? */
-#  define __BYTE_ORDER __UNKNOWN_BYTE_ORDER
-#endif
+vbi3_inline int
+vbi3_to_ascii			(int			c)
+{
+	if (c < 0)
+		return '?';
 
-#define vbi_malloc malloc
-#define vbi_realloc realloc
-#define vbi_free free
+	c &= 0x7F;
+
+	if (c < 0x20 || c >= 0x7F)
+		return '.';
+
+	return c;
+}
+
+typedef enum {
+	VBI3_LOG_ERROR		= 1 << 3,
+	VBI3_LOG_WARNING	= 1 << 4,
+	VBI3_LOG_NOTICE		= 1 << 5,
+	VBI3_LOG_INFO		= 1 << 6,
+	VBI3_LOG_DEBUG		= 1 << 7,
+} vbi3_log_level;
+
+typedef void
+vbi3_log_fn			(vbi3_log_level		level,
+				 const char *		message,
+				 void *			user_data);
+extern void
+vbi3_log_on_stderr		(vbi3_log_level		level,
+				 const char *		message,
+				 void *			user_data);
+extern void
+vbi3_log_printf			(vbi3_log_fn		log_fn,
+				 void *			user_data,
+				 vbi3_log_level		level,
+				 const char *		templ,
+				 ...);
+
+/* TODO */
+#define vbi3_malloc malloc
+#define vbi3_realloc realloc
+#define vbi3_strdup strdup
+#define vbi3_free free
+#define vbi3_cache_malloc malloc
+#define vbi3_cache_free free
 
 #endif /* MISC_H */

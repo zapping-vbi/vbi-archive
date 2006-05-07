@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Teletext decoder
  *
- *  Copyright (C) 2000, 2001 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2003, 2004 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998, 1999 Edgar Toernig <froese@gmx.de>
@@ -21,35 +21,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.18 2004-07-09 16:10:54 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.19 2006-05-07 06:04:59 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
 
-#include "bcd.h"		/* vbi_pgno, vbi_subno */
-#include "lang.h"		/* vbi_character_set_code */
-#include "format.h"		/* vbi_color */
-
-/*
-#include <stdio.h>
-#include <string.h>
-#include <inttypes.h>
-#include <assert.h>
-
-#include "format.h"
-
-#include "pdc.h"
-#include "pfc_demux.h"
-#include "teletext_decoder.h"
-#include "event.h"
-*/
-/*
-#ifndef VBI_DECODER
-#define VBI_DECODER
-typedef struct vbi_decoder vbi_decoder;
-#endif
-
-*/
+#include "bcd.h"		/* vbi3_pgno, vbi3_subno */
+#include "lang.h"		/* vbi3_charset_code */
+#include "page.h"		/* vbi3_color */
 
 /**
  * @internal
@@ -114,7 +93,7 @@ page_coding_name		(page_coding		coding);
  * @internal
  * TOP BTT page type.
  * decode_btt_page() translates this to MIP page type
- * which is defined as enum vbi_page_type in vbi.h.
+ * which is defined as enum vbi3_page_type in vbi.h.
  */
 typedef enum {
 	BTT_NO_PAGE = 0,
@@ -176,14 +155,14 @@ typedef struct {
 	page_function		function;
 
 	/** NO_PAGE (pgno) when unused or broken. */
-	vbi_pgno		pgno;
+	vbi3_pgno		pgno;
 
 	/**
 	 * X/27/4 ... 5 format 1 (struct lop.link[]):
 	 * Set of subpages required: 1 << (0 ... 15).
-	 * Otherwise subpage number or VBI_NO_SUBNO.
+	 * Otherwise subpage number or VBI3_NO_SUBNO.
 	 */
-	vbi_subno		subno;
+	vbi3_subno		subno;
 } pagenum;
 
 /** @internal */
@@ -200,14 +179,14 @@ pagenum_dump			(const pagenum *	pn,
  * 12.3.1 Packet X/26 code triplet.
  * Broken triplets are set to -1, -1, -1.
  */
-typedef struct {
+struct triplet {
 	unsigned	address		: 8;
 	unsigned	mode		: 8;
 	unsigned	data		: 8;
-} __attribute__ ((packed)) triplet;
+}; /* __attribute__ ((packed)) */
 
 /** @internal */
-typedef triplet enhancement[16 * 13 + 1];
+typedef struct triplet enhancement[16 * 13 + 1];
 
 /* Level one page extension */
 
@@ -217,21 +196,21 @@ typedef triplet enhancement[16 * 13 + 1];
  * 10.6.4 MOT POP link fallback flags.
  */
 typedef struct {
-	vbi_bool	black_bg_substitution;
+	vbi3_bool	black_bg_substitution;
 
 	int		left_panel_columns;
 	int		right_panel_columns;
 } ext_fallback;
 
 /** @internal */
-#define VBI_TRANSPARENT_BLACK 8
+#define VBI3_TRANSPARENT_BLACK 8
 
 /**
  * @internal
  * 9.4.2 Packet X/28
  * 9.5 Packet M/29
  */
-typedef struct {
+struct extension {
 	/**
 	 * We have data from packets X/28 (in lop) or M/29 (in magazine)
 	 * with this set of designations. Magazine is always valid,
@@ -245,7 +224,7 @@ typedef struct {
 	unsigned int		designations;
 
 	/** Primary and secondary character set. */
-	vbi_character_set_code	charset_code[2];
+	vbi3_charset_code	charset_code[2];
 
 	/** Blah. */
 	unsigned int		def_screen_color;
@@ -269,19 +248,19 @@ typedef struct {
 	 *      to color_map[].
 	 * - 16 more for local DRCS.
 	 */
-	vbi_color		drcs_clut[2 + 2 * 4 + 2 * 16];
+	vbi3_color		drcs_clut[2 + 2 * 4 + 2 * 16];
 
 	/**
 	 * CLUTs 0 ... 4 of 8 colors each. CLUT 2 & 3 are redefinable
 	 * at Level 2.5, CLUT 0 to 3 at Level 3.5, except color_map[8]
-	 * which is "transparent" color (VBI_TRANSPARENT_BLACK).
+	 * which is "transparent" color (VBI3_TRANSPARENT_BLACK).
 	 * CLUT 4 contains libzvbi private colors which never change.
 	 */
-	vbi_rgba		color_map[40];
-} extension;
+	vbi3_rgba		color_map[40];
+};
 
 extern void
-extension_dump			(const extension *	ext,
+extension_dump			(const struct extension *ext,
 				 FILE *			fp);
 
 /**
@@ -298,10 +277,10 @@ extension_dump			(const extension *	ext,
 typedef int object_address;
 
 /** @internal */
-typedef struct {
+struct ait_title {
 	pagenum			page;
 	uint8_t			text[12];
-} ait_title;
+};
 
 /* Level one page */
 
@@ -338,7 +317,7 @@ struct lop {
 	 * Packet X/27 flag (ETR 287 section 10.4):
 	 * Have FLOF navigation, display row 24.
 	 */
-	vbi_bool		have_flof;
+	vbi3_bool		have_flof;
 };
 
 /* Magazine */
@@ -347,22 +326,22 @@ struct lop {
  * @internal
  * 10.6.4 MOT object links
  */
-typedef struct {
-	vbi_pgno		pgno;
+struct pop_link {
+	vbi3_pgno		pgno;
 	ext_fallback		fallback;
 	struct {
 		object_type		type;
 		object_address		address;
 	}			default_obj[2];
-} pop_link;
+};
 
 /**
  * @internal
  * @brief Magazine defaults.
  */
-typedef struct {
+struct magazine {
 	/** Default extension. */
-	extension		extension;
+	struct extension	extension;
 
 	/**
 	 * Page number to pop_link[] and drcs_link[] for default
@@ -375,9 +354,9 @@ typedef struct {
 	 * Level 2.5 (0) or 3.5 (1), 1 global and 7 local links to
 	 * POP/DRCS page. Unused or broken: NO_PAGE (pgno).
 	 */
-    	pop_link		pop_link[2][8];
-	vbi_pgno		drcs_link[2][8];
-} magazine;
+    	struct pop_link		pop_link[2][8];
+	vbi3_pgno		drcs_link[2][8];
+};
 
 /* Network */
 
@@ -389,13 +368,13 @@ typedef struct {
 #define SUBCODE_UNKNOWN		0xFFFF
 
 /** @inline */
-typedef struct {
+struct page_stat {
 	/* Information gathered from MOT, MIP, BTT, G/POP pages. */
 
-	/** Actually a vbi_page_type. */
+	/** Actually a vbi3_page_type. */
 	uint8_t			page_type;
 
-	/** Actually a vbi_character_set_code, 0xFF unknown. */
+	/** Actually a vbi3_charset_code, 0xFF unknown. */
   	uint8_t			charset_code;
 
 	/**
@@ -421,9 +400,9 @@ typedef struct {
 	/** Subpage numbers actually encountered (0x00 ... 0x79). */
 	uint8_t			subno_min;
 	uint8_t			subno_max;
-} page_stat;
+};
 
-extern const magazine *
-_vbi_teletext_decoder_default_magazine (void);
+extern const struct magazine *
+_vbi3_teletext_decoder_default_magazine (void);
 
 #endif /* VT_H */

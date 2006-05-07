@@ -18,9 +18,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpptest.cc,v 1.1.2.2 2003-06-16 06:05:02 mschimek Exp $ */
+/* $Id: cpptest.cc,v 1.1.2.3 2006-05-07 06:05:00 mschimek Exp $ */
 
-#include "libzvbi.h"
+#include "src/zvbi.h"
 
 int
 main				(int			argc,

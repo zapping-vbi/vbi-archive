@@ -5,7 +5,7 @@
 
 #include "misc.h"
 
-#include "hamm.c" /* vbi_bit_reverse[] */
+#include "hamm.c" /* vbi3_bit_reverse[] */
 
 static char *			font_name;
 
@@ -54,6 +54,8 @@ pbm_getint			(FILE *			fp,
 		perror ("read error");
 		exit (EXIT_FAILURE);
 	}
+
+	return t;
 }
 
 static void
@@ -78,7 +80,7 @@ pbm_read			(void)
 
 	image_size = image_width * image_height / 8;
 
-	image = vbi_malloc (image_size);
+	image = vbi3_malloc (image_size);
 
 	if (NULL == image) {
 		fprintf (stderr, "out of memory\n");
@@ -126,7 +128,7 @@ xbm_write			(void)
 
 			for (x = 0; x < image_width / 8; ++x) {
 				fprintf (fp, "0x%02x,",
-					 vbi_bit_reverse[p[x]]);
+					 vbi3_rev8 (p[x]));
 
 				if (7 == (x % 8))
 					fputs ("\n  ", fp);

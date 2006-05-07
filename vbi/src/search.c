@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Teletext page cache search functions
  *
- *  Copyright (C) 2000-2004 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002, 2003, 2004 Michael H. Schimek
  *  Copyright (C) 2000, 2001 Iñaki G. Etxebarria
  *
  *  Based on code from AleVT 1.5.1
@@ -22,23 +22,25 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.6.2.8 2004-10-14 07:54:01 mschimek Exp $ */
+/* $Id: search.c,v 1.6.2.9 2006-05-07 06:04:58 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
-#  include "../config.h"
+#  include "config.h"
 #endif
 
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
+#include <stdlib.h>		/* malloc() */
+#include <assert.h>
 
-#include "lang.h"
-#include "cache.h"
+//#include <string.h>
+//#include <ctype.h>
+//#include "lang.h"
+//#include "cache.h"
 #include "search.h"
 #include "ure.h"
 #include "conv.h"
-#include "teletext_decoder-priv.h"
+//#include "teletext_decoder-priv.h"
 #include "page-priv.h"
+//#include "misc.h"
 
 /**
  * @addtogroup Search
@@ -48,26 +50,30 @@
 
 #if defined(HAVE_GLIBC21) || defined(HAVE_LIBUNICODE)
 
-struct vbi_search {
-	vbi_decoder *		vbi;
+struct _vbi3_search {
+	vbi3_cache *		cache;
 
-	int			start_pgno;
-	int			start_subno;
-	int			stop_pgno[2];
-	int			stop_subno[2];
-	int			row[2], col[2];
+	cache_network *		network;
+
+	vbi3_pgno		start_pgno;
+	vbi3_subno		start_subno;
+	vbi3_pgno		stop_pgno[2];
+	vbi3_subno		stop_subno[2];
+	int			row[2];
+	int			col[2];
 
 	int			dir;
 
-	vbi_search_progress_cb *progress;
+	vbi3_search_progress_cb *progress;
 	void *			user_data;
 
-	vbi_page_priv		pgp;
+	vbi3_page_priv		pgp;
 
 	va_list			format_options;
 
 	ure_buffer_t		ub;
 	ure_dfa_t		ud;
+
 	ucs2_t			haystack[25 * (40 + 1) + 1];
 };
 
@@ -77,13 +83,17 @@ struct vbi_search {
 #define LAST_ROW 24
 
 static void
-highlight(struct vbi_search *s, const cache_page *cp,
-	  ucs2_t *first, long ms, long me)
+highlight			(vbi3_search *		s,
+				 const cache_page *	cp,
+				 ucs2_t *		first,
+				 long			ms,
+				 long			me)
 {
-	vbi_page *pg = &s->pgp.pg;
+	vbi3_page *pg;
 	ucs2_t *hp;
 	int i, j;
 
+	pg = &s->pgp.pg;
 	hp = s->haystack;
 
 	s->start_pgno = cp->pgno;
@@ -92,9 +102,11 @@ highlight(struct vbi_search *s, const cache_page *cp,
 	s->col[0] = 0;
 
 	for (i = FIRST_ROW; i < LAST_ROW; i++) {
-		vbi_char *acp = &pg->text[i * pg->columns];
+		vbi3_char *cp;
 
-		for (j = 0; j < 40; acp++, j++) {
+		cp = &pg->text[i * pg->columns];
+
+		for (j = 0; j < 40; ++j) {
 			int offset = hp - first;
  
 			if (offset >= me) {
@@ -104,7 +116,7 @@ highlight(struct vbi_search *s, const cache_page *cp,
 			}
 
 			if (offset < ms) {
-				if (j == 39) {
+				if (39 == j) {
 					s->row[1] = i + 1;
 					s->col[1] = 0;
 				} else {
@@ -113,95 +125,109 @@ highlight(struct vbi_search *s, const cache_page *cp,
 				}
 			}
 
-			switch (acp->size) {
-			case VBI_DOUBLE_SIZE:
+			switch (cp->size) {
+			case VBI3_DOUBLE_SIZE:
 				if (offset >= ms) {
-					acp[pg->columns].foreground = 32 + VBI_BLACK;
-					acp[pg->columns].background = 32 + VBI_YELLOW;
-					acp[pg->columns + 1].foreground = 32 + VBI_BLACK;
-					acp[pg->columns + 1].background = 32 + VBI_YELLOW;
+					cp[pg->columns].foreground =
+						32 + VBI3_BLACK;
+					cp[pg->columns].background =
+						32 + VBI3_YELLOW;
+					cp[pg->columns + 1].foreground =
+						32 + VBI3_BLACK;
+					cp[pg->columns + 1].background =
+						32 + VBI3_YELLOW;
 				}
 
 				/* fall through */
 
-			case VBI_DOUBLE_WIDTH:
+			case VBI3_DOUBLE_WIDTH:
 				if (offset >= ms) {
-					acp[0].foreground = 32 + VBI_BLACK;
-					acp[0].background = 32 + VBI_YELLOW;
-					acp[1].foreground = 32 + VBI_BLACK;
-					acp[1].background = 32 + VBI_YELLOW;
+					cp[0].foreground = 32 + VBI3_BLACK;
+					cp[0].background = 32 + VBI3_YELLOW;
+					cp[1].foreground = 32 + VBI3_BLACK;
+					cp[1].background = 32 + VBI3_YELLOW;
 				}
 
-				hp++;
-				acp++;
-				j++;
+				++hp;
+				++cp;
+				++j;
 
 				break;
 
-			case VBI_DOUBLE_HEIGHT:
+			case VBI3_DOUBLE_HEIGHT:
 				if (offset >= ms) {
-					acp[pg->columns].foreground = 32 + VBI_BLACK;
-					acp[pg->columns].background = 32 + VBI_YELLOW;
+					cp[pg->columns].foreground =
+						32 + VBI3_BLACK;
+					cp[pg->columns].background =
+						32 + VBI3_YELLOW;
 				}
 
 				/* fall through */
 
-			case VBI_NORMAL_SIZE:
+			case VBI3_NORMAL_SIZE:
 				if (offset >= ms) {
-					acp[0].foreground = 32 + VBI_BLACK;
-					acp[0].background = 32 + VBI_YELLOW;
+					cp[0].foreground = 32 + VBI3_BLACK;
+					cp[0].background = 32 + VBI3_YELLOW;
 				}
 
-				hp++;
+				++hp;
+
 				break;
 
 			default:
 				/* skipped */
-				/* hp++; */
+				/* ++hp; */
 				break;
 			}
+
+			++cp;
 		}
 
-		hp++;
+		++hp;
 	}
 }
 
 static int
-search_page_fwd			(void *			p,
-				 cache_page *		cp,
-				 vbi_bool		wrapped)
+search_page_fwd			(cache_page *		cp,
+				 vbi3_bool		wrapped,
+				 void *			user_data)
 {
-	vbi_search *s = p;
-	vbi_char *acp;
-	int row, _this, start, stop;
-	ucs2_t *hp, *first;
-	unsigned long ms, me;
-	int flags, i, j;
+	vbi3_search *s = user_data;
+	unsigned int here;
+	unsigned int start;
+	unsigned int stop;
+	int row;
+	ucs2_t *hp;
+	ucs2_t *first;
+	unsigned long ms;
+	unsigned long me;
+	int flags;
+	int i;
 
-	_this = (cp->pgno << 16) + cp->subno;
+	here  = (cp->pgno << 16) + cp->subno;
 	start = (s->start_pgno << 16) + s->start_subno;
 	stop  = (s->stop_pgno[0] << 16) + s->stop_subno[0];
 
 	if (start >= stop) {
-		if (wrapped && _this >= stop)
+		if (wrapped && here >= stop)
 			return -1; /* all done, abort */
-	} else if (_this < start || _this >= stop)
+	} else if (here < start || here >= stop)
 		return -1; /* all done, abort */
 
 	if (cp->function != PAGE_FUNCTION_LOP)
 		return 0; /* try next */
 
-#warning todo
-#if 0
-	if (!vbi_format_vt_page_va_list (&s->pgp,
-					 s->vbi->vt.cache,
-					 s->vbi->vt.network,
-					 vtp, s->format_options))
+	_vbi3_page_priv_destroy (&s->pgp);
+	_vbi3_page_priv_init (&s->pgp);
+
+	if (!_vbi3_page_priv_from_cache_page_va_list (&s->pgp,
+						      cp,
+						      s->format_options))
 		return -3; /* formatting error, abort */
-#endif
+
 	if (s->progress)
 		if (!s->progress (s, &s->pgp.pg, s->user_data)) {
-			if (_this != start) {
+			if (here != start) {
 				s->start_pgno = cp->pgno;
 				s->start_subno = cp->subno;
 				s->row[0] = FIRST_ROW;
@@ -216,31 +242,34 @@ search_page_fwd			(void *			p,
 
 	hp = s->haystack;
 	first = hp;
-	row = (_this == start) ? s->row[0] : -1;
+	row = (here == start) ? s->row[0] : -1;
 	flags = 0;
 
 	if (row > LAST_ROW)
 		return 0; /* try next page */
 
 	for (i = FIRST_ROW; i < LAST_ROW; i++) {
-		acp = &s->pgp.pg.text[i * s->pgp.pg.columns];
+		vbi3_char *cp;
+		int j;
 
-		for (j = 0; j < 40; acp++, j++) {
+		cp = &s->pgp.pg.text[i * s->pgp.pg.columns];
+
+		for (j = 0; j < 40; ++cp, ++j) {
 			if (i == row && j <= s->col[0])
 				first = hp;
 
-			if (acp->size == VBI_DOUBLE_WIDTH
-			    || acp->size == VBI_DOUBLE_SIZE) {
+			if (cp->size == VBI3_DOUBLE_WIDTH
+			    || cp->size == VBI3_DOUBLE_SIZE) {
 				/* "ZZAAPPZILLA" -> "ZAPZILLA" */
-				acp++; /* skip left half */
-				j++;
-			} else if (acp->size > VBI_DOUBLE_SIZE) {
+				++cp; /* skip left half */
+				++j;
+			} else if (cp->size > VBI3_DOUBLE_SIZE) {
 				/* skip */
 				/* *hp++ = 0x0020; */
 				continue;
 			}
 
-			*hp++ = acp->unicode;
+			*hp++ = cp->unicode;
 			flags = URE_NOTBOL;
 		}
 
@@ -252,61 +281,62 @@ search_page_fwd			(void *			p,
 
 	if (first >= hp)
 		return 0; /* try next page */
-/*
-#define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
-fprintf(stderr, "exec: %x/%x; start %d,%d; %c%c%c...\n",
-	vtp->pgno, vtp->subno,
-	s->row[0], s->col[0],
-	printable(first[0]),
-	printable(first[1]),
-	printable(first[2])
-);
-*/
-	if (!ure_exec(s->ud, flags, first, hp - first, &ms, &me))
+
+	if (0)
+		fprintf (stderr, "exec: %x/%x; start %d,%d; %c%c%c...\n",
+			 cp->pgno, cp->subno,
+			 s->row[0], s->col[0],
+			 vbi3_printable (first[0]),
+			 vbi3_printable (first[1]),
+			 vbi3_printable (first[2]));
+
+	if (!ure_exec (s->ud, flags, first, hp - first, &ms, &me))
 		return 0; /* try next page */
 
-	highlight(s, cp, first, ms, me);
+	highlight (s, cp, first, ms, me);
 
 	return 1; /* success, abort */
 }
 
 static int
-search_page_rev			(void *			p,
-				 cache_page *		cp,
-				 vbi_bool		wrapped)
+search_page_rev			(cache_page *		cp,
+				 vbi3_bool		wrapped,
+				 void *			user_data)
 {
-	vbi_search *s = p;
-	vbi_char *acp;
-	int row, this, start, stop;
-	unsigned long ms, me;
+	vbi3_search *s = user_data;
+	unsigned int here;
+	unsigned int start;
+	unsigned int stop;
+	int row;
+	unsigned long ms;
+	unsigned long me;
 	ucs2_t *hp;
-	int flags, i, j;
+	int flags;
+	int i;
 
-	this  = (cp->pgno << 16) + cp->subno;
+	here  = (cp->pgno << 16) + cp->subno;
 	start = (s->start_pgno << 16) + s->start_subno;
 	stop  = (s->stop_pgno[1] << 16) + s->stop_subno[1];
 
 	if (start <= stop) {
-		if (wrapped && this <= stop)
+		if (wrapped && here <= stop)
 			return -1; /* all done, abort */
-	} else if (this > start || this <= stop)
+	} else if (here > start || here <= stop)
 		return -1; /* all done, abort */
 
 	if (cp->function != PAGE_FUNCTION_LOP)
 		return 0; /* try next page */
 
-#warning todo
-#if 0
-	if (!vbi_format_vt_page_va_list (&s->pgp,
-					 s->vbi->vt.cache,
-					 s->vbi->vt.network,
-					 vtp,
-					 s->format_options))
+	_vbi3_page_priv_destroy (&s->pgp);
+
+	if (!_vbi3_page_priv_from_cache_page_va_list (&s->pgp,
+						      cp,
+						      s->format_options))
 		return -3; /* formatting error, abort */
-#endif
+
 	if (s->progress)
 		if (!s->progress (s, &s->pgp.pg, s->user_data)) {
-			if (this != start) {
+			if (here != start) {
 				s->start_pgno = cp->pgno;
 				s->start_subno = cp->subno;
 				s->row[0] = FIRST_ROW;
@@ -320,59 +350,65 @@ search_page_rev			(void *			p,
 	/* To Unicode */
 
 	hp = s->haystack;
-	row = (this == start) ? s->row[1] : 100;
+	row = (here == start) ? s->row[1] : 100;
 	flags = 0;
 
 	if (row < FIRST_ROW)
 		goto break2;
 
 	for (i = FIRST_ROW; i < LAST_ROW; i++) {
-		acp = &s->pgp.pg.text[i * s->pgp.pg.columns];
+		vbi3_char *cp;
+		int j;
 
-		for (j = 0; j < 40; acp++, j++) {
+		cp = &s->pgp.pg.text[i * s->pgp.pg.columns];
+
+		for (j = 0; j < 40; ++cp, ++j) {
 			if (i == row && j >= s->col[1])
 				goto break2;
 
-			if (acp->size == VBI_DOUBLE_WIDTH
-			    || acp->size == VBI_DOUBLE_SIZE) {
+			if (cp->size == VBI3_DOUBLE_WIDTH
+			    || cp->size == VBI3_DOUBLE_SIZE) {
 				/* "ZZAAPPZILLA" -> "ZAPZILLA" */
-				acp++; /* skip left half */
-				j++;
-			} else if (acp->size > VBI_DOUBLE_SIZE) {
+				++cp; /* skip left half */
+				++j;
+			} else if (cp->size > VBI3_DOUBLE_SIZE) {
 				/* skip */
 				/* *hp++ = 0x0020; */
 				continue;
 			}
 
-			*hp++ = acp->unicode;
+			*hp++ = cp->unicode;
 			flags = URE_NOTEOL;
 		}
 
 		*hp++ = SEPARATOR;
 		flags = 0;
 	}
-break2:
 
+break2:
 	if (hp <= s->haystack)
 		return 0; /* try next page */
 
 	/* Search */
 
-	ms = me = 0;
+	ms = 0;
+	me = 0;
 
-	for (i = 0; s->haystack + me < hp; i++) {
-		unsigned long ms1, me1;
-/*
-#define printable(c) ((((c) & 0x7F) < 0x20 || ((c) & 0x7F) > 0x7E) ? '.' : ((c) & 0x7F))
-fprintf(stderr, "exec: %x/%x; %d, %d; '%c%c%c...'\n",
-	vtp->pgno, vtp->subno, i, me,
-	printable(s->haystack[me + 0]),
-	printable(s->haystack[me + 1]),
-	printable(s->haystack[me + 2])
-);
-*/
-		if (!ure_exec(s->ud, (me > 0) ? (flags | URE_NOTBOL) : flags,
-		    s->haystack + me, hp - s->haystack - me, &ms1, &me1))
+	for (i = 0; s->haystack + me < hp; ++i) {
+		unsigned long ms1;
+		unsigned long me1;
+
+		if (0)
+			fprintf (stderr, "exec: %x/%x; %d, %ld; '%c%c%c...'\n",
+				 cp->pgno, cp->subno, i, me,
+				 vbi3_printable (s->haystack[me + 0]),
+				 vbi3_printable (s->haystack[me + 1]),
+				 vbi3_printable (s->haystack[me + 2]));
+
+		if (!ure_exec (s->ud, (me > 0) ? (flags | URE_NOTBOL) : flags,
+			       s->haystack + me,
+			       hp - s->haystack - me,
+			       &ms1, &me1))
 			break;
 
 		ms = me + ms1;
@@ -382,129 +418,142 @@ fprintf(stderr, "exec: %x/%x; %d, %d; '%c%c%c...'\n",
 	if (i == 0)
 		return 0; /* try next page */
 
-	highlight(s, cp, s->haystack, ms, me);
+	highlight (s, cp, s->haystack, ms, me);
 
 	return 1; /* success, abort */
 }
 
 /**
  * @param search Initialized search context.
- * @param pg Place to store the formatted (as with vbi_fetch_vt_page())
+ * @param pg Place to store the formatted (as with vbi3_fetch_vt_page())
  *   Teletext page containing the found pattern. Do <em>not</em>
- *   call vbi_unref_page() for this page. Also the page must not
- *   be modified. See vbi_search_status for semantics.
+ *   call vbi3_unref_page() for this page. Also the page must not
+ *   be modified. See vbi3_search_status for semantics.
  * @param dir Search direction +1 forward or -1 backward.
  * @param format_options blah
  *
  * Find the next occurence of the search pattern.
  *
  * @return
- * vbi_search_status.
+ * vbi3_search_status.
  */
-vbi_search_status
-vbi_search_next_va_list		(vbi_search *		search,
-				 vbi_page **		pg,
+vbi3_search_status
+vbi3_search_next_va_list	(vbi3_search *		s,
+				 const vbi3_page **	pg,
 				 int			dir,
 				 va_list		format_options)
 {
+	assert (NULL != s);
+	assert (NULL != pg);
+
 	*pg = NULL;
 	dir = (dir > 0) ? +1 : -1;
 
-	if (!search->dir) {
-		search->dir = dir;
+	if (!s->dir) {
+		s->dir = dir;
 
 		if (dir > 0) {
-			search->start_pgno = search->stop_pgno[0];
-			search->start_subno = search->stop_subno[0];
+			s->start_pgno = s->stop_pgno[0];
+			s->start_subno = s->stop_subno[0];
 		} else {
-			search->start_pgno = search->stop_pgno[1];
-			search->start_subno = search->stop_subno[1];
+			s->start_pgno = s->stop_pgno[1];
+			s->start_subno = s->stop_subno[1];
 		}
 
-		search->row[0] = FIRST_ROW;
-		search->row[1] = LAST_ROW + 1;
-		search->col[0] = search->col[1] = 0;
-	} else if (dir != search->dir) {
-		search->dir = dir;
+		s->row[0] = FIRST_ROW;
+		s->row[1] = LAST_ROW + 1;
+		s->col[0] = s->col[1] = 0;
+	} else if (dir != s->dir) {
+		s->dir = dir;
 
-		search->stop_pgno[0] = search->start_pgno;
-		search->stop_subno[0] = (search->start_subno == VBI_ANY_SUBNO) ?
-			0 : search->start_subno;
-		search->stop_pgno[1] = search->start_pgno;
-		search->stop_subno[1] = search->start_subno;
+		s->stop_pgno[0] = s->start_pgno;
+		s->stop_subno[0] =
+			(s->start_subno == VBI3_ANY_SUBNO) ?
+			0 : s->start_subno;
+		s->stop_pgno[1] = s->start_pgno;
+		s->stop_subno[1] = s->start_subno;
 	}
 
 #ifdef __va_copy
-	__va_copy (search->format_options, format_options);
+	__va_copy (s->format_options, format_options);
 #else
-	search->format_options = format_options;
+	s->format_options = format_options;
 #endif
 
-#warning todo
-	/*
-	switch (vbi_cache_foreach (search->vbi, NUID0,
-				   search->start_pgno,
-				   search->start_subno,
-				   dir,
-				   (dir > 0) ? search_page_fwd
-				   : search_page_rev, search)) {
-	*/
-	switch (0) {
+	switch (_vbi3_cache_foreach_page (s->cache,
+					  s->network,
+					  s->start_pgno,
+					  s->start_subno,
+					  dir,
+					  (dir > 0) ?
+					  search_page_fwd
+					  : search_page_rev,
+					  /* user_data */ s)) {
 	case 1:
-		*pg = &search->pgp.pg;
-		return VBI_SEARCH_SUCCESS;
+		*pg = &s->pgp.pg;
+		return VBI3_SEARCH_SUCCESS;
 
 	case 0:
-		return VBI_SEARCH_CACHE_EMPTY;
+		return VBI3_SEARCH_CACHE_EMPTY;
 
 	case -1:
-		search->dir = 0;
-		return VBI_SEARCH_NOT_FOUND;
+		s->dir = 0;
+		return VBI3_SEARCH_NOT_FOUND;
 
 	case -2:
-		return VBI_SEARCH_ABORTED;
+		return VBI3_SEARCH_ABORTED;
 
 	default:
 		break;
 	}
 
-	return VBI_SEARCH_ERROR;
+	return VBI3_SEARCH_ERROR;
 }
 
-vbi_search_status
-vbi_search_next			(vbi_search *		search,
-				 vbi_page **		pg,
+vbi3_search_status
+vbi3_search_next		(vbi3_search *		search,
+				 const vbi3_page **	pg,
 				 int			dir,
 				 ...)
 {
-	vbi_search_status s;
+	vbi3_search_status s;
 	va_list format_options;
 
 	va_start (format_options, dir);
-	s = vbi_search_next_va_list (search, pg, dir, format_options);
+	s = vbi3_search_next_va_list (search, pg, dir, format_options);
 	va_end (format_options);
 
 	return s;
 }
 
 /**
- * @param search vbi_search context.
+ * @param search vbi3_search context.
  * 
- * Delete the search context created by vbi_search_new().
+ * Delete the search context created by vbi3_search_new().
  */
 void
-vbi_search_delete		(vbi_search *		search)
+vbi3_search_delete		(vbi3_search *		s)
 {
-	if (!search)
+	if (NULL == s)
 		return;
 
-	if (search->ud)
-		ure_dfa_free(search->ud);
+	if (s->ud)
+		ure_dfa_free (s->ud);
 
-	if (search->ub)
-		ure_buffer_free(search->ub);
+	if (s->ub)
+		ure_buffer_free (s->ub);
 
-	vbi_free(search);
+	_vbi3_page_priv_destroy (&s->pgp);
+
+	if (s->network)
+		cache_network_unref (s->network);
+
+	if (s->cache)
+		vbi3_cache_unref (s->cache);
+
+	CLEAR (*s);
+
+	vbi3_free (s);
 }
 
 static size_t
@@ -524,10 +573,9 @@ ucs2_strlen			(const uint16_t *	s)
 }
 
 /**
- * @param vbi Initialized vbi decoding context.
  * @param pgno 
  * @param subno Page and subpage number of the first (forward) or
- *   last (backward) page to visit. Optional @c VBI_ANY_SUBNO. 
+ *   last (backward) page to visit. Optional @c VBI3_ANY_SUBNO. 
  * @param pattern Unicode (UCS-2) search pattern.
  * @param pattern_size Number of characters (not bytes) in the pattern
  *   buffer.
@@ -536,12 +584,12 @@ ucs2_strlen			(const uint16_t *	s)
  * @param progress A function called for each page scanned, can be
  *   \c NULL. Shall return @c FALSE to abort the search. @a pg is valid
  *   for display (e. g. @a pg->pgno), do <em>not</em> call
- *   vbi_unref_page() or modify this page.
+ *   vbi3_unref_page() or modify this page.
  * @param user_data blah.
  *
- * Allocate a vbi_search context and prepare for searching
+ * Allocate a vbi3_search context and prepare for searching
  * the Teletext page cache. The context must be freed with
- * vbi_search_delete().
+ * vbi3_search_delete().
  * 
  * Regular expression searching supports the standard set
  * of operators and constants, with these extensions:
@@ -594,31 +642,47 @@ ucs2_strlen			(const uint16_t *	s)
  * All this has yet to be addressed.
  *
  * @return
- * A vbi_search context or @c NULL on error.
+ * A vbi3_search context or @c NULL on error.
  */
-vbi_search *
-vbi_search_new_ucs2		(vbi_decoder *		vbi,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
+vbi3_search *
+vbi3_search_ucs2_new		(vbi3_cache *		ca,
+				 const vbi3_network *	nk,
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
 				 const uint16_t *	pattern,
-				 unsigned int		pattern_size,
-				 vbi_bool		casefold,
-				 vbi_bool		regexp,
-				 vbi_search_progress_cb *progress,
+				 unsigned long		pattern_size,
+				 vbi3_bool		casefold,
+				 vbi3_bool		regexp,
+				 vbi3_search_progress_cb *progress,
 				 void *			user_data)
 {
-	vbi_search *s;
+	vbi3_search *s;
 	uint16_t *esc_pattern;
 
-	if (!pattern || 0 == pattern_size)
-		return NULL;
+	assert (NULL != ca);
+	assert (NULL != nk);
+	assert (NULL != pattern);
 
-	if (!(s = vbi_malloc (sizeof (*s))))
+	esc_pattern = NULL;
+
+	if (0 == pattern_size) {
 		return NULL;
+	}
+
+	if (!(s = vbi3_malloc (sizeof (*s)))) {
+		error ("Out of memory (%u bytes)", sizeof (*s));
+		return NULL;
+	}
 
 	CLEAR (*s);
 
-	s->vbi = vbi;
+	s->cache = vbi3_cache_ref (ca);
+
+	if (!(s->network = _vbi3_cache_get_network (ca, nk)))
+		goto failure;
+
+	_vbi3_page_priv_init (&s->pgp);
+
 	s->progress = progress;
 	s->user_data = user_data;
 
@@ -628,9 +692,9 @@ vbi_search_new_ucs2		(vbi_decoder *		vbi,
 		unsigned int j;
 
 		size = pattern_size * 2 * sizeof (*esc_pattern);
-		if (!(esc_pattern = vbi_malloc (size))) {
-			vbi_free (s);
-			return NULL;
+		if (!(esc_pattern = vbi3_malloc (size))) {
+			error ("Out of memory (%u buffer)", size);
+			goto failure;
 		}
 
 		j = 0;
@@ -648,23 +712,16 @@ vbi_search_new_ucs2		(vbi_decoder *		vbi,
 	}
 
 	if (!(s->ub = ure_buffer_create ()))
-		goto abort;
+		goto failure;
 
-	if (!(s->ud = ure_compile (pattern, pattern_size, casefold, s->ub))) {
-abort:
-		vbi_search_delete (s);
+	if (!(s->ud = ure_compile (pattern, pattern_size, casefold, s->ub)))
+		goto failure;
 
-		if (!regexp)
-			vbi_free (esc_pattern);
-
-		return NULL;
-	}
-
-	if (!regexp)
-		vbi_free (esc_pattern);
+	vbi3_free (esc_pattern);
+	esc_pattern = NULL;
 
 	s->stop_pgno[0] = pgno;
-	s->stop_subno[0] = (subno == VBI_ANY_SUBNO) ? 0 : subno;
+	s->stop_subno[0] = (subno == VBI3_ANY_SUBNO) ? 0 : subno;
 
 	if (subno <= 0) {
 		s->stop_pgno[1] = (pgno <= 0x100) ? 0x8FF : pgno - 1;
@@ -679,84 +736,102 @@ abort:
 	}
 
 	return s;
+
+ failure:
+	vbi3_free (esc_pattern);
+
+	vbi3_search_delete (s);
+
+	return NULL;
 }
 
-vbi_search *
-vbi_search_new_utf8		(vbi_decoder *		vbi,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
+vbi3_search *
+vbi3_search_utf8_new		(vbi3_cache *		ca,
+				 const vbi3_network *	nk,
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
 				 const char *		pattern,
-				 vbi_bool		casefold,
-				 vbi_bool		regexp,
-				 vbi_search_progress_cb *progress,
+				 vbi3_bool		casefold,
+				 vbi3_bool		regexp,
+				 vbi3_search_progress_cb *progress,
 				 void *			user_data)
 {
 	uint16_t *ucs2_pattern;
-	vbi_search *s;
+	vbi3_search *s;
 
-	if (!pattern)
-		return NULL;
+	assert (NULL != pattern);
 
-	ucs2_pattern = _vbi_strdup_ucs2_utf8 (pattern);
-
+	ucs2_pattern = _vbi3_strdup_ucs2_utf8 (pattern);
 	if (!ucs2_pattern)
 		return NULL;
 
-	s = vbi_search_new_ucs2 (vbi, pgno, subno,
-				 ucs2_pattern, ucs2_strlen (ucs2_pattern),
-				 casefold, regexp, progress, user_data);
+	s = vbi3_search_ucs2_new (ca,
+				  nk, pgno, subno,
+				  ucs2_pattern, ucs2_strlen (ucs2_pattern),
+				  casefold, regexp,
+				  progress, user_data);
 
-	vbi_free (ucs2_pattern);
+	vbi3_free (ucs2_pattern);
 
 	return s;
 }
 
 #else /* !HAVE_GLIBC21 && !HAVE_LIBUNICODE */
 
-vbi_search_status
-vbi_search_next_va_list		(vbi_search *		search,
-				 vbi_page **		pg,
+vbi3_search_status
+vbi3_search_next_va_list	(vbi3_search *		s,
+				 const vbi3_page **	pg,
 				 int			dir,
 				 va_list		format_options)
 {
-	return VBI_SEARCH_ERROR;
+	assert (NULL != s);
+	assert (NULL != pg);
+
+	return VBI3_SEARCH_ERROR;
 }
 
-vbi_search_status
-vbi_search_next			(vbi_search *		search,
-				 vbi_page **		pg,
+vbi3_search_status
+vbi3_search_next		(vbi3_search *		s,
+				 const vbi3_page **	pg,
 				 int			dir,
 				 ...)
 {
-	return VBI_SEARCH_ERROR;
+	assert (NULL != s);
+	assert (NULL != pg);
+
+	return VBI3_SEARCH_ERROR;
 }
 
 void
-vbi_search_delete		(vbi_search *		search)
+vbi3_search_delete		(vbi3_search *		s)
 {
+	assert (NULL == s);
 }
 
-vbi_search *
-vbi_search_new_ucs2		(vbi_decoder *		vbi,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
+vbi3_search *
+vbi3_search_ucs2_new		(vbi3_cache *		ca,
+				 const vbi3_network *	nk,
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
 				 const uint16_t *	pattern,
-				 vbi_bool		casefold,
-				 vbi_bool		regexp,
-				 vbi_search_progress_cb *progress,
+				 unsigned long		pattern_size,
+				 vbi3_bool		casefold,
+				 vbi3_bool		regexp,
+				 vbi3_search_progress_cb *progress,
 				 void *			user_data)
 {
 	return NULL;
 }
 
-vbi_search *
-vbi_search_new_utf8		(vbi_decoder *		vbi,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno,
+vbi3_search *
+vbi3_search_utf8_new		(vbi3_cache *		ca,
+				 const vbi3_network *	nk,
+				 vbi3_pgno		pgno,
+				 vbi3_subno		subno,
 				 const char *		pattern,
-				 vbi_bool		casefold,
-				 vbi_bool		regexp,
-				 vbi_search_progress_cb *progress,
+				 vbi3_bool		casefold,
+				 vbi3_bool		regexp,
+				 vbi3_search_progress_cb *progress,
 				 void *			user_data)
 {
 	return NULL;
