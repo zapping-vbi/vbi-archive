@@ -1,5 +1,5 @@
 /*
- *  libzvbi - Video Program System
+ *  libzvbi - Video Programming System
  *
  *  Copyright (C) 2000-2004 Michael H. Schimek
  *
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vps.c,v 1.1.2.6 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: vps.c,v 1.1.2.7 2006-05-07 20:51:36 mschimek Exp $ */
 
 #include "../config.h"
 
@@ -45,7 +45,8 @@
  * for the ARD network / = 0 for the ZDF network."
  *
  * @returns
- * Always @c TRUE, no error checking possible.
+ * Always @c TRUE, no error checking possible. It may be prudent to
+ * wait until two identical packets have been received.
  */
 vbi3_bool
 vbi3_decode_vps_cni		(unsigned int *		cni,
@@ -69,6 +70,8 @@ vbi3_decode_vps_cni		(unsigned int *		cni,
 
 	return TRUE;
 }
+
+#if 3 == VBI_VERSION_MINOR
 
 /**
  * @param pid PDC data is stored here.
@@ -120,6 +123,8 @@ vbi3_decode_vps_pdc		(vbi3_program_id *	pid,
 	return TRUE;
 }
 
+#endif /* 3 == VBI_VERSION_MINOR */
+
 /**
  * @param buffer VPS packet as defined for @c VBI3_SLICED_VPS,
  *   i.e. 13 bytes without clock run-in and start code.
@@ -147,6 +152,8 @@ vbi3_encode_vps_cni		(uint8_t		buffer[13],
 
 	return TRUE;
 }
+
+#if 3 == VBI_VERSION_MINOR
 
 /**
  * @param buffer VPS packet as defined for @c VBI3_SLICED_VPS,
@@ -225,3 +232,5 @@ vbi3_encode_vps_pdc		(uint8_t		buffer[13],
 
 	return TRUE;
 }
+
+#endif /* 3 == VBI_VERSION_MINOR */

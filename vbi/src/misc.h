@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.16 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.17 2006-05-07 20:51:36 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -271,20 +271,25 @@ typedef enum {
 	VBI3_LOG_NOTICE		= 1 << 5,
 	VBI3_LOG_INFO		= 1 << 6,
 	VBI3_LOG_DEBUG		= 1 << 7,
-} vbi3_log_level;
+} vbi3_log_mask;
 
 typedef void
-vbi3_log_fn			(vbi3_log_level		level,
+vbi3_log_fn			(vbi3_log_mask		level,
 				 const char *		message,
 				 void *			user_data);
+
+extern vbi3_log_fn *		vbi3_global_log_fn;
+extern void *			vbi3_global_log_user_data;
+extern vbi3_log_mask		vbi3_global_log_mask;
+
 extern void
-vbi3_log_on_stderr		(vbi3_log_level		level,
+vbi3_log_on_stderr		(vbi3_log_mask		level,
 				 const char *		message,
 				 void *			user_data);
 extern void
 vbi3_log_printf			(vbi3_log_fn		log_fn,
 				 void *			user_data,
-				 vbi3_log_level		level,
+				 vbi3_log_mask		mask,
 				 const char *		templ,
 				 ...);
 

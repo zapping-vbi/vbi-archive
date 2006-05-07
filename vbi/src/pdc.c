@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.2.12 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: pdc.c,v 1.1.2.13 2006-05-07 20:51:36 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -123,21 +123,27 @@ vbi3_bool
 _vbi3_str_to_pil		(vbi3_pil *		pil,
 				 const char **		inout_s)
 {
-	static const _vbi3_key_value_pair symbols [] = {
-		{ "timer",	VBI3_PIL_TIMER_CONTROL },
-		{ "inhibit",	VBI3_PIL_INHIBIT_TERMINATE },
-		{ "interrupt",	VBI3_PIL_INTERRUPT },
-		{ "continue",	VBI3_PIL_CONTINUE },
-		{ NULL, 0 }
-	};
 	const char *s;
 	unsigned int value[4];
 	unsigned int i;
 
 	assert (NULL != pil);
 
-	if (_vbi3_keyword_lookup (pil, inout_s, symbols))
-		return TRUE;
+	{
+		static const _vbi3_key_value_pair symbols [] = {
+			{ "timer",	VBI3_PIL_TIMER_CONTROL },
+			{ "inhibit",	VBI3_PIL_INHIBIT_TERMINATE },
+			{ "interrupt",	VBI3_PIL_INTERRUPT },
+			{ "continue",	VBI3_PIL_CONTINUE },
+			{ NULL, 0 }
+		};
+		int n;
+
+		if (_vbi3_keyword_lookup (&n, inout_s, symbols)) {
+			*pil = n;
+			return TRUE;
+		}
+	}
 
 	s = *inout_s;
 

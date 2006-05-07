@@ -16,6 +16,7 @@ noinst_PROGRAMS = \
 	test-bcd \
 	test-hamm \
 	test-raw_decoder \
+	test-vps \
 	ttxfilter \
 	unicode
 

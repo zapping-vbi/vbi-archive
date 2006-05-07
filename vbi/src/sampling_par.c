@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling_par.c,v 1.1.2.1 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: sampling_par.c,v 1.1.2.2 2006-05-07 20:51:36 mschimek Exp $ */
 
 #include <errno.h>
 #include <assert.h>
@@ -62,6 +62,13 @@ _vbi3_sampling_par_valid	(const vbi3_sampling_par *sp)
 {
 	bi_videostd_set videostd_set;
 	unsigned int min_bpl;
+
+	assert (NULL != sp);
+
+	if (NULL == log_fn) {
+		log_fn = vbi3_global_log_fn;
+		log_user_data = vbi3_global_log_user_data;
+	}
 
 	switch (sp->sampling_format) {
 	case VBI3_PIXFMT_YUV420:
@@ -186,6 +193,14 @@ _vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
 	unsigned int field;
 	unsigned int samples_per_line;
 	vbi3_videostd_set videostd_set;
+
+	assert (NULL != sp);
+	assert (NULL != par);
+
+	if (NULL == log_fn) {
+		log_fn = vbi3_global_log_fn;
+		log_user_data = vbi3_global_log_user_data;
+	}
 
 #if 2 == VBI3_VERSION_MINOR
 	videostd_set = vbi3_videostd_set_from_scanning (sp->scanning);
@@ -374,6 +389,11 @@ vbi3_sampling_par_check_services	(const vbi3_sampling_par *sp,
 
 	assert (NULL != sp);
 
+	if (NULL == log_fn) {
+		log_fn = vbi3_global_log_fn;
+		log_user_data = vbi3_global_log_user_data;
+	}
+
 	rservices = 0;
 
 	for (par = _vbi3_service_table; par->id; ++par) {
@@ -425,6 +445,11 @@ vbi3_sampling_par_from_services	(vbi3_sampling_par *	sp,
 	unsigned int rate;
 
 	assert (NULL != sp);
+
+	if (NULL == log_fn) {
+		log_fn = vbi3_global_log_fn;
+		log_user_data = vbi3_global_log_user_data;
+	}
 
 	if (0 != videostd_set) {
 		if (0 == (VBI3_VIDEOSTD_SET_ALL & videostd_set)

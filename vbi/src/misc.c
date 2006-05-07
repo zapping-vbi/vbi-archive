@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.c,v 1.4.2.2 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: misc.c,v 1.4.2.3 2006-05-07 20:51:36 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,6 +25,10 @@
 #include <ctype.h>
 #include <errno.h>
 #include "misc.h"
+
+vbi3_log_fn *		vbi3_global_log_fn;
+void *			vbi3_global_log_user_data;
+vbi3_log_mask		vbi3_global_log_mask;
 
 vbi3_bool
 _vbi3_keyword_lookup		(int *			value,

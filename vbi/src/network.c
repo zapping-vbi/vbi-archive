@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.1.2.11 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: network.c,v 1.1.2.12 2006-05-07 20:51:36 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -31,6 +31,15 @@
 #include "conv.h"		/* _vbi3_strdup_locale_utf8() */
 #include "network.h"
 #include "network-table.h"
+
+#define warning(templ, args...)						\
+do {									\
+	if (vbi3_global_log_mask & VBI3_LOG_WARNING)			\
+		vbi3_log_printf (vbi3_global_log_fn,			\
+				 vbi3_global_log_user_data,		\
+				 VBI3_LOG_WARNING, __FUNCTION__,	\
+				 templ , ##args);			\
+} while (0)
 
 /**
  * @param type CNI type.
@@ -124,14 +133,19 @@ static unsigned int
 cni_8302_to_pdc_a		(unsigned int		in_cni)
 {
 	unsigned int out_cni;
-	unsigned int n;
 
 	out_cni = (in_cni & 0xFF00) << 4;
 
 	switch (out_cni) {
 	case 0x15000: /* Italy */
-		out_cni |= vbi3_bin2bcd ((int)(in_cni & 0xFF) + 100);
-		break;
+		switch (in_cni & 0xFF) {
+		case 0x00 ... 0x3F:
+			out_cni |= vbi3_bin2bcd ((int)(in_cni & 0xFF) + 100);
+			break;
+
+		default:
+			return 0;
+		}
 
 	case 0x1A000: /* Austria */
 	case 0x1D000: /* Germany */
@@ -269,8 +283,7 @@ cni_lookup			(vbi3_cni_type		type,
 		break;
 
 	default:
-		fprintf (stderr, "libzvbi:%s: "Unknown CNI type %u.",
-			 __FUNCTION__, type);
+		warning ("Unknown CNI type %u.", type);
 		break;
 	}
 
@@ -297,7 +310,7 @@ vbi3_convert_cni			(vbi3_cni_type		to_type,
 	if (to_type == from_type)
 		return cni;
 
-#warning should we really guess?		
+/* XXX should we really guess? */
 	switch (to_type) {
 	case VBI3_CNI_TYPE_VPS:
 		p = cni_lookup (from_type, cni);
@@ -366,7 +379,7 @@ vbi3_convert_cni			(vbi3_cni_type		to_type,
 		return p->cni_pdc_b;
 
 	default:
-		debug ("Unknown CNI to_type %u", to_type);
+		warning ("Unknown CNI type %u.", to_type);
 		break;
 	}
 
@@ -583,7 +596,8 @@ vbi3_network_set_cni		(vbi3_network *		nk,
 		break;
 
 	default:
-		debug ("Unknown CNI type %u", type);
+		warning ("Unknown CNI type %u.", type);
+		break;
 	}
 
 	if (!(p = cni_lookup (type, cni)))

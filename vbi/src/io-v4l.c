@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.13 2006-05-07 06:04:58 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.14 2006-05-07 20:51:36 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -427,12 +427,13 @@ set_parameters(vbi3_capture_v4l *v, struct vbi_format *vfmt, int *max_rate,
 	printv("Attempt to set vbi capture parameters\n");
 
 	*services = vbi3_sampling_par_from_services
-	  (&v->dec.sampling, max_rate, v->dec.sampling.videostd_set, *services);
+	  (&v->dec.sampling, max_rate, v->dec.sampling.videostd_set,
+	   *services, /* log_fn */ NULL, /* log_user_data */ NULL);
 
 	if (*services == 0) {
 		_vbi3_asprintf(errorstr, _("Sorry, %s (%s) cannot capture any of the "
 					 "requested data services."),
-			     dev_name, driver_name, trace);
+			     dev_name, driver_name);
 		return FALSE;
 	}
 

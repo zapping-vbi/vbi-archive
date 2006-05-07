@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling_par.h,v 1.1.2.1 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: sampling_par.h,v 1.1.2.2 2006-05-07 20:51:36 mschimek Exp $ */
 
 #ifndef __ZVBI3_SAMPLING_PAR_H__
 #define __ZVBI3_SAMPLING_PAR_H__
@@ -195,11 +195,15 @@ extern vbi3_service_set
 vbi3_sampling_par_from_services	(vbi3_sampling_par *	sp,
 				 unsigned int *		max_rate,
 				 vbi3_videostd_set	videostd_set,
-				 vbi3_service_set	services);
+				 vbi3_service_set	services,
+				 vbi3_log_fn *		log_fn,
+				 void *			log_user_data);
 extern vbi3_service_set
 vbi3_sampling_par_check_services	(const vbi3_sampling_par *sp,
 				 vbi3_service_set	services,
-				 unsigned int		strict)
+					 unsigned int		strict,
+				 vbi3_log_fn *		log_fn,
+				 void *			log_user_data)
   __attribute__ ((_vbi3_pure));
 /** @} */
 
@@ -208,10 +212,12 @@ vbi3_sampling_par_check_services	(const vbi3_sampling_par *sp,
 extern vbi3_bool
 _vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
 				 const vbi3_service_par *par,
-				 unsigned int		strict)
+					 unsigned int		strict,
+				 vbi3_log_fn *		log_fn,
+				 void *			log_user_data)
   __attribute__ ((_vbi3_pure));
 extern vbi3_bool
-_vbi3_sampling_par_verify	(const vbi3_sampling_par *sp)
+_vbi3_sampling_par_valid	(const vbi3_sampling_par *sp)
   __attribute__ ((_vbi3_pure));
 
 #endif /* !ZAPPING8 */

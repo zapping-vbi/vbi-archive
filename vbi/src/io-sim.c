@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-sim.c,v 1.1.2.8 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: io-sim.c,v 1.1.2.9 2006-05-07 20:51:36 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdio.h>
@@ -25,6 +25,7 @@
 #include <math.h>		/* sin() */
 #include <errno.h>
 #include <ctype.h>		/* isspace() */
+#include <limits.h>		/* INT_MAX */
 
 #include "misc.h"
 #include "sliced.h"
@@ -620,8 +621,10 @@ _vbi3_test_image_video		(uint8_t *		raw,
 	scan_lines = sp->count[0] + sp->count[1];
 
 	if (scan_lines * sp->bytes_per_line > raw_size) {
+/*
 		debug ("scan_lines %u * bytes_per_line %lu > raw_size %lu\n",
 		       scan_lines, sp->bytes_per_line, raw_size);
+*/
 		return FALSE;
 	}
 
@@ -2403,7 +2406,8 @@ _vbi3_capture_sim_new		(int			scanning,
 
 	*services = vbi3_sampling_par_from_services
 		(&sim->sp, /* return max_rate */ NULL,
-		 videostd_set, *services);
+		 videostd_set, *services,
+		 /* log_fn */ NULL, /* log_user_data */ NULL);
 	if (0 == *services)
 		goto failure;
 

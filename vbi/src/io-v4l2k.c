@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2k.c,v 1.2.2.14 2006-05-07 06:04:58 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l2k.c,v 1.2.2.15 2006-05-07 20:51:36 mschimek Exp $";
 
 /*
  *  Around Oct-Nov 2002 the V4L2 API was revised for inclusion into
@@ -482,7 +482,8 @@ vbi3_capture_v4l2k_new		(const char *		dev_name,
 
 		*services = vbi3_sampling_par_from_services
 		  (&v->dec.sampling, &max_rate,
-		   v->dec.sampling.videostd_set, *services);
+		   v->dec.sampling.videostd_set, *services,
+		   /* log_fn */ NULL, /* log_user_data */ NULL);
 
 		if (*services == 0) {
 			_vbi3_asprintf(errorstr, _("Sorry, %s (%s) cannot capture any of the "

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.c,v 1.1.2.9 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: bit_slicer.c,v 1.1.2.10 2006-05-07 20:51:35 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -30,6 +30,7 @@
 #include "bit_slicer.h"
 #include "version.h"
 
+/* Enable logging by default (site_def.h). */
 #ifndef BIT_SLICER_LOG
 #  define BIT_SLICER_LOG 0
 #endif
@@ -42,9 +43,9 @@
 #  define vbi3_pixfmt_bytes_per_pixel VBI_PIXFMT_BPP
 #endif
 
-#define warn(templ, args...)						\
+#define warning(templ, args...)						\
 do {									\
-	if (bs->log_level & VBI3_LOG_WARNING)				\
+	if (bs->log_mask & VBI3_LOG_WARNING)				\
 		vbi3_log_printf (bs->log_fn, bs->log_user_data,		\
 				 VBI3_LOG_WARNING, __FUNCTION__,	\
 				 templ , ##args);			\
@@ -301,6 +302,10 @@ null_function			(vbi3_bit_slicer *	bs,
 				 uint8_t *		buffer,
 				 const uint8_t *	raw)
 {
+	bs = bs; /* unused */
+	buffer = buffer;
+	raw = raw;
+
 	return FALSE;
 }
 
@@ -815,20 +820,18 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 
 void
 vbi3_bit_slicer_set_log_fn	(vbi3_bit_slicer *	bs,
-				 vbi3_log_level		level,
+				 vbi3_log_mask		mask,
 				 vbi3_log_fn *		log_fn,
 				 void *			user_data)
 {
-	unsigned int i;
-
 	assert (NULL != bs);
 
 	if (NULL == log_fn)
-		level = 0;
+		mask = 0;
 
 	bs->log_fn = log_fn;
 	bs->log_user_data = user_data;
-	bs->log_level = level;
+	bs->log_mask = mask;
 }
 
 /**
@@ -855,9 +858,14 @@ _vbi3_bit_slicer_init		(vbi3_bit_slicer *	bs)
 
 	bs->func = null_function;
 
-	if (BIT_SLICER_LOG) {
+	if (0 != vbi3_global_log_mask) {
 		vbi3_bit_slicer_set_log_fn (bs,
-					    /* level: all */ -1,
+					    vbi3_global_log_mask,
+					    vbi3_global_log_fn,
+					    vbi3_global_log_user_data);
+	} else if (BIT_SLICER_LOG) {
+		vbi3_bit_slicer_set_log_fn (bs,
+					    /* mask: all */ -1,
 					    vbi3_log_on_stderr,
 					    /* user_data */ NULL);
 	}
@@ -898,7 +906,7 @@ vbi3_bit_slicer_new		(void)
 		return NULL;
 	}
 
-	vbi3_bit_slicer_init (bs);
+	_vbi3_bit_slicer_init (bs);
 
 	return bs;
 }

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.c,v 1.1.2.6 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: raw_decoder.c,v 1.1.2.7 2006-05-07 20:51:36 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -48,7 +48,7 @@
 
 #define log(level, templ, args...)					\
 do {									\
-	if (level & rd->log_level)					\
+	if (rd->log_mask & level)					\
 		vbi3_log_printf (rd->log_fn, rd->log_user_data,		\
 				 level, __FUNCTION__,			\
 				 templ , ##args);			\
@@ -1002,33 +1002,36 @@ vbi3_raw_decoder_add_services	(vbi3_raw_decoder *	rd,
 			cri_end = ~0;
 		}
 
-#if 2 == VBI3_VERSION_MINOR
+#if 2 == VBI_VERSION_MINOR
 		samples_per_line = sp->bytes_per_line
 			/ VBI3_PIXFMT_BPP (sp->sampling_format);
 #else
-		samples_per_line = sp->samples_per_line,
+		samples_per_line = sp->samples_per_line;
 #endif
-		if (!_vbi3_bit_slicer_init (&job->slicer,
-					   sp->sampling_format,
-					   sp->sampling_rate,
-					   sample_offset,
-					   samples_per_line,
-					   par->cri_frc >> par->frc_bits,
-					   par->cri_frc_mask >> par->frc_bits,
-					   par->cri_bits,
-					   par->cri_rate,
-					   cri_end,
-					   (par->cri_frc
-					    & ((1U << par->frc_bits) - 1)),
-					   par->frc_bits,
-					   par->payload,
-					   par->bit_rate,
-					   par->modulation)) {
+		if (!_vbi3_bit_slicer_init (&job->slicer))
+			assert (!"bit_slicer_init");
+
+		if (!vbi3_bit_slicer_set_params
+		    (&job->slicer,
+		     sp->sampling_format,
+		     sp->sampling_rate,
+		     sample_offset,
+		     samples_per_line,
+		     par->cri_frc >> par->frc_bits,
+		     par->cri_frc_mask >> par->frc_bits,
+		     par->cri_bits,
+		     par->cri_rate,
+		     cri_end,
+		     (par->cri_frc & ((1U << par->frc_bits) - 1)),
+		     par->frc_bits,
+		     par->payload,
+		     par->bit_rate,
+		     par->modulation)) {
 			assert (!"bit_slicer_init");
 		}
 
 		vbi3_bit_slicer_set_log_fn (&job->slicer,
-					    rd->log_level,
+					    rd->log_mask,
 					    rd->log_fn,
 					    rd->log_user_data);
 
@@ -1114,7 +1117,7 @@ vbi3_raw_decoder_collect_points	(vbi3_raw_decoder *	rd,
 		break;
 	}
 
-	if (n_sp_lines == n_lines)
+	if (rd->n_sp_lines == n_lines)
 		return r;
 
 	free (rd->sp_lines);
@@ -1122,7 +1125,7 @@ vbi3_raw_decoder_collect_points	(vbi3_raw_decoder *	rd,
 	rd->n_sp_lines = 0;
 
 	if (n_lines > 0) {
-		rd->sp_lines = calloc (n_lines, sizeof (*lines));
+		rd->sp_lines = calloc (n_lines, sizeof (*rd->sp_lines));
 		if (NULL == rd->sp_lines)
 			return FALSE;
 
@@ -1196,7 +1199,7 @@ vbi3_raw_decoder_get_sampling_par
 
 void
 vbi3_raw_decoder_set_log_fn	(vbi3_raw_decoder *	rd,
-				 vbi3_log_level		level,
+				 vbi3_log_mask		mask,
 				 vbi3_log_fn *		log_fn,
 				 void *			user_data)
 {
@@ -1205,15 +1208,15 @@ vbi3_raw_decoder_set_log_fn	(vbi3_raw_decoder *	rd,
 	assert (NULL != rd);
 
 	if (NULL == log_fn)
-		level = 0;
+		mask = 0;
 
 	rd->log_fn = log_fn;
 	rd->log_user_data = user_data;
-	rd->log_level = level;
+	rd->log_mask = mask;
 
 	for (i = 0; i < _VBI3_RAW_DECODER_MAX_JOBS; ++i) {
 		vbi3_bit_slicer_set_log_fn (&rd->jobs[i].slicer,
-					    level, log_fn, user_data);
+					    mask, log_fn, user_data);
 	}
 }
 
@@ -1246,7 +1249,12 @@ _vbi3_raw_decoder_init		(vbi3_raw_decoder *	rd,
 
 	vbi3_raw_decoder_reset (rd);
 
-	if (RAW_DECODER_LOG) {
+	if (0 != vbi3_global_log_mask) {
+		vbi3_raw_decoder_set_log_fn (rd,
+					     vbi3_global_log_mask,
+					     vbi3_global_log_fn,
+					     vbi3_global_log_user_data);
+	} else if (RAW_DECODER_LOG) {
 		vbi3_raw_decoder_set_log_fn (rd,
 					     /* level: all */ -1,
 					     vbi3_log_on_stderr,

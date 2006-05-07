@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: macros.h,v 1.1.2.4 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: macros.h,v 1.1.2.5 2006-05-07 20:51:36 mschimek Exp $ */
 
 #ifndef __ZVBI3_MACROS_H__
 #define __ZVBI3_MACROS_H__
@@ -84,9 +84,7 @@ typedef int vbi3_bool;
 #  endif
 #endif
 
-/** XXX Document me - for variadic funcs.
-  (this is a pointer not int to take advantage of
-  __attribute__((sentinel))). */
+/* XXX Document me - for variadic funcs. */
 #define VBI3_END ((void *) 0)
 
 typedef void

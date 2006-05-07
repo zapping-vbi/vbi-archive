@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Bit slicer
  *
- *  Copyright (C) 2000-2004 Michael H. Schimek
+ *  Copyright (C) 2000-2006 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.h,v 1.1.2.6 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: bit_slicer.h,v 1.1.2.7 2006-05-07 20:51:35 mschimek Exp $ */
 
 #ifndef __ZVBI3_BIT_SLICER_H__
 #define __ZVBI3_BIT_SLICER_H__
@@ -102,17 +102,19 @@ vbi3_bit_slicer_slice_with_points
 				 vbi3_bit_slicer_point *points,
 				 unsigned int *		n_points,
 				 unsigned int		max_points,
-				 const uint8_t *	raw);
+				 const uint8_t *	raw)
+  __attribute__ ((_vbi3_nonnull (1, 2, 4, 5, 7)));
 extern vbi3_bool
 vbi3_bit_slicer_slice		(vbi3_bit_slicer *	bs,
 				 uint8_t *		buffer,
 				 unsigned int		buffer_size,
-				 const uint8_t *	raw);
-extern void
-vbi3_bit_slicer_delete		(vbi3_bit_slicer *	bs);
-extern vbi3_bit_slicer *
-vbi3_bit_slicer_new		(vbi3_pixfmt		sample_format,
+				 const uint8_t *	raw)
+  __attribute__ ((_vbi3_nonnull (1, 2, 4)));
+extern vbi3_bool
+vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
+				 vbi3_pixfmt		sample_format,
 				 unsigned int		sampling_rate,
+				 unsigned int		sample_offset,
 				 unsigned int		samples_per_line,
 				 unsigned int		cri,
 				 unsigned int		cri_mask,
@@ -124,6 +126,17 @@ vbi3_bit_slicer_new		(vbi3_pixfmt		sample_format,
 				 unsigned int		payload_bits,
 				 unsigned int		payload_rate,
 				 vbi3_modulation	modulation)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern void
+vbi3_bit_slicer_set_log_fn	(vbi3_bit_slicer *	bs,
+				 vbi3_log_mask		mask,
+				 vbi3_log_fn *		log_fn,
+				 void *			user_data)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern void
+vbi3_bit_slicer_delete		(vbi3_bit_slicer *	bs);
+extern vbi3_bit_slicer *
+vbi3_bit_slicer_new		(void)
   __attribute__ ((_vbi3_alloc));
 
 /* Private */
@@ -136,6 +149,7 @@ _vbi3_bit_slicer_fn		(vbi3_bit_slicer *	bs,
 /** @internal */
 struct _vbi3_bit_slicer {
 	_vbi3_bit_slicer_fn *	func;
+
 	vbi3_pixfmt		sample_format;
 	unsigned int		cri;
 	unsigned int		cri_mask;
@@ -153,28 +167,19 @@ struct _vbi3_bit_slicer {
 	unsigned int		endian;
 	unsigned int		skip;
 	unsigned int		green_mask;
+
 	vbi3_log_fn *		log_fn;
 	void *			log_user_data;
+	vbi3_log_mask		log_mask;
 };
 
 extern void
-_vbi3_bit_slicer_destroy		(vbi3_bit_slicer *	bs);
+_vbi3_bit_slicer_destroy	(vbi3_bit_slicer *	bs)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
-_vbi3_bit_slicer_init		(vbi3_bit_slicer *	bs,
-				 vbi3_pixfmt		sample_format,
-				 unsigned int		sampling_rate,
-				 unsigned int		sample_offset,
-				 unsigned int		samples_per_line,
-				 unsigned int		cri,
-				 unsigned int		cri_mask,
-				 unsigned int		cri_bits,
-				 unsigned int		cri_rate,
-				 unsigned int		cri_end,
-				 unsigned int		frc,
-				 unsigned int		frc_bits,
-				 unsigned int		payload_bits,
-				 unsigned int		payload_rate,
-				 vbi3_modulation		modulation);
+_vbi3_bit_slicer_init		(vbi3_bit_slicer *	bs)
+  __attribute__ ((_vbi3_nonnull (1)));
+
 /** @} */
 
 VBI3_END_DECLS
