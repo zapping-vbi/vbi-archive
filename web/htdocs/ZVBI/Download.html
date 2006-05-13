@@ -34,15 +34,15 @@ and the CVS commands go to the <a href="http://www.cvshome.org/">CVS web site</a
 </p><p>
 <strong>Step 1</strong>: Set the <code>$CVSROOT</code> environment variable. For sh/ksh/bash:
 </p><p>
-</p><pre class="userinput">export CVSROOT=:pserver:anonymous@cvs.sf.net:/cvsroot/zapping</pre>
+</p><pre class="userinput">export CVSROOT=:pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping</pre>
 <p>
 For csh/tcsh:
 </p><p>
-</p><pre class="userinput">setenv CVSROOT :pserver:anonymous@cvs.sf.net:/cvsroot/zapping</pre>
+</p><pre class="userinput">setenv CVSROOT :pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping</pre>
 <p>
 If you don't want to set <code>$CVSROOT</code> you can use the cvs -d option:
 </p><p>
-</p><pre class="userinput">cvs -d :pserver:anonymous@cvs.sf.net:/cvsroot/zapping login etc</pre>
+</p><pre class="userinput">cvs -d :pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping login etc</pre>
 <p>
 <strong>Step 2</strong>: To log in to the Zapping CVS server type the following. When asked for a password just press enter.
 </p><p>
@@ -55,7 +55,7 @@ If you don't want to set <code>$CVSROOT</code> you can use the cvs -d option:
 You can request another version or development branch using the <code>co -r TAG MODULE</code> notation. This command for example requests libzvbi version 0.2.8:
 </p><p>
 </p><pre class="userinput">cvs co -r zvbi-0-2-8 vbi</pre>
-<p>To find out which tags are available you can use the <code>cvs status</code> command or <a href="http://cvs.sourceforge.net/viewcvs.py/zapping/">browse the CVS repository</a>. Select a module and open the tag menu at the bottom of the page.
+<p>To find out which tags are available you can use the <code>cvs status</code> command or <a href="http://zapping.cvs.sourceforge.net/zapping/">browse the CVS repository</a>. Select a module and open the tag menu at the bottom of the page.
 </p><p>From now on you can type</p><p>
 </p><pre class="userinput">cvs update -d -P</pre>
 <p>in the respective source directory to update your copy of the CVS repository. As before, <code>-r</code> will choose a particular version or branch and <code>-A</code> the latest version.</p><p>

@@ -90,18 +90,18 @@ apt-get install zapping
     <p><strong>Step 1</strong>: Set the <code>$CVSROOT</code>
     environment variable. For sh/ksh/bash:</p>
 <pre class="userinput">
-export CVSROOT=:pserver:anonymous@cvs.sf.net:/cvsroot/zapping
+export CVSROOT=:pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping
 </pre>
 
     <p>For csh/tcsh:</p>
 <pre class="userinput">
-setenv CVSROOT :pserver:anonymous@cvs.sf.net:/cvsroot/zapping
+setenv CVSROOT :pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping
 </pre>
 
     <p>If you don't want to set <code>$CVSROOT</code> you can use
     the cvs -d option:</p>
 <pre class="userinput">
-cvs -d :pserver:anonymous@cvs.sf.net:/cvsroot/zapping login etc
+cvs -d :pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping login etc
 </pre>
 
     <p><strong>Step 2</strong>: To log in to the Zapping CVS server
@@ -128,7 +128,7 @@ cvs co -r zapping-0-7 zapping
     containing the zvbi library and <code>rte</code> containing the
     rte library and mp1e. To find out which tags are available you
     can use the <code>cvs status</code> command or <a href=
-    "http://cvs.sourceforge.net/viewcvs.py/zapping/">browse the CVS repository</a>. Select a module and open
+    "http://zapping.cvs.sourceforge.net/zapping/">browse the CVS repository</a>. Select a module and open
     the tag menu at the bottom of the page.</p>
 
     <p>From now on you can type</p>
