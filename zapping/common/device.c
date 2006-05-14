@@ -18,19 +18,30 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.c,v 1.10 2005-01-08 14:54:19 mschimek Exp $ */
+/* $Id: device.c,v 1.11 2006-05-14 13:48:02 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 #include <limits.h>		/* LONG_MAX */
 #include <assert.h>
+#include <inttypes.h>
 
 #include <fcntl.h>		/* open() */
 #include <unistd.h>		/* close(), mmap(), munmap() */
 #include <sys/ioctl.h>		/* ioctl() */
 #include <sys/mman.h>		/* mmap(), munmap() */
 #include <errno.h>
+
+#ifndef PRId64
+#  define PRId64 "lld"
+#endif
+#ifndef PRIu64
+#  define PRIu64 "llu"
+#endif
+#ifndef PRIx64
+#  define PRIx64 "llx"
+#endif
 
 #include "device.h"
 
@@ -317,4 +328,42 @@ device_munmap			(FILE *			fp,
     }
 
   return r;
+}
+
+ssize_t
+device_read			(FILE *			fp,
+				 int			fd,
+				 void *			buf,
+				 size_t			count)
+{
+	ssize_t actual;
+
+	actual = read (fd, buf, count);
+
+	if (fp) {
+		int saved_errno;
+
+		saved_errno = errno;
+
+		if (-1 == actual) {
+			fprintf (fp, "%" PRId64 " = 0x%" PRIx64
+				 " = read (fd=%d buf=%p count=%" PRIu64
+				 "=0x%" PRIx64 "), errno=%d, %s\n",
+				 (int64_t) actual, (int64_t) actual,
+				 fd, buf,
+				 (uint64_t) count, (uint64_t) count,
+				 saved_errno, strerror (saved_errno));
+		} else {
+			fprintf (fp, "%" PRId64 " = 0x%" PRIx64
+				 " = read (fd=%d buf=%p count=%" PRIu64
+				 "=0x%" PRIx64 ")\n",
+				 (int64_t) actual, (int64_t) actual,
+				 fd, buf,
+				 (uint64_t) count, (uint64_t) count);
+		}
+
+		errno = saved_errno;
+	}
+
+	return actual;
 }
