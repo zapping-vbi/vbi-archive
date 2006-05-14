@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.h,v 1.1.2.5 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: xds_demux.h,v 1.1.2.6 2006-05-14 14:14:12 mschimek Exp $ */
 
 #ifndef __ZVBI3_XDS_DEMUX_H__
 #define __ZVBI3_XDS_DEMUX_H__
@@ -40,16 +40,36 @@ VBI3_BEGIN_DECLS
  * to one of seven classes.
  */
 typedef enum {
+	/** Describes the program currently transmitted. */
 	VBI3_XDS_CLASS_CURRENT = 0,
+
+	/** Describes a later program. */
 	VBI3_XDS_CLASS_FUTURE,
+
+	/**
+	 * Non-program specific information about the
+	 * transmitting channel.
+	 */
 	VBI3_XDS_CLASS_CHANNEL,
-	VBI3_XDS_CLASS_MISC,
+
+	/** Miscellaneous other information. */
+	VBI3_XDS_CLASS_MISCELLANEOUS,
+
+	/** Public service messages, including weather warnings. */
 	VBI3_XDS_CLASS_PUBLIC_SERVICE,
+
+	/** Reserved for future extensions. */
 	VBI3_XDS_CLASS_RESERVED,
-	VBI3_XDS_CLASS_UNDEFINED,
+
+	/** For use in closed systems. */
+	VBI3_XDS_CLASS_PRIVATE,
+
+	VBI3_XDS_MAX_CLASSES
 } vbi3_xds_class;
 
-#define VBI3_XDS_MAX_CLASSES (VBI3_XDS_CLASS_UNDEFINED + 1)
+/* Compatibility. */
+#define VBI3_XDS_CLASS_MISC VBI3_XDS_CLASS_MISCELLANEOUS
+#define VBI3_XDS_CLASS_UNDEFINED VBI3_XDS_CLASS_PRIVATE
 
 /**
  * @brief @c VBI3_XDS_CLASS_CURRENT and @c VBI3_XDS_CLASS_FUTURE subclass.
@@ -83,7 +103,7 @@ typedef enum {
 	VBI3_XDS_MISC_LOCAL_TIME_ZONE,
 } vbi3_xds_subclass_misc;
 
-#define VBI3_XDS_MAX_SUBCLASSES (0x18)
+#define VBI3_XDS_MAX_SUBCLASSES 0x80
 
 /**
  * @brief Generic XDS subclass.

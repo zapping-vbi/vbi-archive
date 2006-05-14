@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5.2.12 2006-05-07 06:05:00 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.13 2006-05-14 14:14:12 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -183,18 +183,17 @@ export_pdc			(vbi3_export *		export,
 
 	end = pl->at1_hour * 60 + pl->at1_minute + pl->length;
 
+	/* XXX pl->title uses locale encoding but the html page may not
+	   (export charset parameter). */
 	fprintf (fp, "<acronym title=\"%04u-%02u-%02u "
 		 "%02u:%02u-%02u:%02u "
-		 "VPS/PDC: %02u%02u TTX: %x Title: ",
+		 "VPS/PDC: %02u%02u TTX: %x Title: %s"
+		 "\">%s</acronym>",
 		 pl->year, pl->month, pl->day,
 		 pl->at1_hour, pl->at1_minute,
 		 (end / 60 % 24), end % 60,
 		 pl->at2_hour, pl->at2_minute,
-		 pl->pgno);
-
-	vbi3_fputs_locale_utf8 (fp, pl->title, VBI3_NUL_TERMINATED);
-
-	fprintf (fp, "\">%s</acronym>", text);
+		 pl->_pgno, pl->title, text);
 
 	return 0 == ferror (fp);
 }
@@ -371,8 +370,7 @@ filter_pgnos                    (void)
 			continue;
 		}
 
-#warning XXX what are the defaults in ps until we receive the
-#warning page inventory?
+#warning XXX what are the defaults in ps until we receive the page inventory?
 		if (VBI3_NO_PAGE == ps.page_type) {
 			goto remove;
 		}
@@ -628,9 +626,9 @@ subrip         SubRip subtitle file\n\
 subviewer      SubViewer 2.x subtitle file\n\
 text           Plain text\n\
 vtx            VTX file (VideoteXt application)\n\
-               Most formats have options you can set by appending them\n\
-               as a comma separated list, e.g. text,charset=ISO-8859-1,...\n\
-               Try test/explist for an overview.\n\
+               Most formats have options you can set by appending them as\n\
+	       a comma separated list, e.g. text,charset=UTF-8,... Try\n\
+               test/explist for an overview.\n\
 Valid page numbers are:\n\
 1 ... 8        Closed Caption channel 1 ... 4, text channel 1 ... 4.\n\
 100 ... 899    Teletext page 100 ... 899.\n\

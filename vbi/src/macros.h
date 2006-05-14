@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: macros.h,v 1.1.2.5 2006-05-07 20:51:36 mschimek Exp $ */
+/* $Id: macros.h,v 1.1.2.6 2006-05-14 14:14:11 mschimek Exp $ */
 
 #ifndef __ZVBI3_MACROS_H__
 #define __ZVBI3_MACROS_H__
@@ -91,6 +91,38 @@ typedef void
 vbi3_lock_fn			(void *			user_data);
 typedef void
 vbi3_unlock_fn			(void *			user_data);
+
+typedef enum {
+	/** External error causes, for example lack of memory. */
+	VBI3_LOG_ERROR		= 1 << 3,
+
+	/**
+	 * Invalid parameters and similar problems which suggest
+	 * a bug in the caller.
+	 */
+	VBI3_LOG_WARNING	= 1 << 4,
+
+	/**
+	 * Causes of possibly undesired results, for example when a
+	 * data service cannot be decoded with the current video
+	 * standard.
+	 */
+	VBI3_LOG_NOTICE		= 1 << 5,
+
+	/** Progress messages. */
+	VBI3_LOG_INFO		= 1 << 6,
+
+	/** Information useful to debug the library. */
+	VBI3_LOG_DEBUG		= 1 << 7,
+} vbi3_log_mask;
+
+typedef void
+vbi3_log_fn			(vbi3_log_mask		level,
+				 const char *		context,
+				 const char *		message,
+				 void *			user_data);
+
+extern vbi3_log_fn		vbi3_log_on_stderr;
 
 VBI3_END_DECLS
 

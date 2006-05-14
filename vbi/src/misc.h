@@ -18,13 +18,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.17 2006-05-07 20:51:36 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.18 2006-05-14 14:14:12 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
 
 #include <stddef.h>
 #include <string.h>
+#include <stdarg.h>
+#include <inttypes.h>
 #include <assert.h>
 
 #include "macros.h"
@@ -90,16 +92,16 @@
 #define MIN(x, y) ({							\
 	__typeof__ (x) _x = (x);					\
 	__typeof__ (y) _y = (y);					\
-	(void)(&_x == &_y); /* alert when type mismatch */		\
-	(_x < _y) ? _x : _y;						\
+	(void)(&_x == &_y); /* warn if types do not match */		\
+	/* return */ (_x < _y) ? _x : _y;				\
 })
 
 #undef MAX
 #define MAX(x, y) ({							\
 	__typeof__ (x) _x = (x);					\
 	__typeof__ (y) _y = (y);					\
-	(void)(&_x == &_y); /* alert when type mismatch */		\
-	(_x > _y) ? _x : _y;						\
+	(void)(&_x == &_y); /* warn if types do not match */		\
+	/* return */ (_x > _y) ? _x : _y;				\
 })
 
 /* Note other compilers may swap only int, long or pointer. */
@@ -117,7 +119,7 @@ do {									\
 	__typeof__ (n) _n = (n);					\
 	__typeof__ (n) _min = (min);					\
 	__typeof__ (n) _max = (max);					\
-	(void)(&_n == &_min); /* alert when type mismatch */		\
+	(void)(&_n == &_min); /* warn if types do not match */		\
 	(void)(&_n == &_max);						\
 	if (_n < _min)							\
 		_n = _min;						\
@@ -130,7 +132,7 @@ do {									\
 	__typeof__ (n) _n = (n);					\
 	__typeof__ (n) _min = (min);					\
 	__typeof__ (n) _max = (max);					\
-	(void)(&_n == &_min); /* alert when type mismatch */		\
+	(void)(&_n == &_min); /* warn if types do not match */		\
 	(void)(&_n == &_max);						\
 	if (_n < _min)							\
 		_n = _min;						\
@@ -146,7 +148,6 @@ do {									\
 #define unlikely(expr) (expr)
 #undef __i386__
 #undef __i686__
-#define __attribute__(args...)
 
 static char *
 PARENT_HELPER (char *p, unsigned int offset)
@@ -195,61 +196,37 @@ do {									\
 
 /* NB GCC inlines and optimizes these functions when size is const. */
 #define SET(var) memset (&(var), ~0, sizeof (var))
+
 #define CLEAR(var) memset (&(var), 0, sizeof (var))
+
 #define COPY(d, s) /* useful to copy arrays, otherwise use assignment */ \
 	(assert (sizeof (d) == sizeof (s)), memcpy (d, s, sizeof (d)))
 
-typedef struct {
-	const char *		key;
-	int			value;
-} _vbi3_key_value_pair;
-
-extern vbi3_bool
-_vbi3_keyword_lookup		(int *			value,
-				 const char **		inout_s,
-				 const _vbi3_key_value_pair * table);
-
-/* Use this instead of strncpy(). strlcpy() is a BSD/GNU extension. */
-#ifdef HAVE_STRLCPY
-#  define _vbi3_strlcpy strlcpy
-#else
-extern size_t
-_vbi3_strlcpy			(char *			dst,
-				 const char *		src,
-				 size_t			len);
-#endif
-
-/* strndup() is a BSD/GNU extension. */
-#ifdef HAVE_STRNDUP
-#  define _vbi3_strndup strndup
-#else
-extern char *
-_vbi3_strndup			(const char *		s,
-				 size_t			len);
-#endif
-
-/* asprintf() is a GNU extension. */
-#ifdef HAVE_ASPRINTF
-#  define _vbi3_asprintf asprintf
-#else
-extern int
-_vbi3_asprintf			(char **		dstp,
-				 const char *		templ,
-				 ...);
-#endif
-
 /* Copy a string const, returns FALSE if not NUL terminated. */
-#define STRCOPY(d, s) (_vbi3_strlcpy (d, s, sizeof (d)) < sizeof (d))
+#define STRCOPY(d, s) (strlcpy (d, s, sizeof (d)) < sizeof (d))
 
 /* Copy bits through mask. */
 #define COPY_SET_MASK(dest, from, mask)					\
 	(dest ^= (from) ^ (dest & (mask)))
+
 /* Set bits if cond is TRUE, clear if FALSE. */
 #define COPY_SET_COND(dest, bits, cond)					\
 	 ((cond) ? (dest |= (bits)) : (dest &= ~(bits)))
+
 /* Set and clear bits. */
 #define COPY_SET_CLEAR(dest, set, clear)				\
 	(dest = (dest & ~(clear)) | (set))
+
+/* TODO The idea is to define these as weak symbols and
+   override them in applications. */
+#define vbi3_malloc malloc
+#define vbi3_realloc realloc
+#define vbi3_strdup strdup
+#define vbi3_free free
+#define vbi3_cache_malloc malloc
+#define vbi3_cache_free free
+
+/* Helper functions. */
 
 vbi3_inline int
 vbi3_to_ascii			(int			c)
@@ -265,40 +242,88 @@ vbi3_to_ascii			(int			c)
 	return c;
 }
 
-typedef enum {
-	VBI3_LOG_ERROR		= 1 << 3,
-	VBI3_LOG_WARNING	= 1 << 4,
-	VBI3_LOG_NOTICE		= 1 << 5,
-	VBI3_LOG_INFO		= 1 << 6,
-	VBI3_LOG_DEBUG		= 1 << 7,
-} vbi3_log_mask;
+typedef struct {
+	const char *		key;
+	int			value;
+} _vbi3_key_value_pair;
 
-typedef void
-vbi3_log_fn			(vbi3_log_mask		level,
-				 const char *		message,
-				 void *			user_data);
+extern vbi3_bool
+_vbi3_keyword_lookup		(int *			value,
+				 const char **		inout_s,
+				 const _vbi3_key_value_pair * table,
+				 unsigned int		n_pairs);
+
+/* Logging stuff. */
 
 extern vbi3_log_fn *		vbi3_global_log_fn;
 extern void *			vbi3_global_log_user_data;
 extern vbi3_log_mask		vbi3_global_log_mask;
 
 extern void
-vbi3_log_on_stderr		(vbi3_log_mask		level,
-				 const char *		message,
-				 void *			user_data);
+vbi3_log_vprintf		(vbi3_log_fn		log_fn,
+				 void *			user_data,
+				 vbi3_log_mask		mask,
+				 const char *		context,
+				 const char *		templ,
+				 va_list		ap);
 extern void
 vbi3_log_printf			(vbi3_log_fn		log_fn,
 				 void *			user_data,
 				 vbi3_log_mask		mask,
+				 const char *		context,
 				 const char *		templ,
 				 ...);
 
-/* TODO */
-#define vbi3_malloc malloc
-#define vbi3_realloc realloc
-#define vbi3_strdup strdup
-#define vbi3_free free
-#define vbi3_cache_malloc malloc
-#define vbi3_cache_free free
+/* Portability stuff. */
+
+/* These should be defined in inttypes.h. */
+#ifndef PRId64
+#  define PRId64 "lld"
+#endif
+#ifndef PRIu64
+#  define PRIu64 "llu"
+#endif
+#ifndef PRIx64
+#  define PRIx64 "llx"
+#endif
+
+/* Use this instead of strncpy(). strlcpy() is a BSD/GNU extension. */
+#ifndef HAVE_STRLCPY
+#  define _vbi3_strlcpy strlcpy
+#endif
+
+extern size_t
+_vbi3_strlcpy			(char *			dst,
+				 const char *		src,
+				 size_t			len);
+
+/* strndup() is a BSD/GNU extension. */
+#ifndef HAVE_STRNDUP
+#  define _vbi3_strndup strndup
+#endif
+
+extern char *
+_vbi3_strndup			(const char *		s,
+				 size_t			len);
+
+/* asprintf() is a GNU extension. */
+#ifndef HAVE_ASPRINTF
+#  define _vbi3_asprintf asprintf
+#endif
+
+extern int
+_vbi3_asprintf			(char **		dstp,
+				 const char *		templ,
+				 ...);
+
+/* vasprintf() is a GNU extension. */
+#ifndef HAVE_VASPRINTF
+#  define _vbi3_vasprintf vasprintf
+#endif
+
+extern int
+_vbi3_vasprintf			(char **		dstp,
+				 const char *		templ,
+				 va_list		ap);
 
 #endif /* MISC_H */

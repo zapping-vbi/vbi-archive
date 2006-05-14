@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.1.2.4 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.1.2.5 2006-05-14 14:14:12 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>		/* malloc() */
@@ -689,7 +689,7 @@ vbi3_decoder_reset		(vbi3_decoder *		vbi,
 	vbi->vt.videostd_set = videostd_set;
 	vbi->cc.videostd_set = videostd_set;
 
-	internal_reset (vbi, cn, 0.0);
+	internal_reset (vbi, cn, /* time: now */ 0.0);
 
 	cache_network_unref (cn);
 }
@@ -733,6 +733,8 @@ _vbi3_decoder_destroy		(vbi3_decoder *		vbi)
 	_vbi3_teletext_decoder_destroy (&vbi->vt);
 
 	_vbi3_event_handler_list_destroy (&vbi->handlers);
+
+	/* Make it unusable. */
 
 	CLEAR (*vbi);
 }
@@ -778,8 +780,10 @@ _vbi3_decoder_init		(vbi3_decoder *		vbi,
 	if (ca) {
 		cache = ca;
 	} else {
-		if (!(cache = vbi3_cache_new ()))
+		cache = vbi3_cache_new ();
+		if (NULL == cache) {
 			return FALSE;
+		}
 	}
 
 	_vbi3_event_handler_list_init (&vbi->handlers);
@@ -787,7 +791,7 @@ _vbi3_decoder_init		(vbi3_decoder *		vbi,
 	_vbi3_teletext_decoder_init (&vbi->vt, cache, nk, videostd_set);
 	_vbi3_caption_decoder_init (&vbi->cc, cache, nk, videostd_set);
 
-	if (!ca) {
+	if (NULL == ca) {
 		/* Drop our reference. */
 		vbi3_cache_unref (cache);
 	}
@@ -854,20 +858,19 @@ vbi3_decoder_new		(vbi3_cache *		ca,
 {
 	vbi3_decoder *vbi;
 
-	if (!(vbi = vbi3_malloc (sizeof (*vbi)))) {
-		error ("Out of memory (%u bytes)", sizeof (*vbi));
-		return NULL;
-	}
+	vbi = vbi3_malloc (sizeof (*vbi));
 
-        if (!_vbi3_decoder_init (vbi, ca, nk, videostd_set)) {
-		vbi3_free (vbi);
-		vbi = NULL;
+	if (NULL != vbi) {
+		if (_vbi3_decoder_init (vbi, ca, nk, videostd_set)) {
+			/* Make it safe to delete a vbi3_teletext_decoder
+			   or vbi3_caption_decoder cast from a vbi3_decoder. */
+			vbi->vt.virtual_delete = teletext_delete_trampoline;
+			vbi->cc.virtual_delete = caption_delete_trampoline;
+		} else {
+			vbi3_free (vbi);
+			vbi = NULL;
+		}
 	}
-
-	/* Make it safe to delete a vbi3_teletext/caption_decoder
-	   cast from a vbi3_decoder. */
-	vbi->vt.virtual_delete = teletext_delete_trampoline;
-	vbi->cc.virtual_delete = caption_delete_trampoline;
 
 	return vbi;
 }

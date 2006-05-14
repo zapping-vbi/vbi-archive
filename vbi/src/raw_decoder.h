@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.h,v 1.1.2.6 2006-05-07 20:51:36 mschimek Exp $ */
+/* $Id: raw_decoder.h,v 1.1.2.7 2006-05-14 14:14:12 mschimek Exp $ */
 
 #ifndef RAW_DECODER_H
 #define RAW_DECODER_H
@@ -99,7 +99,7 @@ typedef struct {
 
 /** @internal */
 typedef struct {
-	vbi3_bit_slicer_point   points[64];
+	vbi3_bit_slicer_point   points[512];
 	unsigned int		n_points;
 } _vbi3_raw_decoder_sp_line;
 

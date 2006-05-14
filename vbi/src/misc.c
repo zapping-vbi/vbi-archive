@@ -17,11 +17,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.c,v 1.4.2.3 2006-05-07 20:51:36 mschimek Exp $ */
+/* $Id: misc.c,v 1.4.2.4 2006-05-14 14:14:11 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
+#include <string.h>
 #include <ctype.h>
 #include <errno.h>
 #include "misc.h"
@@ -29,55 +29,6 @@
 vbi3_log_fn *		vbi3_global_log_fn;
 void *			vbi3_global_log_user_data;
 vbi3_log_mask		vbi3_global_log_mask;
-
-vbi3_bool
-_vbi3_keyword_lookup		(int *			value,
-				 const char **		inout_s,
-				 const _vbi3_key_value_pair *table)
-{
-	const char *s;
-	unsigned int i;
-
-	assert (NULL != value);
-	assert (NULL != inout_s);
-	assert (NULL != *inout_s);
-	assert (NULL != table);
-
-	s = *inout_s;
-
-	while (isspace (*s))
-		++s;
-
-	if (isdigit (*s)) {
-		long val;
-		char *end;
-
-		val = strtol (s, &end, 10);
-
-		for (i = 0; NULL != table[i].key; ++i) {
-			if (val == table[i].value) {
-				*value = val;
-				*inout_s = end;
-				return TRUE;
-			}
-		}
-	} else {				 
-		for (i = 0; NULL != table[i].key; ++i) {
-			size_t len = strlen (table[i].key);
-
-			if (0 == strncasecmp (s, table[i].key, len)
-			    && !isalnum (s[len])) {
-				*value = table[i].value;
-				*inout_s = s + len;
-				return TRUE;
-			}
-		}
-	}
-
-	return FALSE;
-}
-
-#ifndef HAVE_STRLCPY
 
 /**
  * @internal
@@ -108,10 +59,6 @@ _vbi3_strlcpy			(char *			dst,
 	return dst - dst1;
 }
 
-#endif /* !HAVE_STRLCPY */
-
-#ifndef HAVE_STRNDUP
-
 /**
  * @internal
  * strndup() is a BSD/GNU extension.
@@ -139,18 +86,14 @@ _vbi3_strndup			(const char *		s,
 	return r;
 }
 
-#endif /* !HAVE_STRNDUP */
-
-#ifndef HAVE_ASPRINTF
-
 /**
  * @internal
- * asprintf() is a GNU extension.
+ * vasprintf() is a GNU extension.
  */
 int
-_vbi3_asprintf			(char **		dstp,
+_vbi3_vasprintf			(char **		dstp,
 				 const char *		templ,
-				 ...)
+				 va_list		ap)
 {
 	char *buf;
 	unsigned long size;
@@ -165,7 +108,7 @@ _vbi3_asprintf			(char **		dstp,
 	size = 64;
 
 	for (;;) {
-		va_list ap;
+
 		char *buf2;
 		long len;
 
@@ -174,9 +117,7 @@ _vbi3_asprintf			(char **		dstp,
 
 		buf = buf2;
 
-		va_start (ap, templ);
 		len = vsnprintf (buf, size, templ, ap);
-		va_end (ap);
 
 		if (len < 0) {
 			/* Not enough. */
@@ -198,4 +139,142 @@ _vbi3_asprintf			(char **		dstp,
 	return -1;
 }
 
-#endif /* !HAVE_ASPRINTF */
+/**
+ * @internal
+ * asprintf() is a GNU extension.
+ */
+int
+_vbi3_asprintf			(char **		dstp,
+				 const char *		templ,
+				 ...)
+{
+	va_list ap;
+	int len;
+
+	va_start (ap, templ);
+
+	len = vasprintf (dstp, templ, ap);
+
+	va_end (ap);
+
+	return len;
+}
+
+vbi3_bool
+_vbi3_keyword_lookup		(int *			value,
+				 const char **		inout_s,
+				 const _vbi3_key_value_pair *table,
+				 unsigned int		n_pairs)
+{
+	const char *s;
+	unsigned int i;
+
+	assert (NULL != value);
+	assert (NULL != inout_s);
+	assert (NULL != *inout_s);
+	assert (NULL != table);
+
+	s = *inout_s;
+
+	while (isspace (*s))
+		++s;
+
+	if (isdigit (*s)) {
+		long val;
+		char *end;
+
+		val = strtol (s, &end, 10);
+
+		for (i = 0; NULL != table[i].key; ++i) {
+			if (val == table[i].value) {
+				*value = val;
+				*inout_s = end;
+				return TRUE;
+			}
+		}
+	} else {
+		for (i = 0; i < n_pairs; ++i) {
+			size_t len = strlen (table[i].key);
+
+			if (0 == strncasecmp (s, table[i].key, len)
+			    && !isalnum (s[len])) {
+				*value = table[i].value;
+				*inout_s = s + len;
+				return TRUE;
+			}
+		}
+	}
+
+	return FALSE;
+}
+
+void
+vbi3_log_on_stderr		(vbi3_log_mask		level,
+				 const char *		context,
+				 const char *		message,
+				 void *			user_data)
+{
+	vbi3_log_mask max_level;
+
+	if (0 == strncmp (context, "vbi_", 4)) {
+		context += 4;
+	} else if (0 == strncmp (context, "vbi3_", 5)) {
+		context += 5;
+	}
+
+	if (NULL != user_data) {
+		max_level = * (vbi3_log_mask *) user_data;
+		if (level > max_level)
+			return;
+	}
+
+	fprintf (stderr, "libzvbi:%s: %s\n", context, message);
+}
+
+/** @internal */
+void
+vbi3_log_vprintf		(vbi3_log_fn		log_fn,
+				 void *			user_data,
+				 vbi3_log_mask		mask,
+				 const char *		context,
+				 const char *		templ,
+				 va_list		ap)
+{
+	int saved_errno;
+	char *buffer;
+
+	assert (NULL != templ);
+
+	if (NULL == log_fn)
+		return;
+
+	saved_errno = errno;
+
+	vasprintf (&buffer, templ, ap);
+	if (NULL != buffer) {
+		log_fn (mask, context, buffer, user_data);
+
+		free (buffer);
+		buffer = NULL;
+	}
+
+	errno = saved_errno;
+}
+
+/** @internal */
+void
+vbi3_log_printf			(vbi3_log_fn		log_fn,
+				 void *			user_data,
+				 vbi3_log_mask		mask,
+				 const char *		context,
+				 const char *		templ,
+				 ...)
+{
+	va_list ap;
+
+	va_start (ap, templ);
+
+	vbi3_log_vprintf (log_fn, user_data, mask, context, templ, ap);
+
+	va_end (ap);
+}

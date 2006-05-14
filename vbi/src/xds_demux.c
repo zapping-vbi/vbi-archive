@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.c,v 1.1.2.7 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: xds_demux.c,v 1.1.2.8 2006-05-14 14:14:12 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -73,7 +73,7 @@ _vbi3_xds_packet_dump		(const vbi3_xds_packet *	xp,
 	fputs (" '", fp);
 
 	for (i = 0; i < xp->buffer_size; ++i)
-		fputc (vbi3_printable (xp->buffer[i]), fp);
+		fputc (vbi3_to_ascii (xp->buffer[i]), fp);
 
 	fputs ("'\n", fp);
 }
@@ -340,12 +340,11 @@ vbi3_xds_demux_new		(vbi3_xds_demux_cb *	callback,
 
 	assert (NULL != callback);
 
-	if (!(xd = vbi3_malloc (sizeof (*xd)))) {
-		error ("Out of memory (%u bytes)", sizeof (*xd));
-		return NULL;
-	}
+	xd = vbi3_malloc (sizeof (*xd));
 
-	_vbi3_xds_demux_init (xd, callback, user_data);
+	if (NULL != xd) {
+		_vbi3_xds_demux_init (xd, callback, user_data);
+	}
 
 	return xd;
 }

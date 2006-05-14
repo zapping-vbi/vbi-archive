@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: date.c,v 1.1.2.1 2006-05-07 06:05:00 mschimek Exp $ */
+/* $Id: date.c,v 1.1.2.2 2006-05-14 14:14:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -251,7 +251,7 @@ open_device			(const char *		dev_name,
 
 #ifdef ENABLE_V4L
 
-#  if 2 == VBI3_VERSION_MINOR /* not ported to 0.3 yet. */
+#  if 2 == VBI_VERSION_MINOR /* not ported to 0.3 yet. */
 
 	if (-1 != dvb_pid) {
 		cap = vbi3_capture_dvb_new (dev_name,

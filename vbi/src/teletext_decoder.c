@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.1.2.1 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.1.2.2 2006-05-14 14:14:12 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -270,7 +270,7 @@ cache_page_raw_dump		(const cache_page *	cp,
 		}
 
 		for (i = 0; i < 40; ++i)
-			fputc (vbi3_printable (cp->data.lop.raw[j][i]), fp);
+			fputc (vbi3_to_ascii (cp->data.lop.raw[j][i]), fp);
 
 		fputc ('\n', fp);
 	}
@@ -1026,7 +1026,7 @@ decode_ait_packet		(cache_page *		cp,
 				log ("%02x ", temp.text[j] & 0xFF);
 			fputc ('>', stderr);
 			for (j = 0; j < 12; ++j)
-				fputc (vbi3_printable (temp.text[j]), stderr);
+				fputc (vbi3_to_ascii (temp.text[j]), stderr);
 			fputs ("<\n", stderr);
 		}
 
@@ -3493,7 +3493,8 @@ status_change			(vbi3_teletext_decoder *	td,
 	char *title;
 
 	cs = vbi3_character_set_from_code (0); /* XXX ok? */
-	title = vbi3_strndup_locale_teletext (buffer + 22, 20, cs);
+	title = vbi3_strndup_iconv_teletext (vbi3_locale_codeset (),
+					     buffer + 22, 20, cs);
 
 	if (!title)
 		return FALSE;
@@ -3567,7 +3568,7 @@ decode_packet_8_30		(vbi3_teletext_decoder *	td,
 						 i,
 						 td->network->status[i],
 						 c & 0x7F,
-						 vbi3_printable (c));
+						 vbi3_to_ascii (c));
 				}
 			}
 
@@ -3836,7 +3837,7 @@ vbi3_teletext_decoder_feed	(vbi3_teletext_decoder *	td,
 			 (0 == mag0) ? 8 : mag0, packet);
 
 		for (i = 0; i < 40; i++)
-			fputc (vbi3_printable (buffer[2 + i]), stderr);
+			fputc (vbi3_to_ascii (buffer[2 + i]), stderr);
 
 		fprintf (stderr, "<\n");
 	}
@@ -4271,7 +4272,7 @@ cache_network_dump_teletext	(const cache_network *	cn,
 	fputs ("\nstatus=\"", fp);
 
 	for (i = 0; i < N_ELEMENTS (cn->status); ++i)
-		fputc (vbi3_printable (cn->status[i]), fp);
+		fputc (vbi3_to_ascii (cn->status[i]), fp);
 
 	fputs ("\"\npage_stat=\n", fp);
 
@@ -4757,17 +4758,16 @@ vbi3_teletext_decoder_new	(vbi3_cache *		ca,
 {
 	vbi3_teletext_decoder *td;
 
-	if (!(td = vbi3_malloc (sizeof (*td)))) {
-		error ("Out of memory (%u bytes)", sizeof (*td));
-		return NULL;
-	}
+	td = vbi3_malloc (sizeof (*td));
 
-        if (!_vbi3_teletext_decoder_init (td, ca, nk, videostd_set)) {
-		vbi3_free (td);
-		td = NULL;
+	if (NULL != td) {
+		if (_vbi3_teletext_decoder_init (td, ca, nk, videostd_set)) {
+			td->virtual_delete = internal_delete;
+		} else {
+			vbi3_free (td);
+			td = NULL;
+		}
 	}
-
-	td->virtual_delete = internal_delete;
 
 	return td;
 }

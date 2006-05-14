@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.h,v 1.1.2.7 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: network.h,v 1.1.2.8 2006-05-14 14:14:12 mschimek Exp $ */
 
 #ifndef __ZVBI3_NETWORK_H__
 #define __ZVBI3_NETWORK_H__
@@ -119,8 +119,8 @@ typedef struct {
 	 */
 	void *			user_data;
 
-	void *			reserved1[4];
-	unsigned int		reserved2[4];
+	void *			_reserved1[4];
+	int			_reserved2[4];
 
 } vbi3_network;
 
@@ -288,8 +288,8 @@ struct _vbi3_network_pdc {
 	 */
 	unsigned int		time_offset;
 
-	void *			reserved1[10];
-	unsigned int		reserved2[10];
+	void *			_reserved1[10];
+	int			_reserved2[10];
 };
 
 extern void

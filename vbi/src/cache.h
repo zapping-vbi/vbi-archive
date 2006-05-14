@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.2.2.13 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: cache.h,v 1.2.2.14 2006-05-14 14:14:11 mschimek Exp $ */
 
 #ifndef __ZVBI3_CACHE_H__
 #define __ZVBI3_CACHE_H__
@@ -101,8 +101,9 @@ typedef struct {
 	vbi3_subno		subno_min;
 	/** Highest subno received yet. */
 	vbi3_subno		subno_max;
-	void *			reserved1[2];
-	unsigned int		reserved2[2];
+
+	void *			_reserved1[2];
+	int			_reserved2[2];
 } vbi3_ttx_page_stat;
 
 extern void

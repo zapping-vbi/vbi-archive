@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.4.2.9 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: trigger.c,v 1.4.2.10 2006-05-14 14:14:12 mschimek Exp $ */
 
 /*
    Based on EACEM TP 14-99-16 "Data Broadcasting", rev 0.8;
@@ -173,7 +173,7 @@ parse_time			(const uint8_t *	s)
 static int
 parse_bool			(const uint8_t *	s)
 {
-	const char *cs = s;
+	const char *cs = (const char *) s;
 
 	return (0 == strcmp (cs, "1")
 		|| 0 == strcmp (cs, "true")
@@ -386,7 +386,7 @@ _vbi3_trigger_from_eacem		(_vbi3_trigger *		t,
 					goto failure;
 			}
 
-			t->link.url = _vbi3_strndup (begin + 1, s - begin - 1);
+			t->link.url = strndup (begin + 1, s - begin - 1);
 			if (!t->link.url)
 				goto failure;
 
@@ -591,7 +591,7 @@ _vbi3_trigger_from_atvef		(_vbi3_trigger *		t,
 					goto failure;
 			}
 
-			t->link.url = _vbi3_strndup (begin + 1, s - begin - 1);
+			t->link.url = strndup (begin + 1, s - begin - 1);
 			if (!t->link.url)
 				goto failure;
 
@@ -790,7 +790,8 @@ add_trigger			(_vbi3_trigger **	list,
 {
 	_vbi3_trigger *t;
 
-#warning t = ?
+	t = t1;
+
 	if (t->_delete) {
 		_vbi3_trigger **l;
 

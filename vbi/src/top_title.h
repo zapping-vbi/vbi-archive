@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top_title.h,v 1.1.2.1 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: top_title.h,v 1.1.2.2 2006-05-14 14:14:12 mschimek Exp $ */
 
 #ifndef __ZVBI3_TOP_TITLE_H__
 #define __ZVBI3_TOP_TITLE_H__
@@ -47,7 +47,7 @@ typedef struct {
 	 */
 	vbi3_bool		group;
 
-	int			reserved[2];
+	int			_reserved[2];
 } vbi3_top_title;
 
 extern void

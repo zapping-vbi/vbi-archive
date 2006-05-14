@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.21 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.22 2006-05-14 14:14:12 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -58,6 +58,15 @@
 do {									\
 	if (TELETEXT_FMT_LOG)						\
 		fprintf (stderr, templ , ##args);			\
+} while (0)
+
+#define warning(templ, args...)						\
+do {									\
+	if (vbi3_global_log_mask & VBI3_LOG_WARNING)			\
+		vbi3_log_printf (vbi3_global_log_fn,			\
+				 vbi3_global_log_user_data,		\
+				 VBI3_LOG_WARNING, __FUNCTION__,	\
+				 templ , ##args);			\
 } while (0)
 
 #define PGP_CHECK(ret_value)						\
@@ -1507,7 +1516,10 @@ enhance_row_triplet		(enhance_state *	st)
 		st->pdc_tmp.length = 0;
 
 		st->pdc_tmp._at1_ptl[1].row = row;
-		st->pdc_tmp.caf = !!(st->trip->data & 0x40);
+
+		st->pdc_tmp.flags = 0;
+		if (st->trip->data & 0x40)
+			st->pdc_tmp.flags = VBI3_PDC_ENCRYPTED;
 
 		st->pdc_hour = *st->trip;
 
@@ -1544,7 +1556,8 @@ enhance_row_triplet		(enhance_state *	st)
 		if (lto & 0x40) /* 7 bit two's complement */
 			lto |= ~0x7F;
 
-		st->pdc_tmp.lto = lto * 15; /* minutes */
+		st->pdc_tmp.seconds_east = lto * 15 * 60;
+		st->pdc_tmp.seconds_east_valid = TRUE;
 
 		break;
 	}
@@ -2180,6 +2193,7 @@ enhance				(vbi3_page_priv *	pgp,
 		for (p = pgp->pdc_table; p < st.p1; ++p) {
 			int d;
 
+			/* XXX correct?? */
 			d = t.tm_mon - p->month;
 			if (d > 0 && d <= 6)
 				p->year = t.tm_year + 1901;
@@ -4043,7 +4057,7 @@ vbi3_page_delete			(vbi3_page *		pg)
 	pgp = PARENT (pg, vbi3_page_priv, pg);
 
 	if (pg->priv != pgp) {
-		debug ("vbi3_page %p not allocated by libzvbi", pg);
+		warning ("vbi3_page %p was not allocated by libzvbi.", pg);
 		return;
 	}
 
@@ -4106,8 +4120,8 @@ vbi3_page_new			(void)
 {
 	vbi3_page_priv *pgp;
 
-	if (!(pgp = vbi3_malloc (sizeof (*pgp)))) {
-		error ("Out of memory (%u bytes)", sizeof (pgp));
+	pgp = vbi3_malloc (sizeof (*pgp));
+	if (NULL == pgp) {
 		return NULL;
 	}
 

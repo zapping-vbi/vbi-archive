@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: capture.c,v 1.7.2.8 2006-05-07 06:05:00 mschimek Exp $ */
+/* $Id: capture.c,v 1.7.2.9 2006-05-14 14:14:12 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -36,6 +36,7 @@
 #include <getopt.h>
 #endif
 
+#include "src/vbi.h"
 #include "src/zvbi.h"
 #include "src/misc.h"
 #include "sliced.h"
@@ -90,10 +91,10 @@ decode_xds(uint8_t *buf)
 		char c;
 
 		c = odd_parity(buf[0]) ? buf[0] & 0x7F : '?';
-		c = vbi3_printable (c);
+		c = vbi3_to_ascii (c);
 		putchar(c);
 		c = odd_parity(buf[1]) ? buf[1] & 0x7F : '?';
-		c = vbi3_printable (c);
+		c = vbi3_to_ascii (c);
 		putchar(c);
 		fflush(stdout);
 	}
@@ -119,10 +120,10 @@ decode_caption(uint8_t *buf, int line)
 
 	if (dump_cc) {
 		c = odd_parity(buf[0]) ? buf[0] & 0x7F : '?';
-		c = vbi3_printable (c);
+		c = vbi3_to_ascii (c);
 		putchar(c);
 		c = odd_parity(buf[1]) ? buf[1] & 0x7F : '?';
-		c = vbi3_printable (c);
+		c = vbi3_to_ascii (c);
 		putchar(c);
 		fflush(stdout);
 	}
@@ -215,7 +216,7 @@ decode_sliced(vbi3_sliced *s, double time, int lines)
 			putchar(' ');
 
 			for (j = 0; j < sizeof(q->data); j++) {
-				char c = vbi3_printable (q->data[j]);
+				char c = vbi3_to_ascii (q->data[j]);
 				putchar(c);
 			}
 
@@ -329,19 +330,6 @@ mainloop(void)
 	}
 }
 
-static void
-logfn    			(unsigned int		level,
-				 const char *		function,
-				 const char *		message,
-				 void *			user_data)
-{
-	level = level;
-	user_data = user_data;
-
-	fprintf (stderr, "%s: %s\n", function, message);
-}
-
-
 static const char short_options[] = "cd:elnpstvPT";
 
 #ifdef HAVE_GETOPT_LONG
@@ -371,14 +359,14 @@ long_options[] = {
 static void
 option_vps			(void)
 {
-	static const _vbi3_key_value pcs_audio [] = {
+	static const _vbi3_key_value_pair pcs_audio [] = {
 		{ "unknown",	VBI3_PCS_AUDIO_UNKNOWN },
 		{ "mono",	VBI3_PCS_AUDIO_MONO },
 		{ "stereo",	VBI3_PCS_AUDIO_STEREO },
 		{ "bilingual",	VBI3_PCS_AUDIO_BILINGUAL },
 		{ NULL, 0 },
 	};
-	char *s = optarg;
+	const char *s = optarg;
 	vbi3_program_id pid;
 
 	CLEAR (pid);
@@ -404,7 +392,7 @@ option_vps			(void)
 	while (isspace (*s))
 		++s;
 	if (',' != *s) {
-		if (!_vbi3_str_to_pil (&pid.pil, &s)) {
+		if (!vbi3_pil_from_string (&pid.pil, &s)) {
 			fprintf (stderr, _("Invalid PDC time '%s'.\n"), optarg);
 			goto failed;
 		}
@@ -417,12 +405,17 @@ option_vps			(void)
 	while (isspace (*s))
 		++s;
 	if (',' != *s) {
-		if (!_vbi3_keystr (&pid.pcs_audio, &s, pcs_audio)) {
+		int value;
+
+		if (!_vbi3_keyword_lookup (&value, &s,
+					   pcs_audio, N_ELEMENTS (pcs_audio))) {
 			fprintf (stderr,
 				 _("Invalid audio status '%s'.\n"),
 				 optarg);
 			goto failed;
 		}
+
+		pid.pcs_audio = value;
 	}
 
 	while (isspace (*s))
@@ -505,7 +498,9 @@ main(int argc, char **argv)
 		| VBI3_SLICED_WSS_625 | VBI3_SLICED_WSS_CPR1204;
 
 	if (verbose) {
-		vbi3_set_log_fn (logfn, NULL);
+		vbi3_set_log_fn (VBI3_LOG_INFO - 1,
+				 vbi3_log_on_stderr,
+				 /* user_data */ NULL);
 	}
 
 	do {

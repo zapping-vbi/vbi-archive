@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.10.2.9 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.10.2.10 2006-05-14 14:14:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -125,10 +125,10 @@ option_info [] = {
 	_VBI3_OPTION_MENU_INITIALIZER
 	/* TRANSLATORS: Text export encoding (ASCII, Unicode, ...) menu */
 	("format", N_("Encoding"),
-	 0, user_encodings, N_ELEMENTS (user_encodings), NULL),
+	 10, user_encodings, N_ELEMENTS (user_encodings), NULL),
         /* one for users, another for programs */
 	_VBI3_OPTION_STRING_INITIALIZER
-	("charset", NULL, "", NULL),
+	("charset", NULL, "UTF-8", NULL),
 	_VBI3_OPTION_STRING_INITIALIZER
 	("gfx_chr", N_("Graphics char"),
 	 "#", N_("Replacement for block graphic characters: "

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb_demux.c,v 1.9.2.2 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: dvb_demux.c,v 1.9.2.3 2006-05-14 14:14:11 mschimek Exp $ */
 
 #include <stdio.h>		/* fprintf() */
 #include <stdlib.h>
@@ -561,8 +561,10 @@ demux_data_units		(struct frame *		f,
 
 			break;
 
-#if 0 /* later */
 		case DATA_UNIT_MONOCHROME_SAMPLES:
+			if (1) /* later */
+				break;
+
 			if (data_unit_length < 1 + 2 + 1 + p[5]) {
 			bad_sample_length:
 				log ("data_unit_length %u too small "
@@ -578,6 +580,9 @@ demux_data_units		(struct frame *		f,
 			break;
 
 		case DATA_UNIT_ZVBI3_MONOCHROME_SAMPLES_525:
+			if (1) /* later */
+				break;
+
 			if (data_unit_length < 1 + 2 + 1 + p[5])
 				goto bad_sample_length;
 
@@ -585,7 +590,6 @@ demux_data_units		(struct frame *		f,
 				goto failure;
 
 			break;
-#endif
 
 		default:
 			log ("Unknown data_unit_id %u\n", data_unit_id);

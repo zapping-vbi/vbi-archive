@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.2.13 2006-05-07 20:51:36 mschimek Exp $ */
+/* $Id: pdc.c,v 1.1.2.14 2006-05-14 14:14:12 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -95,32 +95,40 @@ _vbi3_program_id_dump		(const vbi3_program_id *	pid,
 		"BILINGUAL"
 	};
 
-	fprintf (fp, "cni=%04x (%s) ch=%u ",
+	fprintf (fp, "ch=%u cni=%04x (%s) pil=",
+		 pid->channel,
 		 pid->cni,
-		 vbi3_cni_type_name (pid->cni_type),
-		 pid->channel);
-
-	if (0) {
-		fprintf (fp, "%02u-%02u %02u:%02u pil=",
-			 pid->month + 1, pid->day + 1,
-			 pid->hour, pid->minute);
-	} else {
-		fprintf (fp, "pil=");
-	}
+		 vbi3_cni_type_name (pid->cni_type));
 
 	_vbi3_pil_dump (pid->pil, fp);
 
 	fprintf (fp, " length=%u "
 		 "luf=%u mi=%u prf=%u "
-		 "pcs=%s pty=%02x td=%u",
+		 "pcs=%s pty=%02x tape_delayed=%u",
 		 pid->length,
 		 pid->luf, pid->mi, pid->prf,
 		 pcs_audio[pid->pcs_audio],
 		 pid->pty, pid->tape_delayed);
 }
 
+/**
+ * @param pil The PIL will be stored here.
+ * @param inout_s Pointer to input buffer pointer, which will be
+ *   incremented by the number of bytes read. The buffer must contain
+ *   a NUL-terminated ASCII or UTF-8 string.
+ *
+ * Converts a date of the format MM-DDTHH:MM to a PIL. The separators
+ * -T: can be omitted. Additionally the symbols "continue", "end",
+ * "inhibit", "interrupt", "terminate" and "timer" are recognized
+ * and converted to the respective PIL. Leading white space and
+ * upper/lower case is ignored.
+ *
+ * @returns
+ * @c FALSE on syntax errors. In this case @a pil and @a inout_s
+ * remain unmodified.
+ */
 vbi3_bool
-_vbi3_str_to_pil		(vbi3_pil *		pil,
+vbi3_pil_from_string		(vbi3_pil *		pil,
 				 const char **		inout_s)
 {
 	const char *s;
@@ -128,18 +136,22 @@ _vbi3_str_to_pil		(vbi3_pil *		pil,
 	unsigned int i;
 
 	assert (NULL != pil);
+	assert (NULL != inout_s);
+	assert (NULL != *inout_s);
 
 	{
 		static const _vbi3_key_value_pair symbols [] = {
-			{ "timer",	VBI3_PIL_TIMER_CONTROL },
+			{ "continue",	VBI3_PIL_CONTINUE },
+			{ "end",	VBI3_PIL_END },
 			{ "inhibit",	VBI3_PIL_INHIBIT_TERMINATE },
 			{ "interrupt",	VBI3_PIL_INTERRUPT },
-			{ "continue",	VBI3_PIL_CONTINUE },
-			{ NULL, 0 }
+			{ "terminate",	VBI3_PIL_INHIBIT_TERMINATE },
+			{ "timer",	VBI3_PIL_TIMER_CONTROL },
 		};
 		int n;
 
-		if (_vbi3_keyword_lookup (&n, inout_s, symbols)) {
+		if (_vbi3_keyword_lookup (&n, inout_s,
+					  symbols, N_ELEMENTS (symbols))) {
 			*pil = n;
 			return TRUE;
 		}
@@ -151,8 +163,7 @@ _vbi3_str_to_pil		(vbi3_pil *		pil,
 		++s;
 
 	for (i = 0; i < 4; ++i) {
-		if (!isdigit (s[0])
-		    || !isdigit (s[1]))
+		if (!isdigit (s[0]) || !isdigit (s[1]))
 			return FALSE;
 
 		value[i] = (s[0] - '0') * 10 + s[1] - '0';
@@ -160,12 +171,8 @@ _vbi3_str_to_pil		(vbi3_pil *		pil,
 		s += 2;
 
 		if (i < 3) {
-			while (isspace (*s))
+			if (tolower (*s) == "-t:"[i])
 				++s;
-			if (*s == "-T:"[i]) {
-				do ++s;
-				while (isspace (*s));
-			}
 		}
 	}
 
@@ -180,6 +187,68 @@ _vbi3_str_to_pil		(vbi3_pil *		pil,
 	*pil = VBI3_PIL (value[0], value[1], value[2], value[3]);
 
 	return TRUE;
+}
+
+/**
+ * @param pil PIL to convert.
+ * @param seconds_east The time zone of the intended audience of
+ *   this program, in seconds east of UTC. CET for example is
+ *   1 * 60 * 60 seconds east of UTC.
+ *
+ * Converts a PIL to a time in the UTC time zone. The year is
+ * estimated from the current date.
+ *
+ * PDC PILs are specified relative to the time zone of the intended
+ * audience of the program. If transmitted, you can determine the
+ * time zone with @c VBI3_EVENT_LOCAL_TIME or 
+ * vbi3_decode_teletext_8301_local_time(). Usually the correct time
+ * zone is CET or CEST.
+ *
+ * XDS PILs are always specified relative to UTC.
+ *
+ * @returns
+ * The PIL in seconds since 1970-01-01 00:00 UTC, or (time_t) -1 if
+ * the current date could not be determined, if @a pil is not a valid
+ * date or @a seconds_east is greater than +/-12 hours.
+ */
+time_t
+vbi3_pil_to_time		(vbi3_pil		pil,
+				 int			seconds_east)
+{
+	unsigned int month;
+	time_t now;
+	struct tm tm;
+
+	if (seconds_east < -12 * 60 * 60 || seconds_east > 12 * 60 * 60)
+		return (time_t) -1;
+
+	if ((time_t) -1 == time (&now))
+		return (time_t) -1;
+
+	now += seconds_east; /* "now" in the same time zone */
+
+	if (&tm != gmtime_r (&now, &tm))
+		return (time_t) -1;
+
+	tm.tm_sec	= 0;
+	tm.tm_min	= VBI3_PIL_MINUTE (pil);
+	tm.tm_hour	= VBI3_PIL_HOUR (pil);
+	tm.tm_mday	= VBI3_PIL_DAY (pil);
+
+	month = VBI3_PIL_MONTH (pil);
+
+	if ((int)(tm.tm_mon - month) >= 6 - 1)
+		++tm.tm_year;
+
+	tm.tm_mon	= month - 1;
+
+	/* XXX not always available. */
+	now = timegm (&tm);
+
+	if ((time_t) -1 == now || now < seconds_east)
+		return (time_t) -1;
+
+	return now - seconds_east;
 }
 
 /**
@@ -208,29 +277,11 @@ vbi3_program_id_init		(vbi3_program_id *	pid,
 {
 	assert (NULL != pid);
 
-	pid->cni_type		= VBI3_CNI_TYPE_UNKNOWN;
-	pid->cni		= 0;
+	CLEAR (*pid);
 
-	pid->channel		= channel;
-
-	pid->month		= 0;
-	pid->day		= 0;
-	pid->hour		= 0;
-	pid->minute		= 0;
-
-	pid->pil		= VBI3_PIL_TIMER_CONTROL;
-
-	pid->length		= 0;
-
-	pid->luf		= FALSE;
-	pid->mi			= FALSE;
-	pid->prf		= FALSE;
-
-	pid->pcs_audio		= VBI3_PCS_AUDIO_UNKNOWN;
-
-	pid->pty		= 0; /* none / unknown */
-
-	pid->tape_delayed	= FALSE;
+	/* This must be a parameter because there is no
+	   "unknown channel". */
+	pid->channel = channel;
 }
 
 /**
@@ -260,15 +311,18 @@ _vbi3_preselection_dump		(const vbi3_preselection *p,
 
 	fprintf (fp,
 		 "cni=%05x (%s) "
-		 "%04d-%02d-%02d %02d:%02d (%02d:%02d) %02d:%02d "
-		 "pty=%02x lto=%d caf=%u at1/ptl=",
+		 "%04d-%02d-%02d %02d:%02d-%02d:%02d (VPS/PDC %02d:%02d) "
+		 "pty=%02x tz=%d tz-valid=%u caf=%u at1/ptl=",
 		 p->cni,
 		 vbi3_cni_type_name (p->cni_type),
 		 p->year, p->month, p->day,
 		 p->at1_hour, p->at1_minute,
-		 p->at2_hour, p->at2_minute,
 		 end_hour, end_minute,
-		 p->pty, p->lto, p->caf);
+		 p->at2_hour, p->at2_minute,
+		 p->pty,
+		 p->seconds_east,
+		 p->seconds_east_valid,
+		 !!(p->flags & VBI3_PDC_ENCRYPTED));
 
 	for (i = 0; i < 4; ++i)
 		fprintf (fp, "%02d:%02d-%02d%c",
@@ -277,11 +331,8 @@ _vbi3_preselection_dump		(const vbi3_preselection *p,
 			 p->_at1_ptl[i].column_end,
 			 (i == 2) ? ' ' : ',');
 
-	fprintf (fp, "pgno=%03x title=\"", p->pgno);
-
-	vbi3_fputs_locale_utf8 (fp, p->title, VBI3_NUL_TERMINATED);
-
-	fputc ('"', fp);
+	fprintf (fp, "pgno=%03x title=\"%s\"",
+		 p->_pgno, p->title);
 }
 
 /**
@@ -337,6 +388,7 @@ vbi3_preselection_copy		(vbi3_preselection *	dst,
 
 		title = NULL;
 		if (NULL != src->title) {
+			/* XXX uses locale encoding. */
 			title = strdup (src->title);
 			if (NULL == title)
 				return FALSE;
@@ -391,13 +443,15 @@ _vbi3_preselection_array_dup	(const vbi3_preselection *p,
 	vbi3_preselection *new_p;
 	unsigned int i;
 
-	if (!(new_p = vbi3_malloc (n_elements * sizeof (*new_p))))
+	new_p = vbi3_malloc (n_elements * sizeof (*new_p));
+	if (NULL == new_p)
 		return NULL;
 
 	memcpy (new_p, p, n_elements * sizeof (*new_p));
 
 	for (i = 0; i < n_elements; ++i) {
 		if (NULL != p[i].title) {
+			/* XXX uses local encoding. */
 			new_p[i].title = strdup (p[i].title);
 			if (NULL == new_p[i].title) {
 				goto failure;
@@ -425,9 +479,11 @@ _vbi3_preselection_array_new	(unsigned int		n_elements)
 {
 	vbi3_preselection *p;
 
-	p = vbi3_malloc (n_elements * sizeof (vbi3_preselection));
+	p = vbi3_malloc (n_elements * sizeof (*p));
 
-	memset (p, 0, n_elements * sizeof (vbi3_preselection));
+	if (NULL != p) {
+		memset (p, 0, n_elements * sizeof (*p));
+	}
 
 	return p;
 }
@@ -874,15 +930,16 @@ pdc_at2_fill			(vbi3_preselection *		table,
 		prev_hour = begin[-1].at1_hour;
 
 	for (p = begin; p < end; ++p) {
-		p->cni_type	= src->cni_type;
-		p->cni		= src->cni;
-		p->year		= src->year;
-		p->month	= src->month;
-		p->day		= src->day;
-		p->lto		= src->lto;
+		p->cni_type		= src->cni_type;
+		p->cni			= src->cni;
+		p->year			= src->year;
+		p->month		= src->month;
+		p->day			= src->day;
+		p->seconds_east		= src->seconds_east;
+		p->seconds_east_valid	= src->seconds_east_valid;
 
-		p->at2_hour	= p->at1_hour;
-		p->at2_minute	= p->at1_minute;
+		p->at2_hour		= p->at1_hour;
+		p->at2_minute		= p->at1_minute;
 
 		if (pdc && pdc->date_format) {
 			if (p->at1_hour < prev_hour) {
@@ -968,8 +1025,8 @@ title_append			(vbi3_preselection *	p,
 {
 	uint16_t *up = *pup;
 
-	if (0 == p->pgno) {
-		p->pgno = title_remove_pgno (cp, &end);
+	if (0 == p->_pgno) {
+		p->_pgno = title_remove_pgno (cp, &end);
 	} else {
 		while (end > cp && 0x0020 == end[-1].unicode)
 			--end;
@@ -1061,7 +1118,7 @@ _vbi3_pdc_title_post_proc	(vbi3_page *		pg,
 	unsigned int cont_column;
 	unsigned int i;
 
-	p->pgno = 0;
+	p->_pgno = 0;
 
 	buffer = malloc ((pg->rows * pg->columns) * sizeof (*buffer));
 	if (NULL == buffer)
@@ -1135,7 +1192,8 @@ _vbi3_pdc_title_post_proc	(vbi3_page *		pg,
 	vbi3_free (p->title);
 
 	/* Error ignored. */
-	p->title = vbi3_strndup_utf8_ucs2 (buffer, up - buffer);
+	p->title = vbi3_strndup_iconv_ucs2 (vbi3_locale_codeset (),
+					    buffer, up - buffer);
 
 	vbi3_free (buffer);
 	buffer = NULL;
@@ -1509,12 +1567,13 @@ _vbi3_pdc_method_a		(vbi3_preselection *	table,
 				case 0x9:
 				{
 					unsigned int d;
+					int lto;
 
 					if (!vbi3_is_bcd (value))
 						goto bad;
 
 					pdc_log ("LTO %03x %d\n",
-						 value, p2->lto);
+						 value, p2->seconds_east);
 
 					d = (value & 15)
 						+ ((value >> 4) & 15) * 10;
@@ -1528,9 +1587,10 @@ _vbi3_pdc_method_a		(vbi3_preselection *	table,
 							 p2, pdc);
 
 					/* 0x999 = -0x001 (ok?) */
-					p2->lto = (value >= 0x900) ?
-						d - 100: d;
-					p2->lto *= 15; /* to minutes */
+					lto = (value >= 0x900) ? d - 100 : d;
+
+					p2->seconds_east = lto * 15 * 60;
+					p2->seconds_east_valid = TRUE;
 
 					break;
 				}
@@ -1573,12 +1633,14 @@ _vbi3_pdc_method_a		(vbi3_preselection *	table,
 				if (++p2 >= pend)
 					goto finish;
 
-				p2->year	= p2[-1].year;
-				p2->month	= p2[-1].month;
-				p2->day		= p2[-1].day;
-				p2->cni		= p2[-1].cni;
-				p2->cni_type	= p2[-1].cni_type;
-				p2->lto		= p2[-1].lto;
+				p2->year		= p2[-1].year;
+				p2->month		= p2[-1].month;
+				p2->day			= p2[-1].day;
+				p2->cni			= p2[-1].cni;
+				p2->cni_type		= p2[-1].cni_type;
+				p2->seconds_east	= p2[-1].seconds_east;
+				p2->seconds_east_valid	=
+					p2[-1].seconds_east_valid;
 
 				break;
 
@@ -1825,58 +1887,42 @@ _vbi3_pdc_method_a		(vbi3_preselection *	table,
 	return p2 - table;
 }
 
-#if 0
-
-/*
-   Problem: vbi3_preselection gives network local time, which may
-   not be our time zone. p->lto should tell, but is it always
-   transmitted? mktime OTOH assumes our timezone, tm_gmtoff is
-   a GNU extension.
-*/
-
-time_t
-vbi3_preselection_time		(const vbi3_preselection *p)
-{
-	struct tm t;
-
-	assert (NULL != p);
-
-	CLEAR (t);
-
-	t.tm_year	= p->year - 1900;
-	t.tm_mon	= p->month - 1;
-	t.tm_mday	= p->day;
-	t.tm_hour	= p->at1_hour;
-	t.tm_min	= p->at1_minute;
-
-	t.tm_isdst	= -1; /* unknown */
-
-	t.tm_gmtoff	= pl->lto * 60; /* XXX sign? */
-
-	return mktime (&t);
-}
-
-#else
-
 /**
- * @param pid vbi3_preselection structure.
+ * @param p vbi3_preselection structure.
+ * @param seconds_east The time zone of the intended audience of
+ *   this program, in seconds east of UTC. CET for example is
+ *   1 * 60 * 60 seconds east of UTC. When @a p->seconds_east_valid
+ *   is @c TRUE, @a p->seconds_east will be used instead.
  *
- * Returns the date and time (at1) in the vbi3_preselection
- * structure as time_t value.
+ * Returns the date and time (at1) in the vbi3_preselection @a p
+ * structure as a time in the UTC time zone.
  *
  * @returns
- * time_t value, (time_t) -1 if the date and time cannot
- * be represented as time_t value.
- *
- * @bugs
- * Not implemented yet.
+ * Time in seconds since 1970-01-01 00:00 UTC, or (time_t) -1 if the
+ * date and time cannot be represented as time_t value.
  */
 time_t
-vbi3_preselection_time		(const vbi3_preselection *p)
+vbi3_preselection_time		(const vbi3_preselection *p,
+				 int			seconds_east)
 {
+	struct tm tm;
+
 	assert (NULL != p);
 
-	return (time_t) -1;
-}
+	CLEAR (tm);
 
-#endif
+	tm.tm_year	= p->year - 1900;
+	tm.tm_mon	= p->month - 1;
+	tm.tm_mday	= p->day;
+	tm.tm_hour	= p->at1_hour;
+	tm.tm_min	= p->at1_minute;
+
+	tm.tm_isdst	= -1; /* unknown */
+
+	if (p->seconds_east_valid)
+		tm.tm_gmtoff = p->seconds_east;
+	else
+		tm.tm_gmtoff = seconds_east;
+
+	return mktime (&tm);
+}

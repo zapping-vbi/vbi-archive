@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.5.2.4 2006-05-07 06:05:00 mschimek Exp $ */
+/* $Id: caption.c,v 1.5.2.5 2006-05-14 14:14:12 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -571,19 +571,6 @@ old_mainloop			(void)
 	fprintf (stderr, "\rEnd of stream\n");
 }
 
-static void
-log_function			(vbi3_log_level		level,
-				 const char *		function,
-				 const char *		message,
-				 void *			user_data)
-{
-	level = level;
-	user_data = user_data;
-
-	fprintf (stderr, "%s: %s\n",
-		 function, message);
-}
-
 int
 main				 (int			argc,
 				 char **		argv)
@@ -592,7 +579,9 @@ main				 (int			argc,
 
 	setlocale (LC_ALL, "");
 
-	vbi3_set_log_fn (log_function, /* user_data */ NULL);
+	vbi3_set_log_fn (VBI3_LOG_INFO - 1,
+			 vbi3_log_on_stderr,
+			 /* user_data */ NULL);
 
 	if  (!init_window (argc, argv))
 		exit (EXIT_FAILURE);

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.c,v 1.1.2.5 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: conv.c,v 1.1.2.6 2006-05-14 14:14:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -108,8 +108,8 @@ xiconv_open			(const char *		dst_format,
 /**
  * @param dst_format Character set name for iconv() conversion,
  *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
- * @param dst Pointer to output buffer pointer, will be incremented
- *   by the number of bytes written.
+ * @param dst Pointer to output buffer pointer, which will be
+ *   incremented by the number of bytes written.
  * @param dst_size Space available in the output buffer, in bytes.
  *
  * Helper function to convert UCS-2 coded text (as in vbi3_page) to

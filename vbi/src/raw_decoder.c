@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.c,v 1.1.2.7 2006-05-07 20:51:36 mschimek Exp $ */
+/* $Id: raw_decoder.c,v 1.1.2.8 2006-05-14 14:14:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -35,35 +35,44 @@
 #  define DECODER_PATTERN_DUMP 0
 #endif
 
-#ifndef RAW_DECODER_LOG
-#  define RAW_DECODER_LOG 0
-#endif
-
-#ifndef PRIx64
-#  define PRIx64 "llx"
-#endif
-#ifndef PRId64
-#  define PRId64 "lld"
-#endif
-
-#define log(level, templ, args...)					\
-do {									\
-	if (rd->log_mask & level)					\
-		vbi3_log_printf (rd->log_fn, rd->log_user_data,		\
-				 level, __FUNCTION__,			\
-				 templ , ##args);			\
-} while (0)
-
 /**
  * @addtogroup RawDecoder Raw VBI decoder
  * @ingroup Raw
  * @brief Converting a raw VBI image to sliced VBI data.
  */
 
+static void
+xlog				(vbi3_raw_decoder *	rd,
+				 vbi3_log_mask		level,
+				 const char *		context,
+				 const char *		templ,
+				 ...)
+{
+	vbi3_log_fn *log_fn;
+	void *user_data;
+	va_list ap;
+
+	if (rd->log_mask & level) {
+		log_fn = rd->log_fn;
+		user_data = rd->log_user_data;
+	} else if (vbi3_global_log_mask & level) {
+		log_fn = vbi3_global_log_fn;
+		user_data = vbi3_global_log_user_data;
+	} else {
+		return;
+	}
+
+	va_start (ap, templ);
+	vbi3_log_vprintf (log_fn, user_data,
+			  level, context, templ, ap);
+	va_end (ap);
+}
+
 /* Missing:
    VITC PAL 6-22 11.2us 1.8125 Mbit NRZ two start bits + CRC
    VITC NTSC 10-21 ditto
    CGMS NTSC 20 11us .450450 Mbit NRZ ?
+   MOJI
 */
 const vbi3_service_par
 _vbi3_service_table [] = {
@@ -893,14 +902,15 @@ vbi3_raw_decoder_add_services	(vbi3_raw_decoder *	rd,
 	services &= ~(VBI3_SLICED_VBI3_525 | VBI3_SLICED_VBI3_625);
 
 	if (rd->services & services) {
-		log (VBI3_LOG_INFO,
-		     "Already decoding services 0x%08x.",
-		     rd->services & services);
+		xlog (rd, VBI3_LOG_INFO, __FUNCTION__,
+		      "Already decoding services 0x%08x.",
+		      rd->services & services);
 		services &= ~rd->services;
 	}
 
 	if (0 == services) {
-		log (VBI3_LOG_INFO, "No services to add.");
+		xlog (rd, VBI3_LOG_INFO, __FUNCTION__,
+		      "No services to add.");
 		return rd->services;
 	}
 
@@ -915,7 +925,8 @@ vbi3_raw_decoder_add_services	(vbi3_raw_decoder *	rd,
 		size = scan_ways * sizeof (rd->pattern[0]);
 		rd->pattern = (int8_t *) vbi3_malloc (size);
 		if (!rd->pattern) {
-			log (VBI3_LOG_ERROR, "Out of memory.");
+			xlog (rd, VBI3_LOG_ERROR, __FUNCTION__,
+			      "Out of memory.");
 			return rd->services;
 		}
 
@@ -963,11 +974,11 @@ vbi3_raw_decoder_add_services	(vbi3_raw_decoder *	rd,
 		}
 
 		if (j >= _VBI3_RAW_DECODER_MAX_JOBS) {
-			log (VBI3_LOG_ERROR,
-			     "Set 0x%08x exceeds number of "
-			     "simultaneously decodable "
-			     "services (%u).",
-			     services, _VBI3_RAW_DECODER_MAX_WAYS);
+			xlog (rd, VBI3_LOG_ERROR, __FUNCTION__,
+			      "Set 0x%08x exceeds number of "
+			      "simultaneously decodable "
+			      "services (%u).",
+			      services, _VBI3_RAW_DECODER_MAX_WAYS);
 			break;
 		} else if (j >= rd->n_jobs) {
 			job->id = 0;
@@ -1038,10 +1049,10 @@ vbi3_raw_decoder_add_services	(vbi3_raw_decoder *	rd,
 		lines_containing_data (start, count, sp, par);
 
 		if (!add_job_to_pattern (rd, job - rd->jobs, start, count)) {
-			log (VBI3_LOG_ERROR,
-			     "Out of decoder pattern space for "
-			     "service 0x%08x (%s).",
-			     par->id, par->label);
+			xlog (rd, VBI3_LOG_ERROR, __FUNCTION__,
+			      "Out of decoder pattern space for "
+			      "service 0x%08x (%s).",
+			      par->id, par->label);
 			continue;
 		}
 
@@ -1065,10 +1076,10 @@ vbi3_raw_decoder_get_point	(vbi3_raw_decoder *	rd,
 	assert (NULL != rd);
 	assert (NULL != point);
 
-	if (row > rd->n_sp_lines)
+	if (row >= rd->n_sp_lines)
 		return FALSE;
 
-	if (nth_bit > rd->sp_lines[row].n_points)
+	if (nth_bit >= rd->sp_lines[row].n_points)
 		return FALSE;
 
 	*point = rd->sp_lines[row].points[nth_bit];
@@ -1147,7 +1158,7 @@ vbi3_raw_decoder_collect_points	(vbi3_raw_decoder *	rd,
  * the new sampling parameters.
  *
  * @return
- * Set of data services @rd will be decode after the change.
+ * Set of data services @a rd will be decode after the change.
  * Can be zero if the sampling parameters are invalid or some
  * other error occured.
  */
@@ -1210,9 +1221,9 @@ vbi3_raw_decoder_set_log_fn	(vbi3_raw_decoder *	rd,
 	if (NULL == log_fn)
 		mask = 0;
 
+	rd->log_mask = mask;
 	rd->log_fn = log_fn;
 	rd->log_user_data = user_data;
-	rd->log_mask = mask;
 
 	for (i = 0; i < _VBI3_RAW_DECODER_MAX_JOBS; ++i) {
 		vbi3_bit_slicer_set_log_fn (&rd->jobs[i].slicer,
@@ -1249,18 +1260,6 @@ _vbi3_raw_decoder_init		(vbi3_raw_decoder *	rd,
 
 	vbi3_raw_decoder_reset (rd);
 
-	if (0 != vbi3_global_log_mask) {
-		vbi3_raw_decoder_set_log_fn (rd,
-					     vbi3_global_log_mask,
-					     vbi3_global_log_fn,
-					     vbi3_global_log_user_data);
-	} else if (RAW_DECODER_LOG) {
-		vbi3_raw_decoder_set_log_fn (rd,
-					     /* level: all */ -1,
-					     vbi3_log_on_stderr,
-					     /* user_data */ NULL);
-	}
- 
  	if (NULL != sp) {
 		if (!_vbi3_sampling_par_valid (sp, rd->log_fn,
 					      rd->log_user_data))

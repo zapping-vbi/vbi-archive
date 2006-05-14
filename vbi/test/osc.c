@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osc.c,v 1.9.2.4 2006-05-07 06:05:00 mschimek Exp $ */
+/* $Id: osc.c,v 1.9.2.5 2006-05-14 14:14:12 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -51,12 +51,14 @@ vbi3_sampling_par	sp;
 
 int			src_w, src_h;
 vbi3_sliced *		sliced;
-int			slines;
+int			n_lines;
 vbi3_bool		quit;
 
 int			do_sim;
 int			ignore_error;
 int			desync;
+vbi3_bool		show_grid;
+vbi3_bool		show_points;
 
 Display *		display;
 int			screen;
@@ -100,7 +102,7 @@ teletext			(const uint8_t		buffer[42],
 	n = snprintf (text, sizeof (text) - 43, "%x/%2u ", magazine, packet);
 
 	for (i = 0; i < 42; ++i)
-		text[n++] = vbi3_printable (buffer[i]);
+		text[n++] = vbi3_to_ascii (buffer[i]);
 
         text[n] = 0;
 
@@ -184,7 +186,7 @@ vps				(uint8_t		buffer[13],
 			l[i] = 0;
 		}
 
-		label[i][l[i]] = vbi3_printable (c);
+		label[i][l[i]] = vbi3_to_ascii (c);
 
 		l[i] = (l[i] + 1) % 16;
 		
@@ -192,7 +194,7 @@ vps				(uint8_t		buffer[13],
 			       " data %02x %02x %02x='%c'=\"%s\" %02x %02x "
 			       "%02x %02x %02x %02x",
 			       buffer[0], buffer[1],
-			       c, vbi3_printable (c), pr_label[i],
+			       c, vbi3_to_ascii (c), pr_label[i],
 			       buffer[2], buffer[3],
 			       buffer[4], buffer[5],
 			       buffer[6], buffer[7]);
@@ -241,7 +243,7 @@ generic				(uint8_t		buffer[2],
 		sprintf (text + i * 3, "%02x ", buffer[i]);
 
 	for (i = 0; i < size; ++i)
-		text[size * 3 + i] = vbi3_printable (buffer[i]);
+		text[size * 3 + i] = vbi3_to_ascii (buffer[i]);
 
 	text[size * 4] = 0;
 
@@ -310,11 +312,11 @@ draw(unsigned char *raw)
 				       draw_row, line);
 	}
 
-	for (i = 0; i < slines; ++i)
+	for (i = 0; i < n_lines; ++i)
 		if (sliced[i].line == line)
 			break;
 
-	if (i < slines) {
+	if (i < n_lines) {
 		const char *text;
 
 		text = vbi3_sliced_name (sliced[i].id);
@@ -397,7 +399,7 @@ draw(unsigned char *raw)
 				       " (%d)", sd);
 	}
 
-	{
+	if (show_grid) {
 		unsigned int i;
 		double ppus;
 
@@ -414,49 +416,43 @@ draw(unsigned char *raw)
 		}
 	}
 
-#if 0
-	{
-		/* Are you pondering what I'm pondering?
-		   See src/bit_slicer.c. */
-		extern _vbi3_bit_slicer_point narf[256];
+	if (show_points) {
 		unsigned int i;
 
-		for (i = 0; i < 64; ++i) {
+		for (i = 0; i < 640; ++i) {
+			vbi3_bit_slicer_point point;
 			unsigned int x, y;
 			int h;
 
-			switch (narf[i].index >> 24) {
-			case 0: /* clock run-in */
+			if (!vbi3_raw_decoder_get_point (rd, &point,
+							 draw_row, i))
+				break;
+
+			switch (point.kind) {
+			case VBI3_CRI_BIT:
 				XSetForeground (display, gc, 0x888800);
 				break;
-			case 1: /* framing code */
+			case VBI3_FRC_BIT:
 				XSetForeground (display, gc, 0xCCCC00);
 				break;
-			case 2: /* payload */
+			case VBI3_PAYLOAD_BIT:
 				XSetForeground (display, gc, 0xFFFF00);
 				break;
-			case 3: /* end of sampling points */
-				i = 64;
-				continue;
+			default:
+				assert (0);
 			}
 
 			/* Sampling point. */
-			x = (narf[i].index / 256) & 0xFFF;
-			/* Not used here: the interpolated and
-			   oversampled value at this point: narf[i].level. */
-			/* The 0/1 treshold at this point.
-			   Note these are all unsigned fixed point values
-			   with an 8 bit fraction. */
-			y = (narf[i].thresh / 256);
+			x = (point.index / 256) & 0xFFF;
+			y = (point.thresh / 256);
 			h = dst_h - (y * v) / 256;
 
 			XFillRectangle (display, window, gc,
-					x - draw_offset, src_h, 1, dst_h);
+					x - draw_offset, h - 5, 1, 11);
 			XFillRectangle (display, window, gc,
 					x - draw_offset - 5, h, 11, 1);
 		}
 	}
-#endif /* 0 */
 
         XSetForeground(display, gc, ~0);
 
@@ -496,8 +492,18 @@ xevent(void)
 				draw_count = 1;
 				break;
 
+			case 'i':
+				show_grid ^= TRUE;
+				break;
+
 			case 'l':
 				draw_count = -1;
+				break;
+
+			case 'p':
+				show_points ^= TRUE;
+				vbi3_raw_decoder_collect_points
+					(rd, show_points);
 				break;
 
 			case 'q':
@@ -648,7 +654,7 @@ init_window(int ac, char **av, char *dev_name)
 
 	XSelectInput(display, window, PointerMotionMask | KeyPressMask | ExposureMask | StructureNotifyMask);
 	XSetWMProtocols(display, window, &delete_window_atom, 1);
-	snprintf(buf, sizeof(buf) - 1, "%s - [cursor] [g]rab [l]ive", dev_name);
+	snprintf(buf, sizeof(buf) - 1, "%s - [cursor] [g]rab [l]ive gr[i]d [p]oints", dev_name);
 	XStoreName(display, window, buf);
 
 	gc = XCreateGC(display, window, 0, NULL);
@@ -673,7 +679,7 @@ mainloop(void)
 		int r;
 
 		r = vbi3_capture_read(cap, raw1, sliced,
-				      &slines, &timestamp, &tv);
+				      &n_lines, &timestamp, &tv);
 		switch (r) {
 		case -1:
 			fprintf(stderr, "VBI read error: %d, %s%s\n",
@@ -698,19 +704,10 @@ mainloop(void)
 
 		draw(raw1);
 
-/*		printf("raw: %f; sliced: %d\n", timestamp, slines); */
+/*		printf("raw: %f; sliced: %d\n", timestamp, n_lines); */
 
 		xevent();
 	}
-}
-
-static void
-logfn    			(unsigned int		level,
-				 const char *		function,
-				 const char *		message,
-				 void *			user_data)
-{
-	fprintf (stderr, "%s: %s\n", function, message);
 }
 
 static const char short_options[] = "123cde:npsv";
@@ -786,8 +783,11 @@ main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 
-	/*	if (verbose)
-		vbi3_set_log_fn (logfn, NULL); */
+	if (verbose) {
+		vbi3_set_log_fn (VBI3_LOG_INFO - 1,
+				 vbi3_log_on_stderr,
+				 /* user_data */ NULL);
+	}
 
 	services = VBI3_SLICED_VBI3_525 | VBI3_SLICED_VBI3_625 |
 		VBI3_SLICED_TELETEXT_A |
@@ -888,6 +888,11 @@ main(int argc, char **argv)
 	if (verbose > 1) {
 // 0.2		vbi3_capture_set_log_fp (cap, stderr);
 	}
+
+	show_grid = TRUE;
+	show_points = TRUE;
+
+	vbi3_raw_decoder_collect_points (rd, TRUE);
 
 	vbi3_raw_decoder_get_sampling_par (rd, &sp);
 

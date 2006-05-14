@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top_title.c,v 1.1.2.1 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: top_title.c,v 1.1.2.2 2006-05-14 14:14:12 mschimek Exp $ */
 
 #include <stdlib.h>		/* malloc(), qsort() */
 #include "conv.h"		/* _vbi3_strdup_locale_teletext() */
@@ -183,8 +183,9 @@ _vbi3_top_title_from_ait_title
 	const struct page_stat *ps;
 	char *title;
 
-	title = vbi3_strndup_utf8_teletext (ait->text,
-					    N_ELEMENTS (ait->text), cs);
+	title = vbi3_strndup_iconv_teletext ("UTF-8",
+					     ait->text,
+					     N_ELEMENTS (ait->text), cs);
 	if (NULL == title) {
 		/* Make vbi3_top_title_destroy() safe. */
 		vbi3_top_title_init (tt);

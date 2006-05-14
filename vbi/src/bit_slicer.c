@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.c,v 1.1.2.10 2006-05-07 20:51:35 mschimek Exp $ */
+/* $Id: bit_slicer.c,v 1.1.2.11 2006-05-14 14:14:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -30,11 +30,6 @@
 #include "bit_slicer.h"
 #include "version.h"
 
-/* Enable logging by default (site_def.h). */
-#ifndef BIT_SLICER_LOG
-#  define BIT_SLICER_LOG 0
-#endif
-
 #if 2 == VBI_VERSION_MINOR
 #  define VBI3_PIXFMT_Y8 VBI_PIXFMT_YUV420
 #  define VBI3_PIXFMT_RGB24_LE VBI_PIXFMT_RGB24
@@ -42,14 +37,6 @@
 #  define VBI3_PIXFMT_RGB8 101
 #  define vbi3_pixfmt_bytes_per_pixel VBI_PIXFMT_BPP
 #endif
-
-#define warning(templ, args...)						\
-do {									\
-	if (bs->log_mask & VBI3_LOG_WARNING)				\
-		vbi3_log_printf (bs->log_fn, bs->log_user_data,		\
-				 VBI3_LOG_WARNING, __FUNCTION__,	\
-				 templ , ##args);			\
-} while (0)
 
 /**
  * @addtogroup BitSlicer Bit Slicer
@@ -62,6 +49,32 @@ do {									\
  * use the raw VBI decoder, converting several lines of different
  * data services at once.
  */
+
+static void
+warning				(vbi3_bit_slicer *	bs,
+				 const char *		context,
+				 const char *		templ,
+				 ...)
+{
+	vbi3_log_fn *log_fn;
+	void *user_data;
+	va_list ap;
+
+	if (bs->log_mask & VBI3_LOG_WARNING) {
+		log_fn = bs->log_fn;
+		user_data = bs->log_user_data;
+	} else if (vbi3_global_log_mask & VBI3_LOG_WARNING) {
+		log_fn = vbi3_global_log_fn;
+		user_data = vbi3_global_log_user_data;
+	} else {
+		return;
+	}
+
+	va_start (ap, templ);
+	vbi3_log_vprintf (log_fn, user_data,
+			  VBI3_LOG_WARNING, context, templ, ap);
+	va_end (ap);
+}
 
 /* This is time critical, tinker with care.
 
@@ -302,9 +315,11 @@ null_function			(vbi3_bit_slicer *	bs,
 				 uint8_t *		buffer,
 				 const uint8_t *	raw)
 {
-	bs = bs; /* unused */
-	buffer = buffer;
+	buffer = buffer; /* unused */
 	raw = raw;
+
+	warning (bs, __FUNCTION__,
+		 "vbi3_bit_slicer_set_params() not called.");
 
 	return FALSE;
 }
@@ -328,15 +343,18 @@ null_function			(vbi3_bit_slicer *	bs,
  * 
  * Like vbi3_bit_slicer_slice() but additionally provides information
  * about where and how bits were sampled. This is mainly interesting
- * for debugging. Note currently this function is only implemented for
- * raw data in planar YUV formats and @c VBI3_PIXFMT_Y8.
+ * for debugging.
  *
- * @return
+ * @returns
  * @c FALSE if the @a buffer or @a points array is too small, if the
  * pixel format is not supported or if the raw data does not contain
  * the expected information, i. e. the CRI/FRC has not been found. In
  * these cases the @a buffer remains unmodified but the @a points
  * array may contain data.
+ *
+ * @bug
+ * Currently this function is only implemented for
+ * raw data in planar YUV formats and @c VBI3_PIXFMT_Y8.
  */
 vbi3_bool
 vbi3_bit_slicer_slice_with_points
@@ -361,32 +379,38 @@ vbi3_bit_slicer_slice_with_points
 	assert (NULL != n_points);
 	assert (NULL != raw);
 
+	points_start = points;
+	*n_points = 0;
+
 	if (bs->payload > buffer_size * 8) {
-		warning ("bit_slicer buffer_size %u < %u bits of payload.",
+		warning (bs, __FUNCTION__,
+			 "buffer_size %u < %u bits of payload.",
 			 buffer_size * 8, bs->payload);
 		return FALSE;
 	}
 
 	if (bs->total_bits > max_points) {
-		warning ("max_points %u < %u CRI, FRC and payload bits.",
+		warning (bs, __FUNCTION__,
+			 "max_points %u < %u CRI, FRC and payload bits.",
 			 max_points, bs->total_bits);
 		return FALSE;
 	}
 
 	if (bit_slicer_Y8 != bs->func) {
-		warning ("Not implemented for pixfmt %s.",
+		warning (bs, __FUNCTION__,
+			 "Function not implemented for pixfmt %s.",
 			 vbi3_pixfmt_name (bs->sample_format));
-		return FALSE;
-	}
 
-	points_start = points;
+		return bs->func (bs, buffer, raw);
+	}
 
 	CORE ();
 }
 
 /**
  * @param bs Pointer to vbi3_bit_slicer object allocated with
- *   vbi3_bit_slicer_new().
+ *   vbi3_bit_slicer_new(). You must also call
+ *   vbi3_bit_slicer_set_params() before calling this function.
  * @param buffer Output data.
  * @param buffer_size Size of the output buffer. The buffer must be
  +   large enough to store the number of bits given as @a payload to
@@ -417,7 +441,8 @@ vbi3_bit_slicer_slice		(vbi3_bit_slicer *	bs,
 	assert (NULL != raw);
 
 	if (bs->payload > buffer_size * 8) {
-		warning ("buffer_size %u < %u bits of payload.",
+		warning (bs, __FUNCTION__,
+			 "buffer_size %u < %u bits of payload.",
 			 buffer_size * 8, bs->payload);
 		return FALSE;
 	}
@@ -429,6 +454,8 @@ vbi3_bit_slicer_slice		(vbi3_bit_slicer *	bs,
  * @param bs Pointer to vbi3_bit_slicer object allocated with
  *   vbi3_bit_slicer_new().
  * @param sample_format Format of the raw data, see vbi3_pixfmt.
+ *   Note the bit slicer looks only at the green component of RGB
+ *   pixels.
  * @param sampling_rate Raw vbi sampling rate in Hz, that is the number
  *   of samples or pixels sampled per second by the hardware.
  * @param sample_offset The bit slicer shall skip this number of samples at
@@ -508,13 +535,15 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 	assert (samples_per_line <= 32767);
 
 	if (cri_rate > sampling_rate) {
-		warning ("cri_rate %u > sampling_rate %u.",
+		warning (bs, __FUNCTION__,
+			 "cri_rate %u > sampling_rate %u.",
 			 cri_rate, sampling_rate);
 		goto failure;
 	}
 
 	if (payload_rate > sampling_rate) {
-		warning ("payload_rate %u > sampling_rate %u.",
+		warning (bs, __FUNCTION__,
+			 "payload_rate %u > sampling_rate %u.",
 			 payload_rate, sampling_rate);
 		goto failure;
 	}
@@ -728,7 +757,8 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 #endif
 
 	default:
-		warning ("Unknown sample_format 0x%x.",
+		warning (bs, __FUNCTION__,
+			 "Unknown sample_format 0x%x.",
 			 (unsigned int) sample_format);
 		return FALSE;
 	}
@@ -751,7 +781,8 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 	if ((sample_offset > samples_per_line)
 	    || ((cri_samples + data_samples)
 		> (samples_per_line - sample_offset))) {
-		warning ("%u samples_per_line too small for "
+		warning (bs, __FUNCTION__,
+			 "%u samples_per_line too small for "
 			 "sample_offset %u + %u cri_bits (%u samples) "
 			 "+ %u frc_bits and %u payload_bits "
 			 "(%u samples).",
@@ -829,9 +860,9 @@ vbi3_bit_slicer_set_log_fn	(vbi3_bit_slicer *	bs,
 	if (NULL == log_fn)
 		mask = 0;
 
+	bs->log_mask = mask;
 	bs->log_fn = log_fn;
 	bs->log_user_data = user_data;
-	bs->log_mask = mask;
 }
 
 /**
@@ -857,18 +888,6 @@ _vbi3_bit_slicer_init		(vbi3_bit_slicer *	bs)
 	CLEAR (*bs);
 
 	bs->func = null_function;
-
-	if (0 != vbi3_global_log_mask) {
-		vbi3_bit_slicer_set_log_fn (bs,
-					    vbi3_global_log_mask,
-					    vbi3_global_log_fn,
-					    vbi3_global_log_user_data);
-	} else if (BIT_SLICER_LOG) {
-		vbi3_bit_slicer_set_log_fn (bs,
-					    /* mask: all */ -1,
-					    vbi3_log_on_stderr,
-					    /* user_data */ NULL);
-	}
 
 	return TRUE;
 }

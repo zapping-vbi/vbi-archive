@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-sim.c,v 1.1.2.9 2006-05-07 20:51:36 mschimek Exp $ */
+/* $Id: io-sim.c,v 1.1.2.10 2006-05-14 14:14:11 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdio.h>
@@ -230,41 +230,56 @@ signal_closed_caption		(const vbi3_sampling_par *sp,
 				 uint8_t *		raw,
 				 const vbi3_sliced *	sliced)
 {
-	double bit_period = 1.0 / bit_rate;
-	double t1 = 10.5e-6 - .25 * bit_period;
-	double t2 = t1 + 7 * bit_period; /* CRI 7 cycles */
-	double t3 = t2 + 1.25 * bit_period;
-	double t4 = t3 + 18 * bit_period; /* 17 bits + raise and fall time */
-	double q1 = PI * bit_rate;
-	double q = q1 * .5;
+	double D = 1.0 / bit_rate;
+	double t0 = 10.5e-6; /* CRI start half amplitude */
+	double t1 = t0 + .25 * D; /* CRI start, blanking level */
+	double t2 = t1 + 7 * D; /* CRI 7 cycles */
+	double t3 = t0 + 7 * D; /* first start bit left edge half amplitude */
+	double q1 = PI * bit_rate * 2;
+	double q2 = PI / .120e-6;
+	double signal_mean = (white_level - blank_level) * .25; /* 25 IRE */
+	double signal_high = blank_level + (white_level - blank_level) * .5;
 	double sample_period = 1.0 / sp->sampling_rate;
-	double signal_amp = (white_level - blank_level) * .5;
+	double t;
 	unsigned int data;
 	unsigned int i;
-	double t;
 
 	/* Twice 7 data + odd parity, start bit 0 -> 1 */
 
-	data = (sliced->data[1] << 10) + (sliced->data[0] << 2) + 2;
+	data = (sliced->data[1] << 12) + (sliced->data[0] << 4) + 8;
 
 	t = sp->offset / (double) sp->sampling_rate;
 
 	for (i = 0; i < sp->samples_per_line; ++i) {
 		if (t >= t1 && t < t2) {
-			double r;
-
-			r = sin (q1 * (t - t2));
-			raw[i] = blank_level + (int)(r * r * signal_amp);
-		} else if (t >= t3 && t < t4) {
-			double tr;
+			raw[i] = blank_level
+				+ (1.0 - cos (q1 * (t - t1)))
+				* signal_mean;
+		} else {
 			unsigned int bit;
 			unsigned int seq;
+			double d;
 
-			tr = t - t3;
-			bit = tr * bit_rate;
+			d = t - t3;
+			bit = d * bit_rate;
 			seq = (data >> bit) & 3;
 
-			PULSE (blank_level);
+			d -= bit * D;
+			if ((1 == seq || 2 == seq)
+			    && fabs (d) < .120e-6) {
+				if (1 == seq)
+					raw[i] = blank_level
+						+ (1.0 + cos (q2 * d))
+						* signal_mean;
+				else
+					raw[i] = blank_level
+						+ (1.0 - cos (q2 * d))
+						* signal_mean;
+			} else if (data & (2 << bit)) {
+				raw[i] = signal_high;
+			} else {
+				raw[i] = blank_level;
+			}
 		}
 
 		t += sample_period;
@@ -314,7 +329,8 @@ signal_u8			(const vbi3_sampling_par *sp,
 
 		if (0 == sliced->line) {
 			goto bounds;
-		} else if (sliced->line >= sp->start[1]) {
+		} else if (0 != sp->start[1]
+			   && sliced->line >= sp->start[1]) {
 			row = sliced->line - sp->start[1];
 
 			if (row >= sp->count[1])
@@ -324,7 +340,8 @@ signal_u8			(const vbi3_sampling_par *sp,
 				row = row * 2 + 1;
 			else
 				row += sp->count[0];
-		} else if (sliced->line >= sp->start[0]) {
+		} else if (0 != sp->start[0]
+			   && sliced->line >= sp->start[0]) {
 			row = sliced->line - sp->start[0];
 
 			if (row >= sp->count[0])
@@ -334,8 +351,14 @@ signal_u8			(const vbi3_sampling_par *sp,
 				row *= 2;
 		} else {
 		bounds:
-//			debug ("Sliced line %u out of bounds\n",
-//			       sliced->line);
+			if (vbi3_global_log_mask & VBI3_LOG_WARNING)
+				vbi3_log_printf (vbi3_global_log_fn,
+						 vbi3_global_log_user_data,
+						 VBI3_LOG_WARNING,
+						 __FUNCTION__,
+						 "Sliced line %u out of "
+						 "bounds\n",
+						 sliced->line);
 			return FALSE;
 		}
 
@@ -416,12 +439,20 @@ signal_u8			(const vbi3_sampling_par *sp,
 		case VBI3_SLICED_CAPTION_525_F2:
 		case VBI3_SLICED_CAPTION_525:
 			signal_closed_caption (sp, blank_level, white_level,
-					       15734 * 32, raw1, sliced);
+					       30000 * 525 * 32 / 1001, raw1, sliced);
 			break;
 
 		default:
-//			debug ("Service 0x%08x (%s) not supported\n",
-//			       sliced->id, vbi3_sliced_name (sliced->id));
+			if (vbi3_global_log_mask & VBI3_LOG_WARNING)
+				vbi3_log_printf (vbi3_global_log_fn,
+						 vbi3_global_log_user_data,
+						 VBI3_LOG_WARNING,
+						 __FUNCTION__,
+						 "Service 0x%08x (%s) not "
+						 "supported\n",
+						 sliced->id,
+						 vbi3_sliced_name
+						 (sliced->id));
 			return FALSE;
 		}
 	}
@@ -462,7 +493,7 @@ _vbi3_test_image_vbi		(uint8_t *		raw,
 	unsigned int black_level;
 	unsigned int white_level;
 
-	if (!_vbi3_sampling_par_verify (sp))
+	if (!_vbi3_sampling_par_valid (sp, 0, 0))
 		return FALSE;
 
 	scan_lines = sp->count[0] + sp->count[1];
@@ -615,7 +646,7 @@ _vbi3_test_image_video		(uint8_t *		raw,
 	uint8_t *s;
 	uint8_t *d;
 
-	if (!_vbi3_sampling_par_verify (sp))
+	if (!_vbi3_sampling_par_valid (sp, 0, 0))
 		return FALSE;
 
 	scan_lines = sp->count[0] + sp->count[1];
@@ -938,8 +969,18 @@ _vbi3_test_image_video		(uint8_t *		raw,
 #include "io-priv.h"
 #include "hamm.h"
 
+#define MAGIC 0xd804289c
+
+struct buffer {
+	char *			data;
+	unsigned int		size;
+	unsigned int		capacity;
+};
+
 typedef struct {
 	vbi3_capture		cap;
+
+	unsigned int		magic;
 
 	vbi3_sampling_par	sp;
 
@@ -961,754 +1002,47 @@ typedef struct {
 	unsigned int		teletext_page;
 	unsigned int		teletext_row;
 
-	uint8_t			caption_buf[4];
-	unsigned int		caption_pause;
-	unsigned int		caption_ch;
+	struct buffer		caption_buffers[2];
 	unsigned int		caption_i;
 
-	vbi3_program_id		vps_pid;
+	uint8_t			vps_buffer[13];
 
-	vbi3_aspect_ratio	wss_aspect;
+	uint8_t			wss_buffer[2];
 } vbi3_capture_sim;
 
+static vbi3_bool
+extend_buffer			(struct buffer *	b,
+				 unsigned int		new_capacity)
+{
+	char *new_data;
+
+	new_data = vbi3_realloc (b->data, new_capacity);
+	if (NULL == new_data)
+		return FALSE;
+
+	b->data = new_data;
+	b->capacity = new_capacity;
+
+	return TRUE;
+}
+
 static const char
-caption_test_stream [] =
-/* both fields not supported yet
-	"<erase_display ch=3><roll_up rows=4><pac row=14>"
-	"LIBZVBI CAPTION TEST STREAM.<cr>"
-	"This is channel C4.<cr>"
-	"Nothing to see here.<cr>"
-
-	"<erase_display ch=2><roll_up rows=4><pac row=14>"
-	"LIBZVBI CAPTION TEST STREAM.<cr>"
-	"This is channel C3.<cr>"
-	"Nothing to see here.<cr>"
-*/
-	"<erase-display ch=1><roll-up rows=4><pac row=14>"
-	"LIBZVBI CAPTION TEST STREAM.<cr>"
-	"This is channel C2.<cr>"
-	"Nothing to see here.<cr>"
-
-	"<erase-display ch=0>"
-	"<roll-up rows=4>"
-	"<pac row=14>"
-
-      /* 12345678901234567890123456789012 */
-
-	"LIBZVBI CAPTION TEST STREAM.<cr>"
-	"This is roll-up caption on<cr>"
-	"channel C1. The cursor stays<cr>"
-	"on row 15 of 15.<pause><cr>"
-
-	"We use a four row window, two<cr>"
-	"rows just rolled out of view.<pause><cr>"
-
-	"There are 32 columns. The cursor<cr>"
-	"sticks at the end of a row.<cr>"
-	"12345678901234567890123456789012<cr>"
-	"This sentence is slightly too long.<pause><cr>"
-	"The row above ends with \"l.\".<pause><cr>"
-
-	"To assure correct reception we<cr>"
-	"may repeat control codes. The<cr>"
-	"decoder must ignore them.<cr>"
-	"One music note: <special code=7><pause><cr>"
-	"One music note (1 sent): "
-	"<special code=7><special code=7><pause><cr>"
-	"One music note (2 sent): "
-	"<special code=7><special code=7><special code=7><pause><cr>"
-	"One music note (4 sent): "
-	"<special code=7><special code=7>"
-	"<special code=7><special code=7><pause frames=120><cr>"
-	"Two music notes by sending two<cr>"
-	"non-consecutive codes: <special code=7><cmd code=0>"
-	"<special code=7><pause frames=120><cr>"
-
-	"We can produce an empty<cr>"
-	"(transparent) row:<cr>"
-	/* transmit a NUL to break control code repetition */
-	"<cmd code=0><cr>"
-	"by sending two CR commands.<pause><cr>"
-
-	"We now change to a three row<cr>"
-	"window. The top row disappears<cr>"
-	"and the cursor stays on this row<pause>"
-	"<roll-up rows=3><pause>"
-	"<pac row=14>" /* back to column 1 */
-	"overwriting it.<pause><cr>"
-
-	"This is a three row window, and<cr>"
-	"this is still row 15.<pause><cr>"
-	"We now change to a two row<cr>"
-	"window, the top row disappears.<pause>"
-	"<roll-up rows=2><pause><cr>"
-
-	"This is a two row window, and<cr>"
-	"this is still row 15.<pause><cr>"
-
-	"We change back to four rows,<cr>"
-	"that won't restore the top two.<pause>"
-	"<roll-up rows=4><pause><cr>"
-
-	"These are three rows of text<pause><cr>"
-	"and now four.<pause>"
-
-      /* 12345678901234567890123456789012 */
-	             " We move the<cr>"
-	"window up one row, the cursor<cr>"
-	"moves with it and overwrites<cr>"
-	"this line.<pause>"
-	"<pac row=13><pause>"
-
-	"Squash.<pause><cr>"
-
-	"You see four rows and the<cr>"
-	"cursor is now in row 14. Row 15<cr>"
-	"is empty (transparent).<pause><cr>"
-
-	"Let's try some other rows:<cr>"
-	"Now on 14.<pause>"
-
-	"<pac row=12>Now on 13.<pause>"
-	"<pac row=11>Now on 12.<pause>"
-	"<pac row=10>Now on 11.<pause>"
-	"<pac row=9>Now on 10.<pause>"
-	"<pac row=8>Now on 9.<pause>"
-	"<pac row=7>Now on 8.<pause>"
-	"<pac row=6>"
-	"For the next three moves we<cr>"
-	"use indent codes instead of<cr>"
-	"PAC, looks the same as before.<cr>"
-	"Now on 7.<pause>"
-	"<indent row=5>Now on 6.<pause>"
-	"<indent row=4>Now on 5.<pause>"
-	"<indent row=3>Now on 4.<pause><cr>"
-
-      /* 12345678901234567890123456789012 */
-
-	"On row 3 and above you can no<cr>"
-	"longer see all four rows of<cr>"
-	"the text window.<pause frames=120><cr>"
-	"<pac row=2>Now on 3.<pause>"
-	"<pac row=1>Now on 2.<pause><cr>"
-
-	"But roll-up still works as<cr>"
-	"before.<pause><cr>"
-
-	"<pac row=0>"
-	"Now on 1.<pause><cr>"
-
-	"Still rolls.<pause><cr>"
-
-	"Let's move back to row 6.<pause>"
-	"<pac row=5><pause><cr>"
-
-	"Now you see two rows of text.<pause><cr>"
-	"But the text window is<cr>"
-	"still four rows high.<pause><cr>"
-
-	"We switch to a two row window<cr>"
-	"and move to row 3.<pause>"
-	"<roll-up rows=2><pac row=2><pause><cr>"
-
-      /* 12345678901234567890123456789012 */
-
-	"What happens when we switch to<cr>"
-	"a four row window up here?<pause>"
-	"<roll-up rows=4><pause><cr>"
-
-	"Works fine, except you can<cr>"
-	"see only three rows.<pause><cr>"
-
-	"Testing erase display command.<pause><cr>"
-	"<erase-display>"
-	"You see one row of text.<pause><cr>"
-	"Erasing the non-displayed buffer<cr>"
-	"<erase-hidden>"
-	"has no visible effect.<pause frames=120><cr>"
-
-	"<erase-display>"
-	"<resume-direct>"
-
-                  /* 12345678901234567890123456789012 */
-
-	"<pac row=12>LIBZVBI CAPTION TEST STREAM."
-	"<pac row=13>This is paint-on caption on"
-	"<pac row=14>channel C1.<pause frames=120>"
-
-	"<pac row=11>Like roll-up caption the text<pause>"
-	"<pac row=12>appears immediately. It does<pause>"
-	"<pac row=13>not roll but prints top-down<pause>"
-	"<pac row=14>overwriting old text.<pause frames=120>"
-
-	"<erase-display>"
-	"<pac row=12>From now on we erase the dis-"
-	"<pac row=13>play before printing new text."
-	"<pac row=14>You see three rows of text.<pause frames=120>"
-
-	"<erase-display>"
-	"<pac row=11>We can print on any four rows"
-	"<pac row=12>(any number of rows with the"
-	"<pac row=13>libzvbi caption decoder), in"
-	"<pac row=14>any order.<pause frames=120>"
-
-	"<erase-display>"
-	"<pac row=0>Row 1.<pause>"
-	"<pac row=3>Row 4.<pause>"
-	"<pac row=10>Row 11.<pause>"
-	"<pac row=7>Row 8.<pause>"
-	"<pac row=12>Row 13.<pause>"
-	"<pac row=1>Row 2.<pause>"
-	"<pac row=6>Row 7.<pause>"
-	"<pac row=9>Row 10.<pause>"
-	"<pac row=5>Row 6.<pause>"
-	"<pac row=13>Row 14.<pause>"
-	"<pac row=14>Row 13.<pause>"
-	"<pac row=2>Row 3.<pause>"
-	"<pac row=4>Row 5.<pause>"
-	"<pac row=8>Row 9.<pause>"
-	"<pac row=11>Row 12.<pause frames=120>"
-
-	"<erase-display>"
-	"<indent row=0>Also with indent codes.<pause>"
-	"<indent row=3>Row 4.<pause>"
-	"<indent row=7>Row 8.<pause>"
-	"<indent row=12>Row 13.<pause>"
-	"<indent row=1>Row 2. Stop.<pause frames=120>"
-
-	"<erase-display>"
-	"<pac row=11>There are 32 columns. The cursor"
-	"<pac row=12>sticks at the end of a row."
-	"<pac row=13>12345678901234567890123456789012"
-	"<pac row=14>This sentence is slightly too long.<pause frames=120>"
-
-	"<erase-display>"
-	"<pac row=13>The CR code has no effect, the"
-	"<pac row=14>cursor does not move<pause>"
-	"<cr>at all.<pause frames=120>"
-
-	"<roll-up rows=4>"
-	"<pac row=14>"
-	"This is roll-up caption.<pause><cr>" 
-	"The text rolls.<pause>"
-	"<resume-direct>"
-	"<pac row=10>Switching to paint-on mode"
-	"<pac row=11>did not erase the display.<pause frames=120>"
-
-	          /* 12345678901234567890123456789012 */
-
-	"<erase-display>"
-	"<pac row=10>Erasing the non-displayed buffer<pause>"
-	"<erase-hidden>"
-	"<pac row=11>has no visible effect.<pause frames=120>"
-
-	"<erase-display>"
-	"<erase-hidden>"
-	"<resume-loading>"
-
-	          /* 12345678901234567890123456789012 */
-
-	"<pac row=12>LIBZVBI CAPTION TEST STREAM."
-	"<pac row=13>This is pop-on caption on"
-	"<pac row=14>channel C1."
-	"<end-of-caption><pause frames=120>"
-
-	"<pac row=11>Text is written into a non-"
-	"<pac row=12>displayed buffer and appears"
-	"<pac row=13>at once upon receipt of an"
-	"<pac row=14>end-of-caption code."
-	"<end-of-caption><pause frames=120>"
-
-	"<erase-hidden>"
-	"<pac row=12>Testing if we erased the non-"
-	"<pac row=13>displayed buffer. You see three"
-	"<pac row=14>rows of text."
-	"<end-of-caption><pause frames=120>"
-
-	"<erase-hidden>"
-	"<pac row=11>The end-of-caption code does"
-	"<pac row=12>not erase buffers, it merely"
-	"<pac row=13>swaps them. This is buffer 1."
-	"<end-of-caption><pause frames=120>"
-
-	"<erase-hidden>"
-	"<pac row=13>This is buffer 2."
-	"<end-of-caption><pause frames=120>"
-	"<end-of-caption>" /* repeated control code, ignored */
-	"<end-of-caption><pause frames=120>"
-	"<end-of-caption>" /* repeated control code, ignored */
-	"<end-of-caption><pause frames=120>"
-	"<pac row=14>Wrote row 14 in buffer 1."
-	"<end-of-caption><pause frames=120>"
-	"<pac row=12>Wrote row 12 in buffer 2."
-	"<end-of-caption><pause frames=120>"
-	"<end-of-caption>" /* repeated control code, ignored */
-	"<end-of-caption><pause frames=120>"
-	"<end-of-caption>" /* repeated control code, ignored */
-	"<end-of-caption><pause frames=120>"
-
-	"<erase-hidden>"
-	"<pac row=11>We can print on any four rows"
-	"<pac row=12>(any number of rows with the"
-	"<pac row=13>libzvbi caption decoder), in"
-	"<pac row=14>any order."
-	"<end-of-caption><pause frames=120>"
-
-	"<erase-hidden>"
-	"<pac row=0>Row 1."
-	"<pac row=3>Row 4."
-	"<pac row=10>Row 11."
-	"<pac row=7>Row 8."
-	"<pac row=12>Row 13."
-	"<pac row=1>Row 2."
-	"<pac row=6>Row 7."
-	"<pac row=9>Row 10."
-	"<pac row=5>Row 6."
-	"<pac row=13>Row 14."
-	"<pac row=14>Row 15."
-	"<pac row=2>Row 3."
-	"<pac row=4>Row 5."
-	"<pac row=8>Row 9."
-	"<pac row=11>Row 12."
-	"<end-of-caption><pause frames=120>"
-
-	"<erase-hidden>"
-	"<indent row=0>Also with indent codes."
-	"<indent row=3>Row 4."
-	"<indent row=10>Row 11."
-	"<indent row=7>Row 8. You see four rows."
-	"<end-of-caption><pause frames=120>"
-
-	"<erase-hidden>"
-	"<pac row=11>There are 32 columns. The cursor"
-	"<pac row=12>sticks at the end of a row."
-	"<pac row=13>12345678901234567890123456789012"
-	"<pac row=14>This sentence is slightly too long."
-	"<end-of-caption><pause frames=120>"
-
-	"<erase-hidden>"
-	"<pac row=13>The CR code has no effect, the"
-	"<pac row=14>cursor does not move &gt;<cr>&lt; at all."
-	"<end-of-caption><pause frames=120>"
-
-	"<erase-display>"
-	"<roll-up rows=4>"
-	"<pac row=14>"
-	"This is roll-up caption.<pause><cr>" 
-	"The text rolls.<pause>"
-	"<resume-loading>"
-	"<erase-hidden>"
-	"<pac row=14>Now in pop-on mode."
-	"<end-of-caption><pause>"
-	"<pac row=10>Switching to pop-on mode did"
-	"<pac row=11>not erase the roll-up text."
-	"<end-of-caption><pause>"
-
-	"<erase-hidden>"
-	"<pac row=12>We can erase the display"
-	"<pac row=13>at any time without side"
-	"<pac row=14>effects."
-	"<end-of-caption><pause>"
-
-	"<erase-hidden>"
-	"<pac row=11>Writing into the non-displayed"
-	"<pac row=12>buffer, we erase the display."
-	"<erase-display><pause>"
-	"<pac row=13>Done. Now we swap buffers,"
-	"<pac row=14>and you see four rows."
-	"<end-of-caption><pause frames=120>"
-
-	"<erase-display>"
-	"<roll-up rows=4>"
-	"<pac row=14>"
-
-      /* 12345678901234567890123456789012 */
-
-	"LIBZVBI CAPTION TEST STREAM.<cr>"
-	"Testing horizontal cursor<cr>"
-	"motion in roll-up mode.<pause><cr><cr>"
-
-	"<tab cols=2>"
-	"<cmd code=0>" /* transmit a NUL to break control code repetition */
-	"<tab cols=2>"
-	"This row is indented by<cr>"
-	"four columns. We sent three<cr>"
-	"tab-2 commands, the decoder<cr>"
-	"must ignore the second one.<pause frames=120><cr>"
-
-	"Let's try all columns.<cr>"
-	/* Note indent does not transmit the 2 lsb of cols. */
-	"<cr><indent row=14 cols=0><tab cols=0>Blah.<pause>"
-	"<cr><indent row=14 cols=1><tab cols=1>Blah.<pause>"
-	"<cr><indent row=14 cols=2><tab cols=2>Blah.<pause>"
-	"<cr><indent row=14 cols=3><tab cols=3>Blah.<pause>"
-	"<cr><indent row=14 cols=4><tab cols=0>Blah.<pause>"
-	"<cr><indent row=14 cols=5><tab cols=1>Blah.<pause>"
-	"<cr><indent row=14 cols=6><tab cols=2>Blah.<pause>"
-	"<cr><indent row=14 cols=7><tab cols=3>Blah.<pause>"
-	"<cr><indent row=14 cols=8><tab cols=0>Blah.<pause>"
-	"<cr><indent row=14 cols=9><tab cols=1>Blah.<pause>"
-	"<cr><indent row=14 cols=10><tab cols=2>Blah.<pause>"
-	"<cr><indent row=14 cols=11><tab cols=3>Blah.<pause>"
-	"<cr><indent row=14 cols=12><tab cols=0>Blah.<pause>"
-	"<cr><indent row=14 cols=13><tab cols=1>Blah.<pause>"
-	"<cr><indent row=14 cols=14><tab cols=2>Blah.<pause>"
-	"<cr><indent row=14 cols=15><tab cols=3>Blah.<pause>"
-	"<cr><indent row=14 cols=16><tab cols=0>Blah.<pause>"
-	"<cr><indent row=14 cols=17><tab cols=1>Blah.<pause>"
-	"<cr><indent row=14 cols=18><tab cols=2>Blah.<pause>"
-	"<cr><indent row=14 cols=19><tab cols=3>Blah.<pause>"
-	"<cr><indent row=14 cols=20><tab cols=0>Blah.<pause>"
-	"<cr><indent row=14 cols=21><tab cols=1>Blah.<pause>"
-	"<cr><indent row=14 cols=22><tab cols=2>Blah.<pause>"
-	"<cr><indent row=14 cols=23><tab cols=3>Blah.<pause>"
-	"<cr><indent row=14 cols=24><tab cols=0>Blah.<pause>"
-	"<cr><indent row=14 cols=25><tab cols=1>Blah.<pause>"
-	"<cr><indent row=14 cols=26><tab cols=2>Blah.<pause>"
-	"<cr><indent row=14 cols=27><tab cols=3>Blah.<pause>"
-	"<cr><indent row=14 cols=28><tab cols=0>Blah.<pause>"
-	"<cr><indent row=14 cols=29><tab cols=1>Blah.<pause>"
-	"<cr><indent row=14 cols=30><tab cols=2>Blah.<pause>"
-	"<cr><indent row=14 cols=31><tab cols=3>Blah.<pause>"
-	"<cr>"
-
-	"The previous two rows contain<cr>"
-	"just \"B.\" and \".\".<pause><cr>"
-
-	"We can move the cursor<cr>"
-	"to any column.<cr>"
-	"12345678901234567890123456789012<cr>"
-	"<indent row=14 cols=28>29<pause>"
-	"<indent row=14 cols=12>13<pause>"
-	"<indent row=14 cols=16><tab cols=3>20<pause><cr>"
-
-	"A CR here &gt; &lt; does not split"
-	"<indent row=14 cols=8><tab cols=3><cr><pause>"
-	"the row.<pause><cr>"
-
-	"<erase-display>"
-                         /* 1234567890123 */
-	"<indent row=3 cols=16>This text<cr>"
-	"<indent row=3 cols=16>appears<cr>"
-	"<indent row=3 cols=16>in the upper<cr>"
-	"<indent row=3 cols=16>right corner.<pause><cr>"
-
-	"<erase-display>"
-	"<pac row=14>"
-
-	"These rows do not start or end<cr>"
-	"with a space but the decoder may<cr>"
-	"add one for readability.<pause><cr>"
-
-	" This row starts with a space.<cr>"
-	"This row ends with a space. <cr>"
-	"The decoder must not add<cr>"
-	"another opaque space.<pause><cr>"
-
-	"This &gt;<special code=9>&lt; is a transparent space.<cr>"
-	"Two &gt;"
-	"<special code=9>"
-	"<cmd code=0>" /* transmit a NUL to break control code repetition */
-	"<special code=9>"
-	"&lt; transparent spaces.<cr>"
-	"The decoder may replace<cr>"
-	"them by opaque spaces.<pause frames=120><cr>" 
-
-	"Three &gt;"
-	"<special code=9>"
-	"<cmd code=0>" /* transmit a NUL to break control code repetition */
-	"<special code=9>"
-	"<cmd code=0>" /* transmit a NUL to break control code repetition */
-	"<special code=9>"
- 	"&lt; transparent spaces.<cr>"
-	"The decoder must not replace the<cr>"
-	"second one by an opaque space.<pause frames=120><cr>"
-
-      /* 12345678901234567890123456789012 */
-
-	"This &gt;<tab cols=1>&lt; looks like the<cr>"
-	"transparent space above but<cr>"
-	"we just advanced the cursor.<pause frames=120><cr>"
-	"Again &gt;<tab cols=1>&lt; here.<pause><cr>"
-	"Again  &gt;<tab cols=1>&lt; here.<pause><cr>"
-	"Two columns &gt;<tab cols=2>&lt; here.<pause><cr>"
-	"Three columns &gt;<tab cols=3>&lt; here.<pause><cr><cr>"
-
-	"Backspace test<cr>"
-	"This row is correcXX<pause>"
-	"<bs>"
-	"<cmd code=0>" /* transmit a NUL to break control code repetition */
-	"<bs>t.<pause><cr>"
-
-	"How does it work in the middle<cr>"
-	"of a row &gt;here<?<pause>"
-	"<indent row=14 cols=12><tab cols=2>"
-	"<bs>"
-	"<cmd code=0>" /* transmit a NUL to break control code repetition */
-	"<bs>"
-	"<cmd code=0>" /* transmit a NUL to break control code repetition */
-	"<bs>"
-	"<cmd code=0>" /* transmit a NUL to break control code repetition */
-	"<bs>"
-	"<cr>"
-	"The text was replaced by<cr>"
-	"transparent spaces.<pause><cr>"
-
-	"What happens when we<cr>"
-	"backspace in column 1?<cr>"
-	"<bs>"
-	"Nothing.<pause><cr>"
-
-	"Delete-to-end-of-row test<cr>"
-	"here &gt;This text disappears.<pause>"
-	"<indent row=14 cols=4><tab cols=2><delete-eol><cr>"
-	"The text after &gt; was<cr>"
-	"replaced by transparent spaces.<pause><cr>"
-
-	"In column 1:<cr>"
-	"This text disappears.<pause>"
-	"<indent row=14><delete-eol><cr>"
-	"The row above is empty<cr>"
-	"(transparent).<pause><cr>"
-
-	"In column 32:<cr>"
-	"12345678901234567890123456789012<pause>"
-	"<indent row=14 cols=28><tab cols=3><delete-eol><cr>"
-	"The row now ends with a 1.<pause><cr>"
-	"<cr>"
-
-	"<erase-display>"
-	"<roll-up rows=4>"
-	"<pac row=14>"
-
-      /* 12345678901234567890123456789012 */
-
-	"LIBZVBI CAPTION TEST STREAM<cr>"
-	"Testing text attribute commands<cr>"
-	"in roll-up mode.<pause><cr><cr>"
-
-	"Testing preamble address codes.<cr><cr>"
-
-	"<pac row=14>White text<pause><cr>"
-	"<pac row=14 fg=1>Green text<pause><cr>"
-	"<pac row=14 fg=2>Blue text<pause><cr>"
-	"<pac row=14 fg=3>Cyan text<pause><cr>"
-	"<pac row=14 fg=4>Red text<pause><cr>"
-	"<pac row=14 fg=5>Yellow text<pause><cr>"
-	"<pac row=14 fg=6>Magenta text<pause><cr>"
-	"<pac row=14 fg=7>White italic text<pause><cr>"
-
-	"<pac row=14 u=1>White underlined<pause><cr>"
-	"<pac row=14 fg=1 u=1>Green underlined<pause><cr>"
-	"<pac row=14 fg=2 u=1>Blue underlined<pause><cr>"
-	"<pac row=14 fg=3 u=1>Cyan underlined<pause><cr>"
-	"<pac row=14 fg=4 u=1>Red underlined<pause><cr>"
-	"<pac row=14 fg=5 u=1>Yellow underlined<pause><cr>"
-	"<pac row=14 fg=6 u=1>Magenta underlined<pause><cr>"
-	"<pac row=14 fg=7 u=1>White italic underlined<pause><cr>"
-	"Still white italic underlined.<pause><cr>"
-	"<pac row=14><cr>"
-
-	"Testing indent codes.<pause><cr><cr>"
-
-	"<indent row=14>White text<pause><cr>"
-	"<indent row=14 u=1>White underlined text<pause><cr>"
-	"<pac row=14>Indent &gt;"
-	"<indent row=14 cols=8 u=1>White underl. here<pause><cr>"
-	"Still white underlined.<pause><cr>"
-	"<pac row=14><cr>"
-
-	"Testing midrow codes. One opaque<cr>"
-	"space appears between &gt;&lt;.<pause><cr><cr>"
-
-	"<pac row=14 fg=7 u=1>White ital. underl. &gt;"
-	"<mr>&lt; white<pause><cr>"
-	"<pac row=14 fg=7 u=1>White ital. underl. &gt;"
-	"<mr fg=1>&lt; green<pause><cr>"
-	"<pac row=14 fg=7 u=1>White ital. underl. &gt;"
-	"<mr fg=2>&lt; blue<pause><cr>"
-	"<pac row=14 fg=7 u=1>White ital. underl. &gt;"
-	"<mr fg=3>&lt; cyan<pause><cr>"
-	"<pac row=14 fg=7 u=1>White ital. underl. &gt;"
-	"<mr fg=4>&lt; red<pause><cr>"
-	"<pac row=14 fg=7 u=1>White ital. underl. &gt;"
-	"<mr fg=5>&lt; yellow<pause><cr>"
-	"<pac row=14 fg=7 u=1>White ital. underl. &gt;"
-	"<mr fg=6>&lt; magenta<pause><cr>"
-	"Still magenta &gt;"
-	"<mr fg=7>&lt; mag. ital.<pause><cr>"
-
-	"<pac row=14 fg=7>White ital. &gt;"
-	"<mr u=1>&lt; white underl.<pause><cr>"
-	"<pac row=14 fg=7>White ital. &gt;"
-	"<mr fg=1 u=1>&lt; green underl.<pause><cr>"
-	"<pac row=14 fg=7>White ital. &gt;"
-	"<mr fg=2 u=1>&lt; blue underl.<pause><cr>"
-	"<pac row=14 fg=7>White ital. &gt;"
-	"<mr fg=3 u=1>&lt; cyan underl.<pause><cr>"
-	"<pac row=14 fg=7>White ital. &gt;"
-	"<mr fg=4 u=1>&lt; red underl.<pause><cr>"
-	"<pac row=14 fg=7>White ital. &gt;"
-	"<mr fg=5 u=1>&lt; yellow underl.<pause><cr>"
-	"<pac row=14 fg=7>White ital. &gt;"
-	"<mr fg=6 u=1>&lt; magenta underl.<pause><cr>"
-
-	"<pac row=14 u=1>White underl. &gt;"
-	"<mr u=1>&lt; still underl.<pause><cr>"
-	"<pac row=14>"
-	"The &gt; &lt; above is underlined.<pause><cr>"
-	"<cr>"
-
-	"Testing flash-on code.<pause><cr><cr>"
-
-	"Solid &gt;<flash-on>&lt; flashing text.<pause><cr>"
-	"Flashing (CR) &gt;<mr>&lt; solid (MR).<pause><cr>"
-	"<flash-on><bs>Flashing.<cr>"
-	"<pac row=14>"	"Still flashing (PAC).<pause><cr>"
-	"<indent row=14>Still flashing (indent).<pause><cr>"
-	"<mr fg=7 u=1><bs>Solid italic underl. (MR).<pause><cr>"
-	"<indent row=14><cr>"
-
-	"Testing optional attributes.<pause><cr><cr>"
-
-	"Text with black background.<pause><cr>"
-	/* For compatibility with older decoders which ignore these
-	   commands we must print a space, and the command will
-	   backspace and replace it by a spacing attribute. */
-	"Black &gt; <transp-bg>&lt; transparent.<pause><cr>"
-	"Still transparent background.<pause><cr>"
-	"Still transp. &gt;<mr>&lt; still (MR).<pause><cr>"
-	"<pac row=14>Text with opaque background.<pause><cr>"
-
-	/* Should the background change at or after the
-	   spacing attribute? Have no docs. */
-
-	"<pac row=14 fg=1>Green on black text.<pause><cr>"
-	"Green/black &gt; <bg bg=0>&lt; green/white.<pause><cr>"
-	"Green/white &gt; <black>&lt; black/white.<pause><cr>"
-	"Black/white &gt; <black u=1>&lt; black underl.<pause><cr>"
-	"<pac row=14>White/black &gt; <bg bg=1>"
-	"&lt; on green.<pause><cr>"
-	"<pac row=14>Black &gt; <bg bg=2>&lt; blue.<pause><cr>"
-	"<pac row=14>Black &gt; <bg bg=3>&lt; cyan.<pause><cr>"
-	"<pac row=14>Black &gt; <bg bg=4>&lt; red.<pause><cr>"
-	"Still red (CR).<pause><cr>"
-	"Red &gt;<mr>&lt; still red (MR).<pause><cr>"
-	"<pac row=14>Black &gt; <bg bg=5>&lt; yellow.<pause><cr>"
-	"<pac row=14>Black &gt; <bg bg=6>&lt; magenta.<pause><cr>"
-	"<pac row=14>Black &gt; <bg bg=7>&lt; black.<pause><cr>"
-	"<cr>"
-
-	"Testing translucent background.<pause><cr><cr>"
-
-	"<pac row=14 fg=1>Green/black &gt; <bg bg=0 t=1>"
-	"&lt; white transl.<pause><cr>"
-	"<pac row=14>White/black &gt; <bg bg=1 t=1>"
-	"&lt; green transl.<pause><cr>"
-	"<pac row=14>Black &gt; <bg bg=2 t=1>&lt; blue transl.<pause><cr>"
-	"<pac row=14>Black &gt; <bg bg=3 t=1>&lt; cyan transl.<pause><cr>"
-	"<pac row=14>Black &gt; <bg bg=4 t=1>&lt; red transl.<pause><cr>"
-	"Still red translucent (CR).<pause><cr>"
-	"Red transl. &gt;<mr>&lt; still (MR).<pause><cr>"
-	"<pac row=14>Black &gt; <bg bg=5 t=1>&lt; yellow transl.<pause><cr>"
-	"<pac row=14>Black &gt; <bg bg=6 t=1>&lt; magenta transl.<pause><cr>"
-	"<pac row=14>Black &gt; <bg bg=7 t=1>&lt; black transl.<pause>"
-	"<pause><cr>"
-
-	"<erase-display>"
-	"<roll-up rows=4>"
-	"<pac row=14>"
-
-	"LIBZVBI CAPTION TEST STREAM.<cr>"
-	"Character repertoir.<pause><cr><cr>"
-
-	" !\"#$%&amp;\'().+,-./0123456789:;&lt;=&gt;?<pause><cr>"
-	"@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_<pause><cr>"
-	"`abcdefghijklmnopqrstuvwxyz{|}~\177<pause><cr>"
-
-	"<mr fg=7><bs>" /* italic */
-
-	" !\"#$%&amp;\'().+,-./0123456789:;&lt;=&gt;?<pause><cr>"
-	"@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_<pause><cr>"
-	"`abcdefghijklmnopqrstuvwxyz{|}~\177<pause><cr>"
-
-	"<mr u=1><bs>" /* underlined */
-
-	" !\"#$%&amp;\'().+,-./0123456789:;&lt;=&gt;?<pause><cr>"
-	"@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_<pause><cr>"
-	"`abcdefghijklmnopqrstuvwxyz{|}~\177<pause><cr>"
-
-	"<mr fg=7 u=1><bs>" /* italic underlined */
-
-	" !\"#$%&amp;\'().+,-./0123456789:;&lt;=&gt;?<pause><cr>"
-	"@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_<pause><cr>"
-	"`abcdefghijklmnopqrstuvwxyz{|}~\177<pause><cr>"
-	"<pac row=14><cr>"
-	
-	"30 Registered mark: <special code=0><pause><cr>"
-	"31 Degree sign:     <special code=1><pause><cr>"
-	"32 1/2:             <special code=2><pause><cr>"
-	"33 Inverse quest.:  <special code=3><pause><cr>"
-	"34 Trademark:       <special code=4><pause><cr>"
-	"35 Cents sign:      <special code=5><pause><cr>"
-	"36 Sterling sign:   <special code=6><pause><cr>"
-	"37 Music note:      <special code=7><pause><cr>"
-	"38 a grave:         <special code=8><pause><cr>"
-	"39 Transp. space:   <special code=9><pause><cr>"
-	"3A e grave:         <special code=10><pause><cr>"
-	"3B a circumflex:    <special code=11><pause><cr>"
-	"3C e circumflex:    <special code=12><pause><cr>"
-	"3D i circumflex:    <special code=13><pause><cr>"
-	"3E o circumflex:    <special code=14><pause><cr>"
-	"3F u circumflex:    <special code=15><pause frames=120><cr>"
-
-	"<erase-display>"
-	"<roll-up rows=4>"
-	"<pac row=14>"
-
-      /* 12345678901234567890123456789012 */
-
-	"LIBZVBI CAPTION TEST STREAM.<cr>"
-	"Text mode test. You must switch<cr>"
-	"to channel T1 to see it.<pause frames=120>"
-
-	"<text-restart>"
-	"<erase-display>"
-
-	"This is text mode on channel T1<cr>"
-	"I have next to no documentation<cr>"
-	"about this mode so we just test<cr>"
-	"the libzvbi implementation.<pause frames=120><cr><cr><cr>"
-
-	"The text window has a size of<cr>"
-	"32 x 15 characters. The default<cr>"
-	"background is opaque black, not<cr>"
-	"transparent.<pause frames=120><cr><cr><cr>"
-
-	"<roll-up ch=0>End of test stream.<cr>"
-	"<roll-up ch=1>End of test stream.<cr>"
-/* both fields not supported yet
-	"<roll-up ch=2>End of test stream.<cr>"
-	"<roll-up ch=3>End of test stream.<cr>"
-*/
-	"<text-restart ch=0>End of test stream.<cr>"
-	"<text-restart ch=1>End of test stream.<cr>"
-/*
-	"<text-restart ch=2>End of test stream.<cr>"
-	"<text-restart ch=3>End of test stream.<cr>"
-*/
-	"<pause frames=300>"
-
-	/* TODO: more on text mode, other channels,
-	   multiplexing, XDS, ITV. */
-
+caption_default_test_stream [] =
+	"<erase-displayed ch=\"0\"/><roll-up rows=\"4\"/><pac row=\"14\"/>"
+	"LIBZVBI CAPTION SIMULATION CC1.<cr/>"
+	"<erase-displayed ch=\"1\"/><roll-up rows=\"4\"/><pac row=\"14\"/>"
+	"LIBZVBI CAPTION SIMULATION CC2.<cr/>"
+	"<erase-displayed ch=\"2\"/><roll-up rows=\"4\"/><pac row=\"14\"/>"
+	"LIBZVBI CAPTION SIMULATION CC3.<cr/>"
+	"<erase-displayed ch=\"3\"/><roll-up rows=\"4\"/><pac row=\"14\"/>"
+	"LIBZVBI CAPTION SIMULATION CC4.<cr/>"
+;
 	/* ROLL_UP, ROLL_UP, ROLL_UP changes cursor position? */
 
 	/* TODO: regression test for repeated control code bug:
 	   <control code field 1>
 	   <zero field 2>
 	   <repeated control code field 1, to be ignored> */ 
-;
 
 static unsigned int
 get_attr			(const char *		s,
@@ -1725,57 +1059,131 @@ get_attr			(const char *		s,
 	len = strlen (name);
 
 	for (; 0 != *s && '>' != *s; ++s) {
-		if (0 == strncmp (s, name, len)) {
+		int delta;
+
+		if (!isalpha (*s))
+			continue;
+
+		delta = strncmp (s, name, len);
+		if (0 == delta) {
 			s += len;
+		} else {
+			while (isalnum (*s))
+				++s;
+		}
 
-			while (isspace (*s++))
-				;
+		while (isspace (*s++))
+			;
 
-			if ('=' == s[-1]) {
-				value = strtoul (s, NULL, 10);
-				value = SATURATE (value,
-						  (unsigned long) minimum,
-						  (unsigned long) maximum);
-			}
+		if ('=' != s[-1] || '"' != *s)
+			break;
 
+		if (0 == delta) {
+			value = strtoul (s + 1,
+					 /* endp */ NULL,
+					 /* base */ 10);
 			break;
 		}
+
+		do ++s;
+		while (0 != *s && '"' != *s);
 	}
+
+	value = SATURATE (value,
+			  (unsigned long) minimum,
+			  (unsigned long) maximum);
 
 	return (unsigned int) value;
 }
 
-static unsigned int
-caption_command			(vbi3_capture_sim *	sim,
-				 const char *		s,
-				 unsigned int *		n_frames)
+static vbi3_bool
+caption_append_zeroes		(vbi3_capture_sim *	sim,
+				 unsigned int		channel,
+				 unsigned int		n_bytes)
 {
-	static const struct {
-		unsigned int	code;
-		const char *	name;
-	} elements [] = {
-		{ 0x1020, "bg" },
-		{ 0x172E, "black" },
-		{ 0x1421, "bs" },
-		{ 0x0001, "cmd" },
-		{ 0x142D, "cr" },
-		{ 0x1424, "delete-eol" },
-		{ 0x142F, "end-of-caption" },
-		{ 0x142C, "erase-display" },
-		{ 0x142E, "erase-hidden" },
-		{ 0x1428, "flash-on" },
-		{ 0x1050, "indent" },
-		{ 0x1120, "mr" },
-		{ 0x1040, "pac" },
-		{ 0x0002, "pause" },
-		{ 0x1429, "resume-direct" },
-		{ 0x1420, "resume-loading" },
-		{ 0x142B, "resume-text" },
-		{ 0x1425, "roll-up" },
-		{ 0x1130, "special" },
-		{ 0x1720, "tab" },
-		{ 0x142A, "text-restart" },
-		{ 0x172D, "transp-bg" },
+	struct buffer *b;
+
+	b = &sim->caption_buffers[(channel >> 1) & 1];
+
+	if (b->size + n_bytes > b->capacity) {
+		unsigned int new_capacity;
+
+		new_capacity = b->capacity + ((n_bytes + 255) & ~255);
+		if (!extend_buffer (b, new_capacity))
+			return FALSE;
+	}
+
+	memset (b->data + b->size, 0, n_bytes);
+	b->size += n_bytes;
+
+	return TRUE;
+}
+
+static unsigned int
+caption_append_command		(vbi3_capture_sim *	sim,
+				 unsigned int *		inout_ch,
+				 const char *		s)
+{
+	static const _vbi3_key_value_pair elements [] = {
+		{ "aof", 0x1422 },
+		{ "aon", 0x1423 },
+		{ "backgr", 0x1020 },
+		{ "backgr-transp", 0x172D },
+		{ "bao", 0x102E },
+		{ "bas", 0x102F },
+		{ "bbo", 0x1024 },
+		{ "bbs", 0x1025 },
+		{ "bco", 0x1026 },
+		{ "bcs", 0x1027 },
+		{ "bgo", 0x1022 },
+		{ "bgs", 0x1023 },
+		{ "bmo", 0x102C },
+		{ "bms", 0x102D },
+		{ "bro", 0x1028 },
+		{ "brs", 0x1029 },
+		{ "bs", 0x1421 },
+		{ "bt", 0x172D },
+		{ "bwo", 0x1020 },
+		{ "bws", 0x1021 },
+		{ "byo", 0x102A },
+		{ "bys", 0x102B },
+		{ "cmd", 0x0001 },
+		{ "cr", 0x142D },
+		{ "delete-end-of-row", 0x1424 },
+		{ "der", 0x1424 },
+		{ "edm", 0x142C },
+		{ "end-of-caption", 0x142F },
+		{ "enm", 0x142E },
+		{ "eoc", 0x142F },
+		{ "erase-displayed", 0x142C },
+		{ "erase-non-displayed", 0x142E },
+		{ "fa", 0x172E },
+		{ "fau", 0x172F },
+		{ "flash-on", 0x1428 },
+		{ "fon", 0x1428 },
+		{ "foregr-black", 0x172E },
+		{ "indent", 0x1050 },
+		{ "mr", 0x1120 },
+		{ "pac", 0x1040 },
+		{ "pause", 0x0002 },
+		{ "rcl", 0x1420 },
+		{ "rdc", 0x1429 },
+		{ "resume-caption", 0x1420 },
+		{ "resume-direct", 0x1429 },
+		{ "resume-text", 0x142B },
+		{ "roll-up", 0x1425 },
+		{ "rtd", 0x142B },
+		{ "ru2", 0x1425 },
+		{ "ru3", 0x1426 },
+		{ "ru4", 0x1427 },
+		{ "special", 0x1130 },
+		{ "sync", 0x0003 },
+		{ "tab", 0x1720 },
+		{ "text-restart", 0x142A },
+		{ "to1", 0x1721 },
+		{ "to2", 0x1722 },
+		{ "to3", 0x1723 },
+		{ "tr", 0x142A },
 	};
 	static const uint8_t row_mapping [16] = {
 		/* 0 */ 2, 3, 4, 5,
@@ -1784,156 +1192,216 @@ caption_command			(vbi3_capture_sim *	sim,
 		/* 11 */ 6, 7, 8, 9,
 		/* 15 */ -1
 	};
-	unsigned int len;
+	struct buffer *b;
+	int value;
 	unsigned int cmd;
+	unsigned int n_frames;
+	int n_padding_bytes;
 	unsigned int row;
 	unsigned int i;
 
-	for (i = 0; i < N_ELEMENTS (elements); ++i) {
-		len = strlen (elements[i].name);
-		if (0 == strncmp (s, elements[i].name, len))
-			break;
-	}
+	if (!_vbi3_keyword_lookup (&value, &s,
+				   elements,
+				   N_ELEMENTS (elements)))
+		return TRUE;
 
-	if (i >= N_ELEMENTS (elements))
-		return -1;
+	*inout_ch = get_attr (s, "ch", *inout_ch, 0, 3);
 
-	s += len;
+	cmd = value | ((*inout_ch & 1) << 11);
 
-	if ('>' != *s && ' ' != *s)
-		return -1;
-
-	sim->caption_ch = get_attr (s, "ch", sim->caption_ch, 0, 3);
-
-	cmd = elements[i].code | ((sim->caption_ch & 1) << 11);
-
-	switch (elements[i].code) {
+	switch (value) {
 	case 1: /* cmd */
-		return get_attr (s, "code", 0, 0, 0xFFFF);
+		cmd = get_attr (s, "code", 0, 0, 0xFFFF);
+
+		break;
 
 	case 2: /* pause */
-		*n_frames = get_attr (s, "frames", 60, 1, INT_MAX);
-		return -2;
+		n_frames = get_attr (s, "frames", 60, 1, INT_MAX);
+		if (n_frames > 120 * 60 * 30)
+			return TRUE;
 
-	case 0x1020: /* bg */
-		cmd |= get_attr (s, "bg", 0, 0, 7) << 1; /* backgr color */
-		cmd |= get_attr (s, "t", 0, 0, 1);	 /* transparent */
-		return cmd;
+		return caption_append_zeroes (sim, *inout_ch, n_frames * 2);
 
-	case 0x172E: /* black */
-		return cmd | get_attr (s, "u", 0, 0, 1); /* underlined */
+	case 3: /* sync */
+		n_padding_bytes = sim->caption_buffers[0].size
+			- sim->caption_buffers[1].size;
+
+		if (0 == n_padding_bytes)
+			return TRUE;
+		else if (n_padding_bytes < 0)
+			return caption_append_zeroes (sim, 0, n_padding_bytes);
+		else
+			return caption_append_zeroes (sim, 2, n_padding_bytes);
+
+	case 0x1020: /* backgr */
+		cmd |= get_attr (s, "color", 0, 0, 7) << 1;
+		cmd |= get_attr (s, "t", 0, 0, 1); /* transparent */
+
+		break;
+
+	case 0x172E: /* foregr-black */
+		cmd |= get_attr (s, "u", 0, 0, 1); /* underlined */
+
+		break;
 
 	case 0x1050: /* indent */
 		row = row_mapping[get_attr (s, "row", 14, 0, 14)];
+
 		cmd |= (row & 0xE) << 7;
 		cmd |= (row & 0x1) << 5;
 		cmd |= (get_attr (s, "cols", 0, 0, 31) / 4) << 1;
 		cmd |= get_attr (s, "u", 0, 0, 1);
-		return cmd;
 
-	case 0x1120: /* mr */
-		cmd |= get_attr (s, "fg", 0, 0, 7) << 1; /* text color */
+		break;
+
+	case 0x1120: /* mr (midrow code) */
+		cmd |= get_attr (s, "color", 0, 0, 7) << 1;
 		cmd |= get_attr (s, "u", 0, 0, 1);
-		return cmd;
 
-	case 0x1040: /* pac */
+		break;
+
+	case 0x1040: /* pac (preamble address code) */
 		row = row_mapping[get_attr (s, "row", 14, 0, 14)];
+
 		cmd |= (row & 0xE) << 7;
 		cmd |= (row & 0x1) << 5;
-		cmd |= get_attr (s, "fg", 0, 0, 7) << 1;
+		cmd |= get_attr (s, "color", 0, 0, 7) << 1;
 		cmd |= get_attr (s, "u", 0, 0, 1);
-		return cmd;
+
+		break;
 
 	case 0x1425: /* roll_up */
 		row = get_attr (s, "rows", 2, 2, 4);
-		cmd |= (sim->caption_ch & 2) << 7;
+
+		cmd |= (*inout_ch & 2) << 7;
 		cmd += row - 2;
-		return cmd;
+
+		break;
 
 	case 0x1130: /* special character */
 		cmd |= get_attr (s, "code", 0, 0, 15);
-		return cmd;
+
+		break;
 
 	case 0x1720: /* tab */
-		cmd |= ((sim->caption_ch & 2) << 7);
+		cmd |= ((*inout_ch & 2) << 7);
 		cmd |= get_attr (s, "cols", 0, 0, 3);
-		return cmd;
 
-	case 0x172D: /* transparent_bg */
-		return cmd;
+		break;
+
+	case 0x172D: /* backgr-transp */
+		break;
 
 	default:
-		return cmd | ((sim->caption_ch & 2) << 7);
+		cmd |= ((*inout_ch & 2) << 7);
+
+		break;
 	}
+
+	b = &sim->caption_buffers[(*inout_ch >> 1) & 1];
+	i = b->size;
+
+	if (i + 3 > b->capacity) {
+		if (!extend_buffer (b, b->capacity + 256))
+			return FALSE;
+	}
+
+	if (i & 1)
+		b->data[i++] = 0;
+
+	b->data[i] = cmd >> 8;
+	b->data[i + 1] = cmd;
+	b->size = i + 2;
+
+	return TRUE;
 }
 
-static void
-gen_caption_next		(vbi3_capture_sim *	sim)
+vbi3_bool
+_vbi3_capture_sim_load_caption	(vbi3_capture *		cap,
+				 const char *		stream,
+				 vbi3_bool		append)
 {
+	vbi3_capture_sim *sim;
+	struct buffer *b;
+	unsigned int ch;
 	const char *s;
-	unsigned int i;
 
-	CLEAR (sim->caption_buf);
+	assert (NULL != cap);
 
-	s = caption_test_stream + sim->caption_i;
+	sim = PARENT (cap, vbi3_capture_sim, cap);
+	assert (MAGIC == sim->magic);
 
-	for (i = 0; i < 2;) {
-		int c = *s & 0x7F;
+	if (!append) {
+		free (sim->caption_buffers[0].data);
+		free (sim->caption_buffers[1].data);
 
-		if (0 == c) {
-			s = caption_test_stream;
-			continue;
-		} else if (c < 0x20) {
-			++s;
-			continue;
-		} else if ('&' == c) {
-			if (0 == strncmp (s, "&amp;", 5)) {
-				s += 5;
-			} else if (0 == strncmp (s, "&lt;", 4)) {
-				s += 4;
-				c = '<';
-			} else if (0 == strncmp (s, "&gt;", 4)) {
-				s += 4;
-				c = '>';
-			} else {
-				++s;
-			}
+		CLEAR (sim->caption_buffers);
 
-			sim->caption_buf[i++] = vbi3_par8 (c);
-		} else if ('<' == c) {
-			unsigned int cmd;
-			unsigned int n_frames;
-
-			if (i & 1)
-				sim->caption_buf[i++] = 0x80;
-
-			do ++s;
-			while (0x20 == *s);
-
-			cmd = caption_command (sim, s, &n_frames);
-
-			if ((unsigned int) -2 == cmd) {
-				sim->caption_pause = n_frames;
-				i = 2;
-			} else if ((unsigned int) -1 != cmd) {
-				sim->caption_buf[i++] = vbi3_par8 (cmd >> 8);
-				sim->caption_buf[i++] = vbi3_par8 (cmd & 0xFF);
-			}
-
-			do {
-				c = *s++;
-				if (0 == c) {
-					s = caption_test_stream;
-					break;
-				}
-			} while ('>' != c);
-		} else {
-			sim->caption_buf[i++] = vbi3_par8 (c);
-			++s;
-		}
+		sim->caption_i = 0;
 	}
 
-	sim->caption_i = s - caption_test_stream;
+	if (NULL == stream)
+		return TRUE;
+
+	ch = 0;
+
+	b = &sim->caption_buffers[0];
+
+	for (s = stream;;) {
+		int c = *s++;
+
+		if (0 == c) {
+			break;
+		} else if (c < 0x20) {
+			continue;
+		} else if ('&' == c) {
+			if ('#' == *s) {
+				char *end;
+
+				c = strtoul (s + 1, &end, 10);
+				s = end;
+
+				if (';' == *s)
+					++s;
+			} else if (0 == strncmp (s, "amp;", 4)) {
+				s += 4;
+			} else if (0 == strncmp (s, "lt;", 3)) {
+				s += 3;
+				c = '<';
+			} else if (0 == strncmp (s, "gt;", 3)) {
+				s += 3;
+				c = '>';
+			}
+		} else if ('<' == c) {
+			int delimiter;
+
+			if (!caption_append_command (sim, &ch, s))
+				return FALSE;
+
+			b = &sim->caption_buffers[(ch >> 1) & 1];
+
+			/* Skip until '>', except between quotes. */
+			delimiter = '>';
+			for (; 0 != *s && delimiter != *s; ++s) {
+				if ('"' == *s)
+					delimiter ^= '>';
+			}
+
+			if (0 != *s)
+				++s; /* skip delimiter */
+
+			continue;
+		}
+
+		if (b->size >= b->capacity) {
+			if (!extend_buffer (b, b->capacity + 256))
+				return FALSE;
+		}
+
+		b->data[b->size++] = c;
+	}
+
+	return TRUE;
 }
 
 static void
@@ -1943,33 +1411,22 @@ gen_caption			(vbi3_capture_sim *	sim,
 				 unsigned int		line)
 {
 	vbi3_sliced *s;
+	struct buffer *b;
+	unsigned int i;
 
-	s = *inout_sliced;
-	*inout_sliced = s + 1;
+	b = &sim->caption_buffers[(line > 200)];
 
-	s->id = service_set;
-	s->line = line;
+	i = sim->caption_i;
 
-	while (0 == sim->caption_buf[0]) {
-		if (sim->caption_pause > 0) {
-			s->data[0] = 0x80;
-			s->data[1] = 0x80;
+	if (i + 1 < b->size) {
+		s = *inout_sliced;
+		*inout_sliced = s + 1;
 
-			--sim->caption_pause;
-
-			return;
-		}
-
-		gen_caption_next (sim);
+		s->id = service_set;
+		s->line = line;
+		s->data[0] = vbi3_par8 (b->data[i]);
+		s->data[1] = vbi3_par8 (b->data[i + 1]);
 	}
-
-	s->data[0] = sim->caption_buf[0];
-	s->data[1] = sim->caption_buf[1];
-
-	sim->caption_buf[0] = sim->caption_buf[2];
-	sim->caption_buf[1] = sim->caption_buf[3];
-	sim->caption_buf[2] = 0;
-	sim->caption_buf[3] = 0;
 }
 
 static void
@@ -2140,9 +1597,63 @@ gen_sliced_525			(vbi3_capture_sim *	sim)
 		s += 3;
 	}
 
-	gen_caption (sim, &s, VBI3_SLICED_CAPTION_525, 21);
+	if (sim->caption_buffers[0].size > 0)
+		gen_caption (sim, &s, VBI3_SLICED_CAPTION_525, 21);
+
+	if (sim->caption_buffers[1].size > 0)
+		gen_caption (sim, &s, VBI3_SLICED_CAPTION_525, 284);
+
+	sim->caption_i += 2;
+	if (sim->caption_i >= sim->caption_buffers[0].size
+	    && sim->caption_i >= sim->caption_buffers[1].size)
+		sim->caption_i = 0;
 
 	return s - sim->sliced;
+}
+
+vbi3_bool
+_vbi3_capture_sim_load_vps	(vbi3_capture *		cap,
+				 const vbi3_program_id *pid)
+{
+	vbi3_capture_sim *sim;
+	vbi3_program_id pid2;
+
+	assert (NULL != cap);
+
+	sim = PARENT (cap, vbi3_capture_sim, cap);
+	assert (MAGIC == sim->magic);
+
+	if (NULL == pid) {
+		CLEAR (pid2);
+
+		pid2.cni_type	= VBI3_CNI_TYPE_VPS;
+		pid2.channel	= VBI3_PID_CHANNEL_VPS;
+		pid2.pil	= VBI3_PIL_TIMER_CONTROL;
+
+		pid = &pid2;
+	}
+
+	return vbi3_encode_vps_pdc (sim->vps_buffer, pid);
+}
+
+vbi3_bool
+_vbi3_capture_sim_load_wss_625	(vbi3_capture *		cap,
+				 const vbi3_aspect_ratio *ar)
+{
+	vbi3_capture_sim *sim;
+	vbi3_aspect_ratio ar2;
+
+	assert (NULL != cap);
+
+	sim = PARENT (cap, vbi3_capture_sim, cap);
+	assert (MAGIC == sim->magic);
+
+	if (NULL == ar) {
+		CLEAR (ar2);
+		ar = &ar2;
+	}
+
+	return vbi3_encode_wss_625 (sim->wss_buffer, ar);
 }
 
 static unsigned int
@@ -2150,7 +1661,6 @@ gen_sliced_625			(vbi3_capture_sim *	sim)
 {
 	vbi3_sliced *s;
 	vbi3_sliced *end;
-	vbi3_bool success;
 	unsigned int i;
 
 	s = sim->sliced;
@@ -2179,16 +1689,21 @@ gen_sliced_625			(vbi3_capture_sim *	sim)
 
 	s->id = VBI3_SLICED_VPS;
 	s->line = 16;
-	success = vbi3_encode_vps_pdc (s->data, &sim->vps_pid);
-	assert (success);
+	assert (sizeof (s->data) >= sizeof (sim->vps_buffer));
+	memcpy (s->data, sim->vps_buffer, sizeof (sim->vps_buffer));
 	++s;
 
-	gen_caption (sim, &s, VBI3_SLICED_CAPTION_625, 22);
+	if (sim->caption_buffers[0].size > 0)
+		gen_caption (sim, &s, VBI3_SLICED_CAPTION_625, 22);
+
+	sim->caption_i += 2;
+	if (sim->caption_i >= sim->caption_buffers[0].size)
+		sim->caption_i = 0;
 
 	s->id = VBI3_SLICED_WSS_625;
 	s->line = 23;
-	success = vbi3_encode_wss_625 (s->data, &sim->wss_aspect);
-	assert (success);
+	assert (sizeof (s->data) >= sizeof (sim->wss_buffer));
+	memcpy (s->data, sim->wss_buffer, sizeof (sim->wss_buffer));
 	++s;
 
 	gen_teletext_b (sim, &s, end, /* field */ 1);
@@ -2356,6 +1871,10 @@ sim_delete			(vbi3_capture *		cap)
 {
 	vbi3_capture_sim *sim = PARENT (cap, vbi3_capture_sim, cap);
 
+	_vbi3_capture_sim_load_caption (cap,
+					/* test_stream */ NULL,
+					/* append */ FALSE);
+
 	vbi3_raw_decoder_delete (sim->rd);
 
 	free (sim->desync_buffer[1]);
@@ -2376,13 +1895,15 @@ _vbi3_capture_sim_new		(int			scanning,
 {
 	vbi3_capture_sim *sim;
 	vbi3_videostd_set videostd_set;
+	vbi3_bool success;
 
 	sim = calloc (1, sizeof (*sim));
 	if (NULL == sim) {
-		// _vbi3_asprintf (errstr, _("Out of memory."));
 		errno = ENOMEM;
 		return NULL;
 	}
+
+	sim->magic = MAGIC;
 
 	sim->cap.read		= sim_read;
 	sim->cap.parameters	= sim_parameters;
@@ -2391,16 +1912,8 @@ _vbi3_capture_sim_new		(int			scanning,
 
 	sim->capture_time = 0.0;
 
-        switch (scanning) {
-        case 525:
-		videostd_set = VBI3_VIDEOSTD_SET_525_60;
-                break;
-        case 625:
-                videostd_set = VBI3_VIDEOSTD_SET_625_50;
-                break;
-        default:
-		assert (0);
-        }
+	videostd_set = vbi3_videostd_set_from_scanning (scanning);
+	assert (VBI3_VIDEOSTD_SET_EMPTY != videostd_set);
 
 	/* Sampling parameters. */
 
@@ -2408,8 +1921,9 @@ _vbi3_capture_sim_new		(int			scanning,
 		(&sim->sp, /* return max_rate */ NULL,
 		 videostd_set, *services,
 		 /* log_fn */ NULL, /* log_user_data */ NULL);
-	if (0 == *services)
+	if (0 == *services) {
 		goto failure;
+	}
 
 	sim->sp.interlaced = interlaced;
 	sim->sp.synchronous = synchronous;
@@ -2421,8 +1935,9 @@ _vbi3_capture_sim_new		(int			scanning,
 
 	sim->raw_buffer.size = sim->raw_f1_size + sim->raw_f2_size;
 	sim->raw_buffer.data = malloc (sim->raw_buffer.size);
-	if (NULL == sim->raw_buffer.data)
+	if (NULL == sim->raw_buffer.data) {
 		goto failure;
+	}
 
 	if (!synchronous) {
 		size_t size;
@@ -2433,8 +1948,9 @@ _vbi3_capture_sim_new		(int			scanning,
 		sim->desync_buffer[1] = calloc (1, size);
 
 		if (NULL == sim->desync_buffer[0]
-		    || NULL == sim->desync_buffer[1])
+		    || NULL == sim->desync_buffer[1]) {
 			goto failure;
+		}
 	}
 
 	/* Sliced VBI buffer. */
@@ -2445,20 +1961,26 @@ _vbi3_capture_sim_new		(int			scanning,
 	/* Raw VBI decoder. */
 
 	sim->rd = vbi3_raw_decoder_new (&sim->sp);
-	if (0 == sim->rd)
+	if (0 == sim->rd) {
 		goto failure;
+	}
 
 	vbi3_raw_decoder_add_services (sim->rd, *services, 0);
 
 	/* Signal simulation. */
 	
-	CLEAR (sim->vps_pid);
+	success = _vbi3_capture_sim_load_vps (&sim->cap, NULL);
+	assert (success);
 
-	sim->vps_pid.cni_type	= VBI3_CNI_TYPE_VPS;
-	sim->vps_pid.channel	= VBI3_PID_CHANNEL_VPS;
-	sim->vps_pid.pil	= VBI3_PIL_TIMER_CONTROL;
+	success = _vbi3_capture_sim_load_wss_625 (&sim->cap, NULL);
+	assert (success);
 
-	CLEAR (sim->wss_aspect);
+	success = _vbi3_capture_sim_load_caption
+		(&sim->cap, caption_default_test_stream,
+		 /* append */ FALSE);
+	if (!success) {
+		goto failure;
+	}
 
 	return &sim->cap;
 

@@ -18,7 +18,7 @@
  */
 
 static char rcsid [] =
-  "$Id: io-bktr.c,v 1.2.2.10 2006-05-07 06:04:58 mschimek Exp $";
+  "$Id: io-bktr.c,v 1.2.2.11 2006-05-14 14:14:11 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "../config.h"
@@ -358,7 +358,7 @@ vbi3_capture_bktr_new		(const char *		dev_name,
 
   //	pthread_once (&vbi3_init_once, vbi3_init);
 
-	_vbi3_asprintf(errstr, _("BKTR interface not compiled."));
+	asprintf (errstr, _("BKTR interface not compiled."));
 
 	return NULL;
 }

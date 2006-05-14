@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.22 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.23 2006-05-14 14:14:12 mschimek Exp $ */
 
 #include "../site_def.h"
 #include "../config.h"
@@ -78,6 +78,19 @@
 /** @defgroup HiDec High Level Decoding */
 
 //pthread_once_t vbi3_init_once = PTHREAD_ONCE_INIT;
+
+void
+vbi3_set_log_fn			(vbi3_log_mask		mask,
+				 vbi3_log_fn *		log_fn,
+				 void *			user_data)
+{
+	if (NULL == log_fn)
+		mask = 0;
+
+	vbi3_global_log_fn = log_fn;
+	vbi3_global_log_user_data = user_data;
+	vbi3_global_log_mask = mask;
+}
 
 void
 vbi3_init			(void)

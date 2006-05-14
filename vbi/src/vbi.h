@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.18 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.19 2006-05-14 14:14:12 mschimek Exp $ */
 
 #ifndef VBI3_H
 #define VBI3_H
@@ -32,6 +32,10 @@
 
 VBI3_BEGIN_DECLS
 
+extern void
+vbi3_set_log_fn			(vbi3_log_mask		mask,
+				 vbi3_log_fn *		log_fn,
+				 void *			user_data);
 extern void
 vbi3_init			(void) __attribute__ ((constructor));
 extern unsigned int

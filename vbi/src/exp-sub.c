@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-sub.c,v 1.1.2.6 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: exp-sub.c,v 1.1.2.7 2006-05-14 14:14:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -153,20 +153,20 @@ static const vbi3_option_info
 option_info1 [] = {
 	_VBI3_OPTION_MENU_INITIALIZER
 	("format", N_("Encoding"),
-	 1, user_encodings, N_ELEMENTS (user_encodings), NULL),
+	 10, user_encodings, N_ELEMENTS (user_encodings), NULL),
         /* one for users, another for programs */
 	_VBI3_OPTION_STRING_INITIALIZER
-	("charset", NULL, "ISO-8859-1", NULL),
+	("charset", NULL, "UTF-8", NULL),
 };
 
 static const vbi3_option_info
 option_info2 [] = {
 	_VBI3_OPTION_MENU_INITIALIZER
 	("format", N_("Encoding"),
-	 0, user_encodings, N_ELEMENTS (user_encodings), NULL),
+	 10, user_encodings, N_ELEMENTS (user_encodings), NULL),
         /* one for users, another for programs */
 	_VBI3_OPTION_STRING_INITIALIZER
-	("charset", NULL, "ISO-8859-1", NULL),
+	("charset", NULL, "UTF-8", NULL),
 	_VBI3_OPTION_STRING_INITIALIZER
 	("font", N_("Font face"), "Tahoma", NULL),
 };

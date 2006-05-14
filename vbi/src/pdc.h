@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.h,v 1.1.2.11 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: pdc.h,v 1.1.2.12 2006-05-14 14:14:12 mschimek Exp $ */
 
 #ifndef __ZVBI3_PDC_H__
 #define __ZVBI3_PDC_H__
@@ -36,11 +36,17 @@ VBI3_BEGIN_DECLS
  * @{
  */
 
-/** @brief PDC Programme Identification Label. */
+/**
+ * @brief PDC Programme Identification Label.
+ *
+ * This is a packed representation of the announced start date and time
+ * of a program.
+ */
 typedef unsigned int vbi3_pil;
 
 /**
  * @brief Macro to create a PDC PIL.
+ *
  * Note month and day start at 1.
  */
 #define VBI3_PIL(month, day, hour, minute)				\
@@ -53,50 +59,90 @@ typedef unsigned int vbi3_pil;
 
 /**
  * @brief PDC PIL Service Codes.
+ *
+ * Some PILs which do not represent a valid date have a special meaning.
  */
 enum {
-	/** No program ID available, use timer to record. */
+	/** XDS: End of program. */
+	VBI3_PIL_END			= VBI3_PIL (15, 15, 31, 63),
+
+	/** PDC: No program IDs available, use timer to record. */
 	VBI3_PIL_TIMER_CONTROL		= VBI3_PIL (15, 0, 31, 63),
 
+	/**
+	 * PDC: End of program, no ID for current program (e.g.
+	 * during program announcements).
+	 */
 	VBI3_PIL_INHIBIT_TERMINATE	= VBI3_PIL (15, 0, 30, 63),
+
+	/** PDC: Interrupt recording (e.g. during a halftime pause). */
 	VBI3_PIL_INTERRUPT		= VBI3_PIL (15, 0, 29, 63),
+
+	/** PDC: Continue recording. */
 	VBI3_PIL_CONTINUE		= VBI3_PIL (15, 0, 28, 63),
 };
+
+extern time_t
+vbi3_pil_to_time		(vbi3_pil		pil,
+				 int			seconds_east);
+extern vbi3_bool
+vbi3_pil_from_string		(vbi3_pil *		pil,
+				 const char **		inout_s)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 
 /* Private */
 
 extern void
 _vbi3_pil_dump			(vbi3_pil		pil,
-				 FILE *			fp);
-extern vbi3_bool
-_vbi3_str_to_pil		(vbi3_pil *		pil,
-				 const char **		inout_s);
+				 FILE *			fp)
+  __attribute__ ((_vbi3_nonnull (2)));
 
 /**
  * A program identification can be transmitted on different logical
- * channels. The first four channels correspond to the Teletext Packet
- * 8/30 format 2 Label Channel Identifier. The remaining two identify
- * VPS and XDS as source.
+ * channels. The first four channels correspond to the Teletext packet
+ * 8/30 format 2 Label Channel Identifier.
  */
 typedef enum {
+	/** Data from Teletext packet 8/30 format 2, Label Channel 0. */
 	VBI3_PID_CHANNEL_LCI_0 = 0,
+
+	/** Data from Teletext packet 8/30 format 2, Label Channel 1. */
 	VBI3_PID_CHANNEL_LCI_1,
+
+	/** Data from Teletext packet 8/30 format 2, Label Channel 2. */
 	VBI3_PID_CHANNEL_LCI_2,
+
+	/** Data from Teletext packet 8/30 format 2, Label Channel 3. */
 	VBI3_PID_CHANNEL_LCI_3,
+
+	/** Data from a VPS packet. */
 	VBI3_PID_CHANNEL_VPS,
-	VBI3_PID_CHANNEL_XDS
+
+	/**
+	 * Data from an XDS current class packet (about the currently
+	 * received program).
+	 */
+	VBI3_PID_CHANNEL_XDS_CURRENT,
+
+	/** Data from another XDS packet (about a future program). */
+	VBI3_PID_CHANNEL_XDS_FUTURE,
+
+	VBI3_MAX_PID_CHANNELS
 } vbi3_pid_channel;
 
 /**
- * @brief PDC Programme Control Status, Audio.
+ * @brief PDC Programme Control Status - Audio.
  */
 typedef enum {
 	/** Nothing known about audio channels. */
 	VBI3_PCS_AUDIO_UNKNOWN = 0,
+
 	/** Mono audio. */
 	VBI3_PCS_AUDIO_MONO,
+
 	/** Stereo audio. */
 	VBI3_PCS_AUDIO_STEREO,
+
 	/** Primary language on left channel, secondary on right. */ 
 	VBI3_PCS_AUDIO_BILINGUAL
 } vbi3_pcs_audio;
@@ -105,25 +151,25 @@ typedef enum {
  * DOCUMENT ME
  */
 typedef struct {
+	/** Source of this information. */
+	vbi3_pid_channel		channel;
+
 	/**
-	 * Network identifier type, one of VBI3_CNI_TYPE_UNKNOWN,
-	 * VBI3_CNI_TYPE_NONE, VBI3_CNI_TYPE_8302 or VBI3_CNI_TYPE_VPS.
+	 * Network identifier type, one of @c VBI3_CNI_TYPE_UNKNOWN,
+	 * @c VBI3_CNI_TYPE_NONE, @c VBI3_CNI_TYPE_8302 or @c VBI3_CNI_TYPE_VPS.
 	 */
 	vbi3_cni_type		cni_type;
 
 	/**
 	 * Network identifier, valid if the source is Teletext packet
 	 * 8/30 format 2 or VPS. Note 8/30 CNIs may refer to other
-	 * networks.
+	 * networks than the one transmitting the PID.
 	 */
 	unsigned int		cni;
 
-	/** Source of this information. */
-	vbi3_pid_channel		channel;
-
 	/**
-	 * Month, day, hour and minute are the first announced starting
-	 * time of the program.
+	 * Month, day, hour and minute are the announced starting
+	 * date and time of the program.
 	 *
 	 * month range 1 ... 12.
 	 */
@@ -133,49 +179,53 @@ typedef struct {
 	unsigned int		minute;		/**< 0 ... 59 */
 
 	/**
-	 * PDC programme identification label, that is a packed
+	 * PDC Programme Identification Label, that is a packed
 	 * representation of the date above, or one of the
-	 * service codes. Will be VBI3_PIL_TIMER_CONTROL if no
-	 * program ID is available.
+	 * service codes.
+	 *
+	 * This field is also valid when the source is XDS.
 	 */
 	vbi3_pil			pil;
 
-	/**
-	 * Duration of the program in minutes, zero if unknown.
-	 * XDS transmits this.
-	 */
+	/** XDS Program Length in minutes, zero if unknown. */
 	unsigned int		length;
 
 	/**
-	 * PDC Label Update flag. When set this label is intented to
+	 * PDC Label Update flag. When set this program ID is intented to
 	 * update VCR memory, it does not refer to the current program.
 	 */
 	vbi3_bool		luf;
 
 	/**
-	 * PDC Mode Identifier. When set labels are 30 seconds early,
+	 * PDC Mode Identifier. When set, program IDs are 30 seconds early,
 	 * such that a PID can be transmitted announcing the following
 	 * program before the current program ends.
 	 */
 	vbi3_bool		mi;
 
 	/**
-	 * PDC Prepare-to-Record flag. When set the program this label
+	 * PDC Prepare-to-Record flag. When set the program this PID
 	 * refers to is about to start. A transition to cleared state
 	 * indicates the actual start of the program.
 	 */
 	vbi3_bool		prf;
 
-	/** PDC Program Control Status audio. */
+	/** PDC Program Control Status - Audio. */
 	vbi3_pcs_audio		pcs_audio;
 
-	/** PDC program type code, 0 or 0xFF if none or unknown. */
+	/** PDC Program Type code, 0 or 0xFF if none or unknown. */
 	unsigned int		pty;
 
 	/**
-	 * XDS "program is tape delayed" flag, FALSE if unknown.
+	 * XDS "program is tape delayed" flag, FALSE if not or unknown.
+	 *
+	 * The actual delay is transmitted in a XDS Channel class
+	 * Tape Delay packet.
 	 */
 	vbi3_bool		tape_delayed;
+
+	void *			_reserved1[2];
+	int			_reserved2[4];
 } vbi3_program_id;
 
 extern void
@@ -200,22 +250,28 @@ struct _vbi3_at1_ptl {
 	uint8_t			column_end;	/**< 0 ... 40 */
 };
 
-/* Flags?
-#define PDC_BILINGUAL	(1 << 0)
-#define PDC_BLACKWHITE	(1 << 1)
-#define PDC_DOLBY51	(1 << 2)
-#define PDC_AUDIODESCR	(1 << 3)
-#define PDC_ORIGINAL	(1 << 4)
-#define PDC_REPEAT	(1 << 5)
-#define PDC_SIGN	(1 << 6)
-#define PDC_STEREO	(1 << 7)
-#define PDC_SUBTITLES	(1 << 8)
-#define PDC_SURROUND	(1 << 9)
-#define PDC_WIDESCREEN	(1 << 10)
-*/
+typedef enum {
+	/** The program is encrypted (PDC CAF Conditional Access flag). */
+	VBI3_PDC_ENCRYPTED	= (1 << 0),
+
+#if 0 /* future stuff */
+	VBI3_PDC_BILINGUAL	= (1 << 1),
+	VBI3_PDC_BW		= (1 << 2),
+	VBI3_PDC_DOLBY51	= (1 << 3),
+	VBI3_PDC_AUDIO_DESCR	= (1 << 4),
+	VBI3_PDC_ORIGINAL	= (1 << 5),
+	VBI3_PDC_REPEAT		= (1 << 6),
+	VBI3_PDC_SIGN_LANG	= (1 << 7),
+	VBI3_PDC_STEREO		= (1 << 8),
+	VBI3_PDC_SUBTITLES	= (1 << 9),
+	VBI3_PDC_SURROUND	= (1 << 10),
+	VBI3_PDC_WIDESCREEN	= (1 << 11),
+#endif
+} vbi3_preselection_flags;
 
 /**
  * @brief VCR programming from Teletext.
+ *
  * This structure contains PDC data of a program selected
  * from a Teletext page.
  */
@@ -228,14 +284,15 @@ typedef struct {
 
 	/**
 	 * Network identifier, always valid. Note Teletext pages
-	 * may list programs on other networks.
+	 * may refer to other networks than the one transmitting this information.
 	 */
 	unsigned int		cni;
 
 	/**
 	 * year, month, day, at1_hour and at1_minute is the
-	 * most recently announced starting time of a
-	 * program.
+	 * most recently announced starting date and time of the
+	 * program. This time is given relative to the time zone
+	 * of the intended audience.
 	 *
 	 * year range: 2000+.
 	 */
@@ -256,38 +313,37 @@ typedef struct {
 	unsigned int		at2_minute;	/**< 0 ... 59 */
 
 	/**
-	 * Duration of the program in minutes.
+	 * Program length in minutes.
 	 */
 	unsigned int		length;
 
 	/**
-	 * Offset of local time from UTC in minutes.
+	 * Offset of the time zone of the intended audience from UTC in
+	 * seconds east. CET for example is 1 * 60 * 60 seconds east of
+	 * UTC.
 	 */
-	int			lto;
+	int			seconds_east;
 
-	/** PDC program type code, 0 or 0xFF if none or unknown. */
+	/**
+	 * The seconds_east field is valid (a LTO [Local Time Offset] was
+	 * encoded on the page).
+	 */
+	vbi3_bool		seconds_east_valid;
+
+	/** PDC Program Type code, 0 or 0xFF if none or unknown. */
 	unsigned int		pty;
 
-	/**
-	 * Conditional Access Flag.
-	 * TRUE if the program is encrypted, FALSE if clear or unknown.
-	 */
-	vbi3_bool		caf;
+	vbi3_preselection_flags	flags;
 
 	/**
-	 * Program title. Networks rarely identify the title
-	 * unambiguously. Expect incomplete titles and unrelated text.
+	 * Program title, %c NULL if unknown. Networks rarely identify
+	 * the title unambiguously. Expect incomplete titles and unrelated
+	 * text.
 	 *
-	 * This is a NUL-terminated UTF-8 string.
+	 * This is a NUL-terminated string in the encoding used by gettext
+	 * or the current locale.
 	 */
 	char *			title;
-
-	void *			reserved1;
-
-	/* XXX cni + pgno + subno? */
-	vbi3_pgno		pgno;
-
-	/* unsigned long	flags; */
 
 	/**
 	 * @internal
@@ -295,17 +351,24 @@ typedef struct {
 	 * Method B: position of PTL; elements 0, 2, 3 unused.
 	 */
 	struct _vbi3_at1_ptl	_at1_ptl[4];
+
+	/* XXX cni + pgno + subno? */
+	vbi3_pgno		_pgno;
+
+	void *			_reserved1[2];
+	int			_reserved2[4];
 } vbi3_preselection;
 
 extern time_t
-vbi3_preselection_time		(const vbi3_preselection *p)
-  __attribute__ ((_vbi3_nonnull (1)));
-extern void
-vbi3_preselection_destroy	(vbi3_preselection *	p)
+vbi3_preselection_time		(const vbi3_preselection *p,
+				 int			seconds_east)
   __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_preselection_copy		(vbi3_preselection *	dst,
 				 const vbi3_preselection *src)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern void
+vbi3_preselection_destroy	(vbi3_preselection *	p)
   __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_preselection_init		(vbi3_preselection *	p)

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-sim.h,v 1.1.2.4 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: io-sim.h,v 1.1.2.5 2006-05-14 14:14:11 mschimek Exp $ */
 
 #ifndef __ZVBI3_IO_SIM_H__
 #define __ZVBI3_IO_SIM_H__
@@ -41,6 +41,17 @@ _vbi3_test_image_vbi		(uint8_t *		raw,
 				 const vbi3_sampling_par *sp,
 				 const vbi3_sliced *	sliced,
 				 unsigned int		sliced_lines);
+
+extern vbi3_bool
+_vbi3_capture_sim_load_vps	(vbi3_capture *		cap,
+				 const vbi3_program_id *pid);
+extern vbi3_bool
+_vbi3_capture_sim_load_wss_625	(vbi3_capture *		cap,
+				 const vbi3_aspect_ratio *ar);
+extern vbi3_bool
+_vbi3_capture_sim_load_caption	(vbi3_capture *		cap,
+				 const char *		stream,
+				 vbi3_bool		append);
 extern vbi3_capture *
 _vbi3_capture_sim_new		(int			scanning,
 				 unsigned int *		services,

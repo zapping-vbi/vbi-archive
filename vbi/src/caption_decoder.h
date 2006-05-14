@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder.h,v 1.1.2.3 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: caption_decoder.h,v 1.1.2.4 2006-05-14 14:14:11 mschimek Exp $ */
 
 #ifndef __ZVBI3_CAPTION_DECODER_H__
 #define __ZVBI3_CAPTION_DECODER_H__
@@ -69,8 +69,8 @@ typedef struct {
 
 	double			last_received;
 
-	void *			reserved1[2];
-	unsigned int		reserved2[2];
+	void *			_reserved1[2];
+	int			_reserved2[2];
 } vbi3_cc_channel_stat;
 
 extern void

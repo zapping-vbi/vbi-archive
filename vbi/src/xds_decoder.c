@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_decoder.c,v 1.1.2.6 2006-05-07 06:02:16 mschimek Exp $ */
+/* $Id: xds_decoder.c,v 1.1.2.7 2006-05-14 14:14:12 mschimek Exp $ */
 
 #if 0 // TODO
 
@@ -187,13 +187,86 @@ flush_prog_info(vbi3_decoder *vbi, vbi3_program_info *pi, vbi3_event *e)
 	vbi->cc.info_cycle[pi->future] = 0;
 }
 
+vbi3_bool
+decode_program_id		(vbi3_program_id *	pid,
+				 const vbi3_xds_packet *	xp)
+{
+	unsigned int minute;
+	unsigned int hour;
+	unsigned int day;
+	unsigned int month;
+	vbi3_pil pil;
+
+	minute	= xp->buffer[0] & 63;
+	hour	= xp->buffer[1] & 31;
+	day	= xp->buffer[2] & 31;
+	month	= xp->buffer[3] & 15;
+
+	pil = VBI3_PIL (month, day, hour, minute);
+
+	if (VBI3_PIL_END != pil) {
+		/* XXX check date. */
+	}
+
+	CLEAR (*pid);
+
+	if (VBI3_XDS_CLASS_CURRENT == xp->xds_class)
+		pid->channel = VBI3_PID_CHANNEL_XDS_CURRENT;
+	else
+		pid->channel = VBI3_PID_CHANNEL_XDS_FUTURE;
+
+	pid->month	= month;
+	pid->day	= day;
+	pid->hour	= hour;
+	pid->minute	= minute;
+
+	pid->pil	= pil;
+
+	pid->tape_delayed = ((xp->buffer[3] & 0x10) > 0);
+
+	return TRUE;
+}
+
 /**
- * @param ar Aspect ratio information is stored here.
+ * @param pid The program ID will be stored here (month, day, hour, minute
+ *   and tape_delay). Additionally the date will be encoded in the pil field,
+ *   and as seconds since 1970-01-01 00:00 in the time field. All dates are
+ *   given relative to UTC.
+ * @param xp XDS packet to decode.
  *
- * Decodes an XDS aspect ratio (0x0109, 0x0309) packet.
+ * Decodes an XDS Program ID (0x0101, 0x0301) packet, returning the scheduled
+ * start time of the current or a future program relative to UTC.
+ *
+ * When this is a current class packet and the date differs from a previous
+ * date, a new program has started. When pil is VBI3_PIL_END the current program
+ * has ended.
  *
  * @returns
- * FALSE if the buffer contains incorrect data.
+ * FALSE if the packet contains incorrect data. In this case @a pid remains
+ * unmodified.
+ */
+vbi3_bool
+vbi3_decode_xds_program_id	(vbi3_program_id *	pid,
+				 const vbi3_xds_packet *	xp)
+{
+	assert (NULL != pid);
+	assert (NULL != xp);
+
+	if (4 != xp->buffer_size)
+		return FALSE;
+
+	return decode_program_id (pid, xp);
+}
+
+/**
+ * @param ar Aspect ratio information is stored here.
+ * @param xp XDS packet to decode.
+ *
+ * Decodes an XDS Aspect Ratio (0x0109, 0x0309) packet.
+ *
+ * @returns
+ * FALSE if the packet contains incorrect data. In this case @a ar remains
+ * unmodified.
  */
 vbi3_bool
 vbi3_decode_xds_aspect_ratio	(vbi3_aspect_ratio *	ar,
@@ -202,14 +275,15 @@ vbi3_decode_xds_aspect_ratio	(vbi3_aspect_ratio *	ar,
 	assert (NULL != ar);
 	assert (NULL != xp);
 
-	if (xp->buffer_size < 2 || xp->buffer_size > 3)
+	if (2 != xp->buffer_size
+	    && 4 != xp->buffer_size)
 		return FALSE;
 
 	CLEAR (*ar);
 
 	ar->start[0] = 22 + (xp->buffer[0] & 63);
-	ar->start[1] = 285 + (xp->buffer[0] & 63);
-	ar->count[0] = 262 - 22 - (xp->buffer[1] & 63);
+	ar->start[1] = 263 + 22 + (xp->buffer[0] & 63);
+	ar->count[0] = 263 - (xp->buffer[1] & 63) - ar->start[1];
 	ar->count[1] = ar->count[0];
 
 	ar->ratio = 1.0;
@@ -841,15 +915,27 @@ vbi3_decode_xds_time_zone	(unsigned int *		hours_west,
 }
 
 /**
+ * @param pid The program ID will be stored here (month, day, hour, minute,
+ *   length and tape_delay). Additionally the date will be encoded in the @a pil
+ *   field, and as seconds since 1970-01-01 00:00 in the @a time field. All dates
+ *   are given relative to UTC.
+ * @param xp XDS packet to decode.
  *
+ * Decodes an XDS Impulse Capture ID (0x0702) packet, returning the scheduled
+ * start time and length of a future program, transmitted for example during
+ * a program announcement.
+ *
+ * @returns
+ * FALSE if the packet contains incorrect data. In this case @a pid remains
+ * unmodified.
  */
 vbi3_bool
 vbi3_decode_xds_impulse_capture_id
 				(vbi3_program_id *	pid,
 				 const vbi3_xds_packet *	xp)
 {
+	unsigned int minute;
 	unsigned int hour;
-	unsigned int min;
 
 	assert (NULL != pid);
 	assert (NULL != xp);
@@ -857,43 +943,16 @@ vbi3_decode_xds_impulse_capture_id
 	if (6 != xp->buffer_size)
 		return FALSE;
 
-	pid->cni_type	= VBI3_CNI_TYPE_NONE;
-	pid->cni	= 0;
-
-	pid->channel	= VBI3_PID_CHANNEL_XDS;
-
-	/* TZ UTC */
-
-	pid->minute	= xp->buffer[0] & 63;
-	pid->hour	= xp->buffer[1] & 31;
-	pid->day	= (xp->buffer[2] & 31) + 1;
-	pid->month	= (xp->buffer[3] & 15) + 1;
-
-	// XXX should not write on error
-	if (pid->minute > 59
-	    || pid->hour > 23
-	    || pid->day > 31
-	    || pid->month > 12)
-		return FALSE;
-
-	pid->pil = VBI3_PIL (pid->day, pid->month, pid->hour, pid->minute);
-
 	min  = xp->buffer[4] & 63;
 	hour = xp->buffer[5] & 63;
 
 	if (min > 59)
 		return FALSE;
 
+	if (!decode_program_id (pid, xp))
+		return FALSE;
+
 	pid->length = hour * 60 + min;
-
-	pid->luf = FALSE; /* no update, just id */
-	pid->mi  = FALSE; /* id is not 30 s early */
-	pid->prf = FALSE; /* prepare to record unknown */
-
-	pid->pcs_audio = VBI3_PCS_AUDIO_UNKNOWN;
-	pid->pty = 0; /* none / unknown */
-
-	pid->tape_delayed = !!(xp->buffer[3] & 0x10);
 
 	return TRUE;
 }

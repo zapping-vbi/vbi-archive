@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.h,v 1.6.2.11 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: bcd.h,v 1.6.2.12 2006-05-14 14:14:11 mschimek Exp $ */
 
 #ifndef __ZVBI3_BCD_H__
 #define __ZVBI3_BCD_H__
@@ -174,38 +174,41 @@ vbi3_bcd_digits_greater		(unsigned int		bcd,
  * purposes, these pages are not intended for display.
  * 
  * Closed Caption page numbers between 1 ... 8 correspond
- * to the four Caption and Text channels:
- * <table>
- * <tr><td>1</td><td>Caption 1</td><td>
- *   "Primary synchronous caption service [English]"</td></tr>
- * <tr><td>2</td><td>Caption 2</td><td>
- *   "Special non-synchronous data that is intended to
- *   augment information carried in the program"</td></tr>
- * <tr><td>3</td><td>Caption 3</td><td>
- *   "Secondary synchronous caption service, usually
- *    second language [Spanish, French]"</td></tr>
- * <tr><td>4</td><td>Caption 4</td><td>
- *   "Special non-synchronous data similar to Caption 2"</td></tr>
- * <tr><td>5</td><td>Text 1</td><td>
- *   "First text service, data usually not program related"</td></tr>
- * <tr><td>6</td><td>Text 2</td><td>
- *   "Second text service, additional data usually not program related
- *    [ITV data]"</td></tr>
- * <tr><td>7</td><td>Text 3</td><td>
- *   "Additional text channel"</td></tr>
- * <tr><td>8</td><td>Text 4</td><td>
- *   "Additional text channel"</td></tr>
- * </table>
+ * to the four Caption and Text channels CC1 ... CC4 and T1 ... T4.
  */
 typedef int vbi3_pgno;
 
+/** Primary synchronous caption service (English). */
 #define VBI3_CAPTION_CC1 1
+
+/**
+ * Special non-synchronous data that is intended to
+ * augment information carried in the program.
+ */
 #define VBI3_CAPTION_CC2 2
+
+/**
+ * Secondary synchronous caption service, usually
+ * a second language.
+ */
 #define VBI3_CAPTION_CC3 3
+
+/** Special non-synchronous data similar to CC2. */
 #define VBI3_CAPTION_CC4 4
+
+/** First text service, data usually not program related. */
 #define VBI3_CAPTION_T1 5
+
+/**
+ * Second text service, additional data usually not
+ * program related (ITV data).
+ */
 #define VBI3_CAPTION_T2 6
+
+/** Additional text channel. */
 #define VBI3_CAPTION_T3 7
+
+/** Additional text channel. */
 #define VBI3_CAPTION_T4 8
 
 /**
@@ -233,6 +236,9 @@ typedef int vbi3_subno;
 VBI3_END_DECLS
 
 #ifdef __cplusplus
+
+#include <iostream>
+#include <iomanip>
 
 namespace vbi {
   class Bcd {

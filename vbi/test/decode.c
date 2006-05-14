@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decode.c,v 1.1.2.8 2006-05-07 20:51:36 mschimek Exp $ */
+/* $Id: decode.c,v 1.1.2.9 2006-05-14 14:14:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -38,17 +38,18 @@
 #  include <getopt.h>
 #endif
 
-#if 1 /* libzvbi 0.2 */
+#include "src/version.h"
+#if 2 == VBI_VERSION_MINOR
 #  include "src/libzvbi.h"
 #  include "sliced.h"		/* sliced data from file */
-#  define HAVE_VBI_PFC_DEMUX 1 /* XXX port me */
+#  define HAVE_VBI3_PFC_DEMUX 1 /* XXX port me */
 #else /* 0.3 */
 #  include "src/zvbi.h"
-#  include "src/misc.h"		/* vbi_printable() */
+#  include "src/misc.h"		/* vbi3_printable() */
    /* XXX update me */
-#  define vbi_dvb_pes_demux_new _vbi_dvb_pes_demux_new
-#  define vbi_dvb_demux_cor _vbi_dvb_demux_cor
-#  define vbi_dvb_demux_delete _vbi_dvb_demux_delete
+#  define vbi3_dvb_pes_demux_new _vbi3_dvb_pes_demux_new
+#  define vbi3_dvb_demux_cor _vbi3_dvb_demux_cor
+#  define vbi3_dvb_demux_delete _vbi3_dvb_demux_delete
 #endif
 
 #define _(x) x /* i18n TODO */
@@ -60,27 +61,27 @@
 #  define PRId64 "lld"
 #endif
 
-static vbi_bool			source_is_pes; /* ATSC/DVB */
+static vbi3_bool			source_is_pes; /* ATSC/DVB */
 
-static vbi_pgno			option_pfc_pgno;
+static vbi3_pgno			option_pfc_pgno;
 static unsigned int		option_pfc_stream;
 
-static vbi_bool			option_decode_ttx;
-static vbi_bool			option_decode_8301;
-static vbi_bool			option_decode_8302;
-static vbi_bool			option_decode_caption;
-static vbi_bool			option_decode_xds;
-static vbi_bool			option_decode_idl;
-static vbi_bool			option_decode_vps;
-static vbi_bool			option_decode_vps_other;
-static vbi_bool			option_decode_wss;
+static vbi3_bool			option_decode_ttx;
+static vbi3_bool			option_decode_8301;
+static vbi3_bool			option_decode_8302;
+static vbi3_bool			option_decode_caption;
+static vbi3_bool			option_decode_xds;
+static vbi3_bool			option_decode_idl;
+static vbi3_bool			option_decode_vps;
+static vbi3_bool			option_decode_vps_other;
+static vbi3_bool			option_decode_wss;
 
-static vbi_bool			option_dump_network;
-static vbi_bool			option_dump_hex;
-static vbi_bool			option_dump_bin;
-static vbi_bool			option_dump_time;
+static vbi3_bool			option_dump_network;
+static vbi3_bool			option_dump_hex;
+static vbi3_bool			option_dump_bin;
+static vbi3_bool			option_dump_time;
 
-static vbi_pgno			option_pfc_pgno	= 0;
+static vbi3_pgno			option_pfc_pgno	= 0;
 static unsigned int		option_pfc_stream = 0;
 
 static unsigned int		option_idl_channel = 0;
@@ -88,12 +89,12 @@ static unsigned int		option_idl_address = 0;
 
 /* Demultiplexers. */
 
-#ifdef HAVE_VBI_PFC_DEMUX
-static vbi_pfc_demux *		pfc;
+#ifdef HAVE_VBI3_PFC_DEMUX
+static vbi3_pfc_demux *		pfc;
 #endif
-static vbi_dvb_demux *		dvb;
-static vbi_idl_demux *		idl;
-static vbi_xds_demux *		xds;
+static vbi3_dvb_demux *		dvb;
+static vbi3_idl_demux *		idl;
+static vbi3_xds_demux *		xds;
 
 #ifndef HAVE_PROGRAM_INVOCATION_NAME
 static char *			program_invocation_name;
@@ -101,12 +102,12 @@ static char *			program_invocation_short_name;
 #endif
 
 extern void
-_vbi_pfc_block_dump		(const vbi_pfc_block *	pb,
+_vbi3_pfc_block_dump		(const vbi3_pfc_block *	pb,
 				 FILE *			fp,
-				 vbi_bool		binary);
+				 vbi3_bool		binary);
 
 static int
-vbi_printable			(int			c)
+vbi3_printable			(int			c)
 {
 	if (c < 0)
 		return '?';
@@ -211,8 +212,10 @@ caption_command			(unsigned int		line,
 				ch, c2);
 			/* All caption characters are representable
 			   in UTF-8, but not necessarily in ASCII. */
-			ucs2_str[0] = vbi_caption_unicode (c2);
-			vbi_fputs_locale_ucs2 (stdout, ucs2_str, 1);
+			ucs2_str[0] = vbi3_caption_unicode (c2);
+			vbi3_fputs_iconv_ucs2 (stdout,
+					       vbi3_locale_codeset (),
+					       ucs2_str, 1);
 			puts ("'");
 #else
 			printf ("special character ch=%u %u\n",
@@ -324,15 +327,15 @@ caption_command			(unsigned int		line,
 	printf ("unknown\n");
 }
 
-static vbi_bool
-xds_cb				(vbi_xds_demux *	xd,
-				 const vbi_xds_packet *	xp,
+static vbi3_bool
+xds_cb				(vbi3_xds_demux *	xd,
+				 const vbi3_xds_packet *	xp,
 				 void *			user_data)
 {
 	xd = xd;
 	user_data = user_data;
 
-	_vbi_xds_packet_dump (xp, stdout);
+	_vbi3_xds_packet_dump (xp, stdout);
 
 	return TRUE; /* no errors */
 }
@@ -342,7 +345,7 @@ caption				(const uint8_t		buffer[2],
 				 unsigned int		line)
 {
 	if (option_decode_xds && 284 == line) {
-		if (!vbi_xds_demux_feed (xds, buffer)) {
+		if (!vbi3_xds_demux_feed (xds, buffer)) {
 			printf (_("Parity error in XDS data.\n"));
 		}
 	}
@@ -353,8 +356,8 @@ caption				(const uint8_t		buffer[2],
 		int c1;
 		int c2;
 
-		c1 = vbi_unpar8 (buffer[0]);
-		c2 = vbi_unpar8 (buffer[1]);
+		c1 = vbi3_unpar8 (buffer[0]);
+		c2 = vbi3_unpar8 (buffer[1]);
 
 		if ((c1 | c2) < 0) {
 			printf (_("Parity error in CC line=%u "
@@ -371,20 +374,24 @@ caption				(const uint8_t		buffer[2],
 
 			/* All caption characters are representable
 			   in UTF-8, but not necessarily in ASCII. */
-			ucs2_str[0] = vbi_caption_unicode (c1);
+			ucs2_str[0] = vbi3_caption_unicode (c1);
 			if (c2 >= 0x20) {
-				ucs2_str[1] = vbi_caption_unicode (c2);
-				vbi_fputs_locale_ucs2 (stdout, ucs2_str, 2);
+				ucs2_str[1] = vbi3_caption_unicode (c2);
+				vbi3_fputs_iconv_ucs2 (stdout,
+						       vbi3_locale_codeset (),
+						       ucs2_str, 2);
 			} else {
-				vbi_fputs_locale_ucs2 (stdout, ucs2_str, 1);
+				vbi3_fputs_iconv_ucs2 (stdout,
+						       vbi3_locale_codeset (),
+						       ucs2_str, 1);
 			}
 
 			puts ("'");
 #else
 			printf ("CC line=%3u text 0x%02x 0x%02x '%c%c'\n",
 				line, c1, c2,
-				vbi_printable (c1),
-				vbi_printable (c2));
+				vbi3_printable (c1),
+				vbi3_printable (c2));
 #endif
 		} else if (0 == c1 || c1 >= 0x10) {
 			caption_command (line, c1, c2);
@@ -401,27 +408,27 @@ caption				(const uint8_t		buffer[2],
 #if 3 == VBI_VERSION_MINOR /* XXX port me back */
 
 static void
-dump_cni			(vbi_cni_type		type,
+dump_cni			(vbi3_cni_type		type,
 				 unsigned int		cni)
 {
-	vbi_network nk;
-	vbi_bool success;
+	vbi3_network nk;
+	vbi3_bool success;
 
 	if (!option_dump_network)
 		return;
 
-	success = vbi_network_init (&nk);
+	success = vbi3_network_init (&nk);
 	if (!success)
 		no_mem_exit ();
 
-	success = vbi_network_set_cni (&nk, type, cni);
+	success = vbi3_network_set_cni (&nk, type, cni);
 	if (!success)
 		no_mem_exit ();
 
-	_vbi_network_dump (&nk, stdout);
+	_vbi3_network_dump (&nk, stdout);
 	putchar ('\n');
 
-	vbi_network_destroy (&nk);
+	vbi3_network_destroy (&nk);
 }
 
 #endif /* 3 == VBI_VERSION_MINOR */
@@ -448,7 +455,7 @@ dump_bytes			(const uint8_t *	buffer,
 		/* For Teletext: Not all characters are representable
 		   in ASCII or even UTF-8, but at this stage we don't
 		   know the Teletext code page for a proper conversion. */
-		char c = vbi_printable (buffer[j]);
+		char c = vbi3_printable (buffer[j]);
 
 		putchar (c);
 	}
@@ -470,13 +477,13 @@ packet_8301			(const uint8_t		buffer[42],
 	if (!option_decode_8301)
 		return;
 
-	if (!vbi_decode_teletext_8301_cni (&cni, buffer)) {
+	if (!vbi3_decode_teletext_8301_cni (&cni, buffer)) {
 		printf (_("Error in Teletext "
 			  "packet 8/30 format 1 CNI.\n"));
 		return;
 	}
 
-	if (!vbi_decode_teletext_8301_local_time (&time, &gmtoff, buffer)) {
+	if (!vbi3_decode_teletext_8301_local_time (&time, &gmtoff, buffer)) {
 		printf (_("Error in Teletext "
 			  "packet 8/30 format 1 local time.\n"));
 		return;
@@ -492,7 +499,7 @@ packet_8301			(const uint8_t		buffer[42],
 		tm.tm_hour, tm.tm_min, tm.tm_sec);
 
 	if (0 != cni)
-		dump_cni (VBI_CNI_TYPE_8301, cni);
+		dump_cni (VBI3_CNI_TYPE_8301, cni);
 }
 
 static void
@@ -500,18 +507,18 @@ packet_8302			(const uint8_t		buffer[42],
 				 unsigned int		designation)
 {
 	unsigned int cni;
-	vbi_program_id pi;
+	vbi3_program_id pi;
 
 	if (!option_decode_8302)
 		return;
 
-	if (!vbi_decode_teletext_8302_cni (&cni, buffer)) {
+	if (!vbi3_decode_teletext_8302_cni (&cni, buffer)) {
 		printf (_("Error in Teletext "
 			  "packet 8/30 format 2 CNI.\n"));
 		return;
 	}
 
-	if (!vbi_decode_teletext_8302_pdc (&pi, buffer)) {
+	if (!vbi3_decode_teletext_8302_pdc (&pi, buffer)) {
 		printf (_("Error in Teletext "
 			  "packet 8/30 format 2 PDC data.\n"));
 		return;
@@ -519,7 +526,7 @@ packet_8302			(const uint8_t		buffer[42],
 
 	printf ("Teletext packet 8/30/%u cni=%x ", designation, cni);
 
-	_vbi_program_id_dump (&pi, stdout);
+	_vbi3_program_id_dump (&pi, stdout);
 
 	putchar ('\n');
 
@@ -529,21 +536,21 @@ packet_8302			(const uint8_t		buffer[42],
 
 #endif /* 3 == VBI_VERSION_MINOR */
 
-static vbi_bool
-page_function_clear_cb		(vbi_pfc_demux *	dx,
-		                 const vbi_pfc_block *	block,
+static vbi3_bool
+page_function_clear_cb		(vbi3_pfc_demux *	dx,
+		                 const vbi3_pfc_block *	block,
 				 void *			user_data)
 {
 	dx = dx; /* unused */
 	user_data = user_data;
 
-	_vbi_pfc_block_dump (block, stdout, option_dump_bin);
+	_vbi3_pfc_block_dump (block, stdout, option_dump_bin);
 
 	return TRUE;
 }
 
-static vbi_bool
-idl_format_a_cb			(vbi_idl_demux *	idl,
+static vbi3_bool
+idl_format_a_cb			(vbi3_idl_demux *	idl,
 				 const uint8_t *	buffer,
 				 unsigned int		n_bytes,
 				 unsigned int		flags,
@@ -554,8 +561,8 @@ idl_format_a_cb			(vbi_idl_demux *	idl,
 
 	if (!option_dump_bin) {
 		printf ("IDL-A%s%s ",
-			(flags & VBI_IDL_DATA_LOST) ? " <data lost>" : "",
-			(flags & VBI_IDL_DEPENDENT) ? " <dependent>" : "");
+			(flags & VBI3_IDL_DATA_LOST) ? " <data lost>" : "",
+			(flags & VBI3_IDL_DEPENDENT) ? " <dependent>" : "");
 	}
 
 	dump_bytes (buffer, n_bytes);
@@ -588,9 +595,9 @@ packet_idl			(const uint8_t		buffer[42],
 	case 6:
 	case 13:
 	case 14:
-		pa = vbi_unham8 (buffer[3]);
-		pa |= vbi_unham8 (buffer[4]) << 4;
-		pa |= vbi_unham8 (buffer[5]) << 8;
+		pa = vbi3_unham8 (buffer[3]);
+		pa |= vbi3_unham8 (buffer[4]) << 4;
+		pa |= vbi3_unham8 (buffer[5]) << 8;
 
 		if (pa < 0) {
 			printf (_("Hamming error in Datavideo "
@@ -609,7 +616,7 @@ packet_idl			(const uint8_t		buffer[42],
 	case 10:
 	case 11:
 	case 15:
-		if ((ft = vbi_unham8 (buffer[2])) < 0) {
+		if ((ft = vbi3_unham8 (buffer[2])) < 0) {
 			printf (_("Hamming error in IDL format "
 				  "A or B format-type byte.\n"));
 			return;
@@ -621,7 +628,7 @@ packet_idl			(const uint8_t		buffer[42],
 			int spa; /* service packet address */
 			unsigned int i;
 
-			if ((ial = vbi_unham8 (buffer[3])) < 0) {
+			if ((ial = vbi3_unham8 (buffer[3])) < 0) {
 				printf (_("Hamming error in IDL format "
 					  "A interpretation-and-address-"
 					  "length byte.\n"));
@@ -638,7 +645,7 @@ packet_idl			(const uint8_t		buffer[42],
 			spa = 0;
 
 			for (i = 0; i < spa_length; ++i)
-				spa |= vbi_unham8 (buffer[4 + i]) << (4 * i);
+				spa |= vbi3_unham8 (buffer[4 + i]) << (4 * i);
 
 			if (spa < 0) {
 				printf (_("Hamming error in IDL format "
@@ -653,7 +660,7 @@ packet_idl			(const uint8_t		buffer[42],
 
 			an = (ft >> 2);
 
-			if ((ai = vbi_unham8 (buffer[3])) < 0) {
+			if ((ai = vbi3_unham8 (buffer[3])) < 0) {
 				printf (_("Hamming error in IDL format "
 					  "B application-number byte.\n"));
 				return;
@@ -681,9 +688,9 @@ teletext			(const uint8_t		buffer[42],
 	unsigned int magazine;
 	unsigned int packet;
 
-#ifdef HAVE_VBI_PFC_DEMUX
+#ifdef HAVE_VBI3_PFC_DEMUX
 	if (NULL != pfc) {
-		if (!vbi_pfc_demux_feed (pfc, buffer)) {
+		if (!vbi3_pfc_demux_feed (pfc, buffer)) {
 			printf (_("Error in Teletext "
 				  "PFC packet.\n"));
 			return;
@@ -697,7 +704,7 @@ teletext			(const uint8_t		buffer[42],
 	      option_decode_idl))
 		return;
 
-	pmag = vbi_unham16p (buffer);
+	pmag = vbi3_unham16p (buffer);
 	if (pmag < 0) {
 		printf (_("Hamming error in Teletext "
 			  "packet number.\n"));
@@ -713,7 +720,7 @@ teletext			(const uint8_t		buffer[42],
 	if (8 == magazine && 30 == packet) {
 		int designation;
 
-		designation = vbi_unham8 (buffer[2]);
+		designation = vbi3_unham8 (buffer[2]);
 		if (designation < 0 ) {
 			printf (_("Hamming error in Teletext "
 				  "packet 8/30 designation byte.\n"));
@@ -763,7 +770,7 @@ vps				(const uint8_t		buffer[13],
 	if (option_decode_vps) {
 		unsigned int cni;
 #if 3 == VBI_VERSION_MINOR
-		vbi_program_id pi;
+		vbi3_program_id pi;
 #endif
 		if (option_dump_bin) {
 			printf ("VPS line=%3u ", line);
@@ -771,27 +778,27 @@ vps				(const uint8_t		buffer[13],
 			return;
 		}
 
-		if (!vbi_decode_vps_cni (&cni, buffer)) {
+		if (!vbi3_decode_vps_cni (&cni, buffer)) {
 			printf (_("Error in VPS packet CNI.\n"));
 			return;
 		}
 
 #if 3 == VBI_VERSION_MINOR
-		if (!vbi_decode_vps_pdc (&pi, buffer)) {
+		if (!vbi3_decode_vps_pdc (&pi, buffer)) {
 			printf (_("Error in VPS packet PDC data.\n"));
 			return;
 		}
 		
 		printf ("VPS line=%3u ", line);
 
-		_vbi_program_id_dump (&pi, stdout);
+		_vbi3_program_id_dump (&pi, stdout);
 
 		putchar ('\n');
 
 		if (0 != pi.cni)
 			dump_cni (pi.cni_type, pi.cni);
 #else
-		printf ("VPS line=%3u CNI=%x", line, cni);
+		printf ("VPS line=%3u CNI=%x\n", line, cni);
 #endif
 	}
 
@@ -804,7 +811,7 @@ vps				(const uint8_t		buffer[13],
 
 		i = (line != 16);
 
-		c = vbi_rev8 (buffer[1]);
+		c = vbi3_rev8 (buffer[1]);
 
 		if (c & 0x80) {
 			label[i][l[i]] = 0;
@@ -812,7 +819,7 @@ vps				(const uint8_t		buffer[13],
 			l[i] = 0;
 		}
 
-		label[i][l[i]] = vbi_printable (c);
+		label[i][l[i]] = vbi3_printable (c);
 
 		l[i] = (l[i] + 1) % 16;
 		
@@ -821,7 +828,7 @@ vps				(const uint8_t		buffer[13],
 			"%02x %02x %02x %02x (\"%s\")\n",
 			line,
 			buffer[0], buffer[1],
-			c, vbi_printable (c),
+			c, vbi3_printable (c),
 			buffer[2], buffer[3],
 			buffer[4], buffer[5], buffer[6], buffer[7],
 			pr_label[i]);
@@ -834,14 +841,14 @@ static void
 wss_625				(const uint8_t		buffer[2])
 {
 	if (option_decode_wss) {  
-		vbi_aspect_ratio ar;
+		vbi3_aspect_ratio ar;
 
-		if (!vbi_decode_wss_625 (&ar, buffer)) {
+		if (!vbi3_decode_wss_625 (&ar, buffer)) {
 			printf (_("Error in WSS packet.\n"));
 			return;
 		}
 
-		_vbi_aspect_ratio_dump (&ar, stdout);
+		_vbi3_aspect_ratio_dump (&ar, stdout);
 
 		putchar ('\n');
 	}
@@ -850,7 +857,7 @@ wss_625				(const uint8_t		buffer[2])
 #endif /* 3 == VBI_VERSION_MINOR */
 
 static void
-decode				(const vbi_sliced *	s,
+decode				(const vbi3_sliced *	s,
 				 unsigned int		n_lines,
 				 double			sample_time,
 				 int64_t		stream_time)
@@ -876,33 +883,33 @@ decode				(const vbi_sliced *	s,
 
 	while (n_lines > 0) {
 		switch (s->id) {
-		case VBI_SLICED_TELETEXT_B_L10_625:
-		case VBI_SLICED_TELETEXT_B_L25_625:
-		case VBI_SLICED_TELETEXT_B_625:
+		case VBI3_SLICED_TELETEXT_B_L10_625:
+		case VBI3_SLICED_TELETEXT_B_L25_625:
+		case VBI3_SLICED_TELETEXT_B_625:
 			teletext (s->data, s->line);
 			break;
 
-		case VBI_SLICED_VPS:
-		case VBI_SLICED_VPS_F2:
+		case VBI3_SLICED_VPS:
+		case VBI3_SLICED_VPS_F2:
 			vps (s->data, s->line);
 			break;
 
-		case VBI_SLICED_CAPTION_625_F1:
-		case VBI_SLICED_CAPTION_625_F2:
-		case VBI_SLICED_CAPTION_625:
-		case VBI_SLICED_CAPTION_525_F1:
-		case VBI_SLICED_CAPTION_525_F2:
-		case VBI_SLICED_CAPTION_525:
+		case VBI3_SLICED_CAPTION_625_F1:
+		case VBI3_SLICED_CAPTION_625_F2:
+		case VBI3_SLICED_CAPTION_625:
+		case VBI3_SLICED_CAPTION_525_F1:
+		case VBI3_SLICED_CAPTION_525_F2:
+		case VBI3_SLICED_CAPTION_525:
 			caption (s->data, s->line);
 			break;
 
-		case VBI_SLICED_WSS_625:
+		case VBI3_SLICED_WSS_625:
 #if 3 == VBI_VERSION_MINOR /* XXX port me back */
 			wss_625 (s->data);
 #endif
 			break;
 
-		case VBI_SLICED_WSS_CPR1204:
+		case VBI3_SLICED_WSS_CPR1204:
 			break;
 		}
 
@@ -924,11 +931,11 @@ pes_mainloop			(void)
 		left = sizeof (buffer);
 
 		while (left > 0) {
-			vbi_sliced sliced[64];
+			vbi3_sliced sliced[64];
 			unsigned int n_lines;
 			int64_t pts;
 
-			n_lines = vbi_dvb_demux_cor (dvb, sliced, 64,
+			n_lines = vbi3_dvb_demux_cor (dvb, sliced, 64,
 						     &pts, &bp, &left);
 			if (n_lines > 0)
 				decode (sliced, n_lines,
@@ -953,8 +960,8 @@ old_mainloop			(void)
 		char buf[256];
 		double dt;
 		unsigned int n_items;
-		vbi_sliced sliced[40];
-		vbi_sliced *s;
+		vbi3_sliced sliced[40];
+		vbi3_sliced *s;
 
 		if (ferror (stdin) || !fgets (buf, 255, stdin))
 			goto abort;
@@ -979,32 +986,32 @@ old_mainloop			(void)
 
 			switch (index) {
 			case 0:
-				s->id = VBI_SLICED_TELETEXT_B;
+				s->id = VBI3_SLICED_TELETEXT_B;
 				fread (s->data, 1, 42, stdin);
 				break;
 
 			case 1:
-				s->id = VBI_SLICED_CAPTION_625; 
+				s->id = VBI3_SLICED_CAPTION_625; 
 				fread (s->data, 1, 2, stdin);
 				break; 
 
 			case 2:
-				s->id = VBI_SLICED_VPS;
+				s->id = VBI3_SLICED_VPS;
 				fread (s->data, 1, 13, stdin);
 				break;
 
 			case 3:
-				s->id = VBI_SLICED_WSS_625; 
+				s->id = VBI3_SLICED_WSS_625; 
 				fread (s->data, 1, 2, stdin);
 				break;
 
 			case 4:
-				s->id = VBI_SLICED_WSS_CPR1204; 
+				s->id = VBI3_SLICED_WSS_CPR1204; 
 				fread (s->data, 1, 3, stdin);
 				break;
 
 			case 7:
-				s->id = VBI_SLICED_CAPTION_525; 
+				s->id = VBI3_SLICED_CAPTION_525; 
 				fread(s->data, 1, 2, stdin);
 				break;
 
@@ -1038,7 +1045,7 @@ static void
 old_mainloop			(void)
 {
 	for (;;) {
-		vbi_sliced sliced[40];
+		vbi3_sliced sliced[40];
 		double timestamp;
 		int n_lines;
 
@@ -1276,9 +1283,9 @@ main				(int			argc,
 	if (isatty (STDIN_FILENO))
 		error_exit (_("No VBI data on standard input."));
 
-#ifdef HAVE_VBI_PFC_DEMUX
+#ifdef HAVE_VBI3_PFC_DEMUX
 	if (0 != option_pfc_pgno) {
-		pfc = vbi_pfc_demux_new (option_pfc_pgno,
+		pfc = vbi3_pfc_demux_new (option_pfc_pgno,
 					 option_pfc_stream,
 					 page_function_clear_cb,
 					 /* user_data */ NULL);
@@ -1288,7 +1295,7 @@ main				(int			argc,
 #endif
 
 	if (0 != option_idl_channel) {
-		idl = vbi_idl_a_demux_new (option_idl_channel,
+		idl = vbi3_idl_a_demux_new (option_idl_channel,
 					   option_idl_address,
 					   idl_format_a_cb,
 					   /* user_data */ NULL);
@@ -1297,7 +1304,7 @@ main				(int			argc,
 	}
 
 	if (option_decode_xds) {
-		xds = vbi_xds_demux_new (xds_cb,
+		xds = vbi3_xds_demux_new (xds_cb,
 					 /* used_data */ NULL);
 		if (NULL == xds)
 			no_mem_exit ();
@@ -1307,7 +1314,7 @@ main				(int			argc,
 	ungetc (c, stdin);
 
 	if (0 == c || source_is_pes) {
-		dvb = vbi_dvb_pes_demux_new (/* callback */ NULL,
+		dvb = vbi3_dvb_pes_demux_new (/* callback */ NULL,
 					     /* user_data */ NULL);
 		if (NULL == dvb)
 			no_mem_exit ();
@@ -1320,12 +1327,12 @@ main				(int			argc,
 		old_mainloop ();
 	}
 
-	vbi_dvb_demux_delete (dvb);
-	vbi_idl_demux_delete (idl);
-#ifdef HAVE_VBI_PFC_DEMUX
-	vbi_pfc_demux_delete (pfc);
+	vbi3_dvb_demux_delete (dvb);
+	vbi3_idl_demux_delete (idl);
+#ifdef HAVE_VBI3_PFC_DEMUX
+	vbi3_pfc_demux_delete (pfc);
 #endif
-	vbi_xds_demux_delete (xds);
+	vbi3_xds_demux_delete (xds);
 
 	exit (EXIT_SUCCESS);
 

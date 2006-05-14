@@ -3,86 +3,13 @@
  *  Copyright (C) 2003 Michael H. Schimek
  */
 
-/* $Id: test-bcd.cc,v 1.1.2.6 2006-05-07 06:05:00 mschimek Exp $ */
+/* $Id: test-bcd.cc,v 1.1.2.7 2006-05-14 14:14:12 mschimek Exp $ */
 
-#include <iostream>
-#include <iomanip>
-
+#undef NDEBUG
 #include <assert.h>
-
 #include "src/zvbi.h"
 
 #define INT_BITS (sizeof (int) * 8)
-
-namespace vbi {
-  class Bcd {
-    int	value;
-
-  public:
-    Bcd () {};
-    Bcd (int n) : value (n) {};
-
-    operator int () const
-      { return value; };
-
-    int bin (void)
-      { return vbi3_bcd2bin (value); };
-    Bcd& bcd (int n)
-      { value = vbi3_bin2bcd (n); return *this; };
-
-    Bcd operator+ ()
-      { return *this; };
-    Bcd operator- ()
-      { Bcd t (vbi3_neg_bcd (value)); return t; };
-
-    Bcd& operator+= (const Bcd& other)
-      { value = vbi3_add_bcd (value, other.value); return *this; };
-    Bcd& operator++ ()
-      { value = vbi3_add_bcd (value, 0x1); return *this; };
-    Bcd operator++ (int)
-      { Bcd t = *this; ++*this; return t; };
-
-    Bcd& operator-= (const Bcd& other)
-      { value = vbi3_sub_bcd (value, other.value); return *this; };
-    Bcd& operator-- ()
-      { value = vbi3_sub_bcd (value, 0x1); return *this; };
-    Bcd operator-- (int)
-      { Bcd t = *this; --*this; return t; };
-
-    bool operator== (int n) const
-      { return value == n; };
-    bool operator== (const Bcd& other) const
-      { return value == other.value; };
-    bool operator!= (int n) const
-      { return value != n; };
-    bool operator!= (const Bcd& other) const
-      { return value != other.value; };
-
-    bool valid () const
-      { return vbi3_is_bcd (value); };
-  };
-
-  static inline Bcd operator+ (Bcd a, const Bcd& b)
-    { a += b; return a; }
-  static inline Bcd operator- (Bcd a, const Bcd& b)
-    { a -= b; return a; }
-  static inline
-    std::ostream& operator<<	(std::ostream&		stream,
-				 const Bcd&		b)
-    {
-      std::ios::fmtflags flags = stream.flags ();
-
-      stream << std::hex << (int) b;
-      stream.flags (flags);
-      return stream;
-    }
-
-  typedef Bcd Pgno;
-  typedef Bcd Subno;
-
-  static const Bcd any_subno (VBI3_ANY_SUBNO);
-  static const Bcd no_subno (VBI3_NO_SUBNO);
-};
 
 static int
 modulo				(int			n)

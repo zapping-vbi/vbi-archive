@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.h,v 1.4.2.7 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: hamm.h,v 1.4.2.8 2006-05-14 14:14:11 mschimek Exp $ */
 
 #ifndef __ZVBI3_HAMM_H__
 #define __ZVBI3_HAMM_H__
@@ -98,12 +98,23 @@ vbi3_rev16p			(const uint8_t *	p)
 vbi3_inline unsigned int
 vbi3_par8			(unsigned int		c)
 {
+#if 0
 	c &= 255;
 
 	/* if 0 == (inv_par[] & 32) change bit 7 of c. */
 	c ^= 128 & ~(_vbi3_hamm24_inv_par[0][c] << 2);
 
 	return c;
+#else /* faster? */
+	unsigned int x;
+
+	x = c << 4;
+	x ^= c;
+	x ^= x << 2;
+	x ^= x << 1;
+
+	return (c & 255) ^ (128 & ~x);
+#endif
 }
 
 /**

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.13.2.12 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: export.c,v 1.13.2.13 2006-05-14 14:14:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -513,7 +513,7 @@ export_stream			(vbi3_event *		ev,
  * @returns
  * FALSE on failure.
  *
- * @bugs
+ * @bug
  * Not implemented yet.
  */
 vbi3_bool
@@ -1434,8 +1434,8 @@ vbi3_export_new			(const char *		keyword,
 
 	if (i >= N_ELEMENTS (export_modules)) {
 		if (errstr)
-			_vbi3_asprintf (errstr,
-					_("Unknown export module '%s'."), key);
+			asprintf (errstr,
+				  _("Unknown export module '%s'."), key);
 		return NULL;
 	}
 
@@ -1448,12 +1448,12 @@ vbi3_export_new			(const char *		keyword,
 
 	if (!e) {
 		if (errstr)
-			_vbi3_asprintf (errstr,
-					_("Cannot initialize export "
-					  "module '%s', "
-					  "probably lack of memory."),
-					xc->export_info->label ?
-					xc->export_info->label : keyword);
+			asprintf (errstr,
+				  _("Cannot initialize export "
+				    "module '%s', "
+				    "probably lack of memory."),
+				  xc->export_info->label ?
+				  xc->export_info->label : keyword);
 		return NULL;
 	}
 
@@ -1472,11 +1472,11 @@ vbi3_export_new			(const char *		keyword,
 	if (!e->local_option_info) {
 		vbi3_free (e);
 		if (errstr)
-			_vbi3_asprintf (errstr,
-					_("Cannot initialize export module "
-					  "'%s', out of memory."),
-					xc->export_info->label ?
-					xc->export_info->label : keyword);
+			asprintf (errstr,
+				  _("Cannot initialize export module "
+				    "'%s', out of memory."),
+				  xc->export_info->label ?
+				  xc->export_info->label : keyword);
 		return NULL;
 	}
 

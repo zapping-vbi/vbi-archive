@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.6.2.9 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: search.c,v 1.6.2.10 2006-05-14 14:14:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -286,9 +286,9 @@ search_page_fwd			(cache_page *		cp,
 		fprintf (stderr, "exec: %x/%x; start %d,%d; %c%c%c...\n",
 			 cp->pgno, cp->subno,
 			 s->row[0], s->col[0],
-			 vbi3_printable (first[0]),
-			 vbi3_printable (first[1]),
-			 vbi3_printable (first[2]));
+			 vbi3_to_ascii (first[0]),
+			 vbi3_to_ascii (first[1]),
+			 vbi3_to_ascii (first[2]));
 
 	if (!ure_exec (s->ud, flags, first, hp - first, &ms, &me))
 		return 0; /* try next page */
@@ -401,9 +401,9 @@ break2:
 		if (0)
 			fprintf (stderr, "exec: %x/%x; %d, %ld; '%c%c%c...'\n",
 				 cp->pgno, cp->subno, i, me,
-				 vbi3_printable (s->haystack[me + 0]),
-				 vbi3_printable (s->haystack[me + 1]),
-				 vbi3_printable (s->haystack[me + 2]));
+				 vbi3_to_ascii (s->haystack[me + 0]),
+				 vbi3_to_ascii (s->haystack[me + 1]),
+				 vbi3_to_ascii (s->haystack[me + 2]));
 
 		if (!ure_exec (s->ud, (me > 0) ? (flags | URE_NOTBOL) : flags,
 			       s->haystack + me,
@@ -670,7 +670,6 @@ vbi3_search_ucs2_new		(vbi3_cache *		ca,
 	}
 
 	if (!(s = vbi3_malloc (sizeof (*s)))) {
-		error ("Out of memory (%u bytes)", sizeof (*s));
 		return NULL;
 	}
 
@@ -693,7 +692,6 @@ vbi3_search_ucs2_new		(vbi3_cache *		ca,
 
 		size = pattern_size * 2 * sizeof (*esc_pattern);
 		if (!(esc_pattern = vbi3_malloc (size))) {
-			error ("Out of memory (%u buffer)", size);
 			goto failure;
 		}
 

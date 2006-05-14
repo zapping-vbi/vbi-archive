@@ -3,7 +3,7 @@
  *  Copyright (C) 2006 Michael H. Schimek
  */
 
-/* $Id: test-vps.c,v 1.1.2.1 2006-05-07 20:51:36 mschimek Exp $ */
+/* $Id: test-vps.c,v 1.1.2.2 2006-05-14 14:14:12 mschimek Exp $ */
 
 #undef NDEBUG
 #include <assert.h>
@@ -28,23 +28,23 @@ main				(void)
 
 	memcpy (buffer1, buffer2, sizeof (buffer1));
 
-	vbi_decode_vps_cni (&cni2, buffer2);
+	vbi3_decode_vps_cni (&cni2, buffer2);
 
 	for (i = 0; i < N_ELEMENTS (cnis); ++i) {
 		unsigned int cni;
 
-		assert (vbi_encode_vps_cni (buffer1, cnis[i]));
+		assert (vbi3_encode_vps_cni (buffer1, cnis[i]));
 
-		assert (vbi_decode_vps_cni (&cni, buffer1));
+		assert (vbi3_decode_vps_cni (&cni, buffer1));
 		assert (cni == cnis[i]);
 
-		assert (vbi_encode_vps_cni (buffer1, cni2));
+		assert (vbi3_encode_vps_cni (buffer1, cni2));
 		assert (0 == memcmp (buffer1, buffer2, sizeof (buffer1)));
 	}
 
-	assert (!vbi_encode_vps_cni (buffer1, -1));
-	assert (!vbi_encode_vps_cni (buffer1, 0x1000));
-	assert (!vbi_encode_vps_cni (buffer1, INT_MAX));
+	assert (!vbi3_encode_vps_cni (buffer1, -1));
+	assert (!vbi3_encode_vps_cni (buffer1, 0x1000));
+	assert (!vbi3_encode_vps_cni (buffer1, INT_MAX));
 
 	assert (0 == memcmp (buffer1, buffer2, sizeof (buffer1)));
 

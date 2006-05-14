@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.c,v 1.1.2.2 2006-05-07 06:05:00 mschimek Exp $ */
+/* $Id: event.c,v 1.1.2.3 2006-05-14 14:14:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -190,7 +190,7 @@ handler				(const vbi3_event *	ev,
 		for (i = 0; i < ev->ev.cc_raw.length; ++i) {
 			int c;
 
-			c = vbi3_printable (ev->ev.cc_raw.text[i].unicode);
+			c = vbi3_to_ascii (ev->ev.cc_raw.text[i].unicode);
 			putchar (c);
 		}
 
