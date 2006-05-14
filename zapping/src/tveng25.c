@@ -159,6 +159,9 @@ struct private_tveng25_device_info
   struct timeval last_timestamp; /* The timestamp of the last captured buffer */
   uint32_t killme_chroma;
   int audio_mode; /* 0 mono */
+	char *			reopen_name;
+	int			reopen_flags;
+
 	struct v4l2_capability	caps;
 
 	struct xbuffer *	buffers;
@@ -1766,7 +1769,16 @@ get_capture_format		(tveng_device_info *	info)
 
 		format.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR8;
 	} else if (TVENG25_NV12_TEST) {
-		if (V4L2_PIX_FMT_YVU420 != format.fmt.pix.pixelformat) {
+		if (1) {
+			format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
+			format.fmt.pix.width = 720;
+			format.fmt.pix.height = 480;
+			format.fmt.pix.bytesperline = 0; /* minimum please */
+			format.fmt.pix.sizeimage = 0; /* ditto */
+
+			if (-1 == xioctl (info, VIDIOC_S_FMT, &format))
+				return FALSE;
+		} else if (V4L2_PIX_FMT_YVU420 != format.fmt.pix.pixelformat) {
 			format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
 			format.fmt.pix.bytesperline = 0; /* minimum please */
 			format.fmt.pix.sizeimage = 0; /* ditto */
@@ -1834,8 +1846,16 @@ set_capture_format		(tveng_device_info *	info,
 		format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
 		pixelformat = V4L2_PIX_FMT_YVU420;
 
-		format.fmt.pix.width	= fmt->width;
-		format.fmt.pix.height	= fmt->height;
+		if (1 && (fmt->width != 720 || fmt->height != 480)) {
+			fprintf (stderr, "S_FMT EBUSY\n");
+			errno = EBUSY;
+			/* return FALSE; */
+			format.fmt.pix.width	= 720;
+			format.fmt.pix.height	= 480;
+		} else {
+			format.fmt.pix.width	= fmt->width;
+			format.fmt.pix.height	= fmt->height;
+		}
 	} else {
 		format.fmt.pix.pixelformat = pixelformat;
 
@@ -1856,8 +1876,20 @@ set_capture_format		(tveng_device_info *	info,
 	if (p_info->buffers)
 		unmap_xbuffers (info, /* ignore_errors */ TRUE);
 
-	if (-1 == xioctl (info, VIDIOC_S_FMT, &format))
+	if (-1 == xioctl_may_fail (info, VIDIOC_S_FMT, &format)) {
+		if (EBUSY == errno
+		    && p_info->ivtv_driver > 0) {
+			return get_capture_format (info);
+		}
+
+		ioctl_failure (info,
+			       __FILE__,
+			       __FUNCTION__,
+			       __LINE__,
+			       "VIDIOC_S_FMT");
+
 		return FALSE;
+	}
 
 	r = (format.fmt.pix.pixelformat == pixelformat);
 
@@ -2357,7 +2389,8 @@ read_buffer			(tveng_device_info *	info,
 	}
 
  read_again:
-	actual = read (info->fd, buffer->data, info->capture.format.size);
+	actual = device_read (info->log_fp, info->fd,
+			      buffer->data, info->capture.format.size);
 
 	if ((ssize_t) 0 == actual) {
 		/* EOF? */
@@ -2630,10 +2663,46 @@ set_capture_buffers		(tveng_device_info *	info,
 }
 
 static tv_bool
+streamoff_or_reopen		(tveng_device_info *	info)
+{
+	struct private_tveng25_device_info *p_info = P_INFO (info);
+	int buf_type;
+	int fd;
+
+	buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+	/* The ivtv driver supports only read()ing, not streaming, but
+	   it recognizes this ioctl to stop capturing before we attempt
+	   to change the capture format. */
+	if (0 == xioctl_may_fail (info, VIDIOC_STREAMOFF, &buf_type))
+		return TRUE;
+
+	/* Reopening the device should also work. */
+	/* XXX According to the V4L2 spec this shouldn't reset any
+	   parameters, but it may be wiser to check that. */
+	fd = device_open (info->log_fp,
+			  p_info->reopen_name,
+			  p_info->reopen_flags,
+			  /* mode */ 0);
+	if (-1 == fd) {
+		return FALSE;
+	}
+
+	device_close (info->log_fp, info->fd);
+
+	info->fd = fd;
+
+	return TRUE;
+}
+
+static tv_bool
 enable_capture			(tveng_device_info *	info,
 				 tv_bool		enable)
 {
 	struct private_tveng25_device_info *p_info = P_INFO (info);
+
+	if (enable == p_info->capturing)
+		return TRUE;
 
 	if (enable) {
 		gboolean dummy;
@@ -2663,18 +2732,18 @@ enable_capture			(tveng_device_info *	info,
 
 		return TRUE;
 	} else {
-		int buf_type;
-
 		assert (CAPTURE_MODE_READ == info->capture_mode);
 
-		buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
 		if (p_info->caps.capabilities & V4L2_CAP_STREAMING) {
+			int buf_type;
+
+			buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
 			if (-1 == xioctl (info, VIDIOC_STREAMOFF, &buf_type))
 				return FALSE;
 		} else if (p_info->reading) {
 			/* Error ignored. */
-			xioctl_may_fail (info, VIDIOC_STREAMOFF, &buf_type);
+			streamoff_or_reopen (info);
 
 			p_info->reading = FALSE;
 		}
@@ -2841,11 +2910,15 @@ static tv_bool
 reopen_ivtv_capture_device	(tveng_device_info *	info,
 				 int			flags)
 {
-	char name[256];
+	struct private_tveng25_device_info *p_info = P_INFO (info);
+	char *name;
 	unsigned int i;
 	unsigned long num;
 	int fd;
 	struct v4l2_capability caps;
+
+	name = NULL;
+	fd = -1;
 
 	/* XXX use fstat minor numbers instead? */ 
 
@@ -2860,8 +2933,10 @@ reopen_ivtv_capture_device	(tveng_device_info *	info,
 	if (num >= 8)
 		num = 0;
 
-	snprintf (name, sizeof (name), "%.*s%lu",
-		  i, info->file_name, num + 32);
+	_tv_asprintf (&name, "%.*s%lu", i, info->file_name, num + 32);
+	if (NULL == name) {
+		goto failure;
+	}
 
 	/* XXX see zapping_setup_fb for a safer version. */
 	fd = device_open (info->log_fp, name, flags, 0);
@@ -2871,7 +2946,7 @@ reopen_ivtv_capture_device	(tveng_device_info *	info,
 		snprintf (info->error, 256, 
 			  "Cannot open ivtv capture device %s",
 			  name);
-		return FALSE;
+		goto failure;
 	}
 
 	CLEAR (caps);
@@ -2880,15 +2955,9 @@ reopen_ivtv_capture_device	(tveng_device_info *	info,
 				VIDIOC_QUERYCAP, &caps)
 	    || 0 != XSTRACMP (caps.driver, "ivtv")) {
 		info->tveng_errno = -1;
-
-		/* Error ignored. */
-		device_close (info->log_fp, fd);
-		fd = -1;
-
 		snprintf (info->error, 256, "%s is no ivtv capture device",
 			  name);
-
-		return FALSE;
+		goto failure;
 	}
 
 	/* Error ignored. */
@@ -2896,7 +2965,24 @@ reopen_ivtv_capture_device	(tveng_device_info *	info,
 
 	info->fd = fd;
 
+	free (p_info->reopen_name);
+	p_info->reopen_name = name;
+
+	p_info->reopen_flags = flags;
+
 	return TRUE;
+
+ failure:
+	free (name);
+	name = NULL;
+
+	if (-1 != fd) {
+		/* Error ignored. */
+		device_close (info->log_fp, fd);
+		fd = -1;
+	}
+
+	return FALSE;
 }
 
 #if TVENG25_XV_TEST
@@ -3075,11 +3161,29 @@ do_open	(int flags, tveng_device_info * info)
 {
   struct private_tveng25_device_info *p_info = P_INFO (info);
 
+  free (info->node.device);
+  info->node.device = strdup (info->file_name);
+  if (NULL == info->node.device)
+    return -1;
+
+  free (p_info->reopen_name);
+  p_info->reopen_name = strdup (info->file_name);
+  if (NULL == p_info->reopen_name)
+    {
+      free (info->node.device);
+      info->node.device = NULL;
+      return -1;
+    }
+
   /* sn9c102 1.0.8 bug: NONBLOCK open fails with EAGAIN if the device has
      users, and it seems the counter is never decremented when the USB device
-     is disconnected at close time. */
+     is disconnected at close time.
+     Besides, non-blocking i/o is what we want because we use select() with
+     a timeout. */
   if (0 != strcmp ((char *) p_info->caps.driver, "sn9c102"))
     flags |= O_NONBLOCK;
+
+  p_info->reopen_flags = flags;
 
   /* XXX see zapping_setup_fb for a safer version. */
   info -> fd = device_open(info->log_fp, info -> file_name, flags, 0);
@@ -3087,10 +3191,14 @@ do_open	(int flags, tveng_device_info * info)
     {
       info->tveng_errno = errno;
       t_error("open()", info);
+      free (p_info->reopen_name);
+      p_info->reopen_name = NULL;
       free (info->node.device);
       info->node.device = NULL;
       return -1;
     }
+
+  return 0;
 }
 
 /*
@@ -3107,30 +3215,15 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
   assert (info != NULL);
   assert (info->file_name != NULL);
 
-  if (!(info->node.device = strdup (info->file_name)))
+  if (-1 == do_open (flags, info))
     return -1;
-
-  /* sn9c102 1.0.8 bug: NONBLOCK open fails with EAGAIN if the device has
-     users, and it seems the counter is never decremented when the USB device
-     is disconnected at close time. */
-  if (0 != strcmp ((char *) p_info->caps.driver, "sn9c102"))
-    flags |= O_NONBLOCK;
-
-  /* XXX see zapping_setup_fb for a safer version. */
-  info -> fd = device_open(info->log_fp, info -> file_name, flags, 0);
-  if (-1 == info -> fd)
-    {
-      info->tveng_errno = errno;
-      t_error("open()", info);
-      free (info->node.device);
-      info->node.device = NULL;
-      return -1;
-    }
 
   if (!get_capabilities (info))
     {
       /* Error ignored. */
       device_close(info->log_fp, info->fd);
+      free (p_info->reopen_name);
+      p_info->reopen_name = NULL;
       free (info->node.device);
       info->node.device = NULL;
       return -1;
@@ -3140,6 +3233,8 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
 		if (!reopen_ivtv_capture_device (info, flags)) {
 			/* Error ignored. */
 			device_close(info->log_fp, info->fd);
+			free (p_info->reopen_name);
+			p_info->reopen_name = NULL;
 			free (info->node.device);
 			info->node.device = NULL;
 			return -1;
@@ -3209,6 +3304,9 @@ static void free_all(tveng_device_info * info)
   free_video_inputs (info);
   free_audio_inputs (info);
 
+  free (p_info->reopen_name);
+  p_info->reopen_name = NULL;
+
   free (info->node.label);
   free (info->node.bus);
   free (info->node.driver);
@@ -3221,8 +3319,6 @@ static void free_all(tveng_device_info * info)
 /* Closes a device opened with tveng_init_device */
 static void tveng25_close_device(tveng_device_info * info)
 {
-  struct private_tveng25_device_info *p_info = P_INFO (info);
-
   stop (info);
 
   info -> current_controller = TVENG_CONTROLLER_NONE;
@@ -3235,9 +3331,7 @@ tveng25_change_attach_mode	(tveng_device_info * info,
 				 Window window,
 				 enum tveng_attach_mode attach_mode)
 {
-  struct private_tveng25_device_info *p_info = P_INFO (info);
-
-  window = window; 
+  window = window; /* unused */
 
   stop (info);
 
