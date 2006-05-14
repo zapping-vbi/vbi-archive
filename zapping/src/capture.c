@@ -1184,8 +1184,9 @@ change_capture_format		(tveng_device_info *	info,
   capture_mode old_mode;
 
   fmt = tv_cur_capture_format (info);
-  if (!fmt || !fmt->pixel_format)
+  if (!fmt || !fmt->pixel_format) {
     return NULL;
+  }
 
   if (0 == (width | height))
     flags &= ~REQ_SIZE;
@@ -1215,10 +1216,11 @@ change_capture_format		(tveng_device_info *	info,
 
   old_format = *fmt;
 
-  printv ("Setting capture format %s %ux%u\n",
+  printv ("Setting capture format %s %ux%u flags=%x\n",
 	  new_format.pixel_format->name,
 	  new_format.width,
-	  new_format.height);
+	  new_format.height,
+	  flags);
 
   old_mode = tv_get_capture_mode (info);
   if (CAPTURE_MODE_READ == old_mode)

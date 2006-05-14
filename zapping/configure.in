@@ -104,6 +104,17 @@ dnl ---------------------------------------------------------------------------
 
 SIMD_SUPPORT=""
 
+case "$host" in
+i?86-* | k?-*) dnl i386, i486, i586, i686, k6, k7, k8
+  AC_DEFINE(HAVE_X86, 1, [Define if target is x86 (not x86_64)])
+  HAVE_X86=yes ;;
+*)
+  HAVE_X86=no ;;
+esac
+
+dnl Some old code will not run on x86_64.
+AM_CONDITIONAL(HAVE_X86, test "x$HAVE_X86" = "xyes")
+
 AC_DEFUN([CHECK_SIMD], [
   AC_MSG_CHECKING(if $CC supports $1)
   SAVE_CFLAGS="$CFLAGS"
@@ -116,14 +127,14 @@ AC_DEFUN([CHECK_SIMD], [
     GCC_VERSION(0, 30200, CAN_COMPILE_$1="disabled")
   fi
   if test x$CAN_COMPILE_$1 = xyes; then
-    dnl GCC 3.2.3
+    dnl GCC 3.2.3:
     dnl DI_TomsMoComp.c: In function `Search_Effort_1':
     dnl DI_TomsMoComp.c:876: Internal compiler error
     dnl   in find_reloads_toplev, at reload.c:4438
     GCC_VERSION(30200, 30300, CAN_COMPILE_$1="broken")
   fi
   if test x$CAN_COMPILE_$1 = xyes; then
-    if test x$1 = xSSE2 -o x$1 = xSSE3; then
+    if test $HAVE_X86 = no -o x$1 = xSSE2 -o x$1 = xSSE3; then
       dnl GCC 3.3.5:
       dnl DI_GreedyHF.c: In function `DI_GreedyHF_SSE2':
       dnl DI_GreedyHF.c:172: internal compiler error:
@@ -131,6 +142,10 @@ AC_DEFUN([CHECK_SIMD], [
       dnl GCC 3.4.1 (x86_64), GCC 4.0.0 (i686):
       dnl DI_GreedyHM.c:1281: internal compiler error:
       dnl   in extract_insn, at recog.c:2083
+      dnl GCC 3.4.2 (x86_64):
+      dnl rgb2rgb.c: In function `_tv_sbggr_to_rgb_MMX':
+      dnl rgb2rgb.c:809: internal compiler error:
+      dnl   in trunc_int_for_mode, at explow.c:54
       GCC_VERSION(30300, 40001, CAN_COMPILE_$1="broken")
     fi
   fi
@@ -151,17 +166,6 @@ CHECK_SIMD(SSE3, [-msse3], [pmmintrin.h], [_mm_lddqu_si128 (0x1000)])
 
 dnl powerpc
 CHECK_SIMD(ALTIVEC, [-maltivec -mabi=altivec], [altivec.h], [vec_dssall ()])
-
-case "$host" in
-i?86-* | k?-*) dnl i386, i486, i586, i686, k6, k7, k8
-  AC_DEFINE(HAVE_X86, 1, [Define if target is x86 (not x86_64)])
-  HAVE_X86=yes ;;
-*)
-  HAVE_X86=no ;;
-esac
-
-dnl Some old code will not run on x86_64.
-AM_CONDITIONAL(HAVE_X86, test "x$HAVE_X86" = "xyes")
 
 dnl See if we can increase inlining limits for SIMD code (GCC 3.4+).
 AC_MSG_CHECKING([if $CC supports --param inline-unit-growth])
@@ -904,7 +908,7 @@ AC_SUBST(PACKAGE_LIB_DIR)
 PLUGIN_DEFAULT_DIR="\${PACKAGE_LIB_DIR}/plugins"
 AC_SUBST(PLUGIN_DEFAULT_DIR)
 
-PLUGIN_DEFAULT_FLAGS="$DEFAULT_CFLAGS"
+PLUGIN_DEFAULT_FLAGS="$DEFAULT_CFLAGS $ZVBI_CFLAGS"
 AC_SUBST(PLUGIN_DEFAULT_FLAGS)
 
 COMMON_INCLUDES="$PY_CFLAGS $PACKAGE_CFLAGS $UNICODE_CFLAGS $ARTS_CFLAGS"

@@ -1,3 +1,13 @@
+2006-05-11    <mschimek@users.sf.net>
+
+	* src/tveng25.c (read_buffer),
+	  common/device.h, common/device.c (device_read): Added read()
+	  logging.
+	* src/tveng25.c (set_capture_format): Handle EBUSY error of ivtv
+	  VIDIOC_S_FMT.
+	(enable_capture, streamoff_or_reopen): Try to reopen the device
+	  if VIDIOC_STREAMOFF doesn't succeed after read()ing.
+
 2006-05-07    <mschimek@users.sf.net>
 
 	* common/structpr_gen.pl (enumeration): ILP64 fixes.
