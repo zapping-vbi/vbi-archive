@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: prepare_web.sh,v 1.27 2006-04-25 21:06:30 mschimek Exp $
+# $Id: prepare_web.sh,v 1.28 2006-05-14 14:28:21 mschimek Exp $
 #
 # Checks our html pages out of cvs, puts the files online
 # and cleans up.
@@ -17,7 +17,8 @@ set -e -x
 
 umask 007
 
-cvs -z3 update -ko -dPA
+# Doesn't work anymore, sigh.
+# cvs -z3 update -ko -dPA
 
 chmod a+rX cgi-bin
 cd cgi-bin

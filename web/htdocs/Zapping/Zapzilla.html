@@ -3,48 +3,68 @@
     <h1>Zapzilla</h1>
 
     <p>Zapzilla is the nickname of the Teletext browser built into
-    Zapping. Some of its outstanding features are:</p>
+      Zapping. Here's a quick overview of its features:</p>
 
     <ul>
-      <li>Teletext Level 2.5/3.5 ("HiText") support, this includes: 
-
-        <ul>
-          <li>Support for all Teletext languages, for example
-          Turkish, Russian, Greek, Hebrew and Arabic. Of course
-          this extends to Teletext caption/subtitles.</li>
-
-          <li>Support for <acronym title=
-          "Dynamically Redefinable Character Set">DRCS</acronym>,
-          permitting graphics in a Teletext page.</li>
-
-          <li>4096 colors, new and enhanced text attributes, a
-          larger character set, more font styles, ...</li>
-        </ul>
-      </li>
-
-      <li>TOP and FLOF navigation, all pages stored in memory for
-      quick access.</li>
-
-      <li>Arbitrary scaling and antialiasing of rendered
-      pages.</li>
-
-      <li>Regular expression Unicode searching in the page
-      memory.</li>
-
-      <li>Export to HTML, PNG, PPM, ASCII, ANSI, VTX.</li>
-
-      <li>Wrapping and rectangular selection with middle mouse
-      button and via clipboard.</li>
-
-      <li>Bookmarks.</li>
+      <li>Zapzilla implements the European Teletext standard
+        (Teletext System B, EN 300 706).</li>
+      <li>It can display Teletext Level 1/1.5/2.5/3.5 ("HiText")
+        pages with 4096 colors, graphics, bold and italic
+	characters, double width and/or height characters,
+	concealed and flashing text.</li>
+      <li>All Teletext character sets are supported, for example
+        Turkish, Russian, Greek, Hebrew and Arabic. Users can
+	override the character encoding, which isn't always
+	correctly transmitted, and the selected encoding is saved
+	across sessions.</li>
+      <li>Zapzilla can show different pages in multiple windows.
+        The main window can also display Teletext instead of video,
+	either in a window, full-screen or as desktop background.</li>
+      <li>The text brightness and contrast are adjustable.</li>
+      <li>Zapzilla does not support custom fonts yet, but Teletext
+        windows can assume any size and the page is scaled
+	accordingly.</li>
+      <li>Teletext pages can be overlaid onto video, e.g.
+        subtitles, news flashes, or interactive pages.</li>
+      <li>All displayed pages update in real time, for example the
+        clock and "rolling" page number in the header.</li>
+      <li>To change pages users can enter a page number, press
+        cursor keys or click on toolbar buttons. Remote controls
+	are also supported.</li>
+      <li>Clicking on a page or subpage number in the text opens
+        the page in the same or a new window. Like web browsers,
+	Teletext windows have a forward, back and home button.</li>
+      <li>Clicking on a URL in the text opens the page in a web
+        browser. E-mail addresses open an e-mail client.</li>
+      <li>TOP and FLOF navigation is supported. The TOP page index
+        appears in a drop-down menu. TOP and FLOF links can be
+	clicked on like page numbers. All pages of a channel are
+	stored in memory for instant access.</li>
+      <li>The Teletext cache can store pages of multiple channels
+        to reduce wait times and to view pages of another channel
+	than the one currently tuned in. The amount of memory
+	consumed by Zapzilla is user definable.</li>
+      <li>Users can search the Teletext cache, optionally using
+        Unicode regular expressions. Currently this works with all
+	character sets except Hebrew and Arabic, and on mixed
+	language pages.</li>
+      <li>Pages can be saved in HTML, PNG, PPM, and VTX format, or
+        as plain text with or without colors.</li>
+      <li>Users can mark text with the pointer and copy it into
+        other applications, as text or image, with a middle mouse
+	button click (drag & drop) or by pasting from the clipboard.
+	Flowing (as in a web browser) and tabular text selection
+	is possible.</li>
+      <li>Pages can be bookmarked.</li>
     </ul>
 
     <h3><a name="Screenshots"></a> Screenshots</h3>
 
     <p>If you're not utterly impressed by now, here are the
     carefully crafted screenshots you've been waiting for. Note
-    they were taken from version 0.6, the user interface changed a
-    bit.</p>
+    they were taken from version 0.6. The user interface changed
+    completely in the meantime and I'm too busy to update this page.
+    Donations welcome.</p>
 
     <p><a href="/screenshots/ttx/export.jpeg"><img
      class="floatright" src="/screenshots/ttx/export_s.jpeg" height=
