@@ -20,7 +20,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping_remote.c,v 1.3 2005-02-12 13:37:08 mschimek Exp $ */
+/* $Id: zapping_remote.c,v 1.4 2006-05-14 19:15:23 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,7 +81,7 @@ find_window(Display * dpy, Atom atom)
             continue;
 	if (debug) {
 	    printf("query 0x%08lx: ",w);
-	    for (i = 0; i < nitems; i += strlen(args + i) + 1)
+	    for (i = 0; i < nitems; i += strlen ((char *)(args + i)) + 1)
 		printf("%s ", args + i);
 	    printf("\n");
 	}
@@ -122,7 +122,7 @@ pass_cmd			(Display *		dpy,
     XChangeProperty(dpy, win,
                     atom, XA_STRING,
                     8, PropModeReplace,
-                    pass, len);
+                    (void *) pass, len);
     free(pass);
 }
 
