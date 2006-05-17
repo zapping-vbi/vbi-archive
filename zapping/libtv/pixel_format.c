@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.c,v 1.7 2006-04-12 01:48:15 mschimek Exp $ */
+/* $Id: pixel_format.c,v 1.8 2006-05-17 18:03:08 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"		/* Z_BYTE_ORDER */
@@ -67,6 +67,7 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
 	CASE (UYVY)
 	CASE (VYUY)
 	CASE (Y8)
+	CASE (HM12)
 	CASE (RGBA32_LE)
 	CASE (RGBA32_BE)
 	CASE (BGRA32_LE)
@@ -108,7 +109,6 @@ tv_pixfmt_name			(tv_pixfmt		pixfmt)
 	CASE (SBGGR)
 
 	case TV_PIXFMT_RESERVED1:
-	case TV_PIXFMT_RESERVED2:
 	case TV_PIXFMT_RESERVED3:
 		break;
 	}
@@ -219,6 +219,12 @@ pixel_formats [] = {
 				       /* shift */ 0, 0,
 				       /* BE */ FALSE, /* n_planes */ 1,
 				       /* vu */ FALSE, 0xFF, 0, 0, 0),
+
+	[TV_PIXFMT_HM12] = PIXEL_FORMAT (HM12, TV_COLSPC_YUV, 8, 12,
+					 /* mask */ 0xF, 0xF,
+					 /* shift */ 0, 1,
+					 /* BE */ FALSE, /* n_planes */ 2,
+					 /* vu */ FALSE, 0xFF, 0xFF, 0xFF, 0),
 
 	PACKED_RGB24 (RGBA32, 32, 0xFF, 0xFF00, 0xFF0000, 0xFF000000),
 	PACKED_RGB24 (BGRA32, 32, 0xFF0000, 0xFF00, 0xFF, 0xFF000000),
