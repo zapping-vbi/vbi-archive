@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: yuv2yuv.c,v 1.3 2006-04-12 01:45:56 mschimek Exp $ */
+/* $Id: yuv2yuv.c,v 1.4 2006-05-17 18:02:59 mschimek Exp $ */
 
 /* YUV to YUV image format conversion functions:
 
@@ -1393,6 +1393,130 @@ _tv_nv_to_yuv420		(void *			dst_image,
 		udst += udst_padding;
 		vdst += vdst_padding;
 		uvsrc += uvsrc_padding;
+	}
+
+	return TRUE;
+}
+
+tv_bool
+_tv_hm12_to_yuv420		(void *			dst_image,
+				 const tv_image_format *dst_format,
+				 const void *		src_image,
+				 const tv_image_format *src_format)
+{
+	uint8_t *dst;
+	uint8_t *udst;
+	uint8_t *vdst;
+	const uint8_t *src;
+	const uint8_t *uvsrc;
+	unsigned int width;
+	unsigned int height;
+	unsigned int uv_width;
+	unsigned long dst_padding;
+	unsigned long udst_padding;
+	unsigned long vdst_padding;
+	unsigned long src_padding;
+	unsigned long uvsrc_padding;
+	unsigned int bwidth;
+	unsigned int bheight;
+	unsigned int x;
+	unsigned int y;
+
+	width = MIN (dst_format->width, src_format->width);
+	height = MIN (dst_format->height, src_format->height);
+
+	if (unlikely (0 == width
+		      || 0 == height
+		      || (width | height) & 15))
+		return FALSE;
+
+	dst_padding = dst_format->bytes_per_line[0] - width;
+	src_padding = src_format->bytes_per_line[0] - width;
+	uvsrc_padding = src_format->bytes_per_line[1] - width;
+
+	uv_width = width >> 1;
+
+	udst_padding = dst_format->bytes_per_line[1] - uv_width;
+	vdst_padding = dst_format->bytes_per_line[2] - uv_width;
+
+	if (unlikely ((long)(dst_padding |
+			     src_padding |
+			     uvsrc_padding |
+			     udst_padding |
+			     vdst_padding) < 0))
+		return FALSE;
+
+	/* Y plane */
+
+	dst = (uint8_t *) dst_image + dst_format->offset[0];
+	src = (const uint8_t *) src_image + src_format->offset[0];
+
+	bwidth = 16;
+	bheight = 16;
+
+	for (y = 0; y < height; y += bheight) {
+		for (x = 0; x < width; x += bwidth) {
+			uint8_t *dst1;
+			unsigned int row;
+
+			dst1 = dst + y * dst_format->bytes_per_line[0] + x;
+
+			for (row = 0; row < bheight; ++row) {
+				memcpy (dst1, src, bwidth);
+				dst1 += dst_format->bytes_per_line[0];
+				src += bwidth;
+			}
+		}
+	}
+
+	/* U, V plane */
+
+	udst = (uint8_t *) dst_image + dst_format->offset[1];
+	vdst = (uint8_t *) dst_image + dst_format->offset[2];
+
+	if (TV_PIXFMT_YVU420 == dst_format->pixel_format->pixfmt) {
+		SWAP (udst, vdst);
+	}
+
+	uvsrc = (const uint8_t *) src_image + src_format->offset[1];
+
+	bwidth = 8;
+	bheight = 16; /* why 16? */
+
+	for (y = 0; y < (height >> 1); y += bheight) {
+		for (x = 0; x < (width >> 1); x += bwidth) {
+			uint8_t *udst1;
+			uint8_t *vdst1;
+			unsigned int row;
+
+			udst1 = udst + y * dst_format->bytes_per_line[0] + x;
+			vdst1 = vdst + y * dst_format->bytes_per_line[1] + x;
+
+			for (row = 0; row < bheight; ++row) {
+				udst1[0] = uvsrc[0];
+				udst1[1] = uvsrc[2];
+				udst1[2] = uvsrc[4];
+				udst1[3] = uvsrc[6];
+				udst1[4] = uvsrc[8];
+				udst1[5] = uvsrc[10];
+				udst1[6] = uvsrc[12];
+				udst1[7] = uvsrc[14];
+
+				vdst1[0] = uvsrc[1];
+				vdst1[1] = uvsrc[3];
+				vdst1[2] = uvsrc[5];
+				vdst1[3] = uvsrc[7];
+				vdst1[4] = uvsrc[9];
+				vdst1[5] = uvsrc[11];
+				vdst1[6] = uvsrc[13];
+				vdst1[7] = uvsrc[15];
+
+				udst1 += dst_format->bytes_per_line[1];
+				vdst1 += dst_format->bytes_per_line[2];
+
+				uvsrc += bwidth * 2;
+			}
+		}
 	}
 
 	return TRUE;
