@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clear_image.c,v 1.1 2006-04-12 01:48:15 mschimek Exp $ */
+/* $Id: clear_image.c,v 1.2 2006-05-17 18:02:28 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -249,7 +249,6 @@ tv_clear_image			(void *			image,
 	switch (pf->pixfmt) {
 	case TV_PIXFMT_NONE:
 	case TV_PIXFMT_RESERVED1:
-	case TV_PIXFMT_RESERVED2:
 	case TV_PIXFMT_RESERVED3:
 		break;
 
@@ -362,6 +361,7 @@ tv_clear_image			(void *			image,
 	case TV_PIXFMT_YUV420:
 	case TV_PIXFMT_YVU420:
 	case TV_PIXFMT_NV12:
+	case TV_PIXFMT_HM12:
 		if (unlikely (0 != ((width | height) & 1)))
 			return FALSE;
 		
