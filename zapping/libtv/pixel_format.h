@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.h,v 1.10 2006-04-12 01:48:15 mschimek Exp $ */
+/* $Id: pixel_format.h,v 1.11 2006-05-17 18:03:16 mschimek Exp $ */
 
 #ifndef __ZTV_PIXEL_FORMAT_H__
 #define __ZTV_PIXEL_FORMAT_H__
@@ -76,7 +76,7 @@ typedef enum {
 	TV_PIXFMT_RESERVED1,
 	TV_PIXFMT_Y8,			/* yyyyyyyy */
 
-	TV_PIXFMT_RESERVED2,
+	TV_PIXFMT_HM12,			/* IVTV driver YUV format */
 	TV_PIXFMT_RESERVED3,
 
 	/* Packed RGB formats */
@@ -150,7 +150,8 @@ typedef uint64_t tv_pixfmt_set;
 				  TV_PIXFMT_SET (TV_PIXFMT_YVU420) |	\
 				  TV_PIXFMT_SET (TV_PIXFMT_YUV410) |	\
 				  TV_PIXFMT_SET (TV_PIXFMT_YVU410) |	\
-				  TV_PIXFMT_SET (TV_PIXFMT_NV12))
+				  TV_PIXFMT_SET (TV_PIXFMT_NV12)   |	\
+				  TV_PIXFMT_SET (TV_PIXFMT_HM12))
 #define TV_PIXFMT_SET_YUVA32     (TV_PIXFMT_SET (TV_PIXFMT_YUVA32_LE) |	\
 				  TV_PIXFMT_SET (TV_PIXFMT_YUVA32_BE) |	\
 				  TV_PIXFMT_SET (TV_PIXFMT_YVUA32_LE) |	\
