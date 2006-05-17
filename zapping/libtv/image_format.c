@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.19 2006-04-12 01:46:25 mschimek Exp $ */
+/* $Id: image_format.c,v 1.20 2006-05-17 18:02:21 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -97,6 +97,7 @@ tv_image_format_init		(tv_image_format *	format,
 
 		switch (pixfmt) {
 		case TV_PIXFMT_NV12:
+		case TV_PIXFMT_HM12:
 			format->bytes_per_line[1] = uv_bpl;
 			format->bytes_per_line[2] = 0;
 			format->bytes_per_line[3] = 0;
