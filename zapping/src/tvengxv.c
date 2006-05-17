@@ -1765,7 +1765,7 @@ append_devnodes			(tv_device_node **	list,
 		n->version = strdup (version_str);
 
 		/* XvPortID */
-		_tv_asprintf (&n->device, "%u",
+		_tv_asprintf (&n->device, "%lu",
 			      adaptor->base_id + i);
 
 		if (NULL == n->label
@@ -1856,7 +1856,7 @@ tvengxv_port_scan		(Display *		display,
 	if (Success != status) {
 		if (log) {
 			fprintf (log, "XvQueryAdaptors failed, "
-				 "status=%d error=%d\n",
+				 "status=%d error=%lu\n",
 				 status, x11_error_code);
 		}
 
@@ -1865,7 +1865,6 @@ tvengxv_port_scan		(Display *		display,
 
 	for (i = 0; i < n_adaptors; ++i) {
 		unsigned int type;
-		char *name;
 
 		type = adaptor_type (&adaptors[i]);
 

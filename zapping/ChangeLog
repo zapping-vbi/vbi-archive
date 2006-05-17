@@ -1,3 +1,23 @@
+2006-05-17    <mschimek@users.sf.net>
+
+	* src/tveng1.c: s/TVENG25_XV_TEST/TVENG1_XV_TEST.
+
+	* src/tveng25.c (read_buffer): Preliminary work-around for ivtv
+	  YUV read size bug. Use HM12 instead of NV12 format with ivtv
+	  driver.
+
+	* src/tveng.c (YUVHACK): Added TV_PIXFMT_HM12.
+	* libtv/image_format.c (tv_image_format_init): Added TV_PIXFMT_HM12.
+	* libtv/clear_image.c (tv_clear_image): Added TV_PIXFMT_HM12.
+	* test/convert_image.c: Added _tv_hm12_to_yuv420() test.
+	* src/csconvert.c (startup_csconvert): Added _tv_hm12_to_yuv420().
+	* libtv/yuv2yuv.h, libtv/yuv2yuv.c (_tv_hm12_to_yuv420): Added
+	  converter from ivtv YUV format to planar YUV 4:2:0.
+	* libtv/pixel_format.c (tv_pixfmt_name, pixel_formats):
+	  Added TV_PIXFMT_HM12.
+	* libtv/pixel_format.h (tv_pixfmt, TV_PIXFMT_SET_YUV_PLANAR):
+	  Added TV_PIXFMT_HM12. 
+
 2006-05-11    <mschimek@users.sf.net>
 
 	* src/tveng25.c (read_buffer),
