@@ -63,6 +63,10 @@
 #include "common/videodev25.h"
 #include "common/_videodev25.h"
 
+/* This is not a V4L2 pixfmt, and it's not returned by any driver.
+   The mplayer folks made it up for the ivtv YUV interface. */
+#define FOURCC_HM12 v4l2_fourcc ('H', 'M', '1', '2')
+
 static void
 fprint_ioctl_arg		(FILE *			fp,
 				 unsigned int		cmd,
@@ -143,8 +147,8 @@ struct xbuffer {
 #ifndef TVENG25_BAYER_TEST
 #  define TVENG25_BAYER_TEST 0
 #endif
-#ifndef TVENG25_NV12_TEST
-#  define TVENG25_NV12_TEST 0
+#ifndef TVENG25_HM12_TEST
+#  define TVENG25_HM12_TEST 0
 #endif
 #ifndef TVENG25_XV_TEST
 #  define TVENG25_XV_TEST 0
@@ -1369,6 +1373,7 @@ pixelformat_to_pixfmt		(unsigned int		pixelformat)
 
 	case V4L2_PIX_FMT_SBGGR8:	return TV_PIXFMT_SBGGR;
 	case V4L2_PIX_FMT_NV12:		return TV_PIXFMT_NV12;
+	case FOURCC_HM12:		return TV_PIXFMT_HM12;
 
 	default:			return TV_PIXFMT_UNKNOWN;
 	}
@@ -1401,6 +1406,7 @@ pixfmt_to_pixelformat		(tv_pixfmt		pixfmt)
 
 	case TV_PIXFMT_SBGGR:		return V4L2_PIX_FMT_SBGGR8;
 	case TV_PIXFMT_NV12:		return V4L2_PIX_FMT_NV12;
+	case TV_PIXFMT_HM12:		return FOURCC_HM12;
 
 	default:			return 0;
 	}
@@ -1698,6 +1704,7 @@ image_format_from_format	(tveng_device_info *	info _unused_,
 				 tv_image_format *	f,
 				 const struct v4l2_format *vfmt)
 {
+	struct private_tveng25_device_info * p_info = P_INFO (info);
 	tv_pixfmt pixfmt;
 	unsigned int bytes_per_line[4];
 
@@ -1710,9 +1717,12 @@ image_format_from_format	(tveng_device_info *	info _unused_,
 
 	/* bttv 0.9.12 bug:
 	   returns bpl = width * bpp, w/ bpp > 1 if planar YUV. */
-	bytes_per_line[0] = vfmt->fmt.pix.width
-		* tv_pixfmt_bytes_per_pixel (pixfmt);
+	if (p_info->bttv_driver > 0) {
+		bytes_per_line[0] = vfmt->fmt.pix.width
+			* tv_pixfmt_bytes_per_pixel (pixfmt);
+	}
 
+/* FIXME check if width, height and bpl were rounded up. */
 	tv_image_format_init (f,
 			      vfmt->fmt.pix.width,
 			      vfmt->fmt.pix.height,
@@ -1733,8 +1743,10 @@ static void
 ivtv_v4l2_format_fix		(tveng_device_info *	info,
 				 struct v4l2_format *	format)
 {
-	format->fmt.pix.pixelformat = V4L2_PIX_FMT_NV12;
+	format->fmt.pix.pixelformat = FOURCC_HM12;
 	format->fmt.pix.bytesperline = format->fmt.pix.width;
+
+	/* Sort of. See read_buffer(). */
 	format->fmt.pix.sizeimage =
 		format->fmt.pix.width * format->fmt.pix.height * 2 / 3;
 
@@ -1768,7 +1780,7 @@ get_capture_format		(tveng_device_info *	info)
 		}
 
 		format.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR8;
-	} else if (TVENG25_NV12_TEST) {
+	} else if (TVENG25_HM12_TEST) {
 		if (1) {
 			format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
 			format.fmt.pix.width = 720;
@@ -1787,7 +1799,7 @@ get_capture_format		(tveng_device_info *	info)
 				return FALSE;
 		}
 
-		format.fmt.pix.pixelformat = V4L2_PIX_FMT_NV12;
+		format.fmt.pix.pixelformat = FOURCC_HM12;
 	} else if (P_INFO (info)->ivtv_driver > 0) {
 		/* Did we open the YUV capture device? */
 		assert (V4L2_PIX_FMT_MPEG != format.fmt.pix.pixelformat);
@@ -1842,7 +1854,7 @@ set_capture_format		(tveng_device_info *	info,
 
 		format.fmt.pix.width	= 352;
 		format.fmt.pix.height	= 288;
-	} else if (TVENG25_NV12_TEST) {
+	} else if (TVENG25_HM12_TEST) {
 		format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
 		pixelformat = V4L2_PIX_FMT_YVU420;
 
@@ -1895,8 +1907,8 @@ set_capture_format		(tveng_device_info *	info,
 
 	if (TVENG25_BAYER_TEST) {
 		format.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR8;
-	} else if (TVENG25_NV12_TEST) {
-		format.fmt.pix.pixelformat = V4L2_PIX_FMT_NV12;
+	} else if (TVENG25_HM12_TEST) {
+		format.fmt.pix.pixelformat = FOURCC_HM12;
 	} else if (P_INFO (info)->ivtv_driver > 0) {
 		/* ivtv 0.2.0-rc1a, 0.3.6o, 0.3.7 bug: Ignores (does
 		   not read or write) pixelformat, bytes_per_line, sizeimage,
@@ -1946,8 +1958,8 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 	/* ivtv 0.2.0-rc1a, 0.3.6o, 0.3.7 bug: VIDIOC_ENUMFMT is not
 	   supported and VIDIOC_TRY_FMT returns pixelformat = UYVY. */
 	if (p_info->ivtv_driver > 0
-	    || TVENG25_NV12_TEST) {
-		return TV_PIXFMT_SET (TV_PIXFMT_NV12);
+	    || TVENG25_HM12_TEST) {
+		return TV_PIXFMT_SET (TV_PIXFMT_HM12);
 	}
 
 	pixfmt_set = TV_PIXFMT_SET_EMPTY;
@@ -2389,8 +2401,17 @@ read_buffer			(tveng_device_info *	info,
 	}
 
  read_again:
-	actual = device_read (info->log_fp, info->fd,
-			      buffer->data, info->capture.format.size);
+	if (p_info->ivtv_driver > 0
+	    && 0x7e900 == info->capture.format.size) {
+		/* Preliminary work-around.
+		   http://www.poptix.net/ivtv/Nov-2004/msg00551.html */
+		actual = device_read (info->log_fp, info->fd,
+				      buffer->data, 0x7c600);
+	} else {
+		actual = device_read (info->log_fp, info->fd,
+				      buffer->data,
+				      info->capture.format.size);
+	}
 
 	if ((ssize_t) 0 == actual) {
 		/* EOF? */
@@ -2825,7 +2846,7 @@ get_capabilities		(tveng_device_info *	info)
 
 	info->caps.flags |= TVENG_CAPS_CAPTURE;
 
-	if (TVENG25_NV12_TEST) {
+	if (TVENG25_HM12_TEST) {
 		p_info->caps.capabilities &= ~V4L2_CAP_STREAMING;
 	}
 
@@ -2904,8 +2925,8 @@ get_capabilities		(tveng_device_info *	info)
 }
 
 /* ivtv 0.2.0-rc1a, 0.3.6o, 0.3.7 feature: /dev/video0+N (N = 0 ... 7)
-   returns MPEG data, S_FMT will not switch the device to NV12. To get
-   NV12 images one has to read from /dev/video32+N instead. */
+   returns MPEG data, S_FMT will not switch the device to HM12. To get
+   HM12 images one has to read from /dev/video32+N instead. */
 static tv_bool
 reopen_ivtv_capture_device	(tveng_device_info *	info,
 				 int			flags)
@@ -3241,7 +3262,7 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
 		}
 	}
 
-  if (TVENG25_BAYER_TEST || TVENG25_NV12_TEST)
+  if (TVENG25_BAYER_TEST || TVENG25_HM12_TEST)
 	  p_info->caps.capabilities &= ~V4L2_CAP_VIDEO_OVERLAY;
 
   CLEAR (fb);
