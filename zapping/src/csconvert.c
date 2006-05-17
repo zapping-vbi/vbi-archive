@@ -44,6 +44,7 @@ static int initialized = 0;
 
 void startup_csconvert(void)
 {
+#define HM12 TV_PIXFMT_SET (TV_PIXFMT_HM12)
 #define NV12 TV_PIXFMT_SET (TV_PIXFMT_NV12)
 #define SBGGR TV_PIXFMT_SET (TV_PIXFMT_SBGGR)
 #define YUV420 (TV_PIXFMT_SET (TV_PIXFMT_YUV420) |			\
@@ -63,6 +64,7 @@ void startup_csconvert(void)
 	       TV_PIXFMT_SET (TV_PIXFMT_BGRA16_LE) |			\
 	       TV_PIXFMT_SET (TV_PIXFMT_BGRA16_BE))
   static const CSFilters table [] = {
+    { HM12,	YUV420,		(CSConverter_fn *) _tv_hm12_to_yuv420, 0 },
     { NV12,	YUV420,		(CSConverter_fn *) _tv_nv_to_yuv420, 0 },
     { NV12,	YUYV,		(CSConverter_fn *) _tv_nv_to_yuyv, 0 },
     { NV12,	RGB16 | RGB32,	(CSConverter_fn *) _tv_nv_to_rgb, 0 },
