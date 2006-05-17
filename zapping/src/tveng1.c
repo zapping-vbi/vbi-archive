@@ -3431,7 +3431,7 @@ shut_down			(struct private_tveng1_device_info *p_info)
 		p_info->ogb_fd = -1;
 	}
 
-#if defined (HAVE_XV_EXTENSION) && TVENG25_XV_TEST
+#if defined (HAVE_XV_EXTENSION) && TVENG1_XV_TEST
 	if (p_info->grabbed_xv_port) {
 		if (!_tv_xv_ungrab_port (&p_info->info)) {
 			p_info->info.overlay.xv_port_id = NO_PORT;
@@ -3907,7 +3907,7 @@ tveng1_change_attach_mode	(tveng_device_info * info,
 
 	p_tveng_stop_everything (info, &dummy);
 
-#if defined (HAVE_XV_EXTENSION) && TVENG25_XV_TEST
+#if defined (HAVE_XV_EXTENSION) && TVENG1_XV_TEST
 	if (p_info->grabbed_xv_port) {
 		if (!_tv_xv_ungrab_port (info)) {
 			info->overlay.xv_port_id = NO_PORT;
