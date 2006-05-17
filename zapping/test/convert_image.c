@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: convert_image.c,v 1.5 2006-03-17 13:35:27 mschimek Exp $ */
+/* $Id: convert_image.c,v 1.6 2006-05-17 18:02:36 mschimek Exp $ */
 
 #define _GNU_SOURCE 1
 #undef NDEBUG
@@ -74,6 +74,7 @@ get_pixel			(const uint8_t *	src,
 	const uint8_t *s0;
 	const uint8_t *s1;
 	const uint8_t *s2;
+	unsigned int block;
 	unsigned int byte;
 	unsigned int x2;
 	unsigned int y2;
@@ -89,6 +90,22 @@ get_pixel			(const uint8_t *	src,
 		y2 = y >> pf->uv_vshift;
 		s1 = src + y2 * format->bytes_per_line[1] + format->offset[1];
 		return (+ s0[x]
+			+ (s1[x2 + 0] << 8)
+			+ (s1[x2 + 1] << 16)
+			+ 0xFF000000);
+
+	case TV_PIXFMT_HM12:
+		block = y / (format->bytes_per_line[0] * 16) + (x / 16);
+		s0 = src + format->offset[0]
+			+ block * (16 * 16) + (y % 16) * 16;
+
+		y2 = y >> 1;
+		block = y2 / (format->bytes_per_line[0] * 16) + (x / 16);
+		s1 = src + format->offset[1]
+			+ block * (16 * 16) + (y2 % 16) * 16;
+
+		x2 = x & 14;
+		return (+ s0[x % 16]
 			+ (s1[x2 + 0] << 8)
 			+ (s1[x2 + 1] << 16)
 			+ 0xFF000000);
@@ -628,6 +645,19 @@ test				(uint8_t *		dst,
 	memset (dst_buffer, 0xAA, dst_buffer_end - dst_buffer);
 
 	switch (src_format.pixel_format->pixfmt) {
+	case TV_PIXFMT_HM12:
+		hshift = 4;
+		vshift = 4;
+		switch (dst_format.pixel_format->pixfmt) {
+		case TV_PIXFMT_YUV420:
+		case TV_PIXFMT_YVU420:
+			success = _tv_hm12_to_yuv420 (dst, &dst_format,
+						      src, &src_format);
+			break;
+		default:
+			assert (0);
+		}
+		break;
 	case TV_PIXFMT_NV12:
 		hshift = 1;
 		switch (dst_format.pixel_format->pixfmt) {
@@ -1144,6 +1174,7 @@ static void
 all_formats			(void)
 {
 	static const tv_pixfmt src_formats[] = {
+		TV_PIXFMT_HM12,
 		TV_PIXFMT_NV12,
 		TV_PIXFMT_YUV420,
 		TV_PIXFMT_YVU420,
@@ -1187,6 +1218,11 @@ all_formats			(void)
 		for (j = 0; j < N_ELEMENTS (dst_formats); ++j) {
 			if (TV_PIXFMT_IS_RGB (src_formats[i])
 			    && !TV_PIXFMT_IS_RGB (dst_formats[j]))
+				continue; /* later */
+
+			if (TV_PIXFMT_HM12 == src_formats[i]
+			    && TV_PIXFMT_YUV420 != dst_formats[i]
+			    && TV_PIXFMT_YVU420 != dst_formats[i])
 				continue; /* later */
 
 			dst_format.pixel_format =
