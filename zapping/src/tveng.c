@@ -630,6 +630,7 @@ int tveng_attach_device(const char* device_file,
 #define YUVHACK (TV_PIXFMT_SET (TV_PIXFMT_YUV420) | \
        		 TV_PIXFMT_SET (TV_PIXFMT_YVU420) | \
 		 TV_PIXFMT_SET (TV_PIXFMT_NV12) | \
+		 TV_PIXFMT_SET (TV_PIXFMT_HM12) | \
 		 TV_PIXFMT_SET (TV_PIXFMT_YUYV) | \
 		 TV_PIXFMT_SET (TV_PIXFMT_UYVY))
 #endif
