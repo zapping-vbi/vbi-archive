@@ -17,11 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vps.c,v 1.1.2.8 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: vps.c,v 1.1.2.9 2006-05-18 16:49:20 mschimek Exp $ */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <assert.h>
+
 #include "misc.h"
 #include "vps.h"
 

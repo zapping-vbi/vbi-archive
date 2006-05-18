@@ -1,7 +1,7 @@
 /*
- *  libzvbi - Miscellaneous types and macros
+ *  libzvbi - Miscellaneous cows and chickens
  *
- *  Copyright (C) 2002-2004 Michael H. Schimek
+ *  Copyright (C) 2002-2006 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,14 +18,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.18 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.19 2006-05-18 16:49:19 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <stddef.h>
-#include <string.h>
 #include <stdarg.h>
+#include <string.h>
 #include <inttypes.h>
 #include <assert.h>
 
@@ -217,8 +219,7 @@ do {									\
 #define COPY_SET_CLEAR(dest, set, clear)				\
 	(dest = (dest & ~(clear)) | (set))
 
-/* TODO The idea is to define these as weak symbols and
-   override them in applications. */
+/* For debugging. */
 #define vbi3_malloc malloc
 #define vbi3_realloc realloc
 #define vbi3_strdup strdup
@@ -229,7 +230,7 @@ do {									\
 /* Helper functions. */
 
 vbi3_inline int
-vbi3_to_ascii			(int			c)
+_vbi3_to_ascii			(int			c)
 {
 	if (c < 0)
 		return '?';
@@ -255,24 +256,42 @@ _vbi3_keyword_lookup		(int *			value,
 
 /* Logging stuff. */
 
-extern vbi3_log_fn *		vbi3_global_log_fn;
-extern void *			vbi3_global_log_user_data;
-extern vbi3_log_mask		vbi3_global_log_mask;
+extern _vbi3_log_hook		_vbi3_global_log;
 
 extern void
-vbi3_log_vprintf		(vbi3_log_fn		log_fn,
+_vbi3_log_vprintf		(vbi3_log_fn		log_fn,
 				 void *			user_data,
-				 vbi3_log_mask		mask,
+				 vbi3_log_mask		level,
 				 const char *		context,
 				 const char *		templ,
 				 va_list		ap);
 extern void
-vbi3_log_printf			(vbi3_log_fn		log_fn,
+_vbi3_log_printf		(vbi3_log_fn		log_fn,
 				 void *			user_data,
-				 vbi3_log_mask		mask,
+				 vbi3_log_mask		level,
 				 const char *		context,
 				 const char *		templ,
 				 ...);
+
+#define _vbi3_log(hook, level, templ, args...)				\
+do {									\
+	_vbi3_log_hook *_h = hook;					\
+									\
+	if ((NULL != _h && 0 != (_h->mask & level))			\
+	    || (_h = &_vbi3_global_log, 0 != (_h->mask & level)))	\
+		_vbi3_log_printf (_h->fn, _h->user_data,		\
+				  level, __FUNCTION__,			\
+				  templ , ##args);			\
+} while (0)
+
+#define error(hook, templ, args...)					\
+	_vbi3_log (hook, VBI3_LOG_ERROR, templ , ##args)
+#define warning(hook, templ, args...)					\
+	_vbi3_log (hook, VBI3_LOG_ERROR, templ , ##args)
+#define notice(hook, templ, args...)					\
+	_vbi3_log (hook, VBI3_LOG_NOTICE, templ , ##args)
+#define info(hook, templ, args...)					\
+	_vbi3_log (hook, VBI3_LOG_INFO, templ , ##args)
 
 /* Portability stuff. */
 
@@ -289,7 +308,7 @@ vbi3_log_printf			(vbi3_log_fn		log_fn,
 
 /* Use this instead of strncpy(). strlcpy() is a BSD/GNU extension. */
 #ifndef HAVE_STRLCPY
-#  define _vbi3_strlcpy strlcpy
+#  define strlcpy _vbi3_strlcpy
 #endif
 
 extern size_t
@@ -299,31 +318,31 @@ _vbi3_strlcpy			(char *			dst,
 
 /* strndup() is a BSD/GNU extension. */
 #ifndef HAVE_STRNDUP
-#  define _vbi3_strndup strndup
+#  define strndup _vbi3_strndup
 #endif
 
 extern char *
 _vbi3_strndup			(const char *		s,
 				 size_t			len);
 
-/* asprintf() is a GNU extension. */
-#ifndef HAVE_ASPRINTF
-#  define _vbi3_asprintf asprintf
-#endif
-
-extern int
-_vbi3_asprintf			(char **		dstp,
-				 const char *		templ,
-				 ...);
-
 /* vasprintf() is a GNU extension. */
 #ifndef HAVE_VASPRINTF
-#  define _vbi3_vasprintf vasprintf
+#  define vasprintf _vbi3_vasprintf
 #endif
 
 extern int
 _vbi3_vasprintf			(char **		dstp,
 				 const char *		templ,
 				 va_list		ap);
+
+/* asprintf() is a GNU extension. */
+#ifndef HAVE_ASPRINTF
+#  define asprintf _vbi3_asprintf
+#endif
+
+extern int
+_vbi3_asprintf			(char **		dstp,
+				 const char *		templ,
+				 ...);
 
 #endif /* MISC_H */

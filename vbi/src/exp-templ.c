@@ -2,12 +2,14 @@
  *  Template for export modules
  */
 
-/* $Id: exp-templ.c,v 1.6.2.5 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: exp-templ.c,v 1.6.2.6 2006-05-18 16:49:19 mschimek Exp $ */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
-#include <stdlib.h>		/* malloc() */
 #include <limits.h>		/* UINT_MAX */
+
 #include "misc.h"
 #include "intl-priv.h"
 #include "export-priv.h"

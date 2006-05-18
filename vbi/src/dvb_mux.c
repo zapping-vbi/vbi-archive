@@ -17,16 +17,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb_mux.c,v 1.6.2.2 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: dvb_mux.c,v 1.6.2.3 2006-05-18 16:49:19 mschimek Exp $ */
 
-#include <stdio.h>		/* fprintf() */
-#include <stdlib.h>		/* abort() */
-#include <string.h>		/* memcpy(), memset() */
-#include <assert.h>
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+#include "misc.h"
 #include "dvb.h"
 #include "dvb_mux.h"
 #include "hamm.h"		/* vbi3_rev8() */
-#include "misc.h"		/* MIN(), CLEAR() */
 
 #ifndef DVB_MUX_LOG
 #define DVB_MUX_LOG 0

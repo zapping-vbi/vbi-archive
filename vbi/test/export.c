@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5.2.13 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.14 2006-05-18 16:49:21 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -26,13 +26,7 @@
 #  include "config.h"
 #endif
 
-#define _GNU_SOURCE 1 /* strndup */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <locale.h>
-#include <assert.h>
 #include <unistd.h>
 #ifdef HAVE_GETOPT_LONG
 #  include <getopt.h>
@@ -40,6 +34,7 @@
 #include <ctype.h>
 #include <errno.h>
 
+#include "src/misc.h"
 #include "src/zvbi.h"
 
 typedef struct {

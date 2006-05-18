@@ -22,25 +22,17 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.6.2.10 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: search.c,v 1.6.2.11 2006-05-18 16:49:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <stdlib.h>		/* malloc() */
-#include <assert.h>
-
-//#include <string.h>
-//#include <ctype.h>
-//#include "lang.h"
-//#include "cache.h"
+#include "misc.h"
 #include "search.h"
 #include "ure.h"
 #include "conv.h"
-//#include "teletext_decoder-priv.h"
 #include "page-priv.h"
-//#include "misc.h"
 
 /**
  * @addtogroup Search
@@ -286,9 +278,9 @@ search_page_fwd			(cache_page *		cp,
 		fprintf (stderr, "exec: %x/%x; start %d,%d; %c%c%c...\n",
 			 cp->pgno, cp->subno,
 			 s->row[0], s->col[0],
-			 vbi3_to_ascii (first[0]),
-			 vbi3_to_ascii (first[1]),
-			 vbi3_to_ascii (first[2]));
+			 _vbi3_to_ascii (first[0]),
+			 _vbi3_to_ascii (first[1]),
+			 _vbi3_to_ascii (first[2]));
 
 	if (!ure_exec (s->ud, flags, first, hp - first, &ms, &me))
 		return 0; /* try next page */
@@ -401,9 +393,9 @@ break2:
 		if (0)
 			fprintf (stderr, "exec: %x/%x; %d, %ld; '%c%c%c...'\n",
 				 cp->pgno, cp->subno, i, me,
-				 vbi3_to_ascii (s->haystack[me + 0]),
-				 vbi3_to_ascii (s->haystack[me + 1]),
-				 vbi3_to_ascii (s->haystack[me + 2]));
+				 _vbi3_to_ascii (s->haystack[me + 0]),
+				 _vbi3_to_ascii (s->haystack[me + 1]),
+				 _vbi3_to_ascii (s->haystack[me + 2]));
 
 		if (!ure_exec (s->ud, (me > 0) ? (flags | URE_NOTBOL) : flags,
 			       s->haystack + me,
@@ -554,22 +546,6 @@ vbi3_search_delete		(vbi3_search *		s)
 	CLEAR (*s);
 
 	vbi3_free (s);
-}
-
-static size_t
-ucs2_strlen			(const uint16_t *	s)
-{
-	const uint16_t *s1;
-
-	if (!s)
-		return 0;
-
-	s1 = s;
-
-	while (*s)
-		++s;
-
-	return s - s1;
 }
 
 /**
@@ -759,13 +735,16 @@ vbi3_search_utf8_new		(vbi3_cache *		ca,
 
 	assert (NULL != pattern);
 
-	ucs2_pattern = _vbi3_strdup_ucs2_utf8 (pattern);
+	ucs2_pattern = (uint16_t *) vbi3_strndup_iconv ("UCS-2", "UTF-8",
+							pattern,
+							strlen (pattern) + 1);
 	if (!ucs2_pattern)
 		return NULL;
 
 	s = vbi3_search_ucs2_new (ca,
 				  nk, pgno, subno,
-				  ucs2_pattern, ucs2_strlen (ucs2_pattern),
+				  ucs2_pattern,
+				  vbi3_strlen_ucs2 (ucs2_pattern),
 				  casefold, regexp,
 				  progress, user_data);
 

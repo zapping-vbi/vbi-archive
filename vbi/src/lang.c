@@ -17,17 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.4.2.5 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: lang.c,v 1.4.2.6 2006-05-18 16:49:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <assert.h>
-#include <inttypes.h>		/* uint8_t, uint16_t */
-#include <stdio.h>		/* FILE */
-#include <stdlib.h>		/* exit() */
-#include "misc.h"		/* N_ELEMENTS() */
+#include "misc.h"
 #include "lang.h"
 
 #define UNUSED(n) { n, 0, 0, 0, { NULL, } }
@@ -585,53 +581,168 @@ _vbi3_teletext_composed_unicode	(unsigned int		a,
 }
 
 /*
- *  Closed Caption character set
- */
+	Closed Caption character set
+*/
 
-/* Closed Caption character set
-   Defined in EIA 608. Standard not available, this information comes
-   from Video Demystified, Table 8.31. Closed Captioning Basic Character
-   Set) */
+/* Closed Caption Basic Character Set.
+   47 CFR Section 15.119 (g) */
 static const uint16_t
 caption [96] = {
 	0x0020, 0x0021, 0x0022, 0x0023, 0x0024, 0x0025, 0x0026, 0x0027,
-	0x0028, 0x0029, 0x00E1, 0x002B, 0x002C, 0x002D, 0x002E, 0x002F,
+	0x0028, 0x0029,
+	0x00E1, /* a with acute accent */
+				0x002B, 0x002C, 0x002D, 0x002E, 0x002F,
 	0x0030, 0x0031, 0x0032, 0x0033, 0x0034, 0x0035, 0x0036, 0x0037,
 	0x0038, 0x0039, 0x003A, 0x003B, 0x003C, 0x003D, 0x003E, 0x003F,
 	0x0040, 0x0041, 0x0042, 0x0043, 0x0044, 0x0045, 0x0046, 0x0047,
 	0x0048, 0x0049, 0x004A, 0x004B, 0x004C, 0x004D, 0x004E, 0x004F,
 	0x0050, 0x0051, 0x0052, 0x0053, 0x0054, 0x0055, 0x0056, 0x0057,
-	0x0058, 0x0059, 0x005A, 0x005B, 0x00E9, 0x005D, 0x00ED, 0x00F3,
-	0x00FA, 0x0061, 0x0062, 0x0063, 0x0064, 0x0065, 0x0066, 0x0067,
+	0x0058, 0x0059, 0x005A, 0x005B,
+	0x00E9, /* e with acute accent */
+	0x005D,
+	0x00ED, /* i with acute accent */
+	0x00F3, /* o with acute accent */
+	0x00FA, /* u with acute accent */
+		0x0061, 0x0062, 0x0063, 0x0064, 0x0065, 0x0066, 0x0067,
 	0x0068, 0x0069, 0x006A, 0x006B, 0x006C, 0x006D, 0x006E, 0x006F,
 	0x0070, 0x0071, 0x0072, 0x0073, 0x0074, 0x0075, 0x0076, 0x0077,
-	0x0078, 0x0079, 0x007A, 0x00E7, 0x00F7, 0x00D1, 0x00F1, 0x25A0
+	0x0078, 0x0079, 0x007A,
+	0x00E7, /* c with cedilla */
+	0x00F7, /* Division sign */
+	0x00D1, /* N with tilde */
+	0x00F1, /* n with tilde */
+	0x25A0  /* Black square */
 };
 
-/* Closed Caption special characters. */
+/* Closed Caption Special Characters.
+   47 CFR Section 15.119 (g) */
 static const uint16_t
 caption_special [] = {
-	0x00AE, 0x00B0, 0x00BD, 0x00BF, 0x2122, 0x00A2, 0x00A3, 0x266A,
-	0x00E0, 0x0020, 0x00E8, 0x00E2, 0x00EA, 0x00EE, 0x00F4, 0x00FB
+	0x00AE, /* 0x1130 Registered symbol */
+	0x00B0, /* 0x1131 Degree sign */
+	0x00BD, /* 0x1132 1/2 */
+	0x00BF, /* 0x1133 Inverse question mark */
+	0x2122, /* 0x1134 Trademark symbol */
+	0x00A2, /* 0x1135 Cents sign */
+	0x00A3, /* 0x1136 Pounds sign */
+	0x266A, /* 0x1137 Music note */
+	0x00E0, /* 0x1138 a with grave accent */
+	0x0020, /* 0x1139 Transparent space */
+	0x00E8, /* 0x113A e with grave accent */
+	0x00E2, /* 0x113B a with circumflex */
+	0x00EA, /* 0x113C e with circumflex */
+	0x00EE, /* 0x113D i with circumflex */
+	0x00F4, /* 0x113E o with circumflex */
+	0x00FB  /* 0x113F u with circumflex */
+};
+
+/* Closed Caption Extended Character Set.
+   EIA 608-B Section 6.4.2 */
+caption_extended2 [] = {
+	0x00C1, /* 0x1220 A with acute accent */
+	0x00C9, /* 0x1221 E with acute accent */
+	0x00D3, /* 0x1222 O with acute accent */
+	0x00DA, /* 0x1223 U with acute accent */
+	0x00DC, /* 0x1224 U with diaeresis */
+	0x00FC, /* 0x1225 u with diaeresis */
+	0x2018, /* 0x1226 Opening single quote */
+	0x00A1, /* 0x1227 Inverted exclamation mark */
+	0x002A, /* 0x1228 Asterisk */
+	0x0027, /* 0x1229 Plain single quote */
+	0x2500, /* 0x122A Em dash (for box drawing) */
+	0x00A9, /* 0x122B Copyright */
+	0x2120, /* 0x122C Service mark */
+	0x2022, /* 0x122D Round bullet */
+	0x201C, /* 0x122E Opening double quotes */
+	0x201D, /* 0x122F Closing double quotes */
+	0x00C0, /* 0x1230 A with grave accent */
+	0x00C2, /* 0x1231 A with circumflex accent */
+	0x00C7, /* 0x1232 C with cedilla */
+	0x00C8, /* 0x1233 E with grave accent */
+	0x00CA, /* 0x1234 E with circumflex accent */
+	0x00CB, /* 0x1235 E with diaeresis */
+	0x00EB, /* 0x1236 e with diaeresis */
+	0x00CE, /* 0x1237 I with circumflex */
+	0x00CF, /* 0x1238 I with diaeresis */
+	0x00EE, /* 0x1239 i with diaeresis */
+	0x00D4, /* 0x123A O with circumflex */
+	0x00D9, /* 0x123B U with grave accent */
+	0x00F9, /* 0x123C u with grave accent */
+	0x00DB, /* 0x123D U with circumflex accent */
+	0x00AB, /* 0x123E Opening guillemets */
+	0x00BB  /* 0x123F Closing guillemets */
+};
+
+/* Closed Caption Extended Character Set.
+   EIA 608-B Section 6.4.2 */
+caption_extended3 [] = {
+	0x00C3, /* 0x1320 A with tilde */
+	0x00E3, /* 0x1321 a with tilde */
+	0x00CD, /* 0x1322 I with acute accent */
+	0x00CC, /* 0x1323 I with grave accent */
+	0x00EC, /* 0x1324 i with grave accent */
+	0x00D2, /* 0x1325 O with grave accent */
+	0x00F2, /* 0x1326 o with grave accent */
+	0x00D5, /* 0x1327 O with tilde */
+	0x00F5, /* 0x1328 o with tilde */
+	0x007B, /* 0x1329 Opening curly brace */
+	0x007D, /* 0x132A Closing curly brace */
+	0x005C, /* 0x132B Backslash */
+	0x005E, /* 0x132C Caret */
+	0x005F, /* 0x132D Underscore */
+	0x007C, /* 0x132E Vertical bar */
+	0x007E, /* 0x132F Tilde */
+	0x00C4, /* 0x1330 A with diaeresis */
+	0x00E4, /* 0x1331 a with diaeresis */
+	0x00D6, /* 0x1332 O with diaeresis */
+	0x00F6, /* 0x1333 o with diaeresis */
+	0x00DF, /* 0x1334 Sharp s */
+	0x00A5, /* 0x1335 Yen sign */
+	0x00A4, /* 0x1336 Currency sign */
+	0x2502, /* 0x1337 Vertical bar (for box drawing) */
+	0x00C5, /* 0x1338 A with ring above */
+	0x00E5, /* 0x1339 a with ring above */
+	0x00D8, /* 0x133A O with slash */
+	0x00F8, /* 0x133B o with slash */
+	0x250C, /* 0x133C Upper left corner */
+	0x2510, /* 0x133D Upper right corner */
+	0x2514, /* 0x133E Lower left corner */
+	0x2518  /* 0x133F Lower right corner */
 };
 
 /**
- * @param c Character code in range 0x00 ... 0x0F and 0x20 ... 0x7F.
+ * @param c Character code in range 0x00 ... 0x0F, 0x20 ... 0x7F,
+ *   0x1130 ... 0x113F, 0x1220 ... 0x123F, or 0x1320 ... 0x133F.
  * 
  * Translates Closed Caption character code to Unicode. Codes
- * in range 0x00 ... 0x0F are Special Characters (Closed
- * Caption commands 0x22/0x3x, 0x32/0x3x).
+ * in range 0x113x are special characters. Codes 0x00 ... 0x0F
+ * are also interpreted as special characters. Codes in range
+ * 0x12xx and 0x13xx belong to the extended character set.
  *
  * @return
- * Unicode value.
+ * Unicode value. The function aborts the application if
+ * invalid codes are entered.
  */
 unsigned int
 vbi3_caption_unicode		(unsigned int		c)
 {
-	assert (c <= 0x0F || (c >= 0x20 && c <= 0x7F));
+	if (likely (c < 0x80)) {
+		if (likely (c >= 0x20)) {
+			return caption[c - 0x20];
+		} else if (c < 0x10) {
+			return caption_special[c];
+		}
+	} else if (c < 0x1240) {
+		if (c < 0x1140 && c >= 0x1130) {
+			return caption_special[c - 0x1130];
+		} else if (c >= 1220) {
+			return caption_extended2[c - 0x1220];
+		}
+	} else if (c < 0x1340 && c >= 1320) {
+		return caption_extended3[c - 0x1320];
+	}
 
-	if (c < 0x10)
-		return caption_special[c];
-	else
-		return caption[c - 0x20];
+	assert (0);
+
+	return 0;
 }

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2001-2004 Michael H. Schimek
+ *  Copyright (C) 2001-2006 Michael H. Schimek
  *  Copyright (C) 2000-2003 Iñaki García Etxebarria
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -17,18 +17,18 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.c,v 1.4.2.4 2006-05-14 14:14:11 mschimek Exp $ */
+/* $Id: misc.c,v 1.4.2.5 2006-05-18 16:49:19 mschimek Exp $ */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include <ctype.h>
 #include <errno.h>
+
 #include "misc.h"
 
-vbi3_log_fn *		vbi3_global_log_fn;
-void *			vbi3_global_log_user_data;
-vbi3_log_mask		vbi3_global_log_mask;
+_vbi3_log_hook		_vbi3_global_log;
 
 /**
  * @internal
@@ -160,6 +160,7 @@ _vbi3_asprintf			(char **		dstp,
 	return len;
 }
 
+/** @internal */
 vbi3_bool
 _vbi3_keyword_lookup		(int *			value,
 				 const char **		inout_s,
@@ -208,6 +209,8 @@ _vbi3_keyword_lookup		(int *			value,
 	return FALSE;
 }
 
+/**
+ */
 void
 vbi3_log_on_stderr		(vbi3_log_mask		level,
 				 const char *		context,
@@ -233,7 +236,7 @@ vbi3_log_on_stderr		(vbi3_log_mask		level,
 
 /** @internal */
 void
-vbi3_log_vprintf		(vbi3_log_fn		log_fn,
+_vbi3_log_vprintf		(vbi3_log_fn		log_fn,
 				 void *			user_data,
 				 vbi3_log_mask		mask,
 				 const char *		context,
@@ -263,7 +266,7 @@ vbi3_log_vprintf		(vbi3_log_fn		log_fn,
 
 /** @internal */
 void
-vbi3_log_printf			(vbi3_log_fn		log_fn,
+_vbi3_log_printf		(vbi3_log_fn		log_fn,
 				 void *			user_data,
 				 vbi3_log_mask		mask,
 				 const char *		context,
@@ -274,7 +277,7 @@ vbi3_log_printf			(vbi3_log_fn		log_fn,
 
 	va_start (ap, templ);
 
-	vbi3_log_vprintf (log_fn, user_data, mask, context, templ, ap);
+	_vbi3_log_vprintf (log_fn, user_data, mask, context, templ, ap);
 
 	va_end (ap);
 }

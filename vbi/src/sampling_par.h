@@ -17,14 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling_par.h,v 1.1.2.3 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: sampling_par.h,v 1.1.2.4 2006-05-18 16:49:20 mschimek Exp $ */
 
 #ifndef __ZVBI3_SAMPLING_PAR_H__
 #define __ZVBI3_SAMPLING_PAR_H__
 
 #include <inttypes.h>		/* uint64_t */
 #include "macros.h"
-#include "misc.h"
 #include "image_format.h"	/* vbi3_pixfmt */
 #include "sliced.h"		/* vbi3_service_set */
 
@@ -124,7 +123,7 @@ _vbi3_videostd_name		(vbi3_videostd		videostd)
   __attribute__ ((const));
 
 extern vbi3_videostd_set
-vbi3_videostd_set_from_scanning	(int			scanning)
+_vbi3_videostd_set_from_scanning (int			scanning)
   __attribute__ ((const));
 
 /**
@@ -200,31 +199,34 @@ extern vbi3_service_set
 vbi3_sampling_par_from_services	(vbi3_sampling_par *	sp,
 				 unsigned int *		max_rate,
 				 vbi3_videostd_set	videostd_set,
-				 vbi3_service_set	services,
-				 vbi3_log_fn *		log_fn,
-				 void *			log_user_data);
+				 vbi3_service_set	services);
 extern vbi3_service_set
-vbi3_sampling_par_check_services	(const vbi3_sampling_par *sp,
+vbi3_sampling_par_check_services
+				(const vbi3_sampling_par *sp,
 				 vbi3_service_set	services,
-					 unsigned int		strict,
-				 vbi3_log_fn *		log_fn,
-				 void *			log_user_data)
+				 unsigned int		strict)
   __attribute__ ((_vbi3_pure));
 /** @} */
 
 /* Private */
 
-extern vbi3_bool
-_vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
-				 const vbi3_service_par *par,
-					 unsigned int		strict,
-				 vbi3_log_fn *		log_fn,
-				 void *			log_user_data)
+extern vbi3_service_set
+_vbi3_sampling_par_from_services_log
+				(vbi3_sampling_par *	sp,
+				 unsigned int *		max_rate,
+				 vbi3_videostd_set	videostd_set,
+				 vbi3_service_set	services,
+				 _vbi3_log_hook *	log);
+extern vbi3_service_set
+_vbi3_sampling_par_check_services_log
+				(const vbi3_sampling_par *sp,
+				 vbi3_service_set	services,
+				 unsigned int		strict,
+				 _vbi3_log_hook *	log)
   __attribute__ ((_vbi3_pure));
 extern vbi3_bool
-_vbi3_sampling_par_valid	(const vbi3_sampling_par *sp,
-				 vbi3_log_fn *		log_fn,
-				 void *			log_user_data)
+_vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
+				 _vbi3_log_hook *	log)
   __attribute__ ((_vbi3_pure));
 
 #endif /* !ZAPPING8 */

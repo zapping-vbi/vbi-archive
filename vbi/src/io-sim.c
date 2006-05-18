@@ -17,11 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-sim.c,v 1.1.2.10 2006-05-14 14:14:11 mschimek Exp $ */
+/* $Id: io-sim.c,v 1.1.2.11 2006-05-18 16:49:19 mschimek Exp $ */
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include <math.h>		/* sin() */
 #include <errno.h>
 #include <ctype.h>		/* isspace() */
@@ -236,7 +237,7 @@ signal_closed_caption		(const vbi3_sampling_par *sp,
 	double t2 = t1 + 7 * D; /* CRI 7 cycles */
 	double t3 = t0 + 7 * D; /* first start bit left edge half amplitude */
 	double q1 = PI * bit_rate * 2;
-	double q2 = PI / .120e-6;
+	double q2 = PI / .120e-6; /* rise/fall time 240 ns */
 	double signal_mean = (white_level - blank_level) * .25; /* 25 IRE */
 	double signal_high = blank_level + (white_level - blank_level) * .5;
 	double sample_period = 1.0 / sp->sampling_rate;
@@ -351,14 +352,9 @@ signal_u8			(const vbi3_sampling_par *sp,
 				row *= 2;
 		} else {
 		bounds:
-			if (vbi3_global_log_mask & VBI3_LOG_WARNING)
-				vbi3_log_printf (vbi3_global_log_fn,
-						 vbi3_global_log_user_data,
-						 VBI3_LOG_WARNING,
-						 __FUNCTION__,
-						 "Sliced line %u out of "
-						 "bounds\n",
-						 sliced->line);
+			warning (NULL, 
+				 "Sliced line %u out of bounds.",
+				 sliced->line);
 			return FALSE;
 		}
 
@@ -443,16 +439,9 @@ signal_u8			(const vbi3_sampling_par *sp,
 			break;
 
 		default:
-			if (vbi3_global_log_mask & VBI3_LOG_WARNING)
-				vbi3_log_printf (vbi3_global_log_fn,
-						 vbi3_global_log_user_data,
-						 VBI3_LOG_WARNING,
-						 __FUNCTION__,
-						 "Service 0x%08x (%s) not "
-						 "supported\n",
-						 sliced->id,
-						 vbi3_sliced_name
-						 (sliced->id));
+			warning (NULL, "Service 0x%08x (%s) not supported.",
+				 sliced->id,
+				 vbi3_sliced_name (sliced->id));
 			return FALSE;
 		}
 	}
@@ -493,7 +482,7 @@ _vbi3_test_image_vbi		(uint8_t *		raw,
 	unsigned int black_level;
 	unsigned int white_level;
 
-	if (!_vbi3_sampling_par_valid (sp, 0, 0))
+	if (!_vbi3_sampling_par_valid_log (sp, /* log_hook */ NULL))
 		return FALSE;
 
 	scan_lines = sp->count[0] + sp->count[1];
@@ -646,16 +635,15 @@ _vbi3_test_image_video		(uint8_t *		raw,
 	uint8_t *s;
 	uint8_t *d;
 
-	if (!_vbi3_sampling_par_valid (sp, 0, 0))
+	if (!_vbi3_sampling_par_valid_log (sp, /* log_hook */ NULL))
 		return FALSE;
 
 	scan_lines = sp->count[0] + sp->count[1];
 
 	if (scan_lines * sp->bytes_per_line > raw_size) {
-/*
-		debug ("scan_lines %u * bytes_per_line %lu > raw_size %lu\n",
-		       scan_lines, sp->bytes_per_line, raw_size);
-*/
+		warning (NULL, 
+			 "scan_lines %u * bytes_per_line %lu > raw_size %lu.",
+			 scan_lines, sp->bytes_per_line, raw_size);
 		return FALSE;
 	}
 
@@ -797,8 +785,9 @@ _vbi3_test_image_video		(uint8_t *		raw,
 	sp8.bytes_per_line = sp->samples_per_line;
 
 	size = scan_lines * sp->samples_per_line;
-	if (!(buf = vbi3_malloc (size))) {
-//		error ("Out of memory (%u bytes)\n", size);
+	buf = vbi3_malloc (size);
+	if (NULL == buf) {
+		error (NULL, "Out of memory.");
 		errno = ENOMEM;
 		return FALSE;
 	}
@@ -1037,8 +1026,6 @@ caption_default_test_stream [] =
 	"<erase-displayed ch=\"3\"/><roll-up rows=\"4\"/><pac row=\"14\"/>"
 	"LIBZVBI CAPTION SIMULATION CC4.<cr/>"
 ;
-	/* ROLL_UP, ROLL_UP, ROLL_UP changes cursor position? */
-
 	/* TODO: regression test for repeated control code bug:
 	   <control code field 1>
 	   <zero field 2>
@@ -1081,7 +1068,7 @@ get_attr			(const char *		s,
 		if (0 == delta) {
 			value = strtoul (s + 1,
 					 /* endp */ NULL,
-					 /* base */ 10);
+					 /* base */ 0);
 			break;
 		}
 
@@ -1113,7 +1100,7 @@ caption_append_zeroes		(vbi3_capture_sim *	sim,
 			return FALSE;
 	}
 
-	memset (b->data + b->size, 0, n_bytes);
+	memset (b->data + b->size, 0x80, n_bytes);
 	b->size += n_bytes;
 
 	return TRUE;
@@ -1157,6 +1144,8 @@ caption_append_command		(vbi3_capture_sim *	sim,
 		{ "eoc", 0x142F },
 		{ "erase-displayed", 0x142C },
 		{ "erase-non-displayed", 0x142E },
+		{ "extended2", 0x1200 },
+		{ "extended3", 0x1300 },
 		{ "fa", 0x172E },
 		{ "fau", 0x172F },
 		{ "flash-on", 0x1428 },
@@ -1185,12 +1174,11 @@ caption_append_command		(vbi3_capture_sim *	sim,
 		{ "to3", 0x1723 },
 		{ "tr", 0x142A },
 	};
-	static const uint8_t row_mapping [16] = {
-		/* 0 */ 2, 3, 4, 5,
-		/* 4 */ 10, 11, 12, 13, 14, 15,
-		/* 10 */ 0,
-		/* 11 */ 6, 7, 8, 9,
-		/* 15 */ -1
+	static const int row_code [16] = {
+		0x1140, 0x1160, 0x1240, 0x1260, 
+		0x1540, 0x1560, 0x1640, 0x1660, 
+		0x1740, 0x1760, 0x1040, 0x1340, 
+		0x1360, 0x1440, 0x1460, -1
 	};
 	struct buffer *b;
 	int value;
@@ -1199,6 +1187,7 @@ caption_append_command		(vbi3_capture_sim *	sim,
 	int n_padding_bytes;
 	unsigned int row;
 	unsigned int i;
+	vbi3_bool parity;
 
 	if (!_vbi3_keyword_lookup (&value, &s,
 				   elements,
@@ -1209,10 +1198,12 @@ caption_append_command		(vbi3_capture_sim *	sim,
 
 	cmd = value | ((*inout_ch & 1) << 11);
 
+	parity = TRUE;
+
 	switch (value) {
 	case 1: /* cmd */
 		cmd = get_attr (s, "code", 0, 0, 0xFFFF);
-
+		parity = FALSE;
 		break;
 
 	case 2: /* pause */
@@ -1236,65 +1227,67 @@ caption_append_command		(vbi3_capture_sim *	sim,
 	case 0x1020: /* backgr */
 		cmd |= get_attr (s, "color", 0, 0, 7) << 1;
 		cmd |= get_attr (s, "t", 0, 0, 1); /* transparent */
-
 		break;
 
-	case 0x172E: /* foregr-black */
-		cmd |= get_attr (s, "u", 0, 0, 1); /* underlined */
-
+	case 0x1040: /* pac (preamble address code) */
+		cmd |= row_code[get_attr (s, "row", 14, 0, 14)];
+		cmd |= get_attr (s, "color", 0, 0, 7) << 1;
+		cmd |= get_attr (s, "u", 0, 0, 1);
 		break;
 
 	case 0x1050: /* indent */
-		row = row_mapping[get_attr (s, "row", 14, 0, 14)];
-
-		cmd |= (row & 0xE) << 7;
-		cmd |= (row & 0x1) << 5;
+		cmd |= row_code[get_attr (s, "row", 14, 0, 14)];
 		cmd |= (get_attr (s, "cols", 0, 0, 31) / 4) << 1;
 		cmd |= get_attr (s, "u", 0, 0, 1);
-
 		break;
 
 	case 0x1120: /* mr (midrow code) */
 		cmd |= get_attr (s, "color", 0, 0, 7) << 1;
 		cmd |= get_attr (s, "u", 0, 0, 1);
-
-		break;
-
-	case 0x1040: /* pac (preamble address code) */
-		row = row_mapping[get_attr (s, "row", 14, 0, 14)];
-
-		cmd |= (row & 0xE) << 7;
-		cmd |= (row & 0x1) << 5;
-		cmd |= get_attr (s, "color", 0, 0, 7) << 1;
-		cmd |= get_attr (s, "u", 0, 0, 1);
-
-		break;
-
-	case 0x1425: /* roll_up */
-		row = get_attr (s, "rows", 2, 2, 4);
-
-		cmd |= (*inout_ch & 2) << 7;
-		cmd += row - 2;
-
 		break;
 
 	case 0x1130: /* special character */
 		cmd |= get_attr (s, "code", 0, 0, 15);
+		break;
 
+	case 0x1200: /* extended character set */
+	case 0x1300:
+		cmd |= get_attr (s, "code", 32, 32, 63);
+		break;
+
+	case 0x1420: /* resume caption loading */
+	case 0x1421: /* bs */
+	case 0x1422: /* aof */
+	case 0x1423: /* aon */
+	case 0x1424: /* delete to end of row */
+	case 0x1428: /* flash-on */
+	case 0x1429: /* resume direct caption */
+	case 0x142A: /* text restart */
+	case 0x142B: /* resume text display */
+	case 0x142C: /* erase displayed memory */
+	case 0x142D: /* cr */
+	case 0x142E: /* erase non-displayed memory */
+	case 0x142F: /* end of caption */
+		/* Field bit (EIA 608-B Sec. 8.4, 8.5). */
+		cmd |= ((*inout_ch & 2) << 7);
+
+	case 0x1425: /* roll_up */
+	case 0x1426:
+	case 0x1427:
+		row = get_attr (s, "rows", 2, 2, 4);
+		cmd += row - 2;
+		cmd |= (*inout_ch & 2) << 7; /* field bit */
 		break;
 
 	case 0x1720: /* tab */
-		cmd |= ((*inout_ch & 2) << 7);
-		cmd |= get_attr (s, "cols", 0, 0, 3);
-
+		cmd |= get_attr (s, "cols", 1, 1, 3);
 		break;
 
-	case 0x172D: /* backgr-transp */
+	case 0x172E: /* foregr-black */
+		cmd |= get_attr (s, "u", 0, 0, 1); /* underlined */
 		break;
 
 	default:
-		cmd |= ((*inout_ch & 2) << 7);
-
 		break;
 	}
 
@@ -1307,10 +1300,17 @@ caption_append_command		(vbi3_capture_sim *	sim,
 	}
 
 	if (i & 1)
-		b->data[i++] = 0;
+		b->data[i++] = 0x80;
 
-	b->data[i] = cmd >> 8;
-	b->data[i + 1] = cmd;
+	if (likely (parity)) {
+		b->data[i] = vbi3_par8 (cmd >> 8);
+		b->data[i + 1] = vbi3_par8 (cmd);
+	} else {
+		/* To test error checks. */
+		b->data[i] = cmd >> 8;
+		b->data[i + 1] = cmd;
+	}
+
 	b->size = i + 2;
 
 	return TRUE;
@@ -1398,7 +1398,7 @@ _vbi3_capture_sim_load_caption	(vbi3_capture *		cap,
 				return FALSE;
 		}
 
-		b->data[b->size++] = c;
+		b->data[b->size++] = vbi3_par8 (c);
 	}
 
 	return TRUE;
@@ -1424,8 +1424,8 @@ gen_caption			(vbi3_capture_sim *	sim,
 
 		s->id = service_set;
 		s->line = line;
-		s->data[0] = vbi3_par8 (b->data[i]);
-		s->data[1] = vbi3_par8 (b->data[i + 1]);
+		s->data[0] = b->data[i];
+		s->data[1] = b->data[i + 1];
 	}
 }
 
@@ -1813,7 +1813,8 @@ sim_read			(vbi3_capture *		cap,
 		if (!sim->sp.synchronous)
 			delay_raw_data (sim, raw_data);
 
-		if (0) {
+#warning
+		if (1) {
 			/* Decode the simulated raw VBI data to test our
 			   encoder & decoder. */
 
@@ -1912,15 +1913,14 @@ _vbi3_capture_sim_new		(int			scanning,
 
 	sim->capture_time = 0.0;
 
-	videostd_set = vbi3_videostd_set_from_scanning (scanning);
+	videostd_set = _vbi3_videostd_set_from_scanning (scanning);
 	assert (VBI3_VIDEOSTD_SET_EMPTY != videostd_set);
 
 	/* Sampling parameters. */
 
 	*services = vbi3_sampling_par_from_services
 		(&sim->sp, /* return max_rate */ NULL,
-		 videostd_set, *services,
-		 /* log_fn */ NULL, /* log_user_data */ NULL);
+		 videostd_set, *services);
 	if (0 == *services) {
 		goto failure;
 	}

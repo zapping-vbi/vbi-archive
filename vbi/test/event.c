@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.c,v 1.1.2.3 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: event.c,v 1.1.2.4 2006-05-18 16:49:21 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -35,6 +35,7 @@
 #  include <getopt.h>
 #endif
 
+#include "src/misc.h"
 #include "src/zvbi.h"
 
 #define _(x) x /* TODO */
@@ -118,13 +119,9 @@ dump_top			(void)
 	}
 
 	for (i = 0; i < n_titles; ++i) {
-		printf ("  TOP title %u: %3x.%04x group=%u '",
-			i, tt[i].pgno,
-			tt[i].subno,
-			tt[i].group);
-		vbi3_fputs_locale_utf8 (stdout, tt[i].title_,
-					VBI3_NUL_TERMINATED);
-		puts ("'");
+		printf ("  TOP title %u: %3x.%04x group=%u \"%s\"\n",
+			i, tt[i].pgno, tt[i].subno,
+			tt[i].group, tt[i].xtitle);
 	}
 
 	vbi3_top_title_array_delete (tt, n_titles);
@@ -190,7 +187,7 @@ handler				(const vbi3_event *	ev,
 		for (i = 0; i < ev->ev.cc_raw.length; ++i) {
 			int c;
 
-			c = vbi3_to_ascii (ev->ev.cc_raw.text[i].unicode);
+			c = _vbi3_to_ascii (ev->ev.cc_raw.text[i].unicode);
 			putchar (c);
 		}
 

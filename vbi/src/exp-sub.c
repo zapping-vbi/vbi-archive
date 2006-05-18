@@ -19,20 +19,18 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-sub.c,v 1.1.2.7 2006-05-14 14:14:11 mschimek Exp $ */
+/* $Id: exp-sub.c,v 1.1.2.8 2006-05-18 16:49:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <assert.h>
-#include <inttypes.h>
-#include <stdlib.h>		/* malloc() */
 #include <math.h>		/* floor() */
 #include <setjmp.h>
+
+#include "misc.h"
 #include "page.h"		/* vbi3_page */
 #include "conv.h"
-#include "misc.h"
 #include "lang.h"		/* vbi3_character_set, ... */
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
@@ -219,7 +217,7 @@ sub_delete			(vbi3_export *		e)
 	vbi3_free (sub->font);
 
 	if ((iconv_t) -1 == sub->cd)
-		vbi3_iconv_close (sub->cd);
+		_vbi3_iconv_close (sub->cd);
 
 	vbi3_free (sub);
 }
@@ -604,16 +602,43 @@ real_style_end			(sub_instance *		sub)
 static void
 flush				(sub_instance *		sub)
 {
-	long length;
+	char *buffer;
+	char *d;
+	size_t length;
+	size_t actual;
 
 	length = (long)(sub->text1.bp - sub->text1.buffer);
 
-	if (!vbi3_fputs_cd_ucs2 (sub->export.fp, sub->cd,
-				 sub->text1.buffer, length)) {
-		longjmp (sub->main, -1);
-	}
+	buffer = vbi3_malloc (length * 8);
+	if (NULL == buffer)
+		goto failure;
+
+	d = buffer;
+
+	if (!_vbi3_iconv_ucs2 (sub->cd, &d, length * 8,
+			       sub->text1.buffer, length))
+		goto failure;
+
+	length = d - buffer;
+
+	actual = fwrite (buffer, 1, length, sub->export.fp);
+	if (actual != length)
+		goto failure;
+
+	free (buffer);
+	buffer = NULL;
 
 	sub->text1.bp = sub->text1.buffer;
+
+	return;
+
+ failure:
+	free (buffer);
+	buffer = NULL;
+
+	longjmp (sub->main, -1);
+
+	return;
 }
 
 static void
@@ -1281,7 +1306,7 @@ export				(vbi3_export *		e,
 
 		sub->have_header = FALSE;
 
-		vbi3_iconv_close (sub->cd);
+		_vbi3_iconv_close (sub->cd);
 		sub->cd = (iconv_t) -1;
 
 		return TRUE;
@@ -1304,14 +1329,13 @@ export				(vbi3_export *		e,
 
 		d = buffer;
 
-		sub->cd = vbi3_iconv_open (sub->charset, &d,
-					   sizeof (buffer));
+		sub->cd = _vbi3_iconv_open (sub->charset, "UCS-2",
+					    &d, sizeof (buffer));
 		if ((iconv_t) -1 == sub->cd) {
 			return FALSE;
 		}
 
 		n = d - buffer;
-
 		if (n > 0)
 			if (n != fwrite (buffer, 1, n, sub->export.fp))
 				longjmp (sub->main, -1);

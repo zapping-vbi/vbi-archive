@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.h,v 1.1.2.5 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: conv.h,v 1.1.2.6 2006-05-18 16:49:19 mschimek Exp $ */
 
 #ifndef __ZVBI3_CONV_H__
 #define __ZVBI3_CONV_H__
@@ -26,12 +26,68 @@
 #include <stdio.h>
 #include <inttypes.h>		/* uint16_t */
 #include <iconv.h>		/* iconv_t */
-#include "lang.h"		/* vbi3_character_set */
 #include "macros.h"
+#include "lang.h"		/* vbi3_character_set */
 
 VBI3_BEGIN_DECLS
 
-#define VBI3_NUL_TERMINATED -1L
+#define VBI3_NUL_TERMINATED -1
+
+extern size_t
+vbi3_strlen_ucs2		(const uint16_t *	src);
+extern char *
+vbi3_strndup_iconv		(const char *		dst_codeset,
+				 const char *		src_codeset,
+				 const char *		src,
+				 ssize_t		src_size)
+  __attribute__ ((_vbi3_alloc));
+extern char *
+vbi3_strndup_iconv_ucs2		(const char *		dst_codeset,
+				 const uint16_t *	src,
+				 ssize_t		src_size)
+  __attribute__ ((_vbi3_alloc));
+extern char *
+vbi3_strndup_iconv_teletext	(const char *		dst_codeset,
+				 const uint8_t *	src,
+				 ssize_t		src_size,
+				 const vbi3_character_set *cs)
+  __attribute__ ((_vbi3_alloc,
+		  _vbi3_nonnull (4)));
+extern vbi3_bool
+vbi3_fputs_iconv		(FILE *			fp,
+				 const char *		dst_codeset,
+				 const char *		src_codeset,
+				 const char *		src,
+				 ssize_t		src_size)
+  __attribute__ ((_vbi3_nonnull (2)));
+extern vbi3_bool
+vbi3_fputs_iconv_ucs2		(FILE *			fp,
+				 const char *		dst_codeset,
+				 const uint16_t *	src,
+				 ssize_t		src_size)
+  __attribute__ ((_vbi3_nonnull (2)));
+extern const char *
+vbi3_locale_codeset		(void);
+
+/* Private */
+
+extern vbi3_bool
+_vbi3_iconv_ucs2		(iconv_t		cd,
+				 char **		dst,
+				 size_t			dst_size,
+				 const uint16_t *	src,
+				 ssize_t		src_size);
+extern void
+_vbi3_iconv_close		(iconv_t		cd);
+extern iconv_t
+_vbi3_iconv_open		(const char *		dst_codeset,
+				 const char *		src_codeset,
+				 char **		dst,
+				 size_t			dst_size);
+
+
+
+#if 0
 
 extern void
 vbi3_iconv_close		(iconv_t		cd);
@@ -40,6 +96,9 @@ vbi3_iconv_open			(const char *		dst_format,
 				 char **		dst,
 				 unsigned long		dst_size)
   __attribute__ ((_vbi3_nonnull (2)));
+
+
+
 extern vbi3_bool
 vbi3_iconv_ucs2			(iconv_t		cd,
 				 char **		dst,
@@ -77,7 +136,6 @@ vbi3_strndup_iconv_teletext	(const char *		dst_format,
 
 
 
-
 extern char *
 vbi3_strndup_utf8_ucs2		(const uint16_t *	src,
 				 long			src_size)
@@ -96,14 +154,7 @@ vbi3_fputs_iconv_ucs2		(FILE *			fp,
 				 const uint16_t *	src,
 				 long			src_size)
   __attribute__ ((_vbi3_nonnull (1)));
-extern vbi3_bool
-vbi3_fputs_locale_utf8		(FILE *			fp,
-				 const char *		src,
-				 long			src_size)
-  __attribute__ ((_vbi3_nonnull (1)));
 
-extern const char *
-vbi3_locale_codeset		(void);
 
 /* Private */
 
@@ -113,6 +164,8 @@ _vbi3_strdup_locale		(const char *		src)
 extern uint16_t *
 _vbi3_strdup_ucs2_utf8		(const char *		src)
   __attribute__ ((_vbi3_alloc));
+
+#endif
 
 VBI3_END_DECLS
 

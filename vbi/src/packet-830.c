@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.c,v 1.1.2.6 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: packet-830.c,v 1.1.2.7 2006-05-18 16:49:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -25,9 +25,9 @@
 
 #include <assert.h>
 
+#include "misc.h"
 #include "bcd.h"		/* vbi3_bcd2bin() */
 #include "hamm.h"		/* vbi3_rev16p(), vbi3_iham8() */
-#include "misc.h"
 #include "packet-830.h"
 
 /**
@@ -35,6 +35,11 @@
  * @ingroup LowDec
  * @brief Functions to decode Teletext packets 8/30 (ETS 300 706).
  */
+
+/*
+  Resources:
+  http://pdc.ro.nu/jd-code.html
+*/
 
 /**
  * @param cni CNI of type VBI3_CNI_TYPE_8301 will be stored here.

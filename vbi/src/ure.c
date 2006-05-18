@@ -28,16 +28,14 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ure.c,v 1.4.2.4 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: ure.c,v 1.4.2.5 2006-05-18 16:49:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
-#include "macros.h"
+
 #include "misc.h"
 
 #if defined(HAVE_GLIBC21)

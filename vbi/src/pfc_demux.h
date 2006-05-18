@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pfc_demux.h,v 1.1.2.3 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: pfc_demux.h,v 1.1.2.4 2006-05-18 16:49:20 mschimek Exp $ */
 
 #ifndef __ZVBI3_PFC_DEMUX_H__
 #define __ZVBI3_PFC_DEMUX_H__
@@ -27,7 +27,9 @@
 #include "macros.h"
 #include "bcd.h"		/* vbi3_pgno */
 
-VBI3_BEGIN_DECLS
+/* VBI3_BEGIN_DECLS */
+
+/* Public */
 
 /**
  * @addtogroup PFCDemux
@@ -65,32 +67,37 @@ typedef struct {
 typedef struct _vbi3_pfc_demux vbi3_pfc_demux;
 
 /**
- * @param pc PFC demultiplexer context returned by
+ * @param dx PFC demultiplexer context returned by
  *   vbi3_pfx_demux_new() and given to vbi3_pfc_demux_demux().
  * @param user_data User pointer given to vbi3_pfc_demux_new().
  * @param block Structure describing the received data block.
  * 
  * Function called by vbi3_pfc_demux_demux() when a
  * new data block is available.
+ *
+ * @returns
+ * FALSE on error, will be returned by vbi3_pfc_demux_feed().
  */
 typedef vbi3_bool
-vbi3_pfc_demux_cb		(vbi3_pfc_demux *	pc,
-				 void *			user_data,
-				 const vbi3_pfc_block *	block);
+vbi3_pfc_demux_cb		(vbi3_pfc_demux *	dx,
+				 const vbi3_pfc_block *	block,
+				 void *			user_data);
 
 extern void
-vbi3_pfc_demux_reset		(vbi3_pfc_demux *	pc);
+vbi3_pfc_demux_reset		(vbi3_pfc_demux *	dx);
 extern vbi3_bool
-vbi3_pfc_demux_demux		(vbi3_pfc_demux *	pc,
+vbi3_pfc_demux_feed		(vbi3_pfc_demux *	dx,
 				 const uint8_t		buffer[42]);
 extern void
-vbi3_pfc_demux_delete		(vbi3_pfc_demux *	pc);
+vbi3_pfc_demux_delete		(vbi3_pfc_demux *	dx);
 extern vbi3_pfc_demux *
 vbi3_pfc_demux_new		(vbi3_pgno		pgno,
 				 unsigned int		stream,
 				 vbi3_pfc_demux_cb *	callback,
 				 void *			user_data)
   __attribute__ ((_vbi3_alloc));
+
+/* Private */
 
 /** @internal */
 struct _vbi3_pfc_demux {
@@ -120,18 +127,18 @@ _vbi3_pfc_block_dump		(const vbi3_pfc_block *	pb,
 				 FILE *			fp,
 				 vbi3_bool		binary);
 extern vbi3_bool
-_vbi3_pfc_demux_decode		(vbi3_pfc_demux *	pc,
+_vbi3_pfc_demux_decode		(vbi3_pfc_demux *	dx,
 				 const uint8_t		buffer[42]);
 extern void
-_vbi3_pfc_demux_destroy		(vbi3_pfc_demux *	pc);
+_vbi3_pfc_demux_destroy		(vbi3_pfc_demux *	dx);
 extern vbi3_bool
-_vbi3_pfc_demux_init		(vbi3_pfc_demux *	pc,
+_vbi3_pfc_demux_init		(vbi3_pfc_demux *	dx,
 				 vbi3_pgno		pgno,
 				 unsigned int		stream,
 				 vbi3_pfc_demux_cb *	callback,
 				 void *			user_data);
 /** @} */
 
-VBI3_END_DECLS
+/* VBI3_END_DECLS */
 
 #endif /* __ZVBI3_PFC_DEMUX_H__ */

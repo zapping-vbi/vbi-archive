@@ -17,10 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling_par.c,v 1.1.2.3 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: sampling_par.c,v 1.1.2.4 2006-05-18 16:49:20 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <errno.h>
-#include <assert.h>
+
 #include "misc.h"
 #include "raw_decoder.h"
 #include "sampling_par.h"
@@ -32,8 +36,8 @@
 
 #define sp_log(level, templ, args...)					\
 do {									\
-	vbi3_log_printf (log_fn, log_user_data,				\
-			level, __FUNCTION__, templ , ##args);		\
+	_vbi3_log_printf (log_fn, log_user_data,			\
+			  level, __FUNCTION__, templ , ##args);		\
 } while (0)
 
 /**
@@ -42,9 +46,13 @@ do {									\
  * @brief Raw VBI data sampling interface.
  */
 
-/* Compatibility. */
+/**
+ * @internal
+ * Compatibility.
+ */
 vbi3_videostd_set
-vbi3_videostd_set_from_scanning	(int			scanning)
+_vbi3_videostd_set_from_scanning
+				(int			scanning)
 {
 	switch (scanning) {
 	case 525:
@@ -80,19 +88,12 @@ range_check			(unsigned int		start,
  * TRUE if the sampling parameters are valid (as far as we can tell).
  */
 vbi3_bool
-_vbi3_sampling_par_valid	(const vbi3_sampling_par *sp,
-				 vbi3_log_fn *		log_fn,
-				 void *			log_user_data)
+_vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
+				 _vbi3_log_hook *	log)
 {
 	vbi3_videostd_set videostd_set;
-	unsigned int min_bpl;
 
 	assert (NULL != sp);
-
-	if (NULL == log_fn) {
-		log_fn = vbi3_global_log_fn;
-		log_user_data = vbi3_global_log_user_data;
-	}
 
 	switch (sp->sampling_format) {
 	case VBI3_PIXFMT_YUV420:
@@ -102,14 +103,14 @@ _vbi3_sampling_par_valid	(const vbi3_sampling_par *sp,
 		   _GREY but libzvbi 0.2 has no VBI3_PIXFMT_Y8. */
 #else
 		if (sp->samples_per_line & 1)
-			goto samples;
+			goto bad_samples;
 #endif
 		break;
 
 	default:
 		if (0 != (sp->bytes_per_line
 			  % vbi3_pixfmt_bytes_per_pixel (sp->sampling_format)))
-			goto samples;
+			goto bad_samples;
 		break;
 	}
 
@@ -144,7 +145,7 @@ _vbi3_sampling_par_valid	(const vbi3_sampling_par *sp,
 			goto bad_range;
 	} else {
 	ambiguous:
-		sp_log (VBI3_LOG_NOTICE,
+		notice (log,
 			"Ambiguous videostd_set 0x%x.",
 			sp->videostd_set);
 		return FALSE;
@@ -153,7 +154,7 @@ _vbi3_sampling_par_valid	(const vbi3_sampling_par *sp,
 	if (sp->interlaced
 	    && (sp->count[0] != sp->count[1]
 		|| 0 == sp->count[0])) {
-		sp_log (VBI3_LOG_NOTICE,
+		notice (log,
 			"Line counts %u, %u must be equal and "
 			"non-zero when raw VBI data is interlaced.",
 			sp->count[0], sp->count[1]);
@@ -162,8 +163,8 @@ _vbi3_sampling_par_valid	(const vbi3_sampling_par *sp,
 
 	return TRUE;
 
- samples:
-	sp_log (VBI3_LOG_NOTICE,
+ bad_samples:
+	notice (log,
 		"bytes_per_line value %u is no multiple of "
 		"the sample size %u.",
 		sp->bytes_per_line,
@@ -171,7 +172,7 @@ _vbi3_sampling_par_valid	(const vbi3_sampling_par *sp,
 	return FALSE;
 
  bad_range:
-	sp_log (VBI3_LOG_NOTICE,
+	notice (log,
 		"Invalid VBI scan range %u-%u (%u lines), "
 		"%u-%u (%u lines).",
 		sp->start[0], sp->start[0] + sp->count[0] - 1,
@@ -181,34 +182,12 @@ _vbi3_sampling_par_valid	(const vbi3_sampling_par *sp,
 	return FALSE;
 }
 
-/**
- * @internal
- * @param sp Sampling parameters to check against.
- * @param par Data service to check.
- * @param strict See description of vbi3_raw_decoder_add_services().
- *
- * Like vbi3_sampling_parameters_check_services(), but checks
- * one service only.
- *
- * @return
- * TRUE if @a sp can decode @a par.
- */
-/* Attn: strict must be int for compatibility with libzvbi 0.2 (-1 == 0) */
-#if 2 == VBI_VERSION_MINOR
 static vbi3_bool
-_vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
-				 const _vbi3_service_par *par,
-				 int			strict,
-				 vbi3_log_fn *		log_fn,
-				 void *			log_user_data)
-#else
-vbi3_bool
-_vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
+_vbi3_sampling_par_permit_service
+				(const vbi3_sampling_par *sp,
 				 const vbi3_service_par *par,
-					 unsigned int		strict,
-				 vbi3_log_fn *		log_fn,
-				 void *			log_user_data)
-#endif
+				 unsigned int		strict,
+				 _vbi3_log_hook *	log)
 {
 	double signal;
 	unsigned int field;
@@ -218,18 +197,13 @@ _vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
 	assert (NULL != sp);
 	assert (NULL != par);
 
-	if (NULL == log_fn) {
-		log_fn = vbi3_global_log_fn;
-		log_user_data = vbi3_global_log_user_data;
-	}
-
 #if 2 == VBI_VERSION_MINOR
 	videostd_set = vbi3_videostd_set_from_scanning (sp->scanning);
 #else
 	videostd_set = sp->videostd_set;
 #endif
 	if (0 == (par->videostd_set & videostd_set)) {
-		sp_log (VBI3_LOG_NOTICE,
+		notice (log,
 			"Service 0x%08x (%s) requires "
 			"videostd_set 0x%x, "
 			"have 0x%x.",
@@ -241,7 +215,7 @@ _vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
 	if ((par->flags & _VBI3_SP_LINE_NUM)
 	    && (0 == sp->start[0] /* unknown */
 		|| 0 == sp->start[1])) {
-		sp_log (VBI3_LOG_NOTICE,
+		notice (log,
 			"Service 0x%08x (%s) requires known "
 			"line numbers.",
 			par->id, par->label);
@@ -265,7 +239,7 @@ _vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
 		}
 
 		if (rate > sp->sampling_rate) {
-			sp_log (VBI3_LOG_NOTICE,
+			notice (log,
 				"Sampling rate %f MHz too low "
 				"for service 0x%08x (%s).",
 				sp->sampling_rate / 1e6,
@@ -295,7 +269,7 @@ _vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
 		end = (sp->offset + samples_per_line) / sampling_rate;
 
 		if (offset > (par->offset / 1e3 - 0.5e-6)) {
-			sp_log (VBI3_LOG_NOTICE,
+			notice (log,
 				"Sampling starts at 0H + %f us, too "
 				"late for service 0x%08x (%s) at "
 				"%f us.",
@@ -306,7 +280,7 @@ _vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
 		}
 
 		if (end < (par->offset / 1e9 + signal + 0.5e-6)) {
-			sp_log (VBI3_LOG_NOTICE,
+			notice (log,
 				"Sampling ends too early at 0H + "
 				"%f us for service 0x%08x (%s) "
 				"which ends at %f us",
@@ -322,7 +296,7 @@ _vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
 		samples = samples_per_line / (double) sp->sampling_rate;
 
 		if (samples < (signal + 1.0e-6)) {
-			sp_log (VBI3_LOG_NOTICE,
+			notice (log,
 				"Service 0x%08x (%s) signal length "
 				"%f us exceeds %f us sampling length.",
 				par->id, par->label,
@@ -333,7 +307,7 @@ _vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
 
 	if ((par->flags & _VBI3_SP_FIELD_NUM)
 	    && !sp->synchronous) {
-		sp_log (VBI3_LOG_NOTICE,
+		notice (log,
 			"Service 0x%08x (%s) requires "
 			"synchronous field order.",
 			par->id, par->label);
@@ -354,14 +328,15 @@ _vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
 		}
 
 		if (0 == sp->count[field]) {
-			sp_log (VBI3_LOG_NOTICE,
+			notice (log,
 				"Service 0x%08x (%s) requires "
 				"data from field %u",
 				par->id, par->label, field + 1);
 			return FALSE;
 		}
 
-		if (strict <= 0 || 0 == sp->start[field])
+		/* (int) <= 0 for compatibility with libzvbi 0.2.x */
+		if ((int) strict <= 0 || 0 == sp->start[field])
 			continue;
 
 		if (1 == strict && par->first[field] > par->last[field]) {
@@ -372,7 +347,7 @@ _vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
 		
 		if (start > par->first[field]
 		    || end < par->last[field]) {
-			sp_log (VBI3_LOG_NOTICE,
+			notice (log,
 				"Service 0x%08x (%s) requires "
 				"lines %u-%u, have %u-%u.",
 				par->id, par->label,
@@ -387,33 +362,19 @@ _vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
 }
 
 /**
- * @param sp Sampling parameters to check against.
- * @param services Set of data services.
- * @param strict See description of vbi3_raw_decoder_add_services().
- *
- * Check which of the given services can be decoded with the given
- * sampling parameters at the given strictness level.
- *
- * @return
- * Subset of @a services decodable with the given sampling parameters.
+ * @internal
  */
 vbi3_service_set
-vbi3_sampling_par_check_services	(const vbi3_sampling_par *sp,
+_vbi3_sampling_par_check_services_log
+				(const vbi3_sampling_par *sp,
 				 vbi3_service_set	services,
-					 unsigned int		strict,
-				 vbi3_log_fn *		log_fn,
-				 void *			log_user_data)
-
+				 unsigned int		strict,
+				 _vbi3_log_hook *	log)
 {
 	const vbi3_service_par *par;
 	vbi3_service_set rservices;
 
 	assert (NULL != sp);
-
-	if (NULL == log_fn) {
-		log_fn = vbi3_global_log_fn;
-		log_user_data = vbi3_global_log_user_data;
-	}
 
 	rservices = 0;
 
@@ -421,8 +382,7 @@ vbi3_sampling_par_check_services	(const vbi3_sampling_par *sp,
 		if (0 == (par->id & services))
 			continue;
 
-		if (_vbi3_sampling_par_check_service (sp, par, strict,
-						     log_fn, log_user_data))
+		if (_vbi3_sampling_par_permit_service (sp, par, strict, log))
 			rservices |= par->id;
 	}
 
@@ -430,36 +390,15 @@ vbi3_sampling_par_check_services	(const vbi3_sampling_par *sp,
 }
 
 /**
- * @param sp Sampling parameters calculated by this function
- *   will be stored here.
- * @param max_rate If not NULL, the highest data bit rate in Hz of
- *   all services requested will be stored here. The sampling rate
- *   should be at least twice as high; @sp sampling_rate will
- *   be set to a more reasonable value of 27 MHz, which is twice
- *   the video sampling rate defined by ITU-R Rec. BT.601.
- * @param videostd_set Create sampling parameters matching these
- *   video standards. When 0 determine video standard from requested
- *   services.
- * @param services Set of VBI3_SLICED_ symbols. Here (and only here) you
- *   can add @c VBI3_SLICED_VBI3_625 or @c VBI3_SLICED_VBI3_525 to include all
- *   vbi scan lines in the calculated sampling parameters.
- *
- * Calculate the sampling parameters required to receive and decode the
- * requested data @a services. The @a sp sampling_format will be
- * @c VBI3_PIXFMT_Y8, offset and bytes_per_line will be set to
- * reasonable minimums. This function can be used to initialize hardware
- * prior to creating a vbi3_raw_decoder object.
- * 
- * @return
- * Subset of @a services covered by the calculated sampling parameters.
+ * @internal
  */
 vbi3_service_set
-vbi3_sampling_par_from_services	(vbi3_sampling_par *	sp,
+_vbi3_sampling_par_from_services_log
+				(vbi3_sampling_par *	sp,
 				 unsigned int *		max_rate,
 				 vbi3_videostd_set	videostd_set,
 				 vbi3_service_set	services,
-				 vbi3_log_fn *		log_fn,
-				 void *			log_user_data)
+				 _vbi3_log_hook *	log)
 {
 	const vbi3_service_par *par;
 	vbi3_service_set rservices;
@@ -467,18 +406,13 @@ vbi3_sampling_par_from_services	(vbi3_sampling_par *	sp,
 
 	assert (NULL != sp);
 
-	if (NULL == log_fn) {
-		log_fn = vbi3_global_log_fn;
-		log_user_data = vbi3_global_log_user_data;
-	}
-
 	if (0 != videostd_set) {
 		if (0 == (VBI3_VIDEOSTD_SET_ALL & videostd_set)
 		    || ((VBI3_VIDEOSTD_SET_525_60 & videostd_set)
 			&& (VBI3_VIDEOSTD_SET_625_50 & videostd_set))) {
-			sp_log (VBI3_LOG_WARNING,
-				"Ambiguous videostd_set 0x%x.",
-				videostd_set);
+			warning (log,
+				 "Ambiguous videostd_set 0x%x.",
+				 videostd_set);
 			CLEAR (*sp);
 			return 0;
 		}
@@ -525,7 +459,7 @@ vbi3_sampling_par_from_services	(vbi3_sampling_par *	sp,
 			margin = 2.0e-6;
 
 		if (0 == (par->videostd_set & sp->videostd_set)) {
-			sp_log (VBI3_LOG_NOTICE,
+			notice (log,
 				"Service 0x%08x (%s) requires "
 				"videostd_set 0x%x, "
 				"have 0x%x.",
@@ -583,6 +517,63 @@ vbi3_sampling_par_from_services	(vbi3_sampling_par *	sp,
 		*max_rate = rate;
 
 	return rservices;
+}
+
+/**
+ * @param sp Sampling parameters to check against.
+ * @param services Set of data services.
+ * @param strict See description of vbi3_raw_decoder_add_services().
+ *
+ * Check which of the given services can be decoded with the given
+ * sampling parameters at the given strictness level.
+ *
+ * @return
+ * Subset of @a services decodable with the given sampling parameters.
+ */
+vbi3_service_set
+vbi3_sampling_par_check_services
+				(const vbi3_sampling_par *sp,
+				 vbi3_service_set	services,
+				 unsigned int		strict)
+{
+	return _vbi3_sampling_par_check_services_log (sp, services, strict,
+						      /* log_hook */ NULL);
+}
+
+/**
+ * @param sp Sampling parameters calculated by this function
+ *   will be stored here.
+ * @param max_rate If not NULL, the highest data bit rate in Hz of
+ *   all services requested will be stored here. The sampling rate
+ *   should be at least twice as high; @sp sampling_rate will
+ *   be set to a more reasonable value of 27 MHz, which is twice
+ *   the video sampling rate defined by ITU-R Rec. BT.601.
+ * @param videostd_set Create sampling parameters matching these
+ *   video standards. When 0 determine video standard from requested
+ *   services.
+ * @param services Set of VBI3_SLICED_ symbols. Here (and only here) you
+ *   can add @c VBI3_SLICED_VBI3_625 or @c VBI3_SLICED_VBI3_525 to include all
+ *   vbi scan lines in the calculated sampling parameters.
+ *
+ * Calculate the sampling parameters required to receive and decode the
+ * requested data @a services. The @a sp sampling_format will be
+ * @c VBI3_PIXFMT_Y8, offset and bytes_per_line will be set to
+ * reasonable minimums. This function can be used to initialize hardware
+ * prior to creating a vbi3_raw_decoder object.
+ * 
+ * @return
+ * Subset of @a services covered by the calculated sampling parameters.
+ */
+vbi3_service_set
+vbi3_sampling_par_from_services	(vbi3_sampling_par *	sp,
+				 unsigned int *		max_rate,
+				 vbi3_videostd_set	videostd_set,
+				 vbi3_service_set	services)
+{
+	return _vbi3_sampling_par_from_services_log (sp, max_rate,
+						     videostd_set,
+						     services,
+						     /* log_hook */ NULL);
 }
 
 /**

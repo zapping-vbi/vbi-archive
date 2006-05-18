@@ -18,15 +18,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: wss.c,v 1.2.2.4 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: wss.c,v 1.2.2.5 2006-05-18 16:49:20 mschimek Exp $ */
 
 #include "../site_def.h"
-#include "../config.h"
 
-#include <assert.h>
-#include <stdio.h>		/* FILE */
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+#include "misc.h"
 #include "hamm.h"		/* vbi3_par8() */
-#include "misc.h"		/* CLEAR() */
 #include "wss.h"
 
 /**

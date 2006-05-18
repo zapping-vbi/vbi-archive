@@ -17,29 +17,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.1.2.12 2006-05-07 20:51:36 mschimek Exp $ */
+/* $Id: network.c,v 1.1.2.13 2006-05-18 16:49:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <stdlib.h>
 #include <ctype.h>		/* isdigit() */
-#include <assert.h>
+
 #include "misc.h"		/* CLEAR() */
 #include "bcd.h"		/* vbi3_is_bcd(), vbi3_bcd2bin() */
 #include "conv.h"		/* _vbi3_strdup_locale_utf8() */
 #include "network.h"
 #include "network-table.h"
-
-#define warning(templ, args...)						\
-do {									\
-	if (vbi3_global_log_mask & VBI3_LOG_WARNING)			\
-		vbi3_log_printf (vbi3_global_log_fn,			\
-				 vbi3_global_log_user_data,		\
-				 VBI3_LOG_WARNING, __FUNCTION__,	\
-				 templ , ##args);			\
-} while (0)
 
 /**
  * @param type CNI type.
@@ -283,7 +273,7 @@ cni_lookup			(vbi3_cni_type		type,
 		break;
 
 	default:
-		warning ("Unknown CNI type %u.", type);
+		warning (NULL, "Unknown CNI type %u.", type);
 		break;
 	}
 
@@ -379,7 +369,7 @@ vbi3_convert_cni			(vbi3_cni_type		to_type,
 		return p->cni_pdc_b;
 
 	default:
-		warning ("Unknown CNI type %u.", to_type);
+		warning (NULL, "Unknown CNI type %u.", to_type);
 		break;
 	}
 
@@ -495,6 +485,13 @@ _vbi3_network_get_pdc		(const vbi3_network *	nk)
 	return NULL;
 }
 
+static char *
+strdup_table_name		(const char *		name)
+{
+	return vbi3_strndup_iconv (vbi3_locale_codeset (), "UTF-8",
+				   name, strlen (name) + 1);
+}
+
 /**
  * @internal
  */
@@ -544,9 +541,7 @@ _vbi3_network_set_name_from_ttx_header
 			++s2;
 		}
 
-		name = vbi3_strndup_locale_utf8 (ttx_header_table[i].name,
-						 VBI3_NUL_TERMINATED);
-
+		name = strdup_table_name (ttx_header_table[i].name);
 		if (!name)
 			return FALSE;
 
@@ -596,7 +591,7 @@ vbi3_network_set_cni		(vbi3_network *		nk,
 		break;
 
 	default:
-		warning ("Unknown CNI type %u.", type);
+		warning (NULL, "Unknown CNI type %u.", type);
 		break;
 	}
 
@@ -617,7 +612,7 @@ vbi3_network_set_cni		(vbi3_network *		nk,
 	    && p->cni_8302 != nk->cni_8302)
 		return FALSE;
 
-	if (!(name = vbi3_strndup_locale_utf8 (p->name, VBI3_NUL_TERMINATED)))
+	if (!(name = strdup_table_name (p->name)))
 		return FALSE;
 
 	vbi3_free (nk->name);

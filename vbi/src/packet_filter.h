@@ -17,14 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet_filter.h,v 1.1.2.1 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: packet_filter.h,v 1.1.2.2 2006-05-18 16:49:19 mschimek Exp $ */
 
 #ifndef __ZVBI3_PACKET_FILTER_H__
 #define __ZVBI3_PACKET_FILTER_H__
 
+#include "macros.h"
 #include "bcd.h"
 #include "sliced.h"		/* vbi3_sliced, vbi3_service_set */
-#include "macros.h"
 
 VBI3_BEGIN_DECLS
 

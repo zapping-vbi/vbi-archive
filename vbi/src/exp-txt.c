@@ -21,18 +21,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.10.2.10 2006-05-14 14:14:11 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.10.2.11 2006-05-18 16:49:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <assert.h>
-#include <inttypes.h>
-#include <stdlib.h>		/* malloc() */
-#include <string.h>		/* strcmp(), strlen(), memcpy() */
 #include <limits.h>		/* INT_MAX */
 #include <setjmp.h>
+
 #include "misc.h"
 #include "page.h"		/* vbi3_page */
 #include "conv.h"
@@ -620,8 +617,7 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 	p = buffer;
 	buffer_end = buffer + buffer_size;
 
-	cd = vbi3_iconv_open (format, &p, buffer_size);
-
+	cd = _vbi3_iconv_open (format, "UCS-2", &p, buffer_size);
 	if ((iconv_t) -1 == cd)
 		return 0;
 
@@ -732,7 +728,7 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 
 					size = text.text.bp - text.text.buffer;
 
-					if (!vbi3_iconv_ucs2
+					if (!_vbi3_iconv_ucs2
 					    (cd, &p,
 					     (unsigned int)(buffer_end - p),
 					     text.text.buffer,
@@ -767,20 +763,20 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 		acp += pg->columns;
 	}
 
-	if (!vbi3_iconv_ucs2 (cd, &p,
-			     (unsigned int)(buffer_end - p),
-			     text.text.buffer,
-			     (unsigned int)(text.text.bp - text.text.buffer)))
+	if (!_vbi3_iconv_ucs2 (cd, &p,
+			       (unsigned int)(buffer_end - p),
+			       text.text.buffer,
+			       (unsigned int)(text.text.bp - text.text.buffer)))
 		goto failure;
 
-	vbi3_iconv_close (cd);
+	_vbi3_iconv_close (cd);
 
 	return p - buffer;
 
  failure:
 	vbi3_free (text.text.buffer);
 
-	vbi3_iconv_close (cd);
+	_vbi3_iconv_close (cd);
 
 	return 0;
 }

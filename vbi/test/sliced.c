@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced.c,v 1.4.2.2 2006-05-07 06:05:00 mschimek Exp $ */
+/* $Id: sliced.c,v 1.4.2.3 2006-05-18 16:49:21 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -26,11 +26,7 @@
 #  include "config.h"
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
+#include "src/misc.h"
 #include "src/zvbi.h"
 #include "sliced.h"
 

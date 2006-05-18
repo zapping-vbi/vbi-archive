@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: capture.c,v 1.7.2.9 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: capture.c,v 1.7.2.10 2006-05-18 16:49:21 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -91,10 +91,10 @@ decode_xds(uint8_t *buf)
 		char c;
 
 		c = odd_parity(buf[0]) ? buf[0] & 0x7F : '?';
-		c = vbi3_to_ascii (c);
+		c = _vbi3_to_ascii (c);
 		putchar(c);
 		c = odd_parity(buf[1]) ? buf[1] & 0x7F : '?';
-		c = vbi3_to_ascii (c);
+		c = _vbi3_to_ascii (c);
 		putchar(c);
 		fflush(stdout);
 	}
@@ -120,10 +120,10 @@ decode_caption(uint8_t *buf, int line)
 
 	if (dump_cc) {
 		c = odd_parity(buf[0]) ? buf[0] & 0x7F : '?';
-		c = vbi3_to_ascii (c);
+		c = _vbi3_to_ascii (c);
 		putchar(c);
 		c = odd_parity(buf[1]) ? buf[1] & 0x7F : '?';
-		c = vbi3_to_ascii (c);
+		c = _vbi3_to_ascii (c);
 		putchar(c);
 		fflush(stdout);
 	}
@@ -216,7 +216,7 @@ decode_sliced(vbi3_sliced *s, double time, int lines)
 			putchar(' ');
 
 			for (j = 0; j < sizeof(q->data); j++) {
-				char c = vbi3_to_ascii (q->data[j]);
+				char c = _vbi3_to_ascii (q->data[j]);
 				putchar(c);
 			}
 
@@ -330,11 +330,12 @@ mainloop(void)
 	}
 }
 
-static const char short_options[] = "cd:elnpstvPT";
+static const char short_options[] = "a:cd:elnpstvPT";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
 long_options[] = {
+	{ "sim-cc",	required_argument,	NULL,		'a' },
 	{ "desync",	no_argument,		NULL,		'c' },
 	{ "device",	required_argument,	NULL,		'd' },
 	{ "dump-xds",	no_argument,		&dump_xds,	TRUE },
@@ -355,6 +356,80 @@ long_options[] = {
 #else
 #define getopt_long(ac, av, s, l, i) getopt(ac, av, s)
 #endif
+
+static const char **sim_cc_streams;
+static unsigned int n_sim_cc_streams;
+
+static char *
+load_string			(const char *		name)
+{
+	FILE *fp;
+	char *buffer;
+	size_t buffer_size;
+	size_t done;
+
+	buffer = NULL;
+	buffer_size = 0;
+	done = 0;
+
+	fp = fopen (name, "r");
+	if (NULL == fp) {
+		exit (EXIT_FAILURE);
+	}
+
+	for (;;) {
+		char *new_buffer;
+		size_t new_size;
+		size_t space;
+		size_t actual;
+
+		new_size = 16384;
+		if (buffer_size > 0)
+			new_size = buffer_size * 2;
+
+		new_buffer = realloc (buffer, new_size);
+		if (NULL == new_buffer) {
+			free (buffer);
+			exit (EXIT_FAILURE);
+		}
+
+		buffer = new_buffer;
+		buffer_size = new_size;
+
+		space = buffer_size - done - 1;
+		actual = fread (buffer + done, 1, space, fp);
+		if ((size_t) -1 == actual) {
+			exit (EXIT_FAILURE);
+		}
+		done += actual;
+		if (actual < space)
+			break;
+	}
+
+	buffer[done] = 0;
+
+	fclose (fp);
+
+	return buffer;
+}
+
+static void
+load_caption			(void)
+{
+	unsigned int i;
+
+	for (i = 0; i < n_sim_cc_streams; ++i) {
+		char *buffer;
+		vbi3_bool success;
+
+		fprintf (stderr, "Loading '%s'.\n", sim_cc_streams[i]);
+
+		buffer = load_string (sim_cc_streams[i]);
+		success = _vbi3_capture_sim_load_caption
+			(cap, buffer, /* append */ (i > 0));
+		assert (success);
+	}
+}
 
 static void
 option_vps			(void)
@@ -378,7 +453,11 @@ option_vps			(void)
 	while (isspace (*s))
 		++s;
 	if (',' != *s) {
-		pid.cni = strtol (s, &s, 16);
+		char *end;
+
+		pid.cni = strtol (s, &end, 16);
+		s = end;
+
 		if ((unsigned int) pid.cni > 0xFFF) {
 			fprintf (stderr, _("Invalid VPS CNI %x.\n"), pid.cni);
 			goto failed;
@@ -425,7 +504,11 @@ option_vps			(void)
 	while (isspace (*s))
 		++s;
 	if (0 != *s) {
-		pid.pty = strtol (s, &s, 10);
+		char *end;
+
+		pid.pty = strtol (s, &end, 10);
+		s = end;
+
 		if ((unsigned int) pid.pty > 0xFF) {
 			fprintf (stderr, _("Invalid VPS PTY %u.\n"), pid.pty);
 			goto failed;
@@ -441,7 +524,7 @@ option_vps			(void)
 int
 main(int argc, char **argv)
 {
-	char *dev_name = "/dev/vbi";
+	const char *dev_name = "/dev/vbi";
 	char *errstr;
 	unsigned int services;
 	int scanning = 625;
@@ -450,11 +533,28 @@ main(int argc, char **argv)
 
 	setlocale (LC_ALL, "");
 
+	sim_cc_streams = NULL;
+	n_sim_cc_streams = 0;
+
 	while ((c = getopt_long(argc, argv, short_options,
 				long_options, &index)) != -1) {
 		switch (c) {
 		case 0: /* set flag */
 			break;
+		case 'a':
+		{
+			const char **pp;
+
+			pp = realloc (sim_cc_streams,
+				      (n_sim_cc_streams + 1)
+				      * sizeof (*pp));
+			assert (NULL != pp);
+			sim_cc_streams = pp;
+			sim_cc_streams[n_sim_cc_streams++] = optarg;
+			do_sim = TRUE;
+			break;
+		}
+
 		case 'c':
 			desync ^= TRUE;
 			break;
@@ -509,6 +609,9 @@ main(int argc, char **argv)
 						     /* interlaced */ FALSE,
 						     !desync);
 			assert (NULL != cap);
+			
+			load_caption ();
+
 			break;
 		}
 

@@ -17,15 +17,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.c,v 1.1.2.8 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: raw_decoder.c,v 1.1.2.9 2006-05-18 16:49:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
 #include "misc.h"
 #include "sampling_par.h"
 #include "raw_decoder.h"
@@ -40,33 +37,6 @@
  * @ingroup Raw
  * @brief Converting a raw VBI image to sliced VBI data.
  */
-
-static void
-xlog				(vbi3_raw_decoder *	rd,
-				 vbi3_log_mask		level,
-				 const char *		context,
-				 const char *		templ,
-				 ...)
-{
-	vbi3_log_fn *log_fn;
-	void *user_data;
-	va_list ap;
-
-	if (rd->log_mask & level) {
-		log_fn = rd->log_fn;
-		user_data = rd->log_user_data;
-	} else if (vbi3_global_log_mask & level) {
-		log_fn = vbi3_global_log_fn;
-		user_data = vbi3_global_log_user_data;
-	} else {
-		return;
-	}
-
-	va_start (ap, templ);
-	vbi3_log_vprintf (log_fn, user_data,
-			  level, context, templ, ap);
-	va_end (ap);
-}
 
 /* Missing:
    VITC PAL 6-22 11.2us 1.8125 Mbit NRZ two start bits + CRC
@@ -902,15 +872,14 @@ vbi3_raw_decoder_add_services	(vbi3_raw_decoder *	rd,
 	services &= ~(VBI3_SLICED_VBI3_525 | VBI3_SLICED_VBI3_625);
 
 	if (rd->services & services) {
-		xlog (rd, VBI3_LOG_INFO, __FUNCTION__,
+		info (&rd->log,
 		      "Already decoding services 0x%08x.",
 		      rd->services & services);
 		services &= ~rd->services;
 	}
 
 	if (0 == services) {
-		xlog (rd, VBI3_LOG_INFO, __FUNCTION__,
-		      "No services to add.");
+		info (&rd->log, "No services to add.");
 		return rd->services;
 	}
 
@@ -925,8 +894,7 @@ vbi3_raw_decoder_add_services	(vbi3_raw_decoder *	rd,
 		size = scan_ways * sizeof (rd->pattern[0]);
 		rd->pattern = (int8_t *) vbi3_malloc (size);
 		if (!rd->pattern) {
-			xlog (rd, VBI3_LOG_ERROR, __FUNCTION__,
-			      "Out of memory.");
+			error (&rd->log, "Out of memory.");
 			return rd->services;
 		}
 
@@ -974,7 +942,7 @@ vbi3_raw_decoder_add_services	(vbi3_raw_decoder *	rd,
 		}
 
 		if (j >= _VBI3_RAW_DECODER_MAX_JOBS) {
-			xlog (rd, VBI3_LOG_ERROR, __FUNCTION__,
+			error (&rd->log,
 			      "Set 0x%08x exceeds number of "
 			      "simultaneously decodable "
 			      "services (%u).",
@@ -987,8 +955,8 @@ vbi3_raw_decoder_add_services	(vbi3_raw_decoder *	rd,
 
 		sp = &rd->sampling;
 
-		if (!_vbi3_sampling_par_check_service
-		    (sp, par, strict, rd->log_fn, rd->log_user_data))
+		if (!_vbi3_sampling_par_check_services_log (sp, par, strict,
+							    &rd->log))
 			continue;
 
 
@@ -1042,17 +1010,17 @@ vbi3_raw_decoder_add_services	(vbi3_raw_decoder *	rd,
 		}
 
 		vbi3_bit_slicer_set_log_fn (&job->slicer,
-					    rd->log_mask,
-					    rd->log_fn,
-					    rd->log_user_data);
+					    rd->log.mask,
+					    rd->log.fn,
+					    rd->log.user_data);
 
 		lines_containing_data (start, count, sp, par);
 
 		if (!add_job_to_pattern (rd, job - rd->jobs, start, count)) {
-			xlog (rd, VBI3_LOG_ERROR, __FUNCTION__,
-			      "Out of decoder pattern space for "
-			      "service 0x%08x (%s).",
-			      par->id, par->label);
+			error (&rd->log,
+			       "Out of decoder pattern space for "
+			       "service 0x%08x (%s).",
+			       par->id, par->label);
 			continue;
 		}
 
@@ -1177,7 +1145,7 @@ vbi3_raw_decoder_set_sampling_par
 
 	vbi3_raw_decoder_reset (rd);
 
-	if (!_vbi3_sampling_par_valid (sp, rd->log_fn, rd->log_user_data)) {
+	if (!_vbi3_sampling_par_valid_log (sp, &rd->log)) {
 		CLEAR (rd->sampling);
 		return 0;
 	}
@@ -1221,9 +1189,9 @@ vbi3_raw_decoder_set_log_fn	(vbi3_raw_decoder *	rd,
 	if (NULL == log_fn)
 		mask = 0;
 
-	rd->log_mask = mask;
-	rd->log_fn = log_fn;
-	rd->log_user_data = user_data;
+	rd->log.mask = mask;
+	rd->log.fn = log_fn;
+	rd->log.user_data = user_data;
 
 	for (i = 0; i < _VBI3_RAW_DECODER_MAX_JOBS; ++i) {
 		vbi3_bit_slicer_set_log_fn (&rd->jobs[i].slicer,
@@ -1261,8 +1229,7 @@ _vbi3_raw_decoder_init		(vbi3_raw_decoder *	rd,
 	vbi3_raw_decoder_reset (rd);
 
  	if (NULL != sp) {
-		if (!_vbi3_sampling_par_valid (sp, rd->log_fn,
-					      rd->log_user_data))
+		if (!_vbi3_sampling_par_valid_log (sp, &rd->log))
 			return FALSE;
 
 		rd->sampling = *sp;

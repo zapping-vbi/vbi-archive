@@ -23,7 +23,6 @@
 
 #include "../site_def.h"
 
-#include <stdlib.h>		/* malloc() */
 #include "event-priv.h"
 #include "cache-priv.h"
 
@@ -81,26 +80,8 @@ struct _vbi3_cache {
 
 	_vbi3_event_handler_list handlers;
 
-	vbi3_log_fn *		log_fn;
-	void *			log_user_data;
-	vbi3_log_mask		log_mask;
+	_vbi3_log_hook		log;
 };
-
-#define warning(templ, args...)						\
-do {									\
-	if (ca->log_mask & VBI3_LOG_WARNING)				\
-		vbi3_log_printf (ca->log_fn, ca->log_user_data,		\
-				 VBI3_LOG_WARNING, __FUNCTION__,	\
-				 templ , ##args);			\
-} while (0)
-
-#define error(templ, args...)						\
-do {									\
-	if (ca->log_mask & VBI3_LOG_ERROR)				\
-		vbi3_log_printf (ca->log_fn, ca->log_user_data,		\
-				 VBI3_LOG_ERROR, __FUNCTION__,		\
-				 templ , ##args);			\
-} while (0)
 
 static void
 delete_all_pages		(vbi3_cache *		ca,
@@ -498,7 +479,7 @@ add_network			(vbi3_cache *		ca,
 	if (ca->n_networks < ca->network_limit
 	    || NULL == (cn = recycle_network (ca))) {
 		if (!(cn = vbi3_cache_malloc (sizeof (*cn)))) {
-			error ("Out of memory.");
+			error (&ca->log, "Out of memory.");
 			return NULL;
 		}
 
@@ -705,7 +686,8 @@ cache_network_unref		(cache_network *	cn)
 		assert (is_member (&ca->networks, &cn->node));
 
 	if (0 == cn->ref_count) {
-		warning ("Network %p already unreferenced.",
+		warning (&ca->log,
+			 "Network %p already unreferenced.",
 			 (void *) cn);
 	} else if (1 == cn->ref_count) {
 		cn->ref_count = 0;
@@ -1098,7 +1080,8 @@ cache_page_unref		(cache_page *		cp)
 		assert (page_in_cache (ca, cp));
 
 	if (0 == cp->ref_count) {
-		warning ("Page %p already unreferenced.",
+		warning (&ca->log,
+			 "Page %p already unreferenced.",
 			 (void *) cp);
 		return;
 	}
@@ -1233,7 +1216,8 @@ _vbi3_cache_get_page		(vbi3_cache *		ca,
 		assert (is_member (&ca->networks, &cn->node));
 
 	if (pgno < 0x100 || pgno > 0x8FF) {
-		warning ("Invalid pgno 0x%x.", pgno);
+		warning (&ca->log,
+			 "Invalid pgno 0x%x.", pgno);
 		return NULL;
 	}
 
@@ -1509,7 +1493,8 @@ _vbi3_cache_put_page		(vbi3_cache *		ca,
 		unsigned int i;
 
 		if (!(new_cp = vbi3_cache_malloc ((size_t) memory_needed))) {
-			error ("Out of memory.");
+			error (&ca->log,
+			       "Out of memory.");
 			goto failure;
 		}
 
@@ -1680,11 +1665,13 @@ vbi3_cache_delete		(vbi3_cache *		ca)
 	vbi3_cache_purge (ca);
 
 	if (!is_empty (&ca->referenced)) {
-		warning ("Some cached pages still referenced, memory leaks.");
+		warning (&ca->log,
+			 "Some cached pages still referenced, memory leaks.");
 	}
 
 	if (!is_empty (&ca->networks)) {
-		warning ("Some cached networks still referenced, "
+		warning (&ca->log,
+			 "Some cached networks still referenced, "
 			 "memory leaks.");
 	}
 
@@ -1765,8 +1752,8 @@ vbi3_cache_new			(void)
 	CLEAR (*ca);
 
 	if (CACHE_DEBUG) {
-		ca->log_fn = vbi3_log_on_stderr;
-		ca->log_mask = -1; /* all */
+		ca->log.fn = vbi3_log_on_stderr;
+		ca->log.mask = -1; /* all */
 	}
 
 	for (i = 0; i < N_ELEMENTS (ca->hash); ++i) {

@@ -18,13 +18,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: link.c,v 1.1.2.5 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: link.c,v 1.1.2.6 2006-05-18 16:49:19 mschimek Exp $ */
 
 #include "../site_def.h"
 
-#include <stdlib.h>		/* malloc() */
-#include <assert.h>
-#include "misc.h"		/* CLEAR() */
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+#include "misc.h"
 #include "link.h"
 
 /** */

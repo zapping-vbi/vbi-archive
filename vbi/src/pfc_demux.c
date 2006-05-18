@@ -17,22 +17,21 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pfc_demux.c,v 1.1.2.6 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: pfc_demux.c,v 1.1.2.7 2006-05-18 16:49:20 mschimek Exp $ */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
-#include <assert.h>
-#include <stdlib.h>		/* malloc() */
-#include <string.h>		/* memcpy() */
+#include "misc.h"
 #include "hamm.h"		/* vbi3_iham8(), vbi3_iham16p() */
-#include "misc.h"		/* vbi3_log_printf */
 #include "pfc_demux.h"
 
 #define BLOCK_SEPARATOR 0x0C
 #define FILLER_BYTE 0x03
 
 /**
- * @addtogroup PFCDemux Teletext Page Function Clear Demultiplexer
+ * @addtogroup PFCDemux Teletext Page Function Clear demultiplexer
  * @ingroup LowDec
  * @brief Separating data transmitted in Page Function Clear
  *   Teletext packets (ETS 300 708 section 4).
@@ -58,7 +57,7 @@ _vbi3_pfc_block_dump		(const vbi3_pfc_block *	pb,
 		unsigned int i;
 
 		for (i = 0; i < pb->block_size; ++i) {
-			fputc (vbi3_to_ascii (pb->block[i]), fp);
+			fputc (_vbi3_to_ascii (pb->block[i]), fp);
 
 			if ((i % 75) == 75)
 				fputc ('\n', fp);
@@ -70,29 +69,29 @@ _vbi3_pfc_block_dump		(const vbi3_pfc_block *	pb,
 }
 
 /**
- * @param pc PFC demultiplexer context allocated with vbi3_pfc_demux_new().
+ * @param dx PFC demultiplexer context allocated with vbi3_pfc_demux_new().
  *
  * Resets the PFC demux context, useful for example after a channel
  * change.
  */
 void
-vbi3_pfc_demux_reset		(vbi3_pfc_demux *	pc)
+vbi3_pfc_demux_reset		(vbi3_pfc_demux *	dx)
 {
-	assert (NULL != pc);
+	assert (NULL != dx);
 
-	pc->ci			= 256;	/* normally 0 ... 15 */
-	pc->packet		= 256;  /* normally 1 ... 25 */
-	pc->n_packets		= 0;	/* discard all */
+	dx->ci			= 256;	/* normally 0 ... 15 */
+	dx->packet		= 256;  /* normally 1 ... 25 */
+	dx->n_packets		= 0;	/* discard all */
 
-	pc->bi			= 0;	/* empty buffer */
-	pc->left		= 0;
+	dx->bi			= 0;	/* empty buffer */
+	dx->left		= 0;
 
-	pc->block.application_id = (unsigned int) -1; /* expect SH next */
+	dx->block.application_id = (unsigned int) -1; /* expect SH next */
 }
 
 /** @internal */
 vbi3_bool
-_vbi3_pfc_demux_decode		(vbi3_pfc_demux *	pc,
+_vbi3_pfc_demux_decode		(vbi3_pfc_demux *	dx,
 				 const uint8_t		buffer[42])
 {
 	unsigned int col;
@@ -109,28 +108,28 @@ _vbi3_pfc_demux_decode		(vbi3_pfc_demux *	pc,
 	while (col < 42) {
 		int bs;
 
-		if (pc->left > 0) {
+		if (dx->left > 0) {
 			unsigned int size;
 
-			size = MIN (pc->left, 42 - col);
+			size = MIN (dx->left, 42 - col);
 
-			memcpy (pc->block.block + pc->bi, buffer + col, size);
+			memcpy (dx->block.block + dx->bi, buffer + col, size);
 
-			pc->bi += size;
-			pc->left -= size;
+			dx->bi += size;
+			dx->left -= size;
 
-			if (pc->left > 0) {
+			if (dx->left > 0) {
 				/* Packet done, block unfinished. */
 				return TRUE;
 			}
 
 			col += size;
 
-			if ((int) pc->block.application_id < 0) {
+			if ((int) dx->block.application_id < 0) {
 				int sh; /* structure header */
 
-				sh = vbi3_unham16p (pc->block.block)
-					+ vbi3_unham16p (pc->block.block + 2)
+				sh = vbi3_unham16p (dx->block.block)
+					+ vbi3_unham16p (dx->block.block + 2)
 					* 256;
 
 				if (sh < 0) {
@@ -138,16 +137,16 @@ _vbi3_pfc_demux_decode		(vbi3_pfc_demux *	pc,
 					goto desynced;
 				}
 
-				pc->block.application_id = sh & 0x1F;
-				pc->block.block_size = sh >> 5;
+				dx->block.application_id = sh & 0x1F;
+				dx->block.block_size = sh >> 5;
 
-				pc->bi = 0;
-				pc->left = pc->block.block_size; 
+				dx->bi = 0;
+				dx->left = dx->block.block_size; 
 
 				continue;
 			} else {
-				if (!pc->callback (pc, pc->user_data,
-						   &pc->block)) {
+				if (!dx->callback (dx, dx->user_data,
+						   &dx->block)) {
 					goto desynced;
 				}
 			}
@@ -180,23 +179,23 @@ _vbi3_pfc_demux_decode		(vbi3_pfc_demux *	pc,
 		   header into block[], then with application_id >= 0
 		   block_size data bytes. */
 
-		pc->bi = 0;
-		pc->left = 4;
+		dx->bi = 0;
+		dx->left = 4;
 
-		pc->block.application_id = (unsigned int) -1;
+		dx->block.application_id = (unsigned int) -1;
 	}
 
 	return TRUE;
 
  desynced:
 	/* Incorrectable error, discard current block. */
-	vbi3_pfc_demux_reset (pc);
+	vbi3_pfc_demux_reset (dx);
 
 	return FALSE;
 }
 
 /**
- * @param pc PFC demultiplexer context allocated with vbi3_pfc_demux_new().
+ * @param dx PFC demultiplexer context allocated with vbi3_pfc_demux_new().
  * @param buffer Teletext packet (last 42 bytes, i. e. without clock
  *   run-in and framing code), as in struct vbi3_sliced.
  *
@@ -209,7 +208,7 @@ _vbi3_pfc_demux_decode		(vbi3_pfc_demux *	pc,
  * FALSE if the packet contained incorrectable errors.
  */
 vbi3_bool
-vbi3_pfc_demux_demux		(vbi3_pfc_demux *	pc,
+vbi3_pfc_demux_feed		(vbi3_pfc_demux *	dx,
 				 const uint8_t		buffer[42])
 {
 	int pmag;
@@ -217,7 +216,7 @@ vbi3_pfc_demux_demux		(vbi3_pfc_demux *	pc,
 	vbi3_subno subno;
 	unsigned int packet;
 
-	assert (NULL != pc);
+	assert (NULL != dx);
 	assert (NULL != buffer);
 
 	/* Packet filter. */
@@ -241,8 +240,8 @@ vbi3_pfc_demux_demux		(vbi3_pfc_demux *	pc,
 		if (pgno < 0)
 			goto desynced;
 
-		if (pgno != pc->block.pgno) {
-			pc->n_packets = 0;
+		if (pgno != dx->block.pgno) {
+			dx->n_packets = 0;
 			return TRUE;
 		}
 
@@ -252,33 +251,33 @@ vbi3_pfc_demux_demux		(vbi3_pfc_demux *	pc,
 			goto desynced;
 
 		stream = (subno >> 8) & 15;
-		if (stream != pc->block.stream) {
-			pc->n_packets = 0;
+		if (stream != dx->block.stream) {
+			dx->n_packets = 0;
 			return TRUE;
 		}
 
 		ci = subno & 15;
-		if (ci != pc->ci) {
+		if (ci != dx->ci) {
 			/* Page continuity lost, wait for new block. */
-			vbi3_pfc_demux_reset (pc);
+			vbi3_pfc_demux_reset (dx);
 		}
 
-		pc->ci = (ci + 1) & 15; /* next ci expected */
+		dx->ci = (ci + 1) & 15; /* next ci expected */
 
-		pc->packet = 1;
-		pc->n_packets = ((subno >> 4) & 7) + ((subno >> 9) & 0x18);
+		dx->packet = 1;
+		dx->n_packets = ((subno >> 4) & 7) + ((subno >> 9) & 0x18);
 
 		return TRUE;
 	} else {
 		/* In case 0 == C11 parallel page transmission. */
-		if ((pgno ^ pc->block.pgno) & 0xF00) {
-			/* Not pc->block.pgno. */
+		if ((pgno ^ dx->block.pgno) & 0xF00) {
+			/* Not dx->block.pgno. */
 			return TRUE;
 		}
 	}
 
-	if (0 == pc->n_packets) {
-		/* Not pc->block.pgno. */
+	if (0 == dx->n_packets) {
+		/* Not dx->block.pgno. */
 		return TRUE;
 	}
 
@@ -287,23 +286,23 @@ vbi3_pfc_demux_demux		(vbi3_pfc_demux *	pc,
 		return TRUE;
 	}
 
-	if (packet != pc->packet
-	    || packet > pc->n_packets) {
+	if (packet != dx->packet
+	    || packet > dx->n_packets) {
 		/* Packet continuity lost, wait for new
 		   block and page header. */
-		vbi3_pfc_demux_reset (pc);
+		vbi3_pfc_demux_reset (dx);
 		return TRUE;
 	}
 
-	pc->packet = packet + 1; /* next packet expected */
+	dx->packet = packet + 1; /* next packet expected */
 
 	/* Now the actual decoding. */	
 
-	return _vbi3_pfc_demux_decode (pc, buffer);
+	return _vbi3_pfc_demux_decode (dx, buffer);
 
  desynced:
 	/* Incorrectable error, discard current block. */
-	vbi3_pfc_demux_reset (pc);
+	vbi3_pfc_demux_reset (dx);
 
 	return FALSE;
 }
@@ -312,59 +311,59 @@ vbi3_pfc_demux_demux		(vbi3_pfc_demux *	pc,
  * @internal
  */
 void
-_vbi3_pfc_demux_destroy		(vbi3_pfc_demux *	pc)
+_vbi3_pfc_demux_destroy		(vbi3_pfc_demux *	dx)
 {
-	assert (NULL != pc);
+	assert (NULL != dx);
 
-	CLEAR (*pc);
+	CLEAR (*dx);
 }
 
 /**
  * @internal
  */
 vbi3_bool
-_vbi3_pfc_demux_init		(vbi3_pfc_demux *	pc,
+_vbi3_pfc_demux_init		(vbi3_pfc_demux *	dx,
 				 vbi3_pgno		pgno,
 				 unsigned int		stream,
 				 vbi3_pfc_demux_cb *	callback,
 				 void *			user_data)
 {
-	assert (NULL != pc);
+	assert (NULL != dx);
 	assert (NULL != callback);
 
-	vbi3_pfc_demux_reset (pc);
+	vbi3_pfc_demux_reset (dx);
 
-	pc->callback		= callback;
-	pc->user_data		= user_data;
+	dx->callback		= callback;
+	dx->user_data		= user_data;
 
-	pc->block.pgno		= pgno;
-	pc->block.stream	= stream;
+	dx->block.pgno		= pgno;
+	dx->block.stream	= stream;
 
 	return TRUE;
 }
 
 /**
- * @param pc PFC demultiplexer context allocated with
+ * @param dx PFC demultiplexer context allocated with
  *   vbi3_pfc_demux_new(), can be @c NULL.
  *
- * Frees all resources associated with @a pc.
+ * Frees all resources associated with @a dx.
  */
 void
-vbi3_pfc_demux_delete		(vbi3_pfc_demux *	pc)
+vbi3_pfc_demux_delete		(vbi3_pfc_demux *	dx)
 {
-	if (NULL == pc)
+	if (NULL == dx)
 		return;
 
-	_vbi3_pfc_demux_destroy (pc);
+	_vbi3_pfc_demux_destroy (dx);
 
-	vbi3_free (pc);		
+	free (dx);		
 }
 
 /**
  * @param pgno Page to take PFC data from.
  * @param stream PFC stream to be demultiplexed.
- * @param callback Function to be called by vbi3_pfc_demux_demux()
- *   when a new data block is available.
+ * @param cb Function to be called by vbi3_pfc_demux_demux() when
+ *   a new data block is available.
  * @param user_data User pointer passed through to @a cb function.
  *
  * Allocates a new Page Function Clear (ETS 300 708 section 4)
@@ -381,18 +380,17 @@ vbi3_pfc_demux_new		(vbi3_pgno		pgno,
 				 vbi3_pfc_demux_cb *	callback,
 				 void *			user_data)
 {
-	vbi3_pfc_demux *pc;
+	vbi3_pfc_demux *dx;
 
-	pc = vbi3_malloc (sizeof (*pc));
-	if (NULL == pc) {
+	if (!(dx = malloc (sizeof (*dx)))) {
 		return NULL;
 	}
 
-	if (!_vbi3_pfc_demux_init (pc, pgno, stream,
+	if (!_vbi3_pfc_demux_init (dx, pgno, stream,
 				  callback, user_data)) {
-		vbi3_free (pc);
-		pc = NULL;
+		free (dx);
+		dx = NULL;
 	}
 
-	return pc;
+	return dx;
 }

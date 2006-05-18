@@ -17,12 +17,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet_filter.c,v 1.1.2.1 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: packet_filter.c,v 1.1.2.2 2006-05-18 16:49:19 mschimek Exp $ */
 
-#include <stdlib.h>
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include <errno.h>
-#include <assert.h>
 
+#include "misc.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
@@ -30,7 +33,6 @@
 #endif
 #include "hamm.h"		/* vbi3_unham16p() */
 #include "event.h"		/* VBI3_SERIAL */
-#include "misc.h"		/* SWAP() */
 #include "packet_filter.h"
 
 struct page_range {

@@ -18,21 +18,21 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.9.2.11 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: caption.c,v 1.9.2.12 2006-05-18 16:49:19 mschimek Exp $ */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <assert.h>
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
+//#include <unistd.h>
+
+#include "misc.h"
 #include "trigger.h"
 #include "format.h"
 #include "lang.h"
 #include "hamm.h"
 #include "tables.h"
 #include "vbi3_decoder-priv.h"
-#include "misc.h"
 #include "cc.h"
 
 #define elements(array) (sizeof(array) / sizeof(array[0]))
@@ -614,11 +614,6 @@ vbi3_decode_caption(vbi3_caption_decoder *cd, int line, uint8_t *buf)
 
 	char c1 = buf[0] & 0x7F;
 	int field2 = 1, i;
-
-/*
-	vbi3_hook_call (vbi, VBI3_HOOK_CLOSED_CAPTION,
-		       buf, 2, 0);
- */
 
 //	pthread_mutex_lock(&cc->mutex);
 

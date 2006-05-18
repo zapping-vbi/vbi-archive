@@ -18,11 +18,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: unicode.c,v 1.4.2.3 2006-05-07 06:05:00 mschimek Exp $ */
+/* $Id: unicode.c,v 1.4.2.4 2006-05-18 16:49:21 mschimek Exp $ */
 
-#include <stdio.h>
-#include <stdlib.h>
-
+#include "src/misc.h"
 #include "src/zvbi.h"
 
 static void
@@ -85,6 +83,9 @@ main				(int			argc,
 				 char **		argv)
 {
 	unsigned int i, j;
+
+	argc = argc; /* unused */
+	argv = argv;
 
 	putwstr ("libzvbi unicode test -*- coding: utf-8 -*-\n\n");
 	putwstr ("ETS 300 706 Table 36: Latin National Option Sub-sets\n\n");

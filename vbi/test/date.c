@@ -18,24 +18,20 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: date.c,v 1.1.2.2 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: date.c,v 1.1.2.3 2006-05-18 16:49:21 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
 #include <locale.h>
 #include <errno.h>
-#include <assert.h>
 #include <unistd.h>
 #ifdef HAVE_GETOPT_LONG
 #  include <getopt.h>
 #endif
 
+#include "src/misc.h"
 #include "src/zvbi.h"
 #include "src/intl-priv.h"
 

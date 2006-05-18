@@ -3,7 +3,7 @@
  *  Copyright (C) 2004 Michael H. Schimek
  */
 
-/* $Id: test-raw_decoder.cc,v 1.1.2.6 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: test-raw_decoder.cc,v 1.1.2.7 2006-05-18 16:49:21 mschimek Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -478,10 +478,8 @@ main				(int			argc,
 	memset (&sp, 0x55, sizeof (sp));
 
 	set = vbi3_sampling_par_from_services (&sp, NULL,
-					      VBI3_VIDEOSTD_SET_625_50,
-					      ~0 & ~VBI3_SLICED_VBI3_625,
-					       /* log_fn */ NULL,
-					       /* log_user_data */ NULL);
+					       VBI3_VIDEOSTD_SET_625_50,
+					       ~VBI3_SLICED_VBI3_625);
 	assert (set == (VBI3_SLICED_TELETEXT_A |
 			VBI3_SLICED_TELETEXT_B_625 |
 			VBI3_SLICED_TELETEXT_C_625 |
@@ -493,10 +491,8 @@ main				(int			argc,
 	test2 (&sp);
 
 	set = vbi3_sampling_par_from_services (&sp, NULL,
-					      VBI3_VIDEOSTD_SET_525_60,
-					       ~0 & ~VBI3_SLICED_VBI3_525,
-					       /* log_fn */ NULL,
-					       /* log_user_data */ NULL);
+					       VBI3_VIDEOSTD_SET_525_60,
+					       ~VBI3_SLICED_VBI3_525);
 	assert (set == (VBI3_SLICED_TELETEXT_B_525 |
 			VBI3_SLICED_TELETEXT_C_525 |
 			VBI3_SLICED_TELETEXT_D_525 |

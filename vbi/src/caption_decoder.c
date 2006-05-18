@@ -18,13 +18,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder.c,v 1.1.2.1 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: caption_decoder.c,v 1.1.2.2 2006-05-18 16:49:19 mschimek Exp $ */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
+#include "misc.h"
 #include "hamm.h"
 #include "page-priv.h"
 #include "caption_decoder-priv.h"
@@ -35,54 +31,67 @@
 			VBI3_EVENT_PAGE_TYPE)
 
 /*
-    Resources:
+  Resources:
 
-    Code of Federal Regulations, Title 47 Telecommunication,
-    Section 15.119 "Closed caption decoder requirements for analog
-    television receivers".
+  Code of Federal Regulations, Title 47 Telecommunication,
+  Section 15.119 "Closed caption decoder requirements for analog
+  television receivers".
 
-    EIA 608-B "Recommended Practice for Line 21 Data Service"
-    http://global.ihs.com for those with money to burn.
+  EIA 608-B "Line 21 Data Services"
+  http://global.ihs.com
 
-    Video Demystified
-    http://www.video-demystified.com
+  Video Demystified
+  http://www.video-demystified.com
 
-    Related documents:
+  Related documents:
 
-    47 CFR Section 15.120 "Program blocking technology requirements
-    for television receivers".
+  47 CFR Section 15.120 "Program blocking technology requirements
+  for television receivers".
 
-    "Analog television receivers will receive program ratings
-    transmitted pursuant to industry standard EIA-744 "Transport of
-    Content Advisory Information Using Extended Data Service (XDS)"
-    and EIA-608 "Recommended Practice for Line 21 Data Service". This
-    incorporation by reference was approved by the Director of the
-    Federal Register in accordance with 5 U.S.C. 522(a) and 1 CFR
-    Part 51. [...] Copies of EIA-744 and EIA-608 may be obtained from:
-    Global Engineering Documents, 15 Inverness Way East, Englewood,
-    CO 80112-5704. Copies of EIA-744 may be inspected during normal
-    business hours at the following locations: Federal Communications
-    Commission, 2000 M Street, NW, Technical Information Center (Suite
-    230), Washington, DC, or the Office of the Federal Register, 800
-    North Capitol Street, NW, Suite 700, Washington, DC."
+  "Analog television receivers will receive program ratings
+  transmitted pursuant to industry standard EIA-744 "Transport of
+  Content Advisory Information Using Extended Data Service (XDS)"
+  and EIA-608 "Recommended Practice for Line 21 Data Service". This
+  incorporation by reference was approved by the Director of the
+  Federal Register in accordance with 5 U.S.C. 522(a) and 1 CFR
+  Part 51. [...] Copies of EIA-744 and EIA-608 may be obtained from:
+  Global Engineering Documents, 15 Inverness Way East, Englewood,
+  CO 80112-5704. Copies of EIA-744 may be inspected during normal
+  business hours at the following locations: Federal Communications
+  Commission, 2000 M Street, NW, Technical Information Center (Suite
+  230), Washington, DC, or the Office of the Federal Register, 800
+  North Capitol Street, NW, Suite 700, Washington, DC."
 
-    47 CFR Section 15.122 "Closed caption decoder requirements for
-    digital television receivers and converter boxes".
+  47 CFR Section 15.122 "Closed caption decoder requirements for
+  digital television receivers and converter boxes".
 
-    "Digital television receivers and tuners must be capable of
-    decoding closed captioning information that is delivered pursuant
-    to the industry standard EIA-708-B, "Digital Television (DTV)
-    Closed Captioning," Electronics Industries Association (1999). This
-    incorporation by reference was approved by the Director of the
-    Federal Register in accordance with 5 U.S.C. 552(a) and 1 CFR
-    part 51. Digital television manufacturers may wish to view EIA-708-B
-    in its entirety. Copies of EIA-708-B may be obtained from: Global
-    Engineering Documents, 15 Inverness Way East, Englewood, CO
-    80112-5704, http://www.global.ihs.com/. Copies of EIA-708-B may be
-    inspected during regular business hours at the following locations:
-    Federal Communications Commission, 445 12th Street, S.W., Washington,
-    D.C. 20554, or the Office of the Federal Register, 800 N. Capitol
-    Street, N.W., Washington, D.C."
+  "Digital television receivers and tuners must be capable of
+  decoding closed captioning information that is delivered pursuant
+  to the industry standard EIA-708-B, "Digital Television (DTV)
+  Closed Captioning," Electronics Industries Association (1999). This
+  incorporation by reference was approved by the Director of the
+  Federal Register in accordance with 5 U.S.C. 552(a) and 1 CFR
+  part 51. Digital television manufacturers may wish to view EIA-708-B
+  in its entirety. Copies of EIA-708-B may be obtained from: Global
+  Engineering Documents, 15 Inverness Way East, Englewood, CO
+  80112-5704, http://www.global.ihs.com/. Copies of EIA-708-B may be
+  inspected during regular business hours at the following locations:
+  Federal Communications Commission, 445 12th Street, S.W., Washington,
+  D.C. 20554, or the Office of the Federal Register, 800 N. Capitol
+  Street, N.W., Washington, D.C."
+
+  Other resources:
+
+  http://www.atsc.org
+  http://www.atvef.com
+  http://www.robson.org
+  http://www.vchipeducation.org
+  http://developer.webtv.net/itv/links/main.htm
+  http://www.geocities.com/mcpoodle43/SCC_TOOLS/DOCS/CC_XDS.HTML
+  http://www.avio-systems.com/dtvcc/simulate.html
+  http://lists.xiph.org/pipermail/theora/2002-December/000057.html
+  http://www.wikipedia.org
+  http://www.fcc.gov/cib/dro/caption.html
 */
 
 /* Closed Caption decoder ****************************************************/
@@ -1109,26 +1118,41 @@ optional_attributes		(vbi3_caption_decoder *	cd,
 		return;
 
 	case 0x2D:
-		/* Optional Attributes		001 c111  010 1101 */
-		/* From Video Demystified, not verified. */
+		/* Optional Attribute		001 c111  010 1101 */
+		/* EIA 608-B Section 6.4.2 */
+
+		/* For compatibility with standard decoders,
+		   i.e. space<attr> */
+		backspace (cd, ch);
 
 		attr.opacity = VBI3_TRANSPARENT_FULL;
+
+		/* This is a set-at spacing attribute. */
+		put_char (cd, ch, 0x20);
 
 		break;
 
 	case 0x2E:
 	case 0x2F:
-		/* Optional Attributes		001 c111  010 111u */
-		/* From Video Demystified, not verified. */
+		/* Optional Foreground Attr's	001 c111  010 111u */
+		/* EIA 608-B Section 6.4.2 */
 
+		/* For compatibility with standard decoders,
+		   i.e. space<attr> */
+		backspace (cd, ch);
 
 		attr.foreground = VBI3_BLACK;
 
-		if (c2 & 1)
+		/* This is a set-at spacing attribute but EIA 608-B
+		   doesn't say if we should underline. I guess not. */
+		if (c2 & 1) {
+			put_char (cd, ch, 0x20);
 			attr.attr |= VBI3_UNDERLINE;
-		else
+		} else {
 			attr.attr &= ~VBI3_UNDERLINE;
-		
+			put_char (cd, ch, 0x20);
+		}
+
 		break;
 
 	default: /* ? */
@@ -1167,9 +1191,10 @@ misc_control_code		(vbi3_caption_decoder *	cd,
 {
 	/* Misc Control Codes		001 c10f  010 xxxx */
 
-	/* XXX according to Video Demystified f = field. Purpose?
-	   Sec. 15.119 does not mention this bit or caption on
-	   field 2 at all. */
+	/* c = channel (0 -> CC1/CC3/T1/T3, 1 -> CC2/CC4/T2/T4)
+	     -- 47 CFR Section 15.119, EIA 608-B
+	   f = field (0 -> F1, 1 = F2)
+	     -- EIA 608-B Section 8.4, 8.5 */
 
 	switch (c2 & 15) {
 	case 0:	
@@ -1378,29 +1403,33 @@ caption_control_code		(vbi3_caption_decoder *	cd,
 	}
 
 	switch (c1 & 7) {
-	case 0:
-	{
+		unsigned int unicode;
 		unsigned int color;
 
-		if (c2 & 0x10) {
-			/* Sec. 15.119 (i)(1): Ignore. */
-		} else {
-			/* Optional Attributes		001 c000  010 xxxt */
-			/* From Video Demystified; not verified. */
+	case 0:
+		if (c2 < 0x30) {
+			/* Optional Background Attr's	001 c000  010 xxxt */
+			/* EIA 608-B Section 6.4.2 */
 
 			if (CHANNEL_UNKNOWN == cd->cc.curr_ch_num
 			    || VBI3_CAPTION_MODE_UNKNOWN == ch->mode)
 				break;
+
+			/* For compatibility with standard decoders,
+			   i.e. space<attr> */
+			backspace (cd, ch);
 
 			color = (c2 >> 1) & 7;
 
 			ch->curr_attr.opacity = (c2 & 1) ?
 				VBI3_TRANSLUCENT : VBI3_OPAQUE;
 			ch->curr_attr.background = color_mapping[color];
+
+			/* This is a set-at spacing attribute. */
+			put_char (cd, ch, 0x20);
 		}
 
 		break;
-	}
 
 	case 1:
 		if (CHANNEL_UNKNOWN == cd->cc.curr_ch_num
@@ -1425,16 +1454,27 @@ caption_control_code		(vbi3_caption_decoder *	cd,
 
 		break;
 
-	case 2: /* ? */
-	case 3: /* ? */
-		/* Sec. 15.119 (i)(1): Ignore. */
+	case 2: /* Extended Character Set		001 c010  01x xxxx */
+	case 3: /* Extended Character Set		001 c011  01x xxxx */
+		/* EIA 608-B Section 6.4.2 */
+
+		if (CHANNEL_UNKNOWN == cd->cc.curr_ch_num
+		    || VBI3_CAPTION_MODE_UNKNOWN == ch->mode)
+			break;
+
+		/* For compatibility with standard decoders,
+		   e.g. u<udiaresis>. */
+		backspace (cd, ch);
+
+		unicode = vbi3_caption_unicode ((c1 * 256 + c2) & 0x777F);
+
+		put_char (cd, ch, unicode);
+
 		break;
 
 	case 4:
 	case 5:
-		if (c2 & 0x10) {
-			/* Sec. 15.119 (i)(1): Ignore. */
-		} else {
+		if (c2 < 0x30) {
 			misc_control_code (cd, ch, c2, ch_num0);
 		}
 
@@ -1465,15 +1505,15 @@ caption_text			(vbi3_caption_decoder *	cd,
 
 	if (0)
 		fprintf (stderr, "caption_text %02x '%c' %f\n",
-			 c, c, timestamp);
+			 c, _vbi3_to_ascii (c), timestamp);
 
 	if (0 == c) {
 		if (VBI3_CAPTION_MODE_UNKNOWN == ch->mode)
 			return TRUE;
 
-		/* After x NUL characters (presumably a caption pause),
-		   force a display update if we do not send events
-		   on every display change. */
+		/* XXX After x NUL characters (presumably a caption
+		   pause), force a display update if we do not send
+		   events on every display change. */
 
 		return TRUE;
 	}
@@ -1537,11 +1577,9 @@ itv_text			(vbi3_caption_decoder *	cd,
 	cd->itv.buffer[cd->itv.size] = 0;
 	cd->itv.size = 0;
 
-#ifndef ZAPPING8
 #warning TODO
 	/* vbi3_atvef_trigger(vbi, cc->itv_buf);
 	   event */
-#endif
 
 	return TRUE;
 }
@@ -1553,54 +1591,41 @@ itv_control_code		(vbi3_caption_decoder *	cd,
 {
 	if (c2 >= 0x40) {
 		/* Preamble Address Codes	001 crrr  1ri xxxu */
-
 		return;
 	}
 
 	switch (c1 & 7) {
 	case 4:
 	case 5:
-		if (c2 & 0x10) {
+		if (c2 >= 0x30) {
 			break;
 		}
 
 		/* Misc Control Codes		001 c10f  010 xxxx */
-		/* f ("field"): purpose? */
 
 		switch (c2 & 15) {
-		case 0:
-			/* Resume Caption Loading	001 c10f  010 0000 */
+		case 0:	/* Resume Caption Loading	001 c10f  010 0000 */
 		case 5:
 		case 6:
-		case 7:
-			/* Roll-Up Captions		001 c10f  010 01xx */
-		case 9:
-			/* Resume Direct Captioning	001 c10f  010 1001 */
-		case 15:
-			/* End Of Caption		001 c10f  010 1111 */
-
-			cd->in_itv = FALSE;
+		case 7:	/* Roll-Up Captions		001 c10f  010 01xx */
+		case 9: /* Resume Direct Captioning	001 c10f  010 1001 */
+		case 15: /* End Of Caption		001 c10f  010 1111 */
+			cd->in_itv[FIELD_1] = FALSE;
 			break;
 
-		case 10:
-			/* Text Restart		001 c10f  010 1010 */
-
+		case 10: /* Text Restart		001 c10f  010 1010 */
 			cd->itv.size = 0;
 
 			/* Fall through. */
 
-		case 11:
-			/* Resume Text Display		001 c10f  010 1011 */
-
+		case 11: /* Resume Text Display		001 c10f  010 1011 */
 			/* First field, text mode, secondary channel ->
 			   VBI3_CAPTION_T2. */
-			cd->in_itv = !!(c1 & 0x08);
+			cd->in_itv[FIELD_1] = !!(c1 & 0x08);
 			break;
 
-		case 13:
-			/* Carriage Return		001 c10f  010 1101 */
-
-			if (cd->in_itv)
+		case 13: /* Carriage Return		001 c10f  010 1101 */
+			if (cd->in_itv[FIELD_1])
 				itv_text (cd, 0);
 			break;
 
@@ -1644,7 +1669,9 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 	if (0)
 		fprintf (stderr, "caption feed %02x %02x '%c%c' %3d %f\n",
 			 buffer[0] & 0x7F, buffer[1] & 0x7F,
-			 buffer[0] & 0x7F, buffer[1] & 0x7F, line, timestamp);
+			 _vbi3_to_ascii (buffer[0]),
+			 _vbi3_to_ascii (buffer[1]),
+			 line, timestamp);
 
 	f = FIELD_1;
 
@@ -1655,6 +1682,12 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 
 	case 284: /* NTSC */
 		f = FIELD_2;
+
+		if (cd->handlers.event_mask & XDS_EVENTS) {
+			all_successful &=
+				vbi3_xds_demux_feed (&cd->xds.demux, buffer);
+		}
+
 		break;
 
 	default:
@@ -1670,60 +1703,38 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 
 	all_successful = TRUE;
 
-	if (FIELD_1 == f) {
-		/* First field. Control codes may repeat
-		   to assure correct reception. */
+	/* 47 CFR Section 15.119 (2)(i)(4): "If the first transmission
+	   of a control code pair passes parity, it is acted upon within
+	   one video frame. If the next frame contains a perfect repeat
+	   of the same pair, the redundant code is ignored. If, however,
+	   the next frame contains a different but also valid control
+	   code pair, this pair, too, will be acted upon (and the receiver
+	   will expect a repeat of this second pair in the next frame).
+	   If the first byte of the expected redundant control code pair
+	   fails the parity check and the second byte is identical to
+	   the second byte in the immediately preceding pair, then the
+	   expected redundant code is ignored. If there are printing
+	   characters in place of the redundant code, they will be
+	   processed normally." EIA 608-B Section 8.3: Caption control
+	   codes on field 2 may repeat as on field 1. Section 8.6.2: XDS
+	   control codes shall not repeat. */
 
-		/* According to Sec. 15.119 (2)(i)(4). */
-
-		if (c1 == cd->expect_ctrl[FIELD_1][0]
-		    && c2 == cd->expect_ctrl[FIELD_1][1]) {
-			/* Already acted upon. */
-			goto finish;
-		} else if (c1 < 0 && cd->expect_ctrl[FIELD_1][0]
-			   && c2 == cd->expect_ctrl[FIELD_1][1]) {
-			/* Parity error, probably in repeat control code. */
-			goto parity_error;
-		}
-	} else {
-		/* Second field. */
-
-		if (cd->handlers.event_mask & XDS_EVENTS) {
-/* TODO			all_successful &=
-   				vbi3_xds_demux_feed (&cd->xds.demux, buffer);
-*/
-		}
-
-		/* XDS bytes are in range 0x01 ... 0x0F (control codes)
-		   and 0x40 ... 0x7F (data), must be filtered. */
-
-		switch (c1) {
-		case 0x01 ... 0x0E:
-			/* XDS packet start or continuation. */
-			cd->in_xds = TRUE;
-			goto finish;
-
-		case 0x0F:
-			/* XDS packet terminator. */
-			cd->in_xds = FALSE;
-			goto finish;
-
-		case 0x10 ... 0x1F:
-			/* Caption control code. */
-			cd->in_xds = FALSE;
-			break;
-
-		default:
-			if (c1 < 0) {
-				goto parity_error;
-			}
-
-			break;
-		}
+	if (unlikely (c1 < 0)) {
+		goto parity_error;
+	} else if (c1 == cd->expect_ctrl[f][0]
+		   && c2 == cd->expect_ctrl[f][1]) {
+		/* Already acted upon. */
+		cd->expect_ctrl[f][0] = -1;
+		goto finish;
 	}
 
-	switch (c1) {
-	case 0x10 ... 0x1F:
+	if (c1 >= 0x10 && c1 < 0x20) {
+		/* Caption control code. */
+
+		/* There's no XDS on field 1, we just
+		   use an array to save a branch. */
+		cd->in_xds[f] = FALSE;
+
 		/* Sec. 15.119 (i)(1), (i)(2). */
 		if (c2 < 0x20) {
 			/* Parity error or invalid control code.
@@ -1748,21 +1759,29 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 
 		cd->expect_ctrl[f][0] = c1;
 		cd->expect_ctrl[f][1] = c2;
+	} else {
+		cd->expect_ctrl[f][0] = -1;
 
-		break;
-
-	default:
-		if (FIELD_1 != f && cd->in_xds)
-			break;
-
-		cd->expect_ctrl[f][0] = 0;
-
-		/* Sec. 15.119 (i)(1). */
-		if (c1 > 0x00 && c1 < 0x10) {
-			c1 = 0;
+		if (c1 < 0x10) {
+			if (FIELD_1 == f) {
+				/* 47 CFR Section 15.119 (i)(1): "If the
+				   non-printing character in the pair is
+				   in the range 00h to 0Fh, that character
+				   alone will be ignored and the second
+				   character will be treated normally." */
+				c1 = 0;
+			} else if (0x0F == c1) {
+				/* XDS packet terminator. */
+				cd->in_xds[FIELD_2] = FALSE;
+				goto finish;
+			} else if (c1 >= 0x01) {
+				/* XDS packet start or continuation. */
+				cd->in_xds[FIELD_2] = TRUE;
+				goto finish;
+			}
 		}
 
-		if (cd->in_itv) {
+		if (cd->in_itv[f]) {
 			all_successful &= itv_text (cd, c1);
 			all_successful &= itv_text (cd, c2);
 		}
@@ -1773,7 +1792,7 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 
 			ch_num = cd->cc.curr_ch_num;
 			if (CHANNEL_UNKNOWN == ch_num)
-				break;
+				goto finish;
 
 			ch_num = ((ch_num - VBI3_CAPTION_CC1) & 5) + f * 2;
 			ch = &cd->cc.channel[ch_num];
@@ -1784,11 +1803,9 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 			if (cd->cc.event_pending) {
 				send_event (cd, cd->cc.event_pending,
 					    VBI3_EVENT_CC_PAGE,
-					    VBI3_CHAR_UPDATE); 
+					    VBI3_CHAR_UPDATE);
 			}
 		}
-
-		break;
 	}
 
  finish:
@@ -1797,7 +1814,7 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 	return all_successful;
 
  parity_error:
-	cd->expect_ctrl[f][0] = 0;
+	cd->expect_ctrl[f][0] = -1;
 
 	cd->error_history *= 2;
 
@@ -1840,9 +1857,11 @@ _vbi3_caption_decoder_resync	(vbi3_caption_decoder *	cd)
 
 	cd->cc.curr_ch_num = CHANNEL_UNKNOWN;
 
-	cd->in_xds = FALSE;
+	cd->in_itv[FIELD_1] = FALSE;
 
-	CLEAR (cd->expect_ctrl);
+	cd->in_xds[FIELD_2] = FALSE;
+
+	memset (cd->expect_ctrl, -1, sizeof (cd->expect_ctrl));
 
 	cd->error_history = 0; /* all failed */
 }
@@ -2215,13 +2234,13 @@ vbi3_caption_decoder_new	(vbi3_cache *		ca,
 {
 	vbi3_caption_decoder *cd;
 
-	if (!(cd = malloc (sizeof (*cd)))) {
-		return NULL;
+	cd = vbi3_malloc (sizeof (*cd));
+
+	if (NULL != cd) {
+		_vbi3_caption_decoder_init (cd, ca, nk, videostd_set);
+
+		cd->virtual_delete = internal_delete;
 	}
-
-	_vbi3_caption_decoder_init (cd, ca, nk, videostd_set);
-
-	cd->virtual_delete = internal_delete;
 
 	return cd;
 }

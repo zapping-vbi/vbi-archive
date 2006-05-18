@@ -18,16 +18,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.6.2.11 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.6.2.12 2006-05-18 16:49:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <stdlib.h>		/* malloc() */
-#include <string.h>		/* strlen(), memcpy() */
 #include <unistd.h>		/* ssize_t */
 #include <setjmp.h>
+
 #include "misc.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"

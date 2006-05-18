@@ -21,10 +21,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.c,v 1.1.2.6 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: event.c,v 1.1.2.7 2006-05-18 16:49:19 mschimek Exp $ */
 
-#include <assert.h>
-#include <stdlib.h>		/* malloc() */
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include "misc.h"		/* CLEAR() */
 #include "event-priv.h"
 

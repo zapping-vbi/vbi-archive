@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top_title.h,v 1.1.2.2 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: top_title.h,v 1.1.2.3 2006-05-18 16:49:20 mschimek Exp $ */
 
 #ifndef __ZVBI3_TOP_TITLE_H__
 #define __ZVBI3_TOP_TITLE_H__
@@ -33,7 +33,7 @@ VBI3_BEGIN_DECLS
  */
 typedef struct {
 	/** Title of the page. This is a NUL-terminated UTF-8 string. */
-	char *			title_;
+	char *			xtitle;
 
 	/** Page number. */
 	vbi3_pgno		pgno;

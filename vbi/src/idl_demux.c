@@ -17,17 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: idl_demux.c,v 1.3.2.2 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: idl_demux.c,v 1.3.2.3 2006-05-18 16:49:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <stdlib.h>		/* malloc() */
-#include <string.h>		/* memset() */
-#include <assert.h>
+#include "misc.h"
 #include "hamm.h"		/* vbi3_unham8() */
-#include "misc.h"		/* MIN() */
 #include "idl_demux.h"
 
 static void
@@ -457,7 +454,7 @@ vbi3_idl_a_demux_new		(unsigned int		channel,
 {
 	vbi3_idl_demux *dx;
 
-	if (!(dx = malloc (sizeof (*dx)))) {
+	if (!(dx = vbi3_malloc (sizeof (*dx)))) {
 		return NULL;
 	}
 

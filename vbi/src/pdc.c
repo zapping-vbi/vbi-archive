@@ -17,13 +17,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.2.14 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: pdc.c,v 1.1.2.15 2006-05-18 16:49:19 mschimek Exp $ */
 
 #include "../site_def.h"
 
-#include <stdlib.h>		/* malloc() */
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include <ctype.h>
-#include <assert.h>
+
 #include "misc.h"
 #include "hamm.h"		/* vbi3_ipar8() */
 #include "bcd.h"		/* vbi3_is_bcd() */
@@ -1120,7 +1123,7 @@ _vbi3_pdc_title_post_proc	(vbi3_page *		pg,
 
 	p->_pgno = 0;
 
-	buffer = malloc ((pg->rows * pg->columns) * sizeof (*buffer));
+	buffer = vbi3_malloc ((pg->rows * pg->columns) * sizeof (*buffer));
 	if (NULL == buffer)
 		return;
 

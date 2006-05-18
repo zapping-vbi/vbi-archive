@@ -17,16 +17,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb_demux.c,v 1.9.2.3 2006-05-14 14:14:11 mschimek Exp $ */
+/* $Id: dvb_demux.c,v 1.9.2.4 2006-05-18 16:49:19 mschimek Exp $ */
 
-#include <stdio.h>		/* fprintf() */
-#include <stdlib.h>
-#include <string.h>		/* memcpy(), memmove(), memset() */
-#include <assert.h>
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+#include "misc.h"
 #include "dvb.h"
 #include "dvb_demux.h"
 #include "hamm.h"		/* vbi3_rev8() */
-#include "misc.h"		/* CLEAR() */
 
 #ifndef DVB_DEMUX_LOG
 #define DVB_DEMUX_LOG 0
@@ -342,7 +342,7 @@ discard_raw			(struct frame *		f)
 
 static int
 demux_samples			(struct frame *		f,
-				 uint8_t *		p,
+				 const uint8_t *	p,
 				 unsigned int		system)
 {
 	vbi3_sliced *s;
@@ -482,7 +482,7 @@ demux_data_units		(struct frame *		f,
 			if (0) {
 				fprintf (stderr, "DU-TTX %u >", s->line);
 				for (i = 0; i < 42; ++i)
-					fputc (vbi3_to_ascii (s->data[i]),
+					fputc (_vbi3_to_ascii (s->data[i]),
 					       stderr);
 				fprintf (stderr, "<\n");
 			}
@@ -565,7 +565,8 @@ demux_data_units		(struct frame *		f,
 			if (1) /* later */
 				break;
 
-			if (data_unit_length < 1 + 2 + 1 + p[5]) {
+			if (data_unit_length
+			    < (unsigned int)(1 + 2 + 1 + p[5])) {
 			bad_sample_length:
 				log ("data_unit_length %u too small "
 				     "for data_unit_id %u with %u samples\n",
@@ -583,7 +584,8 @@ demux_data_units		(struct frame *		f,
 			if (1) /* later */
 				break;
 
-			if (data_unit_length < 1 + 2 + 1 + p[5])
+			if (data_unit_length
+			    < (unsigned int)(1 + 2 + 1 + p[5]))
 				goto bad_sample_length;
 
 			if ((r = demux_samples (f, p, 0)) < 1)

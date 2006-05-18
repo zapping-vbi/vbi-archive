@@ -18,23 +18,23 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.c,v 1.1.2.8 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: xds_demux.c,v 1.1.2.9 2006-05-18 16:49:20 mschimek Exp $ */
 
 #include "../site_def.h"
-#include "../config.h"
 
-#include <stdlib.h>		/* malloc() */
-#include <string.h>		/* memcpy() */
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include <errno.h>
-#include <assert.h>
 
+#include "misc.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
 #  include "intl-priv.h"
 #endif
 #include "hamm.h"		/* vbi3_ipar8() */
-#include "misc.h"		/* vbi3_log_printf */
 #include "xds_demux.h"
 
 /**
@@ -73,7 +73,7 @@ _vbi3_xds_packet_dump		(const vbi3_xds_packet *	xp,
 	fputs (" '", fp);
 
 	for (i = 0; i < xp->buffer_size; ++i)
-		fputc (vbi3_to_ascii (xp->buffer[i]), fp);
+		fputc (_vbi3_to_ascii (xp->buffer[i]), fp);
 
 	fputs ("'\n", fp);
 }

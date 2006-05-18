@@ -22,14 +22,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.23 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.24 2006-05-18 16:49:20 mschimek Exp $ */
 
 #include "../site_def.h"
-#include "../config.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
@@ -38,6 +38,7 @@
 #include <sys/time.h>
 #include <pthread.h>
 
+#include "misc.h"
 #include "vbi.h"
 #include "hamm.h"
 #include "lang.h"
@@ -47,7 +48,6 @@
 #include "wss.h"
 #include "version.h"
 #include "vps.h"
-#include "misc.h"
 #include "vbi_decoder.h"
 #include "intl-priv.h"
 
@@ -87,9 +87,9 @@ vbi3_set_log_fn			(vbi3_log_mask		mask,
 	if (NULL == log_fn)
 		mask = 0;
 
-	vbi3_global_log_fn = log_fn;
-	vbi3_global_log_user_data = user_data;
-	vbi3_global_log_mask = mask;
+	_vbi3_global_log.mask		= mask;
+	_vbi3_global_log.fn		= log_fn;
+	_vbi3_global_log.user_data	= user_data;
 }
 
 void

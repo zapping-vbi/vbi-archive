@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.h,v 1.1.2.7 2006-05-07 20:51:35 mschimek Exp $ */
+/* $Id: bit_slicer.h,v 1.1.2.8 2006-05-18 16:49:19 mschimek Exp $ */
 
 #ifndef __ZVBI3_BIT_SLICER_H__
 #define __ZVBI3_BIT_SLICER_H__
@@ -168,9 +168,7 @@ struct _vbi3_bit_slicer {
 	unsigned int		skip;
 	unsigned int		green_mask;
 
-	vbi3_log_fn *		log_fn;
-	void *			log_user_data;
-	vbi3_log_mask		log_mask;
+	_vbi3_log_hook		log;
 };
 
 extern void

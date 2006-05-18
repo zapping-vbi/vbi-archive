@@ -21,20 +21,18 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.13.2.13 2006-05-14 14:14:11 mschimek Exp $ */
+/* $Id: export.c,v 1.13.2.14 2006-05-18 16:49:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <errno.h>
 #include <ctype.h>
 #include <sys/stat.h>
 #include <iconv.h>
 #include <math.h>		/* fabs() */
+
 #include "misc.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"

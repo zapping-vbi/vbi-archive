@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.h,v 1.1.2.7 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: raw_decoder.h,v 1.1.2.8 2006-05-18 16:49:20 mschimek Exp $ */
 
 #ifndef RAW_DECODER_H
 #define RAW_DECODER_H
@@ -107,10 +107,8 @@ typedef struct {
 struct _vbi3_raw_decoder {
 	vbi3_sampling_par	sampling;
 	vbi3_service_set	services;
+	_vbi3_log_hook		log;
 	vbi3_bool		collect_points;
-	vbi3_log_fn *		log_fn;
-	void *			log_user_data;
-	vbi3_log_mask		log_mask;
 	unsigned int		n_jobs;
 	unsigned int		n_sp_lines;
 	int			readjust;

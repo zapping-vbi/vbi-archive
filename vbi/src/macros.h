@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: macros.h,v 1.1.2.6 2006-05-14 14:14:11 mschimek Exp $ */
+/* $Id: macros.h,v 1.1.2.7 2006-05-18 16:49:19 mschimek Exp $ */
 
 #ifndef __ZVBI3_MACROS_H__
 #define __ZVBI3_MACROS_H__
@@ -123,6 +123,14 @@ vbi3_log_fn			(vbi3_log_mask		level,
 				 void *			user_data);
 
 extern vbi3_log_fn		vbi3_log_on_stderr;
+
+/* Private. */
+
+typedef struct {
+	vbi3_log_fn *		fn;
+	void *			user_data;
+	vbi3_log_mask		mask;
+} _vbi3_log_hook;
 
 VBI3_END_DECLS
 

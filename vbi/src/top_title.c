@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top_title.c,v 1.1.2.2 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: top_title.c,v 1.1.2.3 2006-05-18 16:49:20 mschimek Exp $ */
 
 #include <stdlib.h>		/* malloc(), qsort() */
 #include "conv.h"		/* _vbi3_strdup_locale_teletext() */
@@ -44,7 +44,7 @@ vbi3_top_title_destroy		(vbi3_top_title *	tt)
 {
 	assert (NULL != tt);
 
-	vbi3_free (tt->title_);
+	vbi3_free (tt->xtitle);
 
 	CLEAR (*tt);
 }
@@ -72,12 +72,13 @@ vbi3_top_title_copy		(vbi3_top_title *	dst,
 	if (src) {
 		char *title;
 
-		title = strdup (src->title_);
+		/* XXX uses locale encoding. */
+		title = strdup (src->xtitle);
 		if (NULL == title)
 			return FALSE;
 
 		*dst = *src;
-		dst->title_ = title;
+		dst->xtitle = title;
 	} else {
 		CLEAR (*dst);
 	}
@@ -183,16 +184,16 @@ _vbi3_top_title_from_ait_title
 	const struct page_stat *ps;
 	char *title;
 
-	title = vbi3_strndup_iconv_teletext ("UTF-8",
-					     ait->text,
-					     N_ELEMENTS (ait->text), cs);
+	title = vbi3_strndup_iconv_teletext (vbi3_locale_codeset (),
+					     ait->text, N_ELEMENTS (ait->text),
+					     cs);
 	if (NULL == title) {
 		/* Make vbi3_top_title_destroy() safe. */
 		vbi3_top_title_init (tt);
 		return FALSE;
 	}
 
-	tt->title_ = title;
+	tt->xtitle = title;
 
 	tt->pgno = ait->page.pgno;
 	tt->subno = ait->page.subno;

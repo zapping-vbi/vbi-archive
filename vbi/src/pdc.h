@@ -17,16 +17,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.h,v 1.1.2.12 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: pdc.h,v 1.1.2.13 2006-05-18 16:49:20 mschimek Exp $ */
 
 #ifndef __ZVBI3_PDC_H__
 #define __ZVBI3_PDC_H__
 
-#include <inttypes.h>		/* uint8_t */
 #include <stdio.h>		/* FILE */
+#include <inttypes.h>		/* uint8_t */
 #include <time.h>		/* time_t */
-#include "bcd.h"		/* vbi3_pgno */
 #include "macros.h"
+#include "bcd.h"		/* vbi3_pgno */
 #include "network.h"		/* vbi3_cni_type */
 
 VBI3_BEGIN_DECLS

@@ -18,16 +18,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.7.2.11 2006-05-07 20:51:35 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.7.2.12 2006-05-18 16:49:19 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <assert.h>
-#include <inttypes.h>
-#include <stdlib.h>		/* malloc() */
-#include <string.h>		/* memcpy() */
 #include "misc.h"
 #include "page.h"		/* vbi3_page */
 #include "lang.h"		/* vbi3_is_drcs() */
@@ -57,15 +53,6 @@
 #define CCH 13
 
 #define CCPL (ccfont3_width / CCW * ccfont3_height / CCH)
-
-#define warning(templ, args...)						\
-do {									\
-	if (vbi3_global_log_mask & VBI3_LOG_WARNING)			\
-		vbi3_log_printf (vbi3_global_log_fn,			\
-				 vbi3_global_log_user_data,		\
-				 VBI3_LOG_WARNING, __FUNCTION__,	\
-				 templ , ##args);			\
-} while (0)
 
 /**
  * @internal
@@ -501,7 +488,7 @@ vbi3_rgba_conv			(void *			buffer,
 		break;
 
 	default:
-		warning ("Invalid pixfmt %u (%s)",
+		warning (NULL, "Invalid pixfmt %u (%s).",
 			 (unsigned int) pixfmt,
 			 vbi3_pixfmt_name (pixfmt));
 
@@ -908,15 +895,17 @@ vbi3_page_draw_caption_region_va_list
 
 	if (x >= format->width
 	    || y >= format->height) {
-		warning ("Position x %u, y %u is beyond image size %u x %u",
+		warning (NULL, 
+			 "Position x %u, y %u is beyond image size %u x %u.",
 			 x, y, format->width, format->height);
 		return FALSE;
 	}
 
 	if (column + n_columns > pg->columns
 	    || row + n_rows > pg->rows) {
-		warning ("Columns %u ... %u, rows %u ... %u beyond "
-			 "page size of %u x %u characters",
+		warning (NULL, 
+			 "Columns %u ... %u, rows %u ... %u beyond "
+			 "page size of %u x %u characters.",
 			 column, column + n_columns - 1,
 			 row, row + n_rows - 1,
 			 pg->columns, pg->rows);
@@ -927,8 +916,9 @@ vbi3_page_draw_caption_region_va_list
 
 	if (n_columns * 16 > format->width - x
 	    || n_rows * scaled_height > format->height - y) {
-		warning ("Image size %u x %u too small to draw %u x %u "
-			 "characters (%u x %u pixels) at x %u, y %u",
+		warning (NULL, 
+			 "Image size %u x %u too small to draw %u x %u "
+			 "characters (%u x %u pixels) at x %u, y %u.",
 			 format->width, format->height,
 			 n_columns, n_rows,
 			 n_columns * 16, n_rows * scaled_height,
@@ -946,7 +936,7 @@ vbi3_page_draw_caption_region_va_list
 	if (bytes_per_line <= 0) {
 		bytes_per_line = pg->columns * CCW * bytes_per_pixel;
 	} else if ((format->width * bytes_per_pixel) > bytes_per_line) {
-		warning ("Image width %u (%s) > bytes_per_line %lu",
+		warning (NULL, "Image width %u (%s) > bytes_per_line %lu.",
 			 format->width, vbi3_pixfmt_name (format->pixfmt),
 			 bytes_per_line);
 		return FALSE;
@@ -960,8 +950,9 @@ vbi3_page_draw_caption_region_va_list
 	size = format->offset + bytes_per_line * format->height;
 
 	if (size > format->size) {
-		warning ("Image %u x %u, offset %lu, bytes_per_line %lu " 
-			 "> buffer size %lu = 0x%08lx",
+		warning (NULL, 
+			 "Image %u x %u, offset %lu, bytes_per_line %lu " 
+			 "> buffer size %lu = 0x%08lx.",
 			 format->width, format->height,
 			 format->offset, bytes_per_line,
 			 format->size, format->size);
@@ -1275,15 +1266,17 @@ vbi3_page_draw_teletext_region_va_list
 
 	if (x >= format->width
 	    || y >= format->height) {
-		warning ("Position x %u, y %u is beyond image size %u x %u",
+		warning (NULL, 
+			 "Position x %u, y %u is beyond image size %u x %u.",
 			 x, y, format->width, format->height);
 		return FALSE;
 	}
 
 	if (column + n_columns > pg->columns
 	    || row + n_rows > pg->rows) {
-		warning ("Columns %u ... %u, rows %u ... %u beyond "
-			 "page size of %u x %u characters",
+		warning (NULL, 
+			 "Columns %u ... %u, rows %u ... %u beyond "
+			 "page size of %u x %u characters.",
 			 column, column + n_columns - 1,
 			 row, row + n_rows - 1,
 			 pg->columns, pg->rows);
@@ -1294,8 +1287,9 @@ vbi3_page_draw_teletext_region_va_list
 
 	if (n_columns * 12 > format->width - x
 	    || n_rows * scaled_height > format->height - x) {
-		warning ("Image size %u x %u too small to draw %u x %u "
-			 "characters (%u x %u pixels) at x %u, y %u",
+		warning (NULL, 
+			 "Image size %u x %u too small to draw %u x %u "
+			 "characters (%u x %u pixels) at x %u, y %u.",
 			 format->width, format->height,
 			 n_columns, n_rows,
 			 n_columns * 12, n_rows * scaled_height,
@@ -1313,7 +1307,8 @@ vbi3_page_draw_teletext_region_va_list
 	if (bytes_per_line <= 0) {
 		bytes_per_line = pg->columns * TCW * bytes_per_pixel;
 	} else if ((format->width * bytes_per_pixel) > bytes_per_line) {
-		warning ("Image width %u (%s) > bytes_per_line %lu",
+		warning (NULL, 
+			 "Image width %u (%s) > bytes_per_line %lu.",
 			 format->width, vbi3_pixfmt_name (format->pixfmt),
 			 bytes_per_line);
 		return FALSE;
@@ -1327,8 +1322,9 @@ vbi3_page_draw_teletext_region_va_list
 	size = format->offset + bytes_per_line * format->height;
 
 	if (size > format->size) {
-		warning ("Image %u x %u, offset %lu, bytes_per_line %lu "
-			 "> buffer size %lu = 0x%08lx",
+		warning (NULL, 
+			 "Image %u x %u, offset %lu, bytes_per_line %lu "
+			 "> buffer size %lu = 0x%08lx.",
 			 format->width, format->height,
 			 format->offset, bytes_per_line,
 			 format->size, format->size);

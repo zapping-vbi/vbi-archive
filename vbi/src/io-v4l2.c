@@ -17,16 +17,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2.c,v 1.12.2.15 2006-05-14 14:14:11 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l2.c,v 1.12.2.16 2006-05-18 16:49:19 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
-#  include "../config.h"
+#  include "config.h"
 #endif
 
+#include "misc.h"
 #include "vbi.h"
 #include "intl-priv.h"
 #include "io-priv.h"
-#include "misc.h"
 
 #ifdef ENABLE_V4L2
 
@@ -452,8 +452,7 @@ vbi3_capture_v4l2_new(const char *dev_name, int buffers,
 
 		*services = vbi3_sampling_par_from_services
 		  (&v->dec.sampling, &max_rate,
-		   v->dec.sampling.videostd_set, *services,
-		   /* log_fn */ NULL, /* log_user_data */ NULL);
+		   v->dec.sampling.videostd_set, *services);
 
 		if (*services == 0) {
 			asprintf(errorstr, _("Sorry, %s (%s) cannot capture any of the "

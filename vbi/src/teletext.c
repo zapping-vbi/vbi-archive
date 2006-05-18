@@ -17,21 +17,17 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.22 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.23 2006-05-18 16:49:20 mschimek Exp $ */
 
-#include "site_def.h"
+#include "../site_def.h"
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <ctype.h>
-#include <assert.h>
 
+#include "misc.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
@@ -46,7 +42,6 @@
 #include "hamm.h"
 #include "lang.h"
 #include "pdc.h"
-#include "misc.h"
 #include "page-priv.h"
 #include "conv.h"
 
@@ -58,15 +53,6 @@
 do {									\
 	if (TELETEXT_FMT_LOG)						\
 		fprintf (stderr, templ , ##args);			\
-} while (0)
-
-#define warning(templ, args...)						\
-do {									\
-	if (vbi3_global_log_mask & VBI3_LOG_WARNING)			\
-		vbi3_log_printf (vbi3_global_log_fn,			\
-				 vbi3_global_log_user_data,		\
-				 VBI3_LOG_WARNING, __FUNCTION__,	\
-				 templ , ##args);			\
 } while (0)
 
 #define PGP_CHECK(ret_value)						\
@@ -4057,7 +4043,8 @@ vbi3_page_delete			(vbi3_page *		pg)
 	pgp = PARENT (pg, vbi3_page_priv, pg);
 
 	if (pg->priv != pgp) {
-		warning ("vbi3_page %p was not allocated by libzvbi.", pg);
+		warning (NULL,
+			 "vbi3_page %p was not allocated by libzvbi.", pg);
 		return;
 	}
 

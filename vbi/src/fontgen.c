@@ -1,10 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <inttypes.h>
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include <ctype.h>
 
 #include "misc.h"
-
 #include "hamm.c" /* vbi3_bit_reverse[] */
 
 static char *			font_name;

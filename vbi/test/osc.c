@@ -19,25 +19,24 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osc.c,v 1.9.2.5 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: osc.c,v 1.9.2.6 2006-05-18 16:49:21 mschimek Exp $ */
 
 #undef NDEBUG
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <locale.h>
 #include <errno.h>
-#include <assert.h>
 #include <unistd.h>
 #ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
 #endif
 
-#include "src/zvbi.h"
 #include "src/misc.h"
+#include "src/vbi.h"
+#include "src/zvbi.h"
 
 #ifndef X_DISPLAY_MISSING
 
@@ -102,7 +101,7 @@ teletext			(const uint8_t		buffer[42],
 	n = snprintf (text, sizeof (text) - 43, "%x/%2u ", magazine, packet);
 
 	for (i = 0; i < 42; ++i)
-		text[n++] = vbi3_to_ascii (buffer[i]);
+		text[n++] = _vbi3_to_ascii (buffer[i]);
 
         text[n] = 0;
 
@@ -186,7 +185,7 @@ vps				(uint8_t		buffer[13],
 			l[i] = 0;
 		}
 
-		label[i][l[i]] = vbi3_to_ascii (c);
+		label[i][l[i]] = _vbi3_to_ascii (c);
 
 		l[i] = (l[i] + 1) % 16;
 		
@@ -194,7 +193,7 @@ vps				(uint8_t		buffer[13],
 			       " data %02x %02x %02x='%c'=\"%s\" %02x %02x "
 			       "%02x %02x %02x %02x",
 			       buffer[0], buffer[1],
-			       c, vbi3_to_ascii (c), pr_label[i],
+			       c, _vbi3_to_ascii (c), pr_label[i],
 			       buffer[2], buffer[3],
 			       buffer[4], buffer[5],
 			       buffer[6], buffer[7]);
@@ -243,7 +242,7 @@ generic				(uint8_t		buffer[2],
 		sprintf (text + i * 3, "%02x ", buffer[i]);
 
 	for (i = 0; i < size; ++i)
-		text[size * 3 + i] = vbi3_to_ascii (buffer[i]);
+		text[size * 3 + i] = _vbi3_to_ascii (buffer[i]);
 
 	text[size * 4] = 0;
 

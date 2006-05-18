@@ -22,16 +22,18 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.1.2.5 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.1.2.6 2006-05-18 16:49:20 mschimek Exp $ */
 
-#include <assert.h>
-#include <stdlib.h>		/* malloc() */
-#include "vbi_decoder-priv.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include "misc.h"
 #ifndef ZAPPING8
 #  include "vps.h"
 #  include "wss.h"
 #endif
+#include "vbi_decoder-priv.h"
 
 /**
  * @param vbi VBI decoder allocated with vbi3_decoder_new().

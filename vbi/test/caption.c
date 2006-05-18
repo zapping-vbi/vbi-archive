@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.5.2.5 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: caption.c,v 1.5.2.6 2006-05-18 16:49:21 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -456,6 +456,7 @@ static vbi3_bool
 cc_raw_handler			(const vbi3_event *	ev,
 				 void *			user_data)
 {
+	uint16_t buffer[64];
 	unsigned int i;
 
 	user_data = user_data;
@@ -465,17 +466,16 @@ cc_raw_handler			(const vbi3_event *	ev,
 		 ev->ev.cc_raw.row,
 		 ev->ev.cc_raw.length);
 
-	for (i = 0; i < ev->ev.cc_raw.length; ++i) {
-		int c;
-
-		c = ev->ev.cc_raw.text[i].unicode;
-		if (c < 0x20 || c > 0x7E)
-			c = '.';
-
-		fputc (c, stdout);
-	}
+	assert (ev->ev.cc_raw.length <= 64);
+	for (i = 0; i < ev->ev.cc_raw.length; ++i)
+		buffer[i] = ev->ev.cc_raw.text[i].unicode;
 
 	assert (0 == ev->ev.cc_raw.text[i].unicode);
+
+	vbi3_fputs_iconv_ucs2 (stdout,
+			       vbi3_locale_codeset (),
+			       buffer,
+			       ev->ev.cc_raw.length);
 
 	fprintf (stdout, "<\n");
 

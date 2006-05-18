@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.4.2.10 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: trigger.c,v 1.4.2.11 2006-05-18 16:49:20 mschimek Exp $ */
 
 /*
    Based on EACEM TP 14-99-16 "Data Broadcasting", rev 0.8;
@@ -26,17 +26,17 @@
    and http://developer.webtv.net
  */
 
-#include "../config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
-#include <stdio.h>		/* FILE */
-#include <stdlib.h>		/* malloc() */
-#include <string.h>		/* strcmp() */
 #include <ctype.h>		/* isdigit(), isxdigit(), tolower() */
 #include <time.h>		/* time_t, mktime() */
 #include <limits.h>		/* INT_MAX */
 #include <math.h>		/* fabs() */
-#include "conv.h"		/* _vbi3_strdup_locale_utf8() */
-#include "misc.h"		/* CLEAR(), _vbi3_strndup() */
+
+#include "misc.h"
+#include "conv.h"
 #include "trigger.h"
 
 struct _vbi3_trigger {
@@ -353,6 +353,13 @@ _vbi3_trigger_delete		(_vbi3_trigger *		t)
 	vbi3_free (t);
 }
 
+static char *
+strdup_locale			(const char *		name)
+{
+	return vbi3_strndup_iconv (vbi3_locale_codeset (), "UTF-8",
+				   name, strlen (name) + 1);
+}
+
 static const uint8_t *
 _vbi3_trigger_from_eacem		(_vbi3_trigger *		t,
 				 const uint8_t *	s,
@@ -460,8 +467,8 @@ _vbi3_trigger_from_eacem		(_vbi3_trigger *		t,
 				break;
 
 			case 4: /* name */
-				t->link.name = vbi3_strndup_locale_utf8
-					(buf2, VBI3_NUL_TERMINATED);
+				/* XXX UTF-8? */
+				t->link.name = strdup_locale (buf2);
 				if (!t->link.name)
 					goto failure;
 				break;
@@ -648,8 +655,8 @@ _vbi3_trigger_from_atvef		(_vbi3_trigger *		t,
 				break;
 
 			case 2: /* name */
-				t->link.name = vbi3_strndup_locale_utf8
-					(buf2, VBI3_NUL_TERMINATED);
+				/* XXX UTF-8? */
+				t->link.name = strdup_locale (buf2);
 				if (!t->link.name)
 					goto failure;
 				break;

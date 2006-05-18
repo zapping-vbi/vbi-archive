@@ -18,10 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.c,v 1.1.2.3 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: bcd.c,v 1.1.2.4 2006-05-18 16:49:19 mschimek Exp $ */
 
+#include "misc.h"
 #include "bcd.h"
-#include "misc.h"		/* unlikely() */
 
 /**
  * @addtogroup BCD BCD arithmetic for Teletext page numbers

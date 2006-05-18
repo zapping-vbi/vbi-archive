@@ -18,13 +18,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.h,v 1.1.2.6 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: xds_demux.h,v 1.1.2.7 2006-05-18 16:49:20 mschimek Exp $ */
 
 #ifndef __ZVBI3_XDS_DEMUX_H__
 #define __ZVBI3_XDS_DEMUX_H__
 
-#include <inttypes.h>		/* uint8_t */
 #include <stdio.h>		/* FILE */
+#include <inttypes.h>		/* uint8_t */
 #include "macros.h"
 
 VBI3_BEGIN_DECLS
