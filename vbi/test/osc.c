@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osc.c,v 1.9.2.6 2006-05-18 16:49:21 mschimek Exp $ */
+/* $Id: osc.c,v 1.9.2.7 2006-05-19 01:11:38 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -503,6 +503,9 @@ xevent(void)
 				show_points ^= TRUE;
 				vbi3_raw_decoder_collect_points
 					(rd, show_points);
+				if (do_sim)
+					vbi3_capture_sim_decode_raw
+						(cap, show_points);
 				break;
 
 			case 'q':
@@ -805,9 +808,9 @@ main(int argc, char **argv)
 
 	do {
 		if (do_sim) {
-			cap = _vbi3_capture_sim_new (scanning, &services,
-						     /* interlaced */ FALSE,
-						     !desync);
+			cap = vbi3_capture_sim_new (scanning, &services,
+						    /* interlaced */ FALSE,
+						    !desync);
 			assert (NULL != cap);
 			break;
 		}
@@ -892,6 +895,8 @@ main(int argc, char **argv)
 	show_points = TRUE;
 
 	vbi3_raw_decoder_collect_points (rd, TRUE);
+	if (do_sim)
+		vbi3_capture_sim_decode_raw (cap, TRUE);
 
 	vbi3_raw_decoder_get_sampling_par (rd, &sp);
 

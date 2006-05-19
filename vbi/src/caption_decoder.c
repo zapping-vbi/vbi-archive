@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder.c,v 1.1.2.2 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: caption_decoder.c,v 1.1.2.3 2006-05-19 01:11:38 mschimek Exp $ */
 
 #include "misc.h"
 #include "hamm.h"
@@ -115,6 +115,7 @@ transparent_space [2] = {
 		.unicode		= 0x0020
 	}, {
 		/* Text channels. */
+		/* EIA 608-B Section 7.2 */
 		.attr			= 0,
 		.size			= VBI3_NORMAL_SIZE,
 		.opacity		= VBI3_OPAQUE,
@@ -193,7 +194,7 @@ vbi3_caption_decoder_get_cc_channel_stat
 	return TRUE;
 }
 
-/* Add solid spaces for legibility, according to Sec. 15.119 (d)(1),
+/* Add solid spaces for legibility, according to 47 CFR Section 15.119 (d)(1),
    (f)(1)(vii), (f)(1)(viii), (f)(2)(iii), (f)(3)(ii). */
 static __inline__ void
 copy_with_padding		(vbi3_char *		dcp,
@@ -598,7 +599,7 @@ put_char			(vbi3_caption_decoder *	cd,
 	if (ch->dirty[n] < 0)
 		erase_memory (cd, ch, n);
 
-	/* Sec. 15.119 (f)(1)(v), (1)(vi), (2)(ii), (3)(i). */
+	/* 47 CFR Section 15.119 (f)(1)(v), (1)(vi), (2)(ii), (3)(i). */
 
 	row = ch->curr_row;
 	column = ch->curr_column;
@@ -628,7 +629,7 @@ put_transparent_space		(vbi3_caption_decoder *	cd,
 	unsigned int row;
 	unsigned int column;
 
-	/* Sec. 15.119 (f)(1)(v), (1)(vi), (2)(ii), (3)(i). */
+	/* 47 CFR Section 15.119 (f)(1)(v), (1)(vi), (2)(ii), (3)(i). */
 
 	row = ch->curr_row;
 	column = ch->curr_column;
@@ -725,7 +726,7 @@ preamble_address_code		(vbi3_caption_decoder *	cd,
 
 	row = row_mapping[(c1 & 7) * 2 + ((c2 >> 5) & 1)];
 
-	/* Sec. 15.119 (j): No function, reject. */
+	/* 47 CFR Section 15.119 (j): No function, reject. */
 	if (row < 0)
 		return;
 
@@ -734,22 +735,23 @@ preamble_address_code		(vbi3_caption_decoder *	cd,
 	else
 		ch->curr_attr.attr &= ~VBI3_UNDERLINE;
 
+	/* EIA 608-B Section 6.2 */
 	ch->curr_attr.background = VBI3_BLACK;
 	ch->curr_attr.opacity = VBI3_OPAQUE;
 
 	if (VBI3_CAPTION_MODE_ROLL_UP == ch->mode) {
-		/* Sec. 15.119 (f)(1)(ii). */
+		/* 47 CFR Section 15.119 (f)(1)(ii). */
 		if (row != (int) ch->curr_row) {
 			move_window (cd, ch, /* new_base_row */ row);
 		}
 	}
 
-	/* Sec. 15.119 (d)(1)(i) */
+	/* 47 CFR Section 15.119 (d)(1)(i) */
 	set_cursor (ch, FIRST_COLUMN, row);
 
 	if (c2 & 0x10) {
 		/* Indent. */
-		/* Sec. 15.119 (d)(1)(i) */
+		/* 47 CFR Section 15.119 (d)(1)(i) */
 
 		ch->curr_column = FIRST_COLUMN + (c2 & 0x0E) * 2;
 	} else {
@@ -781,11 +783,11 @@ mid_row_code			(vbi3_caption_decoder *	cd,
 		   between underlined words? */
 		ch->curr_attr.attr &= ~VBI3_FLASH;
 	} else {
-		/* Sec. 15.119 (h)(1)(iii). */
+		/* 47 CFR Section 15.119 (h)(1)(iii). */
 		ch->curr_attr.attr &= ~(VBI3_FLASH | VBI3_UNDERLINE);
 	}
 
-	/* Sec. 15.119 (h)(1)(i): Is a spacing attribute. */
+	/* 47 CFR Section 15.119 (h)(1)(i): Is a spacing attribute. */
 	put_char (cd, ch, 0x0020);
 
 	color = (c2 >> 1) & 7;
@@ -793,9 +795,9 @@ mid_row_code			(vbi3_caption_decoder *	cd,
 	if (7 == color) {
 		ch->curr_attr.attr |= VBI3_ITALIC;
 
-		/* Sec. 15.119 (h)(1)(ii): No color change. */
+		/* 47 CFR Section 15.119 (h)(1)(ii): No color change. */
 	} else {
-		/* Sec. 15.119 (h)(1)(ii). */
+		/* 47 CFR Section 15.119 (h)(1)(ii). */
 		ch->curr_attr.attr &= ~VBI3_ITALIC;
 
 		ch->curr_attr.foreground = color_mapping[color];
@@ -815,7 +817,7 @@ backspace			(vbi3_caption_decoder *	cd,
 	unsigned int column;
 
 	/* Backspace			001 c10f  010 0001 */
-	/* Sec. 15.119 (f)(1)(vi). */
+	/* 47 CFR Section 15.119 (f)(1)(vi). */
 
 	/* XXX how should we delete spacing attributes? A simple
 	   backspace or undo the attribute change (i.e. store
@@ -860,7 +862,7 @@ delete_to_end_of_row		(vbi3_caption_decoder *	cd,
 	unsigned int row;
 
 	/* Delete To End Of Row		001 c10f  010 0100 */
-	/* Sec. 15.119 (f)(1)(vii). */
+	/* 47 CFR Section 15.119 (f)(1)(vii). */
 
 	n = ch->displayed_buffer ^ (VBI3_CAPTION_MODE_POP_ON == ch->mode);
 
@@ -932,12 +934,12 @@ roll_up_captions		(vbi3_caption_decoder *	cd,
 	unsigned int n_rows;
 
 	/* Roll-Up Captions		001 c10f  010 01xx */
-	/* Sec. 15.119 (f)(1). */
+	/* 47 CFR Section 15.119 (f)(1). */
 
 	n_rows = (c2 & 7) - 3; /* 2, 3, 4 */
 
 	if (VBI3_CAPTION_MODE_ROLL_UP == ch->mode) {
-		/* Sec. 15.119 (f)(1)(iv). */
+		/* 47 CFR Section 15.119 (f)(1)(iv). */
 		resize_window (cd, ch, n_rows);
 
 		ch->window_rows = n_rows;
@@ -945,7 +947,7 @@ roll_up_captions		(vbi3_caption_decoder *	cd,
 		/* XXX NBC (sample s4) sends resume-text and roll-up commands
 		   to switch between channels T2 and C1 *without* a PAC after
 		   roll-up to place the cursor back at the previous column.
-		   That makes sense to me but it contradicts Sec. 15.119
+		   That makes sense to me but it contradicts 47 CFR Section 15.119
 		   (f)(1)(ii): "The Roll-up command, in normal practice,
 		   will be followed (not necessarily immediately) by a
 		   Preamble Address Code indicating the base row and
@@ -965,7 +967,7 @@ roll_up_captions		(vbi3_caption_decoder *	cd,
 
 		was_dirty = ch->dirty[ch->displayed_buffer];
 
-		/* Sec. 15.119 (f)(1)(x). */
+		/* 47 CFR Section 15.119 (f)(1)(x). */
 
 		/* Lazy erase of displayed and non-displayed buffer. */
 		ch->dirty[0] = -1;
@@ -987,7 +989,7 @@ erase_displayed_memory		(vbi3_caption_decoder *	cd,
 	int was_dirty;
 
 	/* Erase Displayed Memory	001 c10f  010 1100 */
-	/* Sec. 15.119 (f). */
+	/* 47 CFR Section 15.119 (f). */
 
 	n = ch->displayed_buffer;
 
@@ -1019,7 +1021,7 @@ carriage_return			(vbi3_caption_decoder *	cd,
 	vbi3_cc_page_flags flags;
 
 	/* Carriage Return		001 c10f  010 1101 */
-	/* Sec. 15.119 (f)(1)(iii). */
+	/* 47 CFR Section 15.119 (f)(1)(iii). */
 
 	n = ch->displayed_buffer;
 	row = ch->curr_row;
@@ -1089,6 +1091,10 @@ carriage_return			(vbi3_caption_decoder *	cd,
 		ch->dirty[n] >>= 1;
 	}
 
+	/* EIA 608-B Section 6.2 */
+	ch->curr_attr.background = VBI3_BLACK;
+	ch->curr_attr.opacity = VBI3_OPAQUE;
+
 	ch->curr_column = FIRST_COLUMN;
 
 	flags = PAGE_UPDATE;
@@ -1103,10 +1109,7 @@ optional_attributes		(vbi3_caption_decoder *	cd,
 				 caption_channel *	ch,
 				 unsigned int		c2)
 {
-	vbi3_char attr;
 	unsigned int column;
-
-	attr = ch->curr_attr;
 
 	switch (c2) {
 	case 0x21 ... 0x23:
@@ -1115,17 +1118,30 @@ optional_attributes		(vbi3_caption_decoder *	cd,
 		column = ch->curr_column + (c2 & 3);
 		ch->curr_column = MIN (column, (unsigned int) LAST_COLUMN);
 
-		return;
+		break;
+
+	case 0x24: /* Select standard character set in normal size */
+	case 0x25: /* Select standard character set in double size */
+	case 0x26: /* Select first private character set */
+	case 0x27: /* Select second private character set */
+	case 0x28: /* Select character set GB 2312-80 (Chinese) */
+	case 0x29: /* Select character set KSC 5601-1987 (Korean) */
+	case 0x2A: /* Select first registered character set. */
+		/* EIA 608-B Section 6.3 Closed Group Extensions */
+		break;
 
 	case 0x2D:
 		/* Optional Attribute		001 c111  010 1101 */
-		/* EIA 608-B Section 6.4.2 */
+		/* EIA 608-B Section 6.2 */
 
 		/* For compatibility with standard decoders,
-		   i.e. space<attr> */
-		backspace (cd, ch);
+		   i.e. <space><attr> */
+		column = ch->curr_column;
+		if (column > FIRST_COLUMN)
+			ch->curr_column = column - 1;
 
-		attr.opacity = VBI3_TRANSPARENT_FULL;
+		ch->curr_attr.opacity = VBI3_TRANSPARENT_FULL;
+		ch->curr_attr.attr &= ~(VBI3_ITALIC | VBI3_FLASH);
 
 		/* This is a set-at spacing attribute. */
 		put_char (cd, ch, 0x20);
@@ -1135,51 +1151,31 @@ optional_attributes		(vbi3_caption_decoder *	cd,
 	case 0x2E:
 	case 0x2F:
 		/* Optional Foreground Attr's	001 c111  010 111u */
-		/* EIA 608-B Section 6.4.2 */
+		/* EIA 608-B Section 6.2 */
 
-		/* For compatibility with standard decoders,
-		   i.e. space<attr> */
-		backspace (cd, ch);
+		column = ch->curr_column;
+		if (column > FIRST_COLUMN)
+			ch->curr_column = column - 1;
 
-		attr.foreground = VBI3_BLACK;
+		ch->curr_attr.foreground = VBI3_BLACK;
+		ch->curr_attr.attr &= ~(VBI3_ITALIC | VBI3_FLASH);
 
 		/* This is a set-at spacing attribute but EIA 608-B
-		   doesn't say if we should underline. I guess not. */
+		   doesn't say if we should underline it. I guess not. */
 		if (c2 & 1) {
 			put_char (cd, ch, 0x20);
-			attr.attr |= VBI3_UNDERLINE;
+			ch->curr_attr.attr |= VBI3_UNDERLINE;
 		} else {
-			attr.attr &= ~VBI3_UNDERLINE;
+			ch->curr_attr.attr &= ~VBI3_UNDERLINE;
 			put_char (cd, ch, 0x20);
 		}
 
 		break;
 
-	default: /* ? */
-		/* Sec. 15.119 (i)(1): Ignore. */
-		return;
+	default:
+		/* 47 CFR Section 15.119 (i)(1): Ignore. */
+		break;
 	}
-
-	/* "Background and foreground attribute codes have
-	   an automatic backspace for backward compatibility with
-	   current decoders. Thus, an attribute must be preceded
-	   by a standard space character. Standard decoders display
-	   the space and ignore the attribute. Extended decoders
-	   display the space, and on receiving the attribute,
-	   backspace, then display a space that changes the color
-	   and opacity." XXX what if there is no "standard space
-	   character" or we're in first column? */
-
-	column = ch->curr_column;
-
-	if (column > FIRST_COLUMN)
-		ch->curr_column = column - 1;
-
-	/* This is a spacing attribute. */
-	put_char (cd, ch, 0x0020);
-
-	/* XXX I *think* attributes should set-after, not set-at. */
-	ch->curr_attr = attr;
 }
 
 /* NOTE ch is invalid if CHANNEL_UNKNOWN == cd->cc.curr_ch_num. */
@@ -1204,8 +1200,8 @@ misc_control_code		(vbi3_caption_decoder *	cd,
 
 		ch->mode = VBI3_CAPTION_MODE_POP_ON;
 
-		/* Sec. 15.119 (f)(1)(x): Memory not erased.
-		   Sec. 15.119 (f)(2)(iv): Cursor position unchanged. */
+		/* 47 CFR Section 15.119 (f)(1)(x): Memory not erased.
+		   47 CFR Section 15.119 (f)(2)(iv): Cursor position unchanged. */
 
 		break;
 
@@ -1222,7 +1218,7 @@ misc_control_code		(vbi3_caption_decoder *	cd,
 
 	case 2: /* reserved (formerly Alarm Off) */
 	case 3: /* reserved (formerly Alarm On) */
-		/* Sec. 15.119 (i)(1): Ignore. */
+		/* 47 CFR Section 15.119 (i)(1): Ignore. */
 		break;
 
 	case 4:
@@ -1249,7 +1245,7 @@ misc_control_code		(vbi3_caption_decoder *	cd,
 
 	case 8:
 		/* Flash On			001 c10f  010 1000 */
-		/* Sec. 15.119 (h)(1)(i). */
+		/* 47 CFR Section 15.119 (h)(1)(i). */
 
 		if (CHANNEL_UNKNOWN == cd->cc.curr_ch_num
 		    || VBI3_CAPTION_MODE_UNKNOWN == ch->mode)
@@ -1267,7 +1263,7 @@ misc_control_code		(vbi3_caption_decoder *	cd,
 
 		ch = switch_channel (cd, ch, VBI3_CAPTION_CC1 + (ch_num0 & 3));
 
-		/* Sec. 15.119 (f)(1)(x), (2)(vi): Memory not erased. */
+		/* 47 CFR Section 15.119 (f)(1)(x), (2)(vi): Memory not erased. */
 
 		if (VBI3_CAPTION_MODE_UNKNOWN == ch->mode
 		    || VBI3_CAPTION_MODE_POP_ON == ch->mode)
@@ -1299,7 +1295,7 @@ misc_control_code		(vbi3_caption_decoder *	cd,
 
 	case 12:
 		/* Erase Displayed Memory	001 c10f  010 1100 */
-		/* Sec. 15.119 (f). */
+		/* 47 CFR Section 15.119 (f). */
 
 		if (CHANNEL_UNKNOWN == cd->cc.curr_ch_num
 		    || VBI3_CAPTION_MODE_UNKNOWN == ch->mode)
@@ -1321,7 +1317,7 @@ misc_control_code		(vbi3_caption_decoder *	cd,
 
 		case VBI3_CAPTION_MODE_POP_ON:
 		case VBI3_CAPTION_MODE_PAINT_ON:
-			/* Sec. 15.119 (f)(2)(i), (3)(i): No effect. */
+			/* 47 CFR Section 15.119 (f)(2)(i), (3)(i): No effect. */
 			break;
 
 		case VBI3_CAPTION_MODE_ROLL_UP:
@@ -1334,7 +1330,7 @@ misc_control_code		(vbi3_caption_decoder *	cd,
 
 	case 14:
 		/* Erase Non-Displayed Memory	001 c10f  010 1110 */
-		/* Sec. 15.119 (f)(2)(v). */
+		/* 47 CFR Section 15.119 (f)(2)(v). */
 
 		if (CHANNEL_UNKNOWN == cd->cc.curr_ch_num)
 			break;
@@ -1346,17 +1342,17 @@ misc_control_code		(vbi3_caption_decoder *	cd,
 
 	case 15:
 		/* End Of Caption		001 c10f  010 1111 */
-		/* Sec. 15.119 (f)(2). */
+		/* 47 CFR Section 15.119 (f)(2). */
 
 		ch = switch_channel (cd, ch, VBI3_CAPTION_CC1 + (ch_num0 & 3));
 
-		/* Sec. 15.119 (f)(2). */
+		/* 47 CFR Section 15.119 (f)(2). */
 		ch->mode = VBI3_CAPTION_MODE_POP_ON;
 
 		/* Swap displayed and non-displayed caption. */
 		ch->displayed_buffer ^= 1;
 
-		/* Sec. 15.119 (f)(3)(iv):
+		/* 47 CFR Section 15.119 (f)(3)(iv):
 		   Does not erase non-displayed memory. */
 
 		/* No event if both buffers are empty. */
@@ -1481,7 +1477,7 @@ caption_control_code		(vbi3_caption_decoder *	cd,
 		break;
 
 	case 6: /* reserved */
-		/* Sec. 15.119 (i)(1): Ignore. */
+		/* 47 CFR Section 15.119 (i)(1): Ignore. */
 		break;
 
 	case 7:
@@ -1522,7 +1518,7 @@ caption_text			(vbi3_caption_decoder *	cd,
 		/* Parity error or invalid data. */
 
 		if (c < 0 && VBI3_CAPTION_MODE_UNKNOWN != ch->mode) {
-			/* Sec. 15.119 (j)(1). */
+			/* 47 CFR Section 15.119 (j)(1). */
 			put_char (cd, ch, vbi3_caption_unicode (0x7F));
 		}
 
@@ -1735,7 +1731,7 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 		   use an array to save a branch. */
 		cd->in_xds[f] = FALSE;
 
-		/* Sec. 15.119 (i)(1), (i)(2). */
+		/* 47 CFR Section 15.119 (i)(1), (i)(2). */
 		if (c2 < 0x20) {
 			/* Parity error or invalid control code.
 			   Let's hope it repeats. */

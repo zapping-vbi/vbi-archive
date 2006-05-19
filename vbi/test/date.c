@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: date.c,v 1.1.2.3 2006-05-18 16:49:21 mschimek Exp $ */
+/* $Id: date.c,v 1.1.2.4 2006-05-19 01:11:38 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -235,10 +235,10 @@ open_device			(const char *		dev_name,
 	trace = (option_verbosity >= 2);
 
 	if (0 == strcmp (dev_name, "sim")) {
-		cap = _vbi3_capture_sim_new (scanning,
-					     services,
-					     /* interlaced */ FALSE,
-					     /* synchronous */ TRUE);
+		cap = vbi3_capture_sim_new (scanning,
+					    services,
+					    /* interlaced */ FALSE,
+					    /* synchronous */ TRUE);
 		if (NULL != cap)
 			return cap;
 

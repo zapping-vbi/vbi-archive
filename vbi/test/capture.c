@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: capture.c,v 1.7.2.10 2006-05-18 16:49:21 mschimek Exp $ */
+/* $Id: capture.c,v 1.7.2.11 2006-05-19 01:11:38 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -425,7 +425,7 @@ load_caption			(void)
 		fprintf (stderr, "Loading '%s'.\n", sim_cc_streams[i]);
 
 		buffer = load_string (sim_cc_streams[i]);
-		success = _vbi3_capture_sim_load_caption
+		success = vbi3_capture_sim_load_caption
 			(cap, buffer, /* append */ (i > 0));
 		assert (success);
 	}
@@ -605,9 +605,9 @@ main(int argc, char **argv)
 
 	do {
 		if (do_sim) {
-			cap = _vbi3_capture_sim_new (scanning, &services,
-						     /* interlaced */ FALSE,
-						     !desync);
+			cap = vbi3_capture_sim_new (scanning, &services,
+						    /* interlaced */ FALSE,
+						    !desync);
 			assert (NULL != cap);
 			
 			load_caption ();

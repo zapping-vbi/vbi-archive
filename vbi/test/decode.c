@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decode.c,v 1.1.2.10 2006-05-18 16:49:21 mschimek Exp $ */
+/* $Id: decode.c,v 1.1.2.11 2006-05-19 01:11:38 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -725,6 +725,7 @@ vps				(const uint8_t		buffer[13],
 		if (option_dump_bin) {
 			printf ("VPS line=%3u ", line);
 			fwrite (buffer, 1, 13, stdout);
+			fflush (stdout);
 			return;
 		}
 
@@ -797,6 +798,8 @@ wss_625				(const uint8_t		buffer[2])
 			printf (_("Error in WSS packet.\n"));
 			return;
 		}
+
+		fputs ("WSS ", stdout);
 
 		_vbi3_aspect_ratio_dump (&ar, stdout);
 

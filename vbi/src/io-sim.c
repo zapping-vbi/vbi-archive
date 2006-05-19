@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-sim.c,v 1.1.2.11 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: io-sim.c,v 1.1.2.12 2006-05-19 01:11:38 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -31,25 +31,39 @@
 #include "misc.h"
 #include "sliced.h"
 #include "sampling_par.h"
+#include "hamm.h"
 #include "vps.h"
 #include "wss.h"
-
+#include "version.h"
 #include "io-sim.h"
+
+#undef warning
+#define warning(function, templ, args...)				\
+do {									\
+	if (_vbi3_global_log.mask & VBI3_LOG_WARNING)			\
+		_vbi3_log_printf (_vbi3_global_log.fn,			\
+				  _vbi3_global_log.user_data,		\
+				  VBI3_LOG_WARNING, function,		\
+				  templ , ##args);			\
+} while (0)
 
 #define PI 3.1415926535897932384626433832795029
 
 #define PULSE(zero_level)						\
 do {									\
 	if (0 == seq) {							\
-		raw[i] = zero_level;					\
+		raw[i] = SATURATE (zero_level, 0, 255);			\
 	} else if (3 == seq) {						\
-		raw[i] = zero_level + (int) signal_amp;			\
+		raw[i] = SATURATE (zero_level + (int) signal_amp,	\
+				   0, 255);				\
 	} else if ((seq ^ bit) & 1) { /* down */			\
 		double r = sin (q * tr - (PI / 2.0));			\
-		raw[i] = zero_level + (int)(r * r * signal_amp);	\
+		r = r * r * signal_amp;					\
+		raw[i] = SATURATE (zero_level + (int) r, 0, 255);	\
 	} else { /* up */						\
 		double r = sin (q * tr);				\
-		raw[i] = zero_level + (int)(r * r * signal_amp);	\
+		r = r * r * signal_amp;					\
+		raw[i] = SATURATE (zero_level + (int) r, 0, 255);	\
 	}								\
 } while (0)
 
@@ -69,14 +83,21 @@ do {									\
 	PULSE (zero_level);						\
 } while (0)
 
+#if 3 == VBI_VERSION_MINOR
+#  define SAMPLES_PER_LINE(sp) ((sp)->samples_per_line)
+#else
+#  define SAMPLES_PER_LINE(sp)						\
+	((sp)->bytes_per_line / VBI3_PIXFMT_BPP ((sp)->sampling_format))
+#endif
+
 static void
-signal_teletext			(const vbi3_sampling_par *sp,
-				 unsigned int		black_level,
+signal_teletext			(uint8_t *		raw,
+				 const vbi3_sampling_par *sp,
+				 int			black_level,
 				 double			signal_amp,
 				 double			bit_rate,
 				 unsigned int		frc,
 				 unsigned int		payload,
-				 uint8_t *		raw,
 				 const vbi3_sliced *	sliced)
 {
 	double bit_period = 1.0 / bit_rate;
@@ -84,6 +105,7 @@ signal_teletext			(const vbi3_sampling_par *sp,
 	double t2 = t1 + (payload * 8 + 24 + 1) * bit_period;
 	double q = (PI / 2.0) * bit_rate;
 	double sample_period = 1.0 / sp->sampling_rate;
+	unsigned int samples_per_line;
 	uint8_t buf[64];
 	unsigned int i;
 	double t;
@@ -99,7 +121,9 @@ signal_teletext			(const vbi3_sampling_par *sp,
 
 	t = sp->offset / (double) sp->sampling_rate;
 
-	for (i = 0; i < sp->samples_per_line; ++i) {
+	samples_per_line = SAMPLES_PER_LINE (sp);
+
+	for (i = 0; i < samples_per_line; ++i) {
 		if (t >= t1 && t < t2)
 			PULSE_SEQ (black_level);
 
@@ -108,24 +132,25 @@ signal_teletext			(const vbi3_sampling_par *sp,
 }
 
 static void
-signal_vps			(const vbi3_sampling_par *sp,
-				 unsigned int		black_level,
-				 unsigned int		white_level,
-				 uint8_t *		raw,
+signal_vps			(uint8_t *		raw,
+				 const vbi3_sampling_par *sp,
+				 int			black_level,
+				 int			white_level,
 				 const vbi3_sliced *	sliced)
 {
 	static const uint8_t biphase [] = {
-		0x55, 0x56, 0x59, 0x5A,
-		0x65, 0x66, 0x69, 0x6A,
-		0x95, 0x96, 0x99, 0x9A,
-		0xA5, 0xA6, 0xA9, 0xAA
+		0xAA, 0x6A, 0x9A, 0x5A,
+		0xA6, 0x66, 0x96, 0x56,
+		0xA9, 0x69, 0x99, 0x59,
+		0xA5, 0x65, 0x95, 0x55
 	};
-	double bit_rate = 15625 * 160;
+	double bit_rate = 15625 * 160 * 2;
 	double t1 = 12.5e-6 - .5 / bit_rate;
-	double t4 = t1 + (13 * 8) / bit_rate;
+	double t4 = t1 + ((4 + 13 * 2) * 8) / bit_rate;
 	double q = (PI / 2.0) * bit_rate;
 	double sample_period = 1.0 / sp->sampling_rate;
-	double signal_amp = white_level - black_level;
+	unsigned int samples_per_line;
+	double signal_amp = (0.5 / 0.7) * (white_level - black_level);
 	uint8_t buf[32];
 	unsigned int i;
 	double t;
@@ -138,13 +163,19 @@ signal_vps			(const vbi3_sampling_par *sp,
 	buf[4] = 0x99; /* 1001 1001 */
 
 	for (i = 0; i < 13; ++i) {
-		buf[5 + i * 2] = biphase[sliced->data[i] >> 4];
-		buf[6 + i * 2] = biphase[sliced->data[i] & 15];
+		unsigned int b = sliced->data[i];
+
+		buf[5 + i * 2] = biphase[b >> 4];
+		buf[6 + i * 2] = biphase[b & 15];
 	}
+
+	buf[6 + 12 * 2] &= 0x7F;
 
 	t = sp->offset / (double) sp->sampling_rate;
 
-	for (i = 0; i < sp->samples_per_line; ++i) {
+	samples_per_line = SAMPLES_PER_LINE (sp);
+
+	for (i = 0; i < samples_per_line; ++i) {
 		if (t >= t1 && t < t4)
 			PULSE_SEQ (black_level);
 
@@ -195,27 +226,32 @@ wss_biphase			(uint8_t		buf[32],
 }
 
 static void
-signal_wss_625			(const vbi3_sampling_par *sp,
-				 unsigned int		black_level,
-				 unsigned int		white_level,
-				 uint8_t *		raw,
+signal_wss_625			(uint8_t *		raw,
+				 const vbi3_sampling_par *sp,
+				 int			black_level,
+				 int			white_level,
 				 const vbi3_sliced *	sliced)
 {
 	double bit_rate = 15625 * 320;
 	double t1 = 11.0e-6 - .5 / bit_rate;
-	double t4 = t1 + (29 + 24 + 14 * 6) / bit_rate;
+	double t4 = t1 + (29 + 24 + 14 * 6 + 1) / bit_rate;
 	double q = (PI / 2.0) * bit_rate;
 	double sample_period = 1.0 / sp->sampling_rate;
-	double signal_amp = white_level - black_level;
+	double signal_amp = (0.5 / 0.7) * (white_level - black_level);
+	unsigned int samples_per_line;
 	uint8_t buf[32];
 	unsigned int i;
 	double t;
+
+	CLEAR (buf);
 
 	wss_biphase (buf, sliced);
 
 	t = sp->offset / (double) sp->sampling_rate;
 
-	for (i = 0; i < sp->samples_per_line; ++i) {
+	samples_per_line = SAMPLES_PER_LINE (sp);
+
+	for (i = 0; i < samples_per_line; ++i) {
 		if (t >= t1 && t < t4)
 			PULSE_SEQ (black_level);
 
@@ -224,11 +260,11 @@ signal_wss_625			(const vbi3_sampling_par *sp,
 }
 
 static void
-signal_closed_caption		(const vbi3_sampling_par *sp,
-				 unsigned int		blank_level,
-				 unsigned int		white_level,
+signal_closed_caption		(uint8_t *		raw,
+				 const vbi3_sampling_par *sp,
+				 int			blank_level,
+				 int			white_level,
 				 double			bit_rate,
-				 uint8_t *		raw,
 				 const vbi3_sliced *	sliced)
 {
 	double D = 1.0 / bit_rate;
@@ -241,6 +277,7 @@ signal_closed_caption		(const vbi3_sampling_par *sp,
 	double signal_mean = (white_level - blank_level) * .25; /* 25 IRE */
 	double signal_high = blank_level + (white_level - blank_level) * .5;
 	double sample_period = 1.0 / sp->sampling_rate;
+	unsigned int samples_per_line;
 	double t;
 	unsigned int data;
 	unsigned int i;
@@ -251,11 +288,13 @@ signal_closed_caption		(const vbi3_sampling_par *sp,
 
 	t = sp->offset / (double) sp->sampling_rate;
 
-	for (i = 0; i < sp->samples_per_line; ++i) {
+	samples_per_line = SAMPLES_PER_LINE (sp);
+
+	for (i = 0; i < samples_per_line; ++i) {
 		if (t >= t1 && t < t2) {
-			raw[i] = blank_level
-				+ (1.0 - cos (q1 * (t - t1)))
-				* signal_mean;
+			raw[i] = SATURATE (blank_level
+					   + (1.0 - cos (q1 * (t - t1)))
+					   * signal_mean, 0, 255);
 		} else {
 			unsigned int bit;
 			unsigned int seq;
@@ -268,18 +307,21 @@ signal_closed_caption		(const vbi3_sampling_par *sp,
 			d -= bit * D;
 			if ((1 == seq || 2 == seq)
 			    && fabs (d) < .120e-6) {
+				int level;
+
 				if (1 == seq)
-					raw[i] = blank_level
+					level = blank_level
 						+ (1.0 + cos (q2 * d))
 						* signal_mean;
 				else
-					raw[i] = blank_level
+					level = blank_level
 						+ (1.0 - cos (q2 * d))
 						* signal_mean;
+				raw[i] = SATURATE (level, 0, 255);
 			} else if (data & (2 << bit)) {
-				raw[i] = signal_high;
+				raw[i] = SATURATE (signal_high, 0, 255);
 			} else {
-				raw[i] = blank_level;
+				raw[i] = SATURATE (blank_level, 0, 255);
 			}
 		}
 
@@ -305,26 +347,29 @@ clear_image			(uint8_t *		p,
 }
 
 static vbi3_bool
-signal_u8			(const vbi3_sampling_par *sp,
-				 unsigned int		blank_level,
-				 unsigned int		black_level,
-				 unsigned int		white_level,
-				 uint8_t *		raw,
+signal_u8			(uint8_t *		raw,
+				 const vbi3_sampling_par *sp,
+				 int			blank_level,
+				 int			black_level,
+				 int			white_level,
+				 vbi3_bool		swap_fields,
 				 const vbi3_sliced *	sliced,
-				 unsigned int		sliced_lines,
+				 unsigned int		n_sliced_lines,
 				 const char *		caller)
 {
-	unsigned int scan_lines;
+	unsigned int n_scan_lines;
+	unsigned int samples_per_line;
 
-	caller = caller;
+	n_scan_lines = sp->count[0] + sp->count[1];
+	samples_per_line = SAMPLES_PER_LINE (sp);
 
-	scan_lines = sp->count[0] + sp->count[1];
-
-	clear_image (raw, blank_level,
-		     sp->samples_per_line, scan_lines,
+	clear_image (raw,
+		     blank_level,
+		     samples_per_line,
+		     n_scan_lines,
 		     sp->bytes_per_line);
 
-	for (; sliced_lines-- > 0; ++sliced) {
+	for (; n_sliced_lines-- > 0; ++sliced) {
 		unsigned int row;
 		uint8_t *raw1;
 
@@ -333,26 +378,28 @@ signal_u8			(const vbi3_sampling_par *sp,
 		} else if (0 != sp->start[1]
 			   && sliced->line >= sp->start[1]) {
 			row = sliced->line - sp->start[1];
-
 			if (row >= sp->count[1])
 				goto bounds;
 
-			if (sp->interlaced)
-				row = row * 2 + 1;
-			else
+			if (sp->interlaced) {
+				row = row * 2 + !swap_fields;
+			} else if (!swap_fields) {
 				row += sp->count[0];
+			}
 		} else if (0 != sp->start[0]
 			   && sliced->line >= sp->start[0]) {
 			row = sliced->line - sp->start[0];
-
 			if (row >= sp->count[0])
 				goto bounds;
 
-			if (sp->interlaced)
-				row *= 2;
+			if (sp->interlaced) {
+				row *= 2 + !!swap_fields;
+			} else if (swap_fields) {
+				row += sp->count[0];
+			}
 		} else {
 		bounds:
-			warning (NULL, 
+			warning (caller,
 				 "Sliced line %u out of bounds.",
 				 sliced->line);
 			return FALSE;
@@ -361,87 +408,99 @@ signal_u8			(const vbi3_sampling_par *sp,
 		raw1 = raw + row * sp->bytes_per_line;
 
 		switch (sliced->id) {
-		case VBI3_SLICED_TELETEXT_A:
-			signal_teletext (sp, black_level,
-					 .7 * (white_level
-					       - black_level), /* ? */
-					 15625 * 397, 0xE7, 37,
-					 raw1, sliced);
+		case VBI3_SLICED_TELETEXT_A: /* ok? */
+			signal_teletext (raw1, sp,
+					 black_level,
+					 /* amplitude */ .7 * (white_level
+							       - black_level),
+					 /* bit_rate */ 25 * 625 * 397,
+					 /* FRC */ 0xE7,
+					 /* payload */ 37,
+					 sliced);
 			break;
 
 		case VBI3_SLICED_TELETEXT_B_L10_625:
 		case VBI3_SLICED_TELETEXT_B_L25_625:
 		case VBI3_SLICED_TELETEXT_B:
-			signal_teletext (sp, black_level,
+			signal_teletext (raw1, sp, black_level,
 					 .66 * (white_level - black_level),
-					 15625 * 444, 0x27, 42,
-					 raw1, sliced);
+					 25 * 625 * 444, 0x27, 42, sliced);
 			break;
 
 		case VBI3_SLICED_TELETEXT_C_625:
-			signal_teletext (sp, black_level,
+			signal_teletext (raw1, sp, black_level,
 					 .7 * (white_level - black_level),
-					 15625 * 367, 0xE7, 33,
-					 raw1, sliced);
+					 25 * 625 * 367, 0xE7, 33, sliced);
 			break;
 
 		case VBI3_SLICED_TELETEXT_D_625:
-			signal_teletext (sp, black_level,
+			signal_teletext (raw1, sp, black_level,
 					 .7 * (white_level - black_level),
-					 5642787, 0xA7, 34,
-					 raw1, sliced);
+					 5642787, 0xA7, 34, sliced);
 			break;
 
 		case VBI3_SLICED_CAPTION_625_F1:
 		case VBI3_SLICED_CAPTION_625_F2:
 		case VBI3_SLICED_CAPTION_625:
-			signal_closed_caption (sp, blank_level, white_level,
-					       15625 * 32, raw1, sliced);
+			signal_closed_caption (raw1, sp,
+					       blank_level,
+					       white_level,
+					       25 * 625 * 32,
+					       sliced);
 			break;
 
 		case VBI3_SLICED_VPS:
 		case VBI3_SLICED_VPS_F2:
-			signal_vps (sp, black_level, white_level,
-				    raw1, sliced);
+			signal_vps (raw1, sp,
+				    black_level,
+				    white_level,
+				    sliced);
 			break;
 
 		case VBI3_SLICED_WSS_625:
-			signal_wss_625 (sp, black_level, white_level,
-					raw1, sliced);
+			signal_wss_625 (raw1, sp,
+					black_level,
+					white_level,
+					sliced);
 			break;
 
 		case VBI3_SLICED_TELETEXT_B_525:
-			signal_teletext (sp, black_level,
-					 .7 * (white_level - black_level),
-					 5727272, 0x27, 34,
-					 raw1, sliced);
+			signal_teletext (raw1, sp,
+					 black_level,
+					 /* amplitude */ .7 * (white_level
+							       - black_level),
+					 /* bit_rate */ 5727272,
+					 /* FRC */ 0x27,
+					 /* payload */ 34,
+					 sliced);
 			break;
 
 		case VBI3_SLICED_TELETEXT_C_525:
-			signal_teletext (sp, black_level,
+			signal_teletext (raw1, sp, black_level,
 					 .7 * (white_level - black_level),
-					 5727272, 0xE7, 33,
-					 raw1, sliced);
+					 5727272, 0xE7, 33, sliced);
 			break;
 
 		case VBI3_SLICED_TELETEXT_D_525:
-			signal_teletext (sp, black_level,
+			signal_teletext (raw1, sp, black_level,
 					 .7 * (white_level - black_level),
-					 5727272, 0xA7, 34,
-					 raw1, sliced);
+					 5727272, 0xA7, 34, sliced);
 			break;
 
 		case VBI3_SLICED_CAPTION_525_F1:
 		case VBI3_SLICED_CAPTION_525_F2:
 		case VBI3_SLICED_CAPTION_525:
-			signal_closed_caption (sp, blank_level, white_level,
-					       30000 * 525 * 32 / 1001, raw1, sliced);
+			signal_closed_caption (raw1, sp,
+					       blank_level,
+					       white_level,
+					       30000 * 525 * 32 / 1001,
+					       sliced);
 			break;
 
 		default:
-			warning (NULL, "Service 0x%08x (%s) not supported.",
-				 sliced->id,
-				 vbi3_sliced_name (sliced->id));
+			warning (caller,
+				 "Service 0x%08x (%s) not supported.",
+				 sliced->id, vbi3_sliced_name (sliced->id));
 			return FALSE;
 		}
 	}
@@ -453,58 +512,101 @@ signal_u8			(const vbi3_sampling_par *sp,
  * @internal
  * @param raw A raw VBI image will be stored here. The buffer
  *   must be large enough for @a sp->count[0] + count[1] lines
- *   of bytes_per_line each, with samples_per_line bytes
- *   actually written.
- * @param sp Describes the raw VBI data generated. sampling_format
- *   must be VBI3_PIXFMT_Y8.
+ *   of @a sp->bytes_per_line each, with @a sp->samples_per_line
+ *   (in libzvbi 0.2.x @a sp->bytes_per_line) bytes actually written.
+ * @param sp Describes the raw VBI data to generate. @a sp->sampling_format
+ *   must be @c VBI3_PIXFMT_Y8 (@c VBI3_PIXFMT_YUV420 with libzvbi 0.2.x).
+ *   @a sp->synchronous is ignored.
+ * @param blank_level The level of the horizontal blanking in the raw
+ *   VBI image. Must be <= @a white_level.
+ * @param white_level The peak white level in the raw VBI image. Set to
+ *   zero to get the default blanking and white level.
+ * @param swap_fields If @c TRUE the second field will be stored first
+ *   in the @c raw buffer. Note you can also get an interlaced image
+ *   by setting @a sp->interlaced to @c TRUE.
  * @param sliced Pointer to an array of vbi3_sliced containing the
  *   VBI data to be encoded.
- * @param sliced_lines Number of elements in the vbi3_sliced array.
+ * @param n_sliced_lines Number of elements in the @a sliced array.
  *
- * Generates a raw VBI image similar to those you get from VBI
- * sampling hardware. The following data services are
- * currently supported: All Teletext services, WSS 625, all Closed
- * Caption services except 2xCC. Sliced data is encoded as is,
- * without verification, except for buffer overflow checks.
+ * Generates a raw VBI image similar to those you get from raw VBI
+ * sampling hardware. The following data services are currently supported:
+ * All Teletext services, VPS, WSS 625, Closed Caption 525 and 625.
  *
- * @return
- * @c FALSE on error.
+ * The function encodes sliced data as is, e.g. without adding or
+ * checking parity bits, without checking if the line number is correct
+ * for the respective data service, or if the signal will fit completely
+ * in the given space (@a sp->offset and @a sp->samples_per_line at
+ * @a sp->sampling_rate).
+ *
+ * @returns
+ * @c FALSE if the @a raw_size is too small, if the @a sp sampling
+ * parameters are invalid, if the signal levels are invalid,
+ * if the @a sliced array contains unsupported services or line numbers
+ * outside the @a sp sampling parameters.
  */
 vbi3_bool
-_vbi3_test_image_vbi		(uint8_t *		raw,
-				 unsigned int		raw_size,
+vbi3_raw_vbi_image		(uint8_t *		raw,
+				 unsigned long		raw_size,
 				 const vbi3_sampling_par *sp,
+				 int			blank_level,
+				 int			white_level,
+				 vbi3_bool		swap_fields,
 				 const vbi3_sliced *	sliced,
-				 unsigned int		sliced_lines)
+				 unsigned int		n_sliced_lines)
 {
-	unsigned int scan_lines;
-	unsigned int blank_level;
+	unsigned int n_scan_lines;
 	unsigned int black_level;
-	unsigned int white_level;
 
-	if (!_vbi3_sampling_par_valid_log (sp, /* log_hook */ NULL))
+	if (unlikely (!_vbi3_sampling_par_valid_log (sp, /* log_hook */ NULL)))
 		return FALSE;
 
-	scan_lines = sp->count[0] + sp->count[1];
-	if (scan_lines * sp->bytes_per_line > raw_size)
+	n_scan_lines = sp->count[0] + sp->count[1];
+	if (unlikely (n_scan_lines * sp->bytes_per_line > raw_size)) {
+		warning (__FUNCTION__,
+			 "%u + %u lines * %lu bytes_per_line > %lu raw_size.",
+			 sp->count[0], sp->count[1],
+			 (unsigned long) sp->bytes_per_line, raw_size);
 		return FALSE;
-
-	if (VBI3_VIDEOSTD_SET_525_60 & sp->videostd_set) {
-		const double IRE = 200 / 140.0;
-
-		blank_level = (int)(40   * IRE);
-		black_level = (int)(47.5 * IRE);
-		white_level = (int)(140  * IRE);
-	} else {
-		const double IRE = 200 / 143.0;
-
-		blank_level = (int)(43   * IRE);
-		black_level = blank_level;
-		white_level = (int)(143  * IRE);
 	}
 
-	return signal_u8 (sp, blank_level, black_level, white_level,
-			  raw, sliced, sliced_lines, __FUNCTION__);
+	if (unlikely (blank_level > white_level
+		      || white_level > 255)) {
+		warning (__FUNCTION__,
+			 "Invalid blanking %u or peak white level %u.",
+			 blank_level, white_level);
+	}
+
+#if 3 == VBI_VERSION_MINOR
+	if (VBI3_VIDEOSTD_SET_525_60 & sp->videostd_set) {
+#else
+	if (525 == sp->scanning) {
+#endif
+		const unsigned int peak = 200;
+
+		if (0 == white_level) {
+			blank_level = (int)(40.0 * peak / 140);
+			black_level = (int)(47.5 * peak / 140);
+			white_level = peak;
+		} else {
+			black_level = (int)(blank_level
+					    + 7.5 * (white_level - blank_level));
+		}
+	} else {
+		const unsigned int peak = 200;
+
+		if (0 == white_level) {
+			blank_level = (int)(43.0 * peak / 140);
+			white_level = peak;
+		}
+
+		black_level = blank_level;
+	}
+
+	return signal_u8 (raw, sp,
+			  blank_level, black_level, white_level,
+			  swap_fields,
+			  sliced, n_sliced_lines,
+			  __FUNCTION__);
 }
 
 #define RGBA_TO_RGB16(value)						\
@@ -563,7 +665,7 @@ _vbi3_test_image_vbi		(uint8_t *		raw,
 
 #define SCAN_LINE_TO_N(conv, n)						\
 do {									\
-	for (i = 0; i < sp->samples_per_line; ++i) {			\
+	for (i = 0; i < samples_per_line; ++i) {			\
 		uint8_t *dd = d + i * (n);				\
 		unsigned int value = s[i] * 0x01010101;			\
 		unsigned int mask = ~pixel_mask;			\
@@ -581,7 +683,7 @@ do {									\
 
 #define SCAN_LINE_TO_RGB2(conv, endian)					\
 do {									\
-	for (i = 0; i < sp->samples_per_line; ++i) {			\
+	for (i = 0; i < samples_per_line; ++i) {			\
 		uint8_t *dd = d + i * 2;				\
 		unsigned int value = s[i] * 0x01010101;			\
 		unsigned int mask;					\
@@ -597,53 +699,66 @@ do {									\
  * @internal
  * @param raw A raw VBI image will be stored here. The buffer
  *   must be large enough for @a sp->count[0] + count[1] lines
- *   of bytes_per_line each, with samples_per_line actually written.
+ *   of @a sp->bytes_per_line each, with @a sp->samples_per_line
+ *   (in libzvbi 0.2.x @a sp->bytes_per_line times bytes per pixel)
+ *   bytes actually written.
  * @param sp Describes the raw VBI data to generate. When the
- *   sampling_format is a planar YUV format the function writes
- *   the Y plane only.
+ *   @a sp->sampling_format is a planar YUV format the function
+ *   writes the Y plane only.
+ * @param black_level The black level in the raw VBI image. Must be
+ *   <= @a white_level.
+ * @param white_level The peak white level in the raw VBI image. Set to
+ *   zero to get the default black and white level.
  * @param pixel_mask This mask selects which color or alpha channel
  *   shall contain VBI data. Depending on @a sp->sampling_format it is
  *   interpreted as 0xAABBGGRR or 0xAAVVUUYY. A value of 0x000000FF
  *   for example writes data in "red bits", not changing other
  *   bits in the @a raw buffer.
+ * @param swap_fields If @c TRUE the second field will be stored first
+ *   in the @c raw buffer. Note you can also get an interlaced image
+ *   by setting @a sp->interlaced to @c TRUE.
  * @param sliced Pointer to an array of vbi3_sliced containing the
  *   VBI data to be encoded.
- * @param sliced_lines Number of elements in the vbi3_sliced array.
+ * @param n_sliced_lines Number of elements in the @a sliced array.
  *
  * Generates a raw VBI image similar to those you get from video
- * capture hardware. Otherwise identical to vbi3_test_image_vbi().
+ * capture hardware. Otherwise identical to vbi3_raw_vbi_image().
  *
- * @return
- * TRUE on success.
+ * @returns
+ * @c FALSE if the @a raw_size is too small, if the @a sp sampling
+ * parameters are invalid, if the signal levels are invalid,
+ * if the @a sliced array contains unsupported services or line numbers
+ * outside the @a sp sampling parameters.
  */
-/* brightness, contrast parameter? */
 vbi3_bool
-_vbi3_test_image_video		(uint8_t *		raw,
+vbi3_raw_video_image		(uint8_t *		raw,
 				 unsigned long		raw_size,
 				 const vbi3_sampling_par *sp,
+				 int			black_level,
+				 int			white_level,
 				 unsigned int		pixel_mask,
+				 vbi3_bool		swap_fields,
 				 const vbi3_sliced *	sliced,
-				 unsigned int		sliced_lines)
+				 unsigned int		n_sliced_lines)
 {
+	unsigned int n_scan_lines;
 	unsigned int blank_level;
-	unsigned int black_level;
-	unsigned int white_level;
+	unsigned int samples_per_line;
 	vbi3_sampling_par sp8;
-	unsigned int scan_lines;
 	unsigned int size;
 	uint8_t *buf;
 	uint8_t *s;
 	uint8_t *d;
 
-	if (!_vbi3_sampling_par_valid_log (sp, /* log_hook */ NULL))
+	if (unlikely (!_vbi3_sampling_par_valid_log (sp, /* log_hook */ NULL)))
 		return FALSE;
 
-	scan_lines = sp->count[0] + sp->count[1];
-
-	if (scan_lines * sp->bytes_per_line > raw_size) {
-		warning (NULL, 
-			 "scan_lines %u * bytes_per_line %lu > raw_size %lu.",
-			 scan_lines, sp->bytes_per_line, raw_size);
+	n_scan_lines = sp->count[0] + sp->count[1];
+	if (unlikely (n_scan_lines * sp->bytes_per_line > raw_size)) {
+		warning (__FUNCTION__,
+			 "%u + %u lines * %lu bytes_per_line > %lu raw_size.",
+			 			 sp->count[0], sp->count[1],
+			 (unsigned long) sp->bytes_per_line, raw_size);
 		return FALSE;
 	}
 
@@ -767,24 +882,44 @@ _vbi3_test_image_video		(uint8_t *		raw,
 		return TRUE;
 	}
 
-	/* ITU-R Rec BT.601 sampling assumed. */
+	/* ITU-R BT.601 sampling assumed. */
 
+#if 3 == VBI_VERSION_MINOR
 	if (VBI3_VIDEOSTD_SET_525_60 & sp->videostd_set) {
-		blank_level = MAX (0, 16 - 40 * 220 / 100);
-		black_level = 16;
-		white_level = 16 + 219;
+#else
+	if (525 == sp->scanning) {
+#endif
+		if (0 == white_level) {
+			blank_level = 16 - 40 * 220 / 100;
+			black_level = 16;
+			white_level = 16 + 219;
+		} else {
+			blank_level = black_level
+				- (white_level - black_level) * 40 / 100;
+		}
 	} else {
-		blank_level = MAX (0, 16 - 43 * 220 / 100);
-		black_level = 16;
-		white_level = 16 + 219;
+		if (0 == white_level) {
+			blank_level = 16 - 43 * 220 / 100;
+			black_level = 16;
+			white_level = 16 + 219;
+		} else {
+			blank_level = black_level
+				- (white_level - black_level) * 43 / 100;
+		}
 	}
 
 	sp8 = *sp;
 
-	sp8.sampling_format = VBI3_PIXFMT_Y8;
-	sp8.bytes_per_line = sp->samples_per_line;
+	samples_per_line = SAMPLES_PER_LINE (sp);
 
-	size = scan_lines * sp->samples_per_line;
+#if 3 == VBI_VERSION_MINOR
+	sp8.sampling_format = VBI3_PIXFMT_Y8;
+#else
+	sp8.sampling_format = VBI3_PIXFMT_YUV420;
+#endif
+	sp8.bytes_per_line = samples_per_line;
+
+	size = n_scan_lines * samples_per_line;
 	buf = vbi3_malloc (size);
 	if (NULL == buf) {
 		error (NULL, "Out of memory.");
@@ -792,8 +927,11 @@ _vbi3_test_image_video		(uint8_t *		raw,
 		return FALSE;
 	}
 
-	if (!signal_u8 (&sp8, blank_level, black_level, white_level,
-			buf, sliced, sliced_lines, __FUNCTION__)) {
+	if (!signal_u8 (buf, &sp8,
+			blank_level, black_level, white_level,
+			swap_fields,
+			sliced, n_sliced_lines,
+			__FUNCTION__)) {
 		vbi3_free (buf);
 		return FALSE;
 	}
@@ -801,7 +939,7 @@ _vbi3_test_image_video		(uint8_t *		raw,
 	s = buf;
 	d = raw;
 
-	while (scan_lines-- > 0) {
+	while (n_scan_lines-- > 0) {
 		unsigned int i;
 
 		switch (sp->sampling_format) {
@@ -823,7 +961,7 @@ _vbi3_test_image_video		(uint8_t *		raw,
 		case VBI3_PIXFMT_YUV410:
 		case VBI3_PIXFMT_YVU410:
 		case VBI3_PIXFMT_Y8:
-			for (i = 0; i < sp->samples_per_line; ++i)
+			for (i = 0; i < samples_per_line; ++i)
 				MST1 (d[i], s[i], pixel_mask);
 			break;
 
@@ -849,7 +987,7 @@ _vbi3_test_image_video		(uint8_t *		raw,
 
 		case VBI3_PIXFMT_YUYV:
 		case VBI3_PIXFMT_YVYU:
-			for (i = 0; i < sp->samples_per_line; i += 2) {
+			for (i = 0; i < samples_per_line; i += 2) {
 				uint8_t *dd = d + i * 2;
 				unsigned int uv = (s[i] + s[i + 1] + 1) >> 1;
 
@@ -862,7 +1000,7 @@ _vbi3_test_image_video		(uint8_t *		raw,
 
 		case VBI3_PIXFMT_UYVY:
 		case VBI3_PIXFMT_VYUY:
-			for (i = 0; i < sp->samples_per_line; i += 2) {
+			for (i = 0; i < samples_per_line; i += 2) {
 				uint8_t *dd = d + i * 2;
 				unsigned int uv = (s[i] + s[i + 1] + 1) >> 1;
 
@@ -974,6 +1112,8 @@ typedef struct {
 	vbi3_sampling_par	sp;
 
 	vbi3_raw_decoder *	rd;
+
+	vbi3_bool		decode_raw;
 
 	vbi3_capture_buffer	raw_buffer;
 	size_t			raw_f1_size;
@@ -1317,7 +1457,7 @@ caption_append_command		(vbi3_capture_sim *	sim,
 }
 
 vbi3_bool
-_vbi3_capture_sim_load_caption	(vbi3_capture *		cap,
+vbi3_capture_sim_load_caption	(vbi3_capture *		cap,
 				 const char *		stream,
 				 vbi3_bool		append)
 {
@@ -1535,39 +1675,23 @@ static void
 gen_teletext_b			(vbi3_capture_sim *	sim,
 				 vbi3_sliced **		inout_sliced,
 				 vbi3_sliced *		sliced_end,
-				 unsigned int		field)
+				 unsigned int		line)
 {
-	static const uint16_t lines [] = {
-		9, 10, 11, 12, 13, 14, 15,
-		19, 20, 21,
-		320, 321, 322, 323, 324, 325, 326, 327, 328,
-		332, 333, 334, 335
-	};
+	uint8_t buf[45];
 	vbi3_sliced *s;
-	unsigned int i;
 
 	s = *inout_sliced;
 
-	for (i = 0; i < N_ELEMENTS (lines); ++i) {
-		uint8_t buf[45];
+	if (s >= sliced_end)
+		return;
 
-		if ((0 == field) != (lines[i] < 313))
-			continue;
+	s->id = VBI3_SLICED_TELETEXT_B;
+	s->line = line;
 
-		if (s >= sliced_end)
-			break;
+	gen_teletext_b_row (sim, buf);
+	memcpy (&s->data, buf + 3, 42);
 
-		s->id = VBI3_SLICED_TELETEXT_B;
-		s->line = lines[i];
-
-		gen_teletext_b_row (sim, buf);
-
-		memcpy (&s->data, buf + 3, 42);
-
-		++s;
-	}
-
-	*inout_sliced = s;
+	*inout_sliced = s + 1;
 }
 
 static unsigned int
@@ -1612,7 +1736,7 @@ gen_sliced_525			(vbi3_capture_sim *	sim)
 }
 
 vbi3_bool
-_vbi3_capture_sim_load_vps	(vbi3_capture *		cap,
+vbi3_capture_sim_load_vps	(vbi3_capture *		cap,
 				 const vbi3_program_id *pid)
 {
 	vbi3_capture_sim *sim;
@@ -1637,7 +1761,7 @@ _vbi3_capture_sim_load_vps	(vbi3_capture *		cap,
 }
 
 vbi3_bool
-_vbi3_capture_sim_load_wss_625	(vbi3_capture *		cap,
+vbi3_capture_sim_load_wss_625	(vbi3_capture *		cap,
 				 const vbi3_aspect_ratio *ar)
 {
 	vbi3_capture_sim *sim;
@@ -1685,13 +1809,23 @@ gen_sliced_625			(vbi3_capture_sim *	sim)
 		s += 3;
 	}
 
-	gen_teletext_b (sim, &s, end - 3, /* field */ 0);
+	gen_teletext_b (sim, &s, end - 3, 9);
+	gen_teletext_b (sim, &s, end - 3, 10);
+	gen_teletext_b (sim, &s, end - 3, 11);
+	gen_teletext_b (sim, &s, end - 3, 12);
+	gen_teletext_b (sim, &s, end - 3, 13);
+	gen_teletext_b (sim, &s, end - 3, 14);
+	gen_teletext_b (sim, &s, end - 3, 15);
 
 	s->id = VBI3_SLICED_VPS;
 	s->line = 16;
 	assert (sizeof (s->data) >= sizeof (sim->vps_buffer));
 	memcpy (s->data, sim->vps_buffer, sizeof (sim->vps_buffer));
 	++s;
+
+	gen_teletext_b (sim, &s, end - 2, 19);
+	gen_teletext_b (sim, &s, end - 2, 20);
+	gen_teletext_b (sim, &s, end - 2, 21);
 
 	if (sim->caption_buffers[0].size > 0)
 		gen_caption (sim, &s, VBI3_SLICED_CAPTION_625, 22);
@@ -1706,9 +1840,35 @@ gen_sliced_625			(vbi3_capture_sim *	sim)
 	memcpy (s->data, sim->wss_buffer, sizeof (sim->wss_buffer));
 	++s;
 
-	gen_teletext_b (sim, &s, end, /* field */ 1);
+	gen_teletext_b (sim, &s, end, 320);
+	gen_teletext_b (sim, &s, end, 321);
+	gen_teletext_b (sim, &s, end, 322);
+	gen_teletext_b (sim, &s, end, 323);
+	gen_teletext_b (sim, &s, end, 324);
+	gen_teletext_b (sim, &s, end, 325);
+	gen_teletext_b (sim, &s, end, 326);
+	gen_teletext_b (sim, &s, end, 327);
+	gen_teletext_b (sim, &s, end, 328);
+	gen_teletext_b (sim, &s, end, 332);
+	gen_teletext_b (sim, &s, end, 333);
+	gen_teletext_b (sim, &s, end, 334);
+	gen_teletext_b (sim, &s, end, 335);
 
 	return s - sim->sliced;
+}
+
+void
+vbi3_capture_sim_decode_raw	(vbi3_capture *		cap,
+				 vbi3_bool		enable)
+{
+	vbi3_capture_sim *sim;
+
+	assert (NULL != cap);
+
+	sim = PARENT (cap, vbi3_capture_sim, cap);
+	assert (MAGIC == sim->magic);
+
+	sim->decode_raw = enable;
 }
 
 static void
@@ -1789,6 +1949,7 @@ sim_read			(vbi3_capture *		cap,
 
 	if (NULL != raw) {
 		uint8_t *raw_data;
+		vbi3_bool success;
 
 		if (NULL == *raw) {
 			/* Return our buffer. */
@@ -1805,16 +1966,20 @@ sim_read			(vbi3_capture *		cap,
 
 		memset (raw_data, 0x80, sim->raw_buffer.size);
 
-		_vbi3_test_image_vbi (raw_data,
-				      sim->raw_buffer.size,
-				      &sim->sp,
-				      sim->sliced, n_lines);
+		success = vbi3_raw_vbi_image (raw_data,
+					      sim->raw_buffer.size,
+					      &sim->sp,
+					      /* blank_level */ 0,
+					      /* white_level */ 0,
+					      /* swap_fields */ FALSE,
+					      sim->sliced,
+					      n_lines);
+		assert (success);
 
 		if (!sim->sp.synchronous)
 			delay_raw_data (sim, raw_data);
 
-#warning
-		if (1) {
+		if (sim->decode_raw) {
 			/* Decode the simulated raw VBI data to test our
 			   encoder & decoder. */
 
@@ -1872,9 +2037,9 @@ sim_delete			(vbi3_capture *		cap)
 {
 	vbi3_capture_sim *sim = PARENT (cap, vbi3_capture_sim, cap);
 
-	_vbi3_capture_sim_load_caption (cap,
-					/* test_stream */ NULL,
-					/* append */ FALSE);
+	vbi3_capture_sim_load_caption (cap,
+				       /* test_stream */ NULL,
+				       /* append */ FALSE);
 
 	vbi3_raw_decoder_delete (sim->rd);
 
@@ -1889,7 +2054,7 @@ sim_delete			(vbi3_capture *		cap)
 }
 
 vbi3_capture *
-_vbi3_capture_sim_new		(int			scanning,
+vbi3_capture_sim_new		(int			scanning,
 				 unsigned int *		services,
 				 vbi3_bool		interlaced,
 				 vbi3_bool		synchronous)
@@ -1969,13 +2134,13 @@ _vbi3_capture_sim_new		(int			scanning,
 
 	/* Signal simulation. */
 	
-	success = _vbi3_capture_sim_load_vps (&sim->cap, NULL);
+	success = vbi3_capture_sim_load_vps (&sim->cap, NULL);
 	assert (success);
 
-	success = _vbi3_capture_sim_load_wss_625 (&sim->cap, NULL);
+	success = vbi3_capture_sim_load_wss_625 (&sim->cap, NULL);
 	assert (success);
 
-	success = _vbi3_capture_sim_load_caption
+	success = vbi3_capture_sim_load_caption
 		(&sim->cap, caption_default_test_stream,
 		 /* append */ FALSE);
 	if (!success) {
