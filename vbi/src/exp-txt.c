@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.10.2.11 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.10.2.12 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -34,6 +34,7 @@
 #include "page.h"		/* vbi3_page */
 #include "conv.h"
 #include "lang.h"		/* vbi3_is_print() */
+#include "version.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
@@ -542,7 +543,7 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 	unsigned int column1;
 	unsigned int doubleh;	/* current row */
 	unsigned int doubleh0;  /* previous row */
-	iconv_t	cd;
+	vbi3_iconv_t *cd;
 	char *p;
 	char *buffer_end;
 	const vbi3_char *acp;
@@ -618,8 +619,9 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 	buffer_end = buffer + buffer_size;
 
 	cd = _vbi3_iconv_open (format, "UCS-2", &p, buffer_size);
-	if ((iconv_t) -1 == cd)
+	if (NULL == cd) {
 		return 0;
+	}
 
 	if (setjmp (text.main))
 		goto failure;
@@ -770,6 +772,7 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 		goto failure;
 
 	_vbi3_iconv_close (cd);
+	cd = NULL;
 
 	return p - buffer;
 
@@ -777,6 +780,7 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 	vbi3_free (text.text.buffer);
 
 	_vbi3_iconv_close (cd);
+	cd = NULL;
 
 	return 0;
 }

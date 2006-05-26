@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder-priv.h,v 1.1.2.2 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: caption_decoder-priv.h,v 1.1.2.3 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifndef CAPTION_DECODER_PRIV_H
 #define CAPTION_DECODER_PRIV_H
@@ -152,7 +152,6 @@ struct _vbi3_caption_decoder {
 	struct {
 		/* XDS decoder */
 
-#warning initialize me
 		vbi3_xds_demux		demux;
 	}			xds;
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.c,v 1.4.2.6 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: lang.c,v 1.4.2.7 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -30,8 +30,8 @@
 
 /* Teletext character set designation defined in
    ETS 300 706 Table 32, 33, 34 */
-static const vbi3_character_set
-character_set_table [88] = {
+static const vbi3_ttx_charset
+ttx_charset_table [88] = {
 	{  0, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_ENGLISH,			{ "en", } },
 	{  1, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_GERMAN,			{ "de", } },
 	{  2, VBI3_CHARSET_LATIN_G0, VBI3_CHARSET_LATIN_G2, VBI3_SUBSET_SWEDISH_FINNISH_HUNGARIAN,	{ "sv", "fi", "hu", } },
@@ -132,15 +132,15 @@ character_set_table [88] = {
 	{ 87, VBI3_CHARSET_ARABIC_G0, VBI3_CHARSET_ARABIC_G2, VBI3_SUBSET_NONE,			{ "ar", } },
 };
 
-const vbi3_character_set *
-vbi3_character_set_from_code	(vbi3_charset_code	code)
+const vbi3_ttx_charset *
+vbi3_ttx_charset_from_code	(vbi3_ttx_charset_code	code)
 {
-	const vbi3_character_set *cs;
+	const vbi3_ttx_charset *cs;
 
-	if (code >= N_ELEMENTS (character_set_table))
+	if (code >= N_ELEMENTS (ttx_charset_table))
 		return NULL;
 
-	cs = character_set_table + code;
+	cs = ttx_charset_table + code;
 
 	if (0 == cs->g0 || 0 == cs->g2)
 		return NULL;
@@ -638,6 +638,7 @@ caption_special [] = {
 
 /* Closed Caption Extended Character Set.
    EIA 608-B Section 6.4.2 */
+static const uint16_t
 caption_extended2 [] = {
 	0x00C1, /* 0x1220 A with acute accent */
 	0x00C9, /* 0x1221 E with acute accent */
@@ -675,6 +676,7 @@ caption_extended2 [] = {
 
 /* Closed Caption Extended Character Set.
    EIA 608-B Section 6.4.2 */
+static const uint16_t
 caption_extended3 [] = {
 	0x00C3, /* 0x1320 A with tilde */
 	0x00E3, /* 0x1321 a with tilde */

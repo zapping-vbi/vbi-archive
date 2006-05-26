@@ -21,13 +21,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.4.2.19 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: vt.h,v 1.4.2.20 2006-05-26 00:43:06 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
 
 #include "bcd.h"		/* vbi3_pgno, vbi3_subno */
-#include "lang.h"		/* vbi3_charset_code */
+#include "lang.h"		/* vbi3_ttx_charset_code */
 #include "page.h"		/* vbi3_color */
 
 /**
@@ -224,7 +224,7 @@ struct extension {
 	unsigned int		designations;
 
 	/** Primary and secondary character set. */
-	vbi3_charset_code	charset_code[2];
+	vbi3_ttx_charset_code	charset_code[2];
 
 	/** Blah. */
 	unsigned int		def_screen_color;
@@ -374,8 +374,8 @@ struct page_stat {
 	/** Actually a vbi3_page_type. */
 	uint8_t			page_type;
 
-	/** Actually a vbi3_charset_code, 0xFF unknown. */
-  	uint8_t			charset_code;
+	/** Actually a vbi3_ttx_charset_code, 0xFF unknown. */
+  	uint8_t			ttx_charset_code;
 
 	/**
 	 * Highest subpage number transmitted according to MOT, MIP, BTT.

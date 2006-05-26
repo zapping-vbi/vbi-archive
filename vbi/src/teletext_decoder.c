@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.1.2.3 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.1.2.4 2006-05-26 00:43:06 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -1308,9 +1308,9 @@ mip_page_stat			(cache_network *	cn,
 		page_type = VBI3_SUBTITLE_PAGE;
 		subcode = 0;
 
-		if (0xFF == ps->charset_code) {
+		if (0xFF == ps->ttx_charset_code) {
 			const struct magazine *mag;
-			vbi3_charset_code cs_code;
+			vbi3_ttx_charset_code cs_code;
 
 			mag = cache_network_magazine (cn, cp->pgno);
 
@@ -1318,10 +1318,10 @@ mip_page_stat			(cache_network *	cn,
 				   & (unsigned int) ~7)
 				| (code & 7);
 
-			if (vbi3_character_set_from_code (cs_code)) {
-				ps->charset_code = cs_code;
+			if (vbi3_ttx_charset_from_code (cs_code)) {
+				ps->ttx_charset_code = cs_code;
 			} else {
-				ps->charset_code = cs_code & 7;
+				ps->ttx_charset_code = cs_code & 7;
 			}
 
 			changed = TRUE;
@@ -1378,7 +1378,7 @@ mip_page_stat			(cache_network *	cn,
 	}
 
 	log ("MIP %04x: %02x:%02x:%04x %s\n",
-	     pgno, page_type, ps->charset_code, subcode,
+	     pgno, page_type, ps->ttx_charset_code, subcode,
 	     vbi3_page_type_name (page_type));
 
 	return changed;
@@ -1786,11 +1786,11 @@ eacem_trigger			(vbi3_teletext_decoder *	td,
 
 }
 
-static vbi3_charset_code
+static vbi3_ttx_charset_code
 page_charset_code		(vbi3_teletext_decoder *	td,
 				 const cache_page *	cp)
 {
-	vbi3_charset_code code;
+	vbi3_ttx_charset_code code;
 	const struct magazine *mag;
 
 	if (cp->x28_designations
@@ -1798,12 +1798,12 @@ page_charset_code		(vbi3_teletext_decoder *	td,
 		code = (cp->data.ext_lop.ext.charset_code[0]
 			& (unsigned int) ~7) + cp->national;
 
-		if (vbi3_character_set_from_code (code))
+		if (vbi3_ttx_charset_from_code (code))
 			return code;
 
 		code = cp->data.ext_lop.ext.charset_code[0];
 
-		if (vbi3_character_set_from_code (code))
+		if (vbi3_ttx_charset_from_code (code))
 			return code;
 	}
 
@@ -1812,12 +1812,12 @@ page_charset_code		(vbi3_teletext_decoder *	td,
 	code = (mag->extension.charset_code[0] &
 		(unsigned int) ~7) + cp->national;
 
-	if (vbi3_character_set_from_code (code))
+	if (vbi3_ttx_charset_from_code (code))
 		return code;
 
 	code = mag->extension.charset_code[0];
 
-	if (vbi3_character_set_from_code (code))
+	if (vbi3_ttx_charset_from_code (code))
 		return code;
 
 	return 0xFF; /* unknown */
@@ -2103,8 +2103,10 @@ store_page			(vbi3_teletext_decoder *	td,
 			else
 				ps->page_type = VBI3_NORMAL_PAGE;
 
-			if (0xFF == ps->charset_code)
-				ps->charset_code = page_charset_code (td, cp);
+			if (0xFF == ps->ttx_charset_code) {
+				ps->ttx_charset_code =
+					page_charset_code (td, cp);
+			}
 
 			break;
 
@@ -2112,8 +2114,10 @@ store_page			(vbi3_teletext_decoder *	td,
 			if (cp->flags & C6_SUBTITLE)
 				ps->page_type = VBI3_SUBTITLE_PAGE;
 
-			if (0xFF == ps->charset_code)
-				ps->charset_code = page_charset_code (td, cp);
+			if (0xFF == ps->ttx_charset_code) {
+				ps->ttx_charset_code =
+					page_charset_code (td, cp);
+			}
 
 			break;
 
@@ -2126,14 +2130,18 @@ store_page			(vbi3_teletext_decoder *	td,
 		case VBI3_NOW_AND_NEXT:
 		case VBI3_PROGR_INDEX:
 		case VBI3_PROGR_SCHEDULE:
-			if (0xFF == ps->charset_code)
-				ps->charset_code = page_charset_code (td, cp);
+			if (0xFF == ps->ttx_charset_code) {
+				ps->ttx_charset_code =
+					page_charset_code (td, cp);
+			}
+
 			break;
 
 		case VBI3_SUBTITLE_PAGE:
 			if (cp->flags & C6_SUBTITLE) {
 				/* Keep up-to-date, just in case. */
-				ps->charset_code = page_charset_code (td, cp);
+				ps->ttx_charset_code =
+					page_charset_code (td, cp);
 			} else {
 				/* Fixes bug in ORF 1 BTT. */
 				ps->page_type = VBI3_NORMAL_PAGE;
@@ -3489,10 +3497,10 @@ static vbi3_bool
 status_change			(vbi3_teletext_decoder *	td,
 				 const uint8_t		buffer[42])
 {
-	const vbi3_character_set *cs;
+	const vbi3_ttx_charset *cs;
 	char *title;
 
-	cs = vbi3_character_set_from_code (0); /* XXX ok? */
+	cs = vbi3_ttx_charset_from_code (0); /* XXX ok? */
 	title = vbi3_strndup_iconv_teletext (vbi3_locale_codeset (),
 					     buffer + 22, 20, cs);
 
@@ -4285,9 +4293,13 @@ cache_network_dump_teletext	(const cache_network *	cn,
 			ps = cache_network_const_page_stat (cn, pgno + unit);
 
 			fprintf (fp, "%02x:%02x:%04x:%2u/%2u:%02x-%02x ",
-				 ps->page_type, ps->charset_code, ps->subcode,
-				 ps->n_subpages, ps->max_subpages,
-				 ps->subno_min, ps->subno_max);
+				 ps->page_type,
+				 ps->ttx_charset_code,
+				 ps->subcode,
+				 ps->n_subpages,
+				 ps->max_subpages,
+				 ps->subno_min,
+				 ps->subno_max);
 		}
 
 		fputc ('\n', fp);
@@ -4355,7 +4367,7 @@ page_stat_init			(struct page_stat *	ps)
 	CLEAR (*ps);
 
 	ps->page_type		= VBI3_UNKNOWN_PAGE;
-	ps->charset_code	= 0xFF;
+	ps->ttx_charset_code	= 0xFF;
 	ps->subcode		= SUBCODE_UNKNOWN;
 }
 

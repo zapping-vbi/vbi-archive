@@ -18,12 +18,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: intl-priv.h,v 1.1.2.3 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: intl-priv.h,v 1.1.2.4 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifndef INTL_PRIV_H
 #define INTL_PRIV_H
 
-#include "intl.h"
+#if 3 == VBI_VERSION_MINOR
+#  include "intl.h"
+#else
+#  define vbi3_intl_domainname _zvbi_intl_domainname
+#endif
 
 #ifdef ENABLE_NLS
 #  include <libintl.h>

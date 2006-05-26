@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-sim.c,v 1.1.2.12 2006-05-19 01:11:38 mschimek Exp $ */
+/* $Id: io-sim.c,v 1.1.2.13 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -30,12 +30,36 @@
 
 #include "misc.h"
 #include "sliced.h"
-#include "sampling_par.h"
-#include "hamm.h"
-#include "vps.h"
-#include "wss.h"
 #include "version.h"
+#include "sampling_par.h"
+#include "raw_decoder.h"
+#include "hamm.h"
+#if 3 == VBI_VERSION_MINOR
+#  include "vps.h"
+#  include "wss.h"
+#endif
 #include "io-sim.h"
+
+/**
+ * @addtogroup Rawenc Raw VBI encoder
+ * @ingroup Raw
+ * @brief Converting sliced VBI data to raw VBI images.
+ *
+ * These are functions converting sliced VBI data to raw VBI images as
+ * transmitted in the vertical blanking interval of analog video standards.
+ * They are mainly intended for tests of the libzvbi bit slicer and
+ * raw VBI decoder.
+ */
+
+#if 2 == VBI_VERSION_MINOR
+#  define VBI3_PIXFMT_RGB24_LE VBI3_PIXFMT_RGB24
+#  define VBI3_PIXFMT_BGR24_LE VBI3_PIXFMT_BGR24
+#  define VBI3_PIXFMT_RGBA24_LE VBI3_PIXFMT_RGBA32_LE
+#  define VBI3_PIXFMT_BGRA24_LE VBI3_PIXFMT_BGRA32_LE
+#  define VBI3_PIXFMT_RGBA24_BE VBI3_PIXFMT_RGBA32_BE
+#  define VBI3_PIXFMT_BGRA24_BE VBI3_PIXFMT_BGRA32_BE
+#  define vbi3_pixfmt_bytes_per_pixel VBI3_PIXFMT_BPP
+#endif
 
 #undef warning
 #define warning(function, templ, args...)				\
@@ -101,7 +125,9 @@ signal_teletext			(uint8_t *		raw,
 				 const vbi3_sliced *	sliced)
 {
 	double bit_period = 1.0 / bit_rate;
-	double t1 = 10.3e-6 - .5 * bit_period;
+	/* Teletext System B: Sixth CRI pulse at 12 us
+	   (+.5 b/c we start with a 0 bit). */
+	double t1 = 12e-6 - 13 * bit_period;
 	double t2 = t1 + (payload * 8 + 24 + 1) * bit_period;
 	double q = (PI / 2.0) * bit_rate;
 	double sample_period = 1.0 / sp->sampling_rate;
@@ -268,12 +294,14 @@ signal_closed_caption		(uint8_t *		raw,
 				 const vbi3_sliced *	sliced)
 {
 	double D = 1.0 / bit_rate;
-	double t0 = 10.5e-6; /* CRI start half amplitude */
-	double t1 = t0 + .25 * D; /* CRI start, blanking level */
+	double t0 = 10.5e-6; /* CRI start half amplitude (EIA 608-B) */
+	double t1 = t0 - .25 * D; /* CRI start, blanking level */
 	double t2 = t1 + 7 * D; /* CRI 7 cycles */
-	double t3 = t0 + 7 * D; /* first start bit left edge half amplitude */
+	/* First start bit, left edge half amplitude, minus rise time. */
+	double t3 = t0 + 6.5 * D - 120e-9;
 	double q1 = PI * bit_rate * 2;
-	double q2 = PI / .120e-6; /* rise/fall time 240 ns */
+	/* Max. rise/fall time 240 ns (EIA 608-B). */
+	double q2 = PI / 120e-9; 
 	double signal_mean = (white_level - blank_level) * .25; /* 25 IRE */
 	double signal_high = blank_level + (white_level - blank_level) * .5;
 	double sample_period = 1.0 / sp->sampling_rate;
@@ -364,7 +392,7 @@ signal_u8			(uint8_t *		raw,
 	samples_per_line = SAMPLES_PER_LINE (sp);
 
 	clear_image (raw,
-		     blank_level,
+		     SATURATE (blank_level, 0, 255),
 		     samples_per_line,
 		     n_scan_lines,
 		     sp->bytes_per_line);
@@ -376,9 +404,9 @@ signal_u8			(uint8_t *		raw,
 		if (0 == sliced->line) {
 			goto bounds;
 		} else if (0 != sp->start[1]
-			   && sliced->line >= sp->start[1]) {
+			   && sliced->line >= (unsigned int) sp->start[1]) {
 			row = sliced->line - sp->start[1];
-			if (row >= sp->count[1])
+			if (row >= (unsigned int) sp->count[1])
 				goto bounds;
 
 			if (sp->interlaced) {
@@ -387,9 +415,9 @@ signal_u8			(uint8_t *		raw,
 				row += sp->count[0];
 			}
 		} else if (0 != sp->start[0]
-			   && sliced->line >= sp->start[0]) {
+			   && sliced->line >= (unsigned int) sp->start[0]) {
 			row = sliced->line - sp->start[0];
-			if (row >= sp->count[0])
+			if (row >= (unsigned int) sp->count[0])
 				goto bounds;
 
 			if (sp->interlaced) {
@@ -509,28 +537,38 @@ signal_u8			(uint8_t *		raw,
 }
 
 /**
- * @internal
- * @param raw A raw VBI image will be stored here. The buffer
+ * @example examples/rawout.c
+ * Raw VBI output example.
+ */
+
+/**
+ * @param raw A raw VBI image will be stored here.
+ * @param raw_size Size of the @a raw buffer in bytes. The buffer
  *   must be large enough for @a sp->count[0] + count[1] lines
  *   of @a sp->bytes_per_line each, with @a sp->samples_per_line
  *   (in libzvbi 0.2.x @a sp->bytes_per_line) bytes actually written.
  * @param sp Describes the raw VBI data to generate. @a sp->sampling_format
  *   must be @c VBI3_PIXFMT_Y8 (@c VBI3_PIXFMT_YUV420 with libzvbi 0.2.x).
- *   @a sp->synchronous is ignored.
+ *   @a sp->synchronous is ignored. Note for compatibility in libzvbi
+ *   0.2.x vbi3_sampling_par is a synonym of vbi3_raw_decoder, but the
+ *   (private) decoder fields in this structure are ignored.
  * @param blank_level The level of the horizontal blanking in the raw
  *   VBI image. Must be <= @a white_level.
  * @param white_level The peak white level in the raw VBI image. Set to
  *   zero to get the default blanking and white level.
  * @param swap_fields If @c TRUE the second field will be stored first
  *   in the @c raw buffer. Note you can also get an interlaced image
- *   by setting @a sp->interlaced to @c TRUE.
+ *   by setting @a sp->interlaced to @c TRUE. @a sp->synchronous is
+ *   ignored.
  * @param sliced Pointer to an array of vbi3_sliced containing the
  *   VBI data to be encoded.
  * @param n_sliced_lines Number of elements in the @a sliced array.
  *
- * Generates a raw VBI image similar to those you get from raw VBI
- * sampling hardware. The following data services are currently supported:
- * All Teletext services, VPS, WSS 625, Closed Caption 525 and 625.
+ * This function basically reverses the operation of the vbi3_raw_decoder,
+ * taking sliced VBI data and generating a raw VBI image similar to those
+ * you would get from raw VBI sampling hardware. The following data services
+ * are currently supported: All Teletext services, VPS, WSS 625, Closed
+ * Caption 525 and 625.
  *
  * The function encodes sliced data as is, e.g. without adding or
  * checking parity bits, without checking if the line number is correct
@@ -538,11 +576,22 @@ signal_u8			(uint8_t *		raw,
  * in the given space (@a sp->offset and @a sp->samples_per_line at
  * @a sp->sampling_rate).
  *
+ * Apart of the payload the generated video signal is invariable and
+ * attempts to be faithful to related standards. You can only change the
+ * characteristics of the assumed capture device. Sync pulses and color
+ * bursts and not generated if the sampling parameters extend to this area.
+ *
+ * @note
+ * This function is mainly intended for testing purposes. It is optimized
+ * for accuracy, not for speed.
+ *
  * @returns
  * @c FALSE if the @a raw_size is too small, if the @a sp sampling
  * parameters are invalid, if the signal levels are invalid,
  * if the @a sliced array contains unsupported services or line numbers
  * outside the @a sp sampling parameters.
+ *
+ * @since 0.2.22
  */
 vbi3_bool
 vbi3_raw_vbi_image		(uint8_t *		raw,
@@ -557,7 +606,7 @@ vbi3_raw_vbi_image		(uint8_t *		raw,
 	unsigned int n_scan_lines;
 	unsigned int black_level;
 
-	if (unlikely (!_vbi3_sampling_par_valid_log (sp, /* log_hook */ NULL)))
+	if (unlikely (!_vbi3_sampling_par_valid_log (sp, NULL)))
 		return FALSE;
 
 	n_scan_lines = sp->count[0] + sp->count[1];
@@ -569,10 +618,10 @@ vbi3_raw_vbi_image		(uint8_t *		raw,
 		return FALSE;
 	}
 
-	if (unlikely (blank_level > white_level
-		      || white_level > 255)) {
+	if (unlikely (0 != white_level
+		      && blank_level > white_level)) {
 		warning (__FUNCTION__,
-			 "Invalid blanking %u or peak white level %u.",
+			 "Invalid blanking %d or peak white level %d.",
 			 blank_level, white_level);
 	}
 
@@ -581,18 +630,20 @@ vbi3_raw_vbi_image		(uint8_t *		raw,
 #else
 	if (525 == sp->scanning) {
 #endif
-		const unsigned int peak = 200;
+		/* Observed value. */
+		const unsigned int peak = 200; /* 255 */
 
 		if (0 == white_level) {
 			blank_level = (int)(40.0 * peak / 140);
 			black_level = (int)(47.5 * peak / 140);
 			white_level = peak;
 		} else {
-			black_level = (int)(blank_level
-					    + 7.5 * (white_level - blank_level));
+			black_level =
+				(int)(blank_level
+				      + 7.5 * (white_level - blank_level));
 		}
 	} else {
-		const unsigned int peak = 200;
+		const unsigned int peak = 200; /* 255 */
 
 		if (0 == white_level) {
 			blank_level = (int)(43.0 * peak / 140);
@@ -696,27 +747,32 @@ do {									\
 } while (0)
 
 /**
- * @internal
- * @param raw A raw VBI image will be stored here. The buffer
+ * @param raw A raw VBI image will be stored here.
+ * @param raw_size Size of the @a raw buffer in bytes. The buffer
  *   must be large enough for @a sp->count[0] + count[1] lines
  *   of @a sp->bytes_per_line each, with @a sp->samples_per_line
- *   (in libzvbi 0.2.x @a sp->bytes_per_line times bytes per pixel)
- *   bytes actually written.
- * @param sp Describes the raw VBI data to generate. When the
- *   @a sp->sampling_format is a planar YUV format the function
- *   writes the Y plane only.
+ *   times bytes per pixel (in libzvbi 0.2.x @a sp->bytes_per_line)
+ *   actually written.
+ * @param sp Describes the raw VBI data to generate. Note for
+ *  compatibility in libzvbi 0.2.x vbi3_sampling_par is a synonym of
+ *  vbi3_raw_decoder, but the (private) decoder fields in this
+ *  structure are ignored.
+ * @param blank_level The level of the horizontal blanking in the raw
+ *   VBI image. Must be <= @a black_level.
  * @param black_level The black level in the raw VBI image. Must be
  *   <= @a white_level.
  * @param white_level The peak white level in the raw VBI image. Set to
- *   zero to get the default black and white level.
+ *   zero to get the default blanking, black and white level.
  * @param pixel_mask This mask selects which color or alpha channel
  *   shall contain VBI data. Depending on @a sp->sampling_format it is
  *   interpreted as 0xAABBGGRR or 0xAAVVUUYY. A value of 0x000000FF
  *   for example writes data in "red bits", not changing other
- *   bits in the @a raw buffer.
+ *   bits in the @a raw buffer. When the @a sp->sampling_format is a
+ *   planar YUV the function writes the Y plane only.
  * @param swap_fields If @c TRUE the second field will be stored first
  *   in the @c raw buffer. Note you can also get an interlaced image
- *   by setting @a sp->interlaced to @c TRUE.
+ *   by setting @a sp->interlaced to @c TRUE. @a sp->synchronous is
+ *   ignored.
  * @param sliced Pointer to an array of vbi3_sliced containing the
  *   VBI data to be encoded.
  * @param n_sliced_lines Number of elements in the @a sliced array.
@@ -729,11 +785,14 @@ do {									\
  * parameters are invalid, if the signal levels are invalid,
  * if the @a sliced array contains unsupported services or line numbers
  * outside the @a sp sampling parameters.
+ *
+ * @since 0.2.22
  */
 vbi3_bool
 vbi3_raw_video_image		(uint8_t *		raw,
 				 unsigned long		raw_size,
 				 const vbi3_sampling_par *sp,
+				 int			blank_level,
 				 int			black_level,
 				 int			white_level,
 				 unsigned int		pixel_mask,
@@ -742,7 +801,6 @@ vbi3_raw_video_image		(uint8_t *		raw,
 				 unsigned int		n_sliced_lines)
 {
 	unsigned int n_scan_lines;
-	unsigned int blank_level;
 	unsigned int samples_per_line;
 	vbi3_sampling_par sp8;
 	unsigned int size;
@@ -750,7 +808,7 @@ vbi3_raw_video_image		(uint8_t *		raw,
 	uint8_t *s;
 	uint8_t *d;
 
-	if (unlikely (!_vbi3_sampling_par_valid_log (sp, /* log_hook */ NULL)))
+	if (unlikely (!_vbi3_sampling_par_valid_log (sp, NULL)))
 		return FALSE;
 
 	n_scan_lines = sp->count[0] + sp->count[1];
@@ -762,9 +820,20 @@ vbi3_raw_video_image		(uint8_t *		raw,
 		return FALSE;
 	}
 
+	if (unlikely (0 != white_level
+		      && (blank_level > black_level
+			  || black_level > white_level))) {
+		warning (__FUNCTION__,
+			 "Invalid blanking %d, black %d or peak "
+			 "white level %d.",
+			 blank_level, black_level, white_level);
+	}
+
 	switch (sp->sampling_format) {
+#if 3 == VBI_VERSION_MINOR
 	case VBI3_PIXFMT_YVUA24_LE:	/* 0xAAUUVVYY */
 	case VBI3_PIXFMT_YVU24_LE:	/* 0x00UUVVYY */
+#endif
 	case VBI3_PIXFMT_YVYU:
 	case VBI3_PIXFMT_VYUY:		/* 0xAAUUVVYY */
 		pixel_mask = (+ ((pixel_mask & 0xFF00) << 8)
@@ -772,14 +841,14 @@ vbi3_raw_video_image		(uint8_t *		raw,
 			      + ((pixel_mask & 0xFF0000FF)));
 		break;
 
+#if 3 == VBI_VERSION_MINOR
 	case VBI3_PIXFMT_YUVA24_BE:	/* 0xYYUUVVAA */
+#endif
 	case VBI3_PIXFMT_RGBA24_BE:	/* 0xRRGGBBAA */
-		pixel_mask = (+ ((pixel_mask & 0xFF) << 24)
-			      + ((pixel_mask & 0xFF00) << 8)
-			      + ((pixel_mask & 0xFF0000) >> 8)
-			      + ((pixel_mask & 0xFF000000) >> 24));
+		pixel_mask = SWAB32 (pixel_mask);
 		break;
 
+#if 3 == VBI_VERSION_MINOR
 	case VBI3_PIXFMT_YVUA24_BE:	/* 0xYYVVUUAA */
 		pixel_mask = (+ ((pixel_mask & 0xFF) << 24)
 			      + ((pixel_mask & 0xFFFF00))
@@ -788,28 +857,29 @@ vbi3_raw_video_image		(uint8_t *		raw,
 
 	case VBI3_PIXFMT_YUV24_BE:	/* 0xAAYYUUVV */
 	case VBI3_PIXFMT_ARGB24_BE:	/* 0xAARRGGBB */
-	case VBI3_PIXFMT_RGB24_BE:
-	case VBI3_PIXFMT_BGRA15_LE:
-	case VBI3_PIXFMT_BGRA15_BE:
-	case VBI3_PIXFMT_ABGR15_LE:
-	case VBI3_PIXFMT_ABGR15_BE:
 	case VBI3_PIXFMT_BGRA12_LE:
 	case VBI3_PIXFMT_BGRA12_BE:
 	case VBI3_PIXFMT_ABGR12_LE:
 	case VBI3_PIXFMT_ABGR12_BE:
 	case VBI3_PIXFMT_BGRA7:
 	case VBI3_PIXFMT_ABGR7:
+#endif
+	case VBI3_PIXFMT_BGR24_LE:	/* 0x00RRGGBB */
+	case VBI3_PIXFMT_BGRA15_LE:
+	case VBI3_PIXFMT_BGRA15_BE:
+	case VBI3_PIXFMT_ABGR15_LE:
+	case VBI3_PIXFMT_ABGR15_BE:
 		pixel_mask = (+ ((pixel_mask & 0xFF) << 16)
 			      + ((pixel_mask & 0xFF0000) >> 16)
 			      + ((pixel_mask & 0xFF00FF00)));
 		break;
 
+#if 3 == VBI_VERSION_MINOR
 	case VBI3_PIXFMT_YVU24_BE:	/* 0x00YYVVUU */
 		pixel_mask = (+ ((pixel_mask & 0xFF) << 16)
 			      + ((pixel_mask & 0xFFFF00) >> 8));
 		break;
-
-
+#endif
 	case VBI3_PIXFMT_BGRA24_BE:	/* 0xBBGGRRAA */
 		pixel_mask = (+ ((pixel_mask & 0xFFFFFF) << 8)
 			      + ((pixel_mask & 0xFF000000) >> 24));
@@ -841,6 +911,7 @@ vbi3_raw_video_image		(uint8_t *		raw,
 		pixel_mask = RGBA_TO_ARGB15 (pixel_mask);
 		break;
 
+#if 3 == VBI_VERSION_MINOR
 	case VBI3_PIXFMT_RGBA12_LE:
 	case VBI3_PIXFMT_RGBA12_BE:
 	case VBI3_PIXFMT_BGRA12_LE:
@@ -872,7 +943,7 @@ vbi3_raw_video_image		(uint8_t *		raw,
 	case VBI3_PIXFMT_ABGR7:
 		pixel_mask = RGBA_TO_ARGB7 (pixel_mask);
 		break;
-
+#endif
 	default:
 		break;
 	}
@@ -890,21 +961,20 @@ vbi3_raw_video_image		(uint8_t *		raw,
 	if (525 == sp->scanning) {
 #endif
 		if (0 == white_level) {
-			blank_level = 16 - 40 * 220 / 100;
+			/* Cutting off the bottom of the signal
+			   confuses the vbi3_bit_slicer (can't adjust
+			   the threshold fast enough), probably other
+			   decoders as well. */
+			blank_level = 5; /* 16 - 40 * 220 / 100; */
 			black_level = 16;
 			white_level = 16 + 219;
-		} else {
-			blank_level = black_level
-				- (white_level - black_level) * 40 / 100;
 		}
 	} else {
 		if (0 == white_level) {
-			blank_level = 16 - 43 * 220 / 100;
+			/* Observed values: 30-30-280 (WSS PAL) -? */
+			blank_level = 5; /* 16 - 43 * 220 / 100; */
 			black_level = 16;
 			white_level = 16 + 219;
-		} else {
-			blank_level = black_level
-				- (white_level - black_level) * 43 / 100;
 		}
 	}
 
@@ -917,7 +987,8 @@ vbi3_raw_video_image		(uint8_t *		raw,
 #else
 	sp8.sampling_format = VBI3_PIXFMT_YUV420;
 #endif
-	sp8.bytes_per_line = samples_per_line;
+
+	sp8.bytes_per_line = samples_per_line * 1 /* bpp */;
 
 	size = n_scan_lines * samples_per_line;
 	buf = vbi3_malloc (size);
@@ -943,6 +1014,7 @@ vbi3_raw_video_image		(uint8_t *		raw,
 		unsigned int i;
 
 		switch (sp->sampling_format) {
+#if 3 == VBI_VERSION_MINOR
 		case VBI3_PIXFMT_NONE:
 		case VBI3_PIXFMT_RESERVED0:
 		case VBI3_PIXFMT_RESERVED1:
@@ -956,19 +1028,22 @@ vbi3_raw_video_image		(uint8_t *		raw,
 		case VBI3_PIXFMT_YVU422:
 		case VBI3_PIXFMT_YUV411:
 		case VBI3_PIXFMT_YVU411:
-		case VBI3_PIXFMT_YUV420:
 		case VBI3_PIXFMT_YVU420:
 		case VBI3_PIXFMT_YUV410:
 		case VBI3_PIXFMT_YVU410:
 		case VBI3_PIXFMT_Y8:
+#endif
+		case VBI3_PIXFMT_YUV420:
 			for (i = 0; i < samples_per_line; ++i)
 				MST1 (d[i], s[i], pixel_mask);
 			break;
 
+#if 3 == VBI_VERSION_MINOR
 		case VBI3_PIXFMT_YUVA24_LE:
 		case VBI3_PIXFMT_YVUA24_LE:
 		case VBI3_PIXFMT_YUVA24_BE:
 		case VBI3_PIXFMT_YVUA24_BE:
+#endif
 		case VBI3_PIXFMT_RGBA24_LE:
 		case VBI3_PIXFMT_RGBA24_BE:
 		case VBI3_PIXFMT_BGRA24_LE:
@@ -976,12 +1051,14 @@ vbi3_raw_video_image		(uint8_t *		raw,
 			SCAN_LINE_TO_N (+, 4);
 			break;
 
+#if 3 == VBI_VERSION_MINOR
 		case VBI3_PIXFMT_YUV24_LE:
 		case VBI3_PIXFMT_YUV24_BE:
 		case VBI3_PIXFMT_YVU24_LE:
 		case VBI3_PIXFMT_YVU24_BE:
+#endif
 		case VBI3_PIXFMT_RGB24_LE:
-		case VBI3_PIXFMT_RGB24_BE:
+		case VBI3_PIXFMT_BGR24_LE:
 			SCAN_LINE_TO_N (+, 3);
 			break;
 
@@ -1041,6 +1118,7 @@ vbi3_raw_video_image		(uint8_t *		raw,
 			SCAN_LINE_TO_RGB2 (RGBA_TO_ARGB15, 1);
 			break;
 
+#if 3 == VBI_VERSION_MINOR
 		case VBI3_PIXFMT_RGBA12_LE:
 		case VBI3_PIXFMT_BGRA12_LE:
 			SCAN_LINE_TO_RGB2 (RGBA_TO_RGBA12, 0);
@@ -1078,6 +1156,7 @@ vbi3_raw_video_image		(uint8_t *		raw,
 		case VBI3_PIXFMT_ABGR7:
 			SCAN_LINE_TO_N (RGBA_TO_ARGB7, 1);
 			break;
+#endif /* 3 == VBI_VERSION_MINOR */
 		}
 
 		s += sp8.bytes_per_line;
@@ -1093,7 +1172,11 @@ vbi3_raw_video_image		(uint8_t *		raw,
 	Capture interface
 */
 
-#include "io-priv.h"
+#if 3 == VBI_VERSION_MINOR
+#  include "io-priv.h"
+#else
+#  include "io.h"
+#endif
 #include "hamm.h"
 
 #define MAGIC 0xd804289c
@@ -1456,6 +1539,9 @@ caption_append_command		(vbi3_capture_sim *	sim,
 	return TRUE;
 }
 
+#if 2 == VBI_VERSION_MINOR
+static
+#endif
 vbi3_bool
 vbi3_capture_sim_load_caption	(vbi3_capture *		cap,
 				 const char *		stream,
@@ -1735,6 +1821,8 @@ gen_sliced_525			(vbi3_capture_sim *	sim)
 	return s - sim->sliced;
 }
 
+#if 3 == VBI_VERSION_MINOR
+
 vbi3_bool
 vbi3_capture_sim_load_vps	(vbi3_capture *		cap,
 				 const vbi3_program_id *pid)
@@ -1779,6 +1867,8 @@ vbi3_capture_sim_load_wss_625	(vbi3_capture *		cap,
 
 	return vbi3_encode_wss_625 (sim->wss_buffer, ar);
 }
+
+#endif /* 3 == VBI_VERSION_MINOR */
 
 static unsigned int
 gen_sliced_625			(vbi3_capture_sim *	sim)
@@ -1857,6 +1947,20 @@ gen_sliced_625			(vbi3_capture_sim *	sim)
 	return s - sim->sliced;
 }
 
+/**
+ * @param cap Initialized vbi3_capture context opened with
+ *   vbi3_capture_sim_new().
+ * @param enable @c TRUE to enable decoding of the simulated raw
+ *   VBI data.
+ *
+ * By default this module generates sliced VBI data and converts it
+ * to raw VBI data, returning both through the read functions. With
+ * this function you can enable decoding of the raw VBI data back
+ * to sliced VBI data, which is mainly interesting to test the
+ * libzvbi bit slicer and raw VBI decoder.
+ *
+ * @since 0.2.22
+ */
 void
 vbi3_capture_sim_decode_raw	(vbi3_capture *		cap,
 				 vbi3_bool		enable)
@@ -1868,7 +1972,7 @@ vbi3_capture_sim_decode_raw	(vbi3_capture *		cap,
 	sim = PARENT (cap, vbi3_capture_sim, cap);
 	assert (MAGIC == sim->magic);
 
-	sim->decode_raw = enable;
+	sim->decode_raw = !!enable;
 }
 
 static void
@@ -1929,7 +2033,7 @@ static vbi3_bool
 sim_read			(vbi3_capture *		cap,
 				 vbi3_capture_buffer **	raw,
 				 vbi3_capture_buffer **	sliced,
-				 struct timeval *	timeout)
+				 const struct timeval *	timeout)
 {
 	vbi3_capture_sim *sim = PARENT (cap, vbi3_capture_sim, cap);
 	unsigned int n_lines;
@@ -1940,7 +2044,11 @@ sim_read			(vbi3_capture *		cap,
 
 	if (NULL != raw
 	    || NULL != sliced) {
+#if 3 == VBI_VERSION_MINOR
 		if (VBI3_VIDEOSTD_SET_525_60 & sim->sp.videostd_set) {
+#else
+		if (525 == sim->sp.scanning) {
+#endif
 			n_lines = gen_sliced_525 (sim);
 		} else {
 			n_lines = gen_sliced_625 (sim);
@@ -1967,13 +2075,13 @@ sim_read			(vbi3_capture *		cap,
 		memset (raw_data, 0x80, sim->raw_buffer.size);
 
 		success = vbi3_raw_vbi_image (raw_data,
-					      sim->raw_buffer.size,
-					      &sim->sp,
-					      /* blank_level */ 0,
-					      /* white_level */ 0,
+					     sim->raw_buffer.size,
+					     &sim->sp,
+					     /* blank_level */ 0,
+					     /* white_level */ 0,
 					      /* swap_fields */ FALSE,
-					      sim->sliced,
-					      n_lines);
+					     sim->sliced,
+					     n_lines);
 		assert (success);
 
 		if (!sim->sp.synchronous)
@@ -2007,7 +2115,11 @@ sim_read			(vbi3_capture *		cap,
 		(*sliced)->timestamp = sim->capture_time;
 	}
 
+#if 3 == VBI_VERSION_MINOR
 	if (VBI3_VIDEOSTD_SET_525_60 & sim->sp.videostd_set) {
+#else
+	if (525 == sim->sp.scanning) {
+#endif
 		sim->capture_time += 1001 / 30000.0;
 	} else {
 		sim->capture_time += 1 / 25.0;
@@ -2021,7 +2133,14 @@ sim_parameters			(vbi3_capture *		cap)
 {
 	vbi3_capture_sim *sim = PARENT (cap, vbi3_capture_sim, cap);
 
+	/* For compatibility in libzvbi 0.2
+	   struct vbi3_sampling_par == vbi3_raw_decoder. In 0.3
+	   we'll drop the decoding related fields. */
+#if 3 == VBI_VERSION_MINOR
 	return sim->rd;
+#else
+	return &sim->sp;
+#endif
 }
 
 static int
@@ -2053,6 +2172,38 @@ sim_delete			(vbi3_capture *		cap)
 	free (sim);
 }
 
+/**
+ * @param scanning Whether to simulate a device receiving PAL/SECAM
+ *   (value 625) or NTSC (525) video.
+ * @param services This parameter must point to a set of @ref VBI3_SLICED_
+ *   symbols describing the data services to be simulated. On return the
+ *   services actually simulated will be stored here. Currently Teletext
+ *   System B, VPS, PAL WSS and PAL/NTSC Closed Caption are supported.
+ * @param interlaced If @c TRUE the simulated raw VBI images will be
+ *   interlaced like video images. Otherwise they will contain fields in
+ *   sequential order, the first field at the top. Usually real devices
+ *   provide sequential images.
+ * @param synchronous If @c FALSE raw VBI images will be delayed by
+ *   one field (putting a bottom field first in raw VBI images), simulating
+ *   defective hardware. The @a interlaced and @a synchronous parameters
+ *   correspond to fields in struct vbi3_raw_decoder.
+ *
+ * This function opens a simulated VBI device providing raw and sliced VBI
+ * data. It can be used to test applications in absence of a real device.
+ * 
+ * The VBI data is valid but limited. Just one Teletext page and one line
+ * of roll-up caption. The WSS and VPS data is set to defaults, the VPS
+ * contains no CNI.
+ *
+ * @note
+ * The simulation does not run in real time.
+ * Reading from the simulated device will return data immediately.
+ * 
+ * @returns
+ * Initialized vbi3_capture context, @c NULL on failure (out of memory).
+ *
+ * @since 0.2.22
+ */
 vbi3_capture *
 vbi3_capture_sim_new		(int			scanning,
 				 unsigned int *		services,
@@ -2133,12 +2284,24 @@ vbi3_capture_sim_new		(int			scanning,
 	vbi3_raw_decoder_add_services (sim->rd, *services, 0);
 
 	/* Signal simulation. */
-	
+
+#if 3 == VBI_VERSION_MINOR	
 	success = vbi3_capture_sim_load_vps (&sim->cap, NULL);
 	assert (success);
 
 	success = vbi3_capture_sim_load_wss_625 (&sim->cap, NULL);
 	assert (success);
+#else
+	{
+		const char vps[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				     0x00, 0x00, 0x01, 0xff, 0xfc, 0x00,
+				     0x00 };
+		const char wss[] = { 0x08, 0x06 };
+
+		memcpy (sim->vps_buffer, vps, sizeof (vps));
+		memcpy (sim->wss_buffer, wss, sizeof (wss));
+	}
+#endif
 
 	success = vbi3_capture_sim_load_caption
 		(&sim->cap, caption_default_test_stream,

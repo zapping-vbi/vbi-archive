@@ -1,7 +1,7 @@
 /*
  *  libzvbi
  *
- *  Copyright (C) 2004 Michael H. Schimek
+ *  Copyright (C) 2004, 2006 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,26 +17,23 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb_demux.c,v 1.9.2.4 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: dvb_demux.c,v 1.9.2.5 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include "misc.h"
+#include "misc.h"		/* CLEAR() */
+#include "hamm.h"		/* vbi3_rev8() */
 #include "dvb.h"
 #include "dvb_demux.h"
-#include "hamm.h"		/* vbi3_rev8() */
 
-#ifndef DVB_DEMUX_LOG
-#define DVB_DEMUX_LOG 0
-#endif
-
-#define log(templ, args...)						\
-do {									\
-	if (DVB_DEMUX_LOG)						\
-		fprintf (stderr, "%s: " templ, __FUNCTION__ , ##args);	\
-} while (0)
+/**
+ * @addtogroup DVBDemux DVB VBI demultiplexer
+ * @ingroup Raw
+ * @brief Separating VBI data from a DVB PES stream
+ *   (EN 301 472, EN 301 775).
+ */
 
 struct wrap {
 	/* Size must be >= maximum consume + maximum lookahead. */
@@ -54,26 +51,40 @@ struct wrap {
 	unsigned int		leftover;
 };
 
-/* Reads from buffer at *src + *src_left - src_size ... *src +
-   *src_left, incrementing *src and decrementing *src_left by the
-   number of bytes read. NOTE *src_left must be src_size when you
-   change buffers.
-
-   First removes w->skip bytes from the buffer and clears w->skip, then
-   removes w->consume bytes, copying the data and the following
-   w->lookahead bytes to an output buffer.
-
-   Returns TRUE on success. *dst will point to the begin of the copied
-   data. *scan_end will point to the end of the range you can scan
-   with w->lookahead (can be > *dst + w->consume if *src_left permits).
-   NOTE these pointers may point anywhere into the src_size input
-   buffer, don't free / overwrite prematurely. *src_left will be >= 0.
-
-   w->skip, w->consume and w->lookahead can change between successful
-   calls.
-
-   Returns FALSE if more data is needed, *src_left will be 0.
-*/
+/**
+ * @internal
+ * @param w Wrap-around context.
+ * @param dst Wrapped data pointer.
+ * @param scan_end End of lookahead range.
+ * @param src Source buffer pointer, will be incremented.
+ * @param src_left Bytes left in source buffer, will be decremented.
+ * @param src_size Size of source buffer.
+ *
+ * A buffer is assumed in memory at *src + *src_left - src_size, with
+ * src_size. This function reads at most *src_left bytes from this
+ * buffer starting at *src, incrementing *src and decrementing *src_left
+ * by the number of bytes read. NOTE *src_left must be equal to src_size
+ * when you change buffers.
+ *
+ * It removes (reads) w->skip bytes from the buffer and sets w->skip to
+ * zero, then removes w->consume bytes (not implemented at this time,
+ * assumed to be zero), copying the data AND the following w->lookahead
+ * bytes to an output buffer. In other words, *src is incremented by
+ * at most w->skip + w->consume bytes.
+ *
+ * On success TRUE is returned, *dst will point to the begin of the
+ * copied data (w->consume + w->lookahead), *scan_end to the end.
+ * However *scan_end - *dst can be greater than w->consume + w->lookahead
+ * if *src_left permits this. NOTE if copying can be avoided *dst and
+ * *scan_end may point into the source buffer, so don't free /
+ * overwrite it prematurely. *src_left will be >= 0.
+ *
+ * w->skip, w->consume and w->lookahead can change between successful
+ * calls.
+ *
+ * If more data is needed the function returns FALSE, and *src_left
+ * will be 0.
+ */
 vbi3_inline vbi3_bool
 wrap_around			(struct wrap *		w,
 				 const uint8_t **	dst,
@@ -86,7 +97,7 @@ wrap_around			(struct wrap *		w,
 	unsigned int required;
 
 	if (w->skip > 0) {
-		/* Skip is not consume to save copying. */
+		/* w->skip is not w->consume to save copying. */
 
 		if (w->skip > w->leftover) {
 			w->skip -= w->leftover;
@@ -178,6 +189,7 @@ wrap_around			(struct wrap *		w,
 	return TRUE;
 }
 
+/** @internal */
 struct frame {
 	/* Buffers for sliced and raw data of one frame. */
 
@@ -202,6 +214,44 @@ struct frame {
 	uint8_t *		rp;
 	vbi3_sliced *		raw_sp;
 	unsigned int		raw_offset;
+};
+
+/**
+ * @internal
+ * Minimum lookahead to identify the packet header.
+ */
+#define HEADER_LOOKAHEAD 48
+
+/** @internal */
+struct _vbi3_dvb_demux {
+	/** Wrap-around buffer. Must hold one PES packet,
+	    at most 6 + 65535 bytes. */
+	uint8_t			buffer[65536 + 16];
+
+	/** Output buffer for vbi3_dvb_demux_demux(). */
+	vbi3_sliced		sliced[64];
+
+	/** Wrap-around state. */
+	struct wrap		wrap;
+
+	/** Data unit demux state. */
+	struct frame		frame;
+
+	/** PTS of current frame. */
+	int64_t			frame_pts;
+
+	/** PTS of current packet. */
+	int64_t			packet_pts;
+
+	/** New frame commences in this packet. (We cannot reset
+	    immediately due to the coroutine design.) */
+	vbi3_bool		new_frame;
+
+	/** vbi3_dvb_demux_demux() data. */
+	vbi3_dvb_demux_cb *	callback;
+	void *			user_data;
+
+	_vbi3_log_hook		log;
 };
 
 /* Converts the line_offset and field_parity byte. */
@@ -230,22 +280,24 @@ lofp_to_line			(unsigned int		lofp,
 }
 
 static vbi3_sliced *
-line_address			(struct frame *		f,
+line_address			(vbi3_dvb_demux *	dx,
 				 unsigned int		lofp,
 				 unsigned int		system,
 				 vbi3_bool		raw)
 {
+	struct frame *f = &dx->frame;
 	unsigned int line;
 	vbi3_sliced *s;
 
 	if (f->sp >= f->sliced_end) {
-		log ("Out of buffer space (%d lines)\n",
-		     f->sliced_end - f->sliced_begin);
-
+		error (&dx->log,
+		       "Out of buffer space (%d lines).",
+		       (int)(f->sliced_end - f->sliced_begin));
 		return NULL;
 	}
 
 	line = lofp_to_line (lofp, system);
+	debug2 (&dx->log, "Line %u.", line);
 
 	if (line > 0) {
 		if (raw) {
@@ -256,13 +308,14 @@ line_address			(struct frame *		f,
 			if (line < f->raw_start[0]
 			    || line >= (f->raw_start[field]
 					+ f->raw_count[field])) {
-				log ("Raw line %u outside sampling range "
-				     "%u ... %u, %u ... %u\n",
-				     line,
-				     f->raw_start[0],
-				     f->raw_start[0] + f->raw_count[0],
-				     f->raw_start[1],
-				     f->raw_start[1] + f->raw_count[1]);
+				notice (&dx->log,
+					"Raw line %u outside sampling range "
+					"%u ... %u, %u ... %u.",
+					line,
+					f->raw_start[0],
+					f->raw_start[0] + f->raw_count[0],
+					f->raw_start[1],
+					f->raw_start[1] + f->raw_count[1]);
 
 				return NULL;
 			} else if (0 != field) {
@@ -288,8 +341,9 @@ line_address			(struct frame *		f,
 			if (0 == f->sliced_count)
 				return NULL;
 
-			log ("Illegal line order %u >= %u\n",
-			     line, f->last_line);
+			notice (&dx->log,
+				"Illegal line order %u >= %u.",
+				line, f->last_line);
 
 			return NULL;
 
@@ -327,9 +381,13 @@ line_address			(struct frame *		f,
 	return s;
 }
 
+#if 0 /* not used yet */
+
 static void
 discard_raw			(struct frame *		f)
 {
+	debug2 (&dx->log, "Discard raw VBI packet.");
+
 	memset (f->rp, 0, 720);
 
 	memmove (f->raw_sp + 1, f->raw_sp,
@@ -342,20 +400,31 @@ discard_raw			(struct frame *		f)
 
 static int
 demux_samples			(struct frame *		f,
-				 const uint8_t *	p,
+				 uint8_t *		p,
 				 unsigned int		system)
 {
 	vbi3_sliced *s;
 	unsigned int offset;
 	unsigned int n_pixels;
 
+	assert (0);
+	s = NULL; /* FIXME */
+
 	offset = p[3] * 256 + p[4];
 	n_pixels = p[5];
 
+	debug2 (&dx->log,
+		"Raw VBI packet offset=%u n_pixels=%u "
+		"first_segment=%u last_segment=%u.",
+		offset, n_pixels,
+		!!(p[2] & (1 << 7)),
+		!!(p[2] & (1 << 6)));
+
 	/* n_pixels <= 251 has been checked by caller. */
 	if (0 == n_pixels || (offset + n_pixels) > 720) {
-		log ("Illegal segment size %u ... %u (%u pixels)\n",
-		     offset, offset + n_pixels, n_pixels);
+		notice (&dx->log,
+			"Illegal segment size %u ... %u (%u pixels).",
+			offset, offset + n_pixels, n_pixels);
 
 		discard_raw (f);
 
@@ -366,8 +435,9 @@ demux_samples			(struct frame *		f,
 		/* First segment. */
 
 		if (f->raw_offset > 0) {
-			log ("Last segment missing, line %u, offset %u\n",
-			     f->raw_sp->line, f->raw_offset);
+			debug2 (&dx->log,
+				"Last segment missing, line %u, offset %u.",
+				f->raw_sp->line, f->raw_offset);
 
 			discard_raw (f);
 
@@ -381,25 +451,28 @@ demux_samples			(struct frame *		f,
 				return 0; /* bad packet */
 		}
 
-		s->id = VBI3_SLICED_UNKNOWN;
+		s->id = VBI3_SLICED_NONE;
 	} else {
 		unsigned int line;
 
 		line = lofp_to_line (p[2], system);
 
 		if (0 == f->raw_offset) {
-			log ("First segment missing of line %u, offset %u\n",
-			     line, offset);
+			debug2 (&dx->log,
+				"First segment missing of line %u, "
+				"offset %u.",
+				line, offset);
 
 			/* Recoverable error. */
 			return 1;
 		} else if (line != f->raw_sp->line
 			   || offset != f->raw_offset) {
-			log ("Segment(s) missing or out of order, "
-			     "expected line %u, offset %u, "
-			     "got line %u, offset %u\n",
-			     f->raw_sp->line, f->raw_offset,
-			     line, offset);
+			debug2 (&dx->log,
+				"Segment(s) missing or out of order, "
+				"expected line=%u offset=%u, "
+				"got line=%u offset=%u.",
+				f->raw_sp->line, f->raw_offset,
+				line, offset);
 
 			discard_raw (f);
 
@@ -420,11 +493,28 @@ demux_samples			(struct frame *		f,
 	return TRUE;
 }
 
+#endif /* 0 */
+
+static void
+log_du_ttx			(vbi3_dvb_demux *	dx,
+				 const vbi3_sliced *	s)
+{
+	uint8_t buffer[43];
+	unsigned int i;
+
+	for (i = 0; i < 42; ++i)
+		buffer[i] = _vbi3_to_ascii (s->data[i]);
+	buffer[i] = 0;
+
+	debug2 (&dx->log, "DU-TTX %u >%s<", s->line, buffer);
+}
+
 static int
-demux_data_units		(struct frame *		f,
+demux_data_units		(vbi3_dvb_demux *	dx,
 				 const uint8_t **	src,
 				 unsigned int *		src_left)
 {
+	struct frame *f = &dx->frame;
 	const uint8_t *p;
 	const uint8_t *end2;
 	int r;
@@ -447,6 +537,10 @@ demux_data_units		(struct frame *		f,
 		data_unit_id = p[0];
 		data_unit_length = p[1];
 
+		debug2 (&dx->log,
+			"data_unit_id=0x%02x data_unit_length=%u.",
+			data_unit_id, data_unit_length);
+
 		/* EN 301 775 section 4.3.1: Data units
 		   must not cross PES packet boundaries. */
 		if (p + data_unit_length > end2)
@@ -460,9 +554,10 @@ demux_data_units		(struct frame *		f,
 		case DATA_UNIT_EBU_TELETEXT_SUBTITLE:
 			if (data_unit_length < 1 + 1 + 42) {
 			bad_length:
-				log ("data_unit_length %u too small "
-				     "for data_unit_id %u\n",
-				     data_unit_length, data_unit_id);
+				notice (&dx->log,
+					"data_unit_length=%u too small "
+					"for data_unit_id=%u.",
+					data_unit_length, data_unit_id);
 
 				goto failure;
 			}
@@ -471,21 +566,16 @@ demux_data_units		(struct frame *		f,
 			if (0xE4 != p[3]) /* vbi3_rev8 (0x27) */
 				break;
 
-			if (!(s = line_address (f, p[2], 1, FALSE)))
+			if (!(s = line_address (dx, p[2], 1, FALSE)))
 				goto no_line;
 
-			s->id = VBI3_SLICED_TELETEXT_B_625;
+			s->id = VBI3_SLICED_TELETEXT_B;
 
 			for (i = 0; i < 42; ++i)
 				s->data[i] = vbi3_rev8 (p[4 + i]);
 
-			if (0) {
-				fprintf (stderr, "DU-TTX %u >", s->line);
-				for (i = 0; i < 42; ++i)
-					fputc (_vbi3_to_ascii (s->data[i]),
-					       stderr);
-				fprintf (stderr, "<\n");
-			}
+			if (dx->log.mask & VBI3_LOG_DEBUG2)
+				log_du_ttx (dx, s);
 
 			break;
 
@@ -493,11 +583,11 @@ demux_data_units		(struct frame *		f,
 			if (data_unit_length < 1 + 13)
 				goto bad_length;
 
-			if (!(s = line_address (f, p[2], 1, FALSE)))
+			if (!(s = line_address (dx, p[2], 1, FALSE)))
 				goto no_line;
 
 			s->id = (s->line >= 313) ?
-				VBI3_SLICED_VPS_F2 : VBI3_SLICED_VPS;
+				VBI3_SLICED_VPS : VBI3_SLICED_VPS;
 
 			for (i = 0; i < 13; ++i)
 				s->data[i] = p[3 + i];
@@ -508,7 +598,7 @@ demux_data_units		(struct frame *		f,
 			if (data_unit_length < 1 + 2)
 				goto bad_length;
 
-			if (!(s = line_address (f, p[2], 1, FALSE)))
+			if (!(s = line_address (dx, p[2], 1, FALSE)))
 				goto no_line;
 
 			s->id = VBI3_SLICED_WSS_625;
@@ -522,7 +612,7 @@ demux_data_units		(struct frame *		f,
 			if (data_unit_length < 1 + 3)
 				goto bad_length;
 
-			if (!(s = line_address (f, p[2], 0, FALSE)))
+			if (!(s = line_address (dx, p[2], 0, FALSE)))
 				goto no_line;
 
 			s->id = VBI3_SLICED_WSS_CPR1204;
@@ -537,7 +627,7 @@ demux_data_units		(struct frame *		f,
 			if (data_unit_length < 1 + 2)
 				goto bad_length;
 
-			if (!(s = line_address (f, p[2], 0, FALSE)))
+			if (!(s = line_address (dx, p[2], 0, FALSE)))
 				goto no_line;
 
 			s->id = VBI3_SLICED_CAPTION_525;
@@ -551,7 +641,7 @@ demux_data_units		(struct frame *		f,
 			if (data_unit_length < 1 + 2)
 				goto bad_length;
 
-			if (!(s = line_address (f, p[2], 1, FALSE)))
+			if (!(s = line_address (dx, p[2], 1, FALSE)))
 				goto no_line;
 
 			s->id = VBI3_SLICED_CAPTION_625;
@@ -561,16 +651,16 @@ demux_data_units		(struct frame *		f,
 
 			break;
 
+#if 0 /* later */
 		case DATA_UNIT_MONOCHROME_SAMPLES:
-			if (1) /* later */
-				break;
-
-			if (data_unit_length
-			    < (unsigned int)(1 + 2 + 1 + p[5])) {
+			if (data_unit_length < 1 + 2 + 1 + p[5]) {
 			bad_sample_length:
-				log ("data_unit_length %u too small "
-				     "for data_unit_id %u with %u samples\n",
-				     data_unit_length, data_unit_id, p[5]);
+				notice (&dx->log,
+					"data_unit_length=%u too small "
+					"for data_unit_id=%u with %u "
+					"samples.",
+					data_unit_length,
+					data_unit_id, p[5]);
 
 				goto failure;
 			}
@@ -581,20 +671,19 @@ demux_data_units		(struct frame *		f,
 			break;
 
 		case DATA_UNIT_ZVBI3_MONOCHROME_SAMPLES_525:
-			if (1) /* later */
-				break;
-
-			if (data_unit_length
-			    < (unsigned int)(1 + 2 + 1 + p[5]))
+			if (data_unit_length < 1 + 2 + 1 + p[5])
 				goto bad_sample_length;
 
 			if ((r = demux_samples (f, p, 0)) < 1)
 				goto failure;
 
 			break;
+#endif
 
 		default:
-			log ("Unknown data_unit_id %u\n", data_unit_id);
+			notice (&dx->log,
+				"Unknown data_unit_id=%u.",
+				data_unit_id);
 			break;
 		}
 
@@ -643,30 +732,9 @@ reset_frame			(struct frame *		f)
   	Add _vbi3_dvb_demultiplex() here.
 */
 
-
-#define HEADER_LOOKAHEAD 48
-
-struct _vbi3_dvb_demux {
-	/* Must hold one PES packet, at most 6 + 65535 bytes. */
-	uint8_t			buffer[65536 + 16];
-
-	vbi3_sliced		sliced[64];
-
-	struct wrap		wrap;
-
-	struct frame		frame;
-
-	int64_t			frame_pts;
-	int64_t			packet_pts;
-
-	vbi3_bool		new_frame;
-
-	vbi3_dvb_demux_cb *	callback;
-	void *			user_data;
-};
-
 static vbi3_bool
-timestamp			(int64_t *		pts,
+timestamp			(vbi3_dvb_demux *	dx,
+				 int64_t *		pts,
 				 unsigned int		mark,
 				 const uint8_t *	p)
 {
@@ -680,15 +748,16 @@ timestamp			(int64_t *		pts,
 	t |= p[3] << 7;
 	t |= p[4] >> 1;
 
-	if (0) {
+	if (dx->log.mask & VBI3_LOG_DEBUG) {
 		int64_t old_pts;
 		int64_t new_pts;
 
 		old_pts = *pts;
 		new_pts = t | (((int64_t) p[0] & 0x0E) << 29);
 
-		fprintf (stderr, "TS%x 0x%" PRIx64 " %+" PRId64 "\n",
-			 mark, new_pts, new_pts - old_pts);
+		debug1 (&dx->log,
+			"TS%x 0x%" PRIx64 " (%+" PRId64 ").",
+			mark, new_pts, new_pts - old_pts);
 	}
 
 	*pts = t | (((int64_t) p[0] & 0x0E) << 29);
@@ -724,15 +793,6 @@ demux_packet			(vbi3_dvb_demux *	dx,
 		if (dx->wrap.lookahead > HEADER_LOOKAHEAD) {
 			unsigned int left;
 
-			if (dx->new_frame) {
-				/* New frame commences in this packet. */
-
-				reset_frame (&dx->frame);
-
-				dx->frame_pts = dx->packet_pts;
-				dx->new_frame = FALSE;
-			}
-
 			dx->frame.sliced_count = 0;
 
 			left = dx->wrap.lookahead;
@@ -741,10 +801,21 @@ demux_packet			(vbi3_dvb_demux *	dx,
 				unsigned int lines;
 				int r;
 
-				r = demux_data_units (&dx->frame, &p, &left);
+				if (dx->new_frame) {
+					/* New frame commences
+					   in this packet. */
+
+					reset_frame (&dx->frame);
+
+					dx->frame_pts = dx->packet_pts;
+					dx->new_frame = FALSE;
+				}
+
+				r = demux_data_units (dx, &p, &left);
 
 				if (0 == r) {
-					/* Bad packet, discard. */
+					debug1 (&dx->log,
+						"Bad packet, discard.");
 					dx->new_frame = TRUE;
 					break;
 				}
@@ -754,6 +825,8 @@ demux_packet			(vbi3_dvb_demux *	dx,
 					   Packet continues previous frame. */
 					break;
 				}
+
+				debug1 (&dx->log, "New frame.");
 
 				/* A new frame commences in this packet.
 				   We must flush dx->frame before we extract
@@ -766,7 +839,7 @@ demux_packet			(vbi3_dvb_demux *	dx,
 				if (!dx->callback)
 					goto failure;
 
-				lines = dx->frame.sliced_begin - dx->frame.sp;
+				lines = dx->frame.sp - dx->frame.sliced_begin;
 
 				if (!dx->callback (dx,
 						   dx->user_data,
@@ -789,6 +862,10 @@ demux_packet			(vbi3_dvb_demux *	dx,
 		for (;;) {
 			/* packet_start_code_prefix [24] == 0x000001,
 			   stream_id [8] == PRIVATE_STREAM_1 */
+
+			debug1 (&dx->log,
+				"packet_start_code=%02x%02x%02x%02x.",
+				p[0], p[1], p[2], p[3]);
 
 			if (likely (p[2] & ~1)) {
 				/* Not 000001 or xx0000 or xxxx00. */
@@ -814,6 +891,10 @@ demux_packet			(vbi3_dvb_demux *	dx,
 
 		packet_length = p[4] * 256 + p[5];
 
+		debug1 (&dx->log,
+			"packet_length=%u.",
+			packet_length);
+
 		dx->wrap.skip = (p - scan_begin) + 6 + packet_length;
 
 		/* EN 300 472 section 4.2: N x 184 - 6. (We'll read
@@ -825,9 +906,17 @@ demux_packet			(vbi3_dvb_demux *	dx,
 		/* PES_header_data_length [8] */
 		header_length = p[8];
 
+		debug1 (&dx->log,
+			"header_length=%u.",
+			header_length);
+
 		/* EN 300 472 section 4.2: 0x24. */
 		if (36 != header_length)
 			continue;
+
+		debug1 (&dx->log,
+			"data_identifier=%u.",
+			p[9 + 36]);
 
 		/* data_identifier (EN 301 775 section 4.3.2) */
 		switch (p[9 + 36]) {
@@ -851,12 +940,12 @@ demux_packet			(vbi3_dvb_demux *	dx,
 		   PES_CRC_flag, PES_extension_flag */
 		switch (p[7] >> 6) {
 		case 2:	/* PTS 0010 xxx 1 ... */
-			if (!timestamp (&dx->packet_pts, 0x21, p + 9))
+			if (!timestamp (dx, &dx->packet_pts, 0x21, p + 9))
 				continue;
 			break;
 
 		case 3:	/* PTS 0011 xxx 1 ... DTS ... */
-			if (!timestamp (&dx->packet_pts, 0x31, p + 9))
+			if (!timestamp (dx, &dx->packet_pts, 0x31, p + 9))
 				continue;
 			break;
 
@@ -891,8 +980,42 @@ demux_packet			(vbi3_dvb_demux *	dx,
 	return FALSE;
 }
 
+/**
+ * @brief DVB VBI demux coroutine.
+ * @param dx DVB demultiplexer context allocated with vbi3_dvb_pes_demux_new().
+ * @param sliced Demultiplexed sliced data will be stored here. You must
+ *   not change @a sliced and @a sliced_lines in successive calls until
+ *   a frame is complete (i.e. the function returns a value > 0).
+ * @param sliced_lines At most this number of sliced lines will be stored
+ *   at @a sliced.
+ * @param pts If not @c NULL the Presentation Time Stamp associated with the
+ *   first line of the demultiplexed frame will be stored here.
+ * @param buffer *buffer points to DVB PES data, will be incremented by the
+ *   number of bytes read from the buffer. This pointer need not align with
+ *   packet boundaries.
+ * @param buffer_left *buffer_left is the number of bytes left in @a buffer,
+ *   will be decremented by the number of bytes read. *buffer_left need not
+ *   align with packet size. The packet filter works faster with larger
+ *   buffers. When you read from an MPEG file, mapping the file into memory
+ *   and passing pointers to the mapped data will be fastest.
+ *
+ * This function takes an arbitrary number of DVB PES data bytes, filters
+ * out PRIVATE_STREAM_1 packets, filters out valid VBI data units, converts
+ * them to vbi3_sliced format and stores the sliced data at @a sliced.
+ *
+ * @returns
+ * The number of sliced lines stored at @a sliced when a frame is complete,
+ * @c 0 if more data is needed (@a *buffer_left is @c 0) or the data
+ * contained errors.
+ *
+ * @bug
+ * Demultiplexing of raw VBI data is not supported yet,
+ * raw data will be discarded.
+ *
+ * @since 0.2.10
+ */
 unsigned int
-_vbi3_dvb_demux_cor		(vbi3_dvb_demux *	dx,
+vbi3_dvb_demux_cor		(vbi3_dvb_demux *	dx,
 				 vbi3_sliced *		sliced,
 				 unsigned int 		sliced_lines,
 				 int64_t *		pts,
@@ -901,7 +1024,6 @@ _vbi3_dvb_demux_cor		(vbi3_dvb_demux *	dx,
 {
 	assert (NULL != dx);
 	assert (NULL != sliced);
-	assert (NULL != pts);
 	assert (NULL != buffer);
 	assert (NULL != buffer_left);
 
@@ -909,7 +1031,8 @@ _vbi3_dvb_demux_cor		(vbi3_dvb_demux *	dx,
 	dx->frame.sliced_end = sliced + sliced_lines;
 
 	if (!demux_packet (dx, buffer, buffer_left)) {
-		*pts = dx->frame_pts;
+		if (pts)
+			*pts = dx->frame_pts;
 
 		return dx->frame.sp - dx->frame.sliced_begin;
 	}
@@ -917,56 +1040,208 @@ _vbi3_dvb_demux_cor		(vbi3_dvb_demux *	dx,
 	return 0;
 }
 
+/**
+ * @brief Feeds DVB VBI demux with data.
+ * @param dx DVB demultiplexer context allocated with vbi3_dvb_pes_demux_new().
+ * @param buffer DVB PES data, need not align with packet boundaries.
+ * @param buffer_size Number of bytes in @a buffer, need not align with
+ *   packet size. The packet filter works faster with larger buffers.
+ *
+ * This function takes an arbitrary number of DVB PES data bytes, filters
+ * out PRIVATE_STREAM_1 packets, filters out valid VBI data units, converts
+ * them to vbi3_sliced format and calls the vbi3_dvb_demux_cb function given
+ * to vbi3_dvb_pes_demux_new() when a new frame is complete.
+ *
+ * @returns
+ * @c FALSE if the data contained errors.
+ *
+ * @bug
+ * Demultiplexing of raw VBI data is not supported yet,
+ * raw data will be discarded.
+ *
+ * @since 0.2.10
+ */
 vbi3_bool
-_vbi3_dvb_demux_feed		(vbi3_dvb_demux *	dx,
+vbi3_dvb_demux_feed		(vbi3_dvb_demux *	dx,
 				 const uint8_t *	buffer,
 				 unsigned int		buffer_size)
 {
+	vbi3_bool success;
+
 	assert (NULL != dx);
 	assert (NULL != buffer);
 	assert (NULL != dx->callback);
 
-	return demux_packet (dx, &buffer, &buffer_size);
+	success = demux_packet (dx, &buffer, &buffer_size);
+
+	return success;
 }
 
+/**
+ * @brief Resets DVB VBI demux.
+ * @param dx DVB demultiplexer context allocated with vbi3_dvb_pes_demux_new().
+ *
+ * Resets the DVB demux to the initial state as after vbi3_dvb_pes_demux_new(),
+ * useful for example after a channel change.
+ *
+ * @since 0.2.10
+ */
 void
-_vbi3_dvb_demux_delete		(vbi3_dvb_demux *	dx)
+vbi3_dvb_demux_reset		(vbi3_dvb_demux *	dx)
 {
-	if (NULL == dx)
-		return;
+	assert (NULL != dx);
 
-	CLEAR (*dx);
-
-	vbi3_free (dx);		
-}
-
-vbi3_dvb_demux *
-_vbi3_dvb_pes_demux_new		(vbi3_dvb_demux_cb *	callback,
-				 void *			user_data)
-{
-	vbi3_dvb_demux *dx;
-
-	dx = vbi3_malloc (sizeof (*dx));
-	if (NULL == dx) {
-		return NULL;
-	}
-
-	CLEAR (*dx);
+	CLEAR (dx->wrap);
 
 	dx->wrap.buffer = dx->buffer;
 	dx->wrap.bp = dx->buffer;
 
 	dx->wrap.lookahead = HEADER_LOOKAHEAD;
 
+	CLEAR (dx->frame);
+
 	dx->frame.sliced_begin = dx->sliced;
 	dx->frame.sliced_end = dx->sliced + N_ELEMENTS (dx->sliced);
 
 	/* Raw data ignored for now. */
 
+	dx->frame_pts = 0;
+	dx->packet_pts = 0;
+
 	dx->new_frame = TRUE;
+}
+
+/**
+ * @param dx DVB demultiplexer context allocated with vbi3_dvb_pes_demux_new().
+ * @param mask Which kind of information to log. Can be @c 0.
+ * @param log_fn This function is called with log messages. Consider
+ *   vbi3_log_on_stderr(). Can be @c NULL to disable logging.
+ * @param user_data User pointer passed through to the @a log_fn function.
+ *
+ * The DVB demultiplexer supports the logging of errors in the PES stream and
+ * information useful to debug the demultiplexer.
+ *
+ * With this function you can redirect log messages generated by this module
+ * from the global log function ( see vbi3_set_log_fn() ) to a different function,
+ * or enable logging only in the DVB demultiplexer @a dx.
+ *
+ * @note
+ * The kind and contents of log messages may change in the future.
+ *
+ * @since 0.2.22
+ */
+void
+vbi3_dvb_demux_set_log_fn	(vbi3_dvb_demux *	dx,
+				 vbi3_log_mask		mask,
+				 vbi3_log_fn *		log_fn,
+				 void *			user_data)
+{
+	assert (NULL != dx);
+
+	if (NULL == log_fn)
+		mask = 0;
+
+	dx->log.mask = mask;
+	dx->log.fn = log_fn;
+	dx->log.user_data = user_data;
+}
+
+/**
+ * @brief Deletes DVB VBI demux.
+ * @param dx DVB demultiplexer context allocated with
+ *   vbi3_dvb_pes_demux_new(), can be @c NULL.
+ *
+ * Frees all resources associated with @a dx.
+ *
+ * @since 0.2.10
+ */
+void
+vbi3_dvb_demux_delete		(vbi3_dvb_demux *	dx)
+{
+	if (NULL == dx)
+		return;
+
+	CLEAR (*dx);
+
+	free (dx);		
+}
+
+/**
+ * @brief Allocates DVB VBI demux.
+ * @param callback Function to be called by vbi3_dvb_demux_demux() when
+ *   a new frame is available.
+ * @param user_data User pointer passed through to @a callback function.
+ *
+ * Allocates a new DVB VBI (EN 301 472, EN 301 775) demultiplexer taking
+ * a PES stream as input.
+ *
+ * @returns
+ * Pointer to newly allocated DVB demux context which must be
+ * freed with vbi3_dvb_demux_delete() when done. @c NULL on failure
+ * (out of memory).
+ *
+ * @since 0.2.10
+ */
+vbi3_dvb_demux *
+vbi3_dvb_pes_demux_new		(vbi3_dvb_demux_cb *	callback,
+				 void *			user_data)
+{
+	vbi3_dvb_demux *dx;
+
+	if (!(dx = malloc (sizeof (*dx)))) {
+		return NULL;
+	}
+
+	CLEAR (*dx);
+
+	vbi3_dvb_demux_reset (dx);
 
 	dx->callback = callback;
 	dx->user_data = user_data;
 
 	return dx;
 }
+
+/* For compatibility with Zapping 0.8 */
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+
+extern unsigned int
+_vbi3_dvb_demux_cor		(vbi3_dvb_demux *	dx,
+				 vbi3_sliced *		sliced,
+				 unsigned int 		sliced_lines,
+				 int64_t *		pts,
+				 const uint8_t **	buffer,
+				 unsigned int *		buffer_left);
+extern void
+_vbi3_dvb_demux_delete		(vbi3_dvb_demux *	dx);
+extern vbi3_dvb_demux *
+_vbi3_dvb_demux_pes_new		(vbi3_dvb_demux_cb *	callback,
+				 void *			user_data);
+
+unsigned int
+_vbi3_dvb_demux_cor		(vbi3_dvb_demux *	dx,
+				 vbi3_sliced *		sliced,
+				 unsigned int 		sliced_lines,
+				 int64_t *		pts,
+				 const uint8_t **	buffer,
+				 unsigned int *		buffer_left)
+{
+	return vbi3_dvb_demux_cor (dx, sliced, sliced_lines,
+				  pts, buffer, buffer_left);
+}
+
+void
+_vbi3_dvb_demux_delete		(vbi3_dvb_demux *	dx)
+{
+	vbi3_dvb_demux_delete (dx);
+}
+
+vbi3_dvb_demux *
+_vbi3_dvb_demux_pes_new		(vbi3_dvb_demux_cb *	callback,
+				 void *			user_data)
+{
+	return vbi3_dvb_pes_demux_new (callback, user_data);
+}
+
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */

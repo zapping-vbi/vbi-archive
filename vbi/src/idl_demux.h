@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: idl_demux.h,v 1.3.2.3 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: idl_demux.h,v 1.3.2.4 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifndef __ZVBI3_IDL_DEMUX_H__
 #define __ZVBI3_IDL_DEMUX_H__
@@ -27,6 +27,8 @@
 #include "macros.h"
 
 VBI3_BEGIN_DECLS
+
+/* Public */
 
 /**
  * @addtogroup IDLDemux Teletext IDL packet demultiplexer
@@ -102,6 +104,8 @@ vbi3_idl_a_demux_new		(unsigned int		channel,
 				 void *			user_data);
 
 /** @} */
+
+/* Private */
 
 /** @internal */
 #define _VBI3_IDL_FORMAT_A		(1 << 0)

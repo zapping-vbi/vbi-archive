@@ -17,17 +17,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pfc_demux.h,v 1.1.2.4 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: pfc_demux.h,v 1.1.2.5 2006-05-26 00:43:06 mschimek Exp $ */
 
 #ifndef __ZVBI3_PFC_DEMUX_H__
 #define __ZVBI3_PFC_DEMUX_H__
 
 #include <inttypes.h>		/* uint8_t */
 #include <stdio.h>		/* FILE */
-#include "macros.h"
 #include "bcd.h"		/* vbi3_pgno */
 
-/* VBI3_BEGIN_DECLS */
+VBI3_BEGIN_DECLS
 
 /* Public */
 
@@ -139,6 +138,6 @@ _vbi3_pfc_demux_init		(vbi3_pfc_demux *	dx,
 				 void *			user_data);
 /** @} */
 
-/* VBI3_END_DECLS */
+VBI3_END_DECLS
 
 #endif /* __ZVBI3_PFC_DEMUX_H__ */

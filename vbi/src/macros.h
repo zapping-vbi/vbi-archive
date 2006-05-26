@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: macros.h,v 1.1.2.7 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: macros.h,v 1.1.2.8 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifndef __ZVBI3_MACROS_H__
 #define __ZVBI3_MACROS_H__
@@ -32,6 +32,8 @@
 #endif
 
 VBI3_BEGIN_DECLS
+
+/* Public */
 
 #if __GNUC__ >= 4
 #  define _vbi3_sentinel sentinel(0)
@@ -87,11 +89,17 @@ typedef int vbi3_bool;
 /* XXX Document me - for variadic funcs. */
 #define VBI3_END ((void *) 0)
 
+#if 0
 typedef void
 vbi3_lock_fn			(void *			user_data);
 typedef void
 vbi3_unlock_fn			(void *			user_data);
+#endif
 
+/**
+ * @ingroup Basic
+ * @{
+ */
 typedef enum {
 	/** External error causes, for example lack of memory. */
 	VBI3_LOG_ERROR		= 1 << 3,
@@ -114,6 +122,8 @@ typedef enum {
 
 	/** Information useful to debug the library. */
 	VBI3_LOG_DEBUG		= 1 << 7,
+	VBI3_LOG_DEBUG2		= 1 << 8,
+	VBI3_LOG_DEBUG3		= 1 << 9,
 } vbi3_log_mask;
 
 typedef void
@@ -123,8 +133,9 @@ vbi3_log_fn			(vbi3_log_mask		level,
 				 void *			user_data);
 
 extern vbi3_log_fn		vbi3_log_on_stderr;
+/** @} */
 
-/* Private. */
+/* Private */
 
 typedef struct {
 	vbi3_log_fn *		fn;

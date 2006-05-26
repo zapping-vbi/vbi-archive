@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.h,v 1.1.2.8 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: raw_decoder.h,v 1.1.2.9 2006-05-26 00:43:06 mschimek Exp $ */
 
 #ifndef RAW_DECODER_H
 #define RAW_DECODER_H
@@ -124,7 +124,7 @@ typedef enum {
 	_VBI3_SP_FIELD_NUM	= (1 << 1),
 } _vbi3_service_par_flag;
 
-/* typedef vbi3_service_par in sliced.h */
+/* typedef _vbi3_service_par in sliced.h */
 
 /** @internal */
 struct _vbi3_service_par {
@@ -174,7 +174,7 @@ struct _vbi3_service_par {
 	_vbi3_service_par_flag	flags;
 };
 
-extern const vbi3_service_par _vbi3_service_table [];
+extern const _vbi3_service_par _vbi3_service_table [];
 
 extern void
 _vbi3_raw_decoder_dump		(const vbi3_raw_decoder *rd,

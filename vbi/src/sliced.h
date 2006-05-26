@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced.h,v 1.3.2.5 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: sliced.h,v 1.3.2.6 2006-05-26 00:43:06 mschimek Exp $ */
 
 #ifndef __ZVBI3_SLICED_H__
 #define __ZVBI3_SLICED_H__
@@ -304,7 +304,7 @@ vbi3_sliced_payload_bits		(vbi3_service_set	service)
 /* Private */
 
 struct _vbi3_service_par;	/* defined in raw_decoder.h */
-typedef struct _vbi3_service_par vbi3_service_par;
+typedef struct _vbi3_service_par _vbi3_service_par;
 
 VBI3_END_DECLS
 

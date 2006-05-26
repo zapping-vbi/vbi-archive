@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-sub.c,v 1.1.2.8 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: exp-sub.c,v 1.1.2.9 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -31,7 +31,8 @@
 #include "misc.h"
 #include "page.h"		/* vbi3_page */
 #include "conv.h"
-#include "lang.h"		/* vbi3_character_set, ... */
+#include "lang.h"		/* vbi3_ttx_charset, ... */
+#include "version.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
@@ -88,7 +89,7 @@ typedef struct sub_instance {
 
 	struct vec		text1;
 	struct vec		text2;
-	iconv_t			cd;
+	vbi3_iconv_t *		cd;
 
 	enum format		format;
 	int			encoding;
@@ -200,7 +201,7 @@ sub_new			(const _vbi3_export_module *em)
 		assert (!"reached");
 	}
 
-	sub->cd = (iconv_t) -1;
+	sub->cd = NULL;
 
 	return &sub->export;
 }
@@ -216,8 +217,9 @@ sub_delete			(vbi3_export *		e)
 	vbi3_free (sub->charset);
 	vbi3_free (sub->font);
 
-	if ((iconv_t) -1 == sub->cd)
-		_vbi3_iconv_close (sub->cd);
+	_vbi3_iconv_close (sub->cd);
+
+	CLEAR (*sub);
 
 	vbi3_free (sub);
 }
@@ -690,10 +692,10 @@ header				(sub_instance *		sub,
 			"sl", "yi", "sr", "mk",
 			"bg", "uk",
 		};
-		static const vbi3_character_set *cs;
+		static const vbi3_ttx_charset *cs;
 		unsigned int lc;
 
-		cs = vbi3_page_get_character_set (pg, 0);
+		cs = vbi3_page_get_ttx_charset (pg, 0);
 
 		if (!cs) {
 			lc = 0;
@@ -764,12 +766,12 @@ header				(sub_instance *		sub,
 
 	case FORMAT_SAMI:
 	{
-		static const vbi3_character_set *cs;
+		static const vbi3_ttx_charset *cs;
 		const char *lang;
 
 		lang = "en";
 
-		cs = vbi3_page_get_character_set (pg, 0);
+		cs = vbi3_page_get_ttx_charset (pg, 0);
 
 		if (cs && cs->language_code[0])
 			lang = cs->language_code[0];
@@ -1307,7 +1309,7 @@ export				(vbi3_export *		e,
 		sub->have_header = FALSE;
 
 		_vbi3_iconv_close (sub->cd);
-		sub->cd = (iconv_t) -1;
+		sub->cd = NULL;
 
 		return TRUE;
 	}
@@ -1331,7 +1333,7 @@ export				(vbi3_export *		e,
 
 		sub->cd = _vbi3_iconv_open (sub->charset, "UCS-2",
 					    &d, sizeof (buffer));
-		if ((iconv_t) -1 == sub->cd) {
+		if (NULL == sub->cd) {
 			return FALSE;
 		}
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5.2.14 2006-05-18 16:49:21 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.15 2006-05-26 00:43:07 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -58,7 +58,7 @@ vbi3_bool		quit;
 char *			filename_prefix;
 char *			filename_suffix;
 vbi3_bool		source_pes;
-vbi3_charset_code	option_default_cs;
+vbi3_ttx_charset_code	option_default_cs;
 vbi3_rgba		option_default_fg = (vbi3_rgba) 0xFFFFFF;
 vbi3_rgba		option_default_bg = (vbi3_rgba) 0x000000;
 vbi3_bool		option_dump_pg;
@@ -66,7 +66,7 @@ vbi3_bool		option_enum;
 vbi3_bool		option_header_only;
 vbi3_bool		option_hyperlinks;
 vbi3_bool		option_navigation;
-vbi3_charset_code	option_override_cs;
+vbi3_ttx_charset_code	option_override_cs;
 vbi3_bool		option_row_update;
 vbi3_bool		option_padding;
 vbi3_bool		option_panels;
@@ -474,7 +474,7 @@ pes_mainloop			(void)
 			unsigned int lines;
 			int64_t pts;
 
-			lines = _vbi3_dvb_demux_cor (dx,
+			lines = vbi3_dvb_demux_cor (dx,
 						    sliced, 64,
 						    &pts,
 						    &bp, &left);
@@ -970,7 +970,7 @@ main				(int			argc,
 	ungetc (c, stdin);
 
 	if (0 == c || source_pes) {
-		dx = _vbi3_dvb_pes_demux_new (/* callback */ NULL, NULL);
+		dx = vbi3_dvb_pes_demux_new (/* callback */ NULL, NULL);
 		assert (NULL != dx);
 
 		pes_mainloop ();

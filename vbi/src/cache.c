@@ -565,12 +565,12 @@ cache_network_get_ttx_page_stat	(const cache_network *	cn,
 		ps->page_type = (vbi3_page_type) ps1->page_type;
 	}
 
-	if (0xFF == ps1->charset_code) {
+	if (0xFF == ps1->ttx_charset_code) {
 		/* Unknown. */
-		ps->character_set = NULL;
+		ps->ttx_charset = NULL;
 	} else {
-		ps->character_set = vbi3_character_set_from_code
-			((vbi3_charset_code) ps1->charset_code);
+		ps->ttx_charset = vbi3_ttx_charset_from_code
+			((vbi3_ttx_charset_code) ps1->ttx_charset_code);
 	}
 
 	if (ps1->subcode <= 9)
@@ -798,7 +798,7 @@ cache_page_dump			(const cache_page *	cp,
 
 		fprintf (fp, "%s/L%u/S%04x subp=%u/%u (%u-%u) ",
 			 vbi3_page_type_name (ps->page_type),
-			 ps->charset_code,
+			 ps->ttx_charset_code,
 			 ps->subcode,
 			 ps->n_subpages,
 			 ps->max_subpages,

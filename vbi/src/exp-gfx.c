@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.7.2.12 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.7.2.13 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -27,6 +27,7 @@
 #include "misc.h"
 #include "page.h"		/* vbi3_page */
 #include "lang.h"		/* vbi3_is_drcs() */
+#include "version.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else

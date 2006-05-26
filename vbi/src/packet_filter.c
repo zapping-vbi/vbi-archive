@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet_filter.c,v 1.1.2.2 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: packet_filter.c,v 1.1.2.3 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -26,6 +26,7 @@
 #include <errno.h>
 
 #include "misc.h"
+#include "version.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: page-priv.h,v 1.1.2.4 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: page-priv.h,v 1.1.2.5 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifndef PAGE_PRIV_H
 #define PAGE_PRIV_H
@@ -26,7 +26,7 @@
 #include "page.h"		/* vbi3_page, vbi3_opacity */
 #include "vt.h"			/* magazine, extension, pagenum */
 #include "pdc.h"		/* vbi3_preselection */
-#include "lang.h"		/* vbi3_character_set */
+#include "lang.h"		/* vbi3_ttx_charset */
 #include "cache-priv.h"		/* cache_network, cache_page, vbi3_wst_level */
 
 struct _vbi3_page_priv {
@@ -53,7 +53,7 @@ struct _vbi3_page_priv {
 	cache_page *		drcs_cp[32];
 
 	/** Default primary and secondary character set. */
-	const vbi3_character_set *char_set[2];
+	const vbi3_ttx_charset *char_set[2];
 	/** 0 header, 1 other rows. */
 	vbi3_opacity		page_opacity[2];
 	vbi3_opacity		boxed_opacity[2];

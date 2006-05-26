@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decode.c,v 1.1.2.11 2006-05-19 01:11:38 mschimek Exp $ */
+/* $Id: decode.c,v 1.1.2.12 2006-05-26 00:43:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -40,25 +40,23 @@
 
 #include "src/version.h"
 #if 2 == VBI_VERSION_MINOR
-#  include "src/libzvbi.h"
+#  include "src/bcd.h"
+#  include "src/pfc_demux.h"
+#  include "src/dvb_demux.h"
+#  include "src/idl_demux.h"
+#  include "src/xds_demux.h"
+#  include "src/vps.h"
+#  include "src/hamm.h"
 #  include "sliced.h"		/* sliced data from file */
 #else /* 0.3 */
 #  include "src/zvbi.h"
-#  include "src/misc.h"		/* vbi3_printable() */
-   /* XXX update me */
-#  define vbi3_dvb_pes_demux_new _vbi3_dvb_pes_demux_new
-#  define vbi3_dvb_demux_cor _vbi3_dvb_demux_cor
-#  define vbi3_dvb_demux_delete _vbi3_dvb_demux_delete
+#  include "src/misc.h"		/* _vbi3_to_ascii() */
 #endif
 
 #define _(x) x /* i18n TODO */
 
 /* Will be installed one day. */
 #define PROGRAM_NAME "zvbi-decode"
-
-#ifndef PRId64
-#  define PRId64 "lld"
-#endif
 
 static vbi3_bool			source_is_pes; /* ATSC/DVB */
 
@@ -102,20 +100,6 @@ extern void
 _vbi3_pfc_block_dump		(const vbi3_pfc_block *	pb,
 				 FILE *			fp,
 				 vbi3_bool		binary);
-
-static int
-vbi3_printable			(int			c)
-{
-	if (c < 0)
-		return '?';
-
-	c &= 0x7F;
-
-	if (c < 0x20 || c >= 0x7F)
-		return '.';
-
-	return c;
-}
 
 static void
 error_exit			(const char *		template,
@@ -407,7 +391,7 @@ dump_bytes			(const uint8_t *	buffer,
 		/* For Teletext: Not all characters are representable
 		   in ASCII or even UTF-8, but at this stage we don't
 		   know the Teletext code page for a proper conversion. */
-		char c = vbi3_printable (buffer[j]);
+		char c = _vbi3_to_ascii (buffer[j]);
 
 		putchar (c);
 	}
@@ -770,7 +754,7 @@ vps				(const uint8_t		buffer[13],
 			l[i] = 0;
 		}
 
-		label[i][l[i]] = vbi3_printable (c);
+		label[i][l[i]] = _vbi3_to_ascii (c);
 
 		l[i] = (l[i] + 1) % 16;
 		
@@ -779,7 +763,7 @@ vps				(const uint8_t		buffer[13],
 			"%02x %02x %02x %02x (\"%s\")\n",
 			line,
 			buffer[0], buffer[1],
-			c, vbi3_printable (c),
+			c, _vbi3_to_ascii (c),
 			buffer[2], buffer[3],
 			buffer[4], buffer[5], buffer[6], buffer[7],
 			pr_label[i]);

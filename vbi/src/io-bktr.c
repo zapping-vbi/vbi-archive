@@ -18,13 +18,14 @@
  */
 
 static char rcsid [] =
-  "$Id: io-bktr.c,v 1.2.2.12 2006-05-18 16:49:19 mschimek Exp $";
+  "$Id: io-bktr.c,v 1.2.2.13 2006-05-26 00:43:05 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
 #include "vbi.h"
+#include "version.h"
 #include "intl-priv.h"
 #include "io-priv.h"
 

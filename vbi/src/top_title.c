@@ -17,11 +17,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top_title.c,v 1.1.2.3 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: top_title.c,v 1.1.2.4 2006-05-26 00:43:06 mschimek Exp $ */
 
 #include <stdlib.h>		/* malloc(), qsort() */
 #include "conv.h"		/* _vbi3_strdup_locale_teletext() */
-#include "lang.h"		/* vbi3_character_set_code */
+#include "lang.h"		/* vbi3_ttx_charset_code */
 #include "cache-priv.h"
 
 
@@ -179,7 +179,7 @@ _vbi3_top_title_from_ait_title
 				(vbi3_top_title *	tt,
 				 const cache_network *	cn,
 				 const struct ait_title *ait,
-				 const vbi3_character_set *cs)
+				 const vbi3_ttx_charset *cs)
 {
 	const struct page_stat *ps;
 	char *title;
@@ -216,7 +216,7 @@ cache_network_get_top_title	(cache_network *	cn,
 {
 	cache_page *ait_cp;
 	const struct ait_title *ait;
-	const vbi3_character_set *char_set[2];
+	const vbi3_ttx_charset *char_set[2];
 	vbi3_bool r;
 
 	assert (NULL != cn);
@@ -234,7 +234,7 @@ cache_network_get_top_title	(cache_network *	cn,
 		return FALSE;
 	}
 
-	_vbi3_character_set_init (char_set,
+	_vbi3_ttx_charset_init (char_set,
 				 /* default en */ 0,
 				 /* default en */ 0,
 				 /* extension */ NULL,
@@ -313,7 +313,7 @@ cache_network_get_top_titles	(cache_network *	cn,
 	for (i = 0; i < 8; ++i) {
 		cache_page *cp;
 		const struct ait_title *ait;
-		const vbi3_character_set *char_set[2];
+		const vbi3_ttx_charset *char_set[2];
 		unsigned int j;
 
 		if (cn->btt_link[i].function != PAGE_FUNCTION_AIT)
@@ -332,11 +332,11 @@ cache_network_get_top_titles	(cache_network *	cn,
 			continue;
 		}
 
-		_vbi3_character_set_init (char_set,
-					 /* default en */ 0,
-					 /* default en */ 0,
-					 /* extension */ NULL,
-					 cp);
+		_vbi3_ttx_charset_init (char_set,
+					/* default en */ 0,
+					/* default en */ 0,
+					/* extension */ NULL,
+					cp);
 
 		ait = cp->data.ait.title;
 

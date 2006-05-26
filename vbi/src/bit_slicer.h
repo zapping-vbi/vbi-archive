@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.h,v 1.1.2.8 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: bit_slicer.h,v 1.1.2.9 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifndef __ZVBI3_BIT_SLICER_H__
 #define __ZVBI3_BIT_SLICER_H__
@@ -70,8 +70,8 @@ typedef struct _vbi3_bit_slicer vbi3_bit_slicer;
 
 typedef enum {
 	VBI3_CRI_BIT = 1,
-	VBI3_FRC_BIT = 2,
-	VBI3_PAYLOAD_BIT = 3
+	VBI3_FRC_BIT,
+	VBI3_PAYLOAD_BIT
 } vbi3_bit_slicer_bit;
 
 /**
@@ -155,7 +155,7 @@ struct _vbi3_bit_slicer {
 	unsigned int		cri_mask;
 	unsigned int		thresh;
 	unsigned int		thresh_frac;
-	unsigned int		cri_bytes;
+	unsigned int		cri_samples;
 	unsigned int		cri_rate;
 	unsigned int		oversampling_rate;
 	unsigned int		phase_shift;

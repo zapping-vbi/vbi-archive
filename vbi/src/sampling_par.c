@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling_par.c,v 1.1.2.4 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: sampling_par.c,v 1.1.2.5 2006-05-26 00:43:06 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -28,10 +28,11 @@
 #include "misc.h"
 #include "raw_decoder.h"
 #include "sampling_par.h"
+#include "sliced.h"
 #include "version.h"
 
 #if 2 == VBI_VERSION_MINOR
-#  define vbi3_pixfmt_bytes_per_pixel VBI_PIXFMT_BPP
+#  define vbi3_pixfmt_bytes_per_pixel VBI3_PIXFMT_BPP
 #endif
 
 #define sp_log(level, templ, args...)					\
@@ -119,7 +120,7 @@ _vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
 		goto bad_range;
 
 #if 2 == VBI_VERSION_MINOR
-	videostd_set = vbi3_videostd_set_from_scanning (sp->scanning);
+	videostd_set = _vbi3_videostd_set_from_scanning (sp->scanning);
 #else
 	videostd_set = sp->videostd_set;
 #endif
@@ -135,7 +136,7 @@ _vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
 		if (0 != sp->start[1]
 		    && !range_check (sp->start[1], sp->count[1], 263, 525))
 			goto bad_range;
-	} else if (VBI3_VIDEOSTD_SET_625_50 & sp->videostd_set) {
+	} else if (VBI3_VIDEOSTD_SET_625_50 & videostd_set) {
 		if (0 != sp->start[0]
 		    && !range_check (sp->start[0], sp->count[0], 1, 311))
 			goto bad_range;
@@ -147,7 +148,7 @@ _vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
 	ambiguous:
 		notice (log,
 			"Ambiguous videostd_set 0x%x.",
-			sp->videostd_set);
+			videostd_set);
 		return FALSE;
 	}
 
@@ -164,6 +165,7 @@ _vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
 	return TRUE;
 
  bad_samples:
+	/* XXX permit sp->samples_per_line * bpp < sp->bytes_per_line. */
 	notice (log,
 		"bytes_per_line value %u is no multiple of "
 		"the sample size %u.",
@@ -185,10 +187,11 @@ _vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
 static vbi3_bool
 _vbi3_sampling_par_permit_service
 				(const vbi3_sampling_par *sp,
-				 const vbi3_service_par *par,
+				 const _vbi3_service_par *par,
 				 unsigned int		strict,
 				 _vbi3_log_hook *	log)
 {
+	const unsigned int unknown = 0;
 	double signal;
 	unsigned int field;
 	unsigned int samples_per_line;
@@ -198,7 +201,7 @@ _vbi3_sampling_par_permit_service
 	assert (NULL != par);
 
 #if 2 == VBI_VERSION_MINOR
-	videostd_set = vbi3_videostd_set_from_scanning (sp->scanning);
+	videostd_set = _vbi3_videostd_set_from_scanning (sp->scanning);
 #else
 	videostd_set = sp->videostd_set;
 #endif
@@ -212,14 +215,15 @@ _vbi3_sampling_par_permit_service
 		return FALSE;
 	}
 
-	if ((par->flags & _VBI3_SP_LINE_NUM)
-	    && (0 == sp->start[0] /* unknown */
-		|| 0 == sp->start[1])) {
-		notice (log,
-			"Service 0x%08x (%s) requires known "
-			"line numbers.",
-			par->id, par->label);
-		return FALSE;
+	if (par->flags & _VBI3_SP_LINE_NUM) {
+                if ((par->first[0] > 0 && unknown == sp->start[0])
+                    || (par->first[1] > 0 && unknown == sp->start[1])) {
+			notice (log,
+				"Service 0x%08x (%s) requires known "
+				"line numbers.",
+				par->id, par->label);
+			return FALSE;
+		}
 	}
 
 	{
@@ -238,7 +242,7 @@ _vbi3_sampling_par_permit_service
 			break;
 		}
 
-		if (rate > sp->sampling_rate) {
+		if (rate > (unsigned int) sp->sampling_rate) {
 			notice (log,
 				"Sampling rate %f MHz too low "
 				"for service 0x%08x (%s).",
@@ -295,7 +299,10 @@ _vbi3_sampling_par_permit_service
 
 		samples = samples_per_line / (double) sp->sampling_rate;
 
-		if (samples < (signal + 1.0e-6)) {
+		if (strict > 0)
+			samples -= 1e-6; /* headroom */
+
+		if (samples < signal) {
 			notice (log,
 				"Service 0x%08x (%s) signal length "
 				"%f us exceeds %f us sampling length.",
@@ -371,7 +378,7 @@ _vbi3_sampling_par_check_services_log
 				 unsigned int		strict,
 				 _vbi3_log_hook *	log)
 {
-	const vbi3_service_par *par;
+	const _vbi3_service_par *par;
 	vbi3_service_set rservices;
 
 	assert (NULL != sp);
@@ -396,32 +403,36 @@ vbi3_service_set
 _vbi3_sampling_par_from_services_log
 				(vbi3_sampling_par *	sp,
 				 unsigned int *		max_rate,
-				 vbi3_videostd_set	videostd_set,
+				 vbi3_videostd_set	videostd_set_req,
 				 vbi3_service_set	services,
 				 _vbi3_log_hook *	log)
 {
-	const vbi3_service_par *par;
+	const _vbi3_service_par *par;
 	vbi3_service_set rservices;
+	vbi3_videostd_set videostd_set;
 	unsigned int rate;
+	unsigned int samples_per_line;
 
 	assert (NULL != sp);
 
-	if (0 != videostd_set) {
-		if (0 == (VBI3_VIDEOSTD_SET_ALL & videostd_set)
-		    || ((VBI3_VIDEOSTD_SET_525_60 & videostd_set)
-			&& (VBI3_VIDEOSTD_SET_625_50 & videostd_set))) {
+	videostd_set = 0;
+
+	if (0 != videostd_set_req) {
+		if (0 == (VBI3_VIDEOSTD_SET_ALL & videostd_set_req)
+		    || ((VBI3_VIDEOSTD_SET_525_60 & videostd_set_req)
+			&& (VBI3_VIDEOSTD_SET_625_50 & videostd_set_req))) {
 			warning (log,
 				 "Ambiguous videostd_set 0x%x.",
-				 videostd_set);
+				 videostd_set_req);
 			CLEAR (*sp);
 			return 0;
 		}
+
+		videostd_set = videostd_set_req;
 	}
 
-	sp->videostd_set	= videostd_set;
-	sp->sampling_format	= VBI3_PIXFMT_Y8;
+	samples_per_line	= 0;
 	sp->sampling_rate	= 27000000;		/* ITU-R BT.601 */
-	sp->samples_per_line	= 0;
 	sp->offset		= (int)(64e-6 * sp->sampling_rate);
 	sp->start[0]		= 30000;
 	sp->count[0]		= 0;
@@ -443,22 +454,22 @@ _vbi3_sampling_par_from_services_log
 		if (0 == (par->id & services))
 			continue;
 
-		if (0 == videostd_set) {
+		if (0 == videostd_set_req) {
 			vbi3_videostd_set set;
 
-			set = par->videostd_set | sp->videostd_set;
+			set = par->videostd_set | videostd_set;
 
-			if (0 == (VBI3_VIDEOSTD_SET_525_60 & set)
-			    || 0 == (VBI3_VIDEOSTD_SET_625_50 & set))
-				sp->videostd_set = set;
+			if (0 == (set & ~VBI3_VIDEOSTD_SET_525_60)
+			    || 0 == (set & ~VBI3_VIDEOSTD_SET_625_50))
+				videostd_set |= par->videostd_set;
 		}
 
-		if (VBI3_VIDEOSTD_SET_525_60 & sp->videostd_set)
+		if (VBI3_VIDEOSTD_SET_525_60 & videostd_set)
 			margin = 1.0e-6;
 		else
 			margin = 2.0e-6;
 
-		if (0 == (par->videostd_set & sp->videostd_set)) {
+		if (0 == (par->videostd_set & videostd_set)) {
 			notice (log,
 				"Service 0x%08x (%s) requires "
 				"videostd_set 0x%x, "
@@ -479,15 +490,19 @@ _vbi3_sampling_par_from_services_log
 
 		sp->offset = MIN (sp->offset, offset);
 
-		sp->samples_per_line = MAX (sp->samples_per_line + sp->offset,
-					    samples + offset) - sp->offset;
+		samples_per_line = MAX (samples_per_line + sp->offset,
+					samples + offset) - sp->offset;
 
 		for (i = 0; i < 2; ++i)
 			if (par->first[i] > 0
 			    && par->last[i] > 0) {
-				sp->start[i] = MIN (sp->start[i], (unsigned int) par->first[i]);
-				sp->count[i] = MAX (sp->start[i] + sp->count[i],
-						    (unsigned int) par->last[i] + 1)
+				sp->start[i] = MIN
+					((unsigned int) sp->start[i],
+					 (unsigned int) par->first[i]);
+				sp->count[i] = MAX
+					((unsigned int) sp->start[i]
+					 + sp->count[i],
+					 (unsigned int) par->last[i] + 1)
 					- sp->start[i];
 			}
 
@@ -510,8 +525,18 @@ _vbi3_sampling_par_from_services_log
 		sp->start[0] = 0;
 	}
 
+#if 3 == VBI_VERSION_MINOR
+	sp->videostd_set	= videostd_set;
+	sp->sampling_format	= VBI3_PIXFMT_Y8;
+	sp->samples_per_line	= samples_per_line;
+#else
+	sp->scanning		= (videostd_set & VBI3_VIDEOSTD_SET_525_60)
+		? 525 : 625;
+	sp->sampling_format	= VBI3_PIXFMT_YUV420;
+#endif
+
 	/* Note bpp is 1. */
-	sp->bytes_per_line = sp->samples_per_line;
+	sp->bytes_per_line = MAX (1440U, samples_per_line);
 
 	if (max_rate)
 		*max_rate = rate;
@@ -576,6 +601,8 @@ vbi3_sampling_par_from_services	(vbi3_sampling_par *	sp,
 						     /* log_hook */ NULL);
 }
 
+#if 3 == VBI_VERSION_MINOR
+
 /**
  * @param videostd A video standard number.
  *
@@ -624,3 +651,5 @@ _vbi3_videostd_name		(vbi3_videostd		videostd)
 
 	return NULL;
 }
+
+#endif /* 3 == VBI_VERSION_MINOR */

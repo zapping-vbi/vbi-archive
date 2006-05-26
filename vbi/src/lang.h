@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.2.2.7 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: lang.h,v 1.2.2.8 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifndef __ZVBI3_LANG_H__
 #define __ZVBI3_LANG_H__
@@ -30,14 +30,14 @@ VBI3_BEGIN_DECLS
  * @brief Teletext character set code.
  *
  * A character set code combines one vbi3_charset with
- * a vbi3_subset. See vbi3_character_set_from_code().
+ * a vbi3_subset. See vbi3_ttx_charset_from_code().
  *
  * Defined in EN 300 706, Section 15, Table 33.
  * Valid codes are in range 0 ... 127.
  */
-typedef unsigned int vbi3_charset_code;
+typedef unsigned int vbi3_ttx_charset_code;
 
-#define VBI3_CHARSET_CODE_NONE ((vbi3_charset_code) -1)
+#define VBI3_TTX_CHARSET_CODE_NONE ((vbi3_ttx_charset_code) -1)
 
 /**
  * @brief Teletext character sets.
@@ -86,7 +86,7 @@ typedef enum {
  * Defined in EN 300 706, Section 15, Table 32, 33 and 34.
  */
 typedef struct {
-	vbi3_charset_code	code;
+	vbi3_ttx_charset_code	code;
 
 	/** Character set used for G0 characters (0x20 ... 0x7F). */
 	vbi3_charset		g0;
@@ -100,10 +100,10 @@ typedef struct {
 	 * by a NULL pointer.
 	 */
 	const char *		language_code[16];
-} vbi3_character_set;
+} vbi3_ttx_charset;
 
-extern const vbi3_character_set *
-vbi3_character_set_from_code	(vbi3_charset_code	code)
+extern const vbi3_ttx_charset *
+vbi3_ttx_charset_from_code	(vbi3_ttx_charset_code	code)
   __attribute__ ((const));
 
 extern unsigned int

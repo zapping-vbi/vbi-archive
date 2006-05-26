@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-priv.h,v 1.1.2.5 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: io-priv.h,v 1.1.2.6 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifndef IO_PRIV_H
 #define IO_PRIV_H
@@ -90,8 +90,10 @@ device_ioctl			(FILE *			fp,
  * @ingroup Devmod
  */
 struct vbi3_capture {
-	vbi3_bool		(* read)(vbi3_capture *, vbi3_capture_buffer **,
-					 vbi3_capture_buffer **, struct timeval *);
+	vbi3_bool		(* read)(vbi3_capture *,
+					 vbi3_capture_buffer **,
+					 vbi3_capture_buffer **,
+					 const struct timeval *);
 	vbi3_raw_decoder *	(* parameters)(vbi3_capture *);
 	int			(* get_fd)(vbi3_capture *);
 	void			(* _delete)(vbi3_capture *);

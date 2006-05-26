@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.c,v 1.4.2.5 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: misc.c,v 1.4.2.6 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -27,6 +27,11 @@
 #include <errno.h>
 
 #include "misc.h"
+#include "version.h"
+
+#if 2 == VBI_VERSION_MINOR
+const char _zvbi3_intl_domainname[] = PACKAGE;
+#endif
 
 _vbi3_log_hook		_vbi3_global_log;
 
@@ -210,6 +215,11 @@ _vbi3_keyword_lookup		(int *			value,
 }
 
 /**
+ * @ingroup Basic
+ *
+ * Log function printing messages on standard output.
+ *
+ * @since 0.2.22
  */
 void
 vbi3_log_on_stderr		(vbi3_log_mask		level,
@@ -219,7 +229,7 @@ vbi3_log_on_stderr		(vbi3_log_mask		level,
 {
 	vbi3_log_mask max_level;
 
-	if (0 == strncmp (context, "vbi_", 4)) {
+	if (0 == strncmp (context, "vbi3_", 4)) {
 		context += 4;
 	} else if (0 == strncmp (context, "vbi3_", 5)) {
 		context += 5;
@@ -266,7 +276,7 @@ _vbi3_log_vprintf		(vbi3_log_fn		log_fn,
 
 /** @internal */
 void
-_vbi3_log_printf		(vbi3_log_fn		log_fn,
+_vbi3_log_printf			(vbi3_log_fn		log_fn,
 				 void *			user_data,
 				 vbi3_log_mask		mask,
 				 const char *		context,

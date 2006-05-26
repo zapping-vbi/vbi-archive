@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache-priv.h,v 1.1.2.5 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: cache-priv.h,v 1.1.2.6 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifndef CACHE_PRIV_H
 #define CACHE_PRIV_H
@@ -166,7 +166,7 @@ typedef struct {
 
 	/**
 	 * National character set designator 0 ... 7
-	 * (3 lsb of a vbi3_charset_code).
+	 * (3 lsb of a vbi3_ttx_charset_code).
 	 */
 	int			national;
 
@@ -399,9 +399,9 @@ _vbi3_cache_foreach_page	(vbi3_cache *		ca,
 
 /* in teletext.c */
 extern void
-_vbi3_character_set_init	(const vbi3_character_set *charset[2],
-				 vbi3_charset_code	default_code_0,
-				 vbi3_charset_code	default_code_1,
+_vbi3_ttx_charset_init		(const vbi3_ttx_charset *charset[2],
+				 vbi3_ttx_charset_code	default_code_0,
+				 vbi3_ttx_charset_code	default_code_1,
 				 const struct extension *ext,
 				 const cache_page *	cp);
 

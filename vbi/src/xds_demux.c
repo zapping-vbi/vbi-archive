@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.c,v 1.1.2.9 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: xds_demux.c,v 1.1.2.10 2006-05-26 00:43:06 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -29,6 +29,7 @@
 #include <errno.h>
 
 #include "misc.h"
+#include "version.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else

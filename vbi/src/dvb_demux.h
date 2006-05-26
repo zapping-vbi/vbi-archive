@@ -17,17 +17,18 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb_demux.h,v 1.3.2.2 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: dvb_demux.h,v 1.3.2.3 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifndef __ZVBI3_DVB_DEMUX_H__
 #define __ZVBI3_DVB_DEMUX_H__
 
 #include <inttypes.h>		/* uintN_t */
-#include "macros.h"
+#include "bcd.h"		/* vbi3_bool */
 #include "sliced.h"		/* vbi3_sliced, vbi3_service_set */
-#include "sampling_par.h"	/* vbi3_videostd_set */
 
 VBI3_BEGIN_DECLS
+
+/* Public */
 
 /**
  * @addtogroup DVBDemux
@@ -35,15 +36,24 @@ VBI3_BEGIN_DECLS
  */
 
 /**
- * @brief DVB VBI demultiplexer context.
+ * @brief DVB VBI demultiplexer.
  *
  * The contents of this structure are private.
- *
- * Call vbi3_dvb_demux_new() to allocate
- * a DVB VBI multiplexer context.
+ * Call vbi3_dvb_pes_demux_new() to allocate a DVB demultiplexer.
  */
 typedef struct _vbi3_dvb_demux vbi3_dvb_demux;
 
+/**
+ * @param dx DVB demultiplexer context allocated with vbi3_dvb_pes_demux_new().
+ * @param user_data User data pointer given to vbi3_dvb_pes_demux_new().
+ * @param sliced Pointer to demultiplexed sliced data.
+ * @param sliced_lines Number of lines in the @a sliced array.
+ * @param pts Presentation Time Stamp associated with the first sliced
+ *   line.
+ *
+ * The vbi3_dvb_demux_feed() function calls a function of this type when
+ * a new frame of sliced data is complete.
+ */
 typedef vbi3_bool
 vbi3_dvb_demux_cb		(vbi3_dvb_demux *	dx,
 				 void *			user_data,
@@ -52,26 +62,32 @@ vbi3_dvb_demux_cb		(vbi3_dvb_demux *	dx,
 				 int64_t		pts);
 
 extern void
-_vbi3_dvb_demux_reset		(vbi3_dvb_demux *	dx);
+vbi3_dvb_demux_reset		(vbi3_dvb_demux *	dx);
 extern unsigned int
-_vbi3_dvb_demux_cor		(vbi3_dvb_demux *	dx,
+vbi3_dvb_demux_cor		(vbi3_dvb_demux *	dx,
 				 vbi3_sliced *		sliced,
 				 unsigned int 		sliced_lines,
 				 int64_t *		pts,
 				 const uint8_t **	buffer,
 				 unsigned int *		buffer_left);
 extern vbi3_bool
-_vbi3_dvb_demux_feed		(vbi3_dvb_demux *	dx,
+vbi3_dvb_demux_feed		(vbi3_dvb_demux *	dx,
 				 const uint8_t *	buffer,
 				 unsigned int		buffer_size);
 extern void
-_vbi3_dvb_demux_delete		(vbi3_dvb_demux *	dx);
+vbi3_dvb_demux_set_log_fn	(vbi3_dvb_demux *	dx,
+				 vbi3_log_mask		mask,
+				 vbi3_log_fn *		log_fn,
+				 void *			user_data);
+extern void
+vbi3_dvb_demux_delete		(vbi3_dvb_demux *	dx);
 extern vbi3_dvb_demux *
-_vbi3_dvb_pes_demux_new		(vbi3_dvb_demux_cb *	callback,
-				 void *			user_data)
-  __attribute__ ((_vbi3_alloc));
+vbi3_dvb_pes_demux_new		(vbi3_dvb_demux_cb *	callback,
+				 void *			user_data);
 
 /** @} */
+
+/* Private */
 
 VBI3_END_DECLS
 

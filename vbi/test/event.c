@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.c,v 1.1.2.4 2006-05-18 16:49:21 mschimek Exp $ */
+/* $Id: event.c,v 1.1.2.5 2006-05-26 00:43:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -97,7 +97,7 @@ dump_stats			(void)
 			pgno,
 			ps.page_type,
 			vbi3_page_type_name (ps.page_type),
-			ps.character_set ? ps.character_set->code : 0,
+			ps.ttx_charset ? ps.ttx_charset->code : 0,
 			ps.subpages,
 			ps.subno_min,
 			ps.subno_max);
@@ -337,10 +337,10 @@ pes_mainloop			(void)
 			unsigned int n_lines;
 			int64_t pts;
 
-			n_lines = _vbi3_dvb_demux_cor (dx,
-						    sliced, 64,
-						    &pts,
-						    &bp, &left);
+			n_lines = vbi3_dvb_demux_cor (dx,
+						      sliced, 64,
+						      &pts,
+						      &bp, &left);
 			if (n_lines > 0)
 				decode (sliced, n_lines, 0, pts);
 		}
@@ -685,8 +685,8 @@ main				(int			argc,
 	ungetc (c, stdin);
 
 	if (0 == c || source_is_pes) {
-		dx = _vbi3_dvb_pes_demux_new (/* callback */ NULL,
-					      /* used_data */ NULL);
+		dx = vbi3_dvb_pes_demux_new (/* callback */ NULL,
+					     /* used_data */ NULL);
 		if (NULL == dx)
 			no_mem_exit ();
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.5.2.6 2006-05-18 16:49:21 mschimek Exp $ */
+/* $Id: caption.c,v 1.5.2.7 2006-05-26 00:43:07 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -537,7 +537,7 @@ pes_mainloop			(void)
 			unsigned int n_lines;
 			int64_t pts;
 
-			n_lines = _vbi3_dvb_demux_cor (dx, sliced, 64,
+			n_lines = vbi3_dvb_demux_cor (dx, sliced, 64,
 						     &pts, &bp, &bytes_left);
 			if (n_lines > 0) {
 				vbi3_decoder_feed (vbi, sliced, n_lines,
@@ -617,13 +617,13 @@ main				 (int			argc,
 		ungetc (c, stdin);
 
 		if (0 == c) {
-			dx = _vbi3_dvb_pes_demux_new (/* callback */ NULL,
+			dx = vbi3_dvb_pes_demux_new (/* callback */ NULL,
 						    /* user_data */ NULL);
 			assert (NULL != dx);
 
 			pes_mainloop ();
 
-			_vbi3_dvb_demux_delete (dx);
+			vbi3_dvb_demux_delete (dx);
 		} else {
 			vbi3_bool success;
 

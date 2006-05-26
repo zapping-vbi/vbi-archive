@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.c,v 1.1.2.12 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: bit_slicer.c,v 1.1.2.13 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -28,17 +28,21 @@
 #include "version.h"
 
 #if 2 == VBI_VERSION_MINOR
-#  define VBI3_PIXFMT_Y8 VBI_PIXFMT_YUV420
-#  define VBI3_PIXFMT_RGB24_LE VBI_PIXFMT_RGB24
-#  define VBI3_PIXFMT_BGR24_LE VBI_PIXFMT_BGR24
+#  define VBI3_PIXFMT_Y8 VBI3_PIXFMT_YUV420
+#  define VBI3_PIXFMT_RGB24_LE VBI3_PIXFMT_RGB24
+#  define VBI3_PIXFMT_BGR24_LE VBI3_PIXFMT_BGR24
+#  define VBI3_PIXFMT_RGBA24_LE VBI3_PIXFMT_RGBA32_LE
+#  define VBI3_PIXFMT_BGRA24_LE VBI3_PIXFMT_BGRA32_LE
+#  define VBI3_PIXFMT_RGBA24_BE VBI3_PIXFMT_RGBA32_BE
+#  define VBI3_PIXFMT_BGRA24_BE VBI3_PIXFMT_BGRA32_BE
 #  define VBI3_PIXFMT_RGB8 101
-#  define vbi3_pixfmt_bytes_per_pixel VBI_PIXFMT_BPP
+#  define vbi3_pixfmt_bytes_per_pixel VBI3_PIXFMT_BPP
 #endif
 
 /**
- * @addtogroup BitSlicer Bit Slicer
- * @ingroup Raw
- * @brief Converting a single scan line of raw VBI
+ * $addtogroup BitSlicer Bit Slicer
+ * $ingroup Raw
+ * $brief Converting a single scan line of raw VBI
  *   data to sliced VBI data.
  *
  * These are low level functions most useful if you want to decode
@@ -232,7 +236,7 @@ do {									\
 	c = 0;								\
 	b1 = 0;								\
 									\
-	for (i = bs->cri_bytes; i > 0; --i) {				\
+	for (i = bs->cri_samples; i > 0; --i) {				\
 		tr = bs->thresh >> thresh_frac;				\
 		raw0 = GREEN (raw);					\
 		raw1 = GREEN (raw + bpp);				\
@@ -255,7 +259,7 @@ do {									\
 } while (0)
 
 #define BIT_SLICER(fmt, os, tf)						\
-static vbi3_bool							\
+static vbi3_bool								\
 bit_slicer_ ## fmt		(vbi3_bit_slicer *	bs,		\
 				 uint8_t *		buffer,		\
 				 const uint8_t *	raw)		\
@@ -264,7 +268,7 @@ bit_slicer_ ## fmt		(vbi3_bit_slicer *	bs,		\
 	static const unsigned int bpp =					\
 		vbi3_pixfmt_bytes_per_pixel (VBI3_PIXFMT_ ## fmt);	\
 	static const unsigned int oversampling = os;			\
-	static const vbi3_bit_slicer_point *points_start = NULL;	\
+	static const vbi3_bit_slicer_point *points_start = NULL;		\
 	static const vbi3_bool collect_points = FALSE;			\
 	vbi3_bit_slicer_point *points = NULL;				\
 	unsigned int *n_points = NULL;					\
@@ -368,10 +372,15 @@ vbi3_bit_slicer_slice_with_points
 	}
 
 	if (bit_slicer_Y8 != bs->func) {
+#if 3 == VBI_VERSION_MINOR
 		warning (&bs->log,
 			 "Function not implemented for pixfmt %s.",
 			 vbi3_pixfmt_name (bs->sample_format));
-
+#else
+		warning (&bs->log,
+			 "Function not implemented for pixfmt %u.",
+			 bs->sample_format);
+#endif
 		return bs->func (bs, buffer, raw);
 	}
 
@@ -532,7 +541,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 	bs->thresh_frac = 9;
 
 	switch (sample_format) {
-#if 2 != VBI_VERSION_MINOR
+#if 3 == VBI_VERSION_MINOR
 	case VBI3_PIXFMT_YUV444:
 	case VBI3_PIXFMT_YVU444:
 	case VBI3_PIXFMT_YUV422:
@@ -541,7 +550,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 	case VBI3_PIXFMT_YVU411:
 #endif
 	case VBI3_PIXFMT_YUV420:
-#if 2 != VBI_VERSION_MINOR
+#if 3 == VBI_VERSION_MINOR
 	case VBI3_PIXFMT_YVU420:
 	case VBI3_PIXFMT_YUV410:
 	case VBI3_PIXFMT_YVU410:
@@ -551,7 +560,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		bytes_per_sample = 1;
 		break;
 
-#if 2 != VBI_VERSION_MINOR
+#if 3 == VBI_VERSION_MINOR
 	case VBI3_PIXFMT_YUVA24_LE:
 	case VBI3_PIXFMT_YVUA24_LE:
 		bs->func = bit_slicer_RGBA24_LE;
@@ -667,7 +676,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		bytes_per_sample = 2;
 		break;
 
-#if 2 != VBI_VERSION_MINOR
+#if 3 == VBI_VERSION_MINOR
 	case VBI3_PIXFMT_RGBA12_LE:
 	case VBI3_PIXFMT_BGRA12_LE:
 		bs->func = bit_slicer_RGB16_LE;
@@ -765,7 +774,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 
 	cri_end = MIN (cri_end, samples_per_line - data_samples);
 
-	bs->cri_bytes = (cri_end - sample_offset) * bytes_per_sample;
+	bs->cri_samples = cri_end - sample_offset;
 	bs->cri_rate = cri_rate;
 
 	bs->oversampling_rate = sampling_rate * oversampling;

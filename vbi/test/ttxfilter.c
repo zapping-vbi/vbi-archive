@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxfilter.c,v 1.2.2.2 2006-05-07 06:05:00 mschimek Exp $ */
+/* $Id: ttxfilter.c,v 1.2.2.3 2006-05-26 00:43:07 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -107,7 +107,7 @@ pes_frame			(const uint8_t *	bp,
 	int64_t pts;
 	vbi3_bool success;
 
-	n_lines_in = _vbi3_dvb_demux_cor (dx,
+	n_lines_in = vbi3_dvb_demux_cor (dx,
 					  sliced_in,
 					  /* max_lines */ 64,
 					  &pts,
@@ -444,7 +444,7 @@ main				(int			argc,
 	ungetc (c, stdin);
 
 	if (0 == c || source_is_pes) {
-		dx = _vbi3_dvb_pes_demux_new (/* callback */ NULL,
+		dx = vbi3_dvb_pes_demux_new (/* callback */ NULL,
 					      /* user_data */ NULL);
 		if (NULL == dx)
 			no_mem_exit ();

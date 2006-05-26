@@ -3,7 +3,7 @@
  *  Copyright (C) 2004 Michael H. Schimek
  */
 
-/* $Id: test-raw_decoder.cc,v 1.1.2.8 2006-05-19 01:11:38 mschimek Exp $ */
+/* $Id: test-raw_decoder.cc,v 1.1.2.9 2006-05-26 00:43:07 mschimek Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -109,11 +109,13 @@ create_raw			(uint8_t **		raw,
 {
 	unsigned int scan_lines;
 	unsigned int sliced_lines;
+	unsigned int raw_size;
 	vbi3_bool success;
 
 	scan_lines = sp->count[0] + sp->count[1];
+	raw_size = scan_lines * sp->bytes_per_line;
 
-	*raw = (uint8_t *) malloc (sp->bytes_per_line * scan_lines);
+	*raw = (uint8_t *) malloc (raw_size);
 	assert (NULL != *raw);
 
 	*sliced = (vbi3_sliced *) malloc (sizeof (**sliced) * 50);
@@ -122,16 +124,17 @@ create_raw			(uint8_t **		raw,
 	sliced_lines = sliced_rand (*sliced, 50, b);
 
 	if (pixel_mask) {
-	  	memset_rand (*raw, sp->bytes_per_line * scan_lines);
+	  	memset_rand (*raw, raw_size);
 
-		success = vbi3_raw_video_image (*raw, 0, sp,
+		success = vbi3_raw_video_image (*raw, raw_size, sp,
+						/* blank_level */ 0,
 						/* black_level */ 0,
 						/* white_level */ 0,
 						pixel_mask,
 						/* swap_fields */ FALSE,
 						*sliced, sliced_lines);
 	} else {
-		success = vbi3_raw_vbi_image (*raw, 0, sp,
+		success = vbi3_raw_vbi_image (*raw, raw_size, sp,
 					      /* blank_level */ 0,
 					      /* white_level */ 0,
 					      /* swap_fields */ FALSE,

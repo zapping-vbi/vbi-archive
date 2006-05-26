@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: capture.c,v 1.7.2.11 2006-05-19 01:11:38 mschimek Exp $ */
+/* $Id: capture.c,v 1.7.2.12 2006-05-26 00:43:07 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -429,96 +429,6 @@ load_caption			(void)
 			(cap, buffer, /* append */ (i > 0));
 		assert (success);
 	}
-}
-
-static void
-option_vps			(void)
-{
-	static const _vbi3_key_value_pair pcs_audio [] = {
-		{ "unknown",	VBI3_PCS_AUDIO_UNKNOWN },
-		{ "mono",	VBI3_PCS_AUDIO_MONO },
-		{ "stereo",	VBI3_PCS_AUDIO_STEREO },
-		{ "bilingual",	VBI3_PCS_AUDIO_BILINGUAL },
-		{ NULL, 0 },
-	};
-	const char *s = optarg;
-	vbi3_program_id pid;
-
-	CLEAR (pid);
-
-	pid.cni_type	= VBI3_CNI_TYPE_VPS;
-	pid.channel	= VBI3_PID_CHANNEL_VPS;
-	pid.pil		= VBI3_PIL_TIMER_CONTROL;
-
-	while (isspace (*s))
-		++s;
-	if (',' != *s) {
-		char *end;
-
-		pid.cni = strtol (s, &end, 16);
-		s = end;
-
-		if ((unsigned int) pid.cni > 0xFFF) {
-			fprintf (stderr, _("Invalid VPS CNI %x.\n"), pid.cni);
-			goto failed;
-		}
-	}
-
-	while (isspace (*s))
-		++s;
-	if (',' != *s)
-		goto failed;
-	while (isspace (*s))
-		++s;
-	if (',' != *s) {
-		if (!vbi3_pil_from_string (&pid.pil, &s)) {
-			fprintf (stderr, _("Invalid PDC time '%s'.\n"), optarg);
-			goto failed;
-		}
-	}
-
-	while (isspace (*s))
-		++s;
-	if (',' != *s)
-		goto failed;
-	while (isspace (*s))
-		++s;
-	if (',' != *s) {
-		int value;
-
-		if (!_vbi3_keyword_lookup (&value, &s,
-					   pcs_audio, N_ELEMENTS (pcs_audio))) {
-			fprintf (stderr,
-				 _("Invalid audio status '%s'.\n"),
-				 optarg);
-			goto failed;
-		}
-
-		pid.pcs_audio = value;
-	}
-
-	while (isspace (*s))
-		++s;
-	if (',' != *s)
-		goto failed;
-	while (isspace (*s))
-		++s;
-	if (0 != *s) {
-		char *end;
-
-		pid.pty = strtol (s, &end, 10);
-		s = end;
-
-		if ((unsigned int) pid.pty > 0xFF) {
-			fprintf (stderr, _("Invalid VPS PTY %u.\n"), pid.pty);
-			goto failed;
-		}
-	}
-
-	return;
-
- failed:
-	;
 }
 
 int

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.23 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.24 2006-05-26 00:43:06 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -28,6 +28,7 @@
 #include <ctype.h>
 
 #include "misc.h"
+#include "version.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
@@ -125,9 +126,9 @@ _vbi3_page_priv_dump		(const vbi3_page_priv *	pgp,
  * @internal
  */
 void
-_vbi3_character_set_init		(const vbi3_character_set *charset[2],
-				 vbi3_charset_code	default_code_0,
-				 vbi3_charset_code	default_code_1,
+_vbi3_ttx_charset_init		(const vbi3_ttx_charset *charset[2],
+				 vbi3_ttx_charset_code	default_code_0,
+				 vbi3_ttx_charset_code	default_code_1,
 				 const struct extension *ext,
 				 const cache_page *	cp)
 {
@@ -135,8 +136,8 @@ _vbi3_character_set_init		(const vbi3_character_set *charset[2],
 
 	/* Primary and secondary. */
 	for (i = 0; i < 2; ++i) {
-		const vbi3_character_set *cs;
-		vbi3_charset_code code;
+		const vbi3_ttx_charset *cs;
+		vbi3_ttx_charset_code code;
 
 		code = i ? default_code_1 : default_code_0;
 
@@ -145,14 +146,14 @@ _vbi3_character_set_init		(const vbi3_character_set *charset[2],
 			code = ext->charset_code[i];
 		}
 
-		cs = vbi3_character_set_from_code
+		cs = vbi3_ttx_charset_from_code
 			((code & (unsigned int) ~7) + cp->national);
 
 		if (!cs)
-			cs = vbi3_character_set_from_code (code);
+			cs = vbi3_ttx_charset_from_code (code);
 
 		if (!cs)
-			cs = vbi3_character_set_from_code (0);
+			cs = vbi3_ttx_charset_from_code (0);
 
 		charset[i] = cs;
 	}
@@ -165,8 +166,8 @@ _vbi3_character_set_init		(const vbi3_character_set *charset[2],
  * The default character set associated with a Teletext page.
  * @c NULL if @a pg is no Teletext page.
  */
-const vbi3_character_set *
-vbi3_page_get_character_set	(const vbi3_page *	pg,
+const vbi3_ttx_charset *
+vbi3_page_get_ttx_charset	(const vbi3_page *	pg,
 				 unsigned int		level)
 {
 	const vbi3_page_priv *pgp;
@@ -201,7 +202,7 @@ level_one_row			(vbi3_page_priv *	pgp,
 {
 	static const unsigned int mosaic_separate = 0xEE00 - 0x20;
 	static const unsigned int mosaic_contiguous = 0xEE20 - 0x20;
-	const vbi3_character_set *cs;
+	const vbi3_ttx_charset *cs;
 	unsigned int mosaic_plane;
 	unsigned int held_mosaic_unicode;
 	vbi3_bool hold;
@@ -1107,7 +1108,7 @@ typedef struct {
 	vbi3_subno		drcs_s1[2];
 
 	/** Current character set. */
-	const vbi3_character_set *cs;
+	const vbi3_ttx_charset *cs;
 
 	/** Accumulated attributes and attribute mask. */
 	vbi3_char		ac;
@@ -1853,7 +1854,7 @@ enhance_column_triplet		(enhance_state *	st)
 	case 0x08:		/* modified G0 and G2
 				   character set designation */
 	{
-		const vbi3_character_set *cs;
+		const vbi3_ttx_charset *cs;
 
 		if (st->pgp->max_level < VBI3_WST_LEVEL_2p5)
 			break;
@@ -1861,7 +1862,7 @@ enhance_column_triplet		(enhance_state *	st)
 		if (column > st->active_column)
 			enhance_flush (st, column);
 
-		cs = vbi3_character_set_from_code
+		cs = vbi3_ttx_charset_from_code
 			((unsigned int) st->trip->data);
 
 		if (cs) {
@@ -3137,7 +3138,7 @@ write_link			(vbi3_page_priv *	pgp,
  */
 static vbi3_bool
 top_label			(vbi3_page_priv *	pgp,
-				 const vbi3_character_set *cs,
+				 const vbi3_ttx_charset *cs,
 				 unsigned int		indx,
 				 unsigned int		column,
 				 vbi3_pgno		pgno,
@@ -3445,8 +3446,8 @@ _vbi3_page_priv_from_cache_page_va_list
 	vbi3_bool		option_hyperlinks;
 	vbi3_bool		option_pdc_links;
 	int			option_navigation_style;
-	vbi3_charset_code	option_cs_default[2];
-	const vbi3_character_set *option_cs_override[2];
+	vbi3_ttx_charset_code	option_cs_default[2];
+	const vbi3_ttx_charset *option_cs_override[2];
 	const struct extension *ext;
 	cache_network *		cn;
 	unsigned int		i;
@@ -3539,22 +3540,22 @@ _vbi3_page_priv_from_cache_page_va_list
 
 		case VBI3_DEFAULT_CHARSET_0:
 			option_cs_default[0] = va_arg (format_options,
-						       vbi3_charset_code);
+						       vbi3_ttx_charset_code);
 			break;
 
 		case VBI3_DEFAULT_CHARSET_1:
 			option_cs_default[1] = va_arg (format_options,
-						       vbi3_charset_code);
+						       vbi3_ttx_charset_code);
 			break;
 
 		case VBI3_OVERRIDE_CHARSET_0:
-			option_cs_override[0] = vbi3_character_set_from_code
-				(va_arg (format_options, vbi3_charset_code));
+			option_cs_override[0] = vbi3_ttx_charset_from_code
+				(va_arg (format_options, vbi3_ttx_charset_code));
 			break;
 
 		case VBI3_OVERRIDE_CHARSET_1:
-			option_cs_override[1] = vbi3_character_set_from_code
-				(va_arg (format_options, vbi3_charset_code));
+			option_cs_override[1] = vbi3_ttx_charset_from_code
+				(va_arg (format_options, vbi3_ttx_charset_code));
 			break;
 
 		default:
@@ -3623,7 +3624,7 @@ _vbi3_page_priv_from_cache_page_va_list
 
 	/* Character set designation */
 
-	_vbi3_character_set_init (pgp->char_set,
+	_vbi3_ttx_charset_init (pgp->char_set,
 				 option_cs_default[0],
 				 option_cs_default[1],
 				 pgp->ext, cp);

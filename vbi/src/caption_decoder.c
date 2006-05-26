@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder.c,v 1.1.2.3 2006-05-19 01:11:38 mschimek Exp $ */
+/* $Id: caption_decoder.c,v 1.1.2.4 2006-05-26 00:43:05 mschimek Exp $ */
 
 #include "misc.h"
 #include "hamm.h"
@@ -289,7 +289,7 @@ vbi3_caption_decoder_get_page_va_list
 	vbi3_bool option_row_change;
 	vbi3_page *pg;
 	vbi3_page_priv *pgp;
-	const vbi3_character_set *cs;
+	const vbi3_ttx_charset *cs;
 	caption_channel *ch;
 	unsigned int n;
 	vbi3_char ts;
@@ -321,7 +321,7 @@ vbi3_caption_decoder_get_page_va_list
 		>= MAX_ROWS * (MAX_COLUMNS + 2));
 
 	/* Must be initialized for export. */
-	cs = vbi3_character_set_from_code (0);
+	cs = vbi3_ttx_charset_from_code (0);
 	pgp->char_set[0] = cs;
 	pgp->char_set[1] = cs;
 
@@ -1636,6 +1636,24 @@ itv_control_code		(vbi3_caption_decoder *	cd,
 	}
 }
 
+/* XDS decoder ***************************************************************/
+
+static vbi3_bool
+xds_callback			(vbi3_xds_demux *	xd,
+				 const vbi3_xds_packet *	xp,
+				 void *			user_data)
+{
+	vbi3_caption_decoder *cd = (vbi3_caption_decoder *) user_data;
+
+#warning TODO
+
+	xd = xd;
+	xp = xp;
+	cd = cd;
+
+	return FALSE;
+}
+
 /* Demultiplexer *************************************************************/
 
 /**
@@ -2159,8 +2177,18 @@ _vbi3_caption_decoder_init	(vbi3_caption_decoder *	cd,
 	else
 		cd->cache = vbi3_cache_new ();
 
-	if (!cd->cache)
+	if (NULL == cd->cache) {
 		return FALSE;
+	}
+
+	if (!_vbi3_xds_demux_init (&cd->xds.demux,
+				   xds_callback,
+				   /* user_data */ cd)) {
+		vbi3_cache_unref (cd->cache);
+		cd->cache = NULL;
+
+		return FALSE;
+	}
 
 	cd->virtual_reset = internal_reset;
 

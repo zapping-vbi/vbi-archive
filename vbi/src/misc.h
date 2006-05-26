@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.19 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.20 2006-05-26 00:43:05 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -193,8 +193,8 @@ do {									\
 #define SWAB32(m)							\
 	(+ (((m) & 0xFF000000) >> 24)					\
 	 + (((m) & 0xFF0000) >> 8)					\
-	 + (((m) & 0xFF00) << 16)					\
-	 + (((m) & 0xFF) << 8))
+	 + (((m) & 0xFF00) << 8)					\
+	 + (((m) & 0xFF) << 24))
 
 /* NB GCC inlines and optimizes these functions when size is const. */
 #define SET(var) memset (&(var), ~0, sizeof (var))
@@ -266,7 +266,7 @@ _vbi3_log_vprintf		(vbi3_log_fn		log_fn,
 				 const char *		templ,
 				 va_list		ap);
 extern void
-_vbi3_log_printf		(vbi3_log_fn		log_fn,
+_vbi3_log_printf			(vbi3_log_fn		log_fn,
 				 void *			user_data,
 				 vbi3_log_mask		level,
 				 const char *		context,
@@ -292,6 +292,12 @@ do {									\
 	_vbi3_log (hook, VBI3_LOG_NOTICE, templ , ##args)
 #define info(hook, templ, args...)					\
 	_vbi3_log (hook, VBI3_LOG_INFO, templ , ##args)
+#define debug1(hook, templ, args...)					\
+	_vbi3_log (hook, VBI3_LOG_DEBUG, templ , ##args)
+#define debug2(hook, templ, args...)					\
+	_vbi3_log (hook, VBI3_LOG_DEBUG2, templ , ##args)
+#define debug3(hook, templ, args...)					\
+	_vbi3_log (hook, VBI3_LOG_DEBUG3, templ , ##args)
 
 /* Portability stuff. */
 

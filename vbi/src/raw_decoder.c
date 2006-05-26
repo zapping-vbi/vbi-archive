@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.c,v 1.1.2.9 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: raw_decoder.c,v 1.1.2.10 2006-05-26 00:43:06 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -44,7 +44,7 @@
    CGMS NTSC 20 11us .450450 Mbit NRZ ?
    MOJI
 */
-const vbi3_service_par
+const _vbi3_service_par
 _vbi3_service_table [] = {
 	{
 		VBI3_SLICED_TELETEXT_A, /* UNTESTED */
@@ -114,9 +114,11 @@ _vbi3_service_table [] = {
 		{ 23, 0 },
 		{ 23, 0 },
 		11000, 5000000, 833333, /* 160/3 x FH */
-		0xC71E3C1F, 0x924C99CE, 32, 0, 14 * 1,
+		/* ...1000 111 | 0 0011 1100 0111 1000 0011 111x */
+		/* ...0010 010   0 1001 1001 0011 0011 1001 110x */	
+		0x8E3C783E, 0x2499339C, 32, 0, 14 * 1,
 		VBI3_MODULATION_BIPHASE_LSB,
-		/* Hm. Easily confused with caption?? */
+		/* Hm. Too easily confused with caption?? */
 		_VBI3_SP_FIELD_NUM | _VBI3_SP_LINE_NUM,
 	}, {
 		VBI3_SLICED_CAPTION_625_F1, "Closed Caption 625, field 1",
@@ -230,7 +232,7 @@ _vbi3_service_table [] = {
 	}
 };
 
-vbi3_inline const vbi3_service_par *
+vbi3_inline const _vbi3_service_par *
 find_service_par		(unsigned int		service)
 {
 	unsigned int i;
@@ -253,7 +255,7 @@ find_service_par		(unsigned int		service)
 const char *
 vbi3_sliced_name			(unsigned int		service)
 {
-	const vbi3_service_par *par;
+	const _vbi3_service_par *par;
 
 	/* These are ambiguous */
 	if (service == VBI3_SLICED_CAPTION_525)
@@ -284,7 +286,7 @@ vbi3_sliced_name			(unsigned int		service)
 unsigned int
 vbi3_sliced_payload_bits		(unsigned int		service)
 {
-	const vbi3_service_par *par;
+	const _vbi3_service_par *par;
 
 	/* These are ambiguous */
 	if (service == VBI3_SLICED_CAPTION_525)
@@ -802,7 +804,7 @@ static void
 lines_containing_data		(unsigned int		start[2],
 				 unsigned int		count[2],
 				 const vbi3_sampling_par *sp,
-				 const vbi3_service_par *par)
+				 const _vbi3_service_par *par)
 {
 	unsigned int field;
 
@@ -864,7 +866,7 @@ vbi3_raw_decoder_add_services	(vbi3_raw_decoder *	rd,
 				 vbi3_service_set	services,
 				 unsigned int		strict)
 {
-	const vbi3_service_par *par;
+	const _vbi3_service_par *par;
 	double min_offset;
 
 	assert (NULL != rd);
@@ -955,8 +957,8 @@ vbi3_raw_decoder_add_services	(vbi3_raw_decoder *	rd,
 
 		sp = &rd->sampling;
 
-		if (!_vbi3_sampling_par_check_services_log (sp, par, strict,
-							    &rd->log))
+		if (!_vbi3_sampling_par_check_services_log
+		    (sp, par->id, strict, &rd->log))
 			continue;
 
 

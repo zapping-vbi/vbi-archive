@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: page.h,v 1.1.2.1 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: page.h,v 1.1.2.2 2006-05-26 00:43:06 mschimek Exp $ */
 
 #ifndef PAGE_H
 #define PAGE_H
@@ -27,7 +27,7 @@
 #include "network.h"	/* vbi3_nuid */
 #include "link.h" 	/* vbi3_link */
 #include "pdc.h"        /* vbi3_preselection */
-#include "lang.h"	/* vbi3_character_set */
+#include "lang.h"	/* vbi3_ttx_charset */
 
 VBI3_BEGIN_DECLS
 
@@ -415,8 +415,8 @@ extern const uint8_t *
 vbi3_page_get_drcs_data		(const vbi3_page *	pg,
 				 unsigned int		unicode)
   __attribute__ ((_vbi3_nonnull (1)));
-extern const vbi3_character_set *
-vbi3_page_get_character_set	(const vbi3_page *	pg,
+extern const vbi3_ttx_charset *
+vbi3_page_get_ttx_charset	(const vbi3_page *	pg,
 				 unsigned int		level)
   __attribute__ ((_vbi3_nonnull (1)));
 extern void
