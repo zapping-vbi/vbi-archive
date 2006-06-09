@@ -38,6 +38,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <dirent.h>
+#include <inttypes.h>
 
 /* This undef's are to avoid a couple of header warnings */
 #undef WNOHANG
@@ -55,6 +56,16 @@
 
 #include "zmisc.h"
 #include "../common/device.h"
+
+#ifndef PRId64
+#  define PRId64 "lld"
+#endif
+#ifndef PRIu64
+#  define PRIu64 "llu"
+#endif
+#ifndef PRIx64
+#  define PRIx64 "llx"
+#endif
 
 #ifndef TVENG1_RIVATV_TEST
 #  define TVENG1_RIVATV_TEST 0
@@ -661,7 +672,7 @@ int tveng_attach_device(const char* device_file,
     /* Add mixer controls */
     /* XXX the mixer_line should be property of a virtual
        device, but until we're there... */
-    if (esd_output)
+    if (esd_output || ivtv_audio)
       tveng_attach_mixer_line (info,
 			       &audio_loopback_mixer,
 			       &audio_loopback_mixer_line);
