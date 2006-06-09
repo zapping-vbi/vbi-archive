@@ -547,6 +547,15 @@ MAIN (PACKAGE_VERSION_ID)	(int			argc,
       NULL 
     },
     {
+      "ivtv-audio",
+      0,
+      POPT_ARG_NONE,
+      &ivtv_audio,
+      0,
+      "Use ivtv audio device",
+      NULL
+    },
+    {
       "bpp",
       'b',
       POPT_ARG_INT,
@@ -676,7 +685,7 @@ MAIN (PACKAGE_VERSION_ID)	(int			argc,
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.212 2006-04-12 01:41:30 mschimek Exp $",
+	 "$Id: main.c,v 1.213 2006-06-09 01:51:00 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
