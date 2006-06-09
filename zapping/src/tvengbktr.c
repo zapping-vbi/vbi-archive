@@ -2037,8 +2037,8 @@ tvengbktr_attach_device (const char* device_file,
 			 enum tveng_attach_mode attach_mode,
 			 tveng_device_info * info)
 {
-  struct private_bktr_device_info * p_info =
-    (struct private_bktr_device_info *) info;
+  struct private_tvengbktr_device_info * p_info =
+    (struct private_tvengbktr_device_info *) info;
 
   assert (device_file != NULL);
   assert (info != NULL);
