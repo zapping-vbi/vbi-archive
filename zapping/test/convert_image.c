@@ -16,7 +16,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: convert_image.c,v 1.6 2006-05-17 18:02:36 mschimek Exp $ */
+/* $Id: convert_image.c,v 1.7 2006-06-09 01:52:11 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #define _GNU_SOURCE 1
 #undef NDEBUG
@@ -31,6 +35,19 @@
 #include "libtv/yuv2yuv.h"
 #include "libtv/misc.h"		/* FFS() */
 #include "guard.h"
+
+#ifndef HAVE_LRINT
+
+static long
+lrint				(double			x)
+{
+	if (x < 0)
+		return (long)(x - 0.5);
+	else
+		return (long)(x + 0.5);
+}
+
+#endif
 
 #define ERASE(var) memset (&(var), 0xAA, sizeof (var))
 
@@ -383,8 +400,8 @@ compare_images_yuv2rgb		(const uint8_t *	dst,
 			r_min = SATURATE (r - 2, 0L, 255L) & (and_mask >> 0);
 			r_max = SATURATE (r + 2, 0L, 255L) & (and_mask >> 0);
 
-			g_min = SATURATE (g - 2, 0L, 255L) & (and_mask >> 8);
-			g_max = SATURATE (g + 2, 0L, 255L) & (and_mask >> 8);
+			g_min = SATURATE (g - 3, 0L, 255L) & (and_mask >> 8);
+			g_max = SATURATE (g + 3, 0L, 255L) & (and_mask >> 8);
 
 			b_min = SATURATE (b - 2, 0L, 255L) & (and_mask >> 16);
 			b_max = SATURATE (b + 2, 0L, 255L) & (and_mask >> 16);
@@ -1221,8 +1238,8 @@ all_formats			(void)
 				continue; /* later */
 
 			if (TV_PIXFMT_HM12 == src_formats[i]
-			    && TV_PIXFMT_YUV420 != dst_formats[i]
-			    && TV_PIXFMT_YVU420 != dst_formats[i])
+			    && TV_PIXFMT_YUV420 != dst_formats[j]
+			    && TV_PIXFMT_YVU420 != dst_formats[j])
 				continue; /* later */
 
 			dst_format.pixel_format =
