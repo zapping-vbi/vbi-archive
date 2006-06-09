@@ -590,6 +590,8 @@ capture_thread			(void *			data)
   tveng_device_info *info = (tveng_device_info *) data;
   zf_producer prod;
 
+  D();
+
   zf_add_producer (&capture_fifo, &prod);
 
   while (!capture_quit)
@@ -614,10 +616,14 @@ capture_thread			(void *			data)
       retry:
 	if (capture_quit)
 	  {
+	    D();
 	    _pthread_rwlock_unlock (&fmt_rwlock);
 	    zf_unget_empty_buffer (&prod, &p->frame.b);
 	    break;
 	  }
+
+#warning remove this, too much noise
+	D();
 
 	if (p->tag != request_id && !compatible (p, info))
 	  {
@@ -634,6 +640,7 @@ capture_thread			(void *			data)
 	  {
 	    /* Avoid busy loop. FIXME there must be a better way. */
 	    _pthread_rwlock_unlock (&fmt_rwlock);
+	    D();
 	    usleep (10000);
 	    _pthread_rwlock_rdlock (&fmt_rwlock);
 	    goto retry;
@@ -644,6 +651,8 @@ capture_thread			(void *			data)
 
       zf_send_full_buffer(&prod, &p->frame.b);
     }
+
+  D();
 
   zf_rem_producer(&prod);
 
@@ -859,6 +868,8 @@ capture_stop			(void)
   zf_buffer *b;
   guint i;
 
+  D();
+
   /* Don't stop when recording. */
   for (i = 0; i < n_formats; ++i)
     if (formats[i].flags & REQ_CONTINUOUS) {
@@ -923,6 +934,8 @@ capture_stop			(void)
 
   video_uninit ();
 
+  D();
+
   return TRUE;
 }
 
@@ -934,6 +947,8 @@ capture_start			(tveng_device_info *	info,
   gboolean use_queue;
   unsigned int n_buffers;
   unsigned int i;
+
+  D();
 
   use_queue = !!(tv_get_caps (info)->flags & TVENG_CAPS_QUEUE);
 
@@ -1042,6 +1057,8 @@ capture_start			(tveng_device_info *	info,
 
   /* Trigger initial on_capture_canvas_allocate call. */
   gtk_widget_queue_resize (window);
+
+  D();
 
   return TRUE;
 

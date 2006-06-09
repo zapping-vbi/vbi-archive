@@ -140,6 +140,13 @@ bttv driver:
   XV_MUTE 0. Works normal with bttv-0.7.
 * 0.9.5: Overlay seems to be broken.
 
+v4l1-compat:
+* VIDIOCSPICT: Discards VIDIOC_S_CTRL and VIDIOC_S_FMT(CAPTURE)
+  errors (e.g. unsupported palette). Calls VIDIOC_G|S_FBUF without
+  checking for overlay support and discards the resulting EINVAL.
+* VIDIOCGPICT: Discards VIDIOC_G_CTRL errors, possibly return invalid
+  values.
+
 XFree86/Xorg
 ------------
 * XvQueryAdaptors seems to report wrong num_formats value, maybe a

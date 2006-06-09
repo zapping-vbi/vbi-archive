@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mixer.c,v 1.16 2006-03-06 01:44:05 mschimek Exp $ */
+/* $Id: mixer.c,v 1.17 2006-06-09 01:53:44 mschimek Exp $ */
 
 /*
  *  These functions encapsulate the OS and driver specific
@@ -90,7 +90,7 @@ void		startup_mixer(tveng_device_info *info)
 		    break;
 		  }
 
-	      if (esd_output)
+	      if (esd_output || ivtv_audio)
 		tveng_attach_mixer_line (info,
 					 &audio_loopback_mixer,
 					 &audio_loopback_mixer_line);

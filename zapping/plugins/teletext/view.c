@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.20 2006-02-06 18:14:54 mschimek Exp $ */
+/* $Id: view.c,v 1.21 2006-06-09 01:53:43 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -40,7 +40,16 @@
 #include "src/remote.h"
 
 #ifndef HAVE_LRINT
-#  define lrint(x) ((long)(x))
+
+static long
+lrint				(double			x)
+{
+	if (x < 0)
+		return (long)(x - 0.5);
+	else
+		return (long)(x + 0.5);
+}
+
 #endif
 
 #define BLINK_CYCLE 300 /* ms */

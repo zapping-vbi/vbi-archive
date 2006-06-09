@@ -1,3 +1,62 @@
+2006-06-07    <mschimek@users.sf.net>
+
+	* configure.in: Replaced lrint() link check by compile check
+	  because it's a macro in glibc.
+
+	* src/main.c (MAIN), src/globals.c: 
+	* src/audio.c (mixer_setup, devices_audio_apply, startup_audio): 
+	* src/audio.c (loopback_start): Added preliminary support for ivtv
+	  audio device.
+
+	* src/tveng25.c (read_frame), src/tveng1.c (read_frame): Assert
+	  tv_copy_image() success.
+
+	* libtv/copy_image.c (tv_copy_image):
+	* test/copy_image.c (test): HM12 not supported yet, no complaints
+	  please.
+
+	* test/convert_image.c (all_formats): Fixed the HM12 check.
+
+	* plugins/deinterlace/DI_GreedyH/DI_GreedyH.c: SSE version was not
+	  compiled because the SSE_INT checks were backwards.
+
+2006-06-06    <mschimek@users.sf.net>
+
+	* test/convert_image.c, libtv/lut_yuv2rgb-gen.c: Did not define a
+	  replacement in case lrint() is unavailable.
+
+	* src/tvengbktr.c (tvengbktr_attach_device): Fixed
+	  struct private_tvengbktr_device_info name,
+
+	* src/tveng.c: Did not define PRIx64 if missing in inttypes.h. 
+
+	* libtv/Makefile.am (libtv_la_SOURCES): copy_image-priv.h was
+	  missing.
+
+2006-05-29    <mschimek@users.sf.net>
+
+	* configure.in: Run function checks with -D_GNU_SOURCE
+	  because we also compile with this flag.
+
+	* src/capture.c: Added some log points.
+
+	* src/tveng25.c (image_format_from_format): Uninitialized
+	  bytes-per-line fix.
+	(read_buffer): Disable ivtv read work-around because this bug
+	  seems to be fixed.
+
+	* src/tveng1.c: Added code to read back the pixel format requested
+	  with VIDIOCSPICT because the v4l1-compat module does not return
+	  an error when the format is unsupported. Perhaps some drivers
+	  have similar bugs.
+
+2006-05-18    <mschimek@users.sf.net>
+
+	* src/tveng25.c (tveng25_attach_device): Added a work-around
+	  for cx88 which sets the overlay capability flag but doesn't
+	  really support overlay, causing Zapping to try the V4L API
+	  instead.
+
 2006-05-17    <mschimek@users.sf.net>
 
 	* src/tveng1.c: s/TVENG25_XV_TEST/TVENG1_XV_TEST.

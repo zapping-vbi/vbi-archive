@@ -55,6 +55,7 @@ extern tv_audio_line *		mixer_line;
 
 /* XXX move this into device preferences */
 extern gint			esd_output;
+extern gint			ivtv_audio;
 
 #ifdef HAVE_LIBZVBI
 

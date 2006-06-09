@@ -56,7 +56,16 @@
 #endif
 
 #ifndef HAVE_LRINT
-#  define lrint(x) ((long)(x))
+
+static long
+lrint				(double			x)
+{
+	if (x < 0)
+		return (long)(x - 0.5);
+	else
+		return (long)(x + 0.5);
+}
+
 #endif
 
 #define IS_CAPTION_PGNO(pgno) ((pgno) <= 8)

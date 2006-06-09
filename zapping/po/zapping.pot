@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-03-31 16:06+0200\n"
+"POT-Creation-Date: 2006-06-08 12:44+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -31,8 +31,8 @@ msgstr ""
 msgid "Advanced"
 msgstr ""
 
-#: ../glade/zapping.glade2.h:4 ../src/audio.c:829 ../src/audio.c:834
-#: ../src/tveng.c:4830
+#: ../glade/zapping.glade2.h:4 ../src/audio.c:962 ../src/audio.c:967
+#: ../src/tveng.c:4842
 msgid "Audio"
 msgstr ""
 
@@ -92,8 +92,8 @@ msgstr ""
 msgid "Device name:"
 msgstr ""
 
-#: ../glade/zapping.glade2.h:20 ../src/audio.c:839
-#: ../src/properties-handler.c:1352 ../src/zvbi.c:2537
+#: ../glade/zapping.glade2.h:20 ../src/audio.c:972
+#: ../src/properties-handler.c:1352 ../src/zvbi.c:2546
 msgid "Devices"
 msgstr ""
 
@@ -255,7 +255,7 @@ msgstr ""
 msgid "Title _bar contents:"
 msgstr ""
 
-#: ../glade/zapping.glade2.h:60 ../src/zvbi.c:2532
+#: ../glade/zapping.glade2.h:60 ../src/zvbi.c:2541
 msgid "VBI"
 msgstr ""
 
@@ -655,172 +655,172 @@ msgstr ""
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:240
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:243
 msgid "Max Comb"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:246
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:249
 msgid "Motion Threshold"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:252
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:255
 msgid "Motion Sense"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:258
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:261
 msgid "Good PullDown Lvl"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:264
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:267
 msgid "Bad PullDown Lvl"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:270
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:318
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:273
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:321
 msgid "H. Sharpness"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:276
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:312
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:279
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:315
 msgid "V. Sharpness"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:282
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:306
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:285
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:309
 msgid "Median Filter"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:288
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:291
 msgid "High Comb Skip"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:294
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:297
 msgid "Auto Pull-Down"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:300
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:303
 msgid "In-Between Frames"
 msgstr ""
 
 #. size of this struct
 #. curr version compiled
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:336
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:339
 msgid "Video (Greedy, High Motion)"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_Bob.c:150
+#: ../plugins/deinterlace/DI_Misc/DI_Bob.c:153
 msgid "Simple Bob"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_EvenOnly.c:123
+#: ../plugins/deinterlace/DI_Misc/DI_EvenOnly.c:126
 msgid "Even Scanlines Only"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:258
+#: ../plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:261
 msgid "Greedy 2 Frame Luma Threshold"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:270
+#: ../plugins/deinterlace/DI_Misc/DI_Greedy2Frame.c:273
 msgid "Greedy 2 Frame"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_Greedy.c:235
+#: ../plugins/deinterlace/DI_Misc/DI_Greedy.c:238
 msgid "Greedy Max Comb"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_Greedy.c:246
+#: ../plugins/deinterlace/DI_Misc/DI_Greedy.c:249
 msgid "Video (Greedy, Low Motion)"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_MoComp2.c:351
+#: ../plugins/deinterlace/DI_Misc/DI_MoComp2.c:354
 msgid "Video (MoComp2)"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_OddOnly.c:125
+#: ../plugins/deinterlace/DI_Misc/DI_OddOnly.c:128
 msgid "Odd Scanlines Only"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_ScalerBob.c:117
+#: ../plugins/deinterlace/DI_Misc/DI_ScalerBob.c:120
 msgid "Scaler Bob"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:955
+#: ../plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:958
 msgid "Search Effort"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:961
+#: ../plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:964
 msgid "Use Strange Bob"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:972
+#: ../plugins/deinterlace/DI_Misc/DI_TomsMoComp.c:975
 msgid "Video (TomsMoComp)"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_TwoFrame.c:317
+#: ../plugins/deinterlace/DI_Misc/DI_TwoFrame.c:320
 msgid "2 Frame Spatial Tolerance"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_TwoFrame.c:323
+#: ../plugins/deinterlace/DI_Misc/DI_TwoFrame.c:326
 msgid "2 Frame Temporal Tolerance"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_TwoFrame.c:334
+#: ../plugins/deinterlace/DI_Misc/DI_TwoFrame.c:337
 msgid "Video Deinterlace (2-Frame)"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_VideoBob.c:237
+#: ../plugins/deinterlace/DI_Misc/DI_VideoBob.c:240
 msgid "Weave Edge Detect"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_VideoBob.c:243
+#: ../plugins/deinterlace/DI_Misc/DI_VideoBob.c:246
 msgid "Weave Jaggie Threshold"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_VideoBob.c:254
+#: ../plugins/deinterlace/DI_Misc/DI_VideoBob.c:257
 msgid "Video Deinterlace (Bob)"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_VideoWeave.c:270
+#: ../plugins/deinterlace/DI_Misc/DI_VideoWeave.c:273
 msgid "Temporal Tolerance"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_VideoWeave.c:276
+#: ../plugins/deinterlace/DI_Misc/DI_VideoWeave.c:279
 msgid "Spatial Tolerance"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_VideoWeave.c:282
+#: ../plugins/deinterlace/DI_Misc/DI_VideoWeave.c:285
 msgid "Similarity Threshold"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_VideoWeave.c:293
+#: ../plugins/deinterlace/DI_Misc/DI_VideoWeave.c:296
 msgid "Video Deinterlace (Weave)"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_Misc/DI_Weave.c:155
+#: ../plugins/deinterlace/DI_Misc/DI_Weave.c:158
 msgid "Simple Weave"
 msgstr ""
 
-#: ../plugins/deinterlace/main.c:352
+#: ../plugins/deinterlace/main.c:351
 msgid "Could not start deinterlace plugin"
 msgstr ""
 
-#: ../plugins/deinterlace/main.c:353
+#: ../plugins/deinterlace/main.c:352
 #, c-format
 msgid "Could not switch to capture format YUYV %u x %u."
 msgstr ""
 
-#: ../plugins/deinterlace/main.c:447
+#: ../plugins/deinterlace/main.c:446
 msgid "Deinterlace"
 msgstr ""
 
-#: ../plugins/deinterlace/main.c:454 ../plugins/mpeg/mpeg.c:2336
+#: ../plugins/deinterlace/main.c:453 ../plugins/mpeg/mpeg.c:2336
 #: ../plugins/mpeg/mpeg.c:2956 ../plugins/screenshot/screenshot.c:522
 #: ../plugins/screenshot/screenshot.c:1525 ../plugins/subtitle/main.c:55
 #: ../plugins/teletext/main.c:212
 msgid "Plugins"
 msgstr ""
 
-#: ../plugins/deinterlace/main.c:523
+#: ../plugins/deinterlace/main.c:522
 msgid "Deinterlace plugin"
 msgstr ""
 
@@ -1100,7 +1100,7 @@ msgstr ""
 msgid "Preview"
 msgstr ""
 
-#: ../plugins/screenshot/screenshot.glade2.h:8 ../plugins/teletext/view.c:2767
+#: ../plugins/screenshot/screenshot.glade2.h:8 ../plugins/teletext/view.c:2776
 msgid "S_ubtitles"
 msgstr ""
 
@@ -1263,15 +1263,15 @@ msgstr ""
 msgid "Quality/speed trade-off when scaling and anti-aliasing the page."
 msgstr ""
 
-#: ../plugins/subtitle/view.c:1660 ../src/subtitle.c:321
+#: ../plugins/subtitle/view.c:1669 ../src/subtitle.c:321
 msgid "_Disable"
 msgstr ""
 
-#: ../plugins/subtitle/view.c:1662
+#: ../plugins/subtitle/view.c:1671
 msgid "_Reset position"
 msgstr ""
 
-#: ../plugins/subtitle/view.c:1664 ../plugins/teletext/window.c:810
+#: ../plugins/subtitle/view.c:1673 ../plugins/teletext/window.c:810
 msgid "_Encoding"
 msgstr ""
 
@@ -1405,7 +1405,7 @@ msgstr ""
 msgid "Page memory is empty"
 msgstr ""
 
-#: ../plugins/teletext/search.c:342 ../plugins/teletext/view.c:3260
+#: ../plugins/teletext/search.c:342 ../plugins/teletext/view.c:3269
 msgid "Search page memory"
 msgstr ""
 
@@ -1454,113 +1454,113 @@ msgstr ""
 msgid "Reveal concealed text"
 msgstr ""
 
-#: ../plugins/teletext/view.c:846
+#: ../plugins/teletext/view.c:855
 #, c-format
 msgid " Page %x"
 msgstr ""
 
-#: ../plugins/teletext/view.c:850
+#: ../plugins/teletext/view.c:859
 #, c-format
 msgid " Subpage %x"
 msgstr ""
 
-#: ../plugins/teletext/view.c:1459
+#: ../plugins/teletext/view.c:1468
 #, c-format
 msgid "Loading page %X..."
 msgstr ""
 
-#: ../plugins/teletext/view.c:1461
+#: ../plugins/teletext/view.c:1470
 #, c-format
 msgid "Loading page %X.%02X..."
 msgstr ""
 
-#: ../plugins/teletext/view.c:2372
+#: ../plugins/teletext/view.c:2381
 msgid "Selection copied to clipboard"
 msgstr ""
 
-#: ../plugins/teletext/view.c:2454
+#: ../plugins/teletext/view.c:2463
 msgid "No page loaded"
 msgstr ""
 
-#: ../plugins/teletext/view.c:2467
+#: ../plugins/teletext/view.c:2476
 msgid "Selecting - press Shift key for table mode"
 msgstr ""
 
-#: ../plugins/teletext/view.c:2627
+#: ../plugins/teletext/view.c:2636
 msgid "Subtitle index"
 msgstr ""
 
-#: ../plugins/teletext/view.c:2634
+#: ../plugins/teletext/view.c:2643
 msgid "Now and Next"
 msgstr ""
 
-#: ../plugins/teletext/view.c:2640
+#: ../plugins/teletext/view.c:2649
 msgid "Current program"
 msgstr ""
 
-#: ../plugins/teletext/view.c:2646
+#: ../plugins/teletext/view.c:2655
 msgid "Program Index"
 msgstr ""
 
-#: ../plugins/teletext/view.c:2652
+#: ../plugins/teletext/view.c:2661
 msgid "Program Schedule"
 msgstr ""
 
 #. TRANSLATORS: Schedule changes and the like.
-#: ../plugins/teletext/view.c:2660
+#: ../plugins/teletext/view.c:2669
 msgid "Program Warning"
 msgstr ""
 
-#: ../plugins/teletext/view.c:2721
+#: ../plugins/teletext/view.c:2730
 msgid "_Open"
 msgstr ""
 
-#: ../plugins/teletext/view.c:2727
+#: ../plugins/teletext/view.c:2736
 msgid "Open in _New Window"
 msgstr ""
 
-#: ../plugins/teletext/view.c:2738
+#: ../plugins/teletext/view.c:2747
 msgid "_Open Link"
 msgstr ""
 
-#: ../plugins/teletext/view.c:2749 ../plugins/teletext/window.c:805
+#: ../plugins/teletext/view.c:2758 ../plugins/teletext/window.c:805
 msgid "_New Window"
 msgstr ""
 
-#: ../plugins/teletext/view.c:2755
+#: ../plugins/teletext/view.c:2764
 msgid "_Save as..."
 msgstr ""
 
-#: ../plugins/teletext/view.c:2761
+#: ../plugins/teletext/view.c:2770
 msgid "S_earch..."
 msgstr ""
 
-#: ../plugins/teletext/view.c:2773 ../plugins/teletext/window.c:812
+#: ../plugins/teletext/view.c:2782 ../plugins/teletext/window.c:812
 #: ../src/zapping.c:497
 msgid "_Bookmarks"
 msgstr ""
 
-#: ../plugins/teletext/view.c:3252
+#: ../plugins/teletext/view.c:3261
 msgid "_Go"
 msgstr ""
 
-#: ../plugins/teletext/view.c:3254
+#: ../plugins/teletext/view.c:3263
 msgid "Previous page in history"
 msgstr ""
 
-#: ../plugins/teletext/view.c:3256
+#: ../plugins/teletext/view.c:3265
 msgid "Next page in history"
 msgstr ""
 
-#: ../plugins/teletext/view.c:3257
+#: ../plugins/teletext/view.c:3266
 msgid "Index"
 msgstr ""
 
-#: ../plugins/teletext/view.c:3258
+#: ../plugins/teletext/view.c:3267
 msgid "Go to the index page"
 msgstr ""
 
-#: ../plugins/teletext/view.c:3262
+#: ../plugins/teletext/view.c:3271
 msgid "Save this page to a file"
 msgstr ""
 
@@ -1575,15 +1575,15 @@ msgstr ""
 msgid "Unnamed"
 msgstr ""
 
-#: ../plugins/teletext/window.c:571 ../src/zvbi.c:221
+#: ../plugins/teletext/window.c:571 ../src/zvbi.c:230
 msgid " (Latin)"
 msgstr ""
 
-#: ../plugins/teletext/window.c:573 ../src/zvbi.c:223
+#: ../plugins/teletext/window.c:573 ../src/zvbi.c:232
 msgid " (Cyrillic)"
 msgstr ""
 
-#: ../plugins/teletext/window.c:616 ../src/zvbi.c:238
+#: ../plugins/teletext/window.c:616 ../src/zvbi.c:247
 msgid "_Automatic"
 msgstr ""
 
@@ -1613,28 +1613,28 @@ msgid "_Statusbar"
 msgstr ""
 
 #. TRANSLATORS: Soundcard mixer line.
-#: ../src/audio.c:807
+#: ../src/audio.c:940
 msgid "Input:"
 msgstr ""
 
-#: ../src/audio.c:840 ../src/keyboard.c:1154 ../src/osd.c:1080
+#: ../src/audio.c:973 ../src/keyboard.c:1154 ../src/osd.c:1080
 #: ../src/properties.c:991 ../src/properties-handler.c:1353
 msgid "General Options"
 msgstr ""
 
-#: ../src/audio.c:939
+#: ../src/audio.c:1072
 msgid "<span foreground=\"blue\">Audio off</span>"
 msgstr ""
 
-#: ../src/audio.c:940
+#: ../src/audio.c:1073
 msgid "<span foreground=\"yellow\">Audio on</span>"
 msgstr ""
 
-#: ../src/capture.c:866
+#: ../src/capture.c:877
 msgid "Cannot stop capturing while recording."
 msgstr ""
 
-#: ../src/capture.c:1052
+#: ../src/capture.c:1069
 #, c-format
 msgid "Cannot start capturing: %s"
 msgstr ""
@@ -1779,25 +1779,29 @@ msgstr ""
 msgid "Type a new accelerator"
 msgstr ""
 
-#: ../src/frequencies.c:94 ../src/frequencies.c:160
+#: ../src/frequencies.c:93 ../src/frequencies.c:159
 msgid "broadcast"
 msgstr ""
 
-#: ../src/frequencies.c:107
+#: ../src/frequencies.c:106
 msgid "cable IRC"
 msgstr ""
 
-#: ../src/frequencies.c:126
+#: ../src/frequencies.c:125
 msgid "cable HRC"
 msgstr ""
 
-#: ../src/frequencies.c:144 ../src/frequencies.c:172
+#: ../src/frequencies.c:143 ../src/frequencies.c:171
 msgid "cable"
 msgstr ""
 
 #. TRANSLATORS: Leave "Autocom" untranslated.
-#: ../src/frequencies.c:275
+#: ../src/frequencies.c:274
 msgid "Autocom cable"
+msgstr ""
+
+#: ../src/frequencies.c:434
+msgid "UPC cable"
 msgstr ""
 
 #: ../src/keyboard.c:89 ../src/keyboard.c:112
@@ -1824,149 +1828,141 @@ msgstr ""
 msgid "Shortcut"
 msgstr ""
 
-#: ../src/main.c:197 ../src/tveng1.c:1358 ../src/tveng25.c:566
-#: ../src/tvengbktr.c:414 ../src/tveng.c:2340 ../src/tvengxv.c:878
+#: ../src/main.c:197 ../src/tveng1.c:1359 ../src/tveng25.c:576
+#: ../src/tvengbktr.c:414 ../src/tveng.c:2352 ../src/tvengxv.c:878
 msgid "Mute"
 msgstr ""
 
-#. warnings
-#: ../src/main.c:273 ../src/main.c:308
-#, c-format
-msgid ""
-"Capture mode couldn't be started:\n"
-"%s"
-msgstr ""
-
-#: ../src/main.c:291
+#: ../src/main.c:339
 #, c-format
 msgid ""
 "Cannot restore previous mode, will try capture mode:\n"
 "%s"
 msgstr ""
 
-#: ../src/main.c:299
+#: ../src/main.c:348
 #, c-format
 msgid ""
 "Capture mode couldn't be started either:\n"
 "%s"
 msgstr ""
 
-#: ../src/main.c:302
+#: ../src/main.c:352
 #, c-format
 msgid ""
 "Cannot restore previous mode:\n"
 "%s"
 msgstr ""
 
-#: ../src/main.c:376
+#: ../src/main.c:427
 msgid "Kernel video device"
 msgstr ""
 
-#: ../src/main.c:377
+#: ../src/main.c:428
 msgid "FILENAME"
 msgstr ""
 
-#: ../src/main.c:388 ../src/main.c:406
+#: ../src/main.c:439 ../src/main.c:457
 msgid "XVideo video input port"
 msgstr ""
 
-#: ../src/main.c:397
+#: ../src/main.c:448
 msgid "XVideo image overlay port"
 msgstr ""
 
-#: ../src/main.c:415
+#: ../src/main.c:466
 msgid "Disable XVideo video input support"
 msgstr ""
 
-#: ../src/main.c:424
+#: ../src/main.c:475
 msgid "Disable XVideo image overlay support"
 msgstr ""
 
-#: ../src/main.c:433
+#: ../src/main.c:484
 msgid "Disable XVideo extension support"
 msgstr ""
 
-#: ../src/main.c:445
+#: ../src/main.c:496
 msgid "Disable video overlay"
 msgstr ""
 
-#: ../src/main.c:454
+#: ../src/main.c:505
 msgid "X display is remote, disable video overlay"
 msgstr ""
 
-#: ../src/main.c:463
+#: ../src/main.c:514
 msgid "Disable VBI support"
 msgstr ""
 
-#: ../src/main.c:472
+#: ../src/main.c:523
 msgid "Disable plugins"
 msgstr ""
 
 #. TRANSLATORS: --no-zsfb command line option.
 #. TRANSLATORS: --yuv-format command line option.
 #. TRANSLATORS: --tunerless-norm command line option.
-#: ../src/main.c:486 ../src/main.c:550 ../src/main.c:560
+#: ../src/main.c:537 ../src/main.c:610 ../src/main.c:620
 msgid "Obsolete"
 msgstr ""
 
-#: ../src/main.c:504
+#: ../src/main.c:564
 msgid "Color depth of the X display"
 msgstr ""
 
-#: ../src/main.c:505
+#: ../src/main.c:565
 msgid "BPP"
 msgstr ""
 
-#: ../src/main.c:513
+#: ../src/main.c:573
 msgid "Print debug messages"
 msgstr ""
 
-#: ../src/main.c:531
+#: ../src/main.c:591
 msgid "Force dword alignment of the overlay window"
 msgstr ""
 
-#: ../src/main.c:540
+#: ../src/main.c:600
 msgid "Execute the given command and exit"
 msgstr ""
 
-#: ../src/main.c:541
+#: ../src/main.c:601
 msgid "CMD"
 msgstr ""
 
-#: ../src/main.c:569
+#: ../src/main.c:629
 msgid "Override CPU detection"
 msgstr ""
 
-#: ../src/main.c:658
+#: ../src/main.c:718
 msgid "Sorry, but there is no module support in GLib"
 msgstr ""
 
-#: ../src/main.c:782
+#: ../src/main.c:842
 msgid "Cannot get device info struct"
 msgstr ""
 
-#: ../src/main.c:791
+#: ../src/main.c:851
 msgid "Zapping couldn't be started"
 msgstr ""
 
-#: ../src/main.c:845
+#: ../src/main.c:905
 #, c-format
 msgid "Couldn't open %s, try other devices?"
 msgstr ""
 
-#: ../src/main.c:872
+#: ../src/main.c:932
 #, c-format
 msgid "%s suceeded, setting it as the new default"
 msgstr ""
 
-#: ../src/main.c:882
+#: ../src/main.c:942
 #, c-format
 msgid ""
 "Sorry, but \"%s\" could not be opened:\n"
 "%s"
 msgstr ""
 
-#: ../src/main.c:1242
+#: ../src/main.c:1300
 #, c-format
 msgid ""
 "ZConf could not be closed properly , your\n"
@@ -1979,7 +1975,7 @@ msgid ""
 "     %s. Please contact the author.\n"
 msgstr ""
 
-#: ../src/main.c:1268
+#: ../src/main.c:1326
 msgid "Sorry, Zapping is unable to create the config tree"
 msgstr ""
 
@@ -2193,7 +2189,7 @@ msgstr ""
 msgid "Do not change"
 msgstr ""
 
-#: ../src/properties-handler.c:1164 ../src/tveng.c:4841
+#: ../src/properties-handler.c:1164 ../src/tveng.c:4853
 msgid "Automatic"
 msgstr ""
 
@@ -2212,125 +2208,125 @@ msgstr ""
 msgid "Page %x"
 msgstr ""
 
-#: ../src/tveng1.c:1419
+#: ../src/tveng1.c:1420
 msgid "Frame Rate"
 msgstr ""
 
-#: ../src/tveng1.c:1434
+#: ../src/tveng1.c:1435
 msgid "Snapshot Mode"
 msgstr ""
 
-#: ../src/tveng1.c:2571 ../src/tveng25.c:1490
+#: ../src/tveng1.c:2572 ../src/tveng25.c:1504
 #, c-format
 msgid "Driver %s returned an unknown or invalid frame buffer format."
 msgstr ""
 
-#: ../src/tveng25.c:547 ../src/tvengbktr.c:383 ../src/tvengbktr.c:400
+#: ../src/tveng25.c:557 ../src/tvengbktr.c:383 ../src/tvengbktr.c:400
 #: ../src/tvengxv.c:872
 msgid "Brightness"
 msgstr ""
 
-#: ../src/tveng25.c:548 ../src/tvengbktr.c:385 ../src/tvengbktr.c:402
+#: ../src/tveng25.c:558 ../src/tvengbktr.c:385 ../src/tvengbktr.c:402
 #: ../src/tvengxv.c:873
 msgid "Contrast"
 msgstr ""
 
-#: ../src/tveng25.c:549 ../src/tvengbktr.c:387 ../src/tvengbktr.c:404
+#: ../src/tveng25.c:559 ../src/tvengbktr.c:387 ../src/tvengbktr.c:404
 #: ../src/tvengxv.c:874
 msgid "Saturation"
 msgstr ""
 
-#: ../src/tveng25.c:550 ../src/tvengbktr.c:393 ../src/tvengbktr.c:412
+#: ../src/tveng25.c:560 ../src/tvengbktr.c:393 ../src/tvengbktr.c:412
 #: ../src/tvengxv.c:875
 msgid "Hue"
 msgstr ""
 
-#: ../src/tveng25.c:551
+#: ../src/tveng25.c:561
 msgid "Whiteness"
 msgstr ""
 
-#: ../src/tveng25.c:552
+#: ../src/tveng25.c:562
 msgid "Black level"
 msgstr ""
 
-#: ../src/tveng25.c:553 ../src/tveng25.c:554
+#: ../src/tveng25.c:563 ../src/tveng25.c:564
 msgid "White balance"
 msgstr ""
 
-#: ../src/tveng25.c:555
+#: ../src/tveng25.c:565
 msgid "Red balance"
 msgstr ""
 
-#: ../src/tveng25.c:556
+#: ../src/tveng25.c:566
 msgid "Blue balance"
 msgstr ""
 
-#: ../src/tveng25.c:557
+#: ../src/tveng25.c:567
 msgid "Gamma"
 msgstr ""
 
-#: ../src/tveng25.c:558
+#: ../src/tveng25.c:568
 msgid "Exposure"
 msgstr ""
 
-#: ../src/tveng25.c:559
+#: ../src/tveng25.c:569
 msgid "Auto gain"
 msgstr ""
 
-#: ../src/tveng25.c:560
+#: ../src/tveng25.c:570
 msgid "Gain"
 msgstr ""
 
-#: ../src/tveng25.c:561
+#: ../src/tveng25.c:571
 msgid "HCenter"
 msgstr ""
 
-#: ../src/tveng25.c:562
+#: ../src/tveng25.c:572
 msgid "VCenter"
 msgstr ""
 
-#: ../src/tveng25.c:563
+#: ../src/tveng25.c:573
 msgid "Hor. flipping"
 msgstr ""
 
-#: ../src/tveng25.c:564
+#: ../src/tveng25.c:574
 msgid "Vert. flipping"
 msgstr ""
 
-#: ../src/tveng25.c:565 ../src/tveng.c:2327 ../src/tvengxv.c:879
+#: ../src/tveng25.c:575 ../src/tveng.c:2339 ../src/tvengxv.c:879
 msgid "Volume"
 msgstr ""
 
-#: ../src/tveng25.c:567
+#: ../src/tveng25.c:577
 msgid "Audio Mute"
 msgstr ""
 
-#: ../src/tveng25.c:568
+#: ../src/tveng25.c:578
 msgid "Balance"
 msgstr ""
 
-#: ../src/tveng25.c:569
+#: ../src/tveng25.c:579
 msgid "Audio Balance"
 msgstr ""
 
-#: ../src/tveng25.c:570
+#: ../src/tveng25.c:580
 msgid "Treble"
 msgstr ""
 
-#: ../src/tveng25.c:571
+#: ../src/tveng25.c:581
 msgid "Loudness"
 msgstr ""
 
-#: ../src/tveng25.c:572
+#: ../src/tveng25.c:582
 msgid "Bass"
 msgstr ""
 
-#: ../src/tveng25.c:2745
+#: ../src/tveng25.c:2858
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr ""
 
-#: ../src/tveng25.c:2764
+#: ../src/tveng25.c:2873
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr ""
@@ -2347,18 +2343,18 @@ msgstr ""
 msgid "V Saturation"
 msgstr ""
 
-#: ../src/tveng.c:3214
+#: ../src/tveng.c:3226
 #, c-format
 msgid "Cannot execute %s. Pipe error."
 msgstr ""
 
-#: ../src/tveng.c:3221 ../src/tveng.c:3253
+#: ../src/tveng.c:3233 ../src/tveng.c:3265
 #, c-format
 msgid "Cannot execute %s. %s."
 msgstr ""
 
 #. TRANSLATORS: Program name, error message.
-#: ../src/tveng.c:3231
+#: ../src/tveng.c:3243
 #, c-format
 msgid ""
 "%s failed.\n"
@@ -2368,36 +2364,36 @@ msgstr ""
 #. Something executed, but it wasn't
 #. zapping_setup_fb. Perhaps consolehelper
 #. couldn't authenticate the user?
-#: ../src/tveng.c:3243
+#: ../src/tveng.c:3255
 #, c-format
 msgid "Cannot execute %s. No permission?"
 msgstr ""
 
-#: ../src/tveng.c:3352
+#: ../src/tveng.c:3364
 #, c-format
 msgid "Cannot determine current overlay parameters. %s"
 msgstr ""
 
 #. TRANSLATORS: Program name.
-#: ../src/tveng.c:3361
+#: ../src/tveng.c:3373
 #, c-format
 msgid "%s did not work as expected."
 msgstr ""
 
-#: ../src/tveng.c:3466
+#: ../src/tveng.c:3478
 #, c-format
 msgid "%s not found in %s or the executable search path."
 msgstr ""
 
-#: ../src/tveng.c:4848
+#: ../src/tveng.c:4860
 msgid "Mono"
 msgstr ""
 
-#: ../src/tveng.c:4855
+#: ../src/tveng.c:4867
 msgid "Stereo"
 msgstr ""
 
-#: ../src/tveng.c:4863
+#: ../src/tveng.c:4875
 msgid "Language 2"
 msgstr ""
 
@@ -2657,41 +2653,41 @@ msgstr ""
 msgid "Reset"
 msgstr ""
 
-#: ../src/zvbi.c:1044
+#: ../src/zvbi.c:1053
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr ""
 
-#: ../src/zvbi.c:1047
+#: ../src/zvbi.c:1056
 #, c-format
 msgid " Teletext Page %x"
 msgstr ""
 
-#: ../src/zvbi.c:1048
+#: ../src/zvbi.c:1057
 msgid "Open this page with Zapzilla"
 msgstr ""
 
-#: ../src/zvbi.c:1434
+#: ../src/zvbi.c:1443
 msgid "PES file read error"
 msgstr ""
 
-#: ../src/zvbi.c:1653
+#: ../src/zvbi.c:1662
 msgid "VBI interface timeout"
 msgstr ""
 
-#: ../src/zvbi.c:1685
+#: ../src/zvbi.c:1694
 msgid "VBI interface: Failed to read from the device"
 msgstr ""
 
-#: ../src/zvbi.c:1763 ../src/zvbi.c:2006 ../src/zvbi.c:2114
+#: ../src/zvbi.c:1772 ../src/zvbi.c:2015 ../src/zvbi.c:2123
 msgid "VBI initialization failed"
 msgstr ""
 
-#: ../src/zvbi.c:2060
+#: ../src/zvbi.c:2069
 msgid "Cannot open PES file"
 msgstr ""
 
-#: ../src/zvbi.c:2115
+#: ../src/zvbi.c:2124
 #, c-format
 msgid "%s is no VBI device."
 msgstr ""

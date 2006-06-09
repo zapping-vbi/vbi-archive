@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.4 2006-02-06 18:12:54 mschimek Exp $ */
+/* $Id: view.c,v 1.5 2006-06-09 01:53:43 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -44,7 +44,16 @@ then add 20 % to subtitle rel_y.
 */
 
 #ifndef HAVE_LRINT
-#  define lrint(x) ((long)(x))
+
+static long
+lrint				(double			x)
+{
+	if (x < 0)
+		return (long)(x - 0.5);
+	else
+		return (long)(x + 0.5);
+}
+
 #endif
 
 #define GCONF_DIR "/apps/zapping/plugins/subtitle"
