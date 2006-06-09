@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.34 2006-03-11 13:11:39 mschimek Exp $ */
+/* $Id: audio.c,v 1.35 2006-06-09 01:51:19 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -41,6 +41,7 @@
 #include "globals.h"
 #include "v4linterface.h"
 #include "tveng_private.h"
+#include "common/device.h"
 
 #ifdef HAVE_ESD
 extern audio_backend_info esd_backend;
@@ -71,7 +72,7 @@ void mixer_setup ( void )
 	{
 	  tv_mixer_line_record (mixer_line, /* exclusive */ TRUE);
 
-	  if (esd_output)
+	  if (esd_output || ivtv_audio)
 	    tv_mixer_line_set_mute (mixer_line, TRUE);
 	}
     }
@@ -127,6 +128,122 @@ open_audio_device (gboolean stereo, guint rate, enum audio_format
 
   /* Make sure we record from the appropiate source. */
   mixer_setup();
+
+  return mh;
+}
+
+typedef struct {
+  int		fd;
+} ivtv_handle;
+
+static gpointer
+ivtv_open			(gboolean		stereo,
+				 guint			sampling_rate,
+				 enum audio_format	format,
+				 gboolean		write)
+{
+  int fd;
+  ivtv_handle *h;
+
+  if (!stereo
+      || 48000 != sampling_rate
+      || format != AUDIO_FORMAT_S16_LE
+      || write)
+    {
+      g_warning ("Requested audio format won't work with ivtv driver\n");
+      return NULL;
+    }
+
+  fd = device_open ((io_debug_msg > 0) ? stderr : NULL,
+		    "/dev/video24", O_RDONLY, /* mode */ 0);
+  if (-1 == fd)
+    return NULL;
+
+  h = (ivtv_handle *) g_malloc0 (sizeof(*h));
+  h->fd = fd;
+
+  return h;
+}
+
+static void
+ivtv_close (gpointer handle)
+{
+  ivtv_handle *h = (ivtv_handle*)handle;
+
+  device_close ((io_debug_msg > 0) ? stderr : NULL,
+		h->fd);
+  
+  g_free(h);
+}
+
+static gboolean
+ivtv_read (gpointer handle, gpointer dest, guint num_bytes,
+       double *timestamp)
+{
+  ivtv_handle *h = (ivtv_handle *) handle;
+  ssize_t r, n = num_bytes;
+  char *data = (char *) dest;
+  struct timeval tv1;
+
+  while (n > 0)
+    {
+      r = read(h->fd, data, (size_t) n);
+		
+      if (r == 0 || (r < 0 && errno == EINTR))
+	continue;
+
+      /* FIXME handle this properly. */
+      if (r <= 0)
+	{
+	  fprintf (stderr, "IVTV read failed, r=%d errno=%d\n",
+		   r, errno);
+	  exit (EXIT_FAILURE);
+	}
+
+      data = (char *) data + r;
+      n -= r;
+    }
+
+  if (timestamp)
+    {
+      gettimeofday(&tv1, NULL);
+      *timestamp = tv1.tv_sec + tv1.tv_usec * (1 / 1e6);
+    }
+
+  return TRUE;
+}
+
+/* One awful hack to test if it works. */
+static audio_backend_info
+ivtv_backend = {
+  name:		"IVTV Driver",
+  open:		ivtv_open,
+  close:	ivtv_close,
+  read:		ivtv_read,
+};
+
+static mhandle *
+open_ivtv_input			(void)
+{
+  audio_backend_info *backend;
+  gpointer handle;
+  mhandle *mh;
+
+  backend = &ivtv_backend;
+  handle = backend->open (/* stereo */ TRUE,
+			  /* rate */ 48000,
+			  AUDIO_FORMAT_S16_LE,
+			  /* write */ FALSE);
+  if (!handle)
+    {
+      ShowBox(("Cannot open ivtv audio device: %s.\n"),
+	      GTK_MESSAGE_WARNING, strerror (errno));
+      return NULL;
+    }
+
+  mh = g_malloc0 (sizeof (*mh));
+  mh->handle = handle;
+  mh->backend = backend;
 
   return mh;
 }
@@ -299,6 +416,13 @@ loopback_thread			(void *			x)
       if (!read_audio_data (loopback_src, buffer, buffer_size, &timestamp))
 	break;
 
+      if (io_debug_msg)
+	{
+	  fprintf (stderr, "audio loopback: %02x%02x%02x%02x\n",
+		   buffer[0], buffer[1],
+		   buffer[2], buffer[3]);
+	}
+
       if (audio_loopback_mixer_line.muted)
 	{
 	  /* XXX inefficient */
@@ -395,9 +519,18 @@ loopback_start			(void)
   if (have_loopback_thread)
     loopback_stop ();
 
-  printv ("starting audio loopback\n");
+  printv ("starting %saudio loopback\n", ivtv_audio ? "ivtv " : "");
 
-  loopback_src = open_audio_device (stereo, rate, format);
+  if (ivtv_audio)
+    {
+      rate = 48000;
+      loopback_src = open_ivtv_input ();
+    }
+  else
+    {
+      loopback_src = open_audio_device (stereo, rate, format);
+    }
+
   if (NULL == loopback_src)
     return FALSE;
 
@@ -574,7 +707,7 @@ devices_audio_apply		(GtkWidget *		page)
 
   load_control_values (zapping->info, tcc, num_controls);
 
-  if (esd_output)
+  if (esd_output || ivtv_audio)
     loopback_start ();
 }
 
@@ -1005,7 +1138,7 @@ void startup_audio ( void )
 		("Mute"), "zapping.mute(1)",
 		("Unmute"), "zapping.mute(0)");
 
-  if (esd_output)
+  if (esd_output || ivtv_audio)
     loopback_start ();
 }
 
