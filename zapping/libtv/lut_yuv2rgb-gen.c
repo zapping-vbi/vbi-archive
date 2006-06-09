@@ -16,9 +16,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lut_yuv2rgb-gen.c,v 1.1 2006-03-11 13:15:00 mschimek Exp $ */
+/* $Id: lut_yuv2rgb-gen.c,v 1.2 2006-06-09 01:52:27 mschimek Exp $ */
 
 /*  Generates look-up tables for image format conversion. */
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #define _GNU_SOURCE 1
 #undef NDEBUG
@@ -29,6 +33,19 @@
 #include <limits.h>
 #include <math.h>		/* lrint() */
 #include "misc.h"		/* SWAB16() */
+
+#ifndef HAVE_LRINT
+
+static long
+lrint				(double			x)
+{
+	if (x < 0)
+		return (long)(x - 0.5);
+	else
+		return (long)(x + 0.5);
+}
+
+#endif
 
 /* Convert positive float to fixed point integer.
    pr: 16 if we can multiply by vu16, 15 by v16. */
