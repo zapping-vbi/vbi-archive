@@ -49,6 +49,7 @@ libtv_la_SOURCES = \
 	callback.c callback.h \
 	clip_vector.c clip_vector.h \
 	control.c control.h \
+	copy_image-priv.h \
 	cpu.c cpu.h \
 	image_format.c image_format.h \
 	lut_rgb16.c lut_rgb16.h \
