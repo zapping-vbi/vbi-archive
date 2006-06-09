@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_image.c,v 1.1 2006-04-12 01:48:16 mschimek Exp $ */
+/* $Id: copy_image.c,v 1.2 2006-06-09 01:52:02 mschimek Exp $ */
 
 #define _GNU_SOURCE 1
 #undef NDEBUG
@@ -356,6 +356,9 @@ test				(uint8_t *		dst,
 		assert_is_aa (dst_buffer, dst_buffer_end);		\
 		return;							\
 	}
+
+	/* Not implemented yet. */
+	FAIL_IF (TV_PIXFMT_HM12 == md_format.pixel_format->pixfmt);
 
 	FAIL_IF (0 == md_format.width);
 	FAIL_IF (0 == md_format.height);
