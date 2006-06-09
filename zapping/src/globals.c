@@ -40,6 +40,7 @@ tv_audio_line *		mixer_line = NULL;
 
 /* XXX move this into device preferences */
 gint			esd_output		= FALSE;
+gint			ivtv_audio		= FALSE;
 
 #ifdef HAVE_LIBZVBI
 
