@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_image.c,v 1.1 2006-04-12 01:48:15 mschimek Exp $ */
+/* $Id: copy_image.c,v 1.2 2006-06-09 01:51:54 mschimek Exp $ */
 
 #include "copy_image-priv.h"
 
@@ -273,6 +273,9 @@ tv_copy_image			(void *			dst_image,
 
 	if (unlikely (dst_format->pixel_format
 		      != src_format->pixel_format))
+		return FALSE;
+
+	if (unlikely (TV_PIXFMT_HM12 == dst_format->pixel_format->pixfmt))
 		return FALSE;
 
 	width = MIN (dst_format->width, src_format->width);
