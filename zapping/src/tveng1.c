@@ -328,6 +328,7 @@ struct private_tveng1_device_info
 	tv_bool			mute_flag_readable;
 	tv_bool			audio_mode_reads_rx;
 	tv_bool			channel_norm_usable;
+	tv_bool			read_back_format;
 
 	enum driver		driver;
 };
@@ -2810,7 +2811,8 @@ set_capture_format		(tveng_device_info *	info,
 				 const tv_image_format *fmt)
 {
 	struct private_tveng1_device_info *p_info = P_INFO (info);
-	struct video_picture pict;
+	struct video_picture pict1;
+	struct video_picture pict2;
 	struct video_window window;
 	int r;
 
@@ -2821,24 +2823,37 @@ set_capture_format		(tveng_device_info *	info,
 		return FALSE;
 	}
 
-	CLEAR (pict);
+	CLEAR (pict1);
 
-	if (-1 == xioctl (p_info, VIDIOCGPICT, &pict))
+	if (-1 == xioctl (p_info, VIDIOCGPICT, &pict1))
 		return FALSE;
 
-	pict.palette = pixfmt_to_palette (p_info, fmt->pixel_format->pixfmt);
+	pict1.palette = pixfmt_to_palette (p_info, fmt->pixel_format->pixfmt);
 
-	if (0 == pict.palette) {
+	if (0 == pict1.palette) {
 		p_info->info.tveng_errno = EINVAL;
 		tv_error_msg (info, "%s not supported",
 			      fmt->pixel_format->name);
 		return FALSE;
 	}
 
-	/* Set this values for the picture properties */
-	r = xioctl (p_info, VIDIOCSPICT, &pict);
+	r = xioctl (p_info, VIDIOCSPICT, &pict1);
 	if (-1 == r)
 		return FALSE;
+
+	if (p_info->read_back_format) {
+		CLEAR (pict2);
+
+		r = xioctl (p_info, VIDIOCGPICT, &pict2);
+		if (-1 == r)
+			return FALSE;
+
+		/* v4l1-compat: Discards VIDIOC_S_FMT error. */
+		if (pict1.palette != pict2.palette) {
+			errno = EINVAL;
+			return FALSE;
+		}
+	}
 
 	p_info->info.capture.format.width =
 		(fmt->width + 3) & (unsigned int) -4;
@@ -2947,9 +2962,74 @@ set_capture_format		(tveng_device_info *	info,
 	return TRUE;
 }
 
-static tv_pixfmt_set
-get_supported_pixfmt_set	(struct private_tveng1_device_info *p_info)
+static tv_bool
+supported_pixfmt		(tveng_device_info *	info,
+				 const struct video_picture *pict,
+				 tv_pixfmt		pixfmt)
 {
+	struct private_tveng1_device_info *p_info = P_INFO (info);
+	struct video_picture pict1;
+	struct video_picture pict2;
+
+	pict1 = *pict;
+
+	pict1.palette = pixfmt_to_palette (p_info, pixfmt);
+	if (0 == pict1.palette)
+		return FALSE;
+
+	if (0 == xioctl_may_fail (p_info, VIDIOCSPICT, &pict1)) {
+		if (!p_info->read_back_format)
+			return TRUE;
+
+		CLEAR (pict2);
+
+		if (-1 == xioctl_may_fail (p_info, VIDIOCGPICT, &pict2))
+			return FALSE;
+
+		/* v4l1-compat bug: Discards VIDIOC_S_FMT error. */
+		if (pict1.palette == pict2.palette)
+			return TRUE;
+
+		/* These are synonyms, some drivers
+		   understand only one. */
+		if (VIDEO_PALETTE_YUYV == pict1.palette
+		    && VIDEO_PALETTE_YUV422 == pict2.palette) {
+			p_info->palette_yuyv = VIDEO_PALETTE_YUV422;
+			return TRUE;
+		}
+
+		return FALSE;
+	}
+
+	if (VIDEO_PALETTE_YUYV != pict1.palette)
+		return FALSE;
+
+	pict1.palette = VIDEO_PALETTE_YUV422;
+
+	if (0 == xioctl_may_fail (p_info, VIDIOCSPICT, &pict1)) {
+		if (!p_info->read_back_format) {
+			p_info->palette_yuyv = VIDEO_PALETTE_YUV422;
+			return TRUE;
+		}
+
+		CLEAR (pict2);
+
+		if (-1 == xioctl_may_fail (p_info, VIDIOCGPICT, &pict2))
+			return FALSE;
+
+		if (pict1.palette == pict2.palette) {
+			p_info->palette_yuyv = VIDEO_PALETTE_YUV422;
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+static tv_pixfmt_set
+get_supported_pixfmt_set	(tveng_device_info *	info)
+{
+	struct private_tveng1_device_info *p_info = P_INFO (info);
 	struct video_picture pict;
 	tv_pixfmt_set pixfmt_set;
 	tv_pixfmt pixfmt;
@@ -2974,23 +3054,8 @@ get_supported_pixfmt_set	(struct private_tveng1_device_info *p_info)
 	pixfmt_set = TV_PIXFMT_SET_EMPTY;
 
 	for (pixfmt = 0; pixfmt < TV_MAX_PIXFMTS; ++pixfmt) {
-		pict.palette = pixfmt_to_palette (p_info, pixfmt);
-		if (0 == pict.palette)
-			continue;
-
-		if (0 == xioctl_may_fail (p_info, VIDIOCSPICT, &pict)) {
+		if (supported_pixfmt (info, &pict, pixfmt))
 			pixfmt_set |= TV_PIXFMT_SET (pixfmt);
-		} else if (VIDEO_PALETTE_YUYV == pict.palette) {
-			/* These are synonyms, some drivers
-			   understand only one. */
-			pict.palette = VIDEO_PALETTE_YUV422;
-
-			if (0 == xioctl_may_fail (p_info,
-						  VIDIOCSPICT, &pict)) {
-				p_info->palette_yuyv = VIDEO_PALETTE_YUV422;
-				pixfmt_set |= TV_PIXFMT_SET (pixfmt);
-			}
-		}
 	}
 
 	return pixfmt_set;
@@ -3369,13 +3434,16 @@ read_frame			(tveng_device_info *	info,
 
 	if (buffer) {
 		const tv_image_format *dst_format;
+		tv_bool success;
 
 		dst_format = buffer->format;
 		if (!dst_format)
 			dst_format = &p_info->info.capture.format;
 
-		tv_copy_image (buffer->data, dst_format,
-			       b->data, &p_info->info.capture.format);
+		success = tv_copy_image (buffer->data, dst_format,
+					 b->data,
+					 &p_info->info.capture.format);
+		assert (success);
 
 		buffer->sample_time = b->sample_time;
 		buffer->stream_time = b->stream_time;
@@ -3829,6 +3897,7 @@ get_capabilities		(struct private_tveng1_device_info *p_info)
 		p_info->info.caps.flags |= TVENG_CAPS_SUBCAPTURE;
 
 	p_info->read_back_controls	= FALSE;
+	p_info->read_back_format	= TRUE;
 	p_info->audio_mode_reads_rx	= TRUE;	/* bttv TRUE, other devices? */
 
 	/* XXX should be autodetected */
@@ -4097,7 +4166,7 @@ int tveng1_attach_device(const char* device_file,
 		p_info->first_queued = NULL;
 
 		info->capture.supported_pixfmt_set =
-			get_supported_pixfmt_set (p_info);
+			get_supported_pixfmt_set (info);
 
 		/* Set up an alarm handler for read timeouts. */
 
@@ -4118,6 +4187,10 @@ int tveng1_attach_device(const char* device_file,
 		info->overlay.enable = enable_overlay;
 
 		/* XXX error ignored. */
+		/* FIXME cx88 0.0.5 sets the overlay capability flag
+		   although it doesn't really support overlay, returning
+		   EINVAL on VIDIOCGFBUF. (However a work-around is
+		   already in tveng25.c.) */
 		get_overlay_buffer (info);
 
 #if defined (HAVE_XV_EXTENSION) && TVENG1_XV_TEST

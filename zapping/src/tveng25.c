@@ -829,10 +829,12 @@ get_video_standard_list		(tveng_device_info *	info)
 	if (TVENG25_BAYER_TEST)
 		goto failure;
 
+	/* FIXME limit number of iterations in case the driver is broken. */
 	for (i = 0;; ++i) {
 		struct v4l2_standard standard;
 		tv_video_standard *s;
 
+		/* bttv 0.9.5 bug: Always returns standard.index = 0. */
 		CLEAR (standard);
 		standard.index = i;
 
@@ -1705,8 +1707,8 @@ image_format_from_format	(tveng_device_info *	info _unused_,
 				 const struct v4l2_format *vfmt)
 {
 	struct private_tveng25_device_info * p_info = P_INFO (info);
+	unsigned long bytes_per_line;
 	tv_pixfmt pixfmt;
-	unsigned int bytes_per_line[4];
 
 	CLEAR (*f);
 
@@ -1715,18 +1717,20 @@ image_format_from_format	(tveng_device_info *	info _unused_,
 	if (TV_PIXFMT_UNKNOWN == pixfmt)
 		return FALSE;
 
+	bytes_per_line = vfmt->fmt.pix.bytesperline;
+
 	/* bttv 0.9.12 bug:
 	   returns bpl = width * bpp, w/ bpp > 1 if planar YUV. */
 	if (p_info->bttv_driver > 0) {
-		bytes_per_line[0] = vfmt->fmt.pix.width
+		bytes_per_line = vfmt->fmt.pix.width
 			* tv_pixfmt_bytes_per_pixel (pixfmt);
 	}
 
-/* FIXME check if width, height and bpl were rounded up. */
+	/* FIXME check if width, height and bpl were rounded up. */
 	tv_image_format_init (f,
 			      vfmt->fmt.pix.width,
 			      vfmt->fmt.pix.height,
-			      bytes_per_line[0],
+			      bytes_per_line,
 			      pixfmt,
 			      TV_COLSPC_UNKNOWN);
 
@@ -1745,8 +1749,6 @@ ivtv_v4l2_format_fix		(tveng_device_info *	info,
 {
 	format->fmt.pix.pixelformat = FOURCC_HM12;
 	format->fmt.pix.bytesperline = format->fmt.pix.width;
-
-	/* Sort of. See read_buffer(). */
 	format->fmt.pix.sizeimage =
 		format->fmt.pix.width * format->fmt.pix.height * 2 / 3;
 
@@ -1764,6 +1766,7 @@ get_capture_format		(tveng_device_info *	info)
 	struct v4l2_format format;
 
 	CLEAR (format);
+
 	format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
 	if (-1 == xioctl (info, VIDIOC_G_FMT, &format))
@@ -1799,7 +1802,7 @@ get_capture_format		(tveng_device_info *	info)
 				return FALSE;
 		}
 
-		format.fmt.pix.pixelformat = FOURCC_HM12;
+		ivtv_v4l2_format_fix (info, &format);
 	} else if (P_INFO (info)->ivtv_driver > 0) {
 		/* Did we open the YUV capture device? */
 		assert (V4L2_PIX_FMT_MPEG != format.fmt.pix.pixelformat);
@@ -1811,9 +1814,7 @@ get_capture_format		(tveng_device_info *	info)
 
 		   ivtv 0.3.6o, 0.3.7 bug: returns pixelformat =
 		   V4L2_PIX_FMT_UYVY, bytes_per_line = 0, sizeimage =
-		   width * height * 1.5, colorspace and field as above.
-		*/
-
+		   width * height * 1.5, colorspace and field as above.	*/
 		ivtv_v4l2_format_fix (info, &format);
 	}
 
@@ -1889,6 +1890,10 @@ set_capture_format		(tveng_device_info *	info,
 		unmap_xbuffers (info, /* ignore_errors */ TRUE);
 
 	if (-1 == xioctl_may_fail (info, VIDIOC_S_FMT, &format)) {
+		/* ivtv feature: The image size cannot change when any
+		   capturing is in progress (including VBI), but the
+		   driver returns EBUSY instead of the current (closest
+		   possible) size. */
 		if (EBUSY == errno
 		    && p_info->ivtv_driver > 0) {
 			return get_capture_format (info);
@@ -2401,10 +2406,12 @@ read_buffer			(tveng_device_info *	info,
 	}
 
  read_again:
-	if (p_info->ivtv_driver > 0
+	if (0
+	    && p_info->ivtv_driver > 0
 	    && 0x7e900 == info->capture.format.size) {
-		/* Preliminary work-around.
-		   http://www.poptix.net/ivtv/Nov-2004/msg00551.html */
+		/* Work-around for bug
+		   http://www.poptix.net/ivtv/Nov-2004/msg00551.html
+		   which has been fixed in newer versions. */
 		actual = device_read (info->log_fp, info->fd,
 				      buffer->data, 0x7c600);
 	} else {
@@ -2480,13 +2487,16 @@ read_frame			(tveng_device_info *	info,
 
 		if (buffer) {
 			const tv_image_format *dst_format;
+			tv_bool success;
 
 			dst_format = buffer->format;
 			if (!dst_format)
 				dst_format = &info->capture.format;
 
-			tv_copy_image (buffer->data, dst_format,
-				       qbuffer->data, &info->capture.format);
+			success = tv_copy_image (buffer->data, dst_format,
+						 qbuffer->data,
+						 &info->capture.format);
+			assert (success);
 
 			buffer->sample_time = qbuffer->sample_time;
 			buffer->stream_time = qbuffer->stream_time;
@@ -2831,6 +2841,12 @@ get_capabilities		(tveng_device_info *	info)
 		p_info->ivtv_driver = p_info->caps.version;
 	}
 
+	if (TVENG25_HM12_TEST) {
+		p_info->caps.capabilities &= ~V4L2_CAP_STREAMING;
+		p_info->bttv_driver = 0;
+		p_info->ivtv_driver = 1;
+	}
+
 	/* bttv 0.9.14 bug: S_TUNER ignores v4l2_tuner.audmode. */
 	p_info->use_v4l_audio = p_info->bttv_driver;
 
@@ -2845,10 +2861,6 @@ get_capabilities		(tveng_device_info *	info)
 	}
 
 	info->caps.flags |= TVENG_CAPS_CAPTURE;
-
-	if (TVENG25_HM12_TEST) {
-		p_info->caps.capabilities &= ~V4L2_CAP_STREAMING;
-	}
 
 	if (p_info->caps.capabilities & V4L2_CAP_STREAMING) {
 		/* XXX REQBUFS must be checked too */
@@ -3250,7 +3262,8 @@ static int p_tveng25_open_device_file(int flags, tveng_device_info * info)
       return -1;
     }
 
-	if (p_info->ivtv_driver > 0) {
+	if (p_info->ivtv_driver > 0
+	    && !TVENG25_HM12_TEST) {
 		if (!reopen_ivtv_capture_device (info, flags)) {
 			/* Error ignored. */
 			device_close(info->log_fp, info->fd);
@@ -3347,6 +3360,181 @@ static void tveng25_close_device(tveng_device_info * info)
   free_all (info);
 }
 
+static void
+reset_crop_rect			(tveng_device_info *	info)
+{
+	struct v4l2_cropcap cropcap;
+	struct v4l2_crop crop;
+
+	CLEAR (cropcap);
+	cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+	if (-1 == xioctl_may_fail (info, VIDIOC_CROPCAP, &cropcap)) {
+		if (EINVAL != errno) {
+			/* Error ignored. */
+			return;
+		}
+
+		/* Incorrectly defined as _IOR. */
+		if (-1 == xioctl_may_fail (info, VIDIOC_CROPCAP_OLD,
+					   &cropcap)) {
+			/* Error ignored. */
+			return;
+		}
+	}
+
+	CLEAR (crop);
+	crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	crop.c = cropcap.defrect;
+
+	if (-1 == xioctl_may_fail (info, VIDIOC_S_CROP, &crop)) {
+		switch (errno) {
+		case EINVAL:
+			/* Cropping not supported. */
+			return;
+		default:
+			/* Errors ignored. */
+			return;
+		}
+	}
+}
+
+static tv_bool
+init_panel			(tveng_device_info *	info)
+{
+	CLEAR (info->panel);
+
+	info->panel.set_video_input = set_video_input;
+	info->panel.get_video_input = get_video_input;
+	info->panel.set_tuner_frequency = set_tuner_frequency;
+	info->panel.get_tuner_frequency = get_tuner_frequency;
+	info->panel.get_signal_strength = get_signal_strength;
+	info->panel.set_video_standard = set_video_standard;
+	info->panel.get_video_standard = get_video_standard;
+	info->panel.set_audio_input = set_audio_input;
+	info->panel.get_audio_input = get_audio_input;
+	info->panel.set_control = set_control;
+	info->panel.get_control = get_control;
+	info->panel.set_audio_mode = set_audio_mode;
+
+	/* Video inputs & standards */
+
+	info->panel.video_inputs = NULL;
+	info->panel.cur_video_input = NULL;
+
+	info->panel.video_standards = NULL;
+	info->panel.cur_video_standard = NULL;
+
+	if (!get_video_input_list (info))
+		return FALSE;
+
+	/* Audio inputs */
+
+	info->panel.audio_inputs = NULL;
+	info->panel.cur_audio_input = NULL;
+
+	if (!get_audio_input_list (info))
+		return FALSE;
+
+	/* Controls */
+
+	info->panel.controls = NULL;
+
+	if (!get_control_list (info))
+		return FALSE;
+
+	return TRUE;
+}
+
+static tv_bool
+init_overlay			(tveng_device_info *	info)
+{
+	CLEAR (info->overlay);
+
+	if (0 == (info->caps.flags & TVENG_CAPS_OVERLAY))
+		return TRUE;
+
+	/* TODO: set_buffer. */
+	info->overlay.get_buffer = get_overlay_buffer;
+	info->overlay.set_window = set_overlay_window;
+	info->overlay.get_window = get_overlay_window;
+	info->overlay.enable = enable_overlay;
+
+	/* Current parameters and additional capability flags. */
+	if (!get_overlay_buffer (info)) {
+		if (EINVAL == errno) {
+			/* cx88 0.0.5 sets the overlay capability
+			   flag but doesn't really support overlay. */
+			CLEAR (info->overlay);
+
+			info->caps.flags &= ~(TVENG_CAPS_OVERLAY |
+					      TVENG_CAPS_XVIDEO);
+			return TRUE;
+		}
+
+		return FALSE;
+	}
+
+	if (!get_overlay_window (info))
+		return FALSE;
+
+#if defined (HAVE_XV_EXTENSION) && TVENG25_XV_TEST
+	/* The XVideo V4L wrapper supports only clip-list overlay. */
+	if (info->caps.flags & TVENG_CAPS_CLIPPING) {
+		xvideo_probe (info);
+
+		if (NO_PORT != info->overlay.xv_port_id) {
+			p_info->info.caps.flags |= TVENG_CAPS_XVIDEO;
+
+			info->overlay.set_xwindow = set_overlay_xwindow;
+		}
+	}
+#endif
+	return TRUE;
+}
+
+static tv_bool
+init_capture			(tveng_device_info *	info)
+{
+	struct private_tveng25_device_info *p_info = P_INFO (info);
+
+	CLEAR (info->capture);
+
+	p_info->buffers = NULL;
+
+	if (0 == (info->caps.flags & TVENG_CAPS_CAPTURE))
+		return TRUE;
+
+	info->capture.get_format = get_capture_format;
+	info->capture.set_format = set_capture_format;
+	info->capture.read_frame = read_frame;
+	info->capture.enable = enable_capture;
+
+	if (info->caps.flags & TVENG_CAPS_QUEUE) {
+		info->capture.set_buffers = set_capture_buffers;
+		info->capture.queue_buffer = queue_buffer;
+		info->capture.dequeue_buffer = dequeue_buffer;
+		info->capture.flush_buffers = flush_buffers;
+	}
+
+	if (!get_capture_format (info)) {
+		if (EINVAL == errno) {
+			CLEAR (info->capture);
+
+			info->caps.flags &= ~(TVENG_CAPS_CAPTURE |
+					      TVENG_CAPS_QUEUE);
+			return TRUE;
+		}
+
+		return FALSE;
+	}
+
+	info->capture.supported_pixfmt_set =
+		get_supported_pixfmt_set (info);
+
+	return TRUE;
+}
+
 static int
 tveng25_change_attach_mode	(tveng_device_info * info,
 				 Window window,
@@ -3390,45 +3578,6 @@ tveng25_change_attach_mode	(tveng_device_info * info,
   info -> capture_mode = CAPTURE_MODE_NONE;
 
   return 0; /* ok */
-}
-
-static void
-reset_crop_rect			(tveng_device_info *	info)
-{
-	struct v4l2_cropcap cropcap;
-	struct v4l2_crop crop;
-
-	CLEAR (cropcap);
-	cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-	if (-1 == xioctl_may_fail (info, VIDIOC_CROPCAP, &cropcap)) {
-		if (EINVAL != errno) {
-			/* Error ignored. */
-			return;
-		}
-
-		/* Incorrectly defined as _IOR. */
-		if (-1 == xioctl_may_fail (info, VIDIOC_CROPCAP_OLD,
-					   &cropcap)) {
-			/* Error ignored. */
-			return;
-		}
-	}
-
-	CLEAR (crop);
-	crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	crop.c = cropcap.defrect;
-
-	if (-1 == xioctl_may_fail (info, VIDIOC_S_CROP, &crop)) {
-		switch (errno) {
-		case EINVAL:
-			/* Cropping not supported. */
-			return;
-		default:
-			/* Errors ignored. */
-			return;
-		}
-	}
 }
 
 /*
@@ -3509,112 +3658,19 @@ int tveng25_attach_device(const char* device_file,
   /* Current capture mode is no capture at all */
   info -> capture_mode = CAPTURE_MODE_NONE;
 
-	info->panel.set_video_input = set_video_input;
-	info->panel.get_video_input = get_video_input;
-	info->panel.set_tuner_frequency = set_tuner_frequency;
-	info->panel.get_tuner_frequency = get_tuner_frequency;
-	info->panel.get_signal_strength = get_signal_strength;
-	info->panel.set_video_standard = set_video_standard;
-	info->panel.get_video_standard = get_video_standard;
-	info->panel.set_audio_input = set_audio_input;
-	info->panel.get_audio_input = get_audio_input;
-	info->panel.set_control = set_control;
-	info->panel.get_control = get_control;
-	info->panel.set_audio_mode = set_audio_mode;
-
-	/* Video inputs & standards */
-
-	info->panel.video_inputs = NULL;
-	info->panel.cur_video_input = NULL;
-
-	info->panel.video_standards = NULL;
-	info->panel.cur_video_standard = NULL;
-
-	if (!get_video_input_list (info))
+	if (!init_panel (info))
 		goto failure;
-
-	/* Audio inputs */
-
-	info->panel.audio_inputs = NULL;
-	info->panel.cur_audio_input = NULL;
-
-	if (!get_audio_input_list (info))
-		goto failure;
-
-	/* Controls */
-
-	info->panel.controls = NULL;
-
-	if (!get_control_list (info))
-		goto failure;
-
 
 	if (info->caps.flags & (TVENG_CAPS_OVERLAY |
 				TVENG_CAPS_CAPTURE)) {
-		if (TVENG_ATTACH_READ == attach_mode)
-			reset_crop_rect	(info);
+		reset_crop_rect	(info);
 	}
 
-	/* Overlay */
+	if (!init_overlay (info))
+		goto failure;
 
-	CLEAR (info->overlay);
-
-	if (info->caps.flags & TVENG_CAPS_OVERLAY) {
-		/* TODO: set_buffer. */
-		info->overlay.get_buffer = get_overlay_buffer;
-		info->overlay.set_window = set_overlay_window;
-		info->overlay.get_window = get_overlay_window;
-		info->overlay.enable = enable_overlay;
-
-		/* Current parameters and additional capability flags. */
-		if (!get_overlay_buffer (info))
-			goto failure;
-
-		if (!get_overlay_window (info))
-			goto failure;
-
-#if defined (HAVE_XV_EXTENSION) && TVENG25_XV_TEST
-		/* The XVideo V4L wrapper supports only clip-list overlay. */
-		if (info->caps.flags & TVENG_CAPS_CLIPPING) {
-			xvideo_probe (info);
-
-			if (NO_PORT != info->overlay.xv_port_id) {
-				p_info->info.caps.flags |= TVENG_CAPS_XVIDEO;
-
-				info->overlay.set_xwindow =
-					set_overlay_xwindow;
-			}
-		}
-#endif
-	}
-
-	/* Capture */
-
-	CLEAR (info->capture);
-
-	if (info->caps.flags & TVENG_CAPS_CAPTURE) {
-		info->capture.get_format = get_capture_format;
-		info->capture.set_format = set_capture_format;
-		info->capture.read_frame = read_frame;
-		info->capture.enable = enable_capture;
-
-		if (info->caps.flags & TVENG_CAPS_QUEUE) {
-			info->capture.set_buffers = set_capture_buffers;
-			info->capture.queue_buffer = queue_buffer;
-			info->capture.dequeue_buffer = dequeue_buffer;
-			info->capture.flush_buffers = flush_buffers;
-		}
-
-		if (!get_capture_format (info))
-			goto failure;
-
-		info->capture.supported_pixfmt_set =
-			get_supported_pixfmt_set (info);
-	}
-
-  /* Init the private info struct */
-  info->capture.n_buffers = 0;
-  p_info->buffers = NULL;
+	if (!init_capture (info))
+		goto failure;
 
   return info -> fd;
 
