@@ -1,5 +1,5 @@
 /*///////////////////////////////////////////////////////////////////////////
-// $Id: DI_GreedyH.c,v 1.6 2006-04-12 01:45:07 mschimek Exp $
+// $Id: DI_GreedyH.c,v 1.7 2006-06-09 01:52:20 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2001 Tom Barry.  All rights reserved.
 // Copyright (C) 2005 Michael H. Schimek
@@ -37,6 +37,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.6  2006/04/12 01:45:07  mschimek
+// s/CPU_FEATURE_SSE/CPU_FEATURE_SSE_INT.
+//
 // Revision 1.5  2006/02/25 17:37:43  mschimek
 // *** empty log message ***
 //
@@ -189,8 +192,8 @@ DeinterlaceGreedyH		(TDeinterlaceInfo *	pInfo)
     } else
 #endif
 
-#if defined (CAN_COMPILE_SSE_INT)
-    if (cpu_features & CPU_FEATURE_SSE) {
+#if defined (CAN_COMPILE_SSE)
+    if (cpu_features & CPU_FEATURE_SSE_INT) {
 	if (GreedyUseMedianFilter |
 	    GreedyUsePulldown |
 	    GreedyUseVSharpness |
@@ -377,8 +380,8 @@ DI_GreedyH_GetDeinterlacePluginInfo (void)
     if (cpu_features & CPU_FEATURE_SSE2)
 	f = DeinterlaceGreedyH;
 #endif
-#if defined (CAN_COMPILE_SSE_INT)
-    if (cpu_features & CPU_FEATURE_SSE)
+#if defined (CAN_COMPILE_SSE)
+    if (cpu_features & CPU_FEATURE_SSE_INT)
 	f = DeinterlaceGreedyH;
 #endif
 #if defined (CAN_COMPILE_3DNOW)
