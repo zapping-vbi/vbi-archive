@@ -18,6 +18,10 @@
 
 #include "site_def.h"
 
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include <gnome.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <libgnomevfs/gnome-vfs.h>
