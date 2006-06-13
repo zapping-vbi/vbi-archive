@@ -1,3 +1,18 @@
+2006-06-13    <mschimek@users.sf.net>
+
+	* Prerelease 0.10cvs5.
+
+2006-06-11    <mschimek@users.sf.net>
+
+	* src/tveng.c (tveng_attach_device): Must not access xv_port_id
+	  field when Xv support not compiled in.
+
+	* configure.in: Replaced lrint() link check by compile
+	  and link check. CFLAGS changes have no effect after AC_PROG_CC,
+	  added AC_GNU_SOURCE instead of -D_GNU_SOURCE.
+	* src/zvbi.c: Undefined lrint() because config.h was not
+	  included.
+
 2006-06-07    <mschimek@users.sf.net>
 
 	* configure.in: Replaced lrint() link check by compile check

@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_image.c,v 1.2 2006-06-09 01:52:02 mschimek Exp $ */
+/* $Id: copy_image.c,v 1.3 2006-06-13 13:13:02 mschimek Exp $ */
 
 #define _GNU_SOURCE 1
 #undef NDEBUG
@@ -34,7 +34,7 @@
 
 #define ERASE(var) memset (&(var), 0xAA, sizeof (var))
 
-tv_bool				fast = 0;
+tv_bool				fast_check = TRUE;
 
 unsigned int			buffer_size;
 
@@ -411,7 +411,7 @@ overflow_packed			(void)
 {
 	test (dst_buffer, src_buffer);
 
-	if (fast)
+	if (fast_check)
 		return;
 
 	if (src_format.size < buffer_size)
@@ -475,7 +475,7 @@ unaligned_packed			(void)
 
 			overflow_packed ();
 
-			if (fast)
+			if (fast_check)
 				return;
 		}
 	}
@@ -581,7 +581,7 @@ unaligned_planar			(void)
 
 			overflow_planar ();
 
-			if (fast)
+			if (fast_check)
 				return;
 		}
 	}
@@ -665,7 +665,7 @@ all_sizes			(void)
 		};
 		unsigned int j;
 
-		if (fast)
+		if (fast_check)
 			src_format.height = 12;
 		else
 			src_format.height = heights[i];
@@ -674,7 +674,7 @@ all_sizes			(void)
 			fputc ('.', stderr);
 			fflush (stderr);
 
-			if (fast)
+			if (fast_check)
 				src_format.width = 32;
 			else
 				src_format.width = widths[j];
@@ -687,7 +687,7 @@ all_sizes			(void)
 			else
 				unaligned_packed ();
 
-			if (fast)
+			if (fast_check)
 				return;
 
 			if (src_format.width > 5) {
@@ -741,12 +741,15 @@ all_formats			(void)
 		dst_format.pixel_format = tv_pixel_format_from_pixfmt (i);
 		src_format = dst_format;
 
-		fprintf (stderr, "%s ",
-			 dst_format.pixel_format->name);
+		if (!fast_check) {
+			fprintf (stderr, "%s ",
+				 dst_format.pixel_format->name);
+		}
 
 		all_sizes ();
 
-		fputc ('\n', stderr);
+		if (!fast_check)
+			fputc ('\n', stderr);
 	}
 }
 
@@ -798,6 +801,9 @@ main				(int			argc,
 	}
 
 	all_formats ();
+
+	if (fast_check)
+		fputc ('\n', stderr);
 
 	return EXIT_SUCCESS;
 }
