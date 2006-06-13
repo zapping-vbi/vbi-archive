@@ -8,6 +8,7 @@ AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
 AM_MAINTAINER_MODE
 AM_CONFIG_HEADER(config.h)
 
+AC_GNU_SOURCE
 AC_PROG_CC
 AC_ISC_POSIX
 AM_PROG_CC_STDC
@@ -21,14 +22,13 @@ AC_PROG_INTLTOOL(0.22)
 
 dnl Check for BSD/GNU extensions.
 dnl If not present we use replacements.
-SAVE_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS -D_GNU_SOURCE"
-AC_CHECK_FUNCS([strlcpy strndup asprintf getopt_long])
-AC_CHECK_FUNCS([program_invocation_name])
-AC_COMPILE_IFELSE(
-  AC_LANG_PROGRAM([#include <math.h>], [int x = lrint(1.5);]),
+AC_CHECK_FUNCS([strlcpy strndup asprintf getopt_long program_invocation_name])
+SAVE_LIBS=$LIBS
+LIBS="$LIBS -lm"
+AC_LINK_IFELSE(
+  AC_LANG_PROGRAM([#include <math.h>], [return lrint(1.5);]),
   AC_DEFINE(HAVE_LRINT, 1, [Define if the lrint() function is available]))
-CFLAGS="$SAVE_CFLAGS"
+LIBS="$SAVE_LIBS"
 
 test -e site_def.h || cat <<EOF >site_def.h
 /* These defines enable various tests and other hacks
