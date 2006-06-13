@@ -783,8 +783,12 @@ int tveng_attach_device(const char* device_file,
 	      info->overlay.window.y,
 	      info->overlay.window.width,
 	      info->overlay.window.height);
+#ifdef HAVE_XV_EXTENSION
       fprintf(stderr, "Overlay Xv Port: %d\n",
 	      (int) info->overlay.xv_port_id);
+#else
+      fprintf(stderr, "Overlay Xv Port: Xv not compiled.\n");
+#endif
       {
 	tv_video_standard *s;
 	unsigned int i;
