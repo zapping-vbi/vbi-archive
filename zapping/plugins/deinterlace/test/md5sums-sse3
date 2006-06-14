@@ -1,13 +1,8 @@
-1b819cec3d21b5c808c15d2ad2e240f1 *VideoBob.yuv
-19d434304840d69829e0d9bb7438385b *VideoWeave.yuv
-520917772b165a347f7d6b1312c046ac *TwoFrame.yuv
 3ba399319a1142cb7d66a7ca4939fe8b *Weave.yuv
 bc2be9694d61b632df273116e28447f1 *Bob.yuv
 2a4126e3c685f41317c38f2f54a5c3ad *ScalerBob.yuv
 a4c6c176f2846ae7f097c43b7991b655 *EvenOnly.yuv
 36a77872a057f42bcbb8f67537a126e5 *OddOnly.yuv
-4e5f7cbeb9aa44fbc3aae3b38eeda169 *Greedy.yuv
-bcebf933285456a4ef09326246a70c69 *Greedy2Frame.yuv
 b122012c3a7b1f5b319f7ee4c28f96f5 *MoComp2.yuv
 0d43e94167b86dd3165edbd92a6babbe *GreedyH-0-0-0-0-0.yuv
 0d43e94167b86dd3165edbd92a6babbe *GreedyH-0-0-0-0-1.yuv
