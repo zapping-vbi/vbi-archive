@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_image.c,v 1.2 2006-06-09 01:51:54 mschimek Exp $ */
+/* $Id: copy_image.c,v 1.3 2006-06-14 16:33:02 mschimek Exp $ */
 
 #include "copy_image-priv.h"
 
@@ -264,10 +264,6 @@ tv_copy_image			(void *			dst_image,
 		return tv_clear_image (dst_image, dst_format);
 
 	assert (NULL != dst_image);
-
-	if (unlikely (dst_image == src_image))
-		return TRUE;
-
 	assert (NULL != dst_format);
 	assert (NULL != src_format);
 
@@ -330,6 +326,9 @@ tv_copy_image			(void *			dst_image,
 					     align) < 0))
 				return FALSE;
 
+			if (unlikely (dst_image == src_image))
+				return TRUE;
+
 			if (likely (0 == align)) {
 				v_width = block;
 				v_height = 1;
@@ -356,6 +355,9 @@ tv_copy_image			(void *			dst_image,
 			if (unlikely ((long)(udst_padding |
 					     usrc_padding) < 0))
 				return FALSE;
+
+			if (unlikely (dst_image == src_image))
+				return TRUE;
 		}
 
 		align = udst_padding | usrc_padding;
@@ -378,6 +380,9 @@ tv_copy_image			(void *			dst_image,
 
 		copy_plane (dst, src, uv_width, uv_height,
 			    udst_padding, usrc_padding);
+	} else {
+		if (unlikely (dst_image == src_image))
+			return TRUE;
 	}
 
 	align = dst_padding | src_padding;
