@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2006-06-08 12:44+0200\n"
+"POT-Creation-Date: 2006-06-14 17:52+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -32,7 +32,7 @@ msgid "Advanced"
 msgstr ""
 
 #: ../glade/zapping.glade2.h:4 ../src/audio.c:962 ../src/audio.c:967
-#: ../src/tveng.c:4842
+#: ../src/tveng.c:4846
 msgid "Audio"
 msgstr ""
 
@@ -93,7 +93,7 @@ msgid "Device name:"
 msgstr ""
 
 #: ../glade/zapping.glade2.h:20 ../src/audio.c:972
-#: ../src/properties-handler.c:1352 ../src/zvbi.c:2546
+#: ../src/properties-handler.c:1352 ../src/zvbi.c:2550
 msgid "Devices"
 msgstr ""
 
@@ -255,7 +255,7 @@ msgstr ""
 msgid "Title _bar contents:"
 msgstr ""
 
-#: ../glade/zapping.glade2.h:60 ../src/zvbi.c:2541
+#: ../glade/zapping.glade2.h:60 ../src/zvbi.c:2545
 msgid "VBI"
 msgstr ""
 
@@ -655,56 +655,56 @@ msgstr ""
 msgid "Check error: \"%s\" in plugin %s has hash 0x%x vs. 0x%x"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:243
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:246
 msgid "Max Comb"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:249
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:252
 msgid "Motion Threshold"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:255
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:258
 msgid "Motion Sense"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:261
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:264
 msgid "Good PullDown Lvl"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:267
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:270
 msgid "Bad PullDown Lvl"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:273
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:321
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:276
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:324
 msgid "H. Sharpness"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:279
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:315
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:282
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:318
 msgid "V. Sharpness"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:285
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:309
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:288
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:312
 msgid "Median Filter"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:291
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:294
 msgid "High Comb Skip"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:297
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:300
 msgid "Auto Pull-Down"
 msgstr ""
 
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:303
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:306
 msgid "In-Between Frames"
 msgstr ""
 
 #. size of this struct
 #. curr version compiled
-#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:339
+#: ../plugins/deinterlace/DI_GreedyH/DI_GreedyH.c:342
 msgid "Video (Greedy, High Motion)"
 msgstr ""
 
@@ -1575,15 +1575,15 @@ msgstr ""
 msgid "Unnamed"
 msgstr ""
 
-#: ../plugins/teletext/window.c:571 ../src/zvbi.c:230
+#: ../plugins/teletext/window.c:571 ../src/zvbi.c:234
 msgid " (Latin)"
 msgstr ""
 
-#: ../plugins/teletext/window.c:573 ../src/zvbi.c:232
+#: ../plugins/teletext/window.c:573 ../src/zvbi.c:236
 msgid " (Cyrillic)"
 msgstr ""
 
-#: ../plugins/teletext/window.c:616 ../src/zvbi.c:247
+#: ../plugins/teletext/window.c:616 ../src/zvbi.c:251
 msgid "_Automatic"
 msgstr ""
 
@@ -1828,8 +1828,8 @@ msgstr ""
 msgid "Shortcut"
 msgstr ""
 
-#: ../src/main.c:197 ../src/tveng1.c:1359 ../src/tveng25.c:576
-#: ../src/tvengbktr.c:414 ../src/tveng.c:2352 ../src/tvengxv.c:878
+#: ../src/main.c:197 ../src/tveng1.c:1359 ../src/tveng25.c:704
+#: ../src/tvengbktr.c:414 ../src/tveng.c:2356 ../src/tvengxv.c:878
 msgid "Mute"
 msgstr ""
 
@@ -2189,7 +2189,7 @@ msgstr ""
 msgid "Do not change"
 msgstr ""
 
-#: ../src/properties-handler.c:1164 ../src/tveng.c:4853
+#: ../src/properties-handler.c:1164 ../src/tveng.c:4857
 msgid "Automatic"
 msgstr ""
 
@@ -2216,117 +2216,117 @@ msgstr ""
 msgid "Snapshot Mode"
 msgstr ""
 
-#: ../src/tveng1.c:2572 ../src/tveng25.c:1504
+#: ../src/tveng1.c:2572 ../src/tveng25.c:1632
 #, c-format
 msgid "Driver %s returned an unknown or invalid frame buffer format."
 msgstr ""
 
-#: ../src/tveng25.c:557 ../src/tvengbktr.c:383 ../src/tvengbktr.c:400
+#: ../src/tveng25.c:685 ../src/tvengbktr.c:383 ../src/tvengbktr.c:400
 #: ../src/tvengxv.c:872
 msgid "Brightness"
 msgstr ""
 
-#: ../src/tveng25.c:558 ../src/tvengbktr.c:385 ../src/tvengbktr.c:402
+#: ../src/tveng25.c:686 ../src/tvengbktr.c:385 ../src/tvengbktr.c:402
 #: ../src/tvengxv.c:873
 msgid "Contrast"
 msgstr ""
 
-#: ../src/tveng25.c:559 ../src/tvengbktr.c:387 ../src/tvengbktr.c:404
+#: ../src/tveng25.c:687 ../src/tvengbktr.c:387 ../src/tvengbktr.c:404
 #: ../src/tvengxv.c:874
 msgid "Saturation"
 msgstr ""
 
-#: ../src/tveng25.c:560 ../src/tvengbktr.c:393 ../src/tvengbktr.c:412
+#: ../src/tveng25.c:688 ../src/tvengbktr.c:393 ../src/tvengbktr.c:412
 #: ../src/tvengxv.c:875
 msgid "Hue"
 msgstr ""
 
-#: ../src/tveng25.c:561
+#: ../src/tveng25.c:689
 msgid "Whiteness"
 msgstr ""
 
-#: ../src/tveng25.c:562
+#: ../src/tveng25.c:690
 msgid "Black level"
 msgstr ""
 
-#: ../src/tveng25.c:563 ../src/tveng25.c:564
+#: ../src/tveng25.c:691 ../src/tveng25.c:692
 msgid "White balance"
 msgstr ""
 
-#: ../src/tveng25.c:565
+#: ../src/tveng25.c:693
 msgid "Red balance"
 msgstr ""
 
-#: ../src/tveng25.c:566
+#: ../src/tveng25.c:694
 msgid "Blue balance"
 msgstr ""
 
-#: ../src/tveng25.c:567
+#: ../src/tveng25.c:695
 msgid "Gamma"
 msgstr ""
 
-#: ../src/tveng25.c:568
+#: ../src/tveng25.c:696
 msgid "Exposure"
 msgstr ""
 
-#: ../src/tveng25.c:569
+#: ../src/tveng25.c:697
 msgid "Auto gain"
 msgstr ""
 
-#: ../src/tveng25.c:570
+#: ../src/tveng25.c:698
 msgid "Gain"
 msgstr ""
 
-#: ../src/tveng25.c:571
+#: ../src/tveng25.c:699
 msgid "HCenter"
 msgstr ""
 
-#: ../src/tveng25.c:572
+#: ../src/tveng25.c:700
 msgid "VCenter"
 msgstr ""
 
-#: ../src/tveng25.c:573
+#: ../src/tveng25.c:701
 msgid "Hor. flipping"
 msgstr ""
 
-#: ../src/tveng25.c:574
+#: ../src/tveng25.c:702
 msgid "Vert. flipping"
 msgstr ""
 
-#: ../src/tveng25.c:575 ../src/tveng.c:2339 ../src/tvengxv.c:879
+#: ../src/tveng25.c:703 ../src/tveng.c:2343 ../src/tvengxv.c:879
 msgid "Volume"
 msgstr ""
 
-#: ../src/tveng25.c:577
+#: ../src/tveng25.c:705
 msgid "Audio Mute"
 msgstr ""
 
-#: ../src/tveng25.c:578
+#: ../src/tveng25.c:706
 msgid "Balance"
 msgstr ""
 
-#: ../src/tveng25.c:579
+#: ../src/tveng25.c:707
 msgid "Audio Balance"
 msgstr ""
 
-#: ../src/tveng25.c:580
+#: ../src/tveng25.c:708
 msgid "Treble"
 msgstr ""
 
-#: ../src/tveng25.c:581
+#: ../src/tveng25.c:709
 msgid "Loudness"
 msgstr ""
 
-#: ../src/tveng25.c:582
+#: ../src/tveng25.c:710
 msgid "Bass"
 msgstr ""
 
-#: ../src/tveng25.c:2858
+#: ../src/tveng25.c:2951
 #, c-format
 msgid "%s doesn't look like a valid capture device"
 msgstr ""
 
-#: ../src/tveng25.c:2873
+#: ../src/tveng25.c:2966
 #, c-format
 msgid "Sorry, but \"%s\" cannot do streaming"
 msgstr ""
@@ -2343,18 +2343,18 @@ msgstr ""
 msgid "V Saturation"
 msgstr ""
 
-#: ../src/tveng.c:3226
+#: ../src/tveng.c:3230
 #, c-format
 msgid "Cannot execute %s. Pipe error."
 msgstr ""
 
-#: ../src/tveng.c:3233 ../src/tveng.c:3265
+#: ../src/tveng.c:3237 ../src/tveng.c:3269
 #, c-format
 msgid "Cannot execute %s. %s."
 msgstr ""
 
 #. TRANSLATORS: Program name, error message.
-#: ../src/tveng.c:3243
+#: ../src/tveng.c:3247
 #, c-format
 msgid ""
 "%s failed.\n"
@@ -2364,36 +2364,36 @@ msgstr ""
 #. Something executed, but it wasn't
 #. zapping_setup_fb. Perhaps consolehelper
 #. couldn't authenticate the user?
-#: ../src/tveng.c:3255
+#: ../src/tveng.c:3259
 #, c-format
 msgid "Cannot execute %s. No permission?"
 msgstr ""
 
-#: ../src/tveng.c:3364
+#: ../src/tveng.c:3368
 #, c-format
 msgid "Cannot determine current overlay parameters. %s"
 msgstr ""
 
 #. TRANSLATORS: Program name.
-#: ../src/tveng.c:3373
+#: ../src/tveng.c:3377
 #, c-format
 msgid "%s did not work as expected."
 msgstr ""
 
-#: ../src/tveng.c:3478
+#: ../src/tveng.c:3482
 #, c-format
 msgid "%s not found in %s or the executable search path."
 msgstr ""
 
-#: ../src/tveng.c:4860
+#: ../src/tveng.c:4864
 msgid "Mono"
 msgstr ""
 
-#: ../src/tveng.c:4867
+#: ../src/tveng.c:4871
 msgid "Stereo"
 msgstr ""
 
-#: ../src/tveng.c:4875
+#: ../src/tveng.c:4879
 msgid "Language 2"
 msgstr ""
 
@@ -2653,41 +2653,41 @@ msgstr ""
 msgid "Reset"
 msgstr ""
 
-#: ../src/zvbi.c:1053
+#: ../src/zvbi.c:1057
 #, c-format
 msgid " %s: Teletext Page %x"
 msgstr ""
 
-#: ../src/zvbi.c:1056
+#: ../src/zvbi.c:1060
 #, c-format
 msgid " Teletext Page %x"
 msgstr ""
 
-#: ../src/zvbi.c:1057
+#: ../src/zvbi.c:1061
 msgid "Open this page with Zapzilla"
 msgstr ""
 
-#: ../src/zvbi.c:1443
+#: ../src/zvbi.c:1447
 msgid "PES file read error"
 msgstr ""
 
-#: ../src/zvbi.c:1662
+#: ../src/zvbi.c:1666
 msgid "VBI interface timeout"
 msgstr ""
 
-#: ../src/zvbi.c:1694
+#: ../src/zvbi.c:1698
 msgid "VBI interface: Failed to read from the device"
 msgstr ""
 
-#: ../src/zvbi.c:1772 ../src/zvbi.c:2015 ../src/zvbi.c:2123
+#: ../src/zvbi.c:1776 ../src/zvbi.c:2019 ../src/zvbi.c:2127
 msgid "VBI initialization failed"
 msgstr ""
 
-#: ../src/zvbi.c:2069
+#: ../src/zvbi.c:2073
 msgid "Cannot open PES file"
 msgstr ""
 
-#: ../src/zvbi.c:2124
+#: ../src/zvbi.c:2128
 #, c-format
 msgid "%s is no VBI device."
 msgstr ""

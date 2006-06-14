@@ -1,3 +1,25 @@
+2006-06-14    <mschimek@users.sf.net>
+
+	* plugins/deinterlace/test/md5sums-sse3: Removed VideoBob,
+	  VideoWeave, TwoFrame, Greedy and Greedy2Frame. No SSE3 optimized
+	  version exists of these methods.
+
+	* libtv/copy_image.c (tv_copy_image): Skipped some parameter checks
+	  if src == dst.
+	* test/convert_image.c: Didn't fully check HM12
+	  conversions. Accelerated failure checks.
+	* libtv/yuv2yuv.c (_tv_hm12_to_yuv420): Fixed bytes per line bug.
+
+	* src/tveng25.c: Moved get/set format test code into a separate layer
+	  to follow the normal execution path.
+	(set_capture_format): Checked the pixel format returned by ivtv
+	  driver before fixing it, which always failed.
+
+	* src/capture.c (change_capture_format): When a particular size was
+	  requested the function succeeded with wrong width or height.
+
+	* configure.in: Bumped version to 0.10cvs7.
+
 2006-06-13    <mschimek@users.sf.net>
 
 	* Prerelease 0.10cvs6.
