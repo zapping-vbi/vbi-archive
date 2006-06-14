@@ -1250,8 +1250,8 @@ change_capture_format		(tveng_device_info *	info,
 
   /* Size may change due to driver limits. */
   if ((flags & REQ_SIZE)
-      && fmt->width != width
-      && fmt->height != height)
+      && (fmt->width != width
+	  || fmt->height != height))
     {
       fmt = NULL; /* failed */
     }
