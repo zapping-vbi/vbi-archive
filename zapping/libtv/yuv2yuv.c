@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: yuv2yuv.c,v 1.4 2006-05-17 18:02:59 mschimek Exp $ */
+/* $Id: yuv2yuv.c,v 1.5 2006-06-14 16:33:21 mschimek Exp $ */
 
 /* YUV to YUV image format conversion functions:
 
@@ -1413,6 +1413,8 @@ _tv_hm12_to_yuv420		(void *			dst_image,
 	unsigned int height;
 	unsigned int uv_width;
 	unsigned long dst_padding;
+	unsigned long udst_bpl;
+	unsigned long vdst_bpl;
 	unsigned long udst_padding;
 	unsigned long vdst_padding;
 	unsigned long src_padding;
@@ -1436,8 +1438,10 @@ _tv_hm12_to_yuv420		(void *			dst_image,
 
 	uv_width = width >> 1;
 
-	udst_padding = dst_format->bytes_per_line[1] - uv_width;
-	vdst_padding = dst_format->bytes_per_line[2] - uv_width;
+	udst_bpl = dst_format->bytes_per_line[1];
+	vdst_bpl = dst_format->bytes_per_line[2];
+	udst_padding = udst_bpl - uv_width;
+	vdst_padding = vdst_bpl - uv_width;
 
 	if (unlikely ((long)(dst_padding |
 			     src_padding |
@@ -1476,6 +1480,7 @@ _tv_hm12_to_yuv420		(void *			dst_image,
 
 	if (TV_PIXFMT_YVU420 == dst_format->pixel_format->pixfmt) {
 		SWAP (udst, vdst);
+		SWAP (udst_bpl, vdst_bpl);
 	}
 
 	uvsrc = (const uint8_t *) src_image + src_format->offset[1];
@@ -1489,8 +1494,8 @@ _tv_hm12_to_yuv420		(void *			dst_image,
 			uint8_t *vdst1;
 			unsigned int row;
 
-			udst1 = udst + y * dst_format->bytes_per_line[0] + x;
-			vdst1 = vdst + y * dst_format->bytes_per_line[1] + x;
+			udst1 = udst + y * udst_bpl + x;
+			vdst1 = vdst + y * vdst_bpl + x;
 
 			for (row = 0; row < bheight; ++row) {
 				udst1[0] = uvsrc[0];
@@ -1511,8 +1516,8 @@ _tv_hm12_to_yuv420		(void *			dst_image,
 				vdst1[6] = uvsrc[13];
 				vdst1[7] = uvsrc[15];
 
-				udst1 += dst_format->bytes_per_line[1];
-				vdst1 += dst_format->bytes_per_line[2];
+				udst1 += udst_bpl;
+				vdst1 += vdst_bpl;
 
 				uvsrc += bwidth * 2;
 			}
