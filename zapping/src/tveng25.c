@@ -198,6 +198,134 @@ struct private_tveng25_device_info
 
 #define P_INFO(p) PARENT (p, struct private_tveng25_device_info, info)
 
+/* For tests only. */
+static int
+g_fmt				(tveng_device_info *	info,
+				 struct v4l2_format *	f)
+{
+	struct v4l2_format format;
+	int r;
+
+	format = *f;
+
+	r = xioctl (info, VIDIOC_G_FMT, &format);
+	if (-1 == r)
+		return -1;
+
+	if (TVENG25_BAYER_TEST) {
+		if (V4L2_PIX_FMT_GREY != format.fmt.pix.pixelformat) {
+			format.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
+			format.fmt.pix.bytesperline = 0; /* minimum */
+			format.fmt.pix.sizeimage = 0; /* minimum */
+
+			r = xioctl (info, VIDIOC_S_FMT, &format);
+			if (-1 == r)
+				return -1;
+		}
+
+		/* Simulate BAYER format device. */
+		format.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR8;
+	} else if (TVENG25_HM12_TEST) {
+		unsigned int req_width;
+		unsigned int req_height;
+
+		if (720 == TVENG25_HM12_TEST) {
+			req_width = 720;
+			req_height = 480;
+		} else {
+			req_width = format.fmt.pix.width;
+			req_height = format.fmt.pix.height;
+		}
+
+		if (V4L2_PIX_FMT_YVU420 != format.fmt.pix.pixelformat
+		    || req_width != format.fmt.pix.width
+		    || req_height != format.fmt.pix.height) {
+			format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
+			format.fmt.pix.width = req_width;
+			format.fmt.pix.height = req_height;
+			format.fmt.pix.bytesperline = 0; /* minimum */
+			format.fmt.pix.sizeimage = 0; /* minimum */
+
+			r = xioctl (info, VIDIOC_S_FMT, &format);
+			if (-1 == r)
+				return -1;
+		}
+
+		/* Simulate what ivtv 0.6 returns. */
+		format.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV; /* wrong */
+		format.fmt.pix.bytesperline = 0; /* wrong */
+		format.fmt.pix.sizeimage =
+			format.fmt.pix.width
+			* format.fmt.pix.height * 3 / 2;
+	}
+
+	*f = format;
+
+	return r;
+}
+
+static int
+s_fmt				(tveng_device_info *	info,
+				 struct v4l2_format *	f,
+				 tv_bool			may_fail)
+{
+	struct v4l2_format format;
+	int r;
+
+	format = *f;
+
+	if (TVENG25_BAYER_TEST) {
+		format.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
+
+		format.fmt.pix.width	= 352;
+		format.fmt.pix.height	= 288;
+	} else if (TVENG25_HM12_TEST) {
+		if (720 == TVENG25_HM12_TEST
+		    && (720 != format.fmt.pix.width
+			|| 480 != format.fmt.pix.height)) {
+			if (NULL != info->log_fp) {
+				fprintf (info->log_fp,
+					 "-1 = simVIDIOC_S_FMT (");
+				fprint_ioctl_arg (info->log_fp,
+						  VIDIOC_S_FMT,
+						  /* r & w */ 3,
+						  &format);
+				fprintf (info->log_fp,
+					 "), errno = %d, %s\n",
+					 EBUSY, strerror (EBUSY));
+			}
+	
+			errno = EBUSY;
+
+			return -1;
+		}
+
+		format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
+	}
+
+	if (may_fail) {
+		r = xioctl_may_fail (info, VIDIOC_S_FMT, &format);
+	} else {
+		r = xioctl (info, VIDIOC_S_FMT, &format);
+	}
+
+	if (-1 == r)
+		return -1;
+
+	if (TVENG25_BAYER_TEST) {
+		format.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR8;
+	} else if (TVENG25_HM12_TEST) {
+		format.fmt.pix.pixelformat = FOURCC_HM12;
+
+		assert (0 == (format.fmt.pix.width & 15));
+		assert (0 == (format.fmt.pix.height & 15));
+	}
+
+	*f = format;
+
+	return r;
+}
+
 static tv_bool
 queue_xbuffers			(tveng_device_info *	info);
 static tv_bool
@@ -1526,7 +1654,7 @@ get_overlay_window		(tveng_device_info *	info)
 	if (p_info->buffers)
 		unmap_xbuffers (info, /* ignore_errors */ TRUE);
 
-	if (-1 == xioctl (info, VIDIOC_G_FMT, &format))
+	if (-1 == g_fmt (info, &format))
 		return FALSE;
 
 	info->overlay.window.x		= format.fmt.win.w.left;
@@ -1601,7 +1729,7 @@ set_overlay_window		(tveng_device_info *	info,
 	if (p_info->buffers)
 		unmap_xbuffers (info, /* ignore_errors */ TRUE);
 
-	if (-1 == xioctl (info, VIDIOC_S_FMT, &format)) {
+	if (-1 == s_fmt (info, &format, /* may_fail */ FALSE)) {
 		free (clips);
 		return FALSE;
 	}
@@ -1750,7 +1878,8 @@ ivtv_v4l2_format_fix		(tveng_device_info *	info,
 	format->fmt.pix.pixelformat = FOURCC_HM12;
 	format->fmt.pix.bytesperline = format->fmt.pix.width;
 	format->fmt.pix.sizeimage =
-		format->fmt.pix.width * format->fmt.pix.height * 2 / 3;
+		format->fmt.pix.width
+		* format->fmt.pix.height * 3 / 2;
 
 	/* XXX not verified, may be _BOTTOM or _INTERLACED. */
 	if (info->panel.cur_video_standard
@@ -1769,41 +1898,10 @@ get_capture_format		(tveng_device_info *	info)
 
 	format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-	if (-1 == xioctl (info, VIDIOC_G_FMT, &format))
+	if (-1 == g_fmt (info, &format))
 		return FALSE;
 
-	if (TVENG25_BAYER_TEST) {
-		if (V4L2_PIX_FMT_GREY != format.fmt.pix.pixelformat) {
-			format.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
-			format.fmt.pix.bytesperline = 0; /* minimum please */
-			format.fmt.pix.sizeimage = 0; /* ditto */
-
-			if (-1 == xioctl (info, VIDIOC_S_FMT, &format))
-				return FALSE;
-		}
-
-		format.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR8;
-	} else if (TVENG25_HM12_TEST) {
-		if (1) {
-			format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
-			format.fmt.pix.width = 720;
-			format.fmt.pix.height = 480;
-			format.fmt.pix.bytesperline = 0; /* minimum please */
-			format.fmt.pix.sizeimage = 0; /* ditto */
-
-			if (-1 == xioctl (info, VIDIOC_S_FMT, &format))
-				return FALSE;
-		} else if (V4L2_PIX_FMT_YVU420 != format.fmt.pix.pixelformat) {
-			format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
-			format.fmt.pix.bytesperline = 0; /* minimum please */
-			format.fmt.pix.sizeimage = 0; /* ditto */
-
-			if (-1 == xioctl (info, VIDIOC_S_FMT, &format))
-				return FALSE;
-		}
-
-		ivtv_v4l2_format_fix (info, &format);
-	} else if (P_INFO (info)->ivtv_driver > 0) {
+	if (P_INFO (info)->ivtv_driver > 0) {
 		/* Did we open the YUV capture device? */
 		assert (V4L2_PIX_FMT_MPEG != format.fmt.pix.pixelformat);
 
@@ -1812,9 +1910,9 @@ get_capture_format		(tveng_device_info *	info)
 		   SMPTE170M regardless of video standard, field =
 		   INTERLACED regardless of image size.
 
-		   ivtv 0.3.6o, 0.3.7 bug: returns pixelformat =
+		   ivtv 0.3.6o, 0.3.7, 0.6.x bug: returns pixelformat =
 		   V4L2_PIX_FMT_UYVY, bytes_per_line = 0, sizeimage =
-		   width * height * 1.5, colorspace and field as above.	*/
+		   width * height * 1.5, colorspace and field as above. */
 		ivtv_v4l2_format_fix (info, &format);
 	}
 
@@ -1827,11 +1925,14 @@ set_capture_format		(tveng_device_info *	info,
 {
 	struct private_tveng25_device_info *p_info = P_INFO (info);
 	struct v4l2_format format;
+	tv_pixfmt req_pixfmt;
 	unsigned int pixelformat;
-	tv_bool r;
+	tv_bool success;
 
 	if (p_info->capturing)
 		return FALSE;
+
+	success = FALSE;
 
 	CLEAR (format);
 
@@ -1839,7 +1940,8 @@ set_capture_format		(tveng_device_info *	info,
 
 	/* bttv 0.9.14 bug: with YUV 4:2:0 activation of VBI
 	   can cause a SCERR & driver reset, DQBUF -> EIO. */
-	pixelformat = pixfmt_to_pixelformat (fmt->pixel_format->pixfmt);
+	req_pixfmt = fmt->pixel_format->pixfmt;
+	pixelformat = pixfmt_to_pixelformat (req_pixfmt);
 
 	if (0 == pixelformat) {
 		info->tveng_errno = -1; /* unknown */
@@ -1849,25 +1951,17 @@ set_capture_format		(tveng_device_info *	info,
 		return FALSE;
 	}
 
-	if (TVENG25_BAYER_TEST) {
-		format.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
-		pixelformat = V4L2_PIX_FMT_GREY;
+	if (p_info->ivtv_driver > 0) {
+		format.fmt.pix.pixelformat = pixelformat;
 
-		format.fmt.pix.width	= 352;
-		format.fmt.pix.height	= 288;
-	} else if (TVENG25_HM12_TEST) {
-		format.fmt.pix.pixelformat = V4L2_PIX_FMT_YVU420;
-		pixelformat = V4L2_PIX_FMT_YVU420;
-
-		if (1 && (fmt->width != 720 || fmt->height != 480)) {
-			fprintf (stderr, "S_FMT EBUSY\n");
-			errno = EBUSY;
-			/* return FALSE; */
+		/* For tests make sure we always get the same size. */
+		if (info->panel.cur_video_standard) {
+			format.fmt.pix.width	= 720;
+			format.fmt.pix.height	=
+				info->panel.cur_video_standard->frame_height;
+		} else {
 			format.fmt.pix.width	= 720;
 			format.fmt.pix.height	= 480;
-		} else {
-			format.fmt.pix.width	= fmt->width;
-			format.fmt.pix.height	= fmt->height;
 		}
 	} else {
 		format.fmt.pix.pixelformat = pixelformat;
@@ -1889,14 +1983,15 @@ set_capture_format		(tveng_device_info *	info,
 	if (p_info->buffers)
 		unmap_xbuffers (info, /* ignore_errors */ TRUE);
 
-	if (-1 == xioctl_may_fail (info, VIDIOC_S_FMT, &format)) {
+	if (-1 == s_fmt (info, &format, /* may_fail */ TRUE)) {
 		/* ivtv feature: The image size cannot change when any
 		   capturing is in progress (including VBI), but the
 		   driver returns EBUSY instead of the current (closest
 		   possible) size. */
 		if (EBUSY == errno
 		    && p_info->ivtv_driver > 0) {
-			return get_capture_format (info);
+			success = get_capture_format (info);
+			goto finish;
 		}
 
 		ioctl_failure (info,
@@ -1908,13 +2003,7 @@ set_capture_format		(tveng_device_info *	info,
 		return FALSE;
 	}
 
-	r = (format.fmt.pix.pixelformat == pixelformat);
-
-	if (TVENG25_BAYER_TEST) {
-		format.fmt.pix.pixelformat = V4L2_PIX_FMT_SBGGR8;
-	} else if (TVENG25_HM12_TEST) {
-		format.fmt.pix.pixelformat = FOURCC_HM12;
-	} else if (P_INFO (info)->ivtv_driver > 0) {
+	if (p_info->ivtv_driver > 0) {
 		/* ivtv 0.2.0-rc1a, 0.3.6o, 0.3.7 bug: Ignores (does
 		   not read or write) pixelformat, bytes_per_line, sizeimage,
 		   field. */
@@ -1922,12 +2011,16 @@ set_capture_format		(tveng_device_info *	info,
 		ivtv_v4l2_format_fix (info, &format);
 	}
 
-	/* Actual image size (and pixfmt?). */
+	/* Actual image size granted. */
+	success = image_format_from_format
+		(info, &info->capture.format, &format);
 
-	/* Error ignored. */
-	image_format_from_format (info, &info->capture.format, &format);
+ finish:
+	/* Drivers may return a different pixel format if that's
+	   the only supported one. */
+	success &= (req_pixfmt == info->capture.format.pixel_format->pixfmt);
 
-	return r;
+	return success;
 }
 
 static void
@@ -2032,7 +2125,7 @@ get_supported_pixfmt_set	(tveng_device_info *	info)
 
 		init_format_generic (&format, pixelformat);
 
-		if (-1 == xioctl_may_fail (info, VIDIOC_S_FMT, &format))
+		if (-1 == s_fmt (info, &format, /* may fail */ TRUE))
 			continue;
 
 		/* Error ignored. */
