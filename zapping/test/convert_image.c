@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: convert_image.c,v 1.8 2006-06-13 13:13:02 mschimek Exp $ */
+/* $Id: convert_image.c,v 1.9 2006-06-14 16:33:11 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -78,7 +78,8 @@ uint8_t *			dst_scatter_buffer_end;
 tv_image_format			src_format;
 tv_image_format			dst_format;
 
-tv_bool				erase_dst = 1;
+unsigned long			successes;
+unsigned long			failures;
 
 /* 0xAABBGGRR or 0xAAVVUUYY, lsbs filled up with zero bits. */
 static unsigned int
@@ -112,19 +113,22 @@ get_pixel			(const uint8_t *	src,
 			+ 0xFF000000);
 
 	case TV_PIXFMT_HM12:
-		block = y / (format->bytes_per_line[0] * 16) + (x / 16);
+		/* First plane 16x16 Y blocks. */
+		block = (y / 16) * (format->width / 16) + x / 16;
 		s0 = src + format->offset[0]
 			+ block * (16 * 16) + (y % 16) * 16;
 
+		/* Second plane 8x16 UV blocks
+		   (NB this is 4:2:0, not 4:2:2). */
+		x2 = x >> 1;
 		y2 = y >> 1;
-		block = y2 / (format->bytes_per_line[0] * 16) + (x / 16);
+		block = (y2 / 16) * ((format->width >> 1) / 16) + x2 / 8;
 		s1 = src + format->offset[1]
-			+ block * (16 * 16) + (y2 % 16) * 16;
+			+ block * (2 * 8 * 16) + (y2 % 16) * 16;
 
-		x2 = x & 14;
 		return (+ s0[x % 16]
-			+ (s1[x2 + 0] << 8)
-			+ (s1[x2 + 1] << 16)
+			+ (s1[(x2 % 8) * 2 + 0] << 8)
+			+ (s1[(x2 % 8) * 2 + 1] << 16)
 			+ 0xFF000000);
 
 	case TV_PIXFMT_YUV444:
@@ -510,6 +514,7 @@ check_padding			(const tv_image_format *format)
 	unsigned int bw[3];
 	const uint8_t *p;
 	const uint8_t *end;
+	unsigned long size;
 	unsigned int i;
 
 	pf = format->pixel_format;
@@ -561,7 +566,8 @@ check_padding			(const tv_image_format *format)
 		p += bw[j];
 	}
 
-	assert_is_aa (p, dst_buffer_end);
+	size = MIN (dst_buffer_end - dst_buffer, dst_format.size * 2);
+	assert_is_aa (p, dst_buffer + size);
 }
 
 static unsigned int
@@ -643,6 +649,7 @@ test				(uint8_t *		dst,
 	unsigned int hshift;
 	unsigned int vshift;
 	tv_bool success;
+	tv_bool expect_success;
 
 	dst_pf = dst_format.pixel_format;
 	src_pf = src_format.pixel_format;
@@ -659,7 +666,73 @@ test				(uint8_t *		dst,
 			 md_format.width, md_format.height,
 			 hshift, vshift);
 
-	memset (dst_buffer, 0xAA, dst_buffer_end - dst_buffer);
+	switch (src_format.pixel_format->pixfmt) {
+	case TV_PIXFMT_HM12:
+		hshift = 4;
+		vshift = 4;
+		break;
+
+	case TV_PIXFMT_NV12:
+		hshift = 1;
+		break;
+
+	case TV_PIXFMT_YUYV:
+	case TV_PIXFMT_UYVY:
+	case TV_PIXFMT_YVYU:
+	case TV_PIXFMT_VYUY:
+		hshift = 1;
+		break;
+
+	case TV_PIXFMT_SBGGR:
+		hshift = 1;
+		vshift = 1;
+		break;
+
+	default:
+		break;
+	}
+
+	expect_success = TRUE;
+#if 1
+#  define FAIL_IF(expr) (expect_success &= !(expr))
+#else
+#  define FAIL_IF(expr) \
+	((expr) ? (fputs (#expr "\n", stderr), expect_success = FALSE) : 0)
+#endif
+	FAIL_IF (0 == md_format.width);
+	FAIL_IF (0 == md_format.height);
+
+	FAIL_IF (md_format.width & RES (hshift));
+	FAIL_IF (md_format.height & RES (vshift));
+
+	FAIL_IF (byte_width (&dst_format, 0) > dst_format.bytes_per_line[0]);
+	FAIL_IF (byte_width (&src_format, 0) > src_format.bytes_per_line[0]);
+
+	FAIL_IF (dst_pf->n_planes > 2
+		 && (byte_width (&dst_format, 2)
+		     > dst_format.bytes_per_line[2]));
+
+	FAIL_IF (dst_pf->n_planes > 1
+		 && (byte_width (&dst_format, 1)
+		     > dst_format.bytes_per_line[1]));
+
+	FAIL_IF (src_pf->n_planes > 2
+		 && (byte_width (&src_format, 2)
+		     > src_format.bytes_per_line[2]));
+
+	FAIL_IF (src_pf->n_planes > 1
+		 && (byte_width (&src_format, 1)
+		     > src_format.bytes_per_line[1]));
+
+	if (expect_success) {
+		unsigned long size;
+
+		size = MIN (dst_buffer_end - dst_buffer, dst_format.size * 2);
+		memset (dst_buffer, 0xAA, size);
+	} else {
+		/* Not writeable. */
+		dst = src_buffer + (dst - dst_buffer);
+	}
 
 	switch (src_format.pixel_format->pixfmt) {
 	case TV_PIXFMT_HM12:
@@ -813,48 +886,22 @@ test				(uint8_t *		dst,
 		assert (0);
 	}
 
-#define FAIL_IF(expr)							\
-	if (expr) {							\
-		assert (!success);					\
-		assert_is_aa (dst_buffer, dst_buffer_end);		\
-		return;							\
+	assert (expect_success == success);
+
+	if (success) {
+		++successes;
+
+		check_padding (&md_format);
+
+		ms_format = src_format;
+		/* Required for proper SBGGR clipping. */
+		ms_format.width = md_format.width;
+		ms_format.height = md_format.height;
+
+		compare_images (dst, &md_format, src, &ms_format);
+	} else {
+		++failures;
 	}
-
-	FAIL_IF (0 == md_format.width);
-	FAIL_IF (0 == md_format.height);
-
-	FAIL_IF (md_format.width & RES (hshift));
-	FAIL_IF (md_format.height & RES (vshift));
-
-	FAIL_IF (byte_width (&dst_format, 0) > dst_format.bytes_per_line[0]);
-	FAIL_IF (byte_width (&src_format, 0) > src_format.bytes_per_line[0]);
-
-	if (dst_pf->n_planes > 2)
-		FAIL_IF (byte_width (&dst_format, 2)
-			 > dst_format.bytes_per_line[2]);
-
-	if (dst_pf->n_planes > 1)
-		FAIL_IF (byte_width (&dst_format, 1)
-			 > dst_format.bytes_per_line[1]);
-
-	if (src_pf->n_planes > 2)
-		FAIL_IF (byte_width (&src_format, 2)
-			 > src_format.bytes_per_line[2]);
-
-	if (src_pf->n_planes > 1)
-		FAIL_IF (byte_width (&src_format, 1)
-			 > src_format.bytes_per_line[1]);
-
-	assert (success);
-
-	check_padding (&md_format);
-
-	ms_format = src_format;
-	/* Required for proper SBGGR clipping. */
-	ms_format.width = md_format.width;
-	ms_format.height = md_format.height;
-
-	compare_images (dst, &md_format, src, &ms_format);
 }
 
 #if 1
@@ -965,7 +1012,37 @@ unaligned_packed			(void)
 }
 
 static void
-unaligned_planar			(void)
+init_plane			(tv_image_format *	dst_format,
+				 unsigned int		nth_plane,
+				 unsigned long *	inout_offset,
+				 unsigned long		bytes_per_line,
+				 unsigned long		line_padding,
+				 unsigned long		plane_padding,
+				 int			dir)
+{
+	unsigned long plane_size;
+
+	bytes_per_line += line_padding;
+	dst_format->bytes_per_line[nth_plane] = bytes_per_line;
+
+	plane_size = 0;
+	if (dst_format->height > 0) {
+		plane_size = dst_format->height * bytes_per_line
+			- line_padding;
+	}
+
+	assert (0 != dir);
+	if (dir >= 0) {
+		dst_format->offset[nth_plane] = *inout_offset;
+		*inout_offset += plane_size + plane_padding;
+	} else {
+		dst_format->offset[nth_plane] = *inout_offset - plane_size;
+		*inout_offset -= plane_size + plane_padding;
+	}
+}
+
+static void
+unaligned_planar		(void)
 {
 	static int unaligned[][6] = {
 		{ 0, 0, 0, 0, 0, 0 },
@@ -983,11 +1060,12 @@ unaligned_planar			(void)
 	};
 	unsigned int dst_bpp;
 	unsigned int src_bpp;
-	unsigned int dst_y_bpl;
-	unsigned int dst_uv_bpl;
-	unsigned int src_y_bpl;
-	unsigned int src_uv_bpl;
-	unsigned int short_bpl;
+	unsigned long dst_y_bpl;
+	unsigned long dst_uv_bpl;
+	unsigned long src_y_bpl;
+	unsigned long src_uv_bpl;
+	unsigned long short_bpl;
+	unsigned long offset;
 	unsigned int i;
 	unsigned int j;
 
@@ -1005,36 +1083,62 @@ unaligned_planar			(void)
 		for (j = 0; j < N_ELEMENTS (unaligned); ++j) {
 			ERASE (dst_format.offset);
 			ERASE (dst_format.bytes_per_line);
-			dst_format.offset[0] = unaligned[j][0];
-			dst_format.bytes_per_line[0] = dst_y_bpl
-				+ unaligned[j][1];
+
+			offset = unaligned[j][0];
+			init_plane (&dst_format, 0, &offset,
+				    dst_y_bpl + unaligned[j][1],
+				    /* line_padding */ 32,
+				    /* plane_padding */ 32,
+				    /* dir */ +1);
+
 			if (dst_format.pixel_format->n_planes > 1) {
-				dst_format.offset[1] = (dst_y_bpl * 16)
-					* (dst_format.height + 1)
-					+ unaligned[j][2];
-				dst_format.bytes_per_line[1] = dst_uv_bpl
-					+ unaligned[j][3];
-				dst_format.offset[2] = (dst_y_bpl * 16)
-					* (dst_format.height + 1) * 2
-					+ unaligned[j][4];
-				dst_format.bytes_per_line[2] = dst_uv_bpl
-					+ unaligned[j][5];
+				offset += unaligned[j][2];
+				init_plane (&dst_format, 1, &offset,
+					    dst_uv_bpl + unaligned[j][3],
+					    /* line_padding */ 32,
+					    /* plane_padding */ 32,
+					    /* dir */ +1);
 			}
+
+			if (dst_format.pixel_format->n_planes > 2) {
+				offset += unaligned[j][4];
+				init_plane (&dst_format, 2, &offset,
+					    dst_uv_bpl + unaligned[j][5],
+					    /* line_padding */ 32,
+					    /* plane_padding */ 32,
+					    /* dir */ +1);
+			}
+
 			dst_format.size = min_size (&dst_format);
 
 			ERASE (src_format.offset);
 			ERASE (src_format.bytes_per_line);
-			src_format.offset[0] = unaligned[i][0];
-			src_format.bytes_per_line[0] =
-				src_y_bpl + unaligned[i][1];
+
+			offset = unaligned[i][0];
+			init_plane (&src_format, 0, &offset,
+				    src_y_bpl + unaligned[i][1],
+				    /* line_padding */ 0,
+				    /* plane_padding */ 0,
+				    /* dir */ +1);
+
 			if (src_format.pixel_format->n_planes > 1) {
-				src_format.offset[1] = unaligned[i][2];
-				src_format.bytes_per_line[1] =
-					src_uv_bpl + unaligned[i][3];
-				src_format.offset[2] = unaligned[i][4];
-				src_format.bytes_per_line[2] =
-					src_uv_bpl + unaligned[i][5];
+				offset = unaligned[i][2];
+				init_plane (&src_format, 1, &offset,
+					    src_uv_bpl + unaligned[i][3],
+					    /* line_padding */ 0,
+					    /* plane_padding */ 0,
+					    /* dir */ +1);
 			}
+
+			if (src_format.pixel_format->n_planes > 2) {
+				offset = unaligned[i][4];
+				init_plane (&src_format, 2, &offset,
+					    src_uv_bpl + unaligned[i][5],
+					    /* line_padding */ 0,
+					    /* plane_padding */ 0,
+					    /* dir */ +1);
+			}
+
 			src_format.size = min_size (&src_format);
 
 			overflow_planar ();
@@ -1044,62 +1148,100 @@ unaligned_planar			(void)
 		}
 	}
 
-	dst_format.offset[0] = 2 * dst_y_bpl * dst_format.height;
-	dst_format.bytes_per_line[0] = dst_y_bpl;
+	offset = dst_buffer_end - dst_buffer;
+	init_plane (&dst_format, 0, &offset,
+		    dst_y_bpl,
+		    /* line_padding */ 32,
+		    /* plane_padding */ 32,
+		    /* dir */ -1);
+
 	if (dst_format.pixel_format->n_planes > 1) {
-		dst_format.offset[1] = 1 * dst_y_bpl * dst_format.height;
-		dst_format.bytes_per_line[1] = dst_uv_bpl;
-		dst_format.offset[2] = 0 * dst_y_bpl * dst_format.height;
-		dst_format.bytes_per_line[2] = dst_uv_bpl;
+		init_plane (&dst_format, 1, &offset,
+			    dst_uv_bpl,
+			    /* line_padding */ 32,
+			    /* plane_padding */ 32,
+			    /* dir */ -1);
 	}
+
+	if (dst_format.pixel_format->n_planes > 2) {
+		init_plane (&dst_format, 2, &offset,
+			    dst_uv_bpl,
+			    /* line_padding */ 32,
+			    /* plane_padding */ 32,
+			    /* dir */ -1);
+	}
+
 	dst_format.size = min_size (&dst_format);
 
-	src_format.offset[0] = 0;
-	src_format.bytes_per_line[0] = src_y_bpl;
-	if (dst_format.pixel_format->n_planes > 1) {
-		src_format.offset[1] = 0;
-		src_format.bytes_per_line[1] = src_uv_bpl;
-		src_format.offset[2] = 0;
-		src_format.bytes_per_line[2] = src_uv_bpl;
+	offset = dst_buffer_end - dst_buffer;
+
+	if (dst_format.pixel_format->n_planes > 2) {
+		init_plane (&src_format, 2, &offset,
+			    src_uv_bpl, 0, 0, -1);
 	}
+
+	if (dst_format.pixel_format->n_planes > 1) {
+		init_plane (&src_format, 1, &offset,
+			    src_uv_bpl, 0, 0, -1);
+	}
+
+	init_plane (&src_format, 0, &offset,
+		    src_y_bpl, 0, 0, -1);
+
 	src_format.size = min_size (&src_format);
 
+	overflow_planar ();
+
 	if (dst_format.width >= 16) {
+		tv_image_format tmp;
+
+		tmp = dst_format;
+
 		dst_format.bytes_per_line[0] =
 			(dst_format.width - 16) * dst_bpp;
 		overflow_planar ();
-		dst_format.bytes_per_line[0] = dst_y_bpl;
+
+		dst_format = tmp;
 
 		if (dst_format.pixel_format->n_planes > 1) {
 			short_bpl = ((dst_format.width - 16) * dst_bpp)
 				>> dst_format.pixel_format->uv_hshift;
+
 			dst_format.bytes_per_line[1] = short_bpl;
 			overflow_planar ();
+
 			dst_format.bytes_per_line[1] = dst_uv_bpl;
 			dst_format.bytes_per_line[2] = short_bpl;
 			overflow_planar ();
-			dst_format.bytes_per_line[2] = dst_uv_bpl;
 		}
+
+		dst_format = tmp;
 	}
 
-	dst_format.bytes_per_line[0] = dst_format.width * dst_bpp;
-
 	if (src_format.width >= 16) {
+		tv_image_format tmp;
+
+		tmp = src_format;
+
 		src_format.bytes_per_line[0] =
 			(src_format.width - 16) * src_bpp;
 		overflow_planar ();
-		src_format.bytes_per_line[0] = src_y_bpl;
+
+		src_format = tmp;
 
 		if (dst_format.pixel_format->n_planes > 1) {
 			short_bpl = ((src_format.width - 16) * src_bpp)
 				>> src_format.pixel_format->uv_hshift;
+
 			src_format.bytes_per_line[1] = short_bpl;
 			overflow_planar ();
+
 			src_format.bytes_per_line[1] = src_uv_bpl;
 			src_format.bytes_per_line[2] = short_bpl;
 			overflow_planar ();
-			src_format.bytes_per_line[2] = short_bpl;
 		}
+
+		src_format = tmp;
 	}
 
 	/* TO DO: padding = inaccessible page. */
@@ -1109,7 +1251,7 @@ static void
 all_sizes			(void)
 {
 	static unsigned int heights[] = {
-		0, 1, 2, 11, 12
+		0, 1, 2, 11, 12, 32,
 	};
 	unsigned int i;
 	tv_bool planar;
@@ -1124,7 +1266,7 @@ all_sizes			(void)
 		unsigned int j;
 
 		if (fast_check)
-			src_format.height = 12;
+			src_format.height = 32;
 		else
 			src_format.height = heights[i];
 
@@ -1238,8 +1380,8 @@ all_formats			(void)
 				continue; /* later */
 
 			if (TV_PIXFMT_HM12 == src_formats[i]
-			    && TV_PIXFMT_YUV420 != dst_formats[j]
-			    && TV_PIXFMT_YVU420 != dst_formats[j])
+			    && !(TV_PIXFMT_YUV420 == dst_formats[j]
+				|| TV_PIXFMT_YVU420 == dst_formats[j]))
 				continue; /* later */
 
 			dst_format.pixel_format =
@@ -1253,10 +1395,17 @@ all_formats			(void)
 					 dst_format.pixel_format->name);
 			}
 
+			successes = 0;
+			failures = 0;
+
 			all_sizes ();
 
-			if (!fast_check)
+			assert (successes > 0);
+
+			if (!fast_check) {
+				assert (failures > 0);
 				fputc ('\n', stderr);
+			}
 		}
 	}
 }
