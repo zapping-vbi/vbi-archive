@@ -816,6 +816,12 @@ tests.</long>
    <owner>Zapping</owner>
    <type>string</type>
    <default>disabled</default>
+   <locale name="C">
+    <short>Deinterlace method.</short>
+    <long>Deinterlace method. Valid values are: disabled, VideoBob,
+ VideoWeave, TwoFrame, Weave, Bob, ScalerBob, EvenOnly, OddOnly,
+ Greedy, Greedy2Frame, GreedyH, TomsMoComp, MoComp2</long>
+   </locale>
   </schema>
 
  </schemalist>
