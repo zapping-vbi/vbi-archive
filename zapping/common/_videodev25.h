@@ -49,7 +49,7 @@ fprint_struct_v4l2_fmtdesc (FILE *fp, int rw __attribute__ ((unused)), const str
 {
 fprintf (fp, "index=%lu ",
 (unsigned long) t->index);
-if (1 == rw) {
+if (1 & rw) {
 fputs ("type=", fp);
 fprint_enum_v4l2_buf_type (fp, rw, t->type);
 fputs (" flags=", fp);
@@ -223,7 +223,7 @@ fprint_struct_v4l2_queryctrl (FILE *fp, int rw __attribute__ ((unused)), const s
 fputs ("id=", fp);
 fprint_symbol_v4l2_cid_ (fp, rw, t->id);
 fputs (" ", fp);
-if (1 == rw) {
+if (1 & rw) {
 fputs ("type=", fp);
 fprint_enum_v4l2_ctrl_type (fp, rw, t->type);
 fprintf (fp, " name=\"%.*s\" "
@@ -327,7 +327,7 @@ fprint_struct_v4l2_input (FILE *fp, int rw __attribute__ ((unused)), const struc
 {
 fprintf (fp, "index=%lu ",
 (unsigned long) t->index);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "type=",
 32, (const char *) t->name);
@@ -564,14 +564,14 @@ fprintf (fp, "index=%lu "
 (unsigned long) t->index);
 fprint_enum_v4l2_buf_type (fp, rw, t->type);
 fputs (" ", fp);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "bytesused=%lu ",
 (unsigned long) t->bytesused);
 }
 fputs ("flags=", fp);
 fprint_symbol_v4l2_buf_flag_ (fp, rw, t->flags);
 fputs (" ", fp);
-if (1 == rw) {
+if (1 & rw) {
 fputs ("field=", fp);
 fprint_enum_v4l2_field (fp, rw, t->field);
 fputs (" timestamp=? timecode={", fp);
@@ -583,15 +583,15 @@ fprint_enum_v4l2_memory (fp, rw, t->memory);
 fputs (" ", fp);
 fputs ("m={", fp);
 }
-if (1 == rw && V4L2_MEMORY_MMAP == t->memory) {
+if ((1 & rw) && V4L2_MEMORY_MMAP == t->memory) {
 fprintf (fp, "offset=%lu ",
 (unsigned long) t->m.offset);
 }
-if (1 == rw && V4L2_MEMORY_USERPTR == t->memory) {
+if ((1 & rw) && V4L2_MEMORY_USERPTR == t->memory) {
 fprintf (fp, "userptr=%lu ",
 (unsigned long) t->m.userptr);
 }
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "} length=%lu "
 "input=%lu "
 "reserved ",
@@ -683,7 +683,7 @@ fprint_symbol_v4l2_cid_ (fp, rw, t->id);
 fputs (" index=", fp);
 fprint_symbol_v4l2_cid_ (fp, rw, t->index);
 fputs (" ", fp);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "reserved ",
 32, (const char *) t->name);
@@ -727,7 +727,7 @@ fprint_struct_v4l2_audioout (FILE *fp, int rw __attribute__ ((unused)), const st
 {
 fprintf (fp, "index=%lu ",
 (unsigned long) t->index);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "capability=%lu "
 "mode=%lu "
@@ -769,7 +769,7 @@ fprint_struct_v4l2_audio (FILE *fp, int rw __attribute__ ((unused)), const struc
 {
 fprintf (fp, "index=%lu ",
 (unsigned long) t->index);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "capability=",
 32, (const char *) t->name);
@@ -790,7 +790,7 @@ fprint_struct_v4l2_output (FILE *fp, int rw __attribute__ ((unused)), const stru
 {
 fprintf (fp, "index=%lu ",
 (unsigned long) t->index);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "type=",
 32, (const char *) t->name);
@@ -842,7 +842,7 @@ fprint_struct_v4l2_standard (FILE *fp, int rw __attribute__ ((unused)), const st
 {
 fprintf (fp, "index=%lu ",
 (unsigned long) t->index);
-if (1 == rw) {
+if (1 & rw) {
 fputs ("id=", fp);
 fprint_symbol_v4l2_std_ (fp, rw, t->id);
 fprintf (fp, " name=\"%.*s\" "

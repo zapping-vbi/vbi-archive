@@ -261,7 +261,7 @@ fprint_struct_video_channel (FILE *fp, int rw __attribute__ ((unused)), const st
 {
 fprintf (fp, "channel=%ld ",
 (long) t->channel);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "tuners=%ld "
 "flags=",
@@ -313,7 +313,7 @@ fprint_struct_video_tuner (FILE *fp, int rw __attribute__ ((unused)), const stru
 {
 fprintf (fp, "tuner=%ld ",
 (long) t->tuner);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "rangelow=%lu "
 "rangehigh=%lu "
@@ -327,7 +327,7 @@ fputs (" ", fp);
 fputs ("mode=", fp);
 fprint_symbol_video_mode_ (fp, rw, t->mode);
 fputs (" ", fp);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "signal=%lu ",
 (unsigned long) t->signal);
 }

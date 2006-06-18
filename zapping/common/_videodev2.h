@@ -68,7 +68,7 @@ fprint_struct_v4l2_fmtdesc (FILE *fp, int rw __attribute__ ((unused)), const str
 {
 fprintf (fp, "index=%ld ",
 (long) t->index);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "description=\"%.*s\" "
 "pixelformat=",
 32, (const char *) t->description);
@@ -192,7 +192,7 @@ fprint_struct_v4l2_tuner (FILE *fp, int rw __attribute__ ((unused)), const struc
 {
 fprintf (fp, "input=%ld ",
 (long) t->input);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "std={",
 32, (const char *) t->name);
@@ -281,7 +281,7 @@ fprint_struct_v4l2_enumstd (FILE *fp, int rw __attribute__ ((unused)), const str
 {
 fprintf (fp, "index=%ld ",
 (long) t->index);
-if (1 == rw) {
+if (1 & rw) {
 fputs ("std={", fp);
 fprint_struct_v4l2_standard (fp, rw, &t->std);
 fprintf (fp, "} inputs=%lu "
@@ -344,7 +344,7 @@ fprint_struct_v4l2_queryctrl (FILE *fp, int rw __attribute__ ((unused)), const s
 fputs ("id=", fp);
 fprint_symbol_v4l2_cid_ (fp, rw, t->id);
 fputs (" ", fp);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "minimum=%ld "
 "maximum=%ld "
@@ -379,7 +379,7 @@ fprint_struct_v4l2_modulator (FILE *fp, int rw __attribute__ ((unused)), const s
 {
 fprintf (fp, "output=%ld ",
 (long) t->output);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "std={",
 32, (const char *) t->name);
@@ -401,7 +401,7 @@ fprint_struct_v4l2_input (FILE *fp, int rw __attribute__ ((unused)), const struc
 {
 fprintf (fp, "index=%ld ",
 (long) t->index);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "type=",
 32, (const char *) t->name);
@@ -506,20 +506,20 @@ fprint_struct_v4l2_format (FILE *fp, int rw __attribute__ ((unused)), const stru
 fputs ("type=", fp);
 fprint_symbol_v4l2_buf_type_ (fp, rw, t->type);
 fputs (" ", fp);
-if (1 == rw) {
+if (1 & rw) {
 fputs ("fmt={", fp);
 }
-if (1 == rw && V4L2_BUF_TYPE_CAPTURE == t->type) {
+if ((1 & rw) && V4L2_BUF_TYPE_CAPTURE == t->type) {
 fputs ("pix={", fp);
 fprint_struct_v4l2_pix_format (fp, rw, &t->fmt.pix);
 fputs ("} ", fp);
 }
-if (1 == rw && V4L2_BUF_TYPE_VBI == t->type) {
+if ((1 & rw) && V4L2_BUF_TYPE_VBI == t->type) {
 fputs ("vbi={", fp);
 fprint_struct_v4l2_vbi_format (fp, rw, &t->fmt.vbi);
 fputs ("} ", fp);
 }
-if (1 == rw) {
+if (1 & rw) {
 fputs ("raw_data[]=? ", fp);
 fputs ("} ", fp);
 }
@@ -585,7 +585,7 @@ fprintf (fp, "index=%ld "
 (long) t->index);
 fprint_symbol_v4l2_buf_type_ (fp, rw, t->type);
 fputs (" ", fp);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "offset=%lu "
 "length=%lu "
 "bytesused=%lu "
@@ -609,7 +609,7 @@ fprint_struct_v4l2_cvtdesc (FILE *fp, int rw __attribute__ ((unused)), const str
 {
 fprintf (fp, "index=%ld ",
 (long) t->index);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "in={pixelformat=%lu "
 "flags=0x%lx "
 "depth=%lu "
@@ -676,20 +676,20 @@ fprint_struct_v4l2_streamparm (FILE *fp, int rw __attribute__ ((unused)), const 
 fputs ("type=", fp);
 fprint_symbol_v4l2_buf_type_ (fp, rw, t->type);
 fputs (" ", fp);
-if (1 == rw) {
+if (1 & rw) {
 fputs ("parm={", fp);
 }
-if (1 == rw && V4L2_BUF_TYPE_CAPTURE == t->type) {
+if ((1 & rw) && V4L2_BUF_TYPE_CAPTURE == t->type) {
 fputs ("capture={", fp);
 fprint_struct_v4l2_captureparm (fp, rw, &t->parm.capture);
 fputs ("} ", fp);
 }
-if (1 == rw && V4L2_BUF_TYPE_VIDEOOUT == t->type) {
+if ((1 & rw) && V4L2_BUF_TYPE_VIDEOOUT == t->type) {
 fputs ("output={", fp);
 fprint_struct_v4l2_outputparm (fp, rw, &t->parm.output);
 fputs ("} ", fp);
 }
-if (1 == rw) {
+if (1 & rw) {
 fputs ("raw_data[]=? ", fp);
 fputs ("} ", fp);
 }
@@ -700,7 +700,7 @@ fprint_struct_v4l2_fxdesc (FILE *fp, int rw __attribute__ ((unused)), const stru
 {
 fprintf (fp, "index=%ld ",
 (long) t->index);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "flags=0x%lx "
 "inputs=%lu "
@@ -720,7 +720,7 @@ fputs ("id=", fp);
 fprint_symbol_v4l2_cid_ (fp, rw, t->id);
 fprintf (fp, " index=%ld ",
 (long) t->index);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "reserved ",
 32, (const char *) t->name);
@@ -732,7 +732,7 @@ fprint_struct_v4l2_audioout (FILE *fp, int rw __attribute__ ((unused)), const st
 {
 fprintf (fp, "audio=%ld ",
 (long) t->audio);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "capability=%lu "
 "mode=%lu "
@@ -772,7 +772,7 @@ fprint_struct_v4l2_audio (FILE *fp, int rw __attribute__ ((unused)), const struc
 {
 fprintf (fp, "audio=%ld ",
 (long) t->audio);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "capability=",
 32, (const char *) t->name);
@@ -792,7 +792,7 @@ fprint_struct_v4l2_output (FILE *fp, int rw __attribute__ ((unused)), const stru
 {
 fprintf (fp, "index=%ld ",
 (long) t->index);
-if (1 == rw) {
+if (1 & rw) {
 fprintf (fp, "name=\"%.*s\" "
 "type=",
 32, (const char *) t->name);

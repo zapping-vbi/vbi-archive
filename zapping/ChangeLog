@@ -1,3 +1,14 @@
+2006-06-17    <mschimek@users.sf.net>
+
+	* zapping.schemas.in: deinterlace/method wasn't installed due to
+	  missing description.
+
+2006-06-16    <mschimek@users.sf.net>
+
+	* common/structpr_gen.pl (test_cond): Handle r+w fields.
+	* common/device.c (device_ioctl): Print saved errno.
+	  Print-r/w-field flags were reversed.
+
 2006-06-14    <mschimek@users.sf.net>
 
 	* plugins/deinterlace/test/md5sums-sse3: Removed VideoBob,
