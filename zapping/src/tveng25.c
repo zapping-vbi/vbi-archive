@@ -330,26 +330,29 @@ static tv_bool
 streamoff_or_reopen		(tveng_device_info *	info)
 {
 	struct private_tveng25_device_info *p_info = P_INFO (info);
-	int buf_type;
 	int fd;
 
-	buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	/* Some drivers may recognize VIDIOC_STREAMOFF to stop
+	   capturing in read() mode, to permit format changes etc.
+	   The ioctl succeeds with ivtv but subsequent read select()
+	   calls time out? */
+	if (0 == p_info->ivtv_driver) {
+		int buf_type;
 
-	/* Some drivers may recognize this ioctl to stop capturing
-	   in read() mode. ivtv does, but a subsequent read select()
-	   times out? */
-	if (0 == p_info->ivtv_driver
-	    && 0 == xioctl_may_fail (info, VIDIOC_STREAMOFF, &buf_type))
-		goto success;
+		buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-	if (p_info->caps.capabilities & V4L2_CAP_STREAMING) {
-		/* That shouldn't happen. */
-		ioctl_failure (info,
-			       __FILE__,
-			       __FUNCTION__,
-			       __LINE__,
-			       "VIDIOC_STREAMOFF");
-		return FALSE;
+		if (0 == xioctl_may_fail (info, VIDIOC_STREAMOFF, &buf_type))
+			goto success;
+
+		if (p_info->caps.capabilities & V4L2_CAP_STREAMING) {
+			/* VIDIOC_STREAMOFF should work. */
+			ioctl_failure (info,
+				       __FILE__,
+				       __FUNCTION__,
+				       __LINE__,
+				       "VIDIOC_STREAMOFF");
+			return FALSE;
+		}
 	}
 
 	/* Reopening the device should also work. */
