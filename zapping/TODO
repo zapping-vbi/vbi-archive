@@ -1,6 +1,9 @@
 Outstanding issues for future releases
 --------------------------------------
 
+* When the video window size changes Zapping attempts to renegotiate
+  the image size with the driver. Find a way to skip this when the
+  size cannot change (e.g. ivtv), using e.g. try_fmt.
 * Option to mute if the video window is invisible?
 * http://www.geocities.com/beinges/index_nofla.htm
 * Recording won't work while the --esd-out audio loopback is active.
