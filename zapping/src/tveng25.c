@@ -192,7 +192,7 @@ struct private_tveng25_device_info
 	/* Capturing has been started (STREAMON). */
 	tv_bool			capturing;
 
-	/* Capturing has been started and we called read(). */
+	/* Capturing has been started and we called read() at least once. */
 	tv_bool			reading;
 };
 
@@ -324,6 +324,54 @@ s_fmt				(tveng_device_info *	info,
 	*f = format;
 
 	return r;
+}
+
+static tv_bool
+streamoff_or_reopen		(tveng_device_info *	info)
+{
+	struct private_tveng25_device_info *p_info = P_INFO (info);
+	int buf_type;
+	int fd;
+
+	buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+	/* Some drivers may recognize this ioctl to stop capturing
+	   in read() mode. ivtv does, but a subsequent read select()
+	   times out? */
+	if (0 == p_info->ivtv_driver
+	    && 0 == xioctl_may_fail (info, VIDIOC_STREAMOFF, &buf_type))
+		goto success;
+
+	if (p_info->caps.capabilities & V4L2_CAP_STREAMING) {
+		/* That shouldn't happen. */
+		ioctl_failure (info,
+			       __FILE__,
+			       __FUNCTION__,
+			       __LINE__,
+			       "VIDIOC_STREAMOFF");
+		return FALSE;
+	}
+
+	/* Reopening the device should also work. */
+	/* XXX According to the V4L2 spec this shouldn't reset any
+	   parameters, but it may be wiser to check that. */
+	fd = device_open (info->log_fp,
+			  p_info->reopen_name,
+			  p_info->reopen_flags,
+			  /* mode */ 0);
+	if (-1 == fd) {
+		return FALSE;
+	}
+
+	device_close (info->log_fp, info->fd);
+
+	info->fd = fd;
+
+ success:
+	p_info->reading = FALSE;
+	p_info->capturing = FALSE;
+
+	return TRUE;
 }
 
 static tv_bool
@@ -1077,17 +1125,8 @@ set_tuner_frequency		(tveng_device_info *	info,
 			}
 		}
 
-		if (p_info->caps.capabilities & V4L2_CAP_STREAMING) {
-			if (-1 == xioctl (info, VIDIOC_STREAMOFF, &buf_type))
-				return FALSE;
-		} else if (p_info->reading) {
-			/* Error ignored. */
-			xioctl_may_fail (info, VIDIOC_STREAMOFF, &buf_type);
-
-			p_info->reading = FALSE;
-		}
-
-		p_info->capturing = FALSE;
+		if (!streamoff_or_reopen (info))
+			return FALSE;
 	}
 
 	vfreq.frequency = new_freq;
@@ -1099,24 +1138,28 @@ set_tuner_frequency		(tveng_device_info *	info,
 	else
 		r = FALSE;
 
-	if (restart && (p_info->caps.capabilities & V4L2_CAP_STREAMING)) {
-		unsigned int i;
+	if (restart) {
+		if (p_info->caps.capabilities & V4L2_CAP_STREAMING) {
+			unsigned int i;
 
-		/* Some drivers do not completely fill buffers when
-		   tuning to an empty channel. */
-		for (i = 0; i < info->capture.n_buffers; ++i)
-			p_info->buffers[i].clear = TRUE;
+			/* Some drivers do not completely fill buffers when
+			   tuning to an empty channel. */
+			for (i = 0; i < info->capture.n_buffers; ++i)
+				p_info->buffers[i].clear = TRUE;
 
-		if (!queue_xbuffers (info)) {
-			/* XXX what now? */
-			return FALSE;
-		}
+			if (!queue_xbuffers (info)) {
+				/* XXX what now? */
+				return FALSE;
+			}
 
-		if (0 == xioctl (info, VIDIOC_STREAMON, &buf_type)) {
-			p_info->capturing = TRUE;
+			if (0 == xioctl (info, VIDIOC_STREAMON, &buf_type)) {
+				p_info->capturing = TRUE;
+			} else {
+				/* XXX what now? */
+				r = FALSE;
+			}
 		} else {
-			/* XXX what now? */
-			r = FALSE;
+			p_info->capturing = TRUE;
 		}
 	}
 
@@ -2221,15 +2264,13 @@ restart				(tveng_device_info *	info)
 
 	saved_errno = errno;
 
-	buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-	if (-1 == xioctl (info, VIDIOC_STREAMOFF, &buf_type))
+	if (!streamoff_or_reopen (info))
 		return FALSE;
-
-	p_info->capturing = FALSE;
 
 	if (!queue_xbuffers (info))
 		return FALSE;
+
+	buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
 	if (-1 == xioctl (info, VIDIOC_STREAMON, &buf_type))
 		return FALSE;
@@ -2282,11 +2323,12 @@ dequeue_buffer			(tveng_device_info *	info,
 		FD_ZERO (&set);
 		FD_SET (info->fd, &set);
 
-		r = select (info->fd + 1,
-			    /* readable */ &set,
-			    /* writeable */ NULL,
-			    /* in exception */ NULL,
-			    timeout ? &tv : NULL);
+		r = device_select (info->log_fp,
+				   info->fd + 1,
+				   /* readable */ &set,
+				   /* writeable */ NULL,
+				   /* in exception */ NULL,
+				   timeout ? &tv : NULL);
 
 		switch (r) {
 		case -1: /* error */
@@ -2464,11 +2506,12 @@ read_buffer			(tveng_device_info *	info,
 		FD_ZERO (&set);
 		FD_SET (info->fd, &set);
 
-		r = select (info->fd + 1,
-			    /* readable */ &set,
-			    /* writeable */ NULL,
-			    /* in exception */ NULL,
-			    timeout ? &tv : NULL);
+		r = device_select (info->log_fp,
+				   info->fd + 1,
+				   /* readable */ &set,
+				   /* writeable */ NULL,
+				   /* in exception */ NULL,
+				   timeout ? &tv : NULL);
 
 		switch (r) {
 		case -1: /* error */
@@ -2787,39 +2830,6 @@ set_capture_buffers		(tveng_device_info *	info,
 }
 
 static tv_bool
-streamoff_or_reopen		(tveng_device_info *	info)
-{
-	struct private_tveng25_device_info *p_info = P_INFO (info);
-	int buf_type;
-	int fd;
-
-	buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-	/* The ivtv driver supports only read()ing, not streaming, but
-	   it recognizes this ioctl to stop capturing before we attempt
-	   to change the capture format. */
-	if (0 == xioctl_may_fail (info, VIDIOC_STREAMOFF, &buf_type))
-		return TRUE;
-
-	/* Reopening the device should also work. */
-	/* XXX According to the V4L2 spec this shouldn't reset any
-	   parameters, but it may be wiser to check that. */
-	fd = device_open (info->log_fp,
-			  p_info->reopen_name,
-			  p_info->reopen_flags,
-			  /* mode */ 0);
-	if (-1 == fd) {
-		return FALSE;
-	}
-
-	device_close (info->log_fp, info->fd);
-
-	info->fd = fd;
-
-	return TRUE;
-}
-
-static tv_bool
 enable_capture			(tveng_device_info *	info,
 				 tv_bool		enable)
 {
@@ -2858,26 +2868,14 @@ enable_capture			(tveng_device_info *	info,
 	} else {
 		assert (CAPTURE_MODE_READ == info->capture_mode);
 
-		if (p_info->caps.capabilities & V4L2_CAP_STREAMING) {
-			int buf_type;
-
-			buf_type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-			if (-1 == xioctl (info, VIDIOC_STREAMOFF, &buf_type))
-				return FALSE;
-		} else if (p_info->reading) {
-			/* Error ignored. */
-			streamoff_or_reopen (info);
-
-			p_info->reading = FALSE;
-		}
-
-		p_info->capturing = FALSE;
-		info->capture_mode = CAPTURE_MODE_NONE;
+		if (!streamoff_or_reopen (info))
+			return FALSE;
 
 		if (!unmap_xbuffers (info, /* ignore_errors */ FALSE)) {
 			return FALSE;
 		}
+
+		info->capture_mode = CAPTURE_MODE_NONE;
 
 		return TRUE;
 	}
