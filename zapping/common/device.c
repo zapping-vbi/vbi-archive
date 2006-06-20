@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.c,v 1.12 2006-06-18 03:45:43 mschimek Exp $ */
+/* $Id: device.c,v 1.13 2006-06-20 18:14:47 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -366,4 +366,51 @@ device_read			(FILE *			fp,
 	}
 
 	return actual;
+}
+
+int
+device_select			(FILE *			fp,
+				 int			n,
+				 fd_set *		readfds,
+				 fd_set *		writefds,
+				 fd_set *		exceptfds,
+				 struct timeval *	timeout)
+{
+	struct timeval tv;
+	int r;
+
+	/* Linux select() may change tv. */
+	if (NULL != timeout)
+		tv = *timeout;
+
+	r = select (n, readfds, writefds, exceptfds, timeout ? &tv : NULL);
+
+	if (fp) {
+		int saved_errno;
+
+		saved_errno = errno;
+
+		fprintf (fp, "%d = select (n=%d readfds=%p "
+			 "writefds=%p exceptfds=%p timeout=",
+			 r, n, readfds, writefds, exceptfds);
+
+		if (NULL == timeout) {
+			fputs ("NULL)", fp);
+		} else {
+			fprintf (fp, "{%u %u})",
+				 (unsigned int) timeout->tv_sec,
+				 (unsigned int) timeout->tv_usec);
+		}
+
+		if (r <= 0) {
+			fprintf (fp, ", errno=%d (%s)\n",
+				 saved_errno, strerror (saved_errno));
+		} else {
+			fputc ('\n', fp);
+		}
+
+		errno = saved_errno;
+	}
+
+	return r;
 }

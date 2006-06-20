@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: device.h,v 1.9 2006-05-14 13:47:55 mschimek Exp $ */
+/* $Id: device.h,v 1.10 2006-06-20 18:14:39 mschimek Exp $ */
 
 #ifndef DEVICE_H
 #define DEVICE_H
@@ -147,5 +147,12 @@ device_read			(FILE *			fp,
 				 int			fd,
 				 void *			buf,
 				 size_t			count);
+extern int
+device_select			(FILE *			fp,
+				 int			n,
+				 fd_set *		readfds,
+				 fd_set *		writefds,
+				 fd_set *		exceptfds,
+				 struct timeval *	timeout);
 
 #endif /* DEVICE_H */
