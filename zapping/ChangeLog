@@ -1,3 +1,16 @@
+2006-06-20    <mschimek@users.sf.net>
+
+	* src/tveng25.c (streamoff_or_reopen): Skip STREAMOFF with ivtv
+	  driver because it doesn't seem to work as expected.
+	(set_tuner_frequency, restart, enable_capture): Replaced
+	  VIDIOC_STREAMOFF ioctl by streamoff_or_reopen() call.
+	(set_tuner_frequency): Did not restart capturing when using
+	  the READ i/o method.
+
+	* src/tveng25.c (dequeue_buffer, read_buffer): Use select() log
+	  function.
+	* common/device.h, common/device.c: Added select() log function.
+
 2006-06-17    <mschimek@users.sf.net>
 
 	* zapping.schemas.in: deinterlace/method wasn't installed due to

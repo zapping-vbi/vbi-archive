@@ -407,6 +407,10 @@ void tveng_device_info_destroy(tveng_device_info * info)
 
   tv_clip_vector_destroy (&info->overlay.clip_vector);
 
+  D();
+
+  CLEAR (info);
+
   free(info);
 }
 
@@ -2766,6 +2770,8 @@ tv_enable_capturing		(tveng_device_info *	info,
 	REQUIRE_IO_MODE (FALSE);
 
 	TVLOCK;
+
+	enable = !!enable;
 
 	if (!enable && info->capture_mode == CAPTURE_MODE_NONE) {
 		fprintf(stderr,

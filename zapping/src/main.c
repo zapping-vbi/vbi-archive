@@ -685,7 +685,7 @@ MAIN (PACKAGE_VERSION_ID)	(int			argc,
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.213 2006-06-09 01:51:00 mschimek Exp $",
+	 "$Id: main.c,v 1.214 2006-06-20 18:15:27 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
@@ -850,6 +850,7 @@ MAIN (PACKAGE_VERSION_ID)	(int			argc,
     {
       RunBox(_("Zapping couldn't be started"), GTK_MESSAGE_ERROR);
       tveng_device_info_destroy(info);
+      info = NULL;
       return 0;
     }
   D();
@@ -1293,6 +1294,7 @@ void shutdown_zapping(void)
   /* Close */
   printv(" video device");
   tveng_device_info_destroy(zapping->info);
+  zapping->info = NULL;
 
   /* Save the config and show an error if something failed */
   printv(" config");
