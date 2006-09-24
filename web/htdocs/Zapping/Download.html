@@ -82,10 +82,7 @@ apt-get install zapping
     Access</h2>
 
     <p>To get the latest development version of Zapping you can
-    access the CVS server anonymously. If you are unfamiliar with
-    using the CVS utility and the CVS commands see the CVS info or
-    manual pages or go to the <a href="http://www.cvshome.org/"
-    target="_top">CVS web site</a> for further information.</p>
+    access the CVS server anonymously.</p>
 
     <p><strong>Step 1</strong>: Set the <code>$CVSROOT</code>
     environment variable. For sh/ksh/bash:</p>
@@ -101,7 +98,7 @@ setenv CVSROOT :pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping
     <p>If you don't want to set <code>$CVSROOT</code> you can use
     the cvs -d option:</p>
 <pre class="userinput">
-cvs -d :pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping login etc
+cvs -d :pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping <i>command</i>
 </pre>
 
     <p><strong>Step 2</strong>: To log in to the Zapping CVS server
@@ -136,10 +133,13 @@ cvs co -r zapping-0-7 zapping
 cvs update -d -P
 </pre>
 
-    <p>in the respective source directory to update your copy of
-    the CVS repository. As before, <code>-r</code> will choose a
-    particular version or branch and <code>-A</code> the latest
-    version.</p>
+    <p>to update your copy of the CVS repository. As before,
+    <code>-r</code> will choose a particular version or branch and
+    <code>-A</code> the latest version.</p>
+    
+    <p>If you would like to learn more about CVS, see the CVS
+    info or manual pages or visit the <a href="http://www.cvshome.org/"
+    target="_top">CVS web site</a>.</p>
 
     <p><strong>Step 4</strong>: Prior to the first compilation
     run</p>
@@ -150,8 +150,8 @@ cvs update -d -P
     <p>to create missing configuration files. Change the install
     prefix as needed. The <code>autogen.sh</code> script requires
     several GNU build tools like <code>autoconf</code> or
-    <code>libtool</code>, will tell you if any are missing or too
-    old.</p>
+    <code>libtool</code>, it will tell you if any are missing or
+    too old.</p>
 
     <p>See the <a href="/Zapping/CompileAndInstall.html">Compile and Install</a>
     page for further instructions.</p>
