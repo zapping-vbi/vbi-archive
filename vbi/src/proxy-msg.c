@@ -29,9 +29,12 @@
  *    Both UNIX domain and IPv4 and IPv6 sockets are implemented, but
  *    the latter ones are currently not officially supported.
  *
- *  $Id: proxy-msg.c,v 1.16 2007-07-23 20:01:18 mschimek Exp $
+ *  $Id: proxy-msg.c,v 1.17 2007-08-27 06:44:40 mschimek Exp $
  *
  *  $Log: not supported by cvs2svn $
+ *  Revision 1.16  2007/07/23 20:01:18  mschimek
+ *  *** empty log message ***
+ *
  *  Revision 1.15  2006/05/22 09:08:46  mschimek
  *  *** empty log message ***
  *
@@ -183,10 +186,10 @@ void vbi_proxy_msg_logger( int level, int clnt_fd, int errCode, const char * pTe
       memset(argv, 0, sizeof(argv));
       /* add pointer to file descriptor (for client requests) or pid (for general infos) */
       if (clnt_fd != -1)
-         sprintf(fdstr, "fd %d: ", clnt_fd);
+         snprintf(fdstr, sizeof (fdstr), "fd %d: ", clnt_fd);
       else
       {
-         sprintf(fdstr, "pid %d: ", (int)getpid());
+         snprintf(fdstr, sizeof (fdstr), "pid %d: ", (int)getpid());
       }
       argv[argc++] = fdstr;
 
@@ -760,7 +763,7 @@ static int vbi_proxy_msg_get_local_socket_addr( const char * pPathName, const st
       res->ai_addr      = (struct sockaddr *) saddr;
       res->ai_addrlen   = sizeof(struct sockaddr_un);
 
-      strncpy(saddr->sun_path, pPathName, sizeof(saddr->sun_path) - 1);
+      strlcpy(saddr->sun_path, pPathName, sizeof(saddr->sun_path) - 1);
       saddr->sun_path[sizeof(saddr->sun_path) - 1] = 0;
       saddr->sun_family = AF_UNIX;
 
@@ -926,7 +929,7 @@ int vbi_proxy_msg_accept_connection( int listen_fd )
                hent = gethostbyaddr((void *) &peerAddr.sa, maxLength, AF_INET);
                if (hent != NULL)
                {
-                  strncpy(hname_buf, hent->h_name, sizeof(hname_buf) -1);
+                  strlcpy(hname_buf, hent->h_name, sizeof(hname_buf) -1);
                   hname_buf[sizeof(hname_buf) - 1] = 0;
                }
                else
@@ -934,7 +937,7 @@ int vbi_proxy_msg_accept_connection( int listen_fd )
 		  struct sockaddr_in *sa;
 
 		  sa = (struct sockaddr_in *) &peerAddr.sa;
-                  sprintf(hname_buf, "%s, port %d", inet_ntoa(sa->sin_addr), sa->sin_port);
+                  snprintf(hname_buf, sizeof (hname_buf), "%s, port %d", inet_ntoa(sa->sin_addr), sa->sin_port);
 	       }
 
                vbi_proxy_msg_logger(LOG_INFO, sock_fd, 0, "new connection from ", hname_buf, NULL);
@@ -969,7 +972,7 @@ int vbi_proxy_msg_accept_connection( int listen_fd )
             }
             else
             {  /* neither INET nor named socket -> internal error */
-               sprintf(hname_buf, "%d", peerAddr.sa.sa_family);
+               snprintf(hname_buf, sizeof (hname_buf), "%d", peerAddr.sa.sa_family);
                vbi_proxy_msg_logger(LOG_WARNING, -1, 0, "new connection via unexpected protocol family ", hname_buf, NULL);
             }
          }
@@ -980,7 +983,7 @@ int vbi_proxy_msg_accept_connection( int listen_fd )
       }
       else
       {  /* socket address buffer too small: internal error */
-         sprintf(hname_buf, "need %d, have %d", length, maxLength);
+         snprintf(hname_buf, sizeof (hname_buf), "need %d, have %d", length, maxLength);
          vbi_proxy_msg_logger(LOG_WARNING, -1, 0, "new connection: saddr buffer too small: ", hname_buf, NULL);
       }
 
@@ -1034,7 +1037,7 @@ static char * vbi_proxy_msg_resolve_symlinks( const char * p_dev_name )
                if (p_tmp2 != NULL)
                {  /* copy former path up to and including the separator character */
                   p_tmp2 += 1;
-                  strncpy(p_tmp, p_path, p_tmp2 - p_path);
+                  strlcpy(p_tmp, p_path, p_tmp2 - p_path);
                }
                else
                {  /* no path separator in the former path -> replace completely */
