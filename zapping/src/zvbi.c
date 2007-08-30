@@ -136,7 +136,7 @@ zvbi_name_unknown		(void)
 
 gboolean
 zvbi_cur_channel_get_ttx_encoding
-				(vbi3_charset_code *	charset_code,
+				(vbi3_ttx_charset_code *charset_code,
 				 vbi3_pgno		pgno)
 {
   const tv_video_line *vi;
@@ -160,7 +160,7 @@ zvbi_cur_channel_get_ttx_encoding
 gboolean
 zvbi_cur_channel_set_ttx_encoding
 				(vbi3_pgno		pgno,
-				 vbi3_charset_code	charset_code)
+				 vbi3_ttx_charset_code	charset_code)
 {
   const tv_video_line *vi;
 
@@ -202,7 +202,7 @@ zvbi_encoding_menu_list_delete	(gpointer		data)
 }
 
 gchar *
-zvbi_language_name		(const vbi3_character_set *cs)
+zvbi_language_name		(const vbi3_ttx_charset *cs)
 {
   gchar *string;
   guint i;
@@ -243,7 +243,7 @@ static zvbi_encoding_menu *
 zvbi_encoding_menu_list_new	(gpointer		user_data)
 {
   zvbi_encoding_menu *list;
-  vbi3_charset_code code;
+  vbi3_ttx_charset_code code;
 
   list = g_malloc (sizeof (*list));
 
@@ -254,20 +254,22 @@ zvbi_encoding_menu_list_new	(gpointer		user_data)
 
   for (code = 0; code < 88; ++code)
     {
-      const vbi3_character_set *cs;
-      vbi3_charset_code code2;
+      const vbi3_ttx_charset *cs;
+      vbi3_ttx_charset_code code2;
       gchar *item_name;
       zvbi_encoding_menu *em;
       zvbi_encoding_menu **emp;
 
-      if (!(cs = vbi3_character_set_from_code (code)))
+      cs = vbi3_ttx_charset_from_code (code);
+      if (NULL == cs)
 	continue;
 
       for (code2 = 0; code2 < code; ++code2)
 	{
-	  const vbi3_character_set *cs2;
+	  const vbi3_ttx_charset *cs2;
 
-	  if (!(cs2 = vbi3_character_set_from_code (code2)))
+	  cs2 = vbi3_ttx_charset_from_code (code2);
+	  if (NULL == cs2)
 	    continue;
 
 	  if (cs->g0 == cs2->g0
@@ -302,7 +304,7 @@ zvbi_encoding_menu_list_new	(gpointer		user_data)
 
 void
 zvbi_encoding_menu_set_active	(GtkMenu *		menu,
-				 vbi3_charset_code	code)
+				 vbi3_ttx_charset_code	code)
 {
   zvbi_encoding_menu *list;
   GtkCheckMenuItem *check;
@@ -346,7 +348,7 @@ zvbi_create_encoding_menu	(zvbi_encoding_menu_toggled_cb *callback,
     {
       GtkWidget *item;
 
-      if ((vbi3_charset_code) -1 == em->code)
+      if ((vbi3_ttx_charset_code) -1 == em->code)
 	item = gtk_radio_menu_item_new_with_mnemonic (group, em->name);
       else
 	item = gtk_radio_menu_item_new_with_label (group, em->name);
@@ -360,7 +362,7 @@ zvbi_create_encoding_menu	(zvbi_encoding_menu_toggled_cb *callback,
 
       gtk_menu_shell_append (shell, item);
 
-      if ((vbi3_charset_code) -1 == em->code)
+      if ((vbi3_ttx_charset_code) -1 == em->code)
 	gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), TRUE);
     }
 
@@ -1090,7 +1092,7 @@ update_main_title		(void)
 				     cur_tuned_channel);
   if (!channel)
     z_set_main_title (NULL, name);
-  else if (!channel->name)
+  else if (!channel->null_name)
     z_set_main_title (channel, name);
 }
 
@@ -1317,11 +1319,11 @@ zvbi_channel_switched		(void)
     if (vs->videostd_set & TV_VIDEOSTD_SET_525_60)
       scanning = 525;
 
-  if (channel)
+  if (channel && channel->null_name)
     {
       CLEAR (nk);
 
-      nk.name = channel->name;
+      nk.name = channel->null_name;
 
       /* XXX this is weak, better use a hash or CNIs. */
       nk.user_data = (void *)(channel->index + 1);
@@ -2632,3 +2634,10 @@ startup_zvbi			(void)
 #endif /* HAVE_LIBZVBI */
 
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

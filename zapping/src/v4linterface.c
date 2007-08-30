@@ -1036,7 +1036,7 @@ zconf_get_ttx_encodings		(tveng_tuned_channel *	channel,
 
       if (0 != pgno)
 	{
-	  vbi3_charset_code charset_code;
+	  vbi3_ttx_charset_code charset_code;
 
 	  zcname_i = g_strconcat (path_i, "/charset_code", NULL);
 	  /* Error ignored. */
@@ -1065,7 +1065,7 @@ zconf_create_ttx_encodings	(tveng_ttx_encoding *	tcc,
   for (i = 0; i < n_ttx_encodings; ++i)
     {
       if (0 != tcc[i].pgno &&
-	  (vbi3_charset_code) -1 != tcc[i].charset_code)
+	  (vbi3_ttx_charset_code) -1 != tcc[i].charset_code)
 	{
 	  gchar *name;
 
@@ -1300,8 +1300,8 @@ gchar *substitute_keywords	(gchar		*string,
        switch (i)
 	 {
 	 case 0:
-	   if (tc->name)
-	     buffer = g_strdup(tc->name);
+	   if (tc->null_name)
+	     buffer = g_strdup(tc->null_name);
 	   else if (default_name)
 	     buffer = g_strdup(default_name);
 	   else
@@ -1311,8 +1311,8 @@ gchar *substitute_keywords	(gchar		*string,
 	   buffer = g_strdup_printf("%d", tc->index+1);
 	   break;
 	 case 2:
-	   if (tc->rf_name)
-	     buffer = g_strdup(tc->rf_name);
+	   if (tc->null_rf_name)
+	     buffer = g_strdup(tc->null_rf_name);
 	   else
 	     buffer = g_strdup(_("Unnamed"));
 	   break;
@@ -1383,8 +1383,7 @@ z_set_main_title	(tveng_tuned_channel	*channel,
   if (!channel)
     channel = &ch;
 
-  if (channel != &ch
-      || channel->name || default_name)
+  if (channel != &ch || channel->null_name || default_name)
     buffer = substitute_keywords(g_strdup(zcg_char(NULL, "title_format")),
 				 channel, default_name);
   if (buffer && *buffer && zapping)
@@ -1513,7 +1512,9 @@ z_switch_channel		(tveng_tuned_channel *	channel,
   if (DISPLAY_MODE_FULLSCREEN == zapping->display_mode
       || DISPLAY_MODE_BACKGROUND == zapping->display_mode)
     osd_render_markup_printf (NULL,
-	("<span foreground=\"yellow\">%s</span>"), channel->name);
+	("<span foreground=\"yellow\">%s</span>"),
+			      (NULL == channel->null_name) ?
+			      "" : channel->null_name);
 #endif
 
   xawtv_ipc_set_station (GTK_WIDGET (zapping), channel);
@@ -1782,13 +1783,14 @@ kp_key_press			(GdkEventKey *		event,
 
 	    for (tc = tveng_tuned_channel_first (global_channel_list);
 		 tc; tc = tc->next)
-	      if (!tc->rf_name || tc->rf_name[0] == 0)
+	    {
+	      if (NULL == tc->null_rf_name || tc->null_rf_name[0] == 0)
 		{
 		  continue;
 		}
-	      else if (0 == strncmp (tc->rf_name, kp_chsel_buf, len))
+	      else if (0 == strncmp (tc->null_rf_name, kp_chsel_buf, len))
 		{
-		  if (strlen (tc->rf_name) == len)
+		  if (strlen (tc->null_rf_name) == len)
 		    break; /* exact match */
 
 		  if (match++ > 0)
@@ -1797,9 +1799,12 @@ kp_key_press			(GdkEventKey *		event,
 		      break; /* ambiguous */
 		    }
 		}
+	    }
 
 	    if (tc)
-	      g_strlcpy (kp_chsel_buf, tc->rf_name, sizeof (kp_chsel_buf) - 1);
+	      g_strlcpy (kp_chsel_buf,
+			 (NULL == tc->null_rf_name) ? ""
+			 : tc->null_rf_name, sizeof (kp_chsel_buf) - 1);
 	  }
 
 	kp_clear = FALSE;
@@ -1850,7 +1855,7 @@ kp_key_press			(GdkEventKey *		event,
 	      tc = tveng_tuned_channel_nth
 		(global_channel_list, (guint) cur_tuned_channel);
 
-	      if (!tc || !(rf_table = tc->rf_table) || rf_table[0] == 0)
+	      if (!tc || !(rf_table = tc->null_rf_table) || rf_table[0] == 0)
 		return TRUE; /* dead key */
 	    }
 
@@ -2473,7 +2478,7 @@ nth_channel			(guint			index)
   guint i;
 
   for (tc = global_channel_list, i = 0; tc; tc = tc->next)
-    if (tc->name && tc->name[0])
+    if (tc->null_name && tc->null_name[0])
       if (i++ == index)
 	break;
 
@@ -2492,7 +2497,8 @@ insert_one_channel		(GtkMenuShell *		menu,
   if (!(tc = nth_channel (index)))
     return;
 
-  menu_item = z_gtk_pixmap_menu_item_new (tc->name, GTK_STOCK_PROPERTIES);
+  menu_item = z_gtk_pixmap_menu_item_new (NULL == tc->null_name ? "" :
+					  tc->null_name, GTK_STOCK_PROPERTIES);
 
   g_signal_connect_swapped (G_OBJECT (menu_item), "activate",
 			    G_CALLBACK (select_channel),
@@ -2516,10 +2522,10 @@ tuned_channel_nth_name		(guint			index)
   tc = nth_channel (index);
 
   /* huh? */
-  if (!tc || !tc->name)
+  if (!tc || !tc->null_name)
     return _("Unnamed");
   else
-    return tc->name;
+    return tc->null_name;
 }
 
 /* Returns whether something (useful) was added */
@@ -2784,3 +2790,10 @@ shutdown_v4linterface(void)
 {
   g_object_unref(G_OBJECT(z_input_model));
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -891,7 +891,7 @@ gboolean
 tveng_tuned_channel_set_ttx_encoding
 				(tveng_tuned_channel *	tc,
 				 vbi3_pgno		pgno,
-				 vbi3_charset_code	charset_code)
+				 vbi3_ttx_charset_code	charset_code)
 {
   tveng_ttx_encoding *te;
   guint i;
@@ -901,7 +901,7 @@ tveng_tuned_channel_set_ttx_encoding
   if (0 == pgno)
     return TRUE;
 
-  if ((vbi3_charset_code) -1 == charset_code)
+  if ((vbi3_ttx_charset_code) -1 == charset_code)
     {
       tveng_tuned_channel_remove_ttx_encoding (tc, pgno);
       return TRUE;
@@ -931,7 +931,7 @@ tveng_tuned_channel_set_ttx_encoding
 gboolean
 tveng_tuned_channel_get_ttx_encoding
 				(tveng_tuned_channel *	tc,
-				 vbi3_charset_code *	charset_code,
+				 vbi3_ttx_charset_code *charset_code,
 				 vbi3_pgno		pgno)
 {
   guint i;
@@ -1023,11 +1023,16 @@ tveng_tuned_channel_by_string	(tveng_tuned_channel *	list,
 
   for (tc = list; tc; tc = tc->next)
     {
+      const gchar *null_str;
+
       if (0)
 	fprintf(stderr, "TC%p <%s><%s>\n",
-		tc, tc->name, tc->rf_name);
+		tc, tc->null_name, tc->null_rf_name);
 
-      t = g_utf8_casefold (* (const gchar **)(((char *) tc) + offset), -1);
+      /* FIXME this construct is horribly unsafe. */
+      null_str = * (const gchar **)(((char *) tc) + offset);
+
+      t = g_utf8_casefold ((NULL == null_str) ? "" : null_str, -1);
 
       if (0 == strcmp (s, t))
 	{
@@ -1053,7 +1058,7 @@ tveng_tuned_channel_by_name	(tveng_tuned_channel *	list,
 				 const gchar *		name)
 {
   return tveng_tuned_channel_by_string
-    (list, name, offsetof (tveng_tuned_channel, name));
+    (list, name, offsetof (tveng_tuned_channel, null_name));
 }
 
 tveng_tuned_channel *
@@ -1061,7 +1066,7 @@ tveng_tuned_channel_by_rf_name	(tveng_tuned_channel *	list,
 				 const gchar *		rf_name)
 {
   return tveng_tuned_channel_by_string
-    (list, rf_name, offsetof (tveng_tuned_channel, rf_name));
+    (list, rf_name, offsetof (tveng_tuned_channel, null_rf_name));
 }
 
 void
@@ -1212,17 +1217,20 @@ tveng_tuned_channel_copy	(tveng_tuned_channel *	d,
   g_assert (s != NULL);
   g_assert (d != NULL);
 
-  g_free (d->name);
-  g_free (d->rf_name);
-  g_free (d->rf_table);
+  g_free (d->null_name);
+  g_free (d->null_rf_name);
+  g_free (d->null_rf_table);
   g_free (d->controls);
   g_free (d->ttx_encodings);
 
-  d->name		= g_utf8_normalize (s->name ? s->name : "",
+  d->null_name		= g_utf8_normalize (s->null_name ?
+					    s->null_name : "",
 					    -1, G_NORMALIZE_DEFAULT_COMPOSE);
-  d->rf_name		= g_utf8_normalize (s->rf_name ? s->rf_name : "",
+  d->null_rf_name	= g_utf8_normalize (s->null_rf_name ?
+					    s->null_rf_name : "",
 					    -1, G_NORMALIZE_DEFAULT_COMPOSE);
-  d->rf_table		= g_utf8_normalize (s->rf_table ? s->rf_table : "",
+  d->null_rf_table	= g_utf8_normalize (s->null_rf_table ?
+					    s->null_rf_table : "",
 					    -1, G_NORMALIZE_DEFAULT_COMPOSE);
   d->accel		= s->accel;
   d->frequ		= s->frequ;
@@ -1267,9 +1275,9 @@ tveng_tuned_channel_new		(const tveng_tuned_channel *tc)
 
   if (NULL == tc)
     {
-      new_tc->name	= g_strdup ("");
-      new_tc->rf_name	= g_strdup ("");
-      new_tc->rf_table	= g_strdup ("");
+      new_tc->null_name		= g_strdup ("");
+      new_tc->null_rf_name	= g_strdup ("");
+      new_tc->null_rf_table	= g_strdup ("");
     }
   else
     {
@@ -1285,9 +1293,9 @@ tveng_tuned_channel_delete	(tveng_tuned_channel *	tc)
   if (!tc)
     return;
 
-  g_free (tc->name);
-  g_free (tc->rf_name);
-  g_free (tc->rf_table);
+  g_free (tc->null_name);
+  g_free (tc->null_rf_name);
+  g_free (tc->null_rf_table);
   g_free (tc->controls);
   g_free (tc->ttx_encodings);
 
@@ -1413,3 +1421,10 @@ tveng_remove_tuned_channel (gchar * rf_name, int id,
 
   return list;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/
