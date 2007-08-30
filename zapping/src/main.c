@@ -260,10 +260,15 @@ restore_controls		(void)
     zconf_get_sources (zapping->info, start_muted);
 }
 
+#if 0 /* causes too many problems now... */
 #define DEVICE_SUPPORTS_CAPTURE(info)					\
   (0 != (tv_get_caps (info)->flags & TVENG_CAPS_CAPTURE))
 #define DEVICE_SUPPORTS_OVERLAY(info)					\
   (0 != (tv_get_caps (info)->flags & TVENG_CAPS_OVERLAY))
+#else
+#define DEVICE_SUPPORTS_CAPTURE(info) 1
+#define DEVICE_SUPPORTS_OVERLAY(info) 1
+#endif
 
 static void
 restore_last_capture_mode		(void)
@@ -685,7 +690,7 @@ MAIN (PACKAGE_VERSION_ID)	(int			argc,
     }
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: main.c,v 1.214 2006-06-20 18:15:27 mschimek Exp $",
+	 "$Id: main.c,v 1.215 2007-08-30 12:19:38 mschimek Exp $",
 	 "Zapping", VERSION, __DATE__);
 
   cpu_detection ();
@@ -1169,7 +1174,14 @@ void shutdown_zapping(void)
   zconf_set_description (_descr, buffer);				\
   g_free (buffer);
 
-      SAVE_CONFIG (string,  name,         name,         "Station name");
+#define SAVE_CONFIG0(_type, _name, _cname, _descr)			\
+  buffer = g_strdup_printf (ZCONF_DOMAIN "tuned_channels/%d/" #_cname, i); \
+  zconf_set_##_type ((NULL == channel->null_ ## _name) ? "" :		\
+		     channel->null_ ## _name, buffer);			\
+  zconf_set_description (_descr, buffer);				\
+  g_free (buffer);
+
+      SAVE_CONFIG0 (string,  name,         name,         "Station name");
 
       buffer = g_strdup_printf (ZCONF_DOMAIN "tuned_channels/%d/freq", i);
       zconf_set_uint (channel->frequ / 1000, buffer);
@@ -1178,8 +1190,8 @@ void shutdown_zapping(void)
 
       SAVE_CONFIG (z_key,   accel,        accel,        "Accelerator key");
       /* historic "real_name", changed to less confusing rf_name */
-      SAVE_CONFIG (string,  rf_name,      real_name,    "RF channel name");
-      SAVE_CONFIG (string,  rf_table,     country,      "RF channel table");
+      SAVE_CONFIG0 (string,  rf_name,      real_name,    "RF channel name");
+      SAVE_CONFIG0 (string,  rf_table,     country,      "RF channel table");
       SAVE_CONFIG (uint,    input,        input,        "Attached input");
       SAVE_CONFIG (uint,    standard,     standard,     "Attached standard");
       SAVE_CONFIG (uint,    num_controls, num_controls, "Saved controls");
@@ -1403,12 +1415,12 @@ static gboolean startup_zapping(gboolean load_plugins,
   zconf_get_##_type (&tc->_name, buffer2);				\
   g_free (buffer2);
 
-      LOAD_CONFIG (string,  name,         name);
-      LOAD_CONFIG (string,  rf_name,      real_name);
+      LOAD_CONFIG (string,  null_name,         name);
+      LOAD_CONFIG (string,  null_rf_name,      real_name);
       LOAD_CONFIG (uint,    frequ,        freq);
       tc->frequ *= 1000 /* Hz */;
       LOAD_CONFIG (z_key,   accel,        accel);
-      LOAD_CONFIG (string,  rf_table,     country);
+      LOAD_CONFIG (string,  null_rf_table,     country);
       LOAD_CONFIG (uint,    input,        input);
       LOAD_CONFIG (uint,    standard,     standard);
       LOAD_CONFIG (int,	    caption_pgno, caption_pgno);
@@ -1484,3 +1496,10 @@ static gboolean startup_zapping(gboolean load_plugins,
 
   return TRUE;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

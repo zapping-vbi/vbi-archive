@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: channel_editor.c,v 1.51 2006-02-25 17:34:03 mschimek Exp $ */
+/* $Id: channel_editor.c,v 1.52 2007-08-30 12:20:02 mschimek Exp $ */
 
 /*
   TODO:
@@ -352,7 +352,9 @@ channel_list_get_selection	(const channel_editor *	ce,
 static gchar *
 rf_channel_string		(const tveng_tuned_channel *tc)
 {
-  return g_strdup_printf ("%s  %.2f MHz", tc->rf_name, tc->frequ / 1e6);
+  return g_strdup_printf ("%s  %.2f MHz",
+			  (NULL == tc->null_rf_name) ? "" : tc->null_rf_name,
+			  tc->frequ / 1e6);
 }
 
 static void
@@ -385,17 +387,25 @@ channel_list_add_tuned_channel	(channel_editor *	ce,
                                     /* use_align */ TRUE, 0.5, 0.0);
       gtk_tree_path_free (path);
 
-      if (0 != strcmp (tci->name, tci->rf_name))
+      if (NULL == tci->null_name
+	  || NULL == tci->null_rf_name
+	  || 0 != strcmp (tci->null_name, tci->null_rf_name))
 	return; /* user changed station name */
 
-      if (0 == strcmp (tc->name, tci->rf_name))
+      if (NULL == tc->null_name
+	  || NULL == tci->null_rf_name
+	  || 0 == strcmp (tc->null_name, tci->null_rf_name))
 	return; /* we have no station name */
+
       /*
       gtk_list_store_set (ce->channel_model, &iter,
 			  CL_NAME, tc->name, -1);
       */
-      g_free (tci->name);
-      tci->name = g_strdup (tc->name);
+
+      g_free (tci->null_name);
+      tci->null_name = NULL;
+      if (NULL != tc->null_name)
+	tci->null_name = g_strdup (tc->null_name);
 
       return;
     }
@@ -661,10 +671,10 @@ station_search_timeout		(gpointer		p)
 
  add_station:
   CLEAR (tc);
-  tc.name	= station_name;
-  tc.rf_name	= (gchar *) cs->ch.channel_name;
-  tc.rf_table	= (gchar *) cs->ch.table_name;
-  tc.frequ	= cs->frequ;
+  tc.null_name		= station_name;
+  tc.null_rf_name	= (gchar *) cs->ch.channel_name;
+  tc.null_rf_table	= (gchar *) cs->ch.table_name;
+  tc.frequ		= cs->frequ;
 
   channel_list_add_tuned_channel (ce, &global_channel_list, &tc);
 
@@ -792,10 +802,10 @@ on_add_all_channels_clicked	(GtkButton *	add_all_channels _unused_,
       do
 	if (g_ascii_isdigit (ch.channel_name[0]))
 	  {
-	    tc.name	= (gchar *) ch.channel_name;
-	    tc.rf_name	= (gchar *) ch.channel_name;
-	    tc.rf_table	= (gchar *) ch.table_name;
-	    tc.frequ	= ch.frequency;
+	    tc.null_name	= (gchar *) ch.channel_name;
+	    tc.null_rf_name	= (gchar *) ch.channel_name;
+	    tc.null_rf_table	= (gchar *) ch.table_name;
+	    tc.frequ		= ch.frequency;
 
 	    tveng_tuned_channel_replace (&global_channel_list,
 					 tveng_tuned_channel_new (&tc),
@@ -814,10 +824,10 @@ on_add_all_channels_clicked	(GtkButton *	add_all_channels _unused_,
   do
     if (!align || !g_ascii_isdigit (ch.channel_name[0]))
       {
-	tc.name		= (gchar *) ch.channel_name;
-	tc.rf_name	= (gchar *) ch.channel_name;
-	tc.rf_table	= (gchar *) ch.table_name;
-	tc.frequ	= ch.frequency;
+	tc.null_name		= (gchar *) ch.channel_name;
+	tc.null_rf_name		= (gchar *) ch.channel_name;
+	tc.null_rf_table	= (gchar *) ch.table_name;
+	tc.frequ		= ch.frequency;
 
 	channel_list_add_tuned_channel (ce, &global_channel_list, &tc);
       }
@@ -870,16 +880,18 @@ on_freq_selection_changed	(GtkTreeSelection *	selection,
 
   for (tc = tc_first;; tc = tc->next)
     {
-      if (0 != strcmp (tc->rf_table, ch.table_name))
+      if (NULL == tc->null_rf_table
+	  || 0 != strcmp (tc->null_rf_table, ch.table_name))
 	{
-	  g_free (tc->rf_table);
-	  tc->rf_table = g_strdup (ch.table_name);
+	  g_free (tc->null_rf_table);
+	  tc->null_rf_table = g_strdup (ch.table_name);
 	}
 
-      if (0 != strcmp (tc->rf_name, ch.channel_name))
+      if (NULL == tc->null_rf_name
+	  || 0 != strcmp (tc->null_rf_name, ch.channel_name))
 	{
-	  g_free (tc->rf_name);
-	  tc->rf_name = g_strdup (ch.channel_name);
+	  g_free (tc->null_rf_name);
+	  tc->null_rf_name = g_strdup (ch.channel_name);
 	}
 
       tc->frequ = ch.frequency;
@@ -1035,15 +1047,15 @@ on_entry_name_changed		(GtkEditable *		channel_name,
 
   name = gtk_editable_get_chars (channel_name, 0, -1);
 
-  g_free (tc->name);
-  tc->name = name;
+  g_free (tc->null_name);
+  tc->null_name = name;
 
   while (tc != tc_last)
     {
       tc = tc->next;
 
-      g_free (tc->name);
-      tc->name = g_strdup (name);
+      g_free (tc->null_name);
+      tc->null_name = g_strdup (name);
     }
 
   channel_list_rows_changed (ce, &first, &last);
@@ -1097,10 +1109,12 @@ on_entry_fine_tuning_value_changed (GtkAdjustment *	spin_adj,
 
   for (; tc_last != tc; tc_last = tc_last->prev)
     {
-      if (0 != strcmp (tc->rf_name, tc_last->rf_name))
+      if (NULL == tc->null_rf_name
+	  || NULL == tc_last->null_rf_name
+	  || 0 != strcmp (tc->null_rf_name, tc_last->null_rf_name))
 	{
-	  g_free (tc_last->rf_name);
-	  tc_last->rf_name = g_strdup (tc->rf_name);
+	  g_free (tc_last->null_rf_name);
+	  tc_last->null_rf_name = g_strdup (tc->null_rf_name);
 	}
 
       tc_last->frequ = tc->frequ;
@@ -1181,7 +1195,9 @@ on_channel_selection_changed	(GtkTreeSelection *	selection _unused_,
   z_switch_channel (tc, zapping->info);
 
   BLOCK (entry_name, changed,
-	 gtk_entry_set_text (ce->entry_name, tc->name));
+	 gtk_entry_set_text (ce->entry_name,
+			     (NULL == tc->null_name) ? "" :
+			     tc->null_name));
 
   BLOCK (entry_input, changed,
          {
@@ -1326,7 +1342,8 @@ set_func_name			(GtkTreeViewColumn *	column _unused_,
 {
   tveng_tuned_channel *tc = tree_model_tuned_channel (model, iter);
 
-  g_object_set (GTK_CELL_RENDERER (cell), "text", tc->name, NULL);
+  g_object_set (GTK_CELL_RENDERER (cell), "text",
+		(NULL == tc->null_name) ? "" : tc->null_name, NULL);
 }
 
 static void
@@ -2034,3 +2051,10 @@ void
 shutdown_channel_editor		(void)
 {
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

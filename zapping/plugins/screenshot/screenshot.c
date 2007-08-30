@@ -730,8 +730,10 @@ execute_command (screenshot_data *data)
 
   if (tc)
     {
-      env[envc++] = g_strdup_printf ("CHANNEL_ALIAS=%s", tc->name);
-      env[envc++] = g_strdup_printf ("CHANNEL_ID=%s", tc->rf_name);
+      if (NULL != tc->null_name)
+	env[envc++] = g_strdup_printf ("CHANNEL_ALIAS=%s", tc->null_name);
+      if (NULL != tc->null_rf_name)
+	env[envc++] = g_strdup_printf ("CHANNEL_ID=%s", tc->null_rf_name);
       if (tv_cur_video_standard (zapping_info))
 	env[envc++] =
 	  g_strdup_printf ("CURRENT_STANDARD=%s",
@@ -1792,3 +1794,10 @@ plugin_get_symbol(const gchar * name, gint hash, gpointer * ptr)
   return FALSE;
 }
 
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/
