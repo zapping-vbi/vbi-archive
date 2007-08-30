@@ -1,0 +1,19 @@
+# List of source files containing translatable strings
+# which we don't translate (yet).
+
+libtv/copy_image.c
+libtv/cpu.c
+libvbi/cache.c
+libvbi/hamm.h
+plugins/deinterlace/DI_Misc/DI_Adaptive.c
+plugins/deinterlace/DI_Misc/DI_BlendedClip.c
+plugins/deinterlace/DI_Misc/DI_OldGame.c
+plugins/lirc/lirc.c
+plugins/parrot/parrot.c
+plugins/parrot/parrot_strings.h
+plugins/template/template.c
+src/overlay.c
+src/tvengemu.c
+src/video_xv.c
+src/zapzilla.c
+zapping.desktop.in.in
