@@ -60,3 +60,10 @@ tveng25_device_scan		(FILE *			log);
 
 #endif /* TVENG25_PROTOTYPES */
 #endif /* TVENG25.H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

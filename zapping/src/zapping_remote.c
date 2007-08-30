@@ -20,7 +20,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping_remote.c,v 1.4 2006-05-14 19:15:23 mschimek Exp $ */
+/* $Id: zapping_remote.c,v 1.5 2007-08-30 14:14:36 mschimek Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -250,3 +250,10 @@ main				(int			argc,
 
     return 0;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

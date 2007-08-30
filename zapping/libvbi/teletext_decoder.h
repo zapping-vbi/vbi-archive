@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.h,v 1.5 2005-09-01 01:40:52 mschimek Exp $ */
+/* $Id: teletext_decoder.h,v 1.6 2007-08-30 14:14:26 mschimek Exp $ */
 
 #ifndef __ZVBI3_TELETEXT_DECODER_H__
 #define __ZVBI3_TELETEXT_DECODER_H__
@@ -154,3 +154,10 @@ vbi3_teletext_decoder_new	(vbi3_cache *		ca,
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_TELETEXT_DECODER_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

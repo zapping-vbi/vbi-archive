@@ -68,3 +68,10 @@ void startup_csconvert(void);
 void shutdown_csconvert(void);
 
 #endif /* csconvert.h */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

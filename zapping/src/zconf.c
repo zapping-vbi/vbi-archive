@@ -1708,3 +1708,10 @@ zconf_hook_check_menu		(const gchar *		key _unused_,
   if (active != item->active)
     gtk_check_menu_item_set_active (item, active);
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

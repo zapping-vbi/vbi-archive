@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.h,v 1.4 2005-06-28 00:57:33 mschimek Exp $ */
+/* $Id: exp-gfx.h,v 1.5 2007-08-30 14:14:25 mschimek Exp $ */
 
 #ifndef __ZVBI3_EXP_GFX_H__
 #define __ZVBI3_EXP_GFX_H__
@@ -121,3 +121,10 @@ vbi3_page_draw_caption		(const vbi3_page *	pg,
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_EXP_GFX_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

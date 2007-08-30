@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.h,v 1.1 2005-01-08 14:54:22 mschimek Exp $ */
+/* $Id: main.h,v 1.2 2007-08-30 14:14:26 mschimek Exp $ */
 
 #ifndef MAIN_H
 #define MAIN_H
@@ -32,3 +32,10 @@ extern DEINTERLACE_METHOD *
 deinterlace_find_method		(const gchar *		name);
 
 #endif /* MAIN_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

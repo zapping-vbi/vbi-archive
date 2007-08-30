@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd-consts.h,v 1.3 2006-04-12 01:42:42 mschimek Exp $ */
+/* $Id: simd-consts.h,v 1.4 2007-08-30 14:14:09 mschimek Exp $ */
 
 #error
 
@@ -42,3 +42,10 @@ const int64_t __attribute__ ((aligned (16))) vsplat16_m256[2]	= s16 (0xFF00);
 const int64_t __attribute__ ((aligned (16))) vsplatu16_F8[2]	= s16 (0x00F8);
 const int64_t __attribute__ ((aligned (16))) vsplat32_1[2]	= s32 (1);
 const int64_t __attribute__ ((aligned (16))) vsplat32_2[2]	= s32 (2);
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

@@ -622,9 +622,6 @@ capture_thread			(void *			data)
 	    break;
 	  }
 
-#warning remove this, too much noise
-	D();
-
 	if (p->tag != request_id && !compatible (p, info))
 	  {
 	    /* schedule for rebuilding in the main thread */
@@ -1539,3 +1536,10 @@ startup_capture			(void)
   z_gconf_auto_update_float
     (&field_balance, "/apps/zapping/plugins/deinterlace/field_balance");
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

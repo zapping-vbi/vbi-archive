@@ -197,3 +197,10 @@ void add_backend_x11 (void)
 
   register_video_backend (x11_pixfmt, &x11);
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -1357,3 +1357,10 @@ start_overlay			(GtkWidget *		main_window,
  failure:
   return FALSE;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

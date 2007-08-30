@@ -26,3 +26,10 @@ gboolean startup_vdr(void);
 void shutdown_vdr(void);
 
 #endif /* __VDR_H__ */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

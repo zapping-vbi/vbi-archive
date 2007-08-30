@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: schedule.c,v 1.5 2006-01-08 05:25:31 mschimek Exp $ */
+/* $Id: schedule.c,v 1.6 2007-08-30 14:14:31 mschimek Exp $ */
 
 #include "plugin_common.h"
 
@@ -79,3 +79,10 @@
  */
 
 #endif /* HAVE_LIBRTE */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: windows.h,v 1.9 2006-04-12 01:45:16 mschimek Exp $ */
+/* $Id: windows.h,v 1.10 2007-08-30 14:14:26 mschimek Exp $ */
 
 #ifndef WINDOWS_H
 #define WINDOWS_H
@@ -518,3 +518,10 @@ enum {
 };
 
 #endif /* WINDOWS_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: callback.c,v 1.4 2005-07-04 21:55:52 mschimek Exp $ */
+/* $Id: callback.c,v 1.5 2007-08-30 14:14:01 mschimek Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -232,3 +232,10 @@ tv_callback_unblock_all		(tv_callback *		list,
 		}
 	}
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

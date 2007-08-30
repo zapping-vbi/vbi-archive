@@ -26,3 +26,10 @@ start_overlay			(GtkWidget *		main_window,
 				 GtkWidget *		video_window);
 
 #endif /* overlay.h */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

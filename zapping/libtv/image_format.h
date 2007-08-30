@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.10 2006-03-06 01:49:01 mschimek Exp $ */
+/* $Id: image_format.h,v 1.11 2007-08-30 14:14:09 mschimek Exp $ */
 
 #ifndef __ZTV_IMAGE_FORMAT_H__
 #define __ZTV_IMAGE_FORMAT_H__
@@ -115,3 +115,10 @@ tv_new_image			(const void *		src_image,
 TV_END_DECLS
 
 #endif /* __ZTV_IMAGE_FORMAT_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

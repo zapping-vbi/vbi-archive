@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: yuv2yuv.h,v 1.3 2006-05-17 18:02:51 mschimek Exp $ */
+/* $Id: yuv2yuv.h,v 1.4 2007-08-30 14:14:10 mschimek Exp $ */
 
 /* YUV to YUV image format conversion functions. */
 
@@ -72,3 +72,10 @@ _tv_hm12_to_yuv420		(void *			dst_image,
 				 const tv_image_format *src_format);
 
 #endif /* YUV2YUV_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

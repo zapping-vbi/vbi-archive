@@ -1050,3 +1050,10 @@ void add_backend_xv (void)
 }
 
 #endif
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

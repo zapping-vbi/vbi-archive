@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: yuv2rgb.h,v 1.1 2006-03-11 13:14:13 mschimek Exp $ */
+/* $Id: yuv2rgb.h,v 1.2 2007-08-30 14:14:10 mschimek Exp $ */
 
 /* YUV to RGB image format conversion functions. */
 
@@ -44,3 +44,10 @@ _tv_nv_to_rgb			(void *			dst_image,
 				 const tv_image_format *src_format);
 
 #endif /* YUV2RGB_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

@@ -177,3 +177,10 @@ const audio_backend_info arts_backend =
 };
 
 #endif /* HAVE_ARTS */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zvideo.c,v 1.8 2006-02-06 04:49:36 mschimek Exp $ */
+/* $Id: zvideo.c,v 1.9 2007-08-30 14:14:37 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -761,3 +761,10 @@ z_video_get_type		(void)
   
   return video_type;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

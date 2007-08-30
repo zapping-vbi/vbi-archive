@@ -524,3 +524,10 @@ struct _tv_mixer_interface {
 };
 
 #endif /* tveng_private.h */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

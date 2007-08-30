@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_image-priv.h,v 1.1 2006-05-14 19:15:22 mschimek Exp $ */
+/* $Id: copy_image-priv.h,v 1.2 2007-08-30 14:14:01 mschimek Exp $ */
 
 #ifndef COPY_IMAGE_PRIV_H
 #define COPY_IMAGE_PRIV_H
@@ -28,3 +28,10 @@
 SIMD_FN_PROTOS (copy_plane_fn, _tv_copy_plane)
 
 #endif /* COPY_IMAGE_PRIV_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

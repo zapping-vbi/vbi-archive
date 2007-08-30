@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osd.h,v 1.21 2005-01-08 14:54:28 mschimek Exp $ */
+/* $Id: osd.h,v 1.22 2007-08-30 14:14:35 mschimek Exp $ */
 
 #ifndef __OSD_H__
 #define __OSD_H__
@@ -94,3 +94,10 @@ extern ZModel *osd_model; /* used for notification of changes */
 
 
 
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

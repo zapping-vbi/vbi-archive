@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fullscreen.c,v 1.53 2006-03-11 13:11:29 mschimek Exp $ */
+/* $Id: fullscreen.c,v 1.54 2007-08-30 14:14:34 mschimek Exp $ */
 
 /**
  * Fullscreen mode handling
@@ -786,3 +786,10 @@ start_fullscreen		(display_mode		dmode,
 
   return FALSE;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

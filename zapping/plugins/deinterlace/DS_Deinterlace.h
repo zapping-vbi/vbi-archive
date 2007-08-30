@@ -123,3 +123,10 @@ DEINTERLACE_METHOD* DI_VideoWeave_GetDeinterlacePluginInfo(void);
 DEINTERLACE_METHOD* DI_Weave_GetDeinterlacePluginInfo(void);
 
 #endif
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

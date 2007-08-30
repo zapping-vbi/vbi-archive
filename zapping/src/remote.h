@@ -82,3 +82,10 @@ do {									\
 #define py_return_false return PyInt_FromLong (FALSE)
 
 #endif /* __REMOTE_H__ */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

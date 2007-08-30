@@ -85,3 +85,10 @@ G_END_DECLS
 
 
 #endif /* __EGG_ACCELERATORS_H__ */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

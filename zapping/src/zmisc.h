@@ -699,3 +699,10 @@ z_join_thread_with_timeout	(const char *		who,
 #define NO_SOURCE_ID ((guint) -1)
 
 #endif /* __ZMISC_H__ */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

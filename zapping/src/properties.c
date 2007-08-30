@@ -999,3 +999,10 @@ void shutdown_properties(void)
   handlers = NULL;
   num_handlers = 0;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

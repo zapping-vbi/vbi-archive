@@ -96,3 +96,10 @@ void video_blit_frame (capture_frame* f);
 zimage *zimage_create_object (void);
 
 #endif
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

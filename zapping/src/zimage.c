@@ -212,3 +212,10 @@ void shutdown_zimage (void)
   backends = NULL;
   n_backends = 0;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

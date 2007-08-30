@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: control.h,v 1.3 2006-03-21 19:01:22 mschimek Exp $ */
+/* $Id: control.h,v 1.4 2007-08-30 14:14:01 mschimek Exp $ */
 
 #ifndef __ZTV_CONTROL_H__
 #define __ZTV_CONTROL_H__
@@ -113,3 +113,10 @@ tv_control_add_callback		(tv_control *		control,
 TV_END_DECLS
 
 #endif /* __ZTV_CONTROL_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

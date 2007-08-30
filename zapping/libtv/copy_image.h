@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_image.h,v 1.1 2006-04-12 01:48:15 mschimek Exp $ */
+/* $Id: copy_image.h,v 1.2 2007-08-30 14:14:02 mschimek Exp $ */
 
 #ifndef __ZTV_COPY_IMAGE_H__
 #define __ZTV_COPY_IMAGE_H__
@@ -39,3 +39,10 @@ tv_copy_image			(void *			dst_image,
 TV_END_DECLS
 
 #endif /* __ZTV_COPY_IMAGE_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

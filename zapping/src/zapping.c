@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.c,v 1.16 2006-03-06 01:47:44 mschimek Exp $ */
+/* $Id: zapping.c,v 1.17 2007-08-30 14:14:36 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -1115,3 +1115,10 @@ zapping_get_type		(void)
 
   return type;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// $Id: DS_Control.h,v 1.2 2005-06-28 00:51:57 mschimek Exp $
+// $Id: DS_Control.h,v 1.3 2007-08-30 14:14:26 mschimek Exp $
 /////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -71,6 +71,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.2  2005/06/28 00:51:57  mschimek
+// Removed unused DScaler code.
+//
 // Revision 1.1.2.1  2005/06/17 02:54:20  mschimek
 // *** empty log message ***
 //
@@ -1648,3 +1651,10 @@ typedef enum
 #define WM_TIMESHIFT_CHANGEVALUE	(WM_APP + 257)
 
 #endif
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

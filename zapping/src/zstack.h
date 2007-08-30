@@ -101,3 +101,10 @@ z_stack_set_has_window		(ZStack *		stack,
 G_END_DECLS
 
 #endif /* __Z_STACK_H__ */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

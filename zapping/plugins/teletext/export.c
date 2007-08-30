@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.6 2005-09-01 01:37:57 mschimek Exp $ */
+/* $Id: export.c,v 1.7 2007-08-30 14:14:33 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -396,3 +396,10 @@ export_dialog_get_type		(void)
 
   return type;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

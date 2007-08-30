@@ -69,3 +69,10 @@ void zmodel_changed (ZModel *zmodel);
 #endif /* __cplusplus */
 
 #endif /* __Z_MODEL_H__ */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clip_vector.c,v 1.3 2005-10-22 15:48:33 mschimek Exp $ */
+/* $Id: clip_vector.c,v 1.4 2007-08-30 14:14:01 mschimek Exp $ */
 
 #include <stdlib.h>		/* malloc() */
 #include "misc.h"
@@ -430,3 +430,10 @@ tv_clip_vector_init		(tv_clip_vector *	vector)
 	CLEAR (*vector);
 }
 
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

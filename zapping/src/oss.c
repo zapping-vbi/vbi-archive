@@ -83,6 +83,13 @@ _open				(gboolean		stereo,
   if ((IOCTL(oss_fd, SNDCTL_DSP_SPEED, &Speed) == -1))
     goto failed;
 
+  if (0)
+    {
+      /* Test. */
+      int arg = 0x7FFF0008; /* 0xMMMMSSSS */
+      ioctl(oss_fd, SNDCTL_DSP_SETFRAGMENT, &arg);
+    }
+
   h = (oss_handle *) g_malloc0(sizeof(*h));
   h->fd = oss_fd;
   h->stereo = stereo;
@@ -511,7 +518,7 @@ fprintf_ioctl_arg		(FILE *			fp,
 }
 
 #define mixer_ioctl(fd, cmd, arg)					\
-  (0 == device_ioctl (m->pub._log, fprintf_ioctl_arg, fd, cmd, arg))
+  device_ioctl (m->pub._log, fprintf_ioctl_arg, fd, cmd, arg)
 
 struct line {
 	tv_audio_line		pub;
@@ -571,7 +578,7 @@ update_line			(struct mixer *		m,
 
 	*volume = 0;
 
-	if (!mixer_ioctl (m->fd, MIXER_READ (l->id), volume))
+	if (-1 == mixer_ioctl (m->fd, MIXER_READ (l->id), volume))
 		return FALSE;
 
 #ifdef SOUND_MIXER_OUTSRC
@@ -579,7 +586,8 @@ update_line			(struct mixer *		m,
 	if (HARD_MUTABLE (m, l)) {
 		int outsrc; /* sic */
 
-		if (!mixer_ioctl (m->fd, SOUND_MIXER_READ_OUTSRC, &outsrc))
+		if (-1 == mixer_ioctl (m->fd, SOUND_MIXER_READ_OUTSRC,
+				       &outsrc))
 			return FALSE;
 
 		muted = (0 == (outsrc & (1 << l->id)));
@@ -642,7 +650,7 @@ oss_mixer_set_volume		(tv_audio_line *	line,
 
 		/* We don't know the current volume, so let's switch anyway. */
 
-		if (!mixer_ioctl (m->fd, MIXER_WRITE (l->id), &volume))
+		if (-1 == mixer_ioctl (m->fd, MIXER_WRITE (l->id), &volume))
 			return FALSE;
 
 		/*
@@ -683,7 +691,8 @@ oss_mixer_set_mute		(tv_audio_line *	line,
 
 		/* We don't know the current outsrc, so let's switch anyway. */
 
-		if (!mixer_ioctl (m->fd, SOUND_MIXER_READ_OUTSRC, &outsrc))
+		if (-1 == mixer_ioctl (m->fd, SOUND_MIXER_READ_OUTSRC,
+				       &outsrc))
 			return FALSE;
 
 		if (mute)
@@ -691,7 +700,8 @@ oss_mixer_set_mute		(tv_audio_line *	line,
 		else
 			outsrc |= 1 << l->id;
 
-		if (!mixer_ioctl (m->fd, SOUND_MIXER_WRITE_OUTSRC, &outsrc))
+		if (-1 == mixer_ioctl (m->fd, SOUND_MIXER_WRITE_OUTSRC,
+				       &outsrc))
 			return FALSE;
 
 		if (l->pub.muted != mute) {
@@ -710,7 +720,7 @@ oss_mixer_set_mute		(tv_audio_line *	line,
 
 		/* We don't know the current volume, so let's switch anyway. */
 
-		if (!mixer_ioctl (m->fd, MIXER_WRITE (l->id), &volume))
+		if (-1 == mixer_ioctl (m->fd, MIXER_WRITE (l->id), &volume))
 			return FALSE;
 
 		if (l->pub.muted != mute) {
@@ -770,7 +780,7 @@ oss_mixer_update_mixer		(tv_mixer *		mixer)
 	int set; /* sic */
 
 	if (m->has_recsrc) {
-		if (!mixer_ioctl (m->fd, SOUND_MIXER_READ_RECSRC, &set))
+		if (-1 == mixer_ioctl (m->fd, SOUND_MIXER_READ_RECSRC, &set))
 			return FALSE;
 
 		if (rec_source_changed (m, set))
@@ -794,7 +804,7 @@ oss_mixer_set_rec_line		(tv_mixer *		mixer,
 	set = 0;
 
 	if (!(exclusive | m->rec_single)) {
-		if (!mixer_ioctl (m->fd, SOUND_MIXER_READ_RECSRC, &set))
+		if (-1 == mixer_ioctl (m->fd, SOUND_MIXER_READ_RECSRC, &set))
 			return FALSE;
 
 		if (m->pub.rec_line)
@@ -806,7 +816,7 @@ oss_mixer_set_rec_line		(tv_mixer *		mixer,
 
 	/* We don't know the current rec source, so let's switch anyway. */
 
-	if (!mixer_ioctl (m->fd, SOUND_MIXER_WRITE_RECSRC, &set))
+	if (-1 == mixer_ioctl (m->fd, SOUND_MIXER_WRITE_RECSRC, &set))
 		return FALSE;
 
 	/* NB the driver will never return set = 0, it defaults to Mic. */
@@ -976,7 +986,7 @@ open_mixer			(const tv_mixer_interface *mi,
 		goto error;
 
 #ifdef SOUND_MIXER_INFO
-	if (mixer_ioctl (m->fd, SOUND_MIXER_INFO, &m->mixer_info)) {
+	if (0 == mixer_ioctl (m->fd, SOUND_MIXER_INFO, &m->mixer_info)) {
 		if (m->mixer_info.name[0]) {
 			m->pub.node.label =
 				_tv_strndup (m->mixer_info.name,
@@ -1025,24 +1035,26 @@ open_mixer			(const tv_mixer_interface *mi,
 	}
 #endif
 
-	if (!mixer_ioctl (m->fd, SOUND_MIXER_READ_DEVMASK, &m->dev_mask))
+	if (-1 == mixer_ioctl (m->fd, SOUND_MIXER_READ_DEVMASK, &m->dev_mask))
 		goto error;
 
 	/* Error ignored */
 	mixer_ioctl (m->fd, SOUND_MIXER_READ_STEREODEVS, &m->stereo_mask);
 
-	if (!mixer_ioctl (m->fd, SOUND_MIXER_READ_CAPS, &capabilities)
+	if (-1 == mixer_ioctl (m->fd, SOUND_MIXER_READ_CAPS, &capabilities)
 	    || (capabilities & SOUND_CAP_EXCL_INPUT))
 		m->rec_single = TRUE;
 
-	if (mixer_ioctl (m->fd, SOUND_MIXER_READ_RECMASK, &m->rec_mask)
-	    && mixer_ioctl (m->fd, SOUND_MIXER_READ_RECSRC, &m->old_recsrc))
+	if (0 == mixer_ioctl (m->fd, SOUND_MIXER_READ_RECMASK, &m->rec_mask)
+	    && 0 == mixer_ioctl (m->fd, SOUND_MIXER_READ_RECSRC,
+				 &m->old_recsrc))
 		m->has_recsrc = TRUE;
 
 #if defined (SOUND_MIXER_OUTMASK) && defined (SOUND_MIXER_OUTSRC)
 #if 0 /* XXX test me with SB16. */
-	if (mixer_ioctl (m->fd, SOUND_MIXER_READ_OUTMASK, &m->out_mask)
-	    && mixer_ioctl (m->fd, SOUND_MIXER_READ_OUTSRC, &m->old_outsrc))
+	if (0 == mixer_ioctl (m->fd, SOUND_MIXER_READ_OUTMASK, &m->out_mask)
+	    && 0 == mixer_ioctl (m->fd, SOUND_MIXER_READ_OUTSRC,
+				 &m->old_outsrc))
 		m->has_outsrc = TRUE;
 #endif
 #endif
@@ -1137,3 +1149,10 @@ oss_mixer_interface = {
 };
 
 #endif /* OSS backend */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

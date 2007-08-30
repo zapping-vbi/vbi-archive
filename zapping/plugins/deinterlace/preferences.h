@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preferences.h,v 1.1 2005-01-08 14:54:22 mschimek Exp $ */
+/* $Id: preferences.h,v 1.2 2007-08-30 14:14:26 mschimek Exp $ */
 
 #ifndef PREFERENCES_H
 #define PREFERENCES_H
@@ -68,3 +68,10 @@ deinterlace_prefs_new		(void);
 G_END_DECLS
 
 #endif /* PREFERENCES_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

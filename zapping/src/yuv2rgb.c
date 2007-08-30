@@ -171,3 +171,10 @@ void startup_yuv2rgb (void)
 void shutdown_yuv2rgb (void)
 {
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

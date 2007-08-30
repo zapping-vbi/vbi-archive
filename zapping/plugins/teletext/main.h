@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.h,v 1.4 2005-09-01 01:40:53 mschimek Exp $ */
+/* $Id: main.h,v 1.5 2007-08-30 14:14:33 mschimek Exp $ */
 
 #ifndef TELETEXT_MAIN_H
 #define TELETEXT_MAIN_H
@@ -40,3 +40,10 @@ extern GList *			teletext_windows;
 extern GList *			teletext_views;
 
 #endif /* TELETEXT_MAIN_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

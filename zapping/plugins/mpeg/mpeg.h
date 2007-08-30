@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.h,v 1.14 2005-01-19 04:07:40 mschimek Exp $ */
+/* $Id: mpeg.h,v 1.15 2007-08-30 14:14:31 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -69,3 +69,10 @@ extern void		grte_context_save	(rte_context *		context,
 						 gint			capture_h);
 extern void		grte_config_delete	(const gchar *		zc_root,
 						 const gchar *		zc_conf);
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

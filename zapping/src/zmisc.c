@@ -2950,3 +2950,10 @@ z_join_thread_with_timeout	(const char *		who,
 
   return timeout;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

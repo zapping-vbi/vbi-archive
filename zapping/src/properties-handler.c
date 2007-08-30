@@ -1382,3 +1382,10 @@ void shutdown_properties_handler(void)
   /* Nothing */
 }
 
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

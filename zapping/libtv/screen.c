@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: screen.c,v 1.9 2006-02-03 18:24:41 mschimek Exp $ */
+/* $Id: screen.c,v 1.10 2007-08-30 14:14:09 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -711,3 +711,10 @@ tv_screen_list_new		(const char *		display_name,
 
 	return list;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

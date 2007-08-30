@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preferences.c,v 1.4 2006-02-06 18:13:08 mschimek Exp $ */
+/* $Id: preferences.c,v 1.5 2007-08-30 14:14:32 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -505,3 +505,10 @@ subtitle_prefs_get_type		(void)
   return type;
 }
 
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

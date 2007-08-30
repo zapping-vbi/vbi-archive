@@ -84,3 +84,10 @@ screenshot_backend_ppm =
   .init			= backend_init,
   .save			= backend_save,
 };
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

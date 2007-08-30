@@ -107,3 +107,10 @@ zmodel_changed (ZModel *zmodel)
 {
   g_signal_emit (zmodel, signals[CHANGED], 0);
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

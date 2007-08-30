@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lut_rgb16.h,v 1.2 2006-03-11 13:15:00 mschimek Exp $ */
+/* $Id: lut_rgb16.h,v 1.3 2007-08-30 14:14:09 mschimek Exp $ */
 
 /* Look-up tables for image format conversion. */
 
@@ -28,3 +28,10 @@
 extern const uint16_t		_tv_lut_rgb16 [2][6][256];
 
 #endif /* LUT_RGB16_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

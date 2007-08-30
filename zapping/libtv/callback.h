@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: callback.h,v 1.2 2005-01-31 07:13:17 mschimek Exp $ */
+/* $Id: callback.h,v 1.3 2007-08-30 14:14:01 mschimek Exp $ */
 
 #ifndef __ZTV_CALLBACK_H__
 #define __ZTV_CALLBACK_H__
@@ -89,3 +89,10 @@ do {									\
 TV_END_DECLS
 
 #endif /* __ZTV_CALLBACK_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

@@ -103,3 +103,10 @@ z_video_set_aspect		(ZVideo *		video,
 #endif /* __cplusplus */
 
 #endif /* Z_VIDEO_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

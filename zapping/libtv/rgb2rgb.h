@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: rgb2rgb.h,v 1.2 2006-02-26 15:50:44 mschimek Exp $ */
+/* $Id: rgb2rgb.h,v 1.3 2007-08-30 14:14:09 mschimek Exp $ */
 
 /* RGB to RGB image format conversion functions. */
 
@@ -42,3 +42,10 @@ _tv_sbggr_to_rgb		(void *			dst_image,
 				 const tv_image_format *src_format);
 
 #endif /* RGB2RGB_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

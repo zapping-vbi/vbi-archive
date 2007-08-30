@@ -195,3 +195,10 @@ plugin_symbol			(const struct plugin_info *info,
 				 const gchar *		name);
 
 #endif
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

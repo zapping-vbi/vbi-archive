@@ -1919,3 +1919,10 @@ void tvengxv_init_module(struct tveng_module_info *module_info)
   CLEAR (*module_info);
 }
 #endif
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

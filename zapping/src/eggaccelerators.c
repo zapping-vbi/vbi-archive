@@ -655,3 +655,10 @@ egg_keymap_get_modmap (GdkKeymap *keymap)
   
   return modmap;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

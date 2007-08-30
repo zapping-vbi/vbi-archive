@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: audio.c,v 1.35 2006-06-09 01:51:19 mschimek Exp $ */
+/* $Id: audio.c,v 1.36 2007-08-30 14:14:33 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu */
 #undef GTK_DISABLE_DEPRECATED
@@ -402,7 +402,7 @@ loopback_thread			(void *			x)
 
   printv ("audio loopback thread\n");
 
-  buffer_size = 4096;
+  buffer_size = 4096; /* 256 */
 
   buffer = malloc (buffer_size);
   g_assert (NULL != buffer);
@@ -466,8 +466,33 @@ loopback_thread			(void *			x)
 #endif
 	}
 
+#if 0 /* test */
+      {
+	static int wfd = -1;
+
+#include <sys/ioctl.h>
+#include <sys/soundcard.h>
+
+	if (-1 == wfd) {
+	  int Format = AFMT_S16_LE;
+	  int Stereo = 1;
+	  int Speed = 44100;
+	  int arg = 0x7FFF0008; /* 0xMMMMSSSS */
+
+	  fprintf (stderr, "DSPOUT TEST\n");
+	  wfd = open ("/dev/dsp", O_WRONLY, 0);
+	  ioctl(wfd, SNDCTL_DSP_SETFMT, &Format);
+	  ioctl(wfd, SNDCTL_DSP_STEREO, &Stereo);
+	  ioctl(wfd, SNDCTL_DSP_SPEED, &Speed);
+	  ioctl(wfd, SNDCTL_DSP_SETFRAGMENT, &arg);
+	}
+
+	write (wfd, buffer, buffer_size);
+      }
+#else
       if (!write_audio_data (loopback_dst, buffer, buffer_size, timestamp))
 	break;
+#endif
     }
 
   free (buffer);
@@ -1159,3 +1184,10 @@ void shutdown_audio ( void )
     oss_backend.shutdown ();
 #endif
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

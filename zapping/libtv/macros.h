@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: macros.h,v 1.4 2006-03-21 19:01:22 mschimek Exp $ */
+/* $Id: macros.h,v 1.5 2007-08-30 14:14:09 mschimek Exp $ */
 
 #ifndef __ZTV_MACROS_H__
 #define __ZTV_MACROS_H__
@@ -72,3 +72,10 @@ typedef int tv_bool;
 TV_END_DECLS
 
 #endif /* __ZTV_MACROS_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

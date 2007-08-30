@@ -74,3 +74,10 @@ extern void
 startup_capture			(void);
 
 #endif
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

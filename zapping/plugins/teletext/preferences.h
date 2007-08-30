@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: preferences.h,v 1.2 2005-09-01 01:40:53 mschimek Exp $ */
+/* $Id: preferences.h,v 1.3 2007-08-30 14:14:33 mschimek Exp $ */
 
 #ifndef TELETEXT_PREFERENCES_H
 #define TELETEXT_PREFERENCES_H
@@ -75,3 +75,10 @@ teletext_prefs_new		(void);
 G_END_DECLS
 
 #endif /* TELETEXT_PREFERENCES_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

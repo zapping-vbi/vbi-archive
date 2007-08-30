@@ -16,7 +16,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cmd.c,v 1.18 2005-10-14 23:36:51 mschimek Exp $ */
+/* $Id: cmd.c,v 1.19 2007-08-30 14:14:34 mschimek Exp $ */
 
 /**
  * Provides the functionality in the Python interface of Zapping.
@@ -393,3 +393,10 @@ void
 shutdown_cmd (void)
 {
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

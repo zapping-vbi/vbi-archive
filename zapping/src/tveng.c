@@ -5082,3 +5082,10 @@ tv_capture_buffer_clear		(tv_capture_buffer *	cb)
 
 	return tv_clear_image (cb->data, cb->format);
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

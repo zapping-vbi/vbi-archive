@@ -58,3 +58,10 @@ tvengbktr_device_scan		(FILE *			log);
 
 #endif /* TVENGBKTR_PROTOTYPES */
 #endif /* TVENGBKTR.H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -49,3 +49,10 @@
 
 /* VOID:VOID (zmarshalers.list:25) */
 
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

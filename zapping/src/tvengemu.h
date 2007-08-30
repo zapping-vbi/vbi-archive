@@ -60,3 +60,10 @@ static void tvengemu_close_device(tveng_device_info* info);
 
 #endif /* TVENGEMU_PROTOTYPES */
 #endif /* TVENGEMU.H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

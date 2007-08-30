@@ -94,3 +94,10 @@ oss_pcm_scan			(void *			unused,
 				 FILE *			log_fp);
 
 #endif /* audio.h */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

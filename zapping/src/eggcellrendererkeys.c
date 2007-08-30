@@ -648,3 +648,10 @@ egg_cell_renderer_keys_set_accel_mode (EggCellRendererKeys     *keys,
   keys->accel_mode = accel_mode;
   g_object_notify (G_OBJECT (keys), "accel_mode");
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

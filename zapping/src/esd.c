@@ -247,3 +247,10 @@ const audio_backend_info esd_backend =
 };
 
 #endif /* HAVE_ESD */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -80,3 +80,10 @@ extern GtkWidget *
 
 
 #endif /* HAVE_LIBZVBI */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

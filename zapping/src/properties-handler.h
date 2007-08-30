@@ -13,3 +13,10 @@ extern void startup_properties_handler(void);
 extern void shutdown_properties_handler(void);
 
 #endif
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.h,v 1.3 2005-09-01 01:40:53 mschimek Exp $ */
+/* $Id: search.h,v 1.4 2007-08-30 14:14:33 mschimek Exp $ */
 
 #ifndef TELETEXT_SEARCH_H
 #define TELETEXT_SEARCH_H
@@ -83,3 +83,10 @@ search_dialog_new		(TeletextView *		view);
 G_END_DECLS
 
 #endif /* TELETEXT_SEARCH_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

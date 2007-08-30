@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: interface.c,v 1.34 2005-02-12 13:33:14 mschimek Exp $ */
+/* $Id: interface.c,v 1.35 2007-08-30 14:14:34 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 toolbar changes */
 #undef GTK_DISABLE_DEPRECATED
@@ -185,3 +185,10 @@ build_widget			(const gchar *		name,
 
   return widget;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

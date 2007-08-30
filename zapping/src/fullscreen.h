@@ -32,3 +32,10 @@ extern gboolean
 stop_fullscreen			(void);
 
 #endif /* FULLSCREEN_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

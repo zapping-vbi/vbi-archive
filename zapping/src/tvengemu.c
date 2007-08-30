@@ -498,3 +498,10 @@ void tvengemu_init_module(struct tveng_module_info *module_info)
   memcpy (module_info, &tvengemu_module_info,
 	  sizeof (struct tveng_module_info));
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

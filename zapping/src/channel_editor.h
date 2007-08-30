@@ -23,3 +23,10 @@ extern void		startup_channel_editor		(void);
 extern void		shutdown_channel_editor		(void);
 
 #endif
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

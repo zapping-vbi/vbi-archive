@@ -88,3 +88,10 @@ static void tvengxv_close_device(tveng_device_info* info);
 
 #endif /* TVENGXV_PROTOTYPES */
 #endif /* TVENGXV.H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

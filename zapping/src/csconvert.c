@@ -199,3 +199,10 @@ void shutdown_csconvert(void)
 
   CLEAR (filters);
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

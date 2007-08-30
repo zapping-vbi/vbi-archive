@@ -64,3 +64,10 @@ GtkWidget *
 (*_subtitle_view_new)		(void);
 
 #endif /* HAVE_LIBZVBI */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

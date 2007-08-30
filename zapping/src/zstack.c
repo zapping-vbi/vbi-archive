@@ -487,3 +487,10 @@ z_stack_get_type		(void)
 
   return stack_type;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

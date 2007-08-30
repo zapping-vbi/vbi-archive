@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: overlay_buffer.h,v 1.1 2004-09-10 04:55:55 mschimek Exp $ */
+/* $Id: overlay_buffer.h,v 1.2 2007-08-30 14:14:09 mschimek Exp $ */
 
 #ifndef __ZTV_OVERLAY_BUFFER_H__
 #define __ZTV_OVERLAY_BUFFER_H__
@@ -47,3 +47,10 @@ typedef struct {
 TV_END_DECLS
 
 #endif /* __ZTV_OVERLAY_BUFFER_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

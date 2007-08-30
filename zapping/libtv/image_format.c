@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.20 2006-05-17 18:02:21 mschimek Exp $ */
+/* $Id: image_format.c,v 1.21 2007-08-30 14:14:09 mschimek Exp $ */
 
 #include <string.h>		/* memset() */
 #include <assert.h>
@@ -257,3 +257,10 @@ tv_new_image			(const void *		src_image,
 
 	return dst_image;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

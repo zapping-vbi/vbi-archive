@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd.h,v 1.8 2006-04-12 01:45:45 mschimek Exp $ */
+/* $Id: simd.h,v 1.9 2007-08-30 14:14:09 mschimek Exp $ */
 
 #ifndef SIMD_H
 #define SIMD_H
@@ -1297,3 +1297,10 @@ extern fn_type name ## _ALTIVEC dimensions;
 	 SIMD_FN_SELECT (name, (avail) & SCALAR))
 
 #endif /* SIMD_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

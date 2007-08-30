@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.5 2005-09-01 01:28:59 mschimek Exp $ */
+/* $Id: search.c,v 1.6 2007-08-30 14:14:33 mschimek Exp $ */
 
 #include "src/zgconf.h"
 #include "main.h"		/* td */
@@ -458,3 +458,10 @@ search_dialog_get_type		(void)
 
   return type;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

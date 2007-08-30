@@ -1177,3 +1177,10 @@ startup_keyboard (void)
 
   prepend_property_handler (&keyb_handler);
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

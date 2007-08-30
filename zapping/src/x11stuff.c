@@ -2352,3 +2352,10 @@ x11_window_clip_vector		(tv_clip_vector *	vector,
 	return children_clips (vector, display, root, window,
 			       x, y, width, height, 0, 0);
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

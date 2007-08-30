@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zspinslider.h,v 1.1 2004-12-07 17:31:08 mschimek Exp $ */
+/* $Id: zspinslider.h,v 1.2 2007-08-30 14:14:37 mschimek Exp $ */
 
 #ifndef Z_SPINSLIDER_H
 #define Z_SPINSLIDER_H
@@ -87,3 +87,10 @@ z_spinslider_adjustment_changed	(ZSpinSlider *		sp);
 G_END_DECLS
 
 #endif /* Z_SPINSLIDER_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

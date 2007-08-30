@@ -5,3 +5,10 @@ void startup_cmd (void);
 void shutdown_cmd (void);
 
 #endif /* cmd.h */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

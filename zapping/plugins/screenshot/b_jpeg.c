@@ -215,3 +215,10 @@ screenshot_backend_jpeg =
 };
 
 #endif /* HAVE_LIBJPEG */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

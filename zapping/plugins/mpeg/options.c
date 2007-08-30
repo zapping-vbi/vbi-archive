@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: options.c,v 1.27 2005-09-01 01:40:52 mschimek Exp $ */
+/* $Id: options.c,v 1.28 2007-08-30 14:14:31 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -1133,3 +1133,10 @@ grte_config_delete		(const gchar *		zc_root,
 }
 
 #endif /* HAVE_LIBRTE */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

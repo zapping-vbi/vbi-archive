@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.c,v 1.2 2005-01-27 04:20:19 mschimek Exp $ */
+/* $Id: misc.c,v 1.3 2007-08-30 14:14:09 mschimek Exp $ */
 
 #include <stdlib.h>		/* malloc() */
 #include "misc.h"
@@ -144,3 +144,10 @@ _tv_asprintf			(char **		dstp,
 }
 
 #endif /* !HAVE_ASPRINTF */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: i18n.h,v 1.4 2005-01-08 14:54:28 mschimek Exp $ */
+/* $Id: i18n.h,v 1.5 2007-08-30 14:14:34 mschimek Exp $ */
 
 #ifndef I18N_H
 #define I18N_H
@@ -34,3 +34,10 @@ extern const char *
 iso639_to_language_name		(const char *		code);
 
 #endif
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

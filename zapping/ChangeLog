@@ -1,3 +1,57 @@
+2007-08-29    <mschimek@users.sf.net>
+
+	* src/zvbi.c, src/main.c, src/v4linterface.c, src/frequencies.c, 
+	  src/channel_editor.c, plugins/screenshot/screenshot.c:
+	  Did not safely handle unnamed channels (or so it seems).
+
+	* src/zvbi.h, src/zvbi.c, src/v4linterface.c, src/subtitle.c,
+	  src/frequencies.h, src/frequencies.c, plugins/teletext/window.c,
+	  plugins/teletext/view.h, plugins/teletext/view.c,
+	  plugins/subtitle/view.h, plugins/subtitle/view.c,
+	  plugins/mpeg/mpeg.c: libvbi changed.
+	* libvbi/bcd.c,	libvbi/bcd.h, libvbi/cache-priv.h, libvbi/cache.c,
+	  libvbi/cache.h, libvbi/caption_decoder-priv.h,
+	  libvbi/caption_decoder.c, libvbi/caption_decoder.h, libvbi/conv.c,
+	  libvbi/conv.h, libvbi/dlist.h, libvbi/event-priv.h, libvbi/event.c,
+	  libvbi/event.h, libvbi/exp-gfx.c, libvbi/exp-html.c,
+	  libvbi/exp-sub.c, libvbi/exp-txt.c, libvbi/exp-vtx.c,
+	  libvbi/export-priv.h, libvbi/export.c, libvbi/fontgen.c,
+	  libvbi/hamm.c, libvbi/lang.c, libvbi/lang.h, libvbi/link.c,
+	  libvbi/macros.h, libvbi/misc.c, libvbi/misc.h,
+	  libvbi/network-table.h, libvbi/network.c, libvbi/network.h,
+	  libvbi/packet-830.c, libvbi/packet-830.h, libvbi/page-priv.h,
+	  libvbi/page.h, libvbi/pdc.h, libvbi/sampling_par.h,
+	  libvbi/search.c, libvbi/sliced.h, libvbi/teletext.c,
+	  libvbi/teletext_decoder.c, libvbi/top_title.c, libvbi/top_title.h,
+	  libvbi/vbi_decoder-priv.h, libvbi/vbi_decoder.c,
+	  libvbi/vbi_decoder.h, libvbi/vps.c, libvbi/vps.h, libvbi/vt.h:
+	  Updated from libzvbi 0.3.
+
+2007-07-14    <mschimek@users.sf.net>
+
+	* libtv, libvbi, plugins, src: Added variables for emacs C mode.
+
+	* test/simd.c: Fixed shift checks (Debian bug #424502, SF bug
+	  #1738694).
+
+	* common/intl-priv.h: Compile fix.
+	
+	* libtv/clear_image.c (_tv_clear_plane_1): Replaced value4 by
+	  a union to cast the value arg to an SSE int vector, because
+	  GCC 4.1.2 moved the movaps before the value4 initialization
+	  (bug #1776776).
+
+	* po/POTFILES.skip: Added as requested by intltool.
+	* po/POTFILES.in: Updated.
+
+	* configure.in: Added --with-esd, --with-arts switches for
+	  x86_64 testing.
+	(site_def.h): Added TVENG25_HM12_TEST.
+
+	* autogen.sh: Updated from Gnome 2007-05-02 to handle
+	  new tool versions.
+	* autogen-maint.sh: Added.
+
 2006-06-20    <mschimek@users.sf.net>
 
 	* src/tveng25.c (streamoff_or_reopen): Skip STREAMOFF with ivtv

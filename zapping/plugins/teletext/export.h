@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.3 2005-09-01 01:40:53 mschimek Exp $ */
+/* $Id: export.h,v 1.4 2007-08-30 14:14:33 mschimek Exp $ */
 
 #ifndef TELETEXT_EXPORT_H
 #define TELETEXT_EXPORT_H
@@ -78,3 +78,10 @@ export_dialog_new		(const vbi3_page *	pg,
 G_END_DECLS
 
 #endif /* TELETEXT_EXPORT_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

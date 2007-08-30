@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clear_image.h,v 1.1 2006-04-12 01:48:15 mschimek Exp $ */
+/* $Id: clear_image.h,v 1.2 2007-08-30 14:14:01 mschimek Exp $ */
 
 #ifndef __ZTV_CLEAR_IMAGE_H__
 #define __ZTV_CLEAR_IMAGE_H__
@@ -33,3 +33,10 @@ tv_clear_image			(void *			image,
 TV_END_DECLS
 
 #endif /* __ZTV_CLEAR_IMAGE_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

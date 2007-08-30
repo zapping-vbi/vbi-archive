@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bookmark.c,v 1.4 2005-09-01 01:29:29 mschimek Exp $ */
+/* $Id: bookmark.c,v 1.5 2007-08-30 14:14:33 mschimek Exp $ */
 
 #include "libvbi/top_title.h"
 #include "main.h"
@@ -255,18 +255,18 @@ on_add_bookmark_activate	(GtkWidget *		menu_item _unused_,
 						 view->pg->subno))
     {
       bookmark_list_add (&bookmarks,
-			 channel ? channel->name : NULL,
+			 channel ? channel->null_name : NULL,
 			 view->pg->network,
 			 view->pg->pgno,
 			 view->pg->subno,
-			 tt.title);
+			 tt.xtitle);
 
       vbi3_top_title_destroy (&tt);
     }
   else
     {
       bookmark_list_add (&bookmarks,
-			 channel ? channel->name : NULL,
+			 channel ? channel->null_name : NULL,
 			 view->pg->network,
 			 view->pg->pgno,
 			 view->pg->subno,
@@ -747,3 +747,10 @@ bookmark_editor_get_type	(void)
 
   return type;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

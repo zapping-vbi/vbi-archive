@@ -3969,3 +3969,10 @@ void tveng25_init_module(struct tveng_module_info *module_info)
 }
 
 #endif /* ENABLE_V4L */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

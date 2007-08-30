@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: control.c,v 1.2 2005-07-04 21:56:41 mschimek Exp $ */
+/* $Id: control.c,v 1.3 2007-08-30 14:14:01 mschimek Exp $ */
 
 #include <stdlib.h>		/* malloc() */
 #include "misc.h"
@@ -133,3 +133,10 @@ tv_control_delete		(tv_control *		c)
 		free (c);
 	}
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

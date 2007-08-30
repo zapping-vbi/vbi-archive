@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zgconf.c,v 1.6 2006-02-06 18:12:13 mschimek Exp $ */
+/* $Id: zgconf.c,v 1.7 2007-08-30 14:14:36 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -929,3 +929,10 @@ z_gconf_get_color		(GdkColor *		color,
 
   return success;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

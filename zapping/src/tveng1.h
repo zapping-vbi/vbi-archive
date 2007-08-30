@@ -64,3 +64,10 @@ static void tveng1_close_device(tveng_device_info* info);
 
 #endif /* TVENG1_PROTOTYPES */
 #endif /* TVENG1.H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

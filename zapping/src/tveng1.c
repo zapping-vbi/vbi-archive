@@ -3938,8 +3938,6 @@ get_capabilities		(struct private_tveng1_device_info *p_info)
 static tv_bool
 do_open				(struct private_tveng1_device_info *p_info)
 {
-	struct video_capability caps;
-
 	p_info->info.fd = -1;
 
 	/* XXX see zapping_setup_fb for a safer version. */
@@ -4265,3 +4263,10 @@ void tveng1_init_module(struct tveng_module_info *module_info)
 }
 
 #endif /* ENABLE_V4L */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

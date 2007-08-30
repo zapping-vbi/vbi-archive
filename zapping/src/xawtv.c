@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.c,v 1.15 2006-02-25 17:33:20 mschimek Exp $ */
+/* $Id: xawtv.c,v 1.16 2007-08-30 14:14:36 mschimek Exp $ */
 
 /*
    XawTV compatibility functions:
@@ -433,10 +433,10 @@ section				(FILE *			fp,
 	      return FALSE;
 	    }
 
-	  channel.name = (gchar *) t;
+	  channel.null_name = (gchar *) t;
 
-	  channel.rf_table = (gchar *) rf_channel->table_name;
-	  channel.rf_name = rf_channel->channel_name;
+	  channel.null_rf_table = (gchar *) rf_channel->table_name;
+	  channel.null_rf_name = rf_channel->channel_name;
 
 	  if ((ch = tveng_tuned_channel_by_name (*channel_list, t)))
 	    {
@@ -1060,8 +1060,8 @@ xawtv_ipc_set_station		(GtkWidget *		window,
 
   r = FALSE;
 
-  name = to_locale (ch->name);
-  rf_name = to_locale (ch->rf_name);
+  name = to_locale (ch->null_name ? ch->null_name : "");
+  rf_name = to_locale (ch->null_rf_name ? ch->null_rf_name : "");
 
   if (name && rf_name)
     {
@@ -1074,8 +1074,8 @@ xawtv_ipc_set_station		(GtkWidget *		window,
       s = g_string_new (NULL);
       g_string_printf (s, "%.3f%c%s%c%s",
 		       ch->frequ / 1e6, 0,
-		       ch->rf_name ? rf_name : "?", 0,
-		       ch->name ? name : "?");
+		       ch->null_rf_name ? rf_name : "?", 0,
+		       ch->null_name ? name : "?");
 
       gdk_property_change (window->window,
 			   _GA_XAWTV_STATION,
@@ -1125,3 +1125,10 @@ xawtv_ipc_init			(GtkWidget *		window)
 
   return TRUE;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: zapping.h,v 1.8 2005-09-01 01:33:27 mschimek Exp $ */
+/* $Id: zapping.h,v 1.9 2007-08-30 14:14:36 mschimek Exp $ */
 
 #ifndef ZAPPING_H
 #define ZAPPING_H
@@ -111,3 +111,10 @@ zapping_create_popup		(Zapping *		z,
 G_END_DECLS
 
 #endif /* ZAPPING_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

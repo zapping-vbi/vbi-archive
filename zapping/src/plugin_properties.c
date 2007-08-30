@@ -376,3 +376,10 @@ void startup_plugin_properties (void)
 void shutdown_plugin_properties (void)
 {
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

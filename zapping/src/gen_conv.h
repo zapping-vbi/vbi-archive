@@ -108,3 +108,10 @@ extern void amd_yuyv_bgr5551(unsigned char *d, unsigned char *s, int w, int h, i
 extern void amd_yuv420_bgr5551(unsigned char *d, unsigned char *s, unsigned char *s_u, unsigned char *s_v, int w, int h, int d_stride, int s_stride, int s_uv_stride);
 
 #endif /* _GEN_CONV_H__ */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

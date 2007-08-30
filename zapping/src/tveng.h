@@ -1143,3 +1143,10 @@ do {									\
 	        (info)->tveng_errno, strerror((info)->tveng_errno))
 
 #endif /* TVENG.H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

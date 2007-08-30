@@ -122,3 +122,10 @@ void shutdown_v4linterface	(void);
 extern gdouble videostd_inquiry(void);
 
 #endif
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

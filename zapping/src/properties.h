@@ -147,3 +147,10 @@ standard_properties_add		(GtkDialog	*dialog,
 				 const gchar	*glade_file);
 
 #endif /* properties.h */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

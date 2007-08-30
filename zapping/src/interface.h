@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: interface.h,v 1.19 2005-01-08 14:54:28 mschimek Exp $ */
+/* $Id: interface.h,v 1.20 2007-08-30 14:14:34 mschimek Exp $ */
 
 #ifndef INTERFACE_H
 #define INTERFACE_H
@@ -41,3 +41,10 @@ build_widget			(const gchar *		name,
 				 const gchar *		file);
 
 #endif /* INTERFACE_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

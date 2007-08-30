@@ -1276,3 +1276,10 @@ static const char *keysyms[] = {
 };
 
 #define num_keysyms (sizeof(keysyms)/sizeof(*keysyms))
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -102,3 +102,10 @@ screenshot_deinterlace		(void *				image,
 extern screenshot_backend screenshot_backend_jpeg;
 extern screenshot_backend screenshot_backend_ppm;
 
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

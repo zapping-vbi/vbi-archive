@@ -21,13 +21,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.37 2005-09-01 01:40:52 mschimek Exp $ */
+/* $Id: export.h,v 1.38 2007-08-30 14:14:25 mschimek Exp $ */
 
 #ifndef __ZVBI3_EXPORT_H__
 #define __ZVBI3_EXPORT_H__
 
-#include <stdarg.h>		/* va_list */
 #include <stdio.h>		/* FILE */
+#include <stdarg.h>		/* va_list */
 #include "macros.h"
 #include "bcd.h"		/* vbi3_pgno, vbi3_subno */
 #include "link.h"		/* vbi3_link */
@@ -400,3 +400,10 @@ vbi3_export_new			(const char *		keyword,
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_EXPORT_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

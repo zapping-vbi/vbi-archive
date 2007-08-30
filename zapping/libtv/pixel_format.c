@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pixel_format.c,v 1.8 2006-05-17 18:03:08 mschimek Exp $ */
+/* $Id: pixel_format.c,v 1.9 2007-08-30 14:14:09 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"		/* Z_BYTE_ORDER */
@@ -434,3 +434,10 @@ tv_pixel_format_to_pixfmt	(const tv_pixel_format *format)
 
 	return TV_PIXFMT_UNKNOWN;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

@@ -89,3 +89,10 @@ on_user_key_press		(GtkWidget *		widget,
 				 gpointer		user_data);
 
 #endif /* KEYBOARD_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -17,7 +17,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xawtv.h,v 1.4 2005-01-08 14:54:29 mschimek Exp $ */
+/* $Id: xawtv.h,v 1.5 2007-08-30 14:14:36 mschimek Exp $ */
 
 #ifndef XAWTV_H
 #define XAWTV_H
@@ -37,3 +37,10 @@ extern gboolean
 xawtv_ipc_init			(GtkWidget *		window);
 
 #endif /* XAWTV_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

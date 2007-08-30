@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: copy_image.c,v 1.3 2006-06-14 16:33:02 mschimek Exp $ */
+/* $Id: copy_image.c,v 1.4 2007-08-30 14:14:02 mschimek Exp $ */
 
 #include "copy_image-priv.h"
 
@@ -408,3 +408,10 @@ tv_copy_image			(void *			dst_image,
 }
 
 #endif /* !SIMD */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

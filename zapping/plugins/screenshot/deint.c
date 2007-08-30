@@ -85,3 +85,10 @@ screenshot_deinterlace		(void *				image,
       src2 += format->bytes_per_line[0];
     }
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

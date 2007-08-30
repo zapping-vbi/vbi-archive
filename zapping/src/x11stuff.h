@@ -167,3 +167,10 @@ x11_window_clip_vector		(tv_clip_vector *	vector,
 				 unsigned int		height);
 
 #endif /* x11stuff.h */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

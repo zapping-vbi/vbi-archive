@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpu.c,v 1.5 2006-04-12 01:46:12 mschimek Exp $ */
+/* $Id: cpu.c,v 1.6 2007-08-30 14:14:02 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -400,3 +400,10 @@ cpu_feature_set_from_string	(const char *		s)
 
 	return cpu_features;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

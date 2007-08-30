@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: subtitle.h,v 1.5 2005-09-01 01:31:09 mschimek Exp $ */
+/* $Id: subtitle.h,v 1.6 2007-08-30 14:14:35 mschimek Exp $ */
 
 #ifndef SUBTITLE_H
 #define SUBTITLE_H
@@ -62,3 +62,10 @@ startup_subtitle		(void);
 G_END_DECLS
 
 #endif /* SUBTITLE_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

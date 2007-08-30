@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: simd-conv.h,v 1.5 2006-04-12 01:45:34 mschimek Exp $ */
+/* $Id: simd-conv.h,v 1.6 2007-08-30 14:14:09 mschimek Exp $ */
 
 #include <assert.h>
 #include "pixel_format.h"
@@ -736,3 +736,10 @@ fast_yuv2rgb			(v16 *			tre,
 #endif /* SIMD != ALTIVEC */
 
 #endif /* SIMD */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

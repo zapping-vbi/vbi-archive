@@ -146,3 +146,10 @@ void add_backend_mem (void)
     if (TV_PIXFMT_SET_ALL & TV_PIXFMT_SET (pixfmt))
       register_video_backend (pixfmt, &mem);
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.12 2006-04-12 01:48:15 mschimek Exp $ */
+/* $Id: misc.h,v 1.13 2007-08-30 14:14:09 mschimek Exp $ */
 
 #ifndef __ZTV_MISC_H__
 #define __ZTV_MISC_H__
@@ -279,3 +279,10 @@ copy_plane_fn			(uint8_t *		dst,
 				 unsigned long		src_padding);
 
 #endif /* MISC_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

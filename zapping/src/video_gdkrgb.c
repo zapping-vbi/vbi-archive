@@ -204,3 +204,10 @@ void add_backend_gdkrgb (void)
   for (i=0; i<G_N_ELEMENTS (pixfmts); i++)
     register_video_backend (pixfmts[i], &gdkrgb);
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

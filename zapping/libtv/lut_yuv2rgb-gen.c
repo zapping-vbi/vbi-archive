@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lut_yuv2rgb-gen.c,v 1.2 2006-06-09 01:52:27 mschimek Exp $ */
+/* $Id: lut_yuv2rgb-gen.c,v 1.3 2007-08-30 14:14:09 mschimek Exp $ */
 
 /*  Generates look-up tables for image format conversion. */
 
@@ -351,3 +351,10 @@ main				(int			argc,
 
 	exit (EXIT_SUCCESS);
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

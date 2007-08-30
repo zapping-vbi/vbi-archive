@@ -2,6 +2,8 @@ Known bugs in Zapping, don't report them
 ----------------------------------------
 
 Zapping 0.10:
+* ivtv <0.7 has a capture restart bug, e.g. when capturing is interrupted
+  during a channel change. Add a work-around.
 * TTX does not work when XV overlay enabled? 
 * Why 100% CPU in win/over w/VBI=1?
 * Cannot switch to capture mode when VIDIOC_G_FMT fails (e.g. after
@@ -27,6 +29,7 @@ Zapping 0.10:
   an unexpected errno.
 * Check if the video device fd passing to a zapping_setup_fb child process,
   and the stderr pipe work properly through consolehelper.
+* strerror() isn't thread-safe.
 
 Zapping 0.9:
 * src/tveng1.c/p_tveng1_dequeue/CSYNC hangs with bttv when changing video

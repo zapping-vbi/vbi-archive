@@ -325,3 +325,10 @@ zconf_hook_check_menu		(const gchar *		key,
 G_END_DECLS
 
 #endif /* ZCONF.H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

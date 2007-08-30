@@ -405,3 +405,10 @@ startup_remote			(void)
   /* Load the zapping module. */
   PyRun_SimpleString ("import zapping\n");
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

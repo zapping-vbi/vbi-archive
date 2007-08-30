@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: guard1.c,v 1.1 2004-12-11 11:46:25 mschimek Exp $ */
+/* $Id: guard1.c,v 1.2 2007-08-30 14:14:37 mschimek Exp $ */
 
 #include "guard.h"
 
@@ -30,7 +30,7 @@ main				(int			argc,
 	(void) argv;
 	
 	buffer = guard_alloc (1 << 20);
-	++buffer[-1];
+	++buffer[-1]; /* should cause a segfault */
 
 	return EXIT_SUCCESS;
 }

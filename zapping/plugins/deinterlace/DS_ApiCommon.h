@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// $Id: DS_ApiCommon.h,v 1.4 2005-07-29 17:39:28 mschimek Exp $
+// $Id: DS_ApiCommon.h,v 1.5 2007-08-30 14:14:26 mschimek Exp $
 ///////////////////////////////////////////////////////////////////////////////
 // Copyright (c) 2000 John Adcock.  All rights reserved.
 /////////////////////////////////////////////////////////////////////////////
@@ -23,6 +23,9 @@
 // CVS Log
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.4  2005/07/29 17:39:28  mschimek
+// *** empty log message ***
+//
 // Revision 1.3  2005/06/28 00:49:49  mschimek
 // Replaced longs by ints for proper operation on LP64 machines. Code
 // assumes option values cast to int.
@@ -242,3 +245,10 @@ typedef struct
 } TDeinterlaceInfo;
 
 #endif
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

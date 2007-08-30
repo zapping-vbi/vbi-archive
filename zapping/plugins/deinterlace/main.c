@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.11 2006-04-12 01:42:25 mschimek Exp $ */
+/* $Id: main.c,v 1.12 2007-08-30 14:14:26 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -585,3 +585,10 @@ plugin_get_protocol		(void)
 {
   return PLUGIN_PROTOCOL;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

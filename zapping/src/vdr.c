@@ -192,3 +192,10 @@ shutdown_vdr			(void)
 {
   vdr_close (0);
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

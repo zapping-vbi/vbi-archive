@@ -101,7 +101,7 @@ int zapzilla_main(int argc, char * argv[])
 		      NULL);
 
   printv("%s\n%s %s, build date: %s\n",
-	 "$Id: zapzilla.c,v 1.7 2005-01-19 04:16:24 mschimek Exp $",
+	 "$Id: zapzilla.c,v 1.8 2007-08-30 14:14:36 mschimek Exp $",
 	 "Zapzilla", VERSION, __DATE__);
   D();
   /* FIXME: Find something better */
@@ -197,3 +197,10 @@ static gboolean startup_zapzilla()
 }
 
 #endif /* HAVE_LIBZVBI */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

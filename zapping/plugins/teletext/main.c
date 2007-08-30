@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: main.c,v 1.15 2006-02-03 18:24:42 mschimek Exp $ */
+/* $Id: main.c,v 1.16 2007-08-30 14:14:33 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -340,3 +340,10 @@ plugin_get_protocol		(void)
 {
   return PLUGIN_PROTOCOL;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

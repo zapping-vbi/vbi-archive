@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.c,v 1.2 2005-01-08 14:54:20 mschimek Exp $ */
+/* $Id: image_format.c,v 1.3 2007-08-30 14:14:26 mschimek Exp $ */
 
 #include "image_format.h"
 
@@ -119,3 +119,10 @@ _vbi3_pixfmt_bytes_per_pixel	(vbi3_pixfmt		pixfmt)
 
 	return 0;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

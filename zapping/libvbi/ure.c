@@ -28,16 +28,14 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ure.c,v 1.5 2005-09-01 01:33:54 mschimek Exp $ */
+/* $Id: ure.c,v 1.6 2007-08-30 14:14:26 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
-#include "macros.h"
+
 #include "misc.h"
 
 #if defined(HAVE_GLIBC21)
@@ -2364,3 +2362,10 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
 }
 
 #endif /* HAVE_GLIBC21 || HAVE_LIBUNICODE */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

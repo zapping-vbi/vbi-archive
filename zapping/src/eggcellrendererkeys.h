@@ -82,3 +82,10 @@ G_END_DECLS
 
 
 #endif /* __GTK_CELL_RENDERER_KEYS_H__ */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

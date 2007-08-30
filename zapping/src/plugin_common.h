@@ -136,3 +136,10 @@ static void plugin_process_popup_menu ( GtkWidget *window,
 #endif
 
 #endif /* PLUGINS_COMMON */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

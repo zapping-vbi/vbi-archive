@@ -1147,3 +1147,10 @@ shutdown_osd(void)
   g_object_unref (G_OBJECT (osd_model));
   osd_model = NULL;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/
