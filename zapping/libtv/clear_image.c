@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clear_image.c,v 1.2 2006-05-17 18:02:28 mschimek Exp $ */
+/* $Id: clear_image.c,v 1.3 2007-08-30 12:32:22 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -41,12 +41,15 @@ SIMD_FN_PROTOS (clear_plane_3_fn, _tv_clear_plane_3)
 #if SIMD
 
 #  if SIMD == CPU_FEATURE_SSE_INT
-     /* Use float (128 bit) instructions. */
+     /* On a SSE machine we pretend to copy float vectors, so we
+	can use 128 bit non-temporal moves. */
 #    define vu8 vf
 #    undef vloadnt
 #    define vloadnt vloadfnt
 #    undef vstorent
 #    define vstorent vstorefnt
+#    undef emms
+#    define emms() /* nothing */
 #  endif
 
 void
@@ -62,20 +65,26 @@ SIMD_NAME (_tv_clear_plane_1)	(uint8_t *		dst,
 	m0 = vsplatu32 (value);
 #elif SIMD == CPU_FEATURE_SSE_INT
 	{
-		uint32_t __attribute__ ((aligned (16))) value4[4];
+		union {
+			uint32_t	i4[4];
+			vf		v4;
+		} __attribute__ ((aligned (16))) val;
 
-		value4[0] = value;
-		value4[1] = value;
-		value4[2] = value;
-		value4[3] = value;
+		val.i4[0] = value;
+		val.i4[1] = value;
+		val.i4[2] = value;
+		val.i4[3] = value;
 
-		m0 = vloadnt (value4, 0);
-	}
+		/* We pretend val.v4 is a float vector, so we can
+		   use 128 bit non-temporal moves. Real 128 bit int
+		   ops were introduced with SSE2. */
+		m0 = vloadfnt (&val.v4, 0);
+  	}
 #elif SIMD == CPU_FEATURE_ALTIVEC
 	m0 = (vu8)((vector int){ value, value, value, value });
 #endif
 
-	while (height-- > 0) {
+	do {
 		uint8_t *end1;
 		uint8_t *end2;
 
@@ -97,7 +106,7 @@ SIMD_NAME (_tv_clear_plane_1)	(uint8_t *		dst,
 			vstorent (dst, 0, m0);
 
 		dst += padding;
-	}
+	} while (--height > 0);
 
 	sfence ();
 	vempty ();
@@ -116,18 +125,18 @@ SIMD_NAME (_tv_clear_plane_3)	(uint8_t *		dst,
 	m1 = vloadnt (src, 1 * sizeof (vu8));
 	m2 = vloadnt (src, 2 * sizeof (vu8));
 
-	while (height-- > 0) {
-		uint8_t *end;
+	do {
+		uint8_t *end = dst + width * 3;
 
-		for (end = dst + width * 3; dst < end;
-		     dst += 3 * sizeof (vu8)) {
+		do {
 			vstorent (dst, 0 * sizeof (vu8), m0);
 			vstorent (dst, 1 * sizeof (vu8), m1);
 			vstorent (dst, 2 * sizeof (vu8), m2);
-		}
+			dst += 3 * sizeof (vu8);
+		} while (dst < end);
 
 		dst += padding;
-	}
+	} while (--height > 0);
 
 	sfence ();
 	vempty ();
@@ -171,10 +180,11 @@ _tv_clear_plane_1_SCALAR	(uint8_t *		dst,
 				 unsigned int		height,
 				 unsigned long		padding)
 {
-	while (height-- > 0) {
+
+	do {
 		memset (dst, (int) value, width);
 		dst += width + padding;
-	}
+	} while (--height > 0);
 }
 
 void
@@ -190,18 +200,18 @@ _tv_clear_plane_3_SCALAR	(uint8_t *		dst,
 	m1 = src[1];
 	m2 = src[2];
 
-	while (height-- > 0) {
-		unsigned int count;
+	do {
+		unsigned int count = width;
 
-		for (count = width; count > 0; --count) {
+		do {
 			dst[0] = m0;
 			dst[1] = m1;
 			dst[2] = m2;
 			dst += 3;
-		}
+		} while (--count > 0);
 
 		dst += padding;
-	}
+	} while (--height > 0);
 }
 
 void
@@ -213,14 +223,15 @@ _tv_clear_plane_4_SCALAR	(uint8_t *		dst,
 {
 	uint32_t *dst32 = (uint32_t *) dst;
 
-	for (; height > 0; --height) {
-		unsigned int count;
+	do {
+		unsigned int count = width;
 
-		for (count = width; count > 0; --count)
+		do {
 			*dst32++ = value;
+		} while (--count > 0);
 
 		dst32 = (uint32_t *)((uint8_t *) dst32 + padding);
-	}
+	} while (--height > 0);
 }
 
 tv_bool
@@ -243,6 +254,9 @@ tv_clear_image			(void *			image,
 
 	width = format->width;
 	height = format->height;
+
+	if (unlikely (0 == width || 0 == height))
+		return TRUE;
 
 	pf = format->pixel_format;
 
@@ -513,3 +527,10 @@ tv_clear_image			(void *			image,
 }
 
 #endif /* !SIMD */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/
