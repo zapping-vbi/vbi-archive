@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: intl-priv.h,v 1.3 2005-10-14 23:40:13 mschimek Exp $ */
+/* $Id: intl-priv.h,v 1.4 2007-08-30 12:32:17 mschimek Exp $ */
 
 #ifndef INTL_PRIV_H
 #define INTL_PRIV_H
@@ -47,5 +47,7 @@
 #  define _(String) (String)
 #  define N_(String) (String)
 #endif
+
+extern const char *vbi3_intl_domainname;
 
 #endif /* INTL_PRIV_H */
