@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.h,v 1.1 2005-09-01 01:31:18 mschimek Exp $ */
+/* $Id: view.h,v 1.2 2007-08-30 12:22:01 mschimek Exp $ */
 
 #ifndef SUBTITLE_VIEW_H
 #define SUBTITLE_VIEW_H
@@ -82,7 +82,7 @@ struct _SubtitleView
 
   GtkActionGroup *	action_group;
 
-  vbi3_charset_code	override_charset;
+  vbi3_ttx_charset_code	override_charset;
 
   void
   (* show_page)		(SubtitleView *		view,
@@ -111,7 +111,7 @@ struct _SubtitleView
 			 gdouble		size);
   void
   (* set_charset)	(SubtitleView *		view,
-			 vbi3_charset_code	charset_code);
+			 vbi3_ttx_charset_code	charset_code);
   void
   (* set_rolling)	(SubtitleView *		view,
 			 gboolean		enable);
@@ -200,3 +200,10 @@ subtitle_view_new		(void);
 G_END_DECLS
 
 #endif /* SUBTITLE_VIEW_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.21 2006-06-09 01:53:43 mschimek Exp $ */
+/* $Id: view.c,v 1.22 2007-08-30 12:21:42 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -73,7 +73,7 @@ static GdkCursor *		cursor_select;
 static GdkAtom			GA_CLIPBOARD		= GDK_NONE;
 
 static vbi3_wst_level		teletext_level		= VBI3_WST_LEVEL_1p5;
-static vbi3_charset_code	default_charset		= 0;
+static vbi3_ttx_charset_code	default_charset		= 0;
 static GdkInterpType		interp_type		= GDK_INTERP_HYPER;
 static gboolean			rolling_header		= TRUE;
 static gboolean			live_clock		= TRUE;
@@ -980,7 +980,7 @@ redraw_all_views		(void)
 
 static vbi3_page *
 get_page			(TeletextView *		view,
-				 vbi3_charset_code *	charset_code,
+				 vbi3_ttx_charset_code *charset_code,
 				 const vbi3_network *	nk,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno)
@@ -995,7 +995,7 @@ get_page			(TeletextView *		view,
   if (nk && vbi3_network_is_anonymous (nk))
     nk = NULL; /* use currently received network */
 
-  if (VBI3_CHARSET_CODE_NONE != *charset_code)
+  if (VBI3_TTX_CHARSET_CODE_NONE != *charset_code)
     {
       pg = vbi3_decoder_get_page
 	(view->vbi, nk, pgno, subno,
@@ -1035,7 +1035,7 @@ static void
 set_charset_code_from_config	(TeletextView *		view,
 				 vbi3_pgno		pgno)
 {
-  vbi3_charset_code charset_code;
+  vbi3_ttx_charset_code charset_code;
 
   charset_code = view->override_charset;
 
@@ -1051,7 +1051,7 @@ set_charset_code_from_config	(TeletextView *		view,
 static void
 reformat_view			(TeletextView *		view)
 {
-  vbi3_charset_code charset_code;
+  vbi3_ttx_charset_code charset_code;
   vbi3_page *pg;
 
   charset_code = view->override_charset;
@@ -1126,7 +1126,7 @@ update_header			(TeletextView *		view,
       column = 8; /* page number and clock */
     }
 
-  if (VBI3_CHARSET_CODE_NONE != view->override_charset)
+  if (VBI3_TTX_CHARSET_CODE_NONE != view->override_charset)
     {
       pg = vbi3_decoder_get_page
 	(view->vbi,
@@ -1232,7 +1232,7 @@ decoder_event_handler		(const vbi3_event *	ev,
     //    for (p = g_list_first (teletext_views); p; p = p->next)
       {
 	//TeletextView *view;
-	vbi3_charset_code charset_code;
+	vbi3_ttx_charset_code charset_code;
 
 	//view = (TeletextView *) p->data;
 
@@ -1247,7 +1247,7 @@ decoder_event_handler		(const vbi3_event *	ev,
 
 	vbi3_page_unref (view->pg);
 
-	charset_code = VBI3_CHARSET_CODE_NONE;
+	charset_code = VBI3_TTX_CHARSET_CODE_NONE;
 
 	/* Change to view of same page of the new network, such that
 	   header updates match the rest of the page.  When the page
@@ -1291,7 +1291,7 @@ decoder_event_handler		(const vbi3_event *	ev,
 	    && (VBI3_ANY_SUBNO == view->req.subno
 		|| ev->ev.ttx_page.subno == view->req.subno))
 	  {
-	    vbi3_charset_code charset_code;
+	    vbi3_ttx_charset_code charset_code;
 	    vbi3_page *pg;
 
 	    charset_code = view->override_charset;
@@ -1359,7 +1359,7 @@ monitor_pgno			(TeletextView *		view,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno)
 {
-  vbi3_charset_code charset_code;
+  vbi3_ttx_charset_code charset_code;
   vbi3_page *pg;
 
   view->freezed = FALSE;
@@ -1407,7 +1407,7 @@ monitor_pgno			(TeletextView *		view,
 
   pg = NULL;
 
-  charset_code = VBI3_CHARSET_CODE_NONE;
+  charset_code = VBI3_TTX_CHARSET_CODE_NONE;
 
   if (pgno >= 0x100 && pgno <= 0x899)
     pg = get_page (view, &charset_code, nk, pgno, subno);
@@ -1869,9 +1869,9 @@ static gboolean
 switch_network_			(TeletextView *		view,
 				 const vbi3_network *	nk)
 {
-  if (VBI3_CHARSET_CODE_NONE != view->override_charset)
+  if (VBI3_TTX_CHARSET_CODE_NONE != view->override_charset)
     {
-      view->override_charset = VBI3_CHARSET_CODE_NONE;
+      view->override_charset = VBI3_TTX_CHARSET_CODE_NONE;
 
       g_signal_emit (view, signals[CHARSET_CHANGED], 0);
     }
@@ -1883,7 +1883,7 @@ switch_network_			(TeletextView *		view,
 
 static gboolean
 set_charset_			(TeletextView *		view,
-				 vbi3_charset_code	charset_code)
+				 vbi3_ttx_charset_code	charset_code)
 {
   if (charset_code == view->override_charset)
     return TRUE;
@@ -3325,7 +3325,7 @@ instance_init			(GTypeInstance *	instance,
 
   vbi3_network_init (&view->req.network);
 
-  view->override_charset = VBI3_CHARSET_CODE_NONE;
+  view->override_charset = VBI3_TTX_CHARSET_CODE_NONE;
 
   history_update_gui (view);
 
@@ -3494,7 +3494,6 @@ class_init			(gpointer		g_class,
 {
   GObjectClass *object_class;
   GtkWidgetClass *widget_class;
-  vbi3_bool success;
 
   object_class = G_OBJECT_CLASS (g_class);
   widget_class = GTK_WIDGET_CLASS (g_class);
@@ -3576,8 +3575,6 @@ class_init			(gpointer		g_class,
 		("Teletext search"), "zapping.ttx_search()");
   cmd_register ("ttx_export", py_ttx_export, METH_VARARGS,
 		("Teletext export"), "zapping.ttx_export()");
-
-  g_assert (success);
 }
 
 GType
@@ -3603,3 +3600,10 @@ teletext_view_get_type		(void)
 
   return type;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

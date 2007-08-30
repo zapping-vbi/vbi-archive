@@ -18,7 +18,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.c,v 1.5 2006-06-09 01:53:43 mschimek Exp $ */
+/* $Id: view.c,v 1.6 2007-08-30 12:22:21 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -78,7 +78,7 @@ static GdkCursor *		cursor_link;
 
 /* User options. */
 
-static vbi3_charset_code	default_charset		= 0;
+static vbi3_ttx_charset_code	default_charset		= 0;
 static GdkInterpType		interp_type		= GDK_INTERP_BILINEAR;
 static gint			brightness		= 128;
 static gint			contrast		= 64;
@@ -1273,7 +1273,7 @@ load_page_			(SubtitleView *		view,
       /* Override charset code from channel config, if present. */
       zvbi_cur_channel_get_ttx_encoding (&view->override_charset, pgno);
 
-      if (VBI3_CHARSET_CODE_NONE != view->override_charset)
+      if (VBI3_TTX_CHARSET_CODE_NONE != view->override_charset)
 	{
 	  pg = vbi3_decoder_get_page
 	    (view->vbi, /* nk: current */ NULL,
@@ -1380,7 +1380,7 @@ monitor_page_			(SubtitleView *		view,
 
 static void
 set_charset_			(SubtitleView *		view,
-				 vbi3_charset_code	charset_code)
+				 vbi3_ttx_charset_code	charset_code)
 {
   vbi3_page *pg;
 
@@ -2291,7 +2291,7 @@ instance_init			(GTypeInstance *	instance,
 
   view->roll_enable	= TRUE;
 
-  view->override_charset = VBI3_CHARSET_CODE_NONE;
+  view->override_charset = VBI3_TTX_CHARSET_CODE_NONE;
 
   view->show_page	= show_page_;
   view->load_page	= load_page_;
@@ -2402,3 +2402,10 @@ subtitle_view_get_type		(void)
 
   return type;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

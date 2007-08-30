@@ -91,15 +91,15 @@ vbi_wst_level
 zvbi_teletext_level		(void);
 
 extern gchar *
-zvbi_language_name		(const vbi3_character_set *cs);
+zvbi_language_name		(const vbi3_ttx_charset *cs);
 extern gboolean
 zvbi_cur_channel_get_ttx_encoding
-				(vbi3_charset_code *	charset_code,
+				(vbi3_ttx_charset_code *charset_code,
 				 vbi3_pgno		pgno);
 extern gboolean
 zvbi_cur_channel_set_ttx_encoding
 				(vbi3_pgno		pgno,
-				 vbi3_charset_code	charset_code);
+				 vbi3_ttx_charset_code	charset_code);
 
 typedef struct _zvbi_encoding_menu zvbi_encoding_menu;
 
@@ -107,7 +107,7 @@ struct _zvbi_encoding_menu {
   zvbi_encoding_menu *		next;
   GtkCheckMenuItem *		item;
   gchar *			name;
-  vbi3_charset_code		code;
+  vbi3_ttx_charset_code		code;
   gpointer			user_data;
 };
 
@@ -116,7 +116,7 @@ zvbi_encoding_menu_toggled_cb	(GtkCheckMenuItem *	menu_item,
 				 zvbi_encoding_menu *	em);
 extern void
 zvbi_encoding_menu_set_active	(GtkMenu *		menu,
-				 vbi3_charset_code	code);
+				 vbi3_ttx_charset_code	code);
 extern GtkMenu *
 zvbi_create_encoding_menu	(zvbi_encoding_menu_toggled_cb *callback,
 				 gpointer		user_data);
@@ -151,3 +151,10 @@ typedef int vbi_pgno;
 #endif /* !HAVE_LIBZVBI */
 
 #endif /* zvbi.h */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

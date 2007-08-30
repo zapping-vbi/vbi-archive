@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: mpeg.c,v 1.62 2006-03-06 01:46:49 mschimek Exp $ */
+/* $Id: mpeg.c,v 1.63 2007-08-30 12:22:31 mschimek Exp $ */
 
 /* XXX gtk+ 2.3 GtkOptionMenu -> ? */
 #undef GTK_DISABLE_DEPRECATED
@@ -263,7 +263,7 @@ subt_handler			(const vbi3_event *	ev,
 
   if (pgno >= 0x100)
     {
-      vbi3_charset_code charset_code;
+      vbi3_ttx_charset_code charset_code;
 
       if (zvbi_cur_channel_get_ttx_encoding (&charset_code, pgno))
 	{
@@ -3057,3 +3057,10 @@ plugin_get_protocol		(void)
  */
 
 #endif /* HAVE_LIBRTE */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

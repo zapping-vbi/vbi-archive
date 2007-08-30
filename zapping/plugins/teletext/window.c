@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: window.c,v 1.10 2005-09-01 01:28:47 mschimek Exp $ */
+/* $Id: window.c,v 1.11 2007-08-30 12:21:25 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -110,14 +110,14 @@ top_menu_item_new		(TeletextWindow *	window,
     {
       GtkWidget *image;
 
-      menu_item = gtk_image_menu_item_new_with_label (tt->title);
+      menu_item = gtk_image_menu_item_new_with_label (tt->xtitle);
       image = gtk_image_new_from_stock (stock_id, GTK_ICON_SIZE_MENU);
       gtk_widget_show (image);
       gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_item), image);
     }
   else
     {
-      menu_item = gtk_menu_item_new_with_label (tt->title);
+      menu_item = gtk_menu_item_new_with_label (tt->xtitle);
     }
 
   gtk_widget_show (menu_item);
@@ -443,7 +443,7 @@ struct _encoding_menu {
   TeletextWindow *	window;
   GtkCheckMenuItem *	item;
   gchar *		name;
-  vbi3_charset_code	code;
+  vbi3_ttx_charset_code	code;
 };
 
 static void
@@ -451,7 +451,8 @@ on_encoding_menu_auto_toggled	(GtkCheckMenuItem *	menu_item,
 				 TeletextWindow *	window)
 {
   if (menu_item->active)
-    window->view->set_charset (window->view, (vbi3_charset_code) -1);
+    window->view->set_charset (window->view,
+			       (vbi3_ttx_charset_code) -1);
 }
 
 static void
@@ -514,27 +515,29 @@ static encoding_menu *
 encoding_menu_list_new		(TeletextWindow *	window)
 {
   encoding_menu *list;
-  vbi3_charset_code code;
+  vbi3_ttx_charset_code code;
 
   list = NULL;
 
   for (code = 0; code < 88; ++code)
     {
-      const vbi3_character_set *cs;
-      vbi3_charset_code code2;
+      const vbi3_ttx_charset *cs;
+      vbi3_ttx_charset_code code2;
       gchar *item_name;
       encoding_menu *em;
       encoding_menu **emp;
       guint i;
 
-      if (!(cs = vbi3_character_set_from_code (code)))
+      cs = vbi3_ttx_charset_from_code (code);
+      if (NULL == cs)
 	continue;
 
       for (code2 = 0; code2 < code; ++code2)
 	{
-	  const vbi3_character_set *cs2;
+	  const vbi3_ttx_charset *cs2;
 
-	  if (!(cs2 = vbi3_character_set_from_code (code2)))
+	  cs2 = vbi3_ttx_charset_from_code (code2);
+	  if (NULL == cs2)
 	    continue;
 
 	  if (cs->g0 == cs2->g0
@@ -1085,3 +1088,10 @@ teletext_window_get_type		(void)
 
   return type;
 }
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

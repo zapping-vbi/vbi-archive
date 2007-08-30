@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: subtitle.c,v 1.5 2006-03-06 01:46:23 mschimek Exp $ */
+/* $Id: subtitle.c,v 1.6 2007-08-30 12:21:09 mschimek Exp $ */
 
 #include "subtitle.h"
 
@@ -239,19 +239,20 @@ zvbi_menu_shell_insert_active_subtitle_pages
 
       if (channel)
 	{
-	  vbi3_charset_code charset_code;
+	  vbi3_ttx_charset_code charset_code;
 
 	  if (tveng_tuned_channel_get_ttx_encoding
 	      (channel, &charset_code, pgno))
 	    {
-	      const vbi3_character_set *cs;
+	      const vbi3_ttx_charset *cs;
 
-	      if ((cs = vbi3_character_set_from_code (charset_code)))
-		ps.character_set = cs;
+	      cs = vbi3_ttx_charset_from_code (charset_code);
+	      if (NULL != cs)
+		ps.ttx_charset = cs;
 	    }
 	}
 
-      item_name = zvbi_language_name (ps.character_set);
+      item_name = zvbi_language_name (ps.ttx_charset);
       tooltip = NULL;
 
       if (NULL == item_name)
@@ -526,3 +527,10 @@ startup_subtitle		(void)
 }
 
 #endif
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: view.h,v 1.3 2005-09-01 01:40:53 mschimek Exp $ */
+/* $Id: view.h,v 1.4 2007-08-30 12:21:32 mschimek Exp $ */
 
 #ifndef TELETEXT_VIEW_H
 #define TELETEXT_VIEW_H
@@ -102,7 +102,7 @@ struct _TeletextView
 			 gint			y);
   gboolean
   (* set_charset)	(TeletextView *		view,
-			 vbi3_charset_code	charset_code);
+			 vbi3_ttx_charset_code	charset_code);
 
 
   /* ugly hack */
@@ -120,7 +120,7 @@ struct _TeletextView
   vbi3_pgno		entered_pgno;	/* page number being entered */
 
   page_num		req;		/* requested page */
-  vbi3_charset_code	override_charset;
+  vbi3_ttx_charset_code	override_charset;
 
   vbi3_page *		pg;		/* displayed page (shared, r/o) */
 
@@ -212,3 +212,10 @@ ttxview_hotlist_menu_insert	(GtkMenuShell *		menu,
 G_END_DECLS
 
 #endif /* TELETEXT_VIEW_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/

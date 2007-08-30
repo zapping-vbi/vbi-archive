@@ -19,7 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: frequencies.h,v 1.15 2005-09-01 01:36:06 mschimek Exp $ */
+/* $Id: frequencies.h,v 1.16 2007-08-30 12:21:20 mschimek Exp $ */
 
 #ifndef FREQUENCIES_H
 #define FREQUENCIES_H
@@ -44,17 +44,22 @@ typedef struct _tveng_ttx_encoding tveng_ttx_encoding;
 struct _tveng_ttx_encoding {
 #ifdef HAVE_LIBZVBI
   vbi3_pgno			pgno;
-  vbi3_charset_code		charset_code;
+  vbi3_ttx_charset_code		charset_code;
 #endif
 };
 
 typedef struct _tveng_tuned_channel tveng_tuned_channel;
 
 struct _tveng_tuned_channel {
-  gchar *			name;		/* Station (RTL, Eurosport, whatever) */
+  /* Station (RTL, Eurosport, whatever). Can be NULL. */
+  gchar *			null_name;
 
-  gchar *			rf_table;
-  gchar *			rf_name;	/* RF channel ("35", for example) */
+  /* Can be NULL. */
+  gchar *			null_rf_table;
+
+  /* RF channel ("35", for example). Can be NULL. */
+  gchar *			null_rf_name;
+
 
   unsigned int input, standard; /* Attached input, standard or 0 */
 
@@ -152,11 +157,11 @@ extern gboolean
 tveng_tuned_channel_set_ttx_encoding
 				(tveng_tuned_channel *	tc,
 				 vbi3_pgno		pgno,
-				 vbi3_charset_code	charset_code);
+				 vbi3_ttx_charset_code	charset_code);
 extern gboolean
 tveng_tuned_channel_get_ttx_encoding
 				(tveng_tuned_channel *	tc,
-				 vbi3_charset_code *	charset_code,
+				 vbi3_ttx_charset_code *charset_code,
 				 vbi3_pgno		pgno);
 extern void
 tveng_tuned_channel_remove_ttx_encoding
@@ -216,3 +221,10 @@ tveng_remove_tuned_channel (gchar * rf_name, int id,
 			    tveng_tuned_channel * list);
 
 #endif /* FREQUENCIES_H */
+
+/*
+Local variables:
+c-set-style: gnu
+c-basic-offset: 2
+End:
+*/
