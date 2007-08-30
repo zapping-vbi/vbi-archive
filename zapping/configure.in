@@ -57,6 +57,7 @@ test -e site_def.h || cat <<EOF >site_def.h
 /* #define TVENG25_BAYER_TEST 1 */
 /* #define TVENG25_NOVERLAY_TEST 1 */
 /* #define TVENG25_NV12_TEST 1 */
+/* #define TVENG25_HM12_TEST 1 */
 /* #define TVENG25_XV_TEST 1 */
 /* #define TVENGEMU_ENABLE 1 */
 /* #define TVENG_FORCE_FORMAT 20 */
@@ -370,13 +371,22 @@ dnl ---------------------------------------------------------------------------
 dnl ESD (Gnome sound server) - FIXME
 dnl ---------------------------------------------------------------------------
 
-HAVE_ESD="yes"
-ESD_LIBS=""
+HAVE_ESD="no"
 
-AC_CHECK_LIB(esd, esd_record_stream_fallback, ESD_LIBS="-lesd", HAVE_ESD="no")
-if test "x$HAVE_ESD" = "xyes"; then
-  AC_DEFINE(HAVE_ESD, 1, [Define if ESD lib is present])
-  AUDIO_SUPPORT="${AUDIO_SUPPORT}ESD "
+AC_ARG_WITH(esd,
+  AC_HELP_STRING([--with-esd],
+    [Include support for Gnome sound server ESD (yes).]),
+  [with_esd="$withval"], [with_esd=yes])
+
+if test "x$with_arts" = "xyes"; then
+  HAVE_ESD="yes"
+  ESD_LIBS=""
+
+  AC_CHECK_LIB(esd, esd_record_stream_fallback, ESD_LIBS="-lesd", HAVE_ESD="no")
+  if test "x$HAVE_ESD" = "xyes"; then
+    AC_DEFINE(HAVE_ESD, 1, [Define if ESD lib is present])
+    AUDIO_SUPPORT="${AUDIO_SUPPORT}ESD "
+  fi
 fi
 
 AC_SUBST(ESD_LIBS)
@@ -385,28 +395,37 @@ dnl ---------------------------------------------------------------------------
 dnl ARTS (KDE sound server).
 dnl ---------------------------------------------------------------------------
 
-HAVE_ARTS="no"
-AC_MSG_CHECKING(for ARTS)
+AC_ARG_WITH(arts,
+  AC_HELP_STRING([--with-arts],
+    [Include support for KDE sound server ARTS (yes).]),
+  [with_arts="$withval"], [with_arts=yes])
 
-ARTS_VERSION=`artsc-config --version`
-if test $? -eq 0; then
-  ARTS_CFLAGS=`artsc-config --cflags`
-  ARTS_LIBS=`artsc-config --libs`
-  SAVE_CFLAGS="$CFLAGS"
-  CFLAGS="$CFLAGS $ARTS_CFLAGS $ARTS_LIBS"
-  AC_TRY_LINK([#include <artsc.h>],, HAVE_ARTS="yes")
-  CFLAGS="$SAVE_CFLAGS"
+if test "x$with_arts" = "xyes"; then
+  HAVE_ARTS="no"
+
+  AC_MSG_CHECKING(for ARTS)
+
+  ARTS_VERSION=`artsc-config --version`
+  if test $? -eq 0; then
+    ARTS_CFLAGS=`artsc-config --cflags`
+    ARTS_LIBS=`artsc-config --libs`
+    SAVE_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS $ARTS_CFLAGS $ARTS_LIBS"
+    AC_TRY_LINK([#include <artsc.h>],, HAVE_ARTS="yes")
+    CFLAGS="$SAVE_CFLAGS"
+  fi
+
+  if test "x$HAVE_ARTS" = "xno"; then
+    AC_MSG_RESULT([no])
+  else
+    AC_MSG_RESULT($ARTS_VERSION)
+    AC_DEFINE(HAVE_ARTS, 1, [Define if ARTS sound server is present])
+    AUDIO_SUPPORT="${AUDIO_SUPPORT}ARTS "
+  fi
 fi
 
-if test "x$HAVE_ARTS" = "xno"; then
-  AC_MSG_RESULT([no])
-else
-  AC_MSG_RESULT($ARTS_VERSION)
-  AC_SUBST(ARTS_CFLAGS)
-  AC_SUBST(ARTS_LIBS)
-  AC_DEFINE(HAVE_ARTS, 1, [Define if ARTS sound server is present])
-  AUDIO_SUPPORT="${AUDIO_SUPPORT}ARTS "
-fi
+AC_SUBST(ARTS_CFLAGS)
+AC_SUBST(ARTS_LIBS)
 
 dnl ---------------------------------------------------------------------------
 
