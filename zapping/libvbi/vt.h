@@ -21,13 +21,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vt.h,v 1.39 2005-09-01 01:40:52 mschimek Exp $ */
+/* $Id: vt.h,v 1.40 2007-08-30 12:32:06 mschimek Exp $ */
 
 #ifndef VT_H
 #define VT_H
 
 #include "bcd.h"		/* vbi3_pgno, vbi3_subno */
-#include "lang.h"		/* vbi3_charset_code */
+#include "lang.h"		/* vbi3_ttx_charset_code */
 #include "page.h"		/* vbi3_color */
 
 /**
@@ -179,14 +179,14 @@ pagenum_dump			(const pagenum *	pn,
  * 12.3.1 Packet X/26 code triplet.
  * Broken triplets are set to -1, -1, -1.
  */
-typedef struct {
+struct triplet {
 	unsigned	address		: 8;
 	unsigned	mode		: 8;
 	unsigned	data		: 8;
-} /* __attribute__ ((packed)) */ triplet;
+}; /* __attribute__ ((packed)) */
 
 /** @internal */
-typedef triplet enhancement[16 * 13 + 1];
+typedef struct triplet enhancement[16 * 13 + 1];
 
 /* Level one page extension */
 
@@ -210,7 +210,7 @@ typedef struct {
  * 9.4.2 Packet X/28
  * 9.5 Packet M/29
  */
-typedef struct {
+struct extension {
 	/**
 	 * We have data from packets X/28 (in lop) or M/29 (in magazine)
 	 * with this set of designations. Magazine is always valid,
@@ -224,7 +224,7 @@ typedef struct {
 	unsigned int		designations;
 
 	/** Primary and secondary character set. */
-	vbi3_charset_code	charset_code[2];
+	vbi3_ttx_charset_code	charset_code[2];
 
 	/** Blah. */
 	unsigned int		def_screen_color;
@@ -257,10 +257,10 @@ typedef struct {
 	 * CLUT 4 contains libzvbi private colors which never change.
 	 */
 	vbi3_rgba		color_map[40];
-} extension;
+};
 
 extern void
-extension_dump			(const extension *	ext,
+extension_dump			(const struct extension *ext,
 				 FILE *			fp);
 
 /**
@@ -277,10 +277,10 @@ extension_dump			(const extension *	ext,
 typedef int object_address;
 
 /** @internal */
-typedef struct {
+struct ait_title {
 	pagenum			page;
 	uint8_t			text[12];
-} ait_title;
+};
 
 /* Level one page */
 
@@ -326,22 +326,22 @@ struct lop {
  * @internal
  * 10.6.4 MOT object links
  */
-typedef struct {
+struct pop_link {
 	vbi3_pgno		pgno;
 	ext_fallback		fallback;
 	struct {
 		object_type		type;
 		object_address		address;
 	}			default_obj[2];
-} pop_link;
+};
 
 /**
  * @internal
  * @brief Magazine defaults.
  */
-typedef struct {
+struct magazine {
 	/** Default extension. */
-	extension		extension;
+	struct extension	extension;
 
 	/**
 	 * Page number to pop_link[] and drcs_link[] for default
@@ -354,9 +354,9 @@ typedef struct {
 	 * Level 2.5 (0) or 3.5 (1), 1 global and 7 local links to
 	 * POP/DRCS page. Unused or broken: NO_PAGE (pgno).
 	 */
-    	pop_link		pop_link[2][8];
+    	struct pop_link		pop_link[2][8];
 	vbi3_pgno		drcs_link[2][8];
-} magazine;
+};
 
 /* Network */
 
@@ -368,14 +368,14 @@ typedef struct {
 #define SUBCODE_UNKNOWN		0xFFFF
 
 /** @inline */
-typedef struct {
+struct page_stat {
 	/* Information gathered from MOT, MIP, BTT, G/POP pages. */
 
 	/** Actually a vbi3_page_type. */
 	uint8_t			page_type;
 
-	/** Actually a vbi3_charset_code, 0xFF unknown. */
-  	uint8_t			charset_code;
+	/** Actually a vbi3_ttx_charset_code, 0xFF unknown. */
+  	uint8_t			ttx_charset_code;
 
 	/**
 	 * Highest subpage number transmitted according to MOT, MIP, BTT.
@@ -400,9 +400,16 @@ typedef struct {
 	/** Subpage numbers actually encountered (0x00 ... 0x79). */
 	uint8_t			subno_min;
 	uint8_t			subno_max;
-} page_stat;
+};
 
-extern const magazine *
+extern const struct magazine *
 _vbi3_teletext_decoder_default_magazine (void);
 
 #endif /* VT_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

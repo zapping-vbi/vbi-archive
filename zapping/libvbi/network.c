@@ -17,15 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.9 2006-02-06 18:14:54 mschimek Exp $ */
+/* $Id: network.c,v 1.10 2007-08-30 12:27:30 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <stdlib.h>
 #include <ctype.h>		/* isdigit() */
-#include <assert.h>
+
 #include "misc.h"		/* CLEAR() */
 #include "bcd.h"		/* vbi3_is_bcd(), vbi3_bcd2bin() */
 #include "conv.h"		/* _vbi3_strdup_locale_utf8() */
@@ -62,28 +61,93 @@ vbi3_cni_type_name		(vbi3_cni_type		type)
 }
 
 static unsigned int
-cni_pdc_a_to_vps		(unsigned int		cni)
+cni_pdc_a_to_8302		(unsigned int		in_cni)
 {
+	unsigned int out_cni;
 	unsigned int n;
 
 	/* Relation guessed from values observed
-	   in DE and AT. Is this defined anywhere? */
+	   in DE (misc. networks), AT (ORF), IT (RAI 1).
+	   Is this defined anywhere? */
 
-	switch (cni >> 12) {
-	case 0x1A: /* Austria */
-	case 0x1D: /* Germany */
-		if (!vbi3_is_bcd ((int) cni & 0xFFF))
-			return 0;
+	if (!vbi3_is_bcd ((int) in_cni & 0xFFF))
+		return 0;
 
-		n = vbi3_bcd2bin ((int) cni & 0xFFF);
+	out_cni = (in_cni >> 4) & 0xFF00;
 
+	n = vbi3_bcd2bin ((int) in_cni & 0xFFF);
+
+	switch (out_cni) {
+	case 0x1500: /* Italy */
+		/* There are some oddities: RAI 1 lists Rete 4 as 15105,
+		   All Music as 15109, LA7 as 3B101 and MTV as 3B102.
+		   TR 101 231 says 1505 is Canale Italia and 1509 is
+		   Telenova. All Music is not in TR. 3B is the country
+		   code of Monaco, which has no entries in TR, but LA7
+		   and MTV Italia are listed in the Italian section,
+		   with Italian 8/30-1 CNIs. These exceptions are noted
+		   in networks.xml. */
 		switch (n) {
 		case 100 ... 163:
-			cni = ((cni >> 4) & 0xF00) + n + 0xC0 - 100;
+			out_cni |= n - 100;
 			break;
 
-		case 200 ... 263: /* in DE */
-			cni = ((cni >> 4) & 0xF00) + n + 0x80 - 200;
+		default:
+			return 0;
+		}
+
+		break;
+
+	case 0x1A00: /* Austria */
+	case 0x1D00: /* Germany */
+		switch (n) {
+		case 100 ... 163:
+			out_cni |= n + 0xC0 - 100;
+			break;
+
+		case 200 ... 263: /* only seen in DE */
+			out_cni |= n + 0x80 - 200;
+			break;
+
+		default:
+			return 0;
+		}
+
+		break;
+	}
+
+	return out_cni;
+}
+
+static unsigned int
+cni_8302_to_pdc_a		(unsigned int		in_cni)
+{
+	unsigned int out_cni;
+
+	out_cni = (in_cni & 0xFF00) << 4;
+
+	switch (out_cni) {
+	case 0x15000: /* Italy */
+		switch (in_cni & 0xFF) {
+		case 0x00 ... 0x3F:
+			out_cni |= vbi3_bin2bcd ((int)(in_cni & 0xFF) + 100);
+			break;
+
+		default:
+			return 0;
+		}
+
+	case 0x1A000: /* Austria */
+	case 0x1D000: /* Germany */
+		switch (in_cni & 0xFF) {
+		case 0xC0 ... 0xFF:
+			out_cni |= vbi3_bin2bcd ((int)(in_cni & 0xFF)
+						 - 0xC0 + 100);
+			break;
+
+		case 0x80 ... 0xBF:
+			out_cni |= vbi3_bin2bcd ((int)(in_cni & 0xFF)
+						 - 0x80 + 200);
 			break;
 
 		default:
@@ -96,37 +160,51 @@ cni_pdc_a_to_vps		(unsigned int		cni)
 		return 0;
 	}
 
-	return cni;
+	return out_cni;
+}
+
+static unsigned int
+cni_vps_to_8302			(unsigned int		cni)
+{
+	/* VPS has room for only the 4 lsb
+	   of the 8/30-2 country code. */
+
+	switch (cni & 0xF00) {
+	case 0x400: /* Switzerland */
+		return 0x2000 | cni;
+
+	case 0x700: /* Ukraine */
+		return 0x4000 | cni;
+
+	case 0xA00: /* Austria */
+	case 0xD00: /* Germany */
+		return 0x1000 | cni;
+
+	default:
+		/* Other countries do not use VPS.
+		   FIXME take this info from networks.xml. */
+		break;
+	}
+
+	return 0;
+}
+
+static unsigned int
+cni_8302_to_vps			(unsigned int		cni)
+{
+	return cni & 0xFFF;
+}
+
+static unsigned int
+cni_pdc_a_to_vps		(unsigned int		cni)
+{
+	return cni_8302_to_vps (cni_pdc_a_to_8302 (cni));
 }
 
 static unsigned int
 cni_vps_to_pdc_a		(unsigned int		cni)
 {
-	switch (cni >> 8) {
-	case 0xA: /* Austria */
-	case 0xD: /* Germany */
-		switch (cni & 0xFF) {
-		case 0xC0 ... 0xFF:
-			cni = ((cni << 4) & 0xF000) + 0x10000
-				+ vbi3_bin2bcd ((int)(cni & 0xFF) - 0xC0 + 100);
-			break;
-
-		case 0x80 ... 0xBF:
-			cni = ((cni << 4) & 0xF000) + 0x10000
-				+ vbi3_bin2bcd ((int)(cni & 0xFF) - 0x80 + 200);
-			break;
-
-		default:
-			return 0;
-		}
-
-		break;
-
-	default:
-		return 0;
-	}
-
-	return cni;
+	return cni_8302_to_pdc_a (cni_vps_to_8302 (cni));
 }
 
 static const struct network *
@@ -171,7 +249,7 @@ cni_lookup			(vbi3_cni_type		type,
 	{
 		unsigned int cni_vps;
 
-		cni_vps = cni_pdc_a_to_vps (cni);
+		cni_vps = cni_pdc_a_to_8302 (cni) & 0xFFF;
 
 		if (0 == cni_vps)
 			return NULL;
@@ -195,7 +273,7 @@ cni_lookup			(vbi3_cni_type		type,
 		break;
 
 	default:
-		debug ("Unknown CNI type %u", type);
+		warning (NULL, "Unknown CNI type %u.", type);
 		break;
 	}
 
@@ -210,7 +288,7 @@ cni_lookup			(vbi3_cni_type		type,
  * Converts a CNI from one type to another.
  *
  * @returns
- * Converted CNI or 0 if conversion is not possible.
+ * Converted CNI or 0 if the conversion is not possible.
  */
 unsigned int
 vbi3_convert_cni			(vbi3_cni_type		to_type,
@@ -219,27 +297,79 @@ vbi3_convert_cni			(vbi3_cni_type		to_type,
 {
 	const struct network *p;
 
-	if (!(p = cni_lookup (from_type, cni)))
-		return 0;
+	if (to_type == from_type)
+		return cni;
 
+/* XXX should we really guess? */
 	switch (to_type) {
 	case VBI3_CNI_TYPE_VPS:
-		return p->cni_vps;
+		p = cni_lookup (from_type, cni);
+		if (NULL != p) {
+			if (0 != p->cni_vps)
+				return p->cni_vps;
+		}
+
+		if (VBI3_CNI_TYPE_8302 == from_type)
+			return cni_8302_to_vps (cni);
+
+		if (VBI3_CNI_TYPE_PDC_A == from_type)
+			return cni_pdc_a_to_vps (cni);
+
+		return 0;
 
 	case VBI3_CNI_TYPE_8301:
+		p = cni_lookup (from_type, cni);
+		if (NULL == p) {
+			return 0;
+		}
+
+		/* XXX guess? */
 		return p->cni_8301;
 
 	case VBI3_CNI_TYPE_8302:
-		return p->cni_8302;
+		p = cni_lookup (from_type, cni);
+		if (NULL != p) {
+			if (0 != p->cni_8302)
+				return p->cni_8302;
+		}
+
+		if (VBI3_CNI_TYPE_VPS == from_type)
+			return cni_vps_to_8302 (cni);
+
+		if (VBI3_CNI_TYPE_PDC_A == from_type)
+			return cni_pdc_a_to_8302 (cni);
+
+		return 0;
 
 	case VBI3_CNI_TYPE_PDC_A:
-		return cni_vps_to_pdc_a (p->cni_vps);
+		p = cni_lookup (from_type, cni);
+		if (NULL != p) {
+			/* FIXME if table has pdc_a, return that. */
+			if (0 != p->cni_8302)
+				return cni_8302_to_pdc_a (p->cni_8302);
+
+			if (0 != p->cni_vps)
+				return cni_vps_to_pdc_a (p->cni_vps);
+		}
+
+		if (VBI3_CNI_TYPE_VPS == from_type)
+			return cni_vps_to_pdc_a (cni);
+
+		if (VBI3_CNI_TYPE_8302 == from_type)
+			return cni_8302_to_pdc_a (cni);
+
+		return 0;
 
 	case VBI3_CNI_TYPE_PDC_B:
+		p = cni_lookup (from_type, cni);
+		if (NULL == p) {
+			return 0;
+		}
+
 		return p->cni_pdc_b;
 
 	default:
-		debug ("Unknown CNI to_type %u", to_type);
+		warning (NULL, "Unknown CNI type %u.", to_type);
 		break;
 	}
 
@@ -269,29 +399,41 @@ _vbi3_network_dump		(const vbi3_network *	nk,
 }
 
 /**
+ * Returns a NUL-terminated ASCII string similar to a GUID, containing
+ * the call sign and all CNIs of the network. Non-ASCII characters are
+ * encoded as a hex number %XX. You must free() this string when no
+ * longer needed.
  */
 char *
 vbi3_network_id_string		(const vbi3_network *	nk)
 {
 	char buffer[sizeof (nk->call_sign) * 3 + 5 * 9 + 1];
 	char *s;
+	char *s_end;
 	unsigned int i;
 
 	s = buffer;
+	s_end = buffer + sizeof (buffer);
 
 	for (i = 0; i < sizeof (nk->call_sign); ++i) {
-		if (isalnum (nk->call_sign[i])) {
+		if (0 == nk->call_sign[i]) {
+			break;
+		} else if (isalnum (nk->call_sign[i])) {
 			*s++ = nk->call_sign[i];
 		} else {
-			s += sprintf (s, "%%%02x", nk->call_sign[i]);
+			s += snprintf (s, s_end - s, "%%%02x",
+				       nk->call_sign[i]);
 		}
 	}
 
-	s += sprintf (s, "-%8x", nk->cni_vps);
-	s += sprintf (s, "-%8x", nk->cni_8301);
-	s += sprintf (s, "-%8x", nk->cni_8302);
-	s += sprintf (s, "-%8x", nk->cni_pdc_a);
-	s += sprintf (s, "-%8x", nk->cni_pdc_b);
+	s += snprintf (s, s_end - s, "-%8x", nk->cni_vps);
+	s += snprintf (s, s_end - s, "-%8x", nk->cni_8301);
+	s += snprintf (s, s_end - s, "-%8x", nk->cni_8302);
+/* XXX we don't compare these: */
+	s += snprintf (s, s_end - s, "-%8x", nk->cni_pdc_a);
+	s += snprintf (s, s_end - s, "-%8x", nk->cni_pdc_b);
+
+	/* DVB/ATSC PID? */
 
 	return strdup (buffer);
 }
@@ -313,6 +455,44 @@ vbi3_network_set_name		(vbi3_network *		nk,
 	nk->name = name1;
 
 	return TRUE;
+}
+
+/**
+ * @internal
+ */
+const struct _vbi3_network_pdc *
+_vbi3_network_get_pdc		(const vbi3_network *	nk)
+{
+	const struct network *n;
+
+	n = cni_lookup (VBI3_CNI_TYPE_8301, nk->cni_8301);
+	if (NULL != n)
+		return n->pdc;
+
+	n = cni_lookup (VBI3_CNI_TYPE_8302, nk->cni_8302);
+	if (NULL != n)
+		return n->pdc;
+
+	n = cni_lookup (VBI3_CNI_TYPE_VPS, nk->cni_vps);
+	if (NULL != n)
+		return n->pdc;
+
+	n = cni_lookup (VBI3_CNI_TYPE_PDC_A, nk->cni_pdc_a);
+	if (NULL != n)
+		return n->pdc;
+
+	n = cni_lookup (VBI3_CNI_TYPE_PDC_B, nk->cni_pdc_b);
+	if (NULL != n)
+		return n->pdc;
+
+	return NULL;
+}
+
+static char *
+strdup_table_name		(const char *		name)
+{
+	return vbi3_strndup_iconv (vbi3_locale_codeset (), "UTF-8",
+				   name, strlen (name) + 1, '?');
 }
 
 /**
@@ -364,8 +544,7 @@ _vbi3_network_set_name_from_ttx_header
 			++s2;
 		}
 
-		name = _vbi3_strdup_locale_utf8 (ttx_header_table[i].name);
-
+		name = strdup_table_name (ttx_header_table[i].name);
 		if (!name)
 			return FALSE;
 
@@ -415,7 +594,8 @@ vbi3_network_set_cni		(vbi3_network *		nk,
 		break;
 
 	default:
-		debug ("Unknown CNI type %u", type);
+		warning (NULL, "Unknown CNI type %u.", type);
+		break;
 	}
 
 	if (!(p = cni_lookup (type, cni)))
@@ -435,7 +615,7 @@ vbi3_network_set_cni		(vbi3_network *		nk,
 	    && p->cni_8302 != nk->cni_8302)
 		return FALSE;
 
-	if (!(name = _vbi3_strdup_locale_utf8 (p->name)))
+	if (!(name = strdup_table_name (p->name)))
 		return FALSE;
 
 	vbi3_free (nk->name);
@@ -554,7 +734,7 @@ vbi3_network_is_anonymous	(const vbi3_network *	nk)
  * @param nk2 Initialized vbi3_network structure.
  *
  * Compares two networks for weak equality. Networks are considered
- * weak equal if each pair of user_data, cni_vps, cni_8301, cni_8302
+ * weakly equal if each pair of user_data, cni_vps, cni_8301, cni_8302
  * and call_sign is equal or one value is unset (zero).
  *
  * @returns
@@ -764,3 +944,10 @@ vbi3_network_array_delete	(vbi3_network *		nk,
 
 	vbi3_free (nk);
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

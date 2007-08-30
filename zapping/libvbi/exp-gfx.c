@@ -18,22 +18,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.55 2005-09-01 01:40:52 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.56 2007-08-30 12:25:42 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <assert.h>
-#include <inttypes.h>
-#include <stdlib.h>		/* malloc() */
-#include <string.h>		/* memcpy() */
 #include "misc.h"
 #include "page.h"		/* vbi3_page */
 #include "lang.h"		/* vbi3_is_drcs() */
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
+#  include "version.h"
 #  include "intl-priv.h"
 #endif
 #include "export-priv.h"	/* vbi3_export */
@@ -492,9 +489,10 @@ vbi3_rgba_conv			(void *			buffer,
 		break;
 
 	default:
-		debug ("Invalid pixfmt %u (%s)",
-		       (unsigned int) pixfmt,
-		       vbi3_pixfmt_name (pixfmt));
+		warning (NULL, "Invalid pixfmt %u (%s).",
+			 (unsigned int) pixfmt,
+			 vbi3_pixfmt_name (pixfmt));
+
 		return FALSE;
 	}
 
@@ -559,10 +557,13 @@ color_map_init			(struct color_map *	cm,
 		       ((const uint32_t *)(s))[j] :			\
 	    assert (0)))))
 
-#if #cpu (i386) /* unaligned / little endian */
-#define FONT_BITS *((const uint16_t *) s)
-#else
 #define FONT_BITS (s[1] * 256 + s[0])
+
+#ifdef __GNUC__
+#  if #cpu (i386) /* unaligned / little endian */
+#    undef FONT_BITS
+#    define FONT_BITS *((const uint16_t *) s)
+#  endif
 #endif
 
 #define DRAW_CHAR(canvas, bytes_per_pixel, bpl, pen,			\
@@ -869,7 +870,7 @@ vbi3_page_draw_caption_region_va_list
 		case VBI3_RTL:
 		case VBI3_REVEAL:
 		case VBI3_FLASH_ON:
-			va_arg (export_options, vbi3_bool);
+			(void) va_arg (export_options, vbi3_bool);
 			break;
 
 		case VBI3_SCALE:
@@ -895,18 +896,20 @@ vbi3_page_draw_caption_region_va_list
 
 	if (x >= format->width
 	    || y >= format->height) {
-		debug ("Position x %u, y %u is beyond image size %u x %u",
-		       x, y, format->width, format->height);
+		warning (NULL, 
+			 "Position x %u, y %u is beyond image size %u x %u.",
+			 x, y, format->width, format->height);
 		return FALSE;
 	}
 
 	if (column + n_columns > pg->columns
 	    || row + n_rows > pg->rows) {
-		debug ("Columns %u ... %u, rows %u ... %u beyond "
-		       "page size of %u x %u characters",
-		       column, column + n_columns - 1,
-		       row, row + n_rows - 1,
-		       pg->columns, pg->rows);
+		warning (NULL, 
+			 "Columns %u ... %u, rows %u ... %u beyond "
+			 "page size of %u x %u characters.",
+			 column, column + n_columns - 1,
+			 row, row + n_rows - 1,
+			 pg->columns, pg->rows);
 		return FALSE;
 	}
 
@@ -914,12 +917,13 @@ vbi3_page_draw_caption_region_va_list
 
 	if (n_columns * 16 > format->width - x
 	    || n_rows * scaled_height > format->height - y) {
-		debug ("Image size %u x %u too small to draw %u x %u "
-		       "characters (%u x %u pixels) at x %u, y %u",
-		       format->width, format->height,
-		       n_columns, n_rows,
-		       n_columns * 16, n_rows * scaled_height,
-		       x, y);
+		warning (NULL, 
+			 "Image size %u x %u too small to draw %u x %u "
+			 "characters (%u x %u pixels) at x %u, y %u.",
+			 format->width, format->height,
+			 n_columns, n_rows,
+			 n_columns * 16, n_rows * scaled_height,
+			 x, y);
 		return FALSE;
 	}
 
@@ -933,9 +937,9 @@ vbi3_page_draw_caption_region_va_list
 	if (bytes_per_line <= 0) {
 		bytes_per_line = pg->columns * CCW * bytes_per_pixel;
 	} else if ((format->width * bytes_per_pixel) > bytes_per_line) {
-		debug ("Image width %u (%s) > bytes_per_line %lu",
-		       format->width, vbi3_pixfmt_name (format->pixfmt),
-		       bytes_per_line);
+		warning (NULL, "Image width %u (%s) > bytes_per_line %lu.",
+			 format->width, vbi3_pixfmt_name (format->pixfmt),
+			 bytes_per_line);
 		return FALSE;
 	}
 
@@ -947,11 +951,12 @@ vbi3_page_draw_caption_region_va_list
 	size = format->offset + bytes_per_line * format->height;
 
 	if (size > format->size) {
-		debug ("Image %u x %u, offset %lu, bytes_per_line %lu " 
-		       "> buffer size %lu = 0x%08lx",
-		       format->width, format->height,
-		       format->offset, bytes_per_line,
-		       format->size, format->size);
+		warning (NULL, 
+			 "Image %u x %u, offset %lu, bytes_per_line %lu " 
+			 "> buffer size %lu = 0x%08lx.",
+			 format->width, format->height,
+			 format->offset, bytes_per_line,
+			 format->size, format->size);
 		return FALSE;
 	}
 
@@ -1226,7 +1231,7 @@ vbi3_page_draw_teletext_region_va_list
 		switch (option) {
 		case VBI3_TABLE:
 		case VBI3_RTL:
-			va_arg (export_options, vbi3_bool);
+			(void) va_arg (export_options, vbi3_bool);
 			break;
 
 		case VBI3_REVEAL:
@@ -1262,18 +1267,20 @@ vbi3_page_draw_teletext_region_va_list
 
 	if (x >= format->width
 	    || y >= format->height) {
-		debug ("Position x %u, y %u is beyond image size %u x %u",
-		       x, y, format->width, format->height);
+		warning (NULL, 
+			 "Position x %u, y %u is beyond image size %u x %u.",
+			 x, y, format->width, format->height);
 		return FALSE;
 	}
 
 	if (column + n_columns > pg->columns
 	    || row + n_rows > pg->rows) {
-		debug ("Columns %u ... %u, rows %u ... %u beyond "
-		       "page size of %u x %u characters",
-		       column, column + n_columns - 1,
-		       row, row + n_rows - 1,
-		       pg->columns, pg->rows);
+		warning (NULL, 
+			 "Columns %u ... %u, rows %u ... %u beyond "
+			 "page size of %u x %u characters.",
+			 column, column + n_columns - 1,
+			 row, row + n_rows - 1,
+			 pg->columns, pg->rows);
 		return FALSE;
 	}
 
@@ -1281,12 +1288,13 @@ vbi3_page_draw_teletext_region_va_list
 
 	if (n_columns * 12 > format->width - x
 	    || n_rows * scaled_height > format->height - x) {
-		debug ("Image size %u x %u too small to draw %u x %u "
-		       "characters (%u x %u pixels) at x %u, y %u",
-		       format->width, format->height,
-		       n_columns, n_rows,
-		       n_columns * 12, n_rows * scaled_height,
-		       x, y);
+		warning (NULL, 
+			 "Image size %u x %u too small to draw %u x %u "
+			 "characters (%u x %u pixels) at x %u, y %u.",
+			 format->width, format->height,
+			 n_columns, n_rows,
+			 n_columns * 12, n_rows * scaled_height,
+			 x, y);
 		return FALSE;
 	}
 
@@ -1300,9 +1308,10 @@ vbi3_page_draw_teletext_region_va_list
 	if (bytes_per_line <= 0) {
 		bytes_per_line = pg->columns * TCW * bytes_per_pixel;
 	} else if ((format->width * bytes_per_pixel) > bytes_per_line) {
-		debug ("Image width %u (%s) > bytes_per_line %lu",
-		       format->width, vbi3_pixfmt_name (format->pixfmt),
-		       bytes_per_line);
+		warning (NULL, 
+			 "Image width %u (%s) > bytes_per_line %lu.",
+			 format->width, vbi3_pixfmt_name (format->pixfmt),
+			 bytes_per_line);
 		return FALSE;
 	}
 
@@ -1314,11 +1323,12 @@ vbi3_page_draw_teletext_region_va_list
 	size = format->offset + bytes_per_line * format->height;
 
 	if (size > format->size) {
-		debug ("Image %u x %u, offset %lu, bytes_per_line %lu "
-		       "> buffer size %lu = 0x%08lx",
-		       format->width, format->height,
-		       format->offset, bytes_per_line,
-		       format->size, format->size);
+		warning (NULL, 
+			 "Image %u x %u, offset %lu, bytes_per_line %lu "
+			 "> buffer size %lu = 0x%08lx.",
+			 format->width, format->height,
+			 format->offset, bytes_per_line,
+			 format->size, format->size);
 		return FALSE;
 	}
 
@@ -1621,7 +1631,7 @@ static const vbi3_export_info
 export_info_ppm = {
 	.keyword		= "ppm",
 	.label			= N_("PPM"),
-	.tooltip		= N_("Export this page as raw PPM image"),
+	.tooltip		= N_("Export the page as raw PPM image"),
 
 	.mime_type		= "image/x-portable-pixmap",
 	.extension		= "ppm",
@@ -2017,7 +2027,7 @@ static const vbi3_export_info
 export_info_png = {
 	.keyword		= "png",
 	.label			= N_("PNG"),
-	.tooltip		= N_("Export this page as PNG image"),
+	.tooltip		= N_("Export the page as PNG image"),
 
 	.mime_type		= "image/png",
 	.extension		= "png",
@@ -2040,3 +2050,10 @@ _vbi3_export_module_png = {
 };
 
 #endif /* HAVE_LIBPNG */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

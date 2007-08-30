@@ -21,10 +21,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.c,v 1.6 2005-09-01 01:34:40 mschimek Exp $ */
+/* $Id: event.c,v 1.7 2007-08-30 12:25:31 mschimek Exp $ */
 
-#include <assert.h>
-#include <stdlib.h>		/* malloc() */
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include "misc.h"		/* CLEAR() */
 #include "event-priv.h"
 
@@ -335,3 +337,10 @@ _vbi3_event_handler_list_init	(_vbi3_event_handler_list *es)
 
 	return TRUE;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

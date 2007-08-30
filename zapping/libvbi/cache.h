@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.18 2005-09-01 01:40:52 mschimek Exp $ */
+/* $Id: cache.h,v 1.19 2007-08-30 12:23:39 mschimek Exp $ */
 
 #ifndef __ZVBI3_CACHE_H__
 #define __ZVBI3_CACHE_H__
@@ -79,6 +79,7 @@ typedef enum {
 extern const char *
 vbi3_page_type_name		(vbi3_page_type		type)
   __attribute__ ((const));
+
 /**
  * @brief Meta data and statistical info about a cached Teletext page.
  *
@@ -94,15 +95,16 @@ typedef struct {
 	 * Primary character set used on the page. You might use
 	 * this as a subtitle language hint. @c NULL if unknown.
 	 */
-	const vbi3_character_set *character_set;
+	const vbi3_ttx_charset *ttx_charset;
 	/** Expected number of subpages: 0 or 2 ... 79. */
 	unsigned int		subpages;
 	/** Lowest subno received yet. */
 	vbi3_subno		subno_min;
 	/** Highest subno received yet. */
 	vbi3_subno		subno_max;
-	void *			reserved1[2];
-	unsigned int		reserved2[2];
+
+	void *			_reserved1[2];
+	int			_reserved2[2];
 } vbi3_ttx_page_stat;
 
 extern void
@@ -223,7 +225,7 @@ typedef enum {
 	 * network take precedence. When the network transmits only the
 	 * three last significant bits, this value provides the higher
 	 * bits, or if this yields no valid code all bits.
-	 * Parameter: vbi3_charset_code, default 0 (English).
+	 * Parameter: vbi3_ttx_charset_code, default 0 (English).
 	 */
 	VBI3_DEFAULT_CHARSET_0,
 	/**
@@ -234,7 +236,7 @@ typedef enum {
 	 * Overrides the primary character set code of a page. This takes
 	 * precedence over VBI3_DEFAULT_CHARSET_0 and any code transmitted
 	 * by the network.
-	 * Parameter: vbi3_charset_code, default is transmitted value.
+	 * Parameter: vbi3_ttx_charset_code, default is transmitted value.
 	 */
 	VBI3_OVERRIDE_CHARSET_0,
 	/**
@@ -301,3 +303,10 @@ vbi3_cache_new			(void)
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_CACHE_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

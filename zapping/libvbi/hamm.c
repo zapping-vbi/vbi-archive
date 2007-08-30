@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.c,v 1.15 2005-06-28 01:00:59 mschimek Exp $ */
+/* $Id: hamm.c,v 1.16 2007-08-30 12:26:49 mschimek Exp $ */
 
 #include <limits.h>		/* CHAR_BIT */
 #include "hamm.h"
@@ -311,3 +311,10 @@ vbi3_unham24p			(const uint8_t *	p)
 
 	return x ^ (int) _vbi3_hamm24_corr[e];
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

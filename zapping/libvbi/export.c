@@ -21,27 +21,27 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.52 2005-09-01 01:36:29 mschimek Exp $ */
+/* $Id: export.c,v 1.53 2007-08-30 12:26:41 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <errno.h>
 #include <ctype.h>
 #include <sys/stat.h>
 #include <iconv.h>
 #include <math.h>		/* fabs() */
+
 #include "misc.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
+#  include "version.h"
 #  include "intl-priv.h"
 #endif
 #include "export-priv.h"
+#include "conv.h"
 
 /**
  * @addtogroup Export Exporting formatted Teletext and Closed Caption pages
@@ -274,16 +274,15 @@ _vbi3_export_invalid_option	(vbi3_export *		e,
 			s = va_arg (ap, const char *);
 
 			if (!s)
-				STRCOPY (buf, "NULL");
+				STRACPY (buf, "NULL");
 			else
-				snprintf (buf, sizeof (buf) - 1,
-					  "'%s'", s);
+				snprintf (buf, sizeof (buf) - 1, "'%s'", s);
 			break;
 
 		default:
 			fprintf (stderr, "%s: unknown export option type %d\n",
-				 __PRETTY_FUNCTION__, oi->type);
-			STRCOPY (buf, "?");
+				 __FUNCTION__, oi->type);
+			STRACPY (buf, "?");
 			break;
 		}
 
@@ -295,6 +294,19 @@ _vbi3_export_invalid_option	(vbi3_export *		e,
 	_vbi3_export_error_printf (e, _("Invalid argument %s "
 				       "for option %s of export module %s."),
 				  buf, keyword, module_name (e));
+}
+
+const char *
+_vbi3_export_codeset		(const char *		codeset)
+{
+	if (0 == strcmp (codeset, "locale")) {
+		codeset = vbi3_locale_codeset ();
+		if (NULL == codeset) {
+			codeset = "ASCII";
+		}
+	}
+
+	return codeset;
 }
 
 /**
@@ -513,7 +525,7 @@ export_stream			(vbi3_event *		ev,
  * @returns
  * FALSE on failure.
  *
- * @bugs
+ * @bug
  * Not implemented yet.
  */
 vbi3_bool
@@ -785,7 +797,7 @@ vbi3_export_option_menu_get	(vbi3_export *		e,
 
 		default:
 			fprintf (stderr, "%s: unknown export option type %d\n",
-				 __PRETTY_FUNCTION__, oi->type);
+				 __FUNCTION__, oi->type);
 			exit (EXIT_FAILURE);
 		}
 
@@ -847,7 +859,7 @@ vbi3_export_option_menu_set	(vbi3_export *		e,
 
 	default:
 		fprintf (stderr, "%s: unknown export option type %d\n",
-			 __PRETTY_FUNCTION__, oi->type);
+			 __FUNCTION__, oi->type);
 		exit (EXIT_FAILURE);
 	}
 }
@@ -1280,7 +1292,7 @@ reset_options			(vbi3_export *		e)
 
 		default:
 			fprintf (stderr, "%s: unknown export option type %u\n",
-				__PRETTY_FUNCTION__, oi->type);
+				__FUNCTION__, oi->type);
 			exit (EXIT_FAILURE);
 		}
 	}
@@ -1370,7 +1382,7 @@ option_string			(vbi3_export *		e,
 
 		default:
 			fprintf (stderr, "%s: unknown export option type %d\n",
-				 __PRETTY_FUNCTION__, oi->type);
+				 __FUNCTION__, oi->type);
 			exit (EXIT_FAILURE);
 		}
 	} while (r);
@@ -1434,8 +1446,8 @@ vbi3_export_new			(const char *		keyword,
 
 	if (i >= N_ELEMENTS (export_modules)) {
 		if (errstr)
-			_vbi3_asprintf (errstr,
-					_("Unknown export module '%s'."), key);
+			asprintf (errstr,
+				  _("Unknown export module '%s'."), key);
 		return NULL;
 	}
 
@@ -1448,12 +1460,12 @@ vbi3_export_new			(const char *		keyword,
 
 	if (!e) {
 		if (errstr)
-			_vbi3_asprintf (errstr,
-					_("Cannot initialize export "
-					  "module '%s', "
-					  "probably lack of memory."),
-					xc->export_info->label ?
-					xc->export_info->label : keyword);
+			asprintf (errstr,
+				  _("Cannot initialize export "
+				    "module '%s', "
+				    "probably lack of memory."),
+				  xc->export_info->label ?
+				  xc->export_info->label : keyword);
 		return NULL;
 	}
 
@@ -1472,11 +1484,11 @@ vbi3_export_new			(const char *		keyword,
 	if (!e->local_option_info) {
 		vbi3_free (e);
 		if (errstr)
-			_vbi3_asprintf (errstr,
-					_("Cannot initialize export module "
-					  "'%s', out of memory."),
-					xc->export_info->label ?
-					xc->export_info->label : keyword);
+			asprintf (errstr,
+				  _("Cannot initialize export module "
+				    "'%s', out of memory."),
+				  xc->export_info->label ?
+				  xc->export_info->label : keyword);
 		return NULL;
 	}
 
@@ -1496,3 +1508,10 @@ vbi3_export_new			(const char *		keyword,
 
 	return e;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.h,v 1.3 2005-01-31 07:15:10 mschimek Exp $ */
+/* $Id: packet-830.h,v 1.4 2007-08-30 12:28:21 mschimek Exp $ */
 
 #ifndef __ZVBI3_PACKET_830_H__
 #define __ZVBI3_PACKET_830_H__
@@ -39,8 +39,8 @@ vbi3_decode_teletext_8301_cni	(unsigned int *		cni,
   __attribute__ ((_vbi3_nonnull (1, 2)));
 extern vbi3_bool
 vbi3_decode_teletext_8301_local_time
-				(time_t *		tme,
-				 int *			gmtoff,
+				(time_t *		utc_time,
+				 int *			seconds_east,
 				 const uint8_t		buffer[42])
   __attribute__ ((_vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
@@ -56,3 +56,10 @@ vbi3_decode_teletext_8302_pdc	(vbi3_program_id *	pid,
 VBI3_END_DECLS
 
 #endif /* __ZVBI3__PACKET_830_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

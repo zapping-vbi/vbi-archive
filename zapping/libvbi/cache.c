@@ -23,18 +23,31 @@
 
 #include "../site_def.h"
 
-#include <stdlib.h>		/* malloc() */
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+#include <errno.h>
 #include "event-priv.h"
 #include "cache-priv.h"
+#ifdef ZAPPING8
+#  include "common/intl-priv.h"
+#else
+#  include "version.h"
+#  include "intl-priv.h"
+#endif
 
+/* Enable logging by default (site_def.h). */
 #ifndef CACHE_DEBUG
 #  define CACHE_DEBUG 0
 #endif
 
+/* Compile status reports in. */
 #ifndef CACHE_STATUS
 #  define CACHE_STATUS 0
 #endif
 
+/* Compile cache consistency checks in. */
 #ifndef CACHE_CONSISTENCY
 #  define CACHE_CONSISTENCY 0
 #endif
@@ -42,42 +55,79 @@
 /** @internal */
 struct _vbi3_cache {
 	/**
-	 * Teletext pages by pgno, most recently used at
-	 * head of list. Uses cache_page.hash_node.
+	 * Lists of Teletext pages by pgno, most recently used at head
+	 * of each list. Points to a cache_page.hash_node.
 	 */
-	list			hash[HASH_SIZE];
+	struct node		hash[HASH_SIZE];
 
 	/** Total number of pages cached, for statistics. */
-	unsigned int		n_pages;
+	unsigned int		n_cached_pages;
 
 	unsigned int		ref_count;
 
 	/**
-	 * Teletext pages to be replaced when out of memory, oldest at
-	 * head of list, uses cache_page.pri_node.
+	 * List of Teletext pages to be replaced when out of memory,
+	 * oldest at head of list. Points to a cache_page.pri_node.
 	 */
-	list			priority;
-
-	/** Referenced Teletext pages, uses cache_page.pri_node. */
-	list			referenced;
+	struct node		priority;
 
 	/**
-	 * Memory used by all pages except referenced and zombies. (May
-	 * deadlock if all pages are referenced and the caller releases
-	 * only when receiving new pages.)
+	 * List of Teletext pages which are referenced by the client.
+	 * Points to a cache_page.pri_node.
+	 */
+	struct node		referenced;
+
+	/**
+	 * Memory used by all pages except referenced and zombies. (We
+	 * would deadlock if the memory_limit has been reached and the
+	 * client unreferences pages only when receiving new pages.)
 	 */
 	unsigned long		memory_used;
 	unsigned long		memory_limit;
 
-	/** Cached networks, most recently used at head of list. */
-	list			networks;
+	/**
+	 * List of cached networks, most recently used at head of list.
+	 */
+	struct node		networks;
 
 	/** Number of networks in cache except referenced and zombies. */
-	unsigned int		n_networks;
-	unsigned int		network_limit;
+	unsigned int		n_cached_networks;
+	unsigned int		n_networks_limit;
 
 	_vbi3_event_handler_list handlers;
+
+	char *			errstr;
+
+	_vbi3_log_hook		log;
 };
+
+static void
+set_errstr			(vbi3_cache *		ca,
+				 const char *		templ,
+				 ...)
+{
+	va_list ap;
+
+	free (ca->errstr);
+	ca->errstr = NULL;
+
+	va_start (ap, templ);
+
+	_vbi3_vlog (&ca->log, VBI3_LOG_ERROR, templ, ap);
+
+	/* Error ignored. */
+	vasprintf (&ca->errstr, templ, ap);
+
+	va_end (ap);
+}
+
+static void
+no_mem_error			(vbi3_cache *		ca)
+{
+	set_errstr (ca, _("Out of memory."));
+
+	errno = ENOMEM;
+}
 
 static void
 delete_all_pages		(vbi3_cache *		ca,
@@ -116,14 +166,14 @@ static void
 cache_network_remove_page	(cache_network *	cn,
 				 cache_page *		cp)
 {
-	page_stat *ps;
+	struct page_stat *ps;
 
 	if (CACHE_CONSISTENCY)
 		assert (cn == cp->network);
 
 	cp->network = NULL;
 
-	--cn->n_pages;
+	--cn->n_cached_pages;
 
 	ps = cache_network_page_stat (cn, cp->pgno);
 
@@ -135,27 +185,27 @@ static void
 cache_network_add_page		(cache_network *	cn,
 				 cache_page *		cp)
 {
-	page_stat *ps;
+	struct page_stat *ps;
 
 	if (cn->zombie) {
 		assert (NULL != cn->cache);
 
-		++cn->cache->n_networks;
+		++cn->cache->n_cached_networks;
 		cn->zombie = FALSE;
 	}
 
 	cp->network = cn;
 
-	++cn->n_pages;
+	++cn->n_cached_pages;
 
 	/* Consistency check: page number range 0x100 ... 0x8FF
 	   including hex pages, and we store at most subpages
 	   0x00 ... 0x79. */
 	if (CACHE_CONSISTENCY)
-		assert (cn->n_pages <= 0x800 * 80);
+		assert (cn->n_cached_pages <= 0x800 * 80);
 
-	if (cn->n_pages > cn->max_pages)
-		cn->max_pages = cn->n_pages;
+	if (cn->n_cached_pages > cn->max_cached_pages)
+		cn->max_cached_pages = cn->n_cached_pages;
 
 	ps = cache_network_page_stat (cn, cp->pgno);
 
@@ -214,14 +264,14 @@ delete_network			(vbi3_cache *		ca,
 		fputc ('\n', stderr);
 	}
 
-	if (cn->n_pages > 0) {
+	if (cn->n_cached_pages > 0) {
 		/* Delete all unreferenced pages. */
 		delete_all_pages (ca, cn);
 	}
 
 	/* Zombies don't count. */
 	if (!cn->zombie)
-		--ca->n_networks;
+		--ca->n_cached_networks;
 
 	if (ca->handlers.event_mask & VBI3_EVENT_REMOVE_NETWORK) {
 		vbi3_event e;
@@ -295,7 +345,7 @@ delete_surplus_networks		(vbi3_cache *		ca)
 
 		if (cn->zombie
 		    || vbi3_network_is_anonymous (&cn->network)
-		    || ca->n_networks > ca->network_limit)
+		    || ca->n_cached_networks > ca->n_networks_limit)
 			delete_network (ca, cn);
 	}
 }
@@ -319,7 +369,7 @@ vbi3_cache_set_network_limit	(vbi3_cache *		ca,
 {
 	assert (NULL != ca);
 
-	ca->network_limit = SATURATE (limit, 1, 3000);
+	ca->n_networks_limit = SATURATE (limit, 1, 3000);
 
 	delete_surplus_networks (ca);
 }
@@ -418,7 +468,7 @@ recycle_network			(vbi3_cache *		ca)
 	return NULL;
 
  found:
-	if (cn->n_pages > 0)
+	if (cn->n_cached_pages > 0)
 		delete_all_pages (ca, cn);
 
 	unlink_node (&cn->node);
@@ -445,8 +495,8 @@ recycle_network			(vbi3_cache *		ca)
 	}
 #endif
 
-	cn->n_pages = 0;
-	cn->max_pages = 0;
+	cn->n_cached_pages = 0;
+	cn->max_cached_pages = 0;
 
 	cn->n_referenced_pages = 0;
 
@@ -472,18 +522,16 @@ add_network			(vbi3_cache *		ca,
 		return cn;
 	}
 
-	if (ca->n_networks < ca->network_limit
+	if (ca->n_cached_networks < ca->n_networks_limit
 	    || NULL == (cn = recycle_network (ca))) {
 		if (!(cn = vbi3_cache_malloc (sizeof (*cn)))) {
-			if (CACHE_DEBUG)
-				fprintf (stderr, "%s: out of memory\n",
-					 __FUNCTION__);
+			no_mem_error (ca);
 			return NULL;
 		}
 
 		CLEAR (*cn);
 
-		++ca->n_networks;
+		++ca->n_cached_networks;
 	}
 
 	add_head (&ca->networks, &cn->node);
@@ -494,11 +542,15 @@ add_network			(vbi3_cache *		ca,
 		vbi3_network_copy (&cn->network, nk);
 
 #ifndef ZAPPING8
-	vbi3_program_info_init (&cn->program_info);
-	vbi3_aspect_ratio_init (&cn->aspect_ratio, videostd_set);
+	{
+		unsigned int ch;
 
-	for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
-		vbi3_program_id_init (&cn->program_id[ch], ch);
+		vbi3_program_info_init (&cn->program_info);
+		vbi3_aspect_ratio_init (&cn->aspect_ratio, videostd_set);
+
+		for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
+			vbi3_program_id_init (&cn->program_id[ch], ch);
+	}
 #endif
 	cache_network_init_caption (cn);
 	cache_network_init_teletext (cn);
@@ -536,7 +588,7 @@ cache_network_get_ttx_page_stat	(const cache_network *	cn,
 				 vbi3_ttx_page_stat *	ps,
 				 vbi3_pgno		pgno)
 {
-	const page_stat *ps1;
+	const struct page_stat *ps1;
 
 	assert (NULL != ps);
 
@@ -559,12 +611,12 @@ cache_network_get_ttx_page_stat	(const cache_network *	cn,
 		ps->page_type = (vbi3_page_type) ps1->page_type;
 	}
 
-	if (0xFF == ps1->charset_code) {
+	if (0xFF == ps1->ttx_charset_code) {
 		/* Unknown. */
-		ps->character_set = NULL;
+		ps->ttx_charset = NULL;
 	} else {
-		ps->character_set = vbi3_character_set_from_code
-			((vbi3_charset_code) ps1->charset_code);
+		ps->ttx_charset = vbi3_ttx_charset_from_code
+			((vbi3_ttx_charset_code) ps1->ttx_charset_code);
 	}
 
 	if (ps1->subcode <= 9)
@@ -626,14 +678,13 @@ vbi3_cache_get_networks		(vbi3_cache *		ca,
 
 	*n_elements = 0;
 
-	if (0 == ca->n_networks)
+	if (0 == ca->n_cached_networks)
 		return NULL;
 
-	/* Not ca->n_networks because we list zombies too. */
+	/* Not ca->n_cached_networks because we list zombies too. */
 	size = (list_length (&ca->networks) + 1) * sizeof (*nk);
 
 	if (!(nk = vbi3_malloc (size))) {
-		error ("Out of memory (%lu bytes)", size);
 		return NULL;
 	}
 
@@ -681,8 +732,9 @@ cache_network_unref		(cache_network *	cn)
 		assert (is_member (&ca->networks, &cn->node));
 
 	if (0 == cn->ref_count) {
-		debug ("Unreferenced network %p", (void *) cn);
-		return;
+		warning (&ca->log,
+			 "Network %p already unreferenced.",
+			 (void *) cn);
 	} else if (1 == cn->ref_count) {
 		cn->ref_count = 0;
 
@@ -735,7 +787,7 @@ _vbi3_cache_get_network		(vbi3_cache *		ca,
 
 	if ((cn = network_by_id (ca, nk))) {
 		if (cn->zombie) {
-			++ca->n_networks;
+			++ca->n_cached_networks;
 			cn->zombie = FALSE;
 		}
 
@@ -786,13 +838,13 @@ cache_page_dump			(const cache_page *	cp,
 	fprintf (fp, "page %x.%x ", cp->pgno, cp->subno);
 
 	if ((cn = cp->network)) {
-		const page_stat *ps;
+		const struct page_stat *ps;
 
 		ps = cache_network_const_page_stat (cn, cp->pgno);
 
 		fprintf (fp, "%s/L%u/S%04x subp=%u/%u (%u-%u) ",
 			 vbi3_page_type_name (ps->page_type),
-			 ps->charset_code,
+			 ps->ttx_charset_code,
 			 ps->subcode,
 			 ps->n_subpages,
 			 ps->max_subpages,
@@ -874,8 +926,8 @@ static vbi3_bool
 page_in_cache			(const vbi3_cache *	ca,
 				 const cache_page *	cp)
 {
-	const list *hash_list;
-	const list *pri_list;
+	const struct node *hash_list;
+	const struct node *pri_list;
 
 	if (CACHE_PRI_ZOMBIE == cp->priority) {
 		/* Note cp->ref_count may be zero if the page is
@@ -938,7 +990,7 @@ delete_page			(vbi3_cache *		ca,
 
 	vbi3_cache_free (cp);
 
-	--ca->n_pages;
+	--ca->n_cached_pages;
 }
 
 static void
@@ -1020,7 +1072,7 @@ page_by_pgno			(vbi3_cache *		ca,
 				 vbi3_subno		subno,
 				 vbi3_subno		subno_mask)
 {
-	list *hash_list;
+	struct node *hash_list;
 	cache_page *cp, *cp1;
 
 	if (CACHE_CONSISTENCY) {
@@ -1074,7 +1126,9 @@ cache_page_unref		(cache_page *		cp)
 		assert (page_in_cache (ca, cp));
 
 	if (0 == cp->ref_count) {
-		debug ("Unreferenced page %p", (void *) cp);
+		warning (&ca->log,
+			 "Page %p already unreferenced.",
+			 (void *) cp);
 		return;
 	}
 
@@ -1159,7 +1213,7 @@ cache_page_ref			(cache_page *		cp)
 		}
 
 		if (cn->zombie) {
-			++ca->n_networks;
+			++ca->n_cached_networks;
 			cn->zombie = FALSE;
 		}
 
@@ -1208,7 +1262,8 @@ _vbi3_cache_get_page		(vbi3_cache *		ca,
 		assert (is_member (&ca->networks, &cn->node));
 
 	if (pgno < 0x100 || pgno > 0x8FF) {
-		debug ("pgno 0x%x out of bounds", pgno);
+		warning (&ca->log,
+			 "Invalid pgno 0x%x.", pgno);
 		return NULL;
 	}
 
@@ -1252,14 +1307,14 @@ _vbi3_cache_foreach_page	(vbi3_cache *		ca,
 				 void *			user_data)
 {
 	cache_page *cp;
-	page_stat *ps;
+	struct page_stat *ps;
 	vbi3_bool wrapped;
 
 	assert (NULL != ca);
 	assert (NULL != cn);
 	assert (NULL != callback);
 
-	if (0 == cn->n_pages)
+	if (0 == cn->n_cached_pages)
 		return 0;
 
 	if ((cp = _vbi3_cache_get_page (ca, cn, pgno, subno, -1))) {
@@ -1368,7 +1423,7 @@ _vbi3_cache_put_page		(vbi3_cache *		ca,
 	death_count = 0;
 
 	{
-		const page_stat *ps;
+		const struct page_stat *ps;
 		vbi3_subno subno_mask;
 
 		/* EN 300 706, A.1, E.2: Pages with subno > 0x79 do not really
@@ -1484,16 +1539,14 @@ _vbi3_cache_put_page		(vbi3_cache *		ca,
 		unsigned int i;
 
 		if (!(new_cp = vbi3_cache_malloc ((size_t) memory_needed))) {
-			if (CACHE_DEBUG)
-				fputs ("out of memory ", stderr);
-
+			no_mem_error (ca);
 			goto failure;
 		}
 
 		for (i = 0; i < death_count; ++i)
 			delete_page (ca, death_row[i]);
 
-		++ca->n_pages;
+		++ca->n_cached_pages;
 	}
 
 	add_head (ca->hash + hash (cp->pgno), &new_cp->hash_node);
@@ -1573,11 +1626,11 @@ _vbi3_cache_dump		(const vbi3_cache *	ca,
 {
 	fprintf (fp, "cache ref=%u pages=%u mem=%lu/%lu KiB networks=%u/%u",
 		 ca->ref_count,
-		 ca->n_pages,
+		 ca->n_cached_pages,
 		 (ca->memory_used + 1023) >> 10,
 		 (ca->memory_limit + 1023) >> 10,
-		 ca->n_networks,
-		 ca->network_limit);
+		 ca->n_cached_networks,
+		 ca->n_networks_limit);
 }
 
 /**
@@ -1657,11 +1710,14 @@ vbi3_cache_delete		(vbi3_cache *		ca)
 	vbi3_cache_purge (ca);
 
 	if (!is_empty (&ca->referenced)) {
-		debug ("Some cached pages still referenced, memory leaks");
+		warning (&ca->log,
+			 "Some cached pages still referenced, memory leaks.");
 	}
 
 	if (!is_empty (&ca->networks)) {
-		debug ("Some cached networks still referenced, memory leaks");
+		warning (&ca->log,
+			 "Some cached networks still referenced, "
+			 "memory leaks.");
 	}
 
 	_vbi3_event_handler_list_destroy (&ca->handlers);
@@ -1733,22 +1789,28 @@ vbi3_cache_new			(void)
 	vbi3_cache *ca;
 	unsigned int i;
 
-	if (!(ca = vbi3_malloc (sizeof (*ca)))) {
-		error ("Out of memory (%u bytes)", sizeof (*ca));
+	ca = vbi3_malloc (sizeof (*ca));
+	if (NULL == ca) {
 		return NULL;
 	}
 
 	CLEAR (*ca);
 
-	for (i = 0; i < N_ELEMENTS (ca->hash); ++i)
+	if (CACHE_DEBUG) {
+		ca->log.fn = vbi3_log_on_stderr;
+		ca->log.mask = -1; /* all */
+	}
+
+	for (i = 0; i < N_ELEMENTS (ca->hash); ++i) {
 		list_init (ca->hash + i);
+	}
 
 	list_init (&ca->referenced);
 	list_init (&ca->priority);
 	list_init (&ca->networks);
 
 	ca->memory_limit = 1 << 30;
-	ca->network_limit = 1;
+	ca->n_networks_limit = 1;
 
 	ca->ref_count = 1;
 
@@ -1759,3 +1821,10 @@ vbi3_cache_new			(void)
 
 	return ca;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

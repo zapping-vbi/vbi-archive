@@ -26,7 +26,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.15 2005-09-01 01:40:52 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.16 2007-08-30 12:26:24 mschimek Exp $ */
 
 /* VTX is the file format used by the VideoteXt application. It stores
    Teletext pages in raw level 1.0 format. Level 1.5 additional characters
@@ -50,6 +50,7 @@
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
+#  include "version.h"
 #  include "intl-priv.h"
 #endif
 #include "export-priv.h"
@@ -133,7 +134,7 @@ static const vbi3_export_info
 export_info = {
 	.keyword		= "vtx",
 	.label			= N_("VTX"),
-	.tooltip		= N_("Export this page as VTX file, the "
+	.tooltip		= N_("Export the page as VTX file, the "
 				     "format used by VideoteXt and vbidecode"),
 
 	/* From VideoteXt examples/mime.types */
@@ -149,3 +150,10 @@ _vbi3_export_module_vtx = {
 
 	.export			= export
 };
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

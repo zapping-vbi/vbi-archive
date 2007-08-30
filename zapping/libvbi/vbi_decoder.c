@@ -22,16 +22,18 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.21 2005-10-22 15:47:08 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.22 2007-08-30 12:31:27 mschimek Exp $ */
 
-#include <assert.h>
-#include <stdlib.h>		/* malloc() */
-#include "vbi_decoder-priv.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include "misc.h"
-#include "vps.h"
 #ifndef ZAPPING8
+#  include "vps.h"
 #  include "wss.h"
 #endif
+#include "vbi_decoder-priv.h"
 
 /**
  * @param vbi VBI decoder allocated with vbi3_decoder_new().
@@ -215,6 +217,17 @@ internal_reset			(vbi3_decoder *		vbi,
 	}
 }
 
+void
+vbi3_decoder_detect_channel_change
+				(vbi3_decoder *		vbi,
+				 vbi3_bool		enable)
+{
+	/* XXX different methods? */
+	vbi->dcc = enable;
+}
+
+#ifndef ZAPPING8
+
 static void
 cni_change			(vbi3_decoder *		vbi,
 				 vbi3_cni_type		type,
@@ -359,8 +372,6 @@ decode_vps			(vbi3_decoder *		vbi,
 		return TRUE;
 	}
 
-#ifndef ZAPPING8
-
 	if ((vbi->handlers.event_mask & VBI3_EVENT_PROG_ID)
 	    && vbi->reset_time <= 0.0 /* not suspended */) {
 		vbi3_program_id pid;
@@ -394,12 +405,8 @@ decode_vps			(vbi3_decoder *		vbi,
 		}
 	}
 
-#endif /* !ZAPPING8 */
-
 	return TRUE;
 }
-
-#ifndef ZAPPING8
 
 static void
 aspect_event			(vbi3_decoder *		vbi,
@@ -440,43 +447,47 @@ aspect_event			(vbi3_decoder *		vbi,
  */
 void
 vbi3_decoder_feed		(vbi3_decoder *		vbi,
-				 vbi3_sliced *		sliced,
+				 const vbi3_sliced *	sliced,
 				 unsigned int		n_lines,
 				 double			timestamp)
 {
 	vbi3_bool all_success;
-	double dt;
 
-	dt = timestamp - vbi->timestamp;
+	if (vbi->dcc) {
+		double dt;
 
-	if (vbi->timestamp > 0.0 && (dt < 0.025 || dt > 0.050)) {
-		if (0)
-			fprintf (stderr, "vbi frame/s dropped at %f, dt=%f\n",
-				 timestamp, dt);
+		dt = timestamp - vbi->timestamp;
 
-		if (0 != vbi->vt.handlers.event_mask
-		    || (VBI3_EVENT_NETWORK & vbi->handlers.event_mask)) {
-			_vbi3_teletext_decoder_resync (&vbi->vt);
-		}
+		if (vbi->timestamp > 0.0 && (dt < 0.025 || dt > 0.050)) {
+			if (0)
+				fprintf (stderr,
+					 "vbi frame/s dropped at %f, dt=%f\n",
+					 timestamp, dt);
 
-		if (0 != vbi->cc.handlers.event_mask
-		    || (VBI3_EVENT_NETWORK & vbi->handlers.event_mask)) {
-			_vbi3_caption_decoder_resync (&vbi->cc);
-		}
+			if (0 != vbi->vt.handlers.event_mask
+			    || (VBI3_EVENT_NETWORK & vbi->handlers.event_mask)) {
+				_vbi3_teletext_decoder_resync (&vbi->vt);
+			}
 
-		/* Set to all failed. */
-		vbi->error_history_vps = 0;
-		vbi->error_history_wss_625 = 0;
-		vbi->error_history_wss_cpr1204 = 0;
+			if (0 != vbi->cc.handlers.event_mask
+			    || (VBI3_EVENT_NETWORK & vbi->handlers.event_mask)) {
+				_vbi3_caption_decoder_resync (&vbi->cc);
+			}
 
-		vbi->timestamp = timestamp;
+			/* Set to all failed. */
+			vbi->error_history_vps = 0;
+			vbi->error_history_wss_625 = 0;
+			vbi->error_history_wss_cpr1204 = 0;
 
-		/* Assuming a channel change, arrange for a reset in 1.5
-		   seconds if we don't receive the old or a new network ID,
-		   and discard all data received in the meantime. */
-		internal_reset (vbi, /* cn */ NULL, vbi->timestamp + 1.5);
-	} else {
+			vbi->timestamp = timestamp;
+
+			/* Assuming a channel change, arrange for a reset in 1.5
+			   seconds if we don't receive the old or a new network ID,
+			   and discard all data received in the meantime. */
+			internal_reset (vbi, /* cn */ NULL, vbi->timestamp + 1.5);
+		} else {
 // FIXME deferred reset here
+		}
 	}
 
 	if (timestamp > vbi->timestamp) {
@@ -505,11 +516,11 @@ vbi3_decoder_feed		(vbi3_decoder *		vbi,
 			all_success &= vbi3_caption_decoder_feed
 				(&vbi->cc, sliced->data,
 				 sliced->line, vbi->timestamp);
+#ifndef ZAPPING8
 		} else if ((sliced->id & VBI3_SLICED_VPS)
 			   && (0 == sliced->line || 16 == sliced->line)) {
 			vbi->timestamp_vps = vbi->timestamp;
 			all_success &= decode_vps (vbi, sliced->data);
-#ifndef ZAPPING8
 		} else if ((sliced->id & VBI3_SLICED_WSS_625)
 			   && (0 == sliced->line || 23 == sliced->line)) {
 			vbi3_aspect_ratio aspect;
@@ -680,7 +691,7 @@ vbi3_decoder_reset		(vbi3_decoder *		vbi,
 	vbi->vt.videostd_set = videostd_set;
 	vbi->cc.videostd_set = videostd_set;
 
-	internal_reset (vbi, cn, 0.0);
+	internal_reset (vbi, cn, /* time: now */ 0.0);
 
 	cache_network_unref (cn);
 }
@@ -725,6 +736,8 @@ _vbi3_decoder_destroy		(vbi3_decoder *		vbi)
 
 	_vbi3_event_handler_list_destroy (&vbi->handlers);
 
+	/* Make it unusable. */
+
 	CLEAR (*vbi);
 }
 
@@ -754,8 +767,10 @@ _vbi3_decoder_init		(vbi3_decoder *		vbi,
 
 	CLEAR (*vbi);
 
+	vbi->dcc = TRUE;
+
 	/* Most recent VBI data timestamp. */
-	vbi->timestamp		= 0.0;
+	vbi->timestamp			= -1000000.0;
 
 	/* Ditto for each service, to detect activity. */
 	vbi->timestamp_teletext		= -1000000.0;
@@ -767,8 +782,10 @@ _vbi3_decoder_init		(vbi3_decoder *		vbi,
 	if (ca) {
 		cache = ca;
 	} else {
-		if (!(cache = vbi3_cache_new ()))
+		cache = vbi3_cache_new ();
+		if (NULL == cache) {
 			return FALSE;
+		}
 	}
 
 	_vbi3_event_handler_list_init (&vbi->handlers);
@@ -776,7 +793,7 @@ _vbi3_decoder_init		(vbi3_decoder *		vbi,
 	_vbi3_teletext_decoder_init (&vbi->vt, cache, nk, videostd_set);
 	_vbi3_caption_decoder_init (&vbi->cc, cache, nk, videostd_set);
 
-	if (!ca) {
+	if (NULL == ca) {
 		/* Drop our reference. */
 		vbi3_cache_unref (cache);
 	}
@@ -843,20 +860,26 @@ vbi3_decoder_new		(vbi3_cache *		ca,
 {
 	vbi3_decoder *vbi;
 
-	if (!(vbi = vbi3_malloc (sizeof (*vbi)))) {
-		error ("Out of memory (%u bytes)", sizeof (*vbi));
-		return NULL;
-	}
+	vbi = vbi3_malloc (sizeof (*vbi));
 
-        if (!_vbi3_decoder_init (vbi, ca, nk, videostd_set)) {
-		vbi3_free (vbi);
-		vbi = NULL;
+	if (NULL != vbi) {
+		if (_vbi3_decoder_init (vbi, ca, nk, videostd_set)) {
+			/* Make it safe to delete a vbi3_teletext_decoder
+			   or vbi3_caption_decoder cast from a vbi3_decoder. */
+			vbi->vt.virtual_delete = teletext_delete_trampoline;
+			vbi->cc.virtual_delete = caption_delete_trampoline;
+		} else {
+			vbi3_free (vbi);
+			vbi = NULL;
+		}
 	}
-
-	/* Make it safe to delete a vbi3_teletext/caption_decoder
-	   cast from a vbi3_decoder. */
-	vbi->vt.virtual_delete = teletext_delete_trampoline;
-	vbi->cc.virtual_delete = caption_delete_trampoline;
 
 	return vbi;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

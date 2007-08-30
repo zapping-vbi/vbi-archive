@@ -21,18 +21,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.25 2005-09-01 01:40:52 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.26 2007-08-30 12:26:04 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <assert.h>
-#include <inttypes.h>
-#include <stdlib.h>		/* malloc() */
-#include <string.h>		/* strcmp(), strlen(), memcpy() */
 #include <limits.h>		/* INT_MAX */
 #include <setjmp.h>
+
 #include "misc.h"
 #include "page.h"		/* vbi3_page */
 #include "conv.h"
@@ -40,6 +37,7 @@
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
+#  include "version.h"
 #  include "intl-priv.h"
 #endif
 #include "export-priv.h"	/* vbi3_export */
@@ -125,10 +123,11 @@ option_info [] = {
 	_VBI3_OPTION_MENU_INITIALIZER
 	/* TRANSLATORS: Text export encoding (ASCII, Unicode, ...) menu */
 	("format", N_("Encoding"),
-	 0, user_encodings, N_ELEMENTS (user_encodings), NULL),
+	 10, user_encodings, N_ELEMENTS (user_encodings), NULL),
         /* one for users, another for programs */
 	_VBI3_OPTION_STRING_INITIALIZER
-	("charset", NULL, "", NULL),
+	("charset", NULL, "locale",
+	 N_("Character set, for example ISO-8859-1, UTF-8")),
 	_VBI3_OPTION_STRING_INITIALIZER
 	("gfx_chr", N_("Graphics char"),
 	 "#", N_("Replacement for block graphic characters: "
@@ -138,7 +137,8 @@ option_info [] = {
 	 FALSE, N_("Replace graphic characters by ASCII art")),
 	_VBI3_OPTION_MENU_INITIALIZER
 	("control", N_("Control codes"),
-	 0, terminal, N_ELEMENTS (terminal), NULL),
+	 0, terminal, N_ELEMENTS (terminal),
+	 N_("Insert color and text style control codes")),
 };
 
 static vbi3_export *
@@ -180,7 +180,10 @@ option_get			(vbi3_export *		e,
 	if (KEYWORD ("format") || KEYWORD ("encoding")) {
 		value->num = text->encoding;
 	} else if (KEYWORD ("charset")) {
-		value->str = _vbi3_export_strdup (e, NULL, text->charset);
+		const char *codeset;
+
+		codeset = _vbi3_export_codeset (text->charset);
+		value->str = _vbi3_export_strdup (e, NULL, codeset);
 		if (!value->str)
 			return FALSE;
 	} else if (KEYWORD ("gfx_chr")) {
@@ -357,9 +360,10 @@ create_palette			(text_instance *	text,
 		   close to the color_map entry (yeah, that's probably
 		   too simple). */
 		for (i = 0; i < 8; ++i) {
-			d  = ABS(       (i & 1) * 0xFF - VBI3_R (color));
-			d += ABS(((i >> 1) & 1) * 0xFF - VBI3_G (color));
-			d += ABS( (i >> 2)      * 0xFF - VBI3_B (color));
+			d  = ABS ((int)((i & 1) * 0xFF - VBI3_R (color)));
+			d += ABS ((int)(((i >> 1) & 1) * 0xFF
+					- VBI3_G (color)));
+			d += ABS ((int)((i >> 2) * 0xFF - VBI3_B (color)));
 
 			if (d < dmin) {
 				dmin = d;
@@ -544,7 +548,7 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 	unsigned int column1;
 	unsigned int doubleh;	/* current row */
 	unsigned int doubleh0;  /* previous row */
-	iconv_t	cd;
+	vbi3_iconv_t *cd;
 	char *p;
 	char *buffer_end;
 	const vbi3_char *acp;
@@ -595,7 +599,7 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 			break;
 
 		case VBI3_SCALE:
-			va_arg (export_options, vbi3_bool);
+			(void) va_arg (export_options, vbi3_bool);
 			break;
 
 		default:
@@ -619,10 +623,10 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 	p = buffer;
 	buffer_end = buffer + buffer_size;
 
-	cd = vbi3_iconv_ucs2_open (format, &p, buffer_size);
-
-	if ((iconv_t) -1 == cd)
+	cd = _vbi3_iconv_open (format, "UCS-2", &p, buffer_size, '?');
+	if (NULL == cd) {
 		return 0;
+	}
 
 	if (setjmp (text.main))
 		goto failure;
@@ -731,7 +735,7 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 
 					size = text.text.bp - text.text.buffer;
 
-					if (!vbi3_iconv_ucs2
+					if (!_vbi3_iconv_ucs2
 					    (cd, &p,
 					     (unsigned int)(buffer_end - p),
 					     text.text.buffer,
@@ -766,20 +770,22 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 		acp += pg->columns;
 	}
 
-	if (!vbi3_iconv_ucs2 (cd, &p,
-			     (unsigned int)(buffer_end - p),
-			     text.text.buffer,
-			     (unsigned int)(text.text.bp - text.text.buffer)))
+	if (!_vbi3_iconv_ucs2 (cd, &p,
+			       (unsigned int)(buffer_end - p),
+			       text.text.buffer,
+			       (unsigned int)(text.text.bp - text.text.buffer)))
 		goto failure;
 
-	vbi3_iconv_ucs2_close (cd);
+	_vbi3_iconv_close (cd);
+	cd = NULL;
 
 	return p - buffer;
 
  failure:
 	vbi3_free (text.text.buffer);
 
-	vbi3_iconv_ucs2_close (cd);
+	_vbi3_iconv_close (cd);
+	cd = NULL;
 
 	return 0;
 }
@@ -965,6 +971,7 @@ export				(vbi3_export *		e,
 {
 	text_instance *text = PARENT (e, text_instance, export);
 	const vbi3_char *acp;
+	const char *codeset;
 	vbi3_char last;
 	unsigned int row;
 	unsigned int column;
@@ -999,12 +1006,16 @@ export				(vbi3_export *		e,
 
 		d = text->text.bp;
 
-		if (row + 1 >= pg->rows) {
+		/* Reset background color because terminals scroll
+		   that color in if the display is wider than the page. */
+		if (1 || row + 1 >= pg->rows) {
 			if (TERMINAL_NONE != text->term) {
 				d[0] = 27; /* reset */
 				d[1] = '[';
 				d[2] = 'm';
 				d += 3;
+
+				SET (last);
 			}
 		}
 
@@ -1015,8 +1026,10 @@ export				(vbi3_export *		e,
 
 	size = text->text.bp - text->text.buffer;
 
-	if (!vbi3_stdio_iconv_ucs2 (text->export.fp, text->charset,
-				   text->text.buffer, size)) {
+	codeset = _vbi3_export_codeset (text->charset);
+
+	if (!vbi3_fputs_iconv_ucs2 (text->export.fp, codeset,
+				    text->text.buffer, size, '?')) {
 		_vbi3_export_write_error (&text->export);
 		return FALSE;
 	}
@@ -1028,7 +1041,7 @@ static const vbi3_export_info
 export_info = {
 	.keyword		= "text",
 	.label			= N_("Text"),
-	.tooltip		= N_("Export this page as text file"),
+	.tooltip		= N_("Export the page as text file"),
 
 	.mime_type		= "text/plain",
 	.extension		= "txt",
@@ -1049,3 +1062,10 @@ _vbi3_export_module_text = {
 
 	.export			= export
 };
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

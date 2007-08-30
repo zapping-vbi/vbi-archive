@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: page-priv.h,v 1.2 2005-01-08 14:54:21 mschimek Exp $ */
+/* $Id: page-priv.h,v 1.3 2007-08-30 12:28:31 mschimek Exp $ */
 
 #ifndef PAGE_PRIV_H
 #define PAGE_PRIV_H
@@ -26,7 +26,7 @@
 #include "page.h"		/* vbi3_page, vbi3_opacity */
 #include "vt.h"			/* magazine, extension, pagenum */
 #include "pdc.h"		/* vbi3_preselection */
-#include "lang.h"		/* vbi3_character_set */
+#include "lang.h"		/* vbi3_ttx_charset */
 #include "cache-priv.h"		/* cache_network, cache_page, vbi3_wst_level */
 
 struct _vbi3_page_priv {
@@ -36,8 +36,8 @@ struct _vbi3_page_priv {
 	cache_network *		cn;
 
 	/* Only used in _vbi3_page_priv_from_cache_page_va_list(). */
-	const magazine *	mag;
-	const extension *	ext;
+	const struct magazine *	mag;
+	const struct extension *ext;
 
 	/* Source page, reference counted. */
 	cache_page *		cp;
@@ -53,7 +53,7 @@ struct _vbi3_page_priv {
 	cache_page *		drcs_cp[32];
 
 	/** Default primary and secondary character set. */
-	const vbi3_character_set *char_set[2];
+	const vbi3_ttx_charset *char_set[2];
 	/** 0 header, 1 other rows. */
 	vbi3_opacity		page_opacity[2];
 	vbi3_opacity		boxed_opacity[2];
@@ -78,6 +78,9 @@ _vbi3_page_priv_from_cache_page
 				 cache_page *		cp,
 				 ...);
 extern void
+_vbi3_pdc_title_post_proc	(vbi3_page *		pg,
+				 vbi3_preselection *	p);
+extern void
 _vbi3_page_priv_dump		(const vbi3_page_priv *	pgp,
 				 FILE *			fp,
 				 unsigned int		mode);
@@ -87,3 +90,10 @@ extern void
 _vbi3_page_priv_init		(vbi3_page_priv *	pgp);
 
 #endif /* PAGE_PRIV_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

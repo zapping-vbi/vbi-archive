@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event-priv.h,v 1.3 2005-06-28 00:58:12 mschimek Exp $ */
+/* $Id: event-priv.h,v 1.4 2007-08-30 12:25:12 mschimek Exp $ */
 
 #ifndef EVENT_PRIV_H
 #define EVENT_PRIV_H
@@ -92,3 +92,10 @@ extern vbi3_bool
 _vbi3_event_handler_list_init	(_vbi3_event_handler_list *es);
 
 #endif /* EVENT_PRIV_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

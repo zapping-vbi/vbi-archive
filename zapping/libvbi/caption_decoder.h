@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder.h,v 1.1 2005-09-01 01:31:55 mschimek Exp $ */
+/* $Id: caption_decoder.h,v 1.2 2007-08-30 12:24:29 mschimek Exp $ */
 
 #ifndef __ZVBI3_CAPTION_DECODER_H__
 #define __ZVBI3_CAPTION_DECODER_H__
@@ -50,9 +50,14 @@ typedef enum {
 } vbi3_caption_mode;
 
 /**
- * @brief Meta data and statistical info about a Closed Caption channels.
+ * @brief Meta data and statistical info about a Closed Caption channel.
  */
 typedef struct {
+	/**
+	 * The caption channel this structure refers to, one of
+	 * @c VBI3_CAPTION_CC1 ... @c VBI3_CAPTION_CC4 or
+	 * @c VBI3_CAPTION_T1 ... @c VBI3_CAPTION_T4.
+	 */
 	vbi3_pgno		channel;
 
 	/** VBI3_SUBTITLE_PAGE or VBI3_NORMAL_PAGE. */
@@ -69,8 +74,8 @@ typedef struct {
 
 	double			last_received;
 
-	void *			reserved1[2];
-	unsigned int		reserved2[2];
+	void *			_reserved1[2];
+	int			_reserved2[2];
 } vbi3_cc_channel_stat;
 
 extern void
@@ -152,3 +157,10 @@ vbi3_caption_decoder_new	(vbi3_cache *		ca,
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_CAPTION_DECODER_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

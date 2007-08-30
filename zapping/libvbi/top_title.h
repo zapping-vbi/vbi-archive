@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top_title.h,v 1.3 2005-01-31 07:13:28 mschimek Exp $ */
+/* $Id: top_title.h,v 1.4 2007-08-30 12:30:47 mschimek Exp $ */
 
 #ifndef __ZVBI3_TOP_TITLE_H__
 #define __ZVBI3_TOP_TITLE_H__
@@ -32,18 +32,22 @@ VBI3_BEGIN_DECLS
  * @brief Title of a page in a Table Of Pages array.
  */
 typedef struct {
-	/** Title of the page, localized. */
-	char *			title;
+	/** Title of the page. This is a NUL-terminated UTF-8 string. */
+	char *			xtitle;
+
 	/** Page number. */
 	vbi3_pgno		pgno;
+
 	/** Subpage number or @c VBI3_ANY_SUBNO. */
 	vbi3_subno		subno;
+
 	/**
 	 * Whether this is the first page in a group or block. More
 	 * information is available through vbi3_cache_get_ttx_page_stat().
 	 */
 	vbi3_bool		group;
-	int			reserved[2];
+
+	int			_reserved[2];
 } vbi3_top_title;
 
 extern void
@@ -63,3 +67,10 @@ vbi3_top_title_array_delete	(vbi3_top_title *	tt,
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_TOP_TITLE_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

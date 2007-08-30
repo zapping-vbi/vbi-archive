@@ -1,5 +1,5 @@
 /*
- *  libzvbi - Video Program System
+ *  libzvbi - Video Programming System
  *
  *  Copyright (C) 2000-2004 Michael H. Schimek
  *
@@ -17,16 +17,21 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vps.h,v 1.1 2005-10-22 15:47:00 mschimek Exp $ */
+/* $Id: vps.h,v 1.2 2007-08-30 12:31:57 mschimek Exp $ */
 
 #ifndef __ZVBI3_VPS_H__
 #define __ZVBI3_VPS_H__
 
 #include <inttypes.h>		/* uint8_t */
 #include "macros.h"
+#ifndef ZAPPING8
+#  include "version.h"
+#endif
 #include "pdc.h"		/* vbi3_program_id */
 
 VBI3_BEGIN_DECLS
+
+/* Public */
 
 /**
  * @addtogroup VPS
@@ -36,10 +41,28 @@ extern vbi3_bool
 vbi3_decode_vps_cni		(unsigned int *		cni,
 				 const uint8_t		buffer[13]);
 extern vbi3_bool
+vbi3_encode_vps_cni		(uint8_t		buffer[13],
+				 unsigned int		cni);
+
+/* Private */
+
+#if defined ZAPPING8 || 3 == VBI_VERSION_MINOR
+extern vbi3_bool
 vbi3_decode_vps_pdc		(vbi3_program_id *	pid,
 				 const uint8_t		buffer[13]);
+extern vbi3_bool
+vbi3_encode_vps_pdc		(uint8_t		buffer[13],
+				 const vbi3_program_id *pid);
+#endif
 /** @} */
 
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_VPS_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

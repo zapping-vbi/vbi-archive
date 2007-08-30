@@ -18,37 +18,43 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.36 2005-09-01 01:40:52 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.37 2007-08-30 12:25:52 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <stdlib.h>		/* malloc() */
-#include <string.h>		/* strlen(), memcpy() */
 #include <unistd.h>		/* ssize_t */
 #include <setjmp.h>
+
 #include "misc.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
+#  include "version.h"
 #  include "intl-priv.h"
 #endif
 #include "export-priv.h"	/* vbi3_export */
 #include "page.h"		/* vbi3_page */
-#include "lang.h"		/* vbi3_character_set, ... */
+#include "lang.h"		/* vbi3_ttx_charset, ... */
 
-typedef struct {
+/* Resources:
+   http://www.w3.org/TR/1998/REC-html40-19980424/
+   http://www.w3.org/TR/html401/
+   http://wiki.svg.org/Inline_SVG (maybe?)
+*/
+
+struct style {
 	vbi3_char		ac;
 	unsigned int		id;
 	unsigned int		ref;
-} style;
+};
 
-typedef struct {
+struct vec {
 	char *			buffer;
         char *			bp;
 	char *			end;
-} vec;
+};
 
 typedef struct html_instance {
 	vbi3_export		export;
@@ -67,8 +73,8 @@ typedef struct html_instance {
 	vbi3_bool		in_hyperlink;
 	vbi3_bool		in_pdc_link;
 
-	vec			text;
-	vec			style;
+	struct vec		text;
+	struct vec		style;
 
 	vbi3_link		link;
 	const vbi3_preselection *pdc;
@@ -191,7 +197,7 @@ option_set			(vbi3_export *		e,
 
 static void
 extend				(html_instance *	html,
-				 vec *			v,
+				 struct vec *		v,
 				 unsigned int		incr,
 				 unsigned int		size)
 {
@@ -335,7 +341,7 @@ attr				(html_instance *	html,
 	const vbi3_char *body;
 	unsigned int ct = 0;
 
-	body = &((style *) html->style.buffer)->ac;
+	body = &((struct style *) html->style.buffer)->ac;
 
 	if (ac->foreground != body->foreground) {
 		puts_color (html, "color:",
@@ -425,8 +431,8 @@ style_gen			(html_instance *	html,
 	vbi3_char *dp;
 	vbi3_char *dend;
 	const vbi3_char *sp;
-	style *s;
-	style *s0;
+	struct style *s;
+	struct style *s0;
 	unsigned int size;
 
 	size = spg->rows * spg->columns;
@@ -463,9 +469,9 @@ style_gen			(html_instance *	html,
 	/* Body style. */
 
 	if (!html->style.buffer)
-		extend (html, &html->style, 32, sizeof (style));
+		extend (html, &html->style, 32, sizeof (struct style));
 
-	s = (style *) html->style.buffer;
+	s = (struct style *) html->style.buffer;
 
 	CLEAR (s->ac);
 
@@ -489,18 +495,19 @@ style_gen			(html_instance *	html,
 				goto next;
 			}
 
-			if (++s >= (style *) html->style.bp)
-				s = (style *) html->style.buffer;
+			if (++s >= (struct style *) html->style.bp)
+				s = (struct style *) html->style.buffer;
 		} while (s != s0);
 
 		if (html->style.bp >= html->style.end)
-			extend (html, &html->style, 32, sizeof (style));
+			extend (html, &html->style, 32,
+				sizeof (struct style));
 
-		s = (style *) html->style.bp;
-		html->style.bp += sizeof (style);
+		s = (struct style *) html->style.bp;
+		html->style.bp += sizeof (struct style);
 
 		s->ac = *dp;
-		s->id = s - (style *) html->style.buffer;
+		s->id = s - (struct style *) html->style.buffer;
 		s->ref = 1;
 
 	next:
@@ -543,11 +550,11 @@ static void
 header				(html_instance *	html,
 				 const vbi3_page *	pg)
 {
-	static const vbi3_character_set *cs;
+	static const vbi3_ttx_charset *cs;
 	const char *lang;
 	const char *dir;
 
-	cs = vbi3_page_get_character_set (pg, 0);
+	cs = vbi3_page_get_ttx_charset (pg, 0);
 
 	if (!cs || !cs->language_code[0]) {
 		lang = "en";
@@ -574,18 +581,18 @@ header				(html_instance *	html,
 	      "content=\"text/html; charset=utf-8\">\n");
 
 	if (html->color) {
-		style *s;
+		struct style *s;
 
 		puts (html, "<style type=\"text/css\">\n<!--\n");
 
-		s = (style *) html->style.buffer;
+		s = (struct style *) html->style.buffer;
 		puts_color (html, "body {color:",
 			    pg->color_map[s->ac.foreground]);
 		puts_color (html, ";background-color:",
 			    pg->color_map[s->ac.background]);
 		puts (html, "}\n");
 
-		for (++s; s < (style *) html->style.bp; ++s)
+		for (++s; s < (struct style *) html->style.bp; ++s)
 			if (s->ref > 1) {
 				puts_printf (html, FALSE, "span.c%u {", s->id);
 				attr (html, pg, &s->ac);
@@ -614,13 +621,13 @@ header				(html_instance *	html,
 	puts (html, ">\n");
 }
 
-static const style *
+static const struct style *
 span_start			(html_instance *	html,
 				 const vbi3_page *	pg,
 				 const vbi3_char *	acp,
-				 const style *		s0)
+				 const struct style *	s0)
 {
-	const style *s;
+	const struct style *s;
 
 	if (!html->header)
 		goto inline_style;
@@ -628,8 +635,8 @@ span_start			(html_instance *	html,
 	s = s0;
 
 	while (!same_style (acp, &s->ac)) {
-		if (++s >= (style *) html->style.bp)
-			s = (style *) html->style.buffer;
+		if (++s >= (struct style *) html->style.bp)
+			s = (struct style *) html->style.buffer;
 		if (s == s0)
 			goto inline_style;
 	}
@@ -643,8 +650,8 @@ span_start			(html_instance *	html,
 	} /* else body style */
 
 	html->cac = s->ac;
-	return (const style *) html->style.buffer;
-	return s;
+
+	return (const struct style *) html->style.buffer;
 
  inline_style:
 	html->cac = *acp;
@@ -655,7 +662,7 @@ span_start			(html_instance *	html,
 
 	html->in_span = TRUE;
 
-	return (const style *) html->style.buffer;
+	return (const struct style *) html->style.buffer;
 }
 
 static void
@@ -698,7 +705,7 @@ export				(vbi3_export *		e,
 	vbi3_page page;
 	vbi3_char *acp;
 	vbi3_char *acpend;
-	const style *s;
+	const struct style *s;
 	unsigned int row;
 	unsigned int column;
 
@@ -715,7 +722,7 @@ export				(vbi3_export *		e,
 
 	puts (html, "<pre>");
 
-	s = (style *) html->style.buffer;
+	s = (struct style *) html->style.buffer;
 
 	html->cac = s->ac;
 
@@ -733,7 +740,8 @@ export				(vbi3_export *		e,
 		    && e->link_callback) {
 			if (html->in_span) {
 				puts (html, "</span>");
-				html->cac = ((style *) html->style.buffer)->ac;
+				html->cac = ((struct style *)
+					     html->style.buffer)->ac;
 				html->in_span = FALSE;
 			}
 
@@ -758,7 +766,8 @@ export				(vbi3_export *		e,
 		    && e->pdc_callback) {
 			if (html->in_span) {
 				puts (html, "</span>");
-				html->cac = ((style *) html->style.buffer)->ac;
+				html->cac = ((struct style *)
+					     html->style.buffer)->ac;
 				html->in_span = FALSE;
 			}
 
@@ -841,7 +850,7 @@ static const vbi3_export_info
 export_info = {
 	.keyword		= "html",
 	.label			= N_("HTML"),
-	.tooltip		= N_("Export this page as HTML page"),
+	.tooltip		= N_("Export the page as HTML page"),
 
 	.mime_type		= "text/html",
 	.extension		= "html,htm",
@@ -862,3 +871,10 @@ _vbi3_export_module_html = {
 
 	.export			= export
 };
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

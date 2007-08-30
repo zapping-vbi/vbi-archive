@@ -17,14 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling_par.h,v 1.5 2005-09-01 01:40:52 mschimek Exp $ */
+/* $Id: sampling_par.h,v 1.6 2007-08-30 12:29:18 mschimek Exp $ */
 
 #ifndef __ZVBI3_SAMPLING_PAR_H__
 #define __ZVBI3_SAMPLING_PAR_H__
 
 #include <inttypes.h>		/* uint64_t */
 #include "macros.h"
-#include "misc.h"
 #include "image_format.h"	/* vbi3_pixfmt */
 #include "sliced.h"		/* vbi3_service_set */
 
@@ -35,7 +34,9 @@ VBI3_BEGIN_DECLS
  * @{
  */
 
-/** Videostandard identifier. */
+/**
+ * Video standard identifier.
+ */
 typedef enum {
 	VBI3_VIDEOSTD_NONE = 0,
 	VBI3_VIDEOSTD_UNKNOWN = VBI3_VIDEOSTD_NONE,
@@ -53,73 +54,76 @@ typedef enum {
 	VBI3_VIDEOSTD_PAL_M = 9,
 	VBI3_VIDEOSTD_PAL_N,
 	VBI3_VIDEOSTD_PAL_NC,
+	VBI3_VIDEOSTD_PAL_60,
 
 	VBI3_VIDEOSTD_NTSC_M = 13,
 	VBI3_VIDEOSTD_NTSC_M_JP,
+	VBI3_VIDEOSTD_NTSC_443,
+	VBI3_VIDEOSTD_NTSC_M_KR,
 
 	VBI3_VIDEOSTD_SECAM_B = 17,
 	VBI3_VIDEOSTD_SECAM_D,
 	VBI3_VIDEOSTD_SECAM_G,
 	VBI3_VIDEOSTD_SECAM_H,
-
 	VBI3_VIDEOSTD_SECAM_K,
 	VBI3_VIDEOSTD_SECAM_K1,
 	VBI3_VIDEOSTD_SECAM_L,
-
-	/**
-	 * Video hardware may support custom videostandards not defined
-	 * by libzvbi, for example hybrid standards to play back NTSC video
-	 * tapes at 60 Hz on a PAL TV.
-	 */
-	VBI3_VIDEOSTD_CUSTOM_BEGIN = 32,
-	VBI3_VIDEOSTD_CUSTOM_END = 64
+	VBI3_VIDEOSTD_SECAM_LC,
 } vbi3_videostd;
 
 /**
- * A set of videostandards is used where more than one
- * videostandard may apply. Use VBI3_VIDEOSTD_SET macros
+ * A set of video standards is used where more than one
+ * video standard may apply. Use @c VBI3_VIDEOSTD_SET macros
  * to build a set.
+ *
+ * Note these are the same values as in the V4L2 API, except shifted
+ * left one bit so we have room for @c VBI3_VIDEOSTD_UNKNOWN.
  */
-typedef uint64_t vbi3_videostd_set;
+typedef unsigned int vbi3_videostd_set;
 
 #define VBI3_VIDEOSTD_SET(videostd) (((vbi3_videostd_set) 1) << (videostd))
 
-#define VBI3_VIDEOSTD_SET_UNKNOWN 0
 #define VBI3_VIDEOSTD_SET_EMPTY 0
-#define VBI3_VIDEOSTD_SET_PAL_BG (VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_B) | \
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_B1)	| \
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_G))
-#define VBI3_VIDEOSTD_SET_PAL_DK (VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_D) | \
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_D1)	| \
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_K))
-#define VBI3_VIDEOSTD_SET_PAL    (VBI3_VIDEOSTD_SET_PAL_BG |		\
-				 VBI3_VIDEOSTD_SET_PAL_DK |		\
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_H) | \
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_I))
-#define VBI3_VIDEOSTD_SET_NTSC   (VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_NTSC_M)	| \
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_NTSC_M_JP))
-#define VBI3_VIDEOSTD_SET_SECAM  (VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_B) | \
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_D) | \
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_G) | \
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_H) | \
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_K) | \
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_K1) | \
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_L))
-#define VBI3_VIDEOSTD_SET_525_60 (VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_M) | \
-				 VBI3_VIDEOSTD_SET_NTSC)
-#define VBI3_VIDEOSTD_SET_625_50 (VBI3_VIDEOSTD_SET_PAL |			\
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_N) | \
-				 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_NC)	| \
-				 VBI3_VIDEOSTD_SET_SECAM)
-/** All defined videostandards without custom standards. */
-#define VBI3_VIDEOSTD_SET_ALL    (VBI3_VIDEOSTD_SET_525_60 |		\
-				 VBI3_VIDEOSTD_SET_625_50)
-/** All custrom videostandards. */
-#define VBI3_VIDEOSTD_SET_CUSTOM						\
-	((~VBI3_VIDEOSTD_SET_EMPTY) << VBI3_VIDEOSTD_CUSTOM_BEGIN)
+#define VBI3_VIDEOSTD_SET_UNKNOWN	 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_UNKNOWN)
+#define VBI3_VIDEOSTD_SET_PAL_BG		(VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_B)	    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_B1)	    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_G))
+#define VBI3_VIDEOSTD_SET_PAL_DK		(VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_D)	    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_D1)	    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_K))
+#define VBI3_VIDEOSTD_SET_PAL		(VBI3_VIDEOSTD_SET_PAL_BG		    | \
+					 VBI3_VIDEOSTD_SET_PAL_DK		    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_H)	    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_I))
+#define VBI3_VIDEOSTD_SET_NTSC		(VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_NTSC_M)	    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_NTSC_M_JP)  | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_NTSC_M_KR))
+#define VBI3_VIDEOSTD_SET_SECAM_DK	(VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_D)    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_K)    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_K1))
+#define VBI3_VIDEOSTD_SET_SECAM		(VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_B)    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_G)    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_H)    | \
+					 VBI3_VIDEOSTD_SET_SECAM_DK		    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_L)    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_SECAM_LC))
+#define VBI3_VIDEOSTD_SET_525_60		(VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_M)	    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_60)	    | \
+					 VBI3_VIDEOSTD_SET_NTSC			    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_NTSC_443))
+#define VBI3_VIDEOSTD_SET_625_50		(VBI3_VIDEOSTD_SET_PAL			    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_N)	    | \
+					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_NC)	    | \
+					 VBI3_VIDEOSTD_SET_SECAM)
+#define VBI3_VIDEOSTD_SET_ALL		(VBI3_VIDEOSTD_SET_525_60		    | \
+					 VBI3_VIDEOSTD_SET_625_50)
 
 extern const char *
 _vbi3_videostd_name		(vbi3_videostd		videostd)
+  __attribute__ ((const));
+
+extern vbi3_videostd_set
+_vbi3_videostd_set_from_scanning (int			scanning)
   __attribute__ ((const));
 
 /**
@@ -197,7 +201,8 @@ vbi3_sampling_par_from_services	(vbi3_sampling_par *	sp,
 				 vbi3_videostd_set	videostd_set,
 				 vbi3_service_set	services);
 extern vbi3_service_set
-vbi3_sampling_par_check_services	(const vbi3_sampling_par *sp,
+vbi3_sampling_par_check_services
+				(const vbi3_sampling_par *sp,
 				 vbi3_service_set	services,
 				 unsigned int		strict)
   __attribute__ ((_vbi3_pure));
@@ -205,13 +210,23 @@ vbi3_sampling_par_check_services	(const vbi3_sampling_par *sp,
 
 /* Private */
 
-extern vbi3_bool
-_vbi3_sampling_par_check_service	(const vbi3_sampling_par *sp,
-				 const vbi3_service_par *par,
-				 unsigned int		strict)
+extern vbi3_service_set
+_vbi3_sampling_par_from_services_log
+				(vbi3_sampling_par *	sp,
+				 unsigned int *		max_rate,
+				 vbi3_videostd_set	videostd_set,
+				 vbi3_service_set	services,
+				 _vbi3_log_hook *	log);
+extern vbi3_service_set
+_vbi3_sampling_par_check_services_log
+				(const vbi3_sampling_par *sp,
+				 vbi3_service_set	services,
+				 unsigned int		strict,
+				 _vbi3_log_hook *	log)
   __attribute__ ((_vbi3_pure));
 extern vbi3_bool
-_vbi3_sampling_par_verify	(const vbi3_sampling_par *sp)
+_vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
+				 _vbi3_log_hook *	log)
   __attribute__ ((_vbi3_pure));
 
 #endif /* !ZAPPING8 */
@@ -219,3 +234,10 @@ _vbi3_sampling_par_verify	(const vbi3_sampling_par *sp)
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_SAMPLING_PAR_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

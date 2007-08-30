@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.h,v 1.1 2005-09-01 01:40:52 mschimek Exp $ */
+/* $Id: vbi_decoder.h,v 1.2 2007-08-30 12:31:48 mschimek Exp $ */
 
 #ifndef __ZVBI3_VBI3_DECODER_H__
 #define __ZVBI3_VBI3_DECODER_H__
@@ -83,8 +83,13 @@ vbi3_decoder_cast_to_caption_decoder
   __attribute__ ((_vbi3_nonnull (1),
 		  _vbi3_pure));
 extern void
+vbi3_decoder_detect_channel_change
+				(vbi3_decoder *		vbi,
+				 vbi3_bool		enable)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern void
 vbi3_decoder_feed		(vbi3_decoder *		vbi,
-				 vbi3_sliced *		sliced,
+				 const vbi3_sliced *	sliced,
 				 unsigned int		n_lines,
 				 double			time)
   __attribute__ ((_vbi3_nonnull (1, 2)));
@@ -116,3 +121,10 @@ vbi3_decoder_new		(vbi3_cache *		ca,
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_VBI3_DECODER_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

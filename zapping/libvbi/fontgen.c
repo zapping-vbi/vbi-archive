@@ -18,16 +18,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: fontgen.c,v 1.5 2005-01-27 04:15:03 mschimek Exp $ */
+/* $Id: fontgen.c,v 1.6 2007-08-30 12:26:45 mschimek Exp $ */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <inttypes.h>
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include <ctype.h>
 
 #include "misc.h"
-
-#include "hamm.c" /* _vbi3_bit_reverse[] */
+#include "hamm.c"		/* vbi3_rev8() */
 
 static char *			font_name;
 
@@ -53,7 +53,7 @@ pbm_getc				(FILE *			fp)
 	return c;
 }
 
-static void
+static int
 pbm_getint			(FILE *			fp,
 				 unsigned int *		val)
 {
@@ -76,14 +76,16 @@ pbm_getint			(FILE *			fp,
 		perror ("read error");
 		exit (EXIT_FAILURE);
 	}
+
+	return t;
 }
 
 static void
 pbm_read			(void)
 {
 	FILE *fp;
-	size_t n;
-	size_t image_size;
+	ssize_t n;
+	ssize_t image_size;
 	uint8_t buf[2];
 
 	fp = stdin;
@@ -148,7 +150,7 @@ xbm_write			(void)
 
 			for (x = 0; x < image_width / 8; ++x) {
 				fprintf (fp, "0x%02x,",
-					 _vbi3_bit_reverse[p[x]]);
+					 vbi3_rev8 (p[x]));
 
 				if (7 == (x % 8))
 					fputs ("\n  ", fp);
@@ -196,3 +198,10 @@ main				(int			argc,
 
 	return 0;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

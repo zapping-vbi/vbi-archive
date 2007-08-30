@@ -18,13 +18,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: link.c,v 1.3 2005-01-31 07:10:03 mschimek Exp $ */
+/* $Id: link.c,v 1.4 2007-08-30 12:27:06 mschimek Exp $ */
 
 #include "../site_def.h"
 
-#include <stdlib.h>		/* malloc() */
-#include <assert.h>
-#include "misc.h"		/* CLEAR() */
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+#include "misc.h"
 #include "link.h"
 
 /** */
@@ -222,3 +224,10 @@ vbi3_link_init		(vbi3_link *		ld)
 	ld->priority	= 9;
 	ld->autoload	= FALSE;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

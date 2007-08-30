@@ -19,24 +19,23 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-sub.c,v 1.2 2005-10-14 23:40:13 mschimek Exp $ */
+/* $Id: exp-sub.c,v 1.3 2007-08-30 12:25:58 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <assert.h>
-#include <inttypes.h>
-#include <stdlib.h>		/* malloc() */
 #include <math.h>		/* floor() */
 #include <setjmp.h>
+
+#include "misc.h"
 #include "page.h"		/* vbi3_page */
 #include "conv.h"
-#include "misc.h"
-#include "lang.h"		/* vbi3_character_set, ... */
+#include "lang.h"		/* vbi3_ttx_charset, ... */
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
+#  include "version.h"
 #  include "intl-priv.h"
 #endif
 #include "export-priv.h"	/* vbi3_export */
@@ -68,31 +67,31 @@
     http://www.subviewer.com/
 */
 
-typedef struct {
+struct vec {
 	uint16_t *		buffer;
         uint16_t *		bp;
 	uint16_t *		end;
-} vec;
+};
 
-typedef enum {
+enum format {
 	FORMAT_MPSUB,
 	FORMAT_QTTEXT,
 	FORMAT_REALTEXT,
 	FORMAT_SAMI,
 	FORMAT_SUBRIP,
 	FORMAT_SUBVIEWER,
-} format;
+};
 
 typedef struct sub_instance {
 	vbi3_export		export;
 
 	jmp_buf			main;
 
-	vec			text1;
-	vec			text2;
-	iconv_t			cd;
+	struct vec		text1;
+	struct vec		text2;
+	vbi3_iconv_t *		cd;
 
-	format			format;
+	enum format		format;
 	int			encoding;
 	char *			charset;
 	char *			font;
@@ -153,22 +152,25 @@ static const vbi3_option_info
 option_info1 [] = {
 	_VBI3_OPTION_MENU_INITIALIZER
 	("format", N_("Encoding"),
-	 1, user_encodings, N_ELEMENTS (user_encodings), NULL),
+	 10, user_encodings, N_ELEMENTS (user_encodings), NULL),
         /* one for users, another for programs */
 	_VBI3_OPTION_STRING_INITIALIZER
-	("charset", NULL, "ISO-8859-1", NULL),
+	("charset", NULL, "locale",
+	 N_("Character set, for example ISO-8859-1, UTF-8")),
 };
 
 static const vbi3_option_info
 option_info2 [] = {
 	_VBI3_OPTION_MENU_INITIALIZER
 	("format", N_("Encoding"),
-	 0, user_encodings, N_ELEMENTS (user_encodings), NULL),
+	 10, user_encodings, N_ELEMENTS (user_encodings), NULL),
         /* one for users, another for programs */
 	_VBI3_OPTION_STRING_INITIALIZER
-	("charset", NULL, "ISO-8859-1", NULL),
+	("charset", NULL, "locale",
+	 N_("Character set, for example ISO-8859-1, UTF-8")),
 	_VBI3_OPTION_STRING_INITIALIZER
-	("font", N_("Font face"), "Tahoma", NULL),
+	("font", N_("Font face"), "Tahoma",
+	 N_("Name of the font to be encoded into the file")),
 };
 
 #undef KEYWORD
@@ -202,7 +204,7 @@ sub_new			(const _vbi3_export_module *em)
 		assert (!"reached");
 	}
 
-	sub->cd = (iconv_t) -1;
+	sub->cd = NULL;
 
 	return &sub->export;
 }
@@ -218,8 +220,9 @@ sub_delete			(vbi3_export *		e)
 	vbi3_free (sub->charset);
 	vbi3_free (sub->font);
 
-	if ((iconv_t) -1 == sub->cd)
-		vbi3_iconv_ucs2_close (sub->cd);
+	_vbi3_iconv_close (sub->cd);
+
+	CLEAR (*sub);
 
 	vbi3_free (sub);
 }
@@ -237,7 +240,10 @@ option_get			(vbi3_export *		e,
 	if (KEYWORD ("format") || KEYWORD ("encoding")) {
 		value->num = sub->encoding;
 	} else if (KEYWORD ("charset")) {
-		value->str = _vbi3_export_strdup (e, NULL, sub->charset);
+		const char *codeset;
+
+		codeset = _vbi3_export_codeset (sub->charset);
+		value->str = _vbi3_export_strdup (e, NULL, codeset);
 		if (!value->str)
 			return FALSE;
 	} else if (KEYWORD ("font")) {
@@ -302,8 +308,8 @@ option_set			(vbi3_export *		e,
 
 /* We write UCS-2 into an automatically growing buffer. */
 static void
-extend				(sub_instance *	sub,
-				 vec *			v)
+extend				(sub_instance *		sub,
+				 struct vec *		v)
 {
 	uint16_t *buffer;
 	unsigned int n;
@@ -604,14 +610,43 @@ real_style_end			(sub_instance *		sub)
 static void
 flush				(sub_instance *		sub)
 {
-	if (!vbi3_stdio_cd_ucs2 (sub->export.fp, sub->cd,
-				sub->text1.buffer,
-				(unsigned int)(sub->text1.bp
-					       - sub->text1.buffer))) {
-		longjmp (sub->main, -1);
-	}
+	char *buffer;
+	char *d;
+	size_t length;
+	size_t actual;
+
+	length = (long)(sub->text1.bp - sub->text1.buffer);
+
+	buffer = vbi3_malloc (length * 8);
+	if (NULL == buffer)
+		goto failure;
+
+	d = buffer;
+
+	if (!_vbi3_iconv_ucs2 (sub->cd, &d, length * 8,
+			       sub->text1.buffer, length))
+		goto failure;
+
+	length = d - buffer;
+
+	actual = fwrite (buffer, 1, length, sub->export.fp);
+	if (actual != length)
+		goto failure;
+
+	free (buffer);
+	buffer = NULL;
 
 	sub->text1.bp = sub->text1.buffer;
+
+	return;
+
+ failure:
+	free (buffer);
+	buffer = NULL;
+
+	longjmp (sub->main, -1);
+
+	return;
 }
 
 static void
@@ -663,10 +698,10 @@ header				(sub_instance *		sub,
 			"sl", "yi", "sr", "mk",
 			"bg", "uk",
 		};
-		static const vbi3_character_set *cs;
+		static const vbi3_ttx_charset *cs;
 		unsigned int lc;
 
-		cs = vbi3_page_get_character_set (pg, 0);
+		cs = vbi3_page_get_ttx_charset (pg, 0);
 
 		if (!cs) {
 			lc = 0;
@@ -710,12 +745,16 @@ header				(sub_instance *		sub,
 
 	case FORMAT_REALTEXT:
 	{
+		const char *codeset;
+
 		CLEAR (sub->para_ac);
 
 		sub->para_ac.foreground = 7;
 		sub->para_ac.background = 0;
 
 		sub->last_just = 0; /* center */
+
+		codeset = _vbi3_export_codeset (sub->charset);
 
 		wprintf (sub, FALSE,
 			 "<window "
@@ -724,7 +763,7 @@ header				(sub_instance *		sub,
 			 "version=\"1.2\" "
 			 "charset=\"%s\" "
 			 "face=\"%s\" ",
-			 sub->charset,
+			 codeset,
 			 sub->font);
 
 		color (sub, "color=\"", pg->color_map[7]);
@@ -737,12 +776,12 @@ header				(sub_instance *		sub,
 
 	case FORMAT_SAMI:
 	{
-		static const vbi3_character_set *cs;
+		static const vbi3_ttx_charset *cs;
 		const char *lang;
 
 		lang = "en";
 
-		cs = vbi3_page_get_character_set (pg, 0);
+		cs = vbi3_page_get_ttx_charset (pg, 0);
 
 		if (cs && cs->language_code[0])
 			lang = cs->language_code[0];
@@ -1263,6 +1302,9 @@ export				(vbi3_export *		e,
 	if (!pg) {
 		/* Finalize the stream. */
 
+		if (!sub->have_header)
+			return TRUE;
+
 		if (sub->text1.bp > sub->text1.buffer) {
 			/* Put timestamp in front of page (text1). */
 			SWAP (sub->text1, sub->text2);
@@ -1276,8 +1318,8 @@ export				(vbi3_export *		e,
 
 		sub->have_header = FALSE;
 
-		vbi3_iconv_ucs2_close (sub->cd);
-		sub->cd = (iconv_t) -1;
+		_vbi3_iconv_close (sub->cd);
+		sub->cd = NULL;
 
 		return TRUE;
 	}
@@ -1295,18 +1337,20 @@ export				(vbi3_export *		e,
 	if (!sub->have_header) {
 		char buffer[256];
 		char *d;
+		const char *codeset;
 		size_t n;
 
 		d = buffer;
 
-		sub->cd = vbi3_iconv_ucs2_open (sub->charset, &d,
-					       sizeof (buffer));
-		if ((iconv_t) -1 == sub->cd) {
+		codeset = _vbi3_export_codeset (sub->charset);
+
+		sub->cd = _vbi3_iconv_open (codeset, "UCS-2",
+					    &d, sizeof (buffer), '?');
+		if (NULL == sub->cd) {
 			return FALSE;
 		}
 
 		n = d - buffer;
-
 		if (n > 0)
 			if (n != fwrite (buffer, 1, n, sub->export.fp))
 				longjmp (sub->main, -1);
@@ -1666,3 +1710,10 @@ _vbi3_export_module_subviewer = {
 	.option_set		= option_set,
 	.export			= export
 };
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

@@ -17,11 +17,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top_title.c,v 1.3 2005-06-28 00:59:18 mschimek Exp $ */
+/* $Id: top_title.c,v 1.4 2007-08-30 12:30:33 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdlib.h>		/* malloc(), qsort() */
 #include "conv.h"		/* _vbi3_strdup_locale_teletext() */
-#include "lang.h"		/* vbi3_character_set_code */
+#include "lang.h"		/* vbi3_ttx_charset_code */
 #include "cache-priv.h"
 
 
@@ -44,7 +48,7 @@ vbi3_top_title_destroy		(vbi3_top_title *	tt)
 {
 	assert (NULL != tt);
 
-	vbi3_free (tt->title);
+	vbi3_free (tt->xtitle);
 
 	CLEAR (*tt);
 }
@@ -72,11 +76,13 @@ vbi3_top_title_copy		(vbi3_top_title *	dst,
 	if (src) {
 		char *title;
 
-		if (!(title = strdup (src->title)))
+		/* XXX uses locale encoding. */
+		title = strdup (src->xtitle);
+		if (NULL == title)
 			return FALSE;
 
 		*dst = *src;
-		dst->title = title;
+		dst->xtitle = title;
 	} else {
 		CLEAR (*dst);
 	}
@@ -122,7 +128,7 @@ vbi3_top_title_array_delete	(vbi3_top_title *	tt,
 /**
  * @internal
  */
-const ait_title *
+const struct ait_title *
 cache_network_get_ait_title	(cache_network *	cn,
 				 cache_page **		ait_cp,
 				 vbi3_pgno		pgno,
@@ -132,7 +138,7 @@ cache_network_get_ait_title	(cache_network *	cn,
 
 	for (i = 0; i < 8; ++i) {
 		cache_page *cp;
-		const ait_title *ait;
+		const struct ait_title *ait;
 		unsigned int j;
 
 		if (cn->btt_link[i].function != PAGE_FUNCTION_AIT)
@@ -176,22 +182,23 @@ static vbi3_bool
 _vbi3_top_title_from_ait_title	
 				(vbi3_top_title *	tt,
 				 const cache_network *	cn,
-				 const ait_title *	ait,
-				 const vbi3_character_set *cs)
+				 const struct ait_title *ait,
+				 const vbi3_ttx_charset *cs)
 {
-	const page_stat *ps;
+	const struct page_stat *ps;
 	char *title;
 
-	title = _vbi3_strdup_locale_teletext
-		(ait->text, N_ELEMENTS (ait->text), cs);
-
-	if (!title) {
+	title = vbi3_strndup_iconv_teletext (vbi3_locale_codeset (), cs,
+					     ait->text,
+					     N_ELEMENTS (ait->text),
+					     /* repl_char */ '?');
+	if (NULL == title) {
 		/* Make vbi3_top_title_destroy() safe. */
 		vbi3_top_title_init (tt);
 		return FALSE;
 	}
 
-	tt->title = title;
+	tt->xtitle = title;
 
 	tt->pgno = ait->page.pgno;
 	tt->subno = ait->page.subno;
@@ -213,8 +220,8 @@ cache_network_get_top_title	(cache_network *	cn,
 				 vbi3_subno		subno)
 {
 	cache_page *ait_cp;
-	const ait_title *ait;
-	const vbi3_character_set *char_set[2];
+	const struct ait_title *ait;
+	const vbi3_ttx_charset *char_set[2];
 	vbi3_bool r;
 
 	assert (NULL != cn);
@@ -232,7 +239,7 @@ cache_network_get_top_title	(cache_network *	cn,
 		return FALSE;
 	}
 
-	_vbi3_character_set_init (char_set,
+	_vbi3_ttx_charset_init (char_set,
 				 /* default en */ 0,
 				 /* default en */ 0,
 				 /* extension */ NULL,
@@ -310,8 +317,8 @@ cache_network_get_top_titles	(cache_network *	cn,
 
 	for (i = 0; i < 8; ++i) {
 		cache_page *cp;
-		const ait_title *ait;
-		const vbi3_character_set *char_set[2];
+		const struct ait_title *ait;
+		const vbi3_ttx_charset *char_set[2];
 		unsigned int j;
 
 		if (cn->btt_link[i].function != PAGE_FUNCTION_AIT)
@@ -330,11 +337,11 @@ cache_network_get_top_titles	(cache_network *	cn,
 			continue;
 		}
 
-		_vbi3_character_set_init (char_set,
-					 /* default en */ 0,
-					 /* default en */ 0,
-					 /* extension */ NULL,
-					 cp);
+		_vbi3_ttx_charset_init (char_set,
+					/* default en */ 0,
+					/* default en */ 0,
+					/* extension */ NULL,
+					cp);
 
 		ait = cp->data.ait.title;
 
@@ -408,3 +415,10 @@ vbi3_cache_get_top_titles	(vbi3_cache *		ca,
 
 	return tt;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

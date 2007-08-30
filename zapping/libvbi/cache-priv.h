@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache-priv.h,v 1.3 2005-09-01 01:40:52 mschimek Exp $ */
+/* $Id: cache-priv.h,v 1.4 2007-08-30 12:23:21 mschimek Exp $ */
 
 #ifndef CACHE_PRIV_H
 #define CACHE_PRIV_H
@@ -63,14 +63,14 @@ typedef struct {
 	/* Cache internal stuff. */
 
 	/** Network chain. */
-	node			node;
+	struct node		node;
 
-	/** Cache this network belongs to. */
+	/** Cache this struct network belongs to. */
 	vbi3_cache *		cache;
 
 	unsigned int		ref_count;
 
-	/** To be deleted when no longer referenced. */
+	/** Delete this network when no longer referenced. */
 	vbi3_bool		zombie;
 
 
@@ -104,8 +104,8 @@ typedef struct {
 	/* Teletext stuff. */
 
 	/** Pages cached now and ever, maintained by cache routines. */
-	unsigned int		n_pages;
-	unsigned int		max_pages;
+	unsigned int		n_cached_pages;
+	unsigned int		max_cached_pages;
 
 	/** Number of referenced Teletext pages of this network. */
 	unsigned int		n_referenced_pages;
@@ -118,13 +118,13 @@ typedef struct {
 	vbi3_bool		have_top;
 
 	/** Magazine defaults. Use vt_network_magazine() to access. */
-	magazine		_magazines[8];
+	struct magazine		_magazines[8];
 
-	/** Last packet 8/30 Status Display, with parity. */
+	/** Last received packet 8/30 Status Display, with parity bits. */
 	uint8_t			status[20];
 
 	/** Page statistics. Use cache_network_page_stat() to access. */
-	page_stat		_pages[0x800];
+	struct page_stat	_pages[0x800];
 } cache_network;
 
 /**
@@ -140,8 +140,8 @@ typedef struct {
 	/* Cache internal stuff. */
 
 	/** See struct vbi3_cache. */
-	node			hash_node;
-	node			pri_node;
+	struct node		hash_node;
+	struct node		pri_node;
 
 	/** Network sending this page. */
 	cache_network *		network;
@@ -166,7 +166,7 @@ typedef struct {
 
 	/**
 	 * National character set designator 0 ... 7
-	 * (3 lsb of a vbi3_charset_code).
+	 * (3 lsb of a vbi3_ttx_charset_code).
 	 */
 	int			national;
 
@@ -190,26 +190,26 @@ typedef struct {
 
 	union {
 		/** Raw page, content unknown. */
-		struct lop	unknown;
+		struct lop		unknown;
 
 		/** Plain level one page. */
-		struct lop	lop;
+		struct lop		lop;
 
 		/** Level one page with X/26 page enhancements. */
 		struct {
-			struct lop	lop;
-			enhancement	enh;
-		}		enh_lop;
+			struct lop		lop;
+			enhancement		enh;
+		}			enh_lop;
 
 		/**
 		 * Level one page with X/26 page enhancements
 		 * and X/28 extensions for Level 2.5 / 3.5.
 		 */
 		struct {
-			struct lop	lop;
-			enhancement	enh;
-			extension	ext;
-		}		ext_lop;
+			struct lop		lop;
+			enhancement		enh;
+			struct extension	ext;
+		}			ext_lop;
 
 		/** (Global) public object page. */
 		struct {
@@ -218,7 +218,7 @@ typedef struct {
 			 * Valid range 0 ... 506 (39 packets * 13 triplets),
 			 * unused pointers 511 (10.5.1.2), broken -1.
 			 */
-			uint16_t	pointer[4 * 12 * 2];
+			uint16_t		pointer[4 * 12 * 2];
 
 			/**
 			 * 13 triplets from each of packet 3 ... 25 and
@@ -226,8 +226,8 @@ typedef struct {
 			 *
 			 * Valid range of mode 0x00 ... 0x1F, broken -1.
 			 */
-		  	triplet			triplet[39 * 13 + 1];
-		}		gpop, pop;
+		  	struct triplet		triplet[39 * 13 + 1];
+		}			gpop, pop;
 
 		/**
 		 * (Global) dynamically redefinable characters
@@ -235,7 +235,7 @@ typedef struct {
 		 */
 		struct {
 			/** DRCS in raw format for error correction. */
-			struct lop	lop;
+			struct lop		lop;
 
 			/**
 			 * Each character consists of 12x10 pixels, stored
@@ -247,7 +247,7 @@ typedef struct {
 			uint8_t		chars[DRCS_PTUS_PER_PAGE][12 * 10 / 2];
 
 			/** See 9.4.6. */
-			uint8_t		mode[DRCS_PTUS_PER_PAGE];
+			uint8_t			mode[DRCS_PTUS_PER_PAGE];
 
 			/**
 			 * 1 << (0 ... (DRCS_PTUS_PER_PAGE - 1)).
@@ -255,25 +255,25 @@ typedef struct {
 			 * Note characters can span multiple successive PTUs,
 			 * see get_drcs_data().
 			 */
-			uint64_t	invalid;
-		}		gdrcs, drcs;
+			uint64_t		invalid;
+		}			gdrcs, drcs;
 
 		/** TOP AIT page. */
 		struct {
-			ait_title	title[46];
+			struct ait_title	title[46];
 
 			/** Used to detect changes. */
-			unsigned int	checksum;
-		}		ait;
+			unsigned int		checksum;
+		}			ait;
 
-	}		data;
+	}			data;
 
 	/* Dynamic size, add no fields below unless
 	   cache_page is statically allocated. */
 } cache_page;
 
 /** @internal */
-vbi3_inline magazine *
+vbi3_inline struct magazine *
 cache_network_magazine		(cache_network *	cn,
 				 vbi3_pgno		pgno)
 {
@@ -282,7 +282,7 @@ cache_network_magazine		(cache_network *	cn,
 }
 
 /** @internal */
-vbi3_inline const magazine *
+vbi3_inline const struct magazine *
 cache_network_const_magazine	(const cache_network *	cn,
 				 vbi3_pgno		pgno)
 {
@@ -291,7 +291,7 @@ cache_network_const_magazine	(const cache_network *	cn,
 }
 
 /** @internal */
-vbi3_inline page_stat *
+vbi3_inline struct page_stat *
 cache_network_page_stat		(cache_network *	cn,
 				 vbi3_pgno		pgno)
 {
@@ -300,7 +300,7 @@ cache_network_page_stat		(cache_network *	cn,
 }
 
 /** @internal */
-vbi3_inline const page_stat *
+vbi3_inline const struct page_stat *
 cache_network_const_page_stat	(const cache_network *	cn,
 				 vbi3_pgno		pgno)
 {
@@ -309,7 +309,7 @@ cache_network_const_page_stat	(const cache_network *	cn,
 }
 
 /* in top.c */
-extern const ait_title *
+extern const struct ait_title *
 cache_network_get_ait_title	(cache_network *	cn,
 				 cache_page **		ait_cp,
 				 vbi3_pgno		pgno,
@@ -399,10 +399,17 @@ _vbi3_cache_foreach_page	(vbi3_cache *		ca,
 
 /* in teletext.c */
 extern void
-_vbi3_character_set_init	(const vbi3_character_set *charset[2],
-				 vbi3_charset_code	default_code_0,
-				 vbi3_charset_code	default_code_1,
-				 const extension *	ext,
+_vbi3_ttx_charset_init		(const vbi3_ttx_charset *charset[2],
+				 vbi3_ttx_charset_code	default_code_0,
+				 vbi3_ttx_charset_code	default_code_1,
+				 const struct extension *ext,
 				 const cache_page *	cp);
 
 #endif /* CACHE_PRIV_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/
