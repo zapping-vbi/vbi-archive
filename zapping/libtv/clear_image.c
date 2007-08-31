@@ -16,7 +16,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: clear_image.c,v 1.3 2007-08-30 12:32:22 mschimek Exp $ */
+/* $Id: clear_image.c,v 1.4 2007-08-31 05:52:31 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -259,6 +259,8 @@ tv_clear_image			(void *			image,
 		return TRUE;
 
 	pf = format->pixel_format;
+	if (unlikely (NULL == pf))
+		return FALSE;
 
 	switch (pf->pixfmt) {
 	case TV_PIXFMT_NONE:
@@ -291,8 +293,10 @@ tv_clear_image			(void *			image,
 		if (likely (0 == padding)) {
 			width *= height;
 			height = 1;
-		} else {
+		} else if (likely ((long) padding > 0)) {
 			align |= format->bytes_per_line[1];
+		} else {
+			return FALSE;
 		}
 
 		align |= width;
@@ -345,8 +349,10 @@ tv_clear_image			(void *			image,
 		if (likely (0 == padding)) {
 			width *= height;
 			height = 1;
-		} else {
+		} else if (likely ((long) padding > 0)) {
 			align |= format->bytes_per_line[0];
+		} else {
+			return FALSE;
 		}
 
 		align |= width;
@@ -394,6 +400,9 @@ tv_clear_image			(void *			image,
 		width >>= pf->uv_hshift;
 		height >>= pf->uv_vshift;
 
+		if (unlikely (width <= 0 || height <= 0))
+			return FALSE;
+
 		if (3 == pf->n_planes) {
 			if (likely ((format->bytes_per_line[1]
 				     == format->bytes_per_line[2])
@@ -416,8 +425,10 @@ tv_clear_image			(void *			image,
 				if (likely (0 == padding)) {
 					v_width *= v_height;
 					v_height = 1;
-				} else {
+				} else if (likely ((long) padding > 0)) {
 					align |= format->bytes_per_line[2];
+				} else {
+					return FALSE;
 				}
 
 				align |= v_width;
@@ -439,8 +450,10 @@ tv_clear_image			(void *			image,
 		if (likely (0 == padding)) {
 			width *= height;
 			height = 1;
-		} else {
+		} else if (likely ((long) padding > 0)) {
 			align |= format->bytes_per_line[1];
+		} else {
+			return FALSE;
 		}
 
 		align |= width;
@@ -500,6 +513,8 @@ tv_clear_image			(void *			image,
 
 	clear1:
 		width = (width * pf->bits_per_pixel) >> 3;
+		if (unlikely (width <= 0))
+			return FALSE;
 
 		dst = (uint8_t *) image + format->offset[0];
 		align = (unsigned long) dst;
@@ -509,8 +524,10 @@ tv_clear_image			(void *			image,
 		if (likely (0 == padding)) {
 			width *= height;
 			height = 1;
-		} else {
+		} else if (likely ((long) padding > 0)) {
 			align |= format->bytes_per_line[0];
+		} else {
+			return FALSE;
 		}
 
 		align |= width;
