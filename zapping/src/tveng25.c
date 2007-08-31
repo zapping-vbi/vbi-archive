@@ -177,6 +177,7 @@ struct private_tveng25_device_info
 
 	tv_bool			read_back_controls;
 	tv_bool			use_v4l_audio;
+	tv_bool			use_v4l_freq;
 	tv_bool			use_s_ctrl_old;
 
 #if defined (HAVE_XV_EXTENSION) && TVENG25_XV_TEST
@@ -212,6 +213,7 @@ g_fmt				(tveng_device_info *	info,
 	if (-1 == r)
 		return -1;
 
+	/* This should actually go into tvengemu.c. */
 	if (TVENG25_BAYER_TEST) {
 		if (V4L2_PIX_FMT_GREY != format.fmt.pix.pixelformat) {
 			format.fmt.pix.pixelformat = V4L2_PIX_FMT_GREY;
@@ -1069,28 +1071,103 @@ store_frequency			(tveng_device_info *	info,
 				 struct video_input *	vi,
 				 unsigned long		freq)
 {
-	unsigned int frequency = SCALE_FREQUENCY (vi, freq);
+	unsigned int freq_hz = SCALE_FREQUENCY (vi, freq);
 
-	if (vi->pub.u.tuner.frequency != frequency) {
-		vi->pub.u.tuner.frequency = frequency;
+	if (vi->pub.u.tuner.frequency != freq_hz) {
+		vi->pub.u.tuner.frequency = freq_hz;
 		tv_callback_notify (info, &vi->pub, vi->pub._callback);
 	}
+}
+
+static tv_bool
+g_freq				(tveng_device_info *	info,
+				 unsigned long *	curr_freq,
+				 tv_video_line *	l)
+{
+	struct private_tveng25_device_info * p_info = P_INFO (info);
+	unsigned long v4l_freq;
+
+	if (!p_info->use_v4l_freq) {
+		struct v4l2_frequency v4l2_freq;
+
+		CLEAR (v4l2_freq);
+		v4l2_freq.tuner = VI (l)->tuner;
+		v4l2_freq.type = V4L2_TUNER_ANALOG_TV;
+	
+		if (0 == xioctl (info, VIDIOC_G_FREQUENCY, &v4l2_freq)) {
+			*curr_freq = v4l2_freq.frequency;
+			return TRUE;
+		}
+
+		if (sizeof (long) > 4)
+			return FALSE;
+	}
+
+	/* v4l_compat_ioctl32 bug: Does not handle VIDIOC_G/S_FREQUENCY. */
+
+	if (0 != VI (l)->tuner)
+		return FALSE;
+
+	v4l_freq = 0;
+
+	if (-1 == xioctl (info, VIDIOCGFREQ, &v4l_freq))
+		return FALSE;
+
+	*curr_freq = v4l_freq;
+
+	p_info->use_v4l_freq = TRUE;
+
+	return TRUE;
+}
+
+static tv_bool
+s_freq				(tveng_device_info *	info,
+				 tv_video_line *	l,
+				 unsigned long		new_freq)
+{
+	struct private_tveng25_device_info * p_info = P_INFO (info);
+	unsigned long v4l_freq;
+
+	if (!p_info->use_v4l_freq) {
+		struct v4l2_frequency v4l2_freq;
+
+		CLEAR (v4l2_freq);
+		v4l2_freq.tuner = VI (l)->tuner;
+		v4l2_freq.type = V4L2_TUNER_ANALOG_TV;
+		v4l2_freq.frequency = new_freq;
+
+		if (0 == xioctl (info, VIDIOC_S_FREQUENCY, &v4l2_freq))
+			return TRUE;
+
+		if (sizeof (long) > 4)
+			return FALSE;
+	}
+
+	/* v4l_compat_ioctl32 bug: Does not handle VIDIOC_G/S_FREQUENCY. */
+
+	if (0 != VI (l)->tuner)
+		return FALSE;
+
+	v4l_freq = new_freq;
+
+	if (-1 == xioctl (info, VIDIOCSFREQ, &v4l_freq))
+		return FALSE;
+
+	p_info->use_v4l_freq = TRUE;
+
+	return TRUE;
 }
 
 static tv_bool
 get_tuner_frequency		(tveng_device_info *	info,
 				 tv_video_line *	l)
 {
-	struct v4l2_frequency vfreq;
+	unsigned long freq;
 
-	CLEAR (vfreq);
-	vfreq.tuner = VI (l)->tuner;
-	vfreq.type = V4L2_TUNER_ANALOG_TV;
-
-	if (-1 == xioctl (info, VIDIOC_G_FREQUENCY, &vfreq))
+	if (!g_freq (info, &freq, l))
 		return FALSE;
 
-	store_frequency (info, VI (l), vfreq.frequency);
+	store_frequency (info, VI (l), freq);
 
 	return TRUE;
 }
@@ -1102,15 +1179,10 @@ set_tuner_frequency		(tveng_device_info *	info,
 {
 	struct private_tveng25_device_info * p_info = P_INFO (info);
 	struct video_input *vi = VI (l);
-	struct v4l2_frequency vfreq;
 	unsigned long new_freq;
-	tv_bool restart;
 	int buf_type;
-	tv_bool r;
-
-	CLEAR (vfreq);
-	vfreq.tuner = vi->tuner;
-	vfreq.type = V4L2_TUNER_ANALOG_TV;
+	tv_bool restart;
+	tv_bool success;
 
 	new_freq = (frequency << vi->step_shift) / vi->pub.u.tuner.step;
 
@@ -1121,53 +1193,60 @@ set_tuner_frequency		(tveng_device_info *	info,
 		   && info->panel.cur_video_input == l);
 
 	if (restart) {
-		if (0 == xioctl (info, VIDIOC_G_FREQUENCY, &vfreq)) {
-			if (new_freq == vfreq.frequency) {
+		unsigned long curr_freq;
+
+		if (g_freq (info, &curr_freq, l)) {
+			if (new_freq == curr_freq) {
 				store_frequency (info, vi, new_freq);
 				return TRUE;
 			}
 		}
 
-		if (!streamoff_or_reopen (info))
-			return FALSE;
+		if (p_info->caps.capabilities & V4L2_CAP_STREAMING) {
+			if (-1 == xioctl (info, VIDIOC_STREAMOFF, &buf_type))
+				return FALSE;
+		} else if (p_info->reading) {
+			/* Error ignored. */
+			xioctl_may_fail (info, VIDIOC_STREAMOFF, &buf_type);
+
+			p_info->reading = FALSE;
+		}
+
+		p_info->capturing = FALSE;
 	}
 
-	vfreq.frequency = new_freq;
+	success = s_freq (info, l, new_freq);
+	if (success) {
+		/* Error ignored. */
+		g_freq (info, &new_freq, l);
 
-	r = TRUE;
+		store_frequency (info, vi, new_freq);
+	}
 
-	if (0 == xioctl (info, VIDIOC_S_FREQUENCY, &vfreq))
-		store_frequency (info, vi, vfreq.frequency);
-	else
-		r = FALSE;
+	if (restart && (p_info->caps.capabilities & V4L2_CAP_STREAMING)) {
+		unsigned int i;
 
-	if (restart) {
-		if (p_info->caps.capabilities & V4L2_CAP_STREAMING) {
-			unsigned int i;
+		/* Some drivers do not completely fill buffers when
+		   tuning to an empty channel. */
+		for (i = 0; i < info->capture.n_buffers; ++i)
+			p_info->buffers[i].clear = TRUE;
 
-			/* Some drivers do not completely fill buffers when
-			   tuning to an empty channel. */
-			for (i = 0; i < info->capture.n_buffers; ++i)
-				p_info->buffers[i].clear = TRUE;
+		if (!queue_xbuffers (info)) {
+			/* XXX what now? */
+			return FALSE;
+		}
 
-			if (!queue_xbuffers (info)) {
-				/* XXX what now? */
-				return FALSE;
-			}
-
-			if (0 == xioctl (info, VIDIOC_STREAMON, &buf_type)) {
-				p_info->capturing = TRUE;
-			} else {
-				/* XXX what now? */
-				r = FALSE;
-			}
-		} else {
+		if (0 == xioctl (info, VIDIOC_STREAMON, &buf_type)) {
 			p_info->capturing = TRUE;
+		} else {
+			/* XXX what now? */
+			success = FALSE;
 		}
 	}
 
-	return r;
+	return success;
 }
+
 
 static tv_bool
 get_signal_strength		(tveng_device_info *	info,
