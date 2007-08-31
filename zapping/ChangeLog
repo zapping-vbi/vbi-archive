@@ -1,3 +1,10 @@
+2007-08-31    <mschimek@users.sf.net>
+
+	* src/tveng25.c (store_frequency): Added work-around for missing
+	  VIDIOC_G/S_FREQUENCY in v4l_compat_ioctl32.
+
+	* libtv/clear_image.c (tv_clear_image): Added more safety checks.
+
 2007-08-29    <mschimek@users.sf.net>
 
 	* src/zvbi.c, src/main.c, src/v4linterface.c, src/frequencies.c, 
