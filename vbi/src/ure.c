@@ -28,7 +28,7 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ure.c,v 1.4.2.5 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: ure.c,v 1.4.2.6 2007-11-01 00:21:25 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -2362,3 +2362,10 @@ ure_exec(ure_dfa_t dfa, int flags, ucs2_t *text, unsigned long textlen,
 }
 
 #endif /* HAVE_GLIBC21 || HAVE_LIBUNICODE */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

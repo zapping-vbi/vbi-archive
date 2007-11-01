@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced.h,v 1.3.2.6 2006-05-26 00:43:06 mschimek Exp $ */
+/* $Id: sliced.h,v 1.3.2.7 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifndef __ZVBI3_SLICED_H__
 #define __ZVBI3_SLICED_H__
@@ -242,14 +242,14 @@ VBI3_BEGIN_DECLS
  * as opposed to just those lines
  * used to transmit the requested data services.
  */
-#define VBI3_SLICED_VBI3_625		0x20000000
+#define VBI3_SLICED_VBI_625		0x20000000
 /**
  * No actual data service. This symbol is used to request capturing
  * of all NTSC VBI data lines from the libzvbi driver interface,
  * as opposed to just those lines
  * used to transmit the requested data services.
  */
-#define VBI3_SLICED_VBI3_525		0x40000000
+#define VBI3_SLICED_VBI_525		0x40000000
 /** @} */
 
 /**
@@ -309,3 +309,10 @@ typedef struct _vbi3_service_par _vbi3_service_par;
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_SLICED_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

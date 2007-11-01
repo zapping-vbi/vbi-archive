@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Miscellaneous cows and chickens
  *
- *  Copyright (C) 2002-2006 Michael H. Schimek
+ *  Copyright (C) 2002-2007 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.20 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.21 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -32,6 +32,7 @@
 #include <assert.h>
 
 #include "macros.h"
+#include "version.h"
 
 #define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
 
@@ -196,6 +197,15 @@ do {									\
 	 + (((m) & 0xFF00) << 8)					\
 	 + (((m) & 0xFF) << 24))
 
+#ifdef HAVE_BUILTIN_POPCOUNT
+#  define popcnt(x) __builtin_popcount ((uint32_t)(x))
+#else
+#  define popcnt(x) _vbi_popcnt (x)
+#endif
+
+extern unsigned int
+_vbi_popcnt			(uint32_t		x);
+
 /* NB GCC inlines and optimizes these functions when size is const. */
 #define SET(var) memset (&(var), ~0, sizeof (var))
 
@@ -204,8 +214,14 @@ do {									\
 #define COPY(d, s) /* useful to copy arrays, otherwise use assignment */ \
 	(assert (sizeof (d) == sizeof (s)), memcpy (d, s, sizeof (d)))
 
-/* Copy a string const, returns FALSE if not NUL terminated. */
-#define STRCOPY(d, s) (strlcpy (d, s, sizeof (d)) < sizeof (d))
+/* Copy string const into char array. */
+#define STRACPY(array, s)						\
+do {									\
+	/* Complain if s is no string const or won't fit. */		\
+	const char t_[sizeof (array) - 1] __attribute__ ((unused)) = s; \
+									\
+	memcpy (array, s, sizeof (s));					\
+} while (0)
 
 /* Copy bits through mask. */
 #define COPY_SET_MASK(dest, from, mask)					\
@@ -219,13 +235,27 @@ do {									\
 #define COPY_SET_CLEAR(dest, set, clear)				\
 	(dest = (dest & ~(clear)) | (set))
 
-/* For debugging. */
-#define vbi3_malloc malloc
-#define vbi3_realloc realloc
-#define vbi3_strdup strdup
-#define vbi3_free free
-#define vbi3_cache_malloc malloc
-#define vbi3_cache_free free
+/* For applications, debugging and fault injection during unit tests. */
+
+#if 2 == VBI_VERSION_MINOR
+#  define vbi_malloc malloc
+#  define vbi_realloc realloc
+#  define vbi_strdup strdup
+#  define vbi_free free
+#else
+extern void *
+(* vbi3_malloc)			(size_t);
+extern void *
+(* vbi3_realloc)		(void *,
+				 size_t);
+extern char *
+(* vbi3_strdup)			(const char *);
+extern void
+(* vbi3_free)			(void *);
+#endif
+
+#define vbi3_cache_malloc vbi3_malloc
+#define vbi3_cache_free vbi3_free
 
 /* Helper functions. */
 
@@ -262,6 +292,7 @@ extern void
 _vbi3_log_vprintf		(vbi3_log_fn		log_fn,
 				 void *			user_data,
 				 vbi3_log_mask		level,
+				 const char *		source_file,
 				 const char *		context,
 				 const char *		templ,
 				 va_list		ap);
@@ -269,6 +300,7 @@ extern void
 _vbi3_log_printf			(vbi3_log_fn		log_fn,
 				 void *			user_data,
 				 vbi3_log_mask		level,
+				 const char *		source_file,
 				 const char *		context,
 				 const char *		templ,
 				 ...);
@@ -280,8 +312,19 @@ do {									\
 	if ((NULL != _h && 0 != (_h->mask & level))			\
 	    || (_h = &_vbi3_global_log, 0 != (_h->mask & level)))	\
 		_vbi3_log_printf (_h->fn, _h->user_data,		\
-				  level, __FUNCTION__,			\
+				  level, __FILE__, __FUNCTION__,	\
 				  templ , ##args);			\
+} while (0)
+
+#define _vbi3_vlog(hook, level, templ, ap)				\
+do {									\
+	_vbi3_log_hook *_h = hook;					\
+									\
+	if ((NULL != _h && 0 != (_h->mask & level))			\
+	    || (_h = &_vbi3_global_log, 0 != (_h->mask & level)))	\
+		_vbi3_log_vprintf (_h->fn, _h->user_data,		\
+				  level, __FILE__, __FUNCTION__,	\
+				  templ, ap);				\
 } while (0)
 
 #define error(hook, templ, args...)					\
@@ -312,15 +355,17 @@ do {									\
 #  define PRIx64 "llx"
 #endif
 
-/* Use this instead of strncpy(). strlcpy() is a BSD/GNU extension. */
+/* Use this instead of strncpy(). strlcpy() is a BSD extension. */
 #ifndef HAVE_STRLCPY
 #  define strlcpy _vbi3_strlcpy
 #endif
+#undef strncpy
+#define strncpy use_strlcpy_instead
 
 extern size_t
 _vbi3_strlcpy			(char *			dst,
 				 const char *		src,
-				 size_t			len);
+				 size_t			size);
 
 /* strndup() is a BSD/GNU extension. */
 #ifndef HAVE_STRNDUP
@@ -351,4 +396,14 @@ _vbi3_asprintf			(char **		dstp,
 				 const char *		templ,
 				 ...);
 
+#undef sprintf
+#define sprintf use_snprintf_or_asprintf_instead
+
 #endif /* MISC_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

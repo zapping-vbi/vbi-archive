@@ -8,3 +8,5 @@
 #	-Wall -Wunused -Wmissing-prototypes -Wmissing-declarations
 #LDADD = $(top_builddir)/src/.libs/libzvbi.a \
 #	$(PTHREAD_LIB) -lm $(PNG_LIB)
+
+TESTS =

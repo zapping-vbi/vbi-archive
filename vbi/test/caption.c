@@ -18,7 +18,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.5.2.7 2006-05-26 00:43:07 mschimek Exp $ */
+/* $Id: caption.c,v 1.5.2.8 2007-11-01 00:21:26 mschimek Exp $ */
+
+/* For libzvbi version 0.3.x. */
 
 #undef NDEBUG
 
@@ -29,9 +31,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <locale.h>
 #include <assert.h>
 #include <unistd.h>
+#ifdef HAVE_GETOPT_LONG
+#  include <getopt.h>
+#endif
+
+#include "sliced.h"
+
+#undef _
+#define _(x) x /* no l10n */
+
+#define PROGRAM_NAME "caption"
 
 #ifndef X_DISPLAY_MISSING
 
@@ -41,7 +52,6 @@
 
 #include "src/zvbi.h"
 #include "src/vbi.h"
-#include "sliced.h"
 
 vbi3_decoder *		vbi;
 vbi3_pgno		channel;
@@ -65,6 +75,12 @@ vbi3_dvb_demux *		dx;
 /* Maximum text size in pixels. */
 #define TEXT_WIDTH	(TEXT_COLUMNS * CELL_WIDTH)
 #define TEXT_HEIGHT	(TEXT_ROWS * CELL_HEIGHT)	
+
+static const char *		option_in_file_name;
+static enum file_format		option_in_file_format;
+static unsigned int		option_in_ts_pid;
+
+static struct stream *		rst;
 
 static Display *		display;
 static int			screen;
@@ -475,7 +491,7 @@ cc_raw_handler			(const vbi3_event *	ev,
 	vbi3_fputs_iconv_ucs2 (stdout,
 			       vbi3_locale_codeset (),
 			       buffer,
-			       ev->ev.cc_raw.length);
+			       ev->ev.cc_raw.length, '?');
 
 	fprintf (stdout, "<\n");
 
@@ -516,60 +532,62 @@ cc_page_handler			(const vbi3_event *	ev,
 	return TRUE;
 }
 
-/*
- *  Feed caption from a sample stream
- */
-
-static void
-pes_mainloop			(void)
+static vbi3_bool
+decode_function			(const vbi3_sliced *	sliced,
+				 unsigned int		n_lines,
+				 const uint8_t *	raw,
+				 const vbi3_sampling_par *sp,
+				 double			sample_time,
+				 int64_t		stream_time)
 {
-	uint8_t buffer[2048];
+	raw = raw; /* unused */
+	sp = sp;
+	stream_time = stream_time;
 
-	while (1 == fread (buffer, sizeof (buffer), 1, stdin)) {
-		const uint8_t *bp;
-		unsigned int bytes_left;
+	vbi3_decoder_feed (vbi, sliced, n_lines, sample_time);
 
-		bp = buffer;
-		bytes_left = sizeof (buffer);
+	x_event (33333);
 
-		while (bytes_left > 0) {
-			vbi3_sliced sliced[64];
-			unsigned int n_lines;
-			int64_t pts;
-
-			n_lines = vbi3_dvb_demux_cor (dx, sliced, 64,
-						     &pts, &bp, &bytes_left);
-			if (n_lines > 0) {
-				vbi3_decoder_feed (vbi, sliced, n_lines,
-						   pts / 90000.0);
-
-				x_event (33333);
-			}
-		}
-	}
-
-	fprintf (stderr, "\rEnd of stream\n");
+	return TRUE;
 }
 
 static void
-old_mainloop			(void)
+usage				(FILE *			fp)
 {
-	for (;;) {
-		vbi3_sliced sliced[40];
-		double timestamp;
-		int n_lines;
-
-		n_lines = read_sliced (sliced, &timestamp, /* max_lines */ 40);
-		if (n_lines < 0)
-			break;
-
-		vbi3_decoder_feed (vbi, sliced, n_lines, timestamp);
-
-		x_event (33333);
-	}
-
-	fprintf (stderr, "\rEnd of stream\n");
+	fprintf (fp, _("\
+%s %s\n\n\
+Copyright (C) 2000, 2001, 2007 Michael H. Schimek\n\
+This program is licensed under GPLv2 or later. NO WARRANTIES.\n\n\
+Usage: %s [options] < sliced VBI data\n\
+-h | --help | --usage  Print this message and exit\n\
+-i | --input name      Read the VBI data from this file instead\n\
+                       of standard input\n\
+-P | --pes             Source is a DVB PES stream\n\
+-T | --ts pid          Source is a DVB TS stream\n\
+-V | --version         Print the program version and exit\n\
+"),
+		 PROGRAM_NAME, VERSION, program_invocation_name);
 }
+
+static const char
+short_options [] = "hi:PT:V";
+
+#ifdef HAVE_GETOPT_LONG
+static const struct option
+long_options [] = {
+	{ "help",	no_argument,		NULL,		'h' },
+	{ "usage",	no_argument,		NULL,		'h' },
+	{ "input",	required_argument,	NULL,		'i' },
+	{ "pes",	no_argument,		NULL,		'P' },
+	{ "ts",		required_argument,	NULL,		'T' },
+	{ "version",	no_argument,		NULL,		'V' },
+	{ NULL, 0, 0, 0 }
+};
+#else
+#  define getopt_long(ac, av, s, l, i) getopt(ac, av, s)
+#endif
+
+static int			option_index;
 
 int
 main				 (int			argc,
@@ -577,7 +595,49 @@ main				 (int			argc,
 {
 	vbi3_bool success;
 
-	setlocale (LC_ALL, "");
+	init_helpers (argc, argv);
+
+	option_in_file_format = FILE_FORMAT_SLICED;
+
+	for (;;) {
+		int c;
+
+		c = getopt_long (argc, argv, short_options,
+				 long_options, &option_index);
+		if (-1 == c)
+			break;
+
+		switch (c) {
+		case 0: /* getopt_long() flag */
+			break;
+
+		case 'h':
+			usage (stdout);
+			exit (EXIT_SUCCESS);
+
+		case 'i':
+			assert (NULL != optarg);
+			option_in_file_name = optarg;
+			break;
+
+		case 'P':
+			option_in_file_format = FILE_FORMAT_DVB_PES;
+			break;
+
+		case 'T':
+			option_in_ts_pid = parse_option_ts ();
+			option_in_file_format = FILE_FORMAT_DVB_TS;
+			break;
+
+		case 'V':
+			printf (PROGRAM_NAME " " VERSION "\n");
+			exit (EXIT_SUCCESS);
+
+		default:
+			usage (stderr);
+			exit (EXIT_FAILURE);
+		}
+	}
 
 	vbi3_set_log_fn (VBI3_LOG_INFO - 1,
 			 vbi3_log_on_stderr,
@@ -605,36 +665,17 @@ main				 (int			argc,
 		assert (success);
 	}
 
-	if (isatty (STDIN_FILENO)) {
-		fprintf (stderr, "No VBI data on stdin\n");
-		exit (EXIT_FAILURE);
-	} else {
-		int c;
 
-		channel = VBI3_CAPTION_CC1;
+	rst = read_stream_new (option_in_file_name,
+			       option_in_file_format,
+			       option_in_ts_pid,
+			       decode_function);
 
-		c = getchar ();
-		ungetc (c, stdin);
+	stream_loop (rst);
 
-		if (0 == c) {
-			dx = vbi3_dvb_pes_demux_new (/* callback */ NULL,
-						    /* user_data */ NULL);
-			assert (NULL != dx);
+	stream_delete (rst);
 
-			pes_mainloop ();
-
-			vbi3_dvb_demux_delete (dx);
-		} else {
-			vbi3_bool success;
-
-			success = open_sliced_read (stdin);
-			assert (success);
-
-			old_mainloop ();
-		}
-	}
-
-	printf ("Done.\n");
+	error_msg (_("End of stream."));
 
 	for (;;)
 		x_event (33333);
@@ -650,9 +691,8 @@ int
 main				(int			argc,
 				 char **		argv)
 {
-	printf ("Could not find X11 or has been disabled "
-		"at configuration time\n");
-	exit(EXIT_FAILURE);
+	error_exit ("Could not find X11 or it has been disabled "
+		    "at configuration time.");
 }
 
 #endif

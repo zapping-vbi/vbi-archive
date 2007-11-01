@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.13.2.15 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: export.c,v 1.13.2.16 2007-11-01 00:21:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -34,13 +34,14 @@
 #include <math.h>		/* fabs() */
 
 #include "misc.h"
-#include "version.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
+#  include "version.h"
 #  include "intl-priv.h"
 #endif
 #include "export-priv.h"
+#include "conv.h"
 
 /**
  * @addtogroup Export Exporting formatted Teletext and Closed Caption pages
@@ -273,16 +274,15 @@ _vbi3_export_invalid_option	(vbi3_export *		e,
 			s = va_arg (ap, const char *);
 
 			if (!s)
-				STRCOPY (buf, "NULL");
+				STRACPY (buf, "NULL");
 			else
-				snprintf (buf, sizeof (buf) - 1,
-					  "'%s'", s);
+				snprintf (buf, sizeof (buf) - 1, "'%s'", s);
 			break;
 
 		default:
 			fprintf (stderr, "%s: unknown export option type %d\n",
 				 __FUNCTION__, oi->type);
-			STRCOPY (buf, "?");
+			STRACPY (buf, "?");
 			break;
 		}
 
@@ -294,6 +294,19 @@ _vbi3_export_invalid_option	(vbi3_export *		e,
 	_vbi3_export_error_printf (e, _("Invalid argument %s "
 				       "for option %s of export module %s."),
 				  buf, keyword, module_name (e));
+}
+
+const char *
+_vbi3_export_codeset		(const char *		codeset)
+{
+	if (0 == strcmp (codeset, "locale")) {
+		codeset = vbi3_locale_codeset ();
+		if (NULL == codeset) {
+			codeset = "ASCII";
+		}
+	}
+
+	return codeset;
 }
 
 /**
@@ -1495,3 +1508,10 @@ vbi3_export_new			(const char *		keyword,
 
 	return e;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

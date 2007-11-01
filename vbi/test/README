@@ -23,10 +23,12 @@ explist
 
 export
 	Exports a Teletext page from a TTX sample stream on stdin, eg.
-	./export "text;charset=ISO-8859-1,control=1" 100 <samples/s1-swr >foo.txt
+	./export "text;charset=ISO-8859-1,control=1" 100 \
+	  <samples/s1-swr >foo.txt
 	./capture --sim --pal --sliced | ./export "png" 100 >foo.png
+	./capture --pes | ./export "html" 300 >foo.html
 	Purpose: test teletext decoder and export modules. (Sample streams
-	are in CVS zapping/libvbi/samples.)
+	are in CVS zapping/libvbi/samples, versions before 2003-11.)
 
 caption
 	Closed Caption test displaying a hello world message or the
@@ -93,7 +95,35 @@ capture
 decode
 	Decodes sliced VBI data on stdin, e. g.
 	./capture --sliced | ./decode --vps
-	Try ./decode -h for options.
+	Also a test of the low level decoding functions in libzvbi.
+	Type ./decode -h for options.
+
+event
+	Decodes sliced VBI data on stdin, using the high level
+	decoder of libzvbi, and prints all generated events. E. g.
+	./capture --sliced | ./event --all
+	Type ./event -h for options.
+
+sliced2pes
+	Converts ./capture --sliced format to DVB PES.  For example
+	"./capture --sliced | ./sliced2pes >file" is equivalent to
+	"./capture --pes >file".
+	Type ./sliced2pes -h for options.
+
+date
+	Sets the system clock from the date and time transmitted in
+	Teletext packet 8/30/2. Just tune to a reliable channel,
+	then type ./date
+	Type ./date -h for options.
+
+ttxfilter
+	Filters Teletext pages out of a VBI stream. Useful mostly
+	to extract subtitles, for example
+	"./capture --sliced | ./ttxfilter 150 777 300-400 >file".
+	Type ./ttxfilter -h for options.
+
+test-*.cc
+	Unit tests (make check).
 
 The ultimate test is http://zapping.sourceforge.net, the TV viewer this
 library was written for.

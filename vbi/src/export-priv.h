@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export-priv.h,v 1.1.2.2 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: export-priv.h,v 1.1.2.3 2007-11-01 00:21:23 mschimek Exp $ */
 
 #ifndef EXPORT_PRIV_H
 #define EXPORT_PRIV_H
@@ -151,6 +151,8 @@ extern char *
 _vbi3_export_strdup		(vbi3_export *		e,
 				 char **		d,
 				 const char *		s);
+extern const char *
+_vbi3_export_codeset		(const char *		codeset);
 
 /* Option info building */
 
@@ -271,3 +273,10 @@ _vbi3_export_strdup		(vbi3_export *		e,
 /** @} */
 
 #endif /* EXPORT_PRIV_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

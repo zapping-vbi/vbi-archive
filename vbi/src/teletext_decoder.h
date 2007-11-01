@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.h,v 1.1.2.6 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: teletext_decoder.h,v 1.1.2.7 2007-11-01 00:21:25 mschimek Exp $ */
 
 #ifndef __ZVBI3_TELETEXT_DECODER_H__
 #define __ZVBI3_TELETEXT_DECODER_H__
@@ -62,7 +62,7 @@ vbi3_teletext_decoder_search_utf8_new
 				 vbi3_bool		regexp,
 				 vbi3_search_progress_cb *progress,
 				 void *			user_data)
-  __attribute__ ((malloc,
+  __attribute__ ((_vbi3_alloc,
 		  _vbi3_nonnull (1, 5)));
 extern vbi3_bool
 vbi3_teletext_decoder_get_top_title
@@ -77,7 +77,7 @@ vbi3_teletext_decoder_get_top_titles
 				(vbi3_teletext_decoder *	td,
 				 const vbi3_network *	nk,
 				 unsigned int *		n_elements)
-  __attribute__ ((malloc,
+  __attribute__ ((_vbi3_alloc,
 		  _vbi3_nonnull (1, 3)));
 extern vbi3_bool
 vbi3_teletext_decoder_get_ttx_page_stat
@@ -99,7 +99,7 @@ vbi3_teletext_decoder_get_page_va_list
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
 				 va_list		format_options)
-  __attribute__ ((malloc,
+  __attribute__ ((_vbi3_alloc,
 		  _vbi3_nonnull (1)));
 extern vbi3_page *
 vbi3_teletext_decoder_get_page	(vbi3_teletext_decoder *	td,
@@ -107,7 +107,7 @@ vbi3_teletext_decoder_get_page	(vbi3_teletext_decoder *	td,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
 				 ...)
-  __attribute__ ((malloc,
+  __attribute__ ((_vbi3_alloc,
 		  _vbi3_nonnull (1),
 		  _vbi3_sentinel));
 extern vbi3_bool
@@ -147,10 +147,17 @@ extern vbi3_teletext_decoder *
 vbi3_teletext_decoder_new	(vbi3_cache *		ca,
 				 const vbi3_network *	nk,
 				 vbi3_videostd_set	videostd_set)
-  __attribute__ ((malloc));
+  __attribute__ ((_vbi3_alloc));
 
 /** @} */
 
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_TELETEXT_DECODER_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

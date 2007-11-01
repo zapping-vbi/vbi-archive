@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.h,v 1.6.2.12 2006-05-14 14:14:11 mschimek Exp $ */
+/* $Id: bcd.h,v 1.6.2.13 2007-11-01 00:21:22 mschimek Exp $ */
 
 #ifndef __ZVBI3_BCD_H__
 #define __ZVBI3_BCD_H__
@@ -92,7 +92,7 @@ vbi3_add_bcd			(int			a,
  *
  * Note the ten's complement of VBI3_BCD_MIN is not representable
  * as signed packed bcd, this function will return VBI3_BCD_MAX + 1
- * (0x1000&nbsp;0000) instead.
+ * (0x10000000) instead.
  */
 vbi3_inline int
 vbi3_neg_bcd			(int			bcd)
@@ -143,9 +143,9 @@ vbi3_is_bcd			(int			bcd)
  * @param maximum Unsigned maximum value.
  *
  * Compares an unsigned packed bcd number digit-wise against a maximum
- * value, for example 0x295959. The function operates in constant time
- * and takes about six machine instructions. @a maximum can contain
- * digits 0x0 ... 0xF.
+ * value, for example 0x295959. The function takes constant time,
+ * about six machine instructions. @a maximum can contain digits 0x0
+ * ... 0xF.
  *
  * @return
  * @c TRUE if any digit of @a bcd is greater than the
@@ -173,7 +173,7 @@ vbi3_bcd_digits_greater		(unsigned int		bcd,
  * containing digits 0xA to 0xF are reserved for various system
  * purposes, these pages are not intended for display.
  * 
- * Closed Caption page numbers between 1 ... 8 correspond
+ * Closed Caption "page numbers" between 1 ... 8 correspond
  * to the four Caption and Text channels CC1 ... CC4 and T1 ... T4.
  */
 typedef int vbi3_pgno;
@@ -216,7 +216,7 @@ typedef int vbi3_pgno;
  * a BCD number in range 0x01 ... 0x79. Pages without subpages
  * have subpage number 0x00.
  *
- * On special 'clock' pages (for example listing the current time
+ * On special "clock" pages (for example listing the current time
  * in different time zones) it can assume values between 0x0000 ...
  * 0x2359 expressing local time (EN 300 706, Section E.2). These are
  * not actually subpages.
@@ -313,3 +313,10 @@ namespace vbi {
 #endif /* __cplusplus */
 
 #endif /* __ZVBI3_BCD_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.6.2.24 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: vbi.c,v 1.6.2.25 2007-11-01 00:21:25 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -79,6 +79,11 @@
 
 //pthread_once_t vbi3_init_once = PTHREAD_ONCE_INIT;
 
+void *(* vbi3_malloc)(size_t)		= malloc;
+void *(* vbi3_realloc)(void *, size_t)	= realloc;
+char *(* vbi3_strdup)(const char *)	= strdup;
+void (* vbi3_free)(void *)		= free;
+
 void
 vbi3_set_log_fn			(vbi3_log_mask		mask,
 				 vbi3_log_fn *		log_fn,
@@ -126,3 +131,10 @@ vbi3_version			(unsigned int *		major,
 		+ (VBI_VERSION_MINOR << 8)
 		+ (VBI_VERSION_MICRO << 0));
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

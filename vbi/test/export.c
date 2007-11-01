@@ -1,7 +1,7 @@
 /*
  *  libzvbi test
  *
- *  Copyright (C) 2000, 2001 Michael H. Schimek
+ *  Copyright (C) 2004, 2005, 2007 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.5.2.15 2006-05-26 00:43:07 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.16 2007-11-01 00:21:26 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -28,86 +28,264 @@
 
 #include <locale.h>
 #include <unistd.h>
+#include <ctype.h>
+#include <errno.h>
 #ifdef HAVE_GETOPT_LONG
 #  include <getopt.h>
 #endif
-#include <ctype.h>
-#include <errno.h>
 
-#include "src/misc.h"
-#include "src/zvbi.h"
+#include "src/version.h"
+#if 2 == VBI_VERSION_MINOR
+#  include "src/cache.h"
+#  include "src/decoder.h"
+#  include "src/export.h"
+#  include "src/page_table.h"
+#  include "src/vbi.h"
+#  include "src/vt.h"
+#  define vbi_decoder_feed(vbi, sliced, n_lines, ts)			\
+	vbi_decode (vbi, sliced, n_lines, ts)
+#  define vbi_export_info_from_export(ex)				\
+	vbi_export_info_export (ex)
+   /* Not available. */
+#  define vbi_export_set_timestamp(ex, ts) ((void) 0)
+#  define vbi_export_set_link_cb(ex, cb, ud) ((void) 0)
+#  define vbi_export_set_pdc_cb(ex, cb, ud) ((void) 0)
+typedef unsigned int vbi_ttx_charset_code;
+#elif 3 == VBI_VERSION_MINOR
+#  include "src/misc.h"
+#  include "src/zvbi.h"
+#else
+#  error VBI_VERSION_MINOR == ?
+#endif
 
-typedef struct {
-	uint16_t		pgno;
-	uint16_t		subno;
-} pgnum;
+#include "sliced.h"
 
-static pgnum *		pgnos;
-static unsigned int	n_pgnos;
-static unsigned int	max_pgnos;
-static unsigned int	left_pgnos;
+#undef _
+#define _(x) x /* later */
 
-vbi3_dvb_demux *	dx;
-vbi3_decoder *		vbi;
-vbi3_export *		e;
-unsigned int		delay;
-char *			extens;
-char			cr;
-vbi3_bool		quit;
+#define PROGRAM_NAME "zvbi-export"
 
-char *			filename_prefix;
-char *			filename_suffix;
-vbi3_bool		source_pes;
-vbi3_ttx_charset_code	option_default_cs;
-vbi3_rgba		option_default_fg = (vbi3_rgba) 0xFFFFFF;
-vbi3_rgba		option_default_bg = (vbi3_rgba) 0x000000;
-vbi3_bool		option_dump_pg;
-vbi3_bool		option_enum;
-vbi3_bool		option_header_only;
-vbi3_bool		option_hyperlinks;
-vbi3_bool		option_navigation;
-vbi3_ttx_charset_code	option_override_cs;
-vbi3_bool		option_row_update;
-vbi3_bool		option_padding;
-vbi3_bool		option_panels;
-vbi3_bool		option_pdc_links;
-vbi3_bool		option_stream;
-vbi3_bool		option_dcc = TRUE;
-vbi3_bool               option_fast;
+static const char *		option_in_file_name;
+static enum file_format		option_in_file_format;
+static unsigned int		option_in_ts_pid;
 
-unsigned int		verbose;
+static vbi3_bool		option_dcc;
+static unsigned int		option_delay;
+static vbi3_ttx_charset_code	option_default_cs;
+static vbi3_ttx_charset_code	option_override_cs;
+static vbi3_bool		option_dump_pg;
+static vbi3_bool		option_fast;
+static vbi3_bool		option_header_only;
+static vbi3_bool		option_hyperlinks;
+static vbi3_bool		option_navigation;
+static vbi3_bool		option_padding;
+static vbi3_bool		option_panels;
+static vbi3_bool		option_pdc_enum;
+static vbi3_bool		option_pdc_links;
+static vbi3_bool		option_row_update;
+static vbi3_bool		option_subtitles;
+static vbi3_rgba		option_default_bg;
+static vbi3_rgba		option_default_fg;
 
-char *			my_name;
+static struct stream *		rst;
+static vbi3_decoder *		vbi;
+static vbi3_export *		ex;
+
+static vbi3_page_table *	pt;
+static vbi3_pgno		cc_chan;
+
+static char *			out_file_name_prefix;
+static char *			out_file_name_suffix;
+
+static int			cr;
+
+static vbi3_bool		quit;
 
 static void
-pgnos_add			(vbi3_pgno		pgno,
+close_output_file		(FILE *			fp)
+{
+	if (fp != stdout) {
+		if (0 != fclose (fp))
+			write_error_exit (/* msg: errno */ NULL);
+	} else {
+		fflush (fp);
+	}
+}
+
+static FILE *
+open_output_file		(vbi3_pgno		pgno,
 				 vbi3_subno		subno)
 {
-	if (n_pgnos >= max_pgnos) {
-		unsigned int new_max;
-		pgnum *p;
+	FILE *fp;
+	char *name;
+	int r;
 
-		new_max = MAX (1U, max_pgnos * 2);
+	if (NULL == out_file_name_prefix)
+		return stdout;
 
-		p = realloc (pgnos, sizeof (*p) * new_max);
-		if (NULL == p) {
-			fprintf (stderr, "Out of memory.\n");
-			exit (EXIT_FAILURE);
-		}
+	r = asprintf (&name, "%s-%03x-%02x.%s",
+		      out_file_name_prefix, pgno, subno,
+		      out_file_name_suffix);
+	if (r < 0 || NULL == name)
+		no_mem_exit ();
 
-		pgnos = p;
-		max_pgnos = new_max;
+	fp = fopen (name, "w");
+	if (NULL == fp) {
+		error_exit (_("Could not open "
+			      "output file '%s': %s."),
+			    name, strerror (errno));
 	}
 
-	pgnos[n_pgnos].pgno = pgno;
-	pgnos[n_pgnos].subno = subno;
+	free (name);
 
-	++n_pgnos;
+	return fp;
 }
+
+static void
+page_dump			(vbi3_page *		pg)
+{
+	unsigned int row;
+
+	for (row = 0; row < (unsigned int) pg->rows; ++row) {
+		const vbi3_char *cp;
+		unsigned int column;
+
+		fprintf (stderr, "%2d: >", row);
+
+		cp = pg->text + row * pg->columns;
+
+		for (column = 0; column < (unsigned int) pg->columns;
+		     ++column) {
+			int c;
+
+			c = cp[column].unicode;
+			if (c < 0x20 || c > 0x7E)
+				c = '.';
+
+			fputc (c, stderr);
+		}
+
+		fputs ("<\n", stderr);
+	}
+}
+
+#if 2 == VBI_VERSION_MINOR
+
+static void
+do_export			(vbi_pgno		pgno,
+				 vbi_subno		subno)
+{
+	FILE *fp;
+	vbi_page page;
+	vbi_bool success;
+
+	if (option_delay > 1) {
+		--option_delay;
+		return;
+	}
+
+	success = vbi_fetch_vt_page (vbi, &page,
+				     pgno, subno,
+				     VBI_WST_LEVEL_3p5,
+				     /* n_rows */ 25,
+				     /* navigation */ TRUE);
+	if (!success) {
+		/* Shouldn't happen. */
+		error_exit (_("Unknown error."));
+	}
+
+	if (option_dump_pg) {
+		page_dump (&page);
+	}
+
+	fp = open_output_file (pgno, subno);
+
+	success = vbi_export_stdio (ex, fp, &page);
+	if (!success) {
+		error_exit (_("Export of page %x failed: %s."),
+			    pgno,
+			    vbi_export_errstr (ex));
+	}
+
+	close_output_file (fp);
+	fp = NULL;
+
+	vbi_unref_page (&page);
+}
+
+static void
+event_handler			(vbi_event *		ev,
+				 void *			user_data)
+{
+	vbi_pgno pgno;
+	vbi_subno subno;
+
+	user_data = user_data; /* unused */
+
+	if (quit)
+		return;
+
+	switch (ev->type) {
+	case VBI_EVENT_TTX_PAGE:
+		pgno = ev->ev.ttx_page.pgno;
+		subno = ev->ev.ttx_page.subno;
+
+		if (option_log_mask & VBI3_LOG_INFO) {
+			fprintf (stderr,
+				 "Teletext page %03x.%02x   %c",
+				 pgno, subno, cr);
+		}
+
+		if (0 == vbi_page_table_num_pages (pt)) {
+			do_export (pgno, subno);
+		} else if (vbi_page_table_contains_page (pt, pgno)) {
+			do_export (pgno, subno);
+
+			if (!option_subtitles) {
+				vbi_page_table_remove_page (pt, pgno);
+
+				quit = (0 == vbi_page_table_num_pages (pt));
+			}
+		}
+
+		break;
+
+	default:
+		assert (0);
+	}
+}
+
+static void
+finalize			(void)
+{
+	/* Nothing to do. */
+}
+
+static void
+init_vbi_decoder		(void)
+{
+	vbi_bool success;
+
+	vbi = vbi_decoder_new ();
+	if (NULL == vbi)
+		no_mem_exit ();
+
+	success = vbi_event_handler_add (vbi,
+					 VBI_EVENT_TTX_PAGE,
+					 event_handler,
+					 /* user_data */ NULL);
+	if (!success)
+		no_mem_exit ();
+}
+
+#elif 3 == VBI_VERSION_MINOR
+
+#define ev_timestamp ev->timestamp
 
 extern void
 vbi3_preselection_dump		(const vbi3_preselection *pl,
 				 FILE *			fp);
+
 static void
 pdc_dump			(vbi3_page *		pg)
 {
@@ -150,9 +328,11 @@ export_link			(vbi3_export *		export,
 
 	case VBI3_LINK_PAGE:
 	case VBI3_LINK_SUBPAGE:
-		fprintf (fp, "<a href=\"ttx-%3x-%02x.html\">%s</a>",
+		fprintf (fp, "<a href=\"%s-%3x-%02x.%s\">%s</a>",
+			 out_file_name_prefix ? out_file_name_prefix : "ttx",
 			 link->pgno,
 			 (VBI3_ANY_SUBNO == link->subno) ? 0 : link->subno,
+			 out_file_name_suffix ? out_file_name_suffix : "html",
 			 link->name);
 		break;
 
@@ -178,8 +358,8 @@ export_pdc			(vbi3_export *		export,
 
 	end = pl->at1_hour * 60 + pl->at1_minute + pl->length;
 
-	/* XXX pl->title uses locale encoding but the html page may not
-	   (export charset parameter). */
+	/* XXX pl->title uses locale encoding but the html page may not.
+	   (export charset parameter) */
 	fprintf (fp, "<acronym title=\"%04u-%02u-%02u "
 		 "%02u:%02u-%02u:%02u "
 		 "VPS/PDC: %02u%02u TTX: %x Title: %s"
@@ -194,33 +374,6 @@ export_pdc			(vbi3_export *		export,
 }
 
 static void
-page_dump			(vbi3_page *		pg)
-{
-	unsigned int row;
-
-	for (row = 0; row < pg->rows; ++row) {
-		const vbi3_char *cp;
-		unsigned int column;
-
-		fprintf (stderr, "%2d: >", row);
-
-		cp = pg->text + row * pg->columns;
-
-		for (column = 0; column < pg->columns; ++column) {
-			int c;
-
-			c = cp[column].unicode;
-			if (c < 0x20 || c > 0x7E)
-				c = '.';
-
-			fputc (c, stderr);
-		}
-
-		fputs ("<\n", stderr);
-	}
-}
-
-static void
 do_export			(vbi3_pgno		pgno,
 				 vbi3_subno		subno,
 				 double			timestamp)
@@ -228,19 +381,9 @@ do_export			(vbi3_pgno		pgno,
 	FILE *fp;
 	vbi3_page *pg;
 
-	if (delay > 0) {
-		--delay;
+	if (option_delay > 1) {
+		--option_delay;
 		return;
-	}
-
-	if (verbose && !option_stream) {
-		fprintf (stderr, "\nSaving... ");
-
-		if (option_dump_pg || isatty (STDERR_FILENO)) {
-			fputc ('\n', stderr);
-		}
-
-		fflush (stderr);
 	}
 
 	if (pgno >= 0x100) {
@@ -274,7 +417,7 @@ do_export			(vbi3_pgno		pgno,
 	} else {
 		pg = vbi3_decoder_get_page
 			(vbi, NULL /* current network */,
-			 pgno, 0,
+			 pgno, subno,
 			 VBI3_PADDING, option_padding,
 			 VBI3_DEFAULT_FOREGROUND, option_default_fg,
 			 VBI3_DEFAULT_BACKGROUND, option_default_bg,
@@ -288,109 +431,64 @@ do_export			(vbi3_pgno		pgno,
 		page_dump (pg);
 	}
 
-	if (1 == n_pgnos || NULL == filename_prefix) {
-		fp = stdout;
-	} else {
-		char name[256];
+	fp = open_output_file (pgno, subno);
 
-		if (NULL == filename_suffix) {
-			snprintf (name, sizeof (name) - 1,
-				  "%s-%03x-%02x.%s",
-				  filename_prefix, pgno, subno, extens);
-		} else {
-			snprintf (name, sizeof (name) - 1,
-				  "%s-%03x-%02x%s",
-				  filename_prefix, pgno, subno,
-				  filename_suffix);
-		}
+	/* For proper timing of subtitles. */
+	vbi3_export_set_timestamp (ex, timestamp);
 
-		fp = fopen (name, "w");
-		if (NULL == fp) {
-			fprintf (stderr,
-				 "%s: Could not open '%s' for output: %s\n",
-				 my_name, optarg, strerror (errno));
-			exit (EXIT_FAILURE);
-		}
+	if (!vbi3_export_stdio (ex, fp, pg)) {
+		error_exit (_("Export of page %x failed: %s."),
+			    pgno,
+			    vbi3_export_errstr (ex));
 	}
 
-	vbi3_export_set_timestamp (e, timestamp);
-
-	if (!vbi3_export_stdio (e, fp, pg)) {
-		fprintf (stderr, "Export failed: %s\n",
-			 vbi3_export_errstr (e));
-		exit (EXIT_FAILURE);
-	}
-
-	if (verbose && !option_stream) {
-		fprintf (stderr, "done\n");
-	}
-
-	if (option_enum) {
+	if (option_pdc_enum) {
 		pdc_dump (pg);
 	}
 
-	fflush (fp);
-
-	if (fp != stdout) {
-		int r;
-
-		r = fclose (fp);
-		assert (0 == r);
-	}
+	close_output_file (fp);
+	fp = NULL;
 
 	vbi3_page_delete (pg);
-
-	if (option_stream) {
-		/* More... */
-	} else if (1 == n_pgnos) {
-		quit = TRUE;
-	}
+	pg = NULL;
 }
 
 static void
-filter_pgnos                    (void)
+update_page_table		(void)
 {
-	unsigned int i;
+	vbi3_pgno pgno;
 
-	if (0 == n_pgnos) {
+	if (0 == vbi3_page_table_num_pages (pt))
 		return;
-	}
 
-	for (i = 0; i < n_pgnos; ++i) {
+	pgno = 0;
+
+	while (vbi3_page_table_next_page (pt, &pgno)) {
 		vbi3_ttx_page_stat ps;
 
 		if (!vbi3_teletext_decoder_get_ttx_page_stat
 		    (vbi3_decoder_cast_to_teletext_decoder (vbi),
-		     &ps, /* nk: current */ NULL, pgnos[i].pgno)) {
+		     &ps, /* nk: current */ NULL, pgno)) {
 			continue;
 		}
 
-#warning XXX what are the defaults in ps until we receive the page inventory?
+/* XXX what are the defaults in ps until we receive the page inventory? */
 		if (VBI3_NO_PAGE == ps.page_type) {
-			goto remove;
+			vbi3_page_table_remove_page (pt, pgno);
+		} else if (0 && ps.subpages > 0) {
+			if (!vbi3_page_table_contains_all_subpages (pt, pgno))
+				vbi3_page_table_remove_subpages (pt,
+								 pgno,
+								 ps.subpages,
+								 0x3F7E);
 		}
-
-		if (VBI3_ANY_SUBNO == pgnos[i].subno) {
-			continue;
-		}
-
-		if (ps.subpages > 0
-		    && vbi3_bcd2bin (pgnos[i].subno) > ps.subpages) {
-			goto remove;
-		}
-
-		continue;
-
-	remove:
-		pgnos[i].pgno = 0;
-		pgnos[i].subno = 0;
-
-		quit = (0 == --left_pgnos);
 	}
+
+	quit = (0 == vbi3_page_table_num_pages (pt));
 }
 
 static vbi3_bool
-handler				(const vbi3_event *	ev,
+event_handler			(const vbi3_event *	ev,
 				 void *			user_data)
 {
 	vbi3_pgno pgno;
@@ -398,14 +496,30 @@ handler				(const vbi3_event *	ev,
 
 	user_data = user_data; /* unused */
 
+	if (quit)
+		return TRUE;
+
 	switch (ev->type) {
 	case VBI3_EVENT_TTX_PAGE:
 		pgno = ev->ev.ttx_page.pgno;
 		subno = ev->ev.ttx_page.subno;
 
-		if (verbose) {
-			fprintf (stderr, "Teletext page %03x.%02x %c",
-				 pgno, subno & 0xFF, cr);
+		if (option_log_mask & VBI3_LOG_INFO) {
+			fprintf (stderr,
+				 "Teletext page %03x.%02x   %c",
+				 pgno, subno, cr);
+		}
+
+		if (0 == vbi3_page_table_num_pages (pt)) {
+			do_export (pgno, subno, ev->timestamp);
+		} else if (vbi3_page_table_contains_page (pt, pgno)) {
+			do_export (pgno, subno, ev->timestamp);
+
+			if (!option_subtitles) {
+				vbi3_page_table_remove_page (pt, pgno);
+
+				quit = (0 == vbi3_page_table_num_pages (pt));
+			}
 		}
 
 		break;
@@ -413,491 +527,594 @@ handler				(const vbi3_event *	ev,
 	case VBI3_EVENT_CC_PAGE:
 		if (option_row_update
 		    && !(ev->ev.caption.flags & VBI3_ROW_UPDATE))
-			return TRUE;
+			break;
 
 		pgno = ev->ev.caption.channel;
-		subno = VBI3_ANY_SUBNO;
 
-		if (verbose) {
-			fprintf (stderr, "Caption channel %u %c",
+		if (option_log_mask & VBI3_LOG_INFO) {
+			fprintf (stderr,
+				 "Caption channel %u   %c",
 				 pgno, cr);
 		}
+
+		if (pgno != cc_chan)
+			break;
+
+		do_export (pgno, VBI3_ANY_SUBNO, ev->timestamp);
 
 		break;
 
 	case VBI3_EVENT_PAGE_TYPE:
-		filter_pgnos ();
+		update_page_table ();
 		break;
 
 	default:
 		assert (0);
 	}
 
-	if (n_pgnos > 0) {
-		unsigned int i;
-
-		for (i = 0; i < n_pgnos; ++i) {
-			if (pgno == pgnos[i].pgno
-			    && (VBI3_ANY_SUBNO == pgnos[i].subno
-				|| subno == pgnos[i].subno)) {
-				do_export (pgno, subno, ev->timestamp);
-
-				if (!option_stream) {
-					pgnos[i].pgno = 0;
-					pgnos[i].subno = 0;
-
-					quit = (0 == --left_pgnos);
-				}
-			}
-		}
-	} else {
-		do_export (pgno, subno, ev->timestamp);
-	}
-
 	return TRUE; /* handled */
 }
 
 static void
-pes_mainloop			(void)
+finalize			(void)
 {
-	uint8_t buffer[2048];
+	const vbi3_export_info *xi;
 
-	while (1 == fread (buffer, sizeof (buffer), 1, stdin)) {
-		const uint8_t *bp;
-		unsigned int left;
+	xi = vbi3_export_info_from_export (ex);
 
-		bp = buffer;
-		left = sizeof (buffer);
-
-		while (left > 0) {
-			vbi3_sliced sliced[64];
-			unsigned int lines;
-			int64_t pts;
-
-			lines = vbi3_dvb_demux_cor (dx,
-						    sliced, 64,
-						    &pts,
-						    &bp, &left);
-#warning no lines (pts ok, no frame dropping) or error?
-			if (lines > 0)
-				vbi3_decoder_feed (vbi, sliced, lines,
-						    pts / 90000.0);
-
-			if (quit)
-				return;
-		}
-	}
-
-	if (!feof (stdin)) {
-		perror ("Read error");
-		exit (EXIT_FAILURE);
+	if (xi->open_format && NULL == out_file_name_prefix) {
+		if (!vbi3_export_stdio (ex, stdout, NULL))
+			write_error_exit (vbi3_export_errstr (ex));
 	}
 }
 
 static void
-old_mainloop			(void)
+init_vbi_decoder		(void)
 {
-	char buf[256];
-	double time = 0.0, dt;
-	int index, items, i;
-	vbi3_sliced *s, sliced[40];
+	vbi3_event_mask event_mask;
+	vbi3_bool success;
 
-	while (!quit) {
-		if (ferror (stdin) || !fgets (buf, 255, stdin))
-			goto abort;
+	/* XXX videostd? */
+	vbi = vbi3_decoder_new (/* cache: allocate one */ NULL,
+				/* network: current */ NULL,
+				VBI3_VIDEOSTD_SET_625_50);
+	if (NULL == vbi)
+		no_mem_exit ();
 
-		dt = strtod (buf, NULL);
-		if (dt < 0.0) {
-			dt = -dt;
-		}
+	vbi3_decoder_detect_channel_change (vbi, option_dcc);
 
-		items = fgetc (stdin);
+	event_mask = (VBI3_EVENT_TTX_PAGE |
+		      VBI3_EVENT_CC_PAGE);
+	if (option_fast)
+		event_mask |= VBI3_EVENT_PAGE_TYPE;
 
-		assert (items < 40);
+	success = vbi3_decoder_add_event_handler (vbi, event_mask,
+						  event_handler,
+						  /* user_data */ NULL);
+	if (!success)
+		no_mem_exit ();
+}
 
-		for (s = sliced, i = 0; i < items; s++, i++) {
-			index = fgetc (stdin);
-			s->line = (fgetc (stdin)
-				   + 256 * fgetc (stdin)) & 0xFFF;
+#else
+#  error VBI_VERSION_MINOR == ?
+#endif
 
-			if (index < 0)
-				goto abort;
+static vbi3_bool
+decode_frame			(const vbi3_sliced *	sliced,
+				 unsigned int		n_lines,
+				 const uint8_t *	raw,
+				 const vbi3_sampling_par *sp,
+				 double			sample_time,
+				 int64_t		stream_time)
+{
+	static vbi3_bool have_start_timestamp = FALSE;
 
-			switch (index) {
-			case 0:
-				s->id = VBI3_SLICED_TELETEXT_B;
-				fread (s->data, 1, 42, stdin);
-				break;
-			case 1:
-				s->id = VBI3_SLICED_CAPTION_625; 
-				fread (s->data, 1, 2, stdin);
-				break; 
-			case 2:
-				s->id = VBI3_SLICED_VPS; 
-				fread (s->data, 1, 13, stdin);
-				break;
-			case 3:
-				s->id = VBI3_SLICED_WSS_625; 
-				fread (s->data, 1, 2, stdin);
-				break;
-			case 4:
-				s->id = VBI3_SLICED_WSS_CPR1204; 
-				fread (s->data, 1, 3, stdin);
-				break;
-			case 7:
-				s->id = VBI3_SLICED_CAPTION_525; 
-				fread (s->data, 1, 2, stdin);
-				break;
-			default:
-				fprintf (stderr, "\nOops! Unknown data %d "
-					 "in sample file\n", index);
-				exit(EXIT_FAILURE);
-			}
-		}
+	raw = raw; /* unused */
+	sp = sp;
+	stream_time = stream_time;
 
-		if (feof (stdin) || ferror (stdin))
-			goto abort;
-
-		vbi3_decoder_feed (vbi, sliced, items, time);
-
-		time += dt;
+	/* To calculate the delay of the first subtitle page. */
+	if (!have_start_timestamp) {
+		vbi3_export_set_timestamp (ex, sample_time);
+		have_start_timestamp = TRUE;
 	}
 
-	return;
+	vbi3_decoder_feed (vbi, sliced, n_lines, sample_time);
 
-abort:
-	if (ferror (stdin)) {
-		perror ("Read error");
-		exit (EXIT_FAILURE);
+	return !quit;
+}
+
+static void
+init_export_module		(const char *		module_name)
+{
+	const vbi3_export_info *xi;
+	char *errstr;
+
+	errstr = NULL; /* just in case */
+
+	ex = vbi3_export_new (module_name, &errstr);
+	if (NULL == ex) {
+		error_exit (_("Cannot open export module '%s': %s."),
+			    module_name, errstr);
+		/* NB. free (errstr); here if you don't exit(). */
+	}
+
+	if (0 == strncmp (module_name, "html", 4)) {
+		if (option_hyperlinks)
+			vbi3_export_set_link_cb (ex, export_link,
+						 /* user_data */ NULL);
+
+		if (option_pdc_links)
+			vbi3_export_set_pdc_cb (ex, export_pdc,
+						/* user_data */ NULL);
+	}
+
+	xi = vbi3_export_info_from_export (ex);
+
+	if (NULL == xi)
+		no_mem_exit ();
+
+	if (NULL == out_file_name_suffix) {
+		char *end = NULL;
+
+		out_file_name_suffix = strdup (xi->extension);
+		if (NULL == out_file_name_suffix)
+			no_mem_exit ();
+
+		out_file_name_suffix = strtok_r (out_file_name_suffix,
+						 ",", &end);
+	}
+
+#if 3 == VBI_VERSION_MINOR
+	if (xi->open_format)
+		option_subtitles ^= TRUE;
+#endif
+}
+
+static void
+list_options			(vbi3_export *		ex)
+{
+	const vbi3_option_info *oi;
+	unsigned int i;
+
+	for (i = 0; (oi = vbi3_export_option_info_enum (ex, i)); ++i) {
+		char buf[32];
+
+		switch (oi->type) {
+		case VBI3_OPTION_BOOL:
+		case VBI3_OPTION_INT:
+		case VBI3_OPTION_MENU:
+			snprintf (buf, sizeof (buf), "%d", oi->def.num);
+			break;
+
+		case VBI3_OPTION_REAL:
+			snprintf (buf, sizeof (buf), "%f", oi->def.dbl);
+			break;
+
+		case VBI3_OPTION_STRING:
+			break;
+		}
+
+		if (NULL == oi->tooltip)
+			continue;
+
+		if (NULL == oi->tooltip) {
+			printf ("  Option '%s' (%s)\n",
+				oi->keyword,
+				VBI3_OPTION_STRING == oi->type ?
+				oi->def.str : buf);
+		} else {
+			printf ("  Option '%s' - %s (%s)\n",
+				oi->keyword,
+				_(oi->tooltip),
+				VBI3_OPTION_STRING == oi->type ?
+				oi->def.str : buf);
+		}
+
+		if (VBI3_OPTION_MENU == oi->type) {
+			int i;
+
+			for (i = oi->min.num; i <= oi->max.num; ++i) {
+				printf ("    %d - %s\n",
+					i, _(oi->menu.str[i]));
+			}
+		}
 	}
 }
 
+static void
+list_modules			(void)
+{
+	const vbi3_export_info *xi;
+	unsigned int i;
+
+	for (i = 0; (xi = vbi3_export_info_enum (i)); ++i) {
+		vbi3_export *ex;
+
+		printf ("'%s' - %s\n",
+			_(xi->keyword),
+			_(xi->tooltip));
+
+		ex = vbi3_export_new (xi->keyword, /* errstr */ NULL);
+		if (NULL == ex)
+			no_mem_exit ();
+
+		list_options (ex);
+
+		vbi3_export_delete (ex);
+		ex = NULL;
+	}
+}
+
+static void
+usage				(FILE *			fp)
+{
+	/* FIXME Supposed to be _(localized) but we can't use #ifs
+	   within the _() macro. */
+	fprintf (fp, "\
+%s %s -- Teletext and Closed Caption export utility\n\n\
+Copyright (C) 2004, 2005, 2007 Michael H. Schimek\n\
+This program is licensed under GPLv2. NO WARRANTIES.\n\n\
+Usage: %s [options] format [page number(s)] < sliced vbi data > file\n\
+-h | --help | --usage  Print this message and exit\n\
+-q | --quiet           Suppress progress and error messages\n\
+-v | --verbose         Increase verbosity\n\
+-V | --version         Print the program version and exit\n\
+Input options:\n\
+-i | --input name      Read the VBI data from this file instead of\n\
+                       standard input\n\
+-P | --pes             Source is a DVB PES stream\n\
+-T | --ts pid          Source is a DVB TS stream\n\
+Scan options:\n"
+#if 3 == VBI_VERSION_MINOR
+"-f | --fast            Do not wait for Teletext pages which are\n\
+                       currently not in transmission\n"
+#endif
+"-w | --wait n          Export the second (third, fourth, ...)\n\
+                       transmission of the requested page\n"
+#if 3 == VBI_VERSION_MINOR
+"Formatting options:\n\
+-n | --nav             Add TOP or FLOF navigation elements to Teletext\n\
+                       pages\n\
+-d | --pad             Add an extra column to Teletext pages for a more\n\
+                       balanced view, spaces to Closed Caption pages for\n\
+                       readability\n"
+#endif
+"Export options:\n"
+#if 3 == VBI_VERSION_MINOR
+"-e | --pdc-enum        Print additional Teletext PDC information\n"
+#endif
+"-g | --dump-pg         For debugging dump the vbi3_page being exported\n"
+#if 3 == VBI_VERSION_MINOR
+"-l | --links           Turn HTTP, SMTP, etc. links on a Teletext page\n\
+                       into hyperlinks in HTML output\n"
+#endif
+"-o | --output name     Write the page to this file instead of standard\n\
+                       output. The page number and a suitable .extension\n\
+                       will be appended as necessary.\n"
+#if 3 == VBI_VERSION_MINOR
+"-p | --pdc             Turn PDC markup on a Teletext page into hyperlinks\n\
+                       in HTML output\n\
+-r | --row-update      Export a Closed Caption page only when a row is\n\
+                       complete, not on every new character. Has only an\n\
+                       effect on roll-up and paint-on style caption.\n\
+-s | --stream          Export all (rather than just one) transmissions\n\
+                       of this page to a single file. This is the default\n\
+                       for caption/subtitle formats.\n"
+#endif
+"Formats:\n\
+-i | --list            List available output formats and their options.\n\
+		       Append options to the format name separated by\n\
+                       commas: text,charset=UTF-8\n\
+Valid page numbers are:\n"
+#if 3 == VBI_VERSION_MINOR
+"1 ... 8                Closed Caption channel 1 ... 4, text channel\n\
+                       1 ... 4\n"
+#endif
+"100 ... 899            Teletext page. The program can export multiple\n\
+                       Teletext pages: 100 110 200-299. If no page\n\
+                       numbers are given it exports all received Teletext\n\
+                       pages until it is terminated.\n\
+",
+		 PROGRAM_NAME, VERSION, program_invocation_name);
+}
+
 static const char
-short_options [] = "cdefhlno:prsvwPTV";
+short_options [] = "1cdefghi:lmno:pqrsvwAB:C:F:H:O:PT:V";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
 long_options [] = {
-	{ "dcc",	no_argument,		NULL,		'c' },
-	{ "pad",	no_argument,		NULL,		'd' },
-	{ "pdc-enum",	no_argument,		NULL,		'e' },
-	{ "fast",	no_argument,		NULL,		'f' },
-	{ "help",	no_argument,		NULL,		'h' },
-	{ "links",	no_argument,		NULL,		'l' },
-	{ "nav",	no_argument,		NULL,		'n' },
-	{ "output",	required_argument,	NULL,		'o' },
-	{ "pdc",	no_argument,		NULL,		'p' },
-	{ "row-update", no_argument,		NULL,		'r' },
-	{ "stream",	no_argument,		NULL,		's' },
-	{ "verbose",	no_argument,		NULL,		'v' },
-	{ "wait",	no_argument,		NULL,		'w' },
-	{ "pes",	no_argument,		NULL,		'P' },
-	{ "dump-pg",	no_argument,		NULL,		'T' },
-	{ "version",	no_argument,		NULL,		'V' },
+	{ "all-pages",		no_argument,		NULL,	'1' },
+	{ "dcc",		no_argument,		NULL,	'c' },
+	{ "pad",		no_argument,		NULL,	'd' },
+	{ "pdc-enum",		no_argument,		NULL,	'e' },
+	{ "fast",		no_argument,		NULL,	'f' },
+	{ "dump-pg",		no_argument,		NULL,	'g' },
+	{ "help",		no_argument,		NULL,	'h' },
+	{ "usage",		no_argument,		NULL,	'h' },
+	{ "input",		required_argument,	NULL,	'i' },
+	{ "links",		no_argument,		NULL,	'l' },
+	{ "list",		no_argument,		NULL,	'm' },
+	{ "nav",		no_argument,		NULL,	'n' },
+	{ "output",		required_argument,	NULL,	'o' },
+	{ "pdc",		no_argument,		NULL,	'p' },
+	{ "quiet",		no_argument,		NULL,	'q' },
+	{ "row-update", 	no_argument,		NULL,	'r' },
+	{ "stream",		no_argument,		NULL,	's' },
+	{ "verbose",		no_argument,		NULL,	'v' },
+	{ "wait",		no_argument,		NULL,	'w' },
+	{ "side-panels",	required_argument,	NULL,	'A' },
+	{ "default-bg",		required_argument,	NULL,	'B' },
+	{ "default-cs",		required_argument,	NULL,	'C' },
+	{ "default-fg",		required_argument,	NULL,	'F' },
+	{ "header-only",	required_argument,	NULL,	'H' },
+	{ "override-cs",	required_argument,	NULL,	'O' },
+	{ "pes",		no_argument,		NULL,	'P' },
+	{ "ts",			required_argument,	NULL,	'T' },
+	{ "version",		no_argument,		NULL,	'V' },
 	{ NULL, 0, 0, 0 }
 };
 #else
 #  define getopt_long(ac, av, s, l, i) getopt(ac, av, s)
 #endif
 
-static void
-usage				(FILE *			fp)
-{
-	fprintf (fp, "\
-Libzvbi test/export version " VERSION "\n\
-Copyright (C) 2004-2005 Michael H. Schimek\n\
-This program is licensed under GPL 2. NO WARRANTIES.\n\n\
-Exports a Teletext or Closed Caption page in various formats.\n\n\
-Usage: %s [options] format page < sliced vbi data > file\n\n\
-Currently supported formats are:\n\
-html           HTML page\n\
-mpsub          MPSub (MPlayer) subtitle file\n\
-png            PNG image\n\
-ppm            PPM (raw RGB) image\n\
-qttext         QuickTime Text subtitle/caption file\n\
-realtext       RealText subtitle/caption file\n\
-sami           SAMI 1.0 subtitle/caption file\n\
-subrip         SubRip subtitle file\n\
-subviewer      SubViewer 2.x subtitle file\n\
-text           Plain text\n\
-vtx            VTX file (VideoteXt application)\n\
-               Most formats have options you can set by appending them as\n\
-	       a comma separated list, e.g. text,charset=UTF-8,... Try\n\
-               test/explist for an overview.\n\
-Valid page numbers are:\n\
-1 ... 8        Closed Caption channel 1 ... 4, text channel 1 ... 4.\n\
-100 ... 899    Teletext page 100 ... 899.\n\
-0              All Teletext pages. In this case files are stored in the\n\
-               current directory rather than sent to stdout. Not useful\n\
-               with caption/subtitle formats.\n\
-Input options:\n\
--P | --pes     Source is a DVB PES (autodetected when it starts with a PES\n\
-               packet header), otherwise test/capture --sliced output.\n\
--f | --fast    Don't wait for pages which are currently not in\n\
-               transmission.\n\
--w | --wait n  Start at the second (third, fourth, ...) transmission of\n\
-               this page.\n\
-Formatting options:\n\
--n | --nav     Add TOP or FLOF navigation elements to Teletext pages.\n\
--p | --pad     Add an extra column to Teletext pages for a more balanced\n\
-               view, spaces to Caption pages for readability.\n\
-Export options:\n\
--e | --pdc-enum Print additional Teletext PDC information.\n\
--o | --output name  Write the page to this file. The page number and\n\
-                    a suitable .ext will be appended if necessary\n\
--l | --links   Turn http, smtp, etc links on a Teletext page into\n\
-               hyperlinks in HTML output.\n\
--p | --pdc     Turn PDC markup on a Teletext page into hyperlinks.\n\
--r | --row-update Export a page only when a row is complete, not on every\n\
-               new character. Has only an effect on roll-up and paint-on\n\
-               style caption.\n\
--s | --stream  Export all (rather than one) transmissions of this page\n\
-               to a single file. This is the default for caption/subtitle\n\
-               formats, the option toggles. Not really useful with other\n\
-               formats.\n\
--T | --dump-pg Dump the vbi_page being exported, for debugging.\n\
-Miscellaneous options:\n\
--h | --help    Print this message.\n\
--v | --verbose Increase verbosity (progress messages).\n\
--V | --version Print the version number of this program.\n\
-",
-		 my_name);
-}
+static int			option_index;
 
 static void
-output_option			(void)
+parse_output_option		(void)
 {
 	assert (NULL != optarg);
 
-	free (filename_prefix);
-	filename_prefix = NULL;
+	free (out_file_name_prefix);
+	out_file_name_prefix = NULL;
 
-	free (filename_suffix);
-	filename_suffix = NULL;
+	free (out_file_name_suffix);
+	out_file_name_suffix = NULL;
 
 	if (0 == strcmp (optarg, "-")) {
+		/* Write to stdout. */
 	} else {
 		char *s;
 
-		s = strchr (optarg, '.');
+		s = strrchr (optarg, '.');
 		if (NULL == s) {
-			filename_prefix = strdup (optarg);
-			assert (NULL != filename_prefix);
+			out_file_name_prefix = strdup (optarg);
+			if (NULL == out_file_name_prefix)
+				no_mem_exit ();
 		} else {
-			filename_prefix = strndup (optarg, s - optarg);
-			assert (NULL != filename_prefix);
+			out_file_name_prefix = strndup (optarg, s - optarg);
+			if (NULL == out_file_name_prefix)
+				no_mem_exit ();
 
-			filename_suffix = strdup (s);
-			assert (NULL != filename_suffix);
+			out_file_name_suffix = strdup (s);
+			if (NULL == out_file_name_suffix)
+				no_mem_exit ();
 		}
 	}
 }
 
 static vbi3_bool
-strtopgnum			(vbi3_pgno *		pgno,
-				 vbi3_subno *		subno,
-				 const char **		s1)
+valid_pgno			(vbi3_pgno		pgno)
 {
-	const char *s;
-	char *end;
-
-	s = *s1;
-
-	while (*s && isspace (*s))
-		++s;
-
-	*pgno = strtoul (s, &end, 16);
-	*subno = VBI3_ANY_SUBNO;
-	s = end;
-
-	if (0 == *pgno)
-		return TRUE;
-
-	if (!vbi3_is_bcd (*pgno))
-		return FALSE;
-
-	if (*pgno >= 1 && *pgno <= 8) {
-	} else if (*pgno >= 0x100 && *pgno <= 0x899) {
-		if ('.' == *s) {
-			++s;
-
-			*subno = strtoul (s, &end, 16);
-   			s = end;
-
-			if (!vbi3_is_bcd (*subno))
-				return FALSE;
-
-			if (*subno < 0x00 || *subno > 0x79)
-				return FALSE;
-		}
-	} else {
-		return FALSE;
-	}
-
-	*s1 = s;
-
-	return TRUE;
+	return (vbi3_is_bcd (pgno)
+		&& pgno >= 0x100
+		&& pgno <= 0x899);
 }
 
-static unsigned int
-pgnos_from_argv			(char **		argv,
-				 int			argc)
+static void
+invalid_pgno_exit		(const char *		arg)
 {
-	while (argc-- > 0) {
-		const char *s;
+	error_exit (_("Invalid page number '%s'."), arg);
+}
+
+static void
+parse_page_numbers		(unsigned int		argc,
+				 char **		argv)
+{
+	unsigned int i;
+
+	for (i = 0; i < argc; ++i) {
 		vbi3_pgno first_pgno;
-		vbi3_subno first_subno;
 		vbi3_pgno last_pgno;
-		vbi3_subno last_subno;
+		vbi3_bool success;
+		const char *s;
+		char *end;
 
-		s = *argv++;
+		s = argv[i];
 
-		if (!strtopgnum (&first_pgno, &first_subno, &s)) {
-			usage (stderr);
-			exit (EXIT_FAILURE);
+		first_pgno = strtoul (s, &end, 16);
+		s = end;
+
+		if (first_pgno >= 1 && first_pgno <= 8) {
+			if (0 != cc_chan) {
+				error_exit (_("Can export only one "
+					      "Closed Caption channel."));
+			}
+
+			cc_chan = first_pgno;
+
+			while (*s && isspace (*s))
+				++s;
+
+			if (0 != *s)
+				invalid_pgno_exit (argv[i]);
+
+			continue;
 		}
 
-		if (0 == first_pgno) {
-			return 0;
-		}
+		if (!valid_pgno (first_pgno))
+			invalid_pgno_exit (argv[i]);
 
 		last_pgno = first_pgno;
-		last_subno = first_subno;
 
-		while (*s && isspace (*s)) {
+		while (*s && isspace (*s))
 			++s;
-		}
 
 		if ('-' == *s) {
 			++s;
 
-			if (!strtopgnum (&last_pgno, &last_subno, &s)) {
-				usage (stderr);
-				exit (EXIT_FAILURE);
-			}
+			while (*s && isspace (*s))
+				++s;
 
-			if (0 == last_pgno) {
-				usage (stderr);
-				exit (EXIT_FAILURE);
-			}
+			last_pgno = strtoul (s, &end, 16);
+			s = end;
 
-			if (last_pgno < first_pgno
-			    || last_subno < first_subno) {
-				SWAP (first_pgno, last_pgno);
-				SWAP (first_subno, last_subno);
-			}
+			if (!valid_pgno (last_pgno))
+				invalid_pgno_exit (argv[i]);
+		} else if (0 != *s) {
+			invalid_pgno_exit (argv[i]);
 		}
 
-		if (VBI3_ANY_SUBNO == first_subno) {
-			if (VBI3_ANY_SUBNO != last_subno) {
-				usage (stderr);
-				exit (EXIT_FAILURE);
-			}
-
-			do {
-				pgnos_add (first_pgno, first_subno);
-				first_pgno = vbi3_add_bcd (first_pgno, 0x001);
-			} while (first_pgno <= last_pgno);
-		} else {
-			if (first_pgno != last_pgno
-			    || VBI3_ANY_SUBNO == last_subno) {
-				usage (stderr);
-				exit (EXIT_FAILURE);
-			}
-
-			do {
-				pgnos_add (first_pgno, first_subno);
-				first_subno = vbi3_add_bcd (first_subno, 0x01);
-			} while (first_subno <= last_subno);
-		}
+		success = vbi3_page_table_add_pages (pt, first_pgno,
+						     last_pgno);
+		if (!success)
+			no_mem_exit ();
 	}
-
-	return n_pgnos;
 }
 
 int
 main				(int			argc,
 				 char **		argv)
 {
-	char *module, *t;
-	const vbi3_export_info *xi;
-	vbi3_bool success;
-	vbi3_event_mask events;
-	int index;
-	int c;
+	const char *module_name;
+	unsigned int n_pages;
+	vbi3_bool all_pages;
 
-	setlocale (LC_ALL, "");
+	init_helpers (argc, argv);
 
-	my_name = argv[0];
+	option_in_file_format = FILE_FORMAT_SLICED;
 
-	while (-1 != (c = getopt_long (argc, argv, short_options,
-				       long_options, &index))) {
+	option_default_fg = (vbi3_rgba) 0xFFFFFF;
+	option_default_bg = (vbi3_rgba) 0x000000;
+
+	all_pages = FALSE;
+
+	for (;;) {
+		int c;
+
+		c = getopt_long (argc, argv, short_options,
+				 long_options, &option_index);
+		if (-1 == c)
+			break;
+
 		switch (c) {
-		case 0:
+		case 0: /* getopt_long() flag */
+			break;
+
+		case '1':
+			/* Compatibility (used to be pgno -1). */
+			all_pages = TRUE;
 			break;
 
 		case 'c':
-			option_dcc ^= TRUE;
+			option_dcc = TRUE;
 			break;
 
 		case 'd':
-			option_padding ^= TRUE;
+			option_padding = TRUE;
 			break;
 
 		case 'e':
-			option_enum ^= TRUE;
+			option_pdc_enum = TRUE;
 			break;
 
 		case 'f':
-			option_fast ^= TRUE;
+			option_fast = TRUE;
+			break;
+
+		case 'g':
+			option_dump_pg = TRUE;
 			break;
 
 		case 'h':
 			usage (stdout);
 			exit (EXIT_SUCCESS);
 
-		case 'l':
-			option_hyperlinks ^= TRUE;
+		case 'i':
+			assert (NULL != optarg);
+			option_in_file_name = optarg;
 			break;
 
+		case 'l':
+			option_hyperlinks = TRUE;
+			break;
+
+		case 'm':
+			list_modules ();
+			exit (EXIT_SUCCESS);
+
 		case 'n':
-			option_navigation ^= TRUE;
+			option_navigation = TRUE;
 			break;
 
 		case 'o':
-			output_option ();
+			parse_output_option ();
 			break;
 
 		case 'p':
-			option_pdc_links ^= TRUE;
+			option_pdc_links = TRUE;
+			break;
+
+		case 'q':
+			parse_option_quiet ();
 			break;
 
 		case 'r':
-			option_row_update ^= TRUE;
+			option_row_update = TRUE;
 			break;
 
 		case 's':
-			option_stream ^= TRUE;
+			option_subtitles = TRUE;
 			break;
 
 		case 'v':
-			++verbose;
+			parse_option_verbose ();
 			break;
 
 		case 'w':
-			delay += 1;
+			option_delay += 1;
+			break;
+
+		case 'A':
+			option_panels = TRUE;
+			break;
+
+		case 'B':
+			assert (NULL != optarg);
+			option_default_bg = strtoul (optarg, NULL, 0);
+			break;
+
+		case 'C':
+			assert (NULL != optarg);
+			option_default_cs = strtoul (optarg, NULL, 0);
+			break;
+
+		case 'F':
+			assert (NULL != optarg);
+			option_default_fg = strtoul (optarg, NULL, 0);
+			break;
+
+		case 'H':
+			option_header_only = TRUE;
+			break;
+
+		case 'O':
+			assert (NULL != optarg);
+			option_override_cs = strtoul (optarg, NULL, 0);
 			break;
 
 		case 'P':
-			source_pes ^= TRUE;
+			option_in_file_format = FILE_FORMAT_DVB_PES;
 			break;
 
 		case 'T':
-			option_dump_pg ^= TRUE;
+			option_in_ts_pid = parse_option_ts ();
+			option_in_file_format = FILE_FORMAT_DVB_TS;
 			break;
 
 		case 'V':
-			printf (VERSION "\n");
+			printf (PROGRAM_NAME " " VERSION "\n");
 			exit (EXIT_SUCCESS);
 
 		default:
@@ -906,92 +1123,99 @@ main				(int			argc,
 		}
 	}
 
-	if (argc - optind < 2) {
+	option_pdc_links |= option_pdc_enum;
+
+	if (argc - optind < 1) {
 		usage (stderr);
 		exit (EXIT_FAILURE);
 	}
 
-	option_pdc_links |= option_enum;
+	module_name = argv[optind++];
 
-	module = argv[optind++];
-	e = vbi3_export_new (module, &t);
-	if (NULL == e) {
-		fprintf (stderr, "Failed to open export module '%s': %s\n",
-			 module, t);
-		exit (EXIT_FAILURE);
+	pt = vbi3_page_table_new ();
+	if (NULL == pt)
+		no_mem_exit ();
+
+	if (all_pages) {
+		/* Compatibility. */
+
+		out_file_name_prefix = strdup ("test");
+		if (NULL == out_file_name_prefix)
+			no_mem_exit ();
+	} else {
+		parse_page_numbers (argc - optind, &argv[optind]);
 	}
 
-	pgnos_from_argv (&argv[optind], argc - optind);
-	left_pgnos = n_pgnos;
+	n_pages = vbi3_page_table_num_pages (pt);
 
-	if (isatty (STDIN_FILENO)) {
-		fprintf (stderr, "No vbi data on stdin\n");
-		exit (EXIT_FAILURE);
+	if (1 != n_pages && option_delay > 0) {
+		error_exit (_("The --wait option requires "
+			      "a single page number."));
 	}
+
+	if (NULL == out_file_name_prefix) {
+		switch (n_pages) {
+		case 0: /* all pages? */
+			error_exit (_("No page number or "
+				      "output file name specified."));
+			break;
+
+		case 1: /* one page to stdout */
+			break;
+
+		default: /* multiple pages */
+			error_exit (_("No output file name specified."));
+			break;
+		}
+	}
+
+	init_export_module (module_name);
+
+	init_vbi_decoder ();
 
 	cr = isatty (STDERR_FILENO) ? '\r' : '\n';
 
-	if (0 == strncmp (module, "html", 4)) {
-		if (option_hyperlinks)
-			vbi3_export_set_link_cb (e, export_link, NULL);
+	rst = read_stream_new (option_in_file_name,
+			       option_in_file_format,
+			       option_in_ts_pid,
+			       decode_frame);
 
-		if (option_pdc_links)
-			vbi3_export_set_pdc_cb (e, export_pdc, NULL);
+	stream_loop (rst);
+
+	stream_delete (rst);
+	rst = NULL;
+
+	vbi3_decoder_delete (vbi);
+	vbi = NULL;
+
+	finalize ();
+
+	free (out_file_name_prefix);
+	out_file_name_prefix = NULL;
+
+	free (out_file_name_suffix);
+	out_file_name_suffix = NULL;
+
+	if (!option_subtitles) {
+		n_pages = vbi3_page_table_num_pages (pt);
+
+		if (1 == n_pages) {
+			vbi3_pgno pgno = 0;
+
+			vbi3_page_table_next_page (pt, &pgno);
+
+			error_exit (_("End of stream. Page %03x not found."),
+				    pgno);
+		} else if (n_pages > 0) {
+			error_exit (_("End of stream. %u pages not found."));
+		}
 	}
 
-	xi = vbi3_export_info_from_export (e);
-	assert (NULL != xi);
+	vbi3_page_table_delete (pt);
+	pt = NULL;
 
-	extens = strdup (xi->extension);
-	assert (NULL != extens);
-
-	extens = strtok_r (extens, ",", &t);
-
-	if (xi->open_format)
-		option_stream ^= TRUE;
-
-	vbi = vbi3_decoder_new (NULL, NULL, VBI3_VIDEOSTD_SET_625_50);
-	assert (NULL != vbi);
-
-	vbi3_decoder_detect_channel_change (vbi, option_dcc);
-
-	events = (VBI3_EVENT_TTX_PAGE |
-		  VBI3_EVENT_CC_PAGE);
-
-	if (option_fast) {
-		events |= VBI3_EVENT_PAGE_TYPE;
-	}
-
-	success = vbi3_decoder_add_event_handler (vbi, events, handler,
-						  /* user_data */ NULL);
-	assert (success);
-
-	c = getchar ();
-	ungetc (c, stdin);
-
-	if (0 == c || source_pes) {
-		dx = vbi3_dvb_pes_demux_new (/* callback */ NULL, NULL);
-		assert (NULL != dx);
-
-		pes_mainloop ();
-	} else {
-		old_mainloop ();
-	}
-
-	if (xi->open_format) {
-		/* Finalize. */
-		/* XXX error check */
-		vbi3_export_stdio (e, stdout, NULL);
-	}
-
-	if (0 == n_pgnos) {
-		quit = TRUE; /* end of file ok */
-	}
-
-	if (!quit && verbose) {
-		fprintf (stderr, "\nEnd of stream, "
-			 "requested pages not found\n");
-	}
+	vbi3_export_delete (ex);
+	ex = NULL;
 
 	exit (EXIT_SUCCESS);
 }

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.h,v 1.1.2.8 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: network.h,v 1.1.2.9 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifndef __ZVBI3_NETWORK_H__
 #define __ZVBI3_NETWORK_H__
@@ -288,6 +288,8 @@ struct _vbi3_network_pdc {
 	 */
 	unsigned int		time_offset;
 
+	unsigned int		flags;
+
 	void *			_reserved1[10];
 	int			_reserved2[10];
 };
@@ -310,3 +312,10 @@ _vbi3_network_get_pdc		(const vbi3_network *	nk)
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_NETWORK_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

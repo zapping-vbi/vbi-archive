@@ -1,7 +1,7 @@
 /*
- *  libzvbi test
+ *  zvbi-sliced2pes -- Sliced VBI file converter
  *
- *  Copyright (C) 2004 Michael H. Schimek
+ *  Copyright (C) 2004, 2007 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,190 +18,294 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced2pes.c,v 1.3.2.2 2006-05-07 06:05:00 mschimek Exp $ */
+/* $Id: sliced2pes.c,v 1.3.2.3 2007-11-01 00:21:26 mschimek Exp $ */
 
-#undef NDEBUG
+/* For libzvbi version 0.2.x / 0.3.x. */
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <locale.h>
+#include <limits.h>
 #include <assert.h>
-#include <unistd.h>
-#include <time.h>
 #ifdef HAVE_GETOPT_LONG
-#include <getopt.h>
+#  include <getopt.h>
 #endif
 
-#include "src/zvbi.h"
+#include "src/version.h"
+#if 2 == VBI_VERSION_MINOR
+#  include "src/dvb_mux.h"
+#elif 3 == VBI_VERSION_MINOR
+#  include "src/zvbi.h"
+#else
+#  error VBI_VERSION_MINOR == ?
+#endif
 
-static vbi3_dvb_mux *		mx;
+#include "sliced.h"
+
+#undef _
+#define _(x) x /* i18n TODO */
+
+/* Will be installed one day. */
+#define PROGRAM_NAME "sliced2pes"
+
+static const char *		option_in_file_name;
+static enum file_format		option_in_file_format;
+static unsigned int		option_in_ts_pid;
+
+static const char *		option_out_file_name;
+static enum file_format		option_out_file_format;
+static unsigned int		option_out_ts_pid;
+
+static unsigned long		option_data_identifier;
+static unsigned long		option_min_pes_packet_size;
+static unsigned long		option_max_pes_packet_size;
+
+static struct stream *		rst;
+static struct stream *		wst;
 
 static vbi3_bool
-binary_ts_pes			(vbi3_dvb_mux *		mx,
-				 void *			user_data,
-				 const uint8_t *	packet,
-				 unsigned int		packet_size)
+output_frame			(const vbi3_sliced *	sliced,
+				 unsigned int		n_lines,
+				 const uint8_t *	raw,
+				 const vbi3_sampling_par *sp,
+				 double			sample_time,
+				 int64_t		stream_time)
 {
-	fwrite (packet, 1, packet_size, stdout);
+	raw = raw; /* unused */
+	sp = sp;
+
+	write_stream_sliced (wst, sliced, n_lines,
+			     /* raw */ NULL,
+			     /* sp */ NULL,
+			     sample_time, stream_time);
 	return TRUE;
 }
 
 static void
-mainloop			(void)
+get_mux_defaults		(void)
 {
-	double time;
+	vbi3_dvb_mux *mx;
 
-	time = 0.0;
+	mx = vbi3_dvb_pes_mux_new (/* callback */ NULL,
+				   /* user_data */ NULL);
+	if (NULL == mx)
+		no_mem_exit ();
 
-	for (;;) {
-		char buf[256];
-		double dt;
-		unsigned int n_items;
-		vbi3_sliced sliced[40];
-		vbi3_sliced *s;
+	option_data_identifier =
+		vbi3_dvb_mux_get_data_identifier (mx);
 
-		if (ferror (stdin) || !fgets (buf, 255, stdin))
-			goto abort;
+	option_min_pes_packet_size =
+		vbi3_dvb_mux_get_min_pes_packet_size (mx);
 
-		dt = strtod (buf, NULL);
-		n_items = fgetc (stdin);
+	option_max_pes_packet_size =
+		vbi3_dvb_mux_get_max_pes_packet_size (mx);
 
-		assert (n_items < 40);
+	vbi3_dvb_mux_delete (mx);
+}
 
-		s = sliced;
+static void
+usage				(FILE *			fp)
+{
+	get_mux_defaults ();
 
-		while (n_items-- > 0) {
-			int index;
-
-			index = fgetc (stdin);
-
-			s->line = (fgetc (stdin)
-				   + 256 * fgetc (stdin)) & 0xFFF;
-
-			if (index < 0)
-				goto abort;
-
-			switch (index) {
-			case 0:
-				s->id = VBI3_SLICED_TELETEXT_B;
-				fread (s->data, 1, 42, stdin);
-				break;
-
-			case 1:
-				s->id = VBI3_SLICED_CAPTION_625; 
-				fread (s->data, 1, 2, stdin);
-				break; 
-
-			case 2:
-				s->id = VBI3_SLICED_VPS;
-				fread (s->data, 1, 13, stdin);
-				break;
-
-			case 3:
-				s->id = VBI3_SLICED_WSS_625; 
-				fread (s->data, 1, 2, stdin);
-				break;
-
-			case 4:
-				s->id = VBI3_SLICED_WSS_CPR1204; 
-				fread (s->data, 1, 3, stdin);
-				break;
-
-			case 7:
-				s->id = VBI3_SLICED_CAPTION_525; 
-				fread(s->data, 1, 2, stdin);
-				break;
-
-			default:
-				fprintf (stderr,
-					 "\nOops! Unknown data type %d "
-					 "in sample file\n", index);
-				exit (EXIT_FAILURE);
-			}
-
-			++s;
-		}
-
-		/* XXX shouldn't use system time. */
-		_vbi3_dvb_mux_mux (mx, sliced, s - sliced, -1, time * 90000);
-
-		if (feof (stdin) || ferror (stdin))
-			goto abort;
-
-		time += dt;
-	}
-
-	return;
-
-abort:
-	fflush (stdout);
-
-	fprintf (stderr, "\rEnd of stream\n");
+	fprintf (fp, _("\
+%s %s -- VBI stream converter\n\n\
+Copyright (C) 2004, 2007 Michael H. Schimek\n\
+This program is licensed under GPLv2 or later. NO WARRANTIES.\n\n\
+Usage: %s [options] < sliced VBI data > PES or TS stream\n\
+-h | --help | --usage             Print this message and exit\n\
+-q | --quiet                      Suppress progress and error messages\n\
+-v | --verbose                    Increase verbosity\n\
+-V | --version                    Print the program version and exit\n\
+Input options:\n\
+-i | --input name                 Read the VBI data from this file instead\n\
+                                  of standard input\n\
+-P | --pes | --pes-input          Source is a DVB PES stream\n\
+-T | --ts | --ts-input pid        Source is a DVB TS stream\n\
+Output options:\n\
+-d | --data-identifier n          0x10 ... 0x1F for compatibility with\n\
+                                  ETS 300 472 compliant decoders, or\n\
+                                  0x99 ... 0x9B as defined in EN 301 775\n\
+                                  (default 0x%02lx)\n\
+-m | --max | --max-packet-size n  Maximum PES packet size (%lu bytes)\n\
+-n | --min | --min-packet-size n  Minimum PES packet size (%lu bytes)\n\
+-o | --output name                Write the VBI data to this file instead\n\
+                                  of standard output\n\
+-p | --pes-output                 Generate a DVB PES stream\n\
+-t | --ts-output pid              Generate a DVB TS stream with this PID\n\
+"),
+		 PROGRAM_NAME, VERSION, program_invocation_name,
+		 option_data_identifier,
+		 option_max_pes_packet_size,
+		 option_min_pes_packet_size);
 }
 
 static const char
-short_options [] = "h";
+short_options [] = "d:hi:m:n:o:pqt:vPT:V";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
 long_options [] = {
-	{ "help",	no_argument,		NULL,		'h' },
+	{ "data-identifier",	required_argument,	NULL,	'd' },
+	{ "help",		no_argument,		NULL,	'h' },
+	{ "usage",		no_argument,		NULL,	'h' },
+	{ "input",		required_argument,	NULL,	'i' },
+	{ "max-packet-size",	required_argument,	NULL,	'm' },
+	{ "min-packet-size",	required_argument,	NULL,	'n' },
+	{ "output",		required_argument,	NULL,	'o' },
+	{ "pes-output",		no_argument,		NULL,	'p' },
+	{ "quiet",		no_argument,		NULL,	'q' },
+	{ "ts-output",		required_argument,	NULL,	't' },
+	{ "verbose",		no_argument,		NULL,	'v' },
+	{ "pes-input",		no_argument,		NULL,	'P' },
+	{ "ts-input",		required_argument,	NULL,	'T' },
+	{ "version",		no_argument,		NULL,	'V' },
 	{ NULL, 0, 0, 0 }
 };
 #else
-#define getopt_long(ac, av, s, l, i) getopt(ac, av, s)
+#  define getopt_long(ac, av, s, l, i) getopt(ac, av, s)
 #endif
 
+static int			option_index;
+
 static void
-usage				(FILE *			fp,
-				 char **		argv)
+parse_option_data_identifier	(void)
 {
-	fprintf (fp,
-		 "Usage: %s < sliced vbi data > pes stream\n",
-		 argv[0]);
+	const char *s = optarg;
+	char *end;
+
+	assert (NULL != optarg);
+
+	option_data_identifier = strtoul (s, &end, 0);
+
+	if (option_data_identifier > 0xFF) {
+		error_exit (_("Invalid data identifier 0x%02lx."),
+			    option_data_identifier);
+	}
 }
 
 int
 main				(int			argc,
 				 char **		argv)
 {
-	int index;
-	int c;
+	init_helpers (argc, argv);
 
-	setlocale (LC_ALL, "");
+	get_mux_defaults ();
 
-	while (-1 != (c = getopt_long (argc, argv, short_options,
-				       long_options, &index))) {
+	option_in_file_format = FILE_FORMAT_SLICED;
+	option_out_file_format = FILE_FORMAT_DVB_PES;
+
+	for (;;) {
+		int c;
+
+		c = getopt_long (argc, argv, short_options,
+				 long_options, &option_index);
+		if (-1 == c)
+			break;
+
 		switch (c) {
-		case 0:
+		case 0: /* getopt_long() flag */
+			break;
+
+		case 'd':
+			parse_option_data_identifier ();
 			break;
 
 		case 'h':
-			usage (stdout, argv);
+			usage (stdout);
+			exit (EXIT_SUCCESS);
+
+		case 'i':
+			assert (NULL != optarg);
+			option_in_file_name = optarg;
+			break;
+
+		case 'm':
+			assert (NULL != optarg);
+			option_max_pes_packet_size =
+				strtoul (optarg, NULL, 0);
+			if (option_max_pes_packet_size > UINT_MAX)
+				option_max_pes_packet_size = UINT_MAX;
+			break;
+
+		case 'n':
+			assert (NULL != optarg);
+			option_min_pes_packet_size =
+				strtoul (optarg, NULL, 0);
+			if (option_min_pes_packet_size > UINT_MAX)
+				option_min_pes_packet_size = UINT_MAX;
+			break;
+
+		case 'o':
+			assert (NULL != optarg);
+			option_out_file_name = optarg;
+			break;
+
+		case 'p':
+			option_out_file_format = FILE_FORMAT_DVB_PES;
+			break;
+
+		case 'q':
+			parse_option_quiet ();
+			break;
+
+		case 't':
+			option_out_ts_pid = parse_option_ts ();
+			option_out_file_format = FILE_FORMAT_DVB_TS;
+			break;
+
+		case 'v':
+			parse_option_verbose ();
+			break;
+
+		case 'P':
+			option_in_file_format = FILE_FORMAT_DVB_PES;
+			break;
+
+		case 'T':
+			option_in_ts_pid = parse_option_ts ();
+			option_in_file_format = FILE_FORMAT_DVB_TS;
+			break;
+
+		case 'V':
+			printf (PROGRAM_NAME " " VERSION "\n");
 			exit (EXIT_SUCCESS);
 
 		default:
-			usage (stderr, argv);
+			usage (stderr);
 			exit (EXIT_FAILURE);
 		}
 	}
 
-	if (isatty (STDIN_FILENO)) {
-		fprintf (stderr, "No vbi data on stdin\n");
-		exit (EXIT_FAILURE);
-	}
+	wst = write_stream_new (option_out_file_name,
+				option_out_file_format,
+				option_out_ts_pid,
+				/* system */ 625);
 
-	mx = _vbi3_dvb_mux_pes_new (/* data_identifier */ 0x10,
-				   /* packet_size */ 8 * 184,
-				   VBI3_VIDEOSTD_SET_625_50,
-				   binary_ts_pes,
-				   /* user_data */ NULL);
-	assert (NULL != mx);
+	write_stream_set_data_identifier (wst, option_data_identifier);
+	write_stream_set_pes_packet_size (wst,
+					  option_min_pes_packet_size,
+					  option_max_pes_packet_size);
 
-	mainloop ();
+	rst = read_stream_new (option_in_file_name,
+			       option_in_file_format,
+			       option_in_ts_pid,
+			       output_frame);
+
+	stream_loop (rst);
+
+	stream_delete (rst);
+	rst = NULL;
+
+	stream_delete (wst);
+	wst = NULL;
+
+	error_msg (_("End of stream."));
 
 	exit (EXIT_SUCCESS);
 }

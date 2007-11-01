@@ -1,3 +1,25 @@
+/*
+ *  libzvbi
+ *
+ *  Copyright (C) 2004 Michael H. Schimek
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
+/* $Id: fontgen.c,v 1.1.2.5 2007-11-01 00:21:23 mschimek Exp $ */
+
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
@@ -5,7 +27,7 @@
 #include <ctype.h>
 
 #include "misc.h"
-#include "hamm.c" /* vbi3_bit_reverse[] */
+#include "hamm.c"		/* vbi3_rev8() */
 
 static char *			font_name;
 
@@ -80,7 +102,7 @@ pbm_read			(void)
 
 	image_size = image_width * image_height / 8;
 
-	image = vbi3_malloc (image_size);
+	image = malloc (image_size);
 
 	if (NULL == image) {
 		fprintf (stderr, "out of memory\n");
@@ -176,3 +198,10 @@ main				(int			argc,
 
 	return 0;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

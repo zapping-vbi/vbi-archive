@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.c,v 1.1.2.7 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: event.c,v 1.1.2.8 2007-11-01 00:21:22 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -337,3 +337,10 @@ _vbi3_event_handler_list_init	(_vbi3_event_handler_list *es)
 
 	return TRUE;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

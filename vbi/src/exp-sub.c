@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-sub.c,v 1.1.2.9 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: exp-sub.c,v 1.1.2.10 2007-11-01 00:21:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -32,10 +32,10 @@
 #include "page.h"		/* vbi3_page */
 #include "conv.h"
 #include "lang.h"		/* vbi3_ttx_charset, ... */
-#include "version.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
+#  include "version.h"
 #  include "intl-priv.h"
 #endif
 #include "export-priv.h"	/* vbi3_export */
@@ -101,8 +101,7 @@ typedef struct sub_instance {
 	vbi3_pgno		last_pgno;
 
 	double			last_timestamp;
-
-	double			delay_time;
+	double			last_t2;
 
 	unsigned int		n_pages;
 	unsigned int		blank_pages;
@@ -155,7 +154,8 @@ option_info1 [] = {
 	 10, user_encodings, N_ELEMENTS (user_encodings), NULL),
         /* one for users, another for programs */
 	_VBI3_OPTION_STRING_INITIALIZER
-	("charset", NULL, "UTF-8", NULL),
+	("charset", NULL, "locale",
+	 N_("Character set, for example ISO-8859-1, UTF-8")),
 };
 
 static const vbi3_option_info
@@ -165,9 +165,11 @@ option_info2 [] = {
 	 10, user_encodings, N_ELEMENTS (user_encodings), NULL),
         /* one for users, another for programs */
 	_VBI3_OPTION_STRING_INITIALIZER
-	("charset", NULL, "UTF-8", NULL),
+	("charset", NULL, "locale",
+	 N_("Character set, for example ISO-8859-1, UTF-8")),
 	_VBI3_OPTION_STRING_INITIALIZER
-	("font", N_("Font face"), "Tahoma", NULL),
+	("font", N_("Font face"), "Tahoma",
+	 N_("Name of the font to be encoded into the file")),
 };
 
 #undef KEYWORD
@@ -237,7 +239,10 @@ option_get			(vbi3_export *		e,
 	if (KEYWORD ("format") || KEYWORD ("encoding")) {
 		value->num = sub->encoding;
 	} else if (KEYWORD ("charset")) {
-		value->str = _vbi3_export_strdup (e, NULL, sub->charset);
+		const char *codeset;
+
+		codeset = _vbi3_export_codeset (sub->charset);
+		value->str = _vbi3_export_strdup (e, NULL, codeset);
 		if (!value->str)
 			return FALSE;
 	} else if (KEYWORD ("font")) {
@@ -627,7 +632,7 @@ flush				(sub_instance *		sub)
 	if (actual != length)
 		goto failure;
 
-	free (buffer);
+	vbi3_free (buffer);
 	buffer = NULL;
 
 	sub->text1.bp = sub->text1.buffer;
@@ -635,7 +640,7 @@ flush				(sub_instance *		sub)
 	return;
 
  failure:
-	free (buffer);
+	vbi3_free (buffer);
 	buffer = NULL;
 
 	longjmp (sub->main, -1);
@@ -739,12 +744,16 @@ header				(sub_instance *		sub,
 
 	case FORMAT_REALTEXT:
 	{
+		const char *codeset;
+
 		CLEAR (sub->para_ac);
 
 		sub->para_ac.foreground = 7;
 		sub->para_ac.background = 0;
 
 		sub->last_just = 0; /* center */
+
+		codeset = _vbi3_export_codeset (sub->charset);
 
 		wprintf (sub, FALSE,
 			 "<window "
@@ -753,7 +762,7 @@ header				(sub_instance *		sub,
 			 "version=\"1.2\" "
 			 "charset=\"%s\" "
 			 "face=\"%s\" ",
-			 sub->charset,
+			 codeset,
 			 sub->font);
 
 		color (sub, "color=\"", pg->color_map[7]);
@@ -897,21 +906,24 @@ footer				(sub_instance *		sub)
 static void
 timestamp			(sub_instance *		sub)
 {
-	double t1;
-	double t2;
+	double t1, t1_frac;
+	double t2, t2_frac;
 	unsigned int s1;
 	unsigned int s2;
 
-	/* Absolute stream time. */
-	t1 = sub->last_timestamp;
-	t2 = sub->export.stream.timestamp;
+	/* Time in seconds when the player shall turn the display
+	   of this page on and off, relative to the stream start. */
+	t1 = sub->last_timestamp
+		- sub->export.stream.start_timestamp;
+	t2 = sub->export.stream.timestamp
+		- sub->export.stream.start_timestamp;
 
 	/* Seconds and fractions (to prevent overflow). */
 	s1 = floor (t1);
-	t1 -= s1;
+	t1_frac = t1 - s1;
 
 	s2 = floor (t2);
-	t2 -= s2;
+	t2_frac = t2 - s2;
 
 	switch (sub->format) {
 	case FORMAT_MPSUB:
@@ -919,13 +931,16 @@ timestamp			(sub_instance *		sub)
 		double delay_time;
 		double show_time;
 
-		/* Apparently delay_time must be integer. We round down
+		/* Apparently delay_time must be an integer. We round down
 		   and add the fraction to show_time to compensate
 		   for the error. */
-		delay_time = floor (sub->delay_time);
 
-		show_time = sub->export.stream.timestamp - sub->last_timestamp;
-		show_time += sub->delay_time - delay_time;
+		delay_time = floor (t1 - sub->last_t2);
+
+		show_time = t2 - t1;
+		show_time += t1 - sub->last_t2 - delay_time;
+
+		sub->last_t2 = t2; 
 
 		/* wait hold\n
 		   That is how long to wait after the previous
@@ -940,8 +955,8 @@ timestamp			(sub_instance *		sub)
 		/* [hh:mm:ss.xx]\n  presentation time */
 		wprintf (sub, FALSE,
 			 "[%02u:%02u:%02u.%02u]\n",
-			 s2 / 3600, (s2 / 60) % 60, s2 % 60,
-			 (unsigned int)(t2 * 100));
+			 s1 / 3600, (s1 / 60) % 60, s1 % 60,
+			 (unsigned int)(t1_frac * 100));
 		break;
 
 	case FORMAT_REALTEXT:
@@ -951,25 +966,18 @@ timestamp			(sub_instance *		sub)
 			 "<time begin=\"%02u:%02u:%02u.%02u\" "
 			 "end=\"%02u:%02u:%02u.%02u\"/><clear/>",
 			 s1 / 3600, s1 / 60, s1 % 60,
-			 (unsigned int)(t1 * 100),
+			 (unsigned int)(t1_frac * 100),
 			 s2 / 3600, s2 / 60, s2 % 60,
-			 (unsigned int)(t2 * 100));
+			 (unsigned int)(t2_frac * 100));
 		break;
 
 	case FORMAT_SAMI:
-	{
-		double elapsed;
-
-		elapsed = sub->export.stream.timestamp
-			- sub->export.stream.start_timestamp;
-
 		/* Presentation time in ms since start. */
 		/* Note MPlayer cannot handle "start=\"%llu\"". */
 		wprintf (sub, FALSE,
 			 "<SYNC Start=%llu>",
-			 (uint64_t)(elapsed * 1000));
+			 (uint64_t)(t2 /* sic */ * 1000));
 		break;
-	}
 
 	case FORMAT_SUBRIP:
 		/* n  number of page, starting at one.
@@ -981,9 +989,9 @@ timestamp			(sub_instance *		sub)
 			 "%02u:%02u:%02u,%03u\n",
 			 sub->n_pages + 1,
 			 s1 / 3600, (s1 / 60) % 60, s1 % 60,
-			 (unsigned int)(t1 * 1000),
+			 (unsigned int)(t1_frac * 1000),
 			 s2 / 3600, (s2 / 60) % 60, s2 % 60,
-			 (unsigned int)(t2 * 1000));
+			 (unsigned int)(t2_frac * 1000));
 		break;
 
 	case FORMAT_SUBVIEWER:
@@ -993,9 +1001,9 @@ timestamp			(sub_instance *		sub)
 			 "%02u:%02u:%02u.%02u,"
 			 "%02u:%02u:%02u.%02u\n",
 			 s1 / 3600, (s1 / 60) % 60, s1 % 60,
-			 (unsigned int)(t1 * 100),
+			 (unsigned int)(t1_frac * 100),
 			 s2 / 3600, (s2 / 60) % 60, s2 % 60,
-			 (unsigned int)(t2 * 100));
+			 (unsigned int)(t2_frac * 100));
 		break;
 
 	default:
@@ -1327,12 +1335,15 @@ export				(vbi3_export *		e,
 	if (!sub->have_header) {
 		char buffer[256];
 		char *d;
+		const char *codeset;
 		size_t n;
 
 		d = buffer;
 
-		sub->cd = _vbi3_iconv_open (sub->charset, "UCS-2",
-					    &d, sizeof (buffer));
+		codeset = _vbi3_export_codeset (sub->charset);
+
+		sub->cd = _vbi3_iconv_open (codeset, "UCS-2",
+					    &d, sizeof (buffer), '?');
 		if (NULL == sub->cd) {
 			return FALSE;
 		}
@@ -1349,8 +1360,8 @@ export				(vbi3_export *		e,
 
 		sub->last_timestamp = e->stream.start_timestamp;
 
-		sub->delay_time = e->stream.timestamp
-			- e->stream.start_timestamp;
+//		sub->delay_time = e->stream.timestamp
+//			- e->stream.start_timestamp;
 
 		sub->n_pages = 0;
 		sub->blank_pages = 0;
@@ -1388,7 +1399,7 @@ export				(vbi3_export *		e,
 		}
 
 		/* Delay btw end of last and start of this non-blank page. */
-		sub->delay_time = e->stream.timestamp - sub->last_timestamp;
+//		sub->delay_time = e->stream.timestamp - sub->last_timestamp;
 		sub->blank_pages = 0;
 
 		/* MPSub is always centered at bottom. */
@@ -1697,3 +1708,10 @@ _vbi3_export_module_subviewer = {
 	.option_set		= option_set,
 	.export			= export
 };
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

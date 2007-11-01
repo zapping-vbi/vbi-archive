@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.7.2.13 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.7.2.14 2007-11-01 00:21:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -27,10 +27,10 @@
 #include "misc.h"
 #include "page.h"		/* vbi3_page */
 #include "lang.h"		/* vbi3_is_drcs() */
-#include "version.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
+#  include "version.h"
 #  include "intl-priv.h"
 #endif
 #include "export-priv.h"	/* vbi3_export */
@@ -870,7 +870,7 @@ vbi3_page_draw_caption_region_va_list
 		case VBI3_RTL:
 		case VBI3_REVEAL:
 		case VBI3_FLASH_ON:
-			va_arg (export_options, vbi3_bool);
+			(void) va_arg (export_options, vbi3_bool);
 			break;
 
 		case VBI3_SCALE:
@@ -1231,7 +1231,7 @@ vbi3_page_draw_teletext_region_va_list
 		switch (option) {
 		case VBI3_TABLE:
 		case VBI3_RTL:
-			va_arg (export_options, vbi3_bool);
+			(void) va_arg (export_options, vbi3_bool);
 			break;
 
 		case VBI3_REVEAL:
@@ -1631,7 +1631,7 @@ static const vbi3_export_info
 export_info_ppm = {
 	.keyword		= "ppm",
 	.label			= N_("PPM"),
-	.tooltip		= N_("Export this page as raw PPM image"),
+	.tooltip		= N_("Export the page as raw PPM image"),
 
 	.mime_type		= "image/x-portable-pixmap",
 	.extension		= "ppm",
@@ -1852,9 +1852,9 @@ write_png			(vbi3_export *		e,
 
 	png_set_text (png_ptr, info_ptr, text, 2);
 
-	free (text[1].key);
+	vbi3_free (text[1].key);
 	text[1].key = NULL;
-	free (text[0].key);
+	vbi3_free (text[0].key);
 	text[0].key = NULL;
 
 	png_write_info (png_ptr, info_ptr);
@@ -1890,7 +1890,6 @@ export_png			(vbi3_export *		e,
 	png_bytep *row_pointer;
 	unsigned int row_adv;
 	png_byte pen[128];
-	png_bytep canvas;
 	unsigned int row;
 	png_structp png_ptr;
 	png_infop info_ptr;
@@ -1935,22 +1934,41 @@ export_png			(vbi3_export *		e,
 		}
 	}
 
-	canvas = image;
-
 	for (row = 0; row < pg->rows; ++row) {
 		unsigned int column;
 
 		for (column = 0; column < pg->columns; ++column) {
+			png_bytep canvas;
 			const vbi3_char *ac;
-	
+
+			canvas = image + row * format.width * ch + column * cw;
 			ac = pg->text + row * pg->columns + column;
 
 			switch (ac->size) {
+			case VBI3_NORMAL_SIZE:
+			case VBI3_DOUBLE_HEIGHT2:
+				break;
+
+			case VBI3_DOUBLE_WIDTH:
+			case VBI3_DOUBLE_SIZE2:
+				/* Better safe than sorry. */
+				if (column + 1 >= pg->columns)
+					continue;
+				break;
+
 			case VBI3_OVER_TOP:
 			case VBI3_OVER_BOTTOM:
 				continue;
 
-			default:
+			case VBI3_DOUBLE_HEIGHT:
+				if (row + 1 >= pg->rows)
+					continue;
+				break;
+
+			case VBI3_DOUBLE_SIZE:
+				if (column + 1 >= pg->columns
+				    || row + 1 >= pg->rows)
+					continue;
 				break;
 			}
 
@@ -1965,21 +1983,7 @@ export_png			(vbi3_export *		e,
 				       (unsigned int) !e->reveal,
 				       pen,
 				       /* is_ttx */ pg->columns >= 40);
-
-			switch (ac->size) {
-			case VBI3_DOUBLE_WIDTH:
-			case VBI3_DOUBLE_SIZE:
-			case VBI3_DOUBLE_SIZE2:
-				canvas += cw * 2;
-				break;
-
-			default:
-				canvas += cw;
-				break;
-			}
 		}
-
-		canvas += row_adv;
 	}
 
 	/* Now save the image */
@@ -2027,7 +2031,7 @@ static const vbi3_export_info
 export_info_png = {
 	.keyword		= "png",
 	.label			= N_("PNG"),
-	.tooltip		= N_("Export this page as PNG image"),
+	.tooltip		= N_("Export the page as PNG image"),
 
 	.mime_type		= "image/png",
 	.extension		= "png",
@@ -2050,3 +2054,10 @@ _vbi3_export_module_png = {
 };
 
 #endif /* HAVE_LIBPNG */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

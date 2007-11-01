@@ -17,11 +17,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.1.2.4 2006-05-26 00:43:06 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.1.2.5 2007-11-01 00:21:25 mschimek Exp $ */
 
 #include "../site_def.h"
 
-#include <stdlib.h>		/* malloc() */
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 #include <assert.h>
 #include "hamm.h"		/* vbi3_unham functions */
 #include "packet-830.h"		/* vbi3_decode_teletext_830x functions */
@@ -3501,8 +3504,9 @@ status_change			(vbi3_teletext_decoder *	td,
 	char *title;
 
 	cs = vbi3_ttx_charset_from_code (0); /* XXX ok? */
-	title = vbi3_strndup_iconv_teletext (vbi3_locale_codeset (),
-					     buffer + 22, 20, cs);
+	title = vbi3_strndup_iconv_teletext (vbi3_locale_codeset (), cs,
+					     buffer + 22, 20,
+					     /* repl_char */ '?');
 
 	if (!title)
 		return FALSE;
@@ -4783,3 +4787,10 @@ vbi3_teletext_decoder_new	(vbi3_cache *		ca,
 
 	return td;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

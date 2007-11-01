@@ -12,3 +12,5 @@ src/io-v4l2.c
 src/io-v4l2.c
 src/io-v4l.c
 src/io.c
+test/date.c
+test/decode.c

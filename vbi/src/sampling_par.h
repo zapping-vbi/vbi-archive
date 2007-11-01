@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling_par.h,v 1.1.2.4 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: sampling_par.h,v 1.1.2.5 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifndef __ZVBI3_SAMPLING_PAR_H__
 #define __ZVBI3_SAMPLING_PAR_H__
@@ -83,7 +83,7 @@ typedef unsigned int vbi3_videostd_set;
 
 #define VBI3_VIDEOSTD_SET(videostd) (((vbi3_videostd_set) 1) << (videostd))
 
-#define VBI3_VIDEOSTD_SET_EMPTY 0
+#define VBI3_VIDEOSTD_SET_EMPTY		 0
 #define VBI3_VIDEOSTD_SET_UNKNOWN	 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_UNKNOWN)
 #define VBI3_VIDEOSTD_SET_PAL_BG		(VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_B)	    | \
 					 VBI3_VIDEOSTD_SET (VBI3_VIDEOSTD_PAL_B1)	    | \
@@ -137,7 +137,7 @@ typedef struct {
 	 */
 	vbi3_videostd_set	videostd_set;
 	/** Format of the raw vbi data. */
-	vbi3_pixfmt		sampling_format;
+	vbi3_pixfmt		sample_format;
 	/**
 	 * Sampling rate in Hz, the number of samples or pixels
 	 * captured per second.
@@ -234,3 +234,10 @@ _vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_SAMPLING_PAR_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

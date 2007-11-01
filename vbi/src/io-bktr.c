@@ -17,35 +17,19 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid [] =
-  "$Id: io-bktr.c,v 1.2.2.13 2006-05-26 00:43:05 mschimek Exp $";
+static const char rcsid [] =
+"$Id: io-bktr.c,v 1.2.2.14 2007-11-01 00:21:23 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include "vbi.h"
+#include <pthread.h>
+#include "misc.h"
 #include "version.h"
 #include "intl-priv.h"
-#include "io-priv.h"
-
-#ifdef ENABLE_BKTR
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <assert.h>
-#include <sys/time.h>		/* timeval */
-#include <sys/types.h>		/* fd_set */
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <pthread.h>
-
-#define log_fp 0
+#include "io.h"
+#include "vbi.h"
 
 #define printv(format, args...)						\
 do {									\
@@ -54,6 +38,19 @@ do {									\
 		fflush(stderr);						\
 	}								\
 } while (0)
+
+#ifdef ENABLE_BKTR
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <errno.h>
+#include <unistd.h>
+#include <assert.h>
+#include <sys/time.h>		/* timeval */
+#include <sys/select.h>		/* fd_set */
+#include <pthread.h>
 
 typedef struct vbi3_capture_bktr {
 	vbi3_capture		capture;
@@ -76,7 +73,7 @@ static int
 bktr_read			(vbi3_capture *		vc,
 				 vbi3_capture_buffer **	raw,
 				 vbi3_capture_buffer **	sliced,
-				 struct timeval *	timeout)
+				 const struct timeval *	timeout)
 {
 	vbi3_capture_bktr *v = PARENT(vc, vbi3_capture_bktr, capture);
 	vbi3_capture_buffer *my_raw = v->raw_buffer;
@@ -166,8 +163,10 @@ bktr_delete(vbi3_capture *vc)
 	for (; v->num_raw_buffers > 0; v->num_raw_buffers--)
 		vbi3_free(v->raw_buffer[v->num_raw_buffers - 1].data);
 
-	if (v->fd != -1)
-		device_close(log_fp, v->fd);
+	vbi3_raw_decoder_destroy (&v->dec);
+
+	if (-1 != v->fd)
+		device_close (v->capture.sys_log_fp, v->fd);
 
 	vbi3_free(v);
 }
@@ -180,11 +179,6 @@ bktr_fd(vbi3_capture *vc)
 	return v->fd;
 }
 
-/*
- *  FIXME: This seems to work only when video capturing is active
- *  (tested w/xawtv). Something I overlooked or a driver feature?
- */
-
 vbi3_capture *
 vbi3_capture_bktr_new		(const char *		dev_name,
 				 int			scanning,
@@ -193,31 +187,37 @@ vbi3_capture_bktr_new		(const char *		dev_name,
 				 char **		errstr,
 				 vbi3_bool		trace)
 {
+	char *error = NULL;
 	char *driver_name = _("BKTR driver");
 	vbi3_capture_bktr *v;
 
-	//	pthread_once (&vbi3_init_once, vbi3_init);
+	pthread_once (&vbi3_init_once, vbi3_init);
 
 	assert(services && *services != 0);
 
-	printv("Try to open bktr vbi device, libzvbi interface rev.\n"
-	       "%s", rcsid);
+	if (!errstr)
+		errstr = &error;
+	*errstr = NULL;
 
-	if (!(v = vbi3_malloc(sizeof(*v)))) {
-		_vbi3_asprintf(errstr, _("Virtual memory exhausted."));
+	printv ("Try to open bktr vbi device, "
+		"libzvbi interface rev.\n  %s\n", rcsid);
+
+	if (!(v = (vbi3_capture_bktr *) calloc(1, sizeof(*v)))) {
+		asprintf(errstr, _("Virtual memory exhausted."));
 		errno = ENOMEM;
-		return NULL;
+		goto failure;
 	}
 
-	CLEAR (*v);
+	vbi3_raw_decoder_init (&v->dec);
 
 	v->capture.parameters = bktr_parameters;
 	v->capture._delete = bktr_delete;
 	v->capture.get_fd = bktr_fd;
 
-	if ((v->fd = device_open(log_fp, dev_name, O_RDONLY)) == -1) {
-		_vbi3_asprintf(errstr, _("Cannot open '%s': %d, %s."),
-			     dev_name, errno, strerror(errno));
+	v->fd = device_open (v->capture.sys_log_fp, dev_name, O_RDONLY, 0);
+	if (-1 == v->fd) {
+		asprintf(errstr, _("Cannot open '%s': %s."),
+			 dev_name, strerror(errno));
 		goto io_error;
 	}
 
@@ -229,7 +229,6 @@ vbi3_capture_bktr_new		(const char *		dev_name,
 	 *  /dev/hcfr (halt and catch fire on read) ?
 	 */
 
-	v->dec.samples_per_line = 2048;
 	v->dec.bytes_per_line = 2048;
 	v->dec.interlaced = FALSE;
 	v->dec.synchronous = TRUE;
@@ -237,14 +236,13 @@ vbi3_capture_bktr_new		(const char *		dev_name,
 	v->dec.count[0]	= 16;
 	v->dec.count[1] = 16;
 
-	switch (v->dec.scanning) {
+	switch (scanning) {
 	default:
-		v->dec.scanning = 625;
-
 		/* fall through */
 
 	case 625:
 		/* Not confirmed */
+		v->dec.scanning = 625;
 		v->dec.sampling_rate = 35468950;
 		v->dec.offset = (int)(10.2e-6 * 35468950);
 		v->dec.start[0] = 22 + 1 - v->dec.count[0];
@@ -253,6 +251,7 @@ vbi3_capture_bktr_new		(const char *		dev_name,
 
 	case 525:
 		/* Not confirmed */
+		v->dec.scanning = 525;
 		v->dec.sampling_rate = 28636363;
 		v->dec.offset = (int)(9.2e-6 * 28636363);
 		v->dec.start[0] = 10;
@@ -267,16 +266,16 @@ vbi3_capture_bktr_new		(const char *		dev_name,
 
 	printv("Guessed videostandard %d\n", v->dec.scanning);
 
-	v->dec.sampling_format = VBI3_PIXFMT_Y8;
+	v->dec.sampling_format = VBI3_PIXFMT_YUV420;
 
 	if (*services & ~(VBI3_SLICED_VBI3_525 | VBI3_SLICED_VBI3_625)) {
 		*services = vbi3_raw_decoder_add_services (&v->dec, *services, strict);
 
 		if (*services == 0) {
-			_vbi3_asprintf(errstr, _("Sorry, %s (%s) cannot "
-						 "capture any of "
-						 "the requested data services."),
-				     dev_name, driver_name);
+			asprintf(errstr, _("Sorry, %s (%s) cannot "
+					   "capture any of "
+					   "the requested data services."),
+				 dev_name, driver_name);
 			goto failure;
 		}
 
@@ -285,7 +284,7 @@ vbi3_capture_bktr_new		(const char *		dev_name,
 			       * sizeof(vbi3_sliced));
 
 		if (!v->sliced_buffer.data) {
-			_vbi3_asprintf(errstr, _("Virtual memory exhausted."));
+			asprintf(errstr, _("Virtual memory exhausted."));
 			errno = ENOMEM;
 			goto failure;
 		}
@@ -300,15 +299,13 @@ vbi3_capture_bktr_new		(const char *		dev_name,
 
 	v->capture.read = bktr_read;
 
-	v->raw_buffer = vbi3_malloc (sizeof(v->raw_buffer[0]));
+	v->raw_buffer = calloc(1, sizeof(v->raw_buffer[0]));
 
 	if (!v->raw_buffer) {
-		_vbi3_asprintf(errstr, _("Virtual memory exhausted."));
+		asprintf(errstr, _("Virtual memory exhausted."));
 		errno = ENOMEM;
 		goto failure;
 	}
-
-	CLEAR (v->raw_buffer[0]);
 
 	v->raw_buffer[0].size = (v->dec.count[0] + v->dec.count[1])
 		* v->dec.bytes_per_line;
@@ -316,9 +313,9 @@ vbi3_capture_bktr_new		(const char *		dev_name,
 	v->raw_buffer[0].data = vbi3_malloc(v->raw_buffer[0].size);
 
 	if (!v->raw_buffer[0].data) {
-		_vbi3_asprintf(errstr, _("Not enough memory to allocate "
-					 "vbi capture buffer (%d KB)."),
-			     (v->raw_buffer[0].size + 1023) >> 10);
+		asprintf(errstr, _("Not enough memory to allocate "
+				   "vbi capture buffer (%d KB)."),
+			 (v->raw_buffer[0].size + 1023) >> 10);
 		goto failure;
 	}
 
@@ -329,19 +326,50 @@ vbi3_capture_bktr_new		(const char *		dev_name,
 	printv("Successful opened %s (%s)\n",
 	       dev_name, driver_name);
 
+	if (errstr == &error) {
+		vbi3_free (error);
+		error = NULL;
+	}
+
 	return &v->capture;
 
 failure:
 io_error:
-	bktr_delete(&v->capture);
+	if (v)
+		bktr_delete(&v->capture);
+
+	if (errstr == &error) {
+		vbi3_free (error);
+		error = NULL;
+	}
 
 	return NULL;
 }
 
 #else
 
-#include "misc.h"
-
+/**
+ * @param dev_name Name of the device to open.
+ * @param scanning The current video standard. Value is 625
+ *   (PAL/SECAM family) or 525 (NTSC family).
+ * @param services This must point to a set of @ref VBI3_SLICED_
+ *   symbols describing the
+ *   data services to be decoded. On return the services actually
+ *   decodable will be stored here. See vbi3_raw_decoder_add()
+ *   for details. If you want to capture raw data only, set to
+ *   @c VBI3_SLICED_VBI3_525, @c VBI3_SLICED_VBI3_625 or both.
+ * @param strict Will be passed to vbi3_raw_decoder_add().
+ * @param errstr If not @c NULL this function stores a pointer to an error
+ *   description here. You must free() this string when no longer needed.
+ * @param trace If @c TRUE print progress messages on stderr.
+ * 
+ * @bug You must enable continuous video capturing to read VBI data from
+ * the bktr driver, using an RGB video format, and the VBI device must be
+ * opened before video capturing starts (METEORCAPTUR).
+ * 
+ * @return
+ * Initialized vbi3_capture context, @c NULL on failure.
+ */
 vbi3_capture *
 vbi3_capture_bktr_new		(const char *		dev_name,
 				 int			scanning,
@@ -354,19 +382,26 @@ vbi3_capture_bktr_new		(const char *		dev_name,
 	scanning = scanning;
 	services = services;
 	strict = strict;
-	errstr = errstr;
 	trace = trace;
 
-  //	pthread_once (&vbi3_init_once, vbi3_init);
+#if 2 == VBI_VERSION_MINOR
+	pthread_once (&vbi3_init_once, vbi3_init);
+#endif
 
-        if (trace)
-                fprintf (stderr, "Libzvbi BKTR interface rev.\n  %s\n",
-                         rcsid);
+	printv ("Libzvbi bktr interface rev.\n  %s\n", rcsid);
 
 	if (errstr)
-		asprintf (errstr, _("BKTR interface not compiled."));
+		asprintf (errstr,
+			  _("BKTR driver interface not compiled."));
 
 	return NULL;
 }
 
 #endif /* !ENABLE_BKTR */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

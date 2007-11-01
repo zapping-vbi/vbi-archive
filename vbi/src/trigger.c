@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.c,v 1.4.2.11 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: trigger.c,v 1.4.2.12 2007-11-01 00:21:25 mschimek Exp $ */
 
 /*
    Based on EACEM TP 14-99-16 "Data Broadcasting", rev 0.8;
@@ -146,6 +146,7 @@ parse_date			(const uint8_t *	s)
 
 	tm.tm_year -= 1900;
 
+	/* FIXME DST? Time zone? */
 	// XXX tm is utc
 	return mktime (&tm);
 }
@@ -357,7 +358,7 @@ static char *
 strdup_locale			(const char *		name)
 {
 	return vbi3_strndup_iconv (vbi3_locale_codeset (), "UTF-8",
-				   name, strlen (name) + 1);
+				   name, strlen (name) + 1, '?');
 }
 
 static const uint8_t *
@@ -922,3 +923,10 @@ _vbi3_trigger_list_add_atvef	(_vbi3_trigger **	list,
 
 	return TRUE;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

@@ -25,7 +25,7 @@
 #  Perl and C gurus cover your eyes. This is one of my first
 #  attempts in this funny tongue and far from a proper C parser.
 
-# $Id: structpr.pl,v 1.1.2.5 2006-05-07 06:02:27 mschimek Exp $
+# $Id: structpr.pl,v 1.1.2.6 2007-11-01 00:21:24 mschimek Exp $
 
 $number		= '[0-9]+';
 $ident		= '\~?_*[a-zA-Z][a-zA-Z0-9_]*';
@@ -33,7 +33,7 @@ $signed		= '((signed)?(char|short|int|long))|__s8|__s16|__s32|__s64|signed';
 $unsigned	= '(((unsigned\s*)|u|u_)(char|short|int|long))|__u8|__u16|__u32|__u64|unsigned';
 $define		= '^\s*\#\s*define\s+';
 
-$printfn	= 'fprint_ioctl_arg';
+$printfn	= 'snprint_ioctl_arg';
 
 #
 # Syntax of arguments, in brief:
@@ -138,7 +138,7 @@ sub add_ioctl {
     my ($name, $dir, $i_type, $real_type) = @_;
 
     $ioctl_cases{$i_type} .= "case $name:\n"
-	. "if (!arg) { fputs (\"$name\", fp); return; }\n";
+	. "if (!arg) { return strlcpy (str, \"$name\", size); }\n";
 
     &add_ioctl_check ($name, $dir, $real_type);
 }
@@ -247,15 +247,15 @@ sub test_cond {
 
         if ("R" eq $mode) {
 	    if ($selector{$item}) {
-		$$text .= "if (1 == rw && $sel) {\n";
+		$$text .= "if ((1 & rw) && $sel) {\n";
 	    } else {
-		$$text .= "if (1 == rw) {\n";
+		$$text .= "if (1 & rw) {\n";
 	    }
 	} elsif ("W" eq $mode) {
 	    if ($selector{$item}) {
-		$$text .= "if (2 == rw && $sel) {\n";
+		$$text .= "if ((2 & rw) && $sel) {\n";
 	    } else {
-		$$text .= "if (2 == rw) {\n";
+		$$text .= "if (2 & rw) {\n";
 	    }
 	} elsif ($selector{$item}) {
 	    $$text .= "if ($sel) {\n";
@@ -265,7 +265,7 @@ sub test_cond {
     }
 }
 
-# Build a fprintf() with $templ and $args. &flush_args finalizes
+# Build a snprint() with $templ and $args. &flush_args finalizes
 # the function.
 
 # text .= "unsigned int", "structname.field1.flags", "%x"
@@ -313,7 +313,7 @@ sub add_arg_func {
 
 	&test_cond ($text, $item);
 
-	$$text .= "fprint_$type (fp, rw, "
+	$$text .= "n += snprint_$type (str + n, size - n, rw, "
 	    . $ref . "t->" . &trail ($item) . ");\n";
 
 	$templ .= "$rp ";
@@ -324,7 +324,7 @@ sub add_arg_func {
 }
 
 # text .= functions this depends upon,
-#     enum mode (see fprint_symbolic()),
+#     enum mode (see snprint_symbolic()),
 #     "FLAG_", "structname.field1.flags"
 sub add_symbolic {
     my ($text, $deps, $enum_mode, $prefix, $item) = @_;
@@ -346,13 +346,14 @@ sub add_symbolic {
     if ($count > 3) {
 	my $type = "symbol $prefix";
 
-	# No switch() such that fprint_symbolic() can determine if
+	# No switch() such that snprint_symbolic() can determine if
 	# these are flags or enum.
 	$funcs{$type} = {
-	    text => "static void\n"
-		. "fprint_symbol_$prefix (FILE *fp, "
+	    text => "static size_t\n"
+		. "snprint_symbol_$prefix (char *str, size_t size, "
 		. "int rw __attribute__ ((unused)), unsigned long value)\n"
-		. "{\nfprint_symbolic (fp, $enum_mode, value,\n"
+		. "{\nreturn snprint_symbolic (str, size, "
+		. "$enum_mode, value,\n"
 		. $sbody . "(void *) 0);\n}\n\n",
 	    deps => []
 	};
@@ -367,7 +368,8 @@ sub add_symbolic {
 	&test_cond ($text, $item);
 
 	$templ .= " ";
-	$$text .= "fprint_symbolic (fp, $enum_mode, t->" . &trail ($item)
+	$$text .= "n += snprint_symbolic (str + n, size - n, "
+	    . "$enum_mode, t->" . &trail ($item)
 	    . ",\n" . $sbody . "(void *) 0);\n";
     }
 }
@@ -385,9 +387,12 @@ sub flush_args {
 
     if ($templ) {
 	if ($args) {
-    	    $text .= "fprintf (fp, \"$templ\",\n$args);\n";
+    	    $text .= "n += snprintf (str + n, size - n, "
+		. "\"$templ\",\n$args);\n"
+		. "n = MIN (n, size);\n";
 	} else {
-    	    $text .= "fputs (\"$templ\", fp);\n";
+    	    $text .= "n += strlcpy (str + n, \"$templ\", size - n);\n"
+		. "n = MIN (n, size);\n";
 	}
     }
 
@@ -561,8 +566,10 @@ sub aggregate {
     my $type = "$kind $name";
 
     $funcs{$type} = {
-	text => "static void\nfprint_$kind\_$name "
-	    . "(FILE *fp, int rw __attribute__ ((unused)), const $type *t)\n{\n",
+	text => "static size_t\nsnprint_$kind\_$name "
+	    . "(char *str, size_t size, "
+	    . "int rw __attribute__ ((unused)), const $type *t)\n{\n"
+	    . "size_t n = 0;\n",
 	deps => []
     };
 
@@ -576,7 +583,7 @@ sub aggregate {
 	$funcs{$type}->{text} .= "}\n";
     }
 
-    $funcs{$type}->{text} .= "}\n\n";
+    $funcs{$type}->{text} .= "return n;\n}\n\n";
 }
 
 sub common_prefix {
@@ -602,9 +609,9 @@ sub enumeration {
     my @symbols;
 
     $funcs{$type} = {
-	text => "static void\nfprint_enum_$name (FILE *fp, "
+	text => "static size_t\nsnprint_enum_$name (char *str, size_t size, "
 	    . "int rw __attribute__ ((unused)), int value)\n"
-	    . "{\nfprint_symbolic (fp, 1, value,\n",
+	    . "{\nreturn snprint_symbolic (str, size, 1, value,\n",
 	deps => []
     };
 
@@ -673,13 +680,14 @@ while (($name, $type) = each %int_ioctls) {
 	}
     }
 
-    # No switch() such that fprint_symbolic() can determine if
+    # No switch() such that snprint_symbolic() can determine if
     # these are flags or enum.
     $funcs{$name} = {
 	text => "static void\n"
-	    . "fprint_$name (FILE *fp, "
+	    . "snprint_$name (char *str, size_t size, "
 	    . "int rw __attribute__ ((unused)), $type *arg)\n"
-	    . "{\nfprint_symbolic (fp, 0, (unsigned long) *arg,\n"
+	    . "{\nreturn snprint_symbolic (str, size, "
+	    . "0, (unsigned long) *arg,\n"
 	    . $sbody . "(void *) 0);\n}\n\n",
 	deps => []
     };
@@ -699,8 +707,9 @@ sub print_type {
     }
 }
 
-$text = "static void\n$printfn (FILE *fp, unsigned int cmd, int rw, void *arg)\n"
-    . "{\nswitch (cmd) {\n";
+$text = "static size_t\n$printfn (char *str, size_t size, "
+    . "unsigned int cmd, int rw, void *arg)\n"
+    . "{\nsize_t n;\nassert (size > 0);\nswitch (cmd) {\n";
 
 while (($type, $case) = each %ioctl_cases) {
     if ($typedefs{$type}) {
@@ -708,8 +717,8 @@ while (($type, $case) = each %ioctl_cases) {
 	    &print_type ($type);
 	    $prefix = lc $symbolic{$type};
 	    $type = $typedefs{$type};
-	    $text .= "$case fprint_symbol_$prefix ";
-	    $text .= "(fp, rw, * ($type *) arg);\nbreak;\n";
+	    $text .= "$case return snprint_symbol_$prefix ";
+	    $text .= "(str, size, rw, * ($type *) arg);\n";
 	    next;
 	}
 
@@ -719,22 +728,24 @@ while (($type, $case) = each %ioctl_cases) {
     if ($funcs{$type}) {
 	&print_type ($type);
 	$type =~ s/ /_/;
-	$text .= "$case fprint_$type (fp, rw, arg);\nbreak;\n";
+	$text .= "$case return snprint_$type (str, size, rw, arg);\n";
     } elsif ($type =~ m/$unsigned/) {
-	$text .= "$case fprintf (fp, \"%lu\", "
+	$text .= "$case snprintf (str, size, \"%lu\", "
 	    . "(unsigned long) * ($type *) arg);\nbreak;\n";
     } elsif ($type =~ m/$signed/) {
-	$text .= "$case fprintf (fp, \"%ld\", "
-	    . "(long) * ($type *) arg);\nbreak;\n";
+	$text .= "$case n = snprintf (str, size, \"%ld\", "
+	    . "(long) * ($type *) arg);\n"
+	    . "return MIN (size - 1, n);\n";
     } else {
-	$text .= "$case break; /* $type */\n";
+	$text .= "$case return 0; /* $type */\n";
     }
 }
 
-$text .= "\tdefault:\n"
-    . "\t\tif (!arg) { fprint_unknown_ioctl (fp, cmd, arg); return; }\n"
-    . "\t\tbreak;\n";
-$text .= "\t}\n\}\n\n";
+$text .= "default:\n"
+    . "if (!arg) { return snprint_unknown_ioctl "
+    . "(str, size, cmd, arg); }\n"
+    . "str[0] = 0; return 0;\n";
+$text .= "}\nreturn 0; }\n\n";
 
 print $text;
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.24 2006-05-26 00:43:06 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.25 2007-11-01 00:21:25 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -28,17 +28,17 @@
 #include <ctype.h>
 
 #include "misc.h"
-#include "version.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
+#  include "version.h"
 #  include "intl-priv.h"
 #endif
 #include "cache-priv.h"
 #include "teletext_decoder-priv.h"
 #ifndef ZAPPING8
-#include "export.h"
-#include "vbi.h"
+#  include "export.h"
+#  include "vbi.h"
 #endif
 #include "hamm.h"
 #include "lang.h"
@@ -300,10 +300,14 @@ level_one_row			(vbi3_page_priv *	pgp,
 			acp[column] = ac;
 
 			wide_char = !!(ac.size & VBI3_DOUBLE_WIDTH);
-
-			if (wide_char && column < 39) {
-				acp[column + 1] = ac;
-				acp[column + 1].size = VBI3_OVER_TOP;
+			if (wide_char) {
+				if (column < 39) {
+					acp[column + 1] = ac;
+					acp[column + 1].size = VBI3_OVER_TOP;
+				} else {
+					acp[column].size = VBI3_NORMAL_SIZE;
+					wide_char = FALSE;
+				}
 			}
 		}
 
@@ -2035,7 +2039,7 @@ enhance_column_triplet		(enhance_state *	st)
 		if (column > st->active_column)
 			enhance_flush (st, column);
 
-		unicode = _vbi3_teletext_composed_unicode
+		unicode = vbi3_teletext_composed_unicode
 			((unsigned int)(st->trip->mode - 0x10),
 			 (unsigned int) st->trip->data);
 
@@ -2345,7 +2349,9 @@ pdc_post_proc			(vbi3_page *		pg,
 			}
 		}
 
+#ifndef ZAPPING8
 		_vbi3_pdc_title_post_proc (pg, p);
+#endif
 	}
 }
 
@@ -2755,9 +2761,9 @@ keyword				(vbi3_link *		ld,
 				return FALSE;
 
 			strcpy (url, "mailto:");
-			_vbi3_strlcpy (url + 7, s1 - recipient, recipient);
+			strlcpy (url + 7, s1 - recipient, recipient);
 			url[recipient + 7] = '@';
-			_vbi3_strlcpy (url + recipient + 7, s1 + len, address);
+			strlcpy (url + recipient + 7, s1 + len, address);
 
 			vbi3_link_init (ld);
 
@@ -2776,7 +2782,7 @@ keyword				(vbi3_link *		ld,
 				return FALSE;
 
 			strcpy (url, proto);
-			_vbi3_strlcpy (url + plen, buf + *start, len);
+			strlcpy (url + plen, buf + *start, len);
 
 			vbi3_link_init (ld);
 
@@ -3517,7 +3523,7 @@ _vbi3_page_priv_from_cache_page_va_list
 
 		case VBI3_PANELS:
 			/* TODO */
-			va_arg (format_options, vbi3_bool);
+			(void) va_arg (format_options, vbi3_bool);
 			break;
 
 		case VBI3_NAVIGATION:
@@ -4117,3 +4123,10 @@ vbi3_page_new			(void)
 
 	return &pgp->pg;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

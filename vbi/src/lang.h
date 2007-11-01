@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.2.2.8 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: lang.h,v 1.2.2.9 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifndef __ZVBI3_LANG_H__
 #define __ZVBI3_LANG_H__
@@ -112,7 +112,8 @@ vbi3_teletext_unicode		(vbi3_charset		charset,
 				 unsigned int		c)
   __attribute__ ((const));
 extern unsigned int
-vbi3_caption_unicode		(unsigned int		c)
+vbi3_caption_unicode		(unsigned int		c,
+				 vbi3_bool		to_upper)
   __attribute__ ((const));
 
 /**
@@ -165,10 +166,17 @@ extern unsigned int
 _vbi3_teletext_ascii_art		(unsigned int		c)
   __attribute__ ((const));
 extern unsigned int
-_vbi3_teletext_composed_unicode	(unsigned int		a,
+vbi3_teletext_composed_unicode	(unsigned int		a,
 				 unsigned int		c)
   __attribute__ ((const));
 
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_LANG_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

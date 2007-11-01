@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache-priv.h,v 1.1.2.6 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: cache-priv.h,v 1.1.2.7 2007-11-01 00:21:22 mschimek Exp $ */
 
 #ifndef CACHE_PRIV_H
 #define CACHE_PRIV_H
@@ -65,12 +65,12 @@ typedef struct {
 	/** Network chain. */
 	struct node		node;
 
-	/** Cache this network belongs to. */
+	/** Cache this struct network belongs to. */
 	vbi3_cache *		cache;
 
 	unsigned int		ref_count;
 
-	/** To be deleted when no longer referenced. */
+	/** Delete this network when no longer referenced. */
 	vbi3_bool		zombie;
 
 
@@ -104,8 +104,8 @@ typedef struct {
 	/* Teletext stuff. */
 
 	/** Pages cached now and ever, maintained by cache routines. */
-	unsigned int		n_pages;
-	unsigned int		max_pages;
+	unsigned int		n_cached_pages;
+	unsigned int		max_cached_pages;
 
 	/** Number of referenced Teletext pages of this network. */
 	unsigned int		n_referenced_pages;
@@ -120,7 +120,7 @@ typedef struct {
 	/** Magazine defaults. Use vt_network_magazine() to access. */
 	struct magazine		_magazines[8];
 
-	/** Last packet 8/30 Status Display, with parity. */
+	/** Last received packet 8/30 Status Display, with parity bits. */
 	uint8_t			status[20];
 
 	/** Page statistics. Use cache_network_page_stat() to access. */
@@ -406,3 +406,10 @@ _vbi3_ttx_charset_init		(const vbi3_ttx_charset *charset[2],
 				 const cache_page *	cp);
 
 #endif /* CACHE_PRIV_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

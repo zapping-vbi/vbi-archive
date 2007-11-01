@@ -1,7 +1,7 @@
 /*
  *  zvbi-ttxfilter -- Teletext filter
  *
- *  Copyright (C) 2005-2006 Michael H. Schimek
+ *  Copyright (C) 2005-2007 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: ttxfilter.c,v 1.2.2.3 2006-05-26 00:43:07 mschimek Exp $ */
+/* $Id: ttxfilter.c,v 1.2.2.4 2007-11-01 00:21:26 mschimek Exp $ */
+
+/* For libzvbi version 0.2.x / 0.3.x. */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -29,57 +31,228 @@
 #include <stdarg.h>
 #include <string.h>
 #include <locale.h>
+#include <math.h>
 #include <assert.h>
 #include <unistd.h>
 #include <errno.h>
-#include <time.h>
+#include <sys/time.h>
 #include <ctype.h>
 #ifdef HAVE_GETOPT_LONG
 #  include <getopt.h>
 #endif
 
-#include "src/dvb_demux.h"
-#include "src/packet_filter.h"
-
+#include "src/sliced_filter.h"
 #include "sliced.h"
-
-#define _(x) x /* TODO */
 
 #define PROGRAM_NAME "zvbi-ttxfilter"
 
-static vbi3_dvb_demux *		dx;
-static vbi3_packet_filter *	pf;
+#undef _
+#define _(x) x /* TODO */
 
-static vbi3_bool		source_is_pes;
+static const char *		option_in_file_name;
+static enum file_format		option_in_file_format;
+static unsigned int		option_in_ts_pid;
 
-static double			start_time;
-static double			end_time;
+static const char *		option_out_file_name;
+static vbi3_bool		option_experimental_output;
 
-static vbi3_bool		option_keep_system_pages;
+static vbi3_bool		option_abort_on_error;
+static vbi3_bool		option_keep_ttx_system_pages;
+static double			option_start_time;
+static double			option_end_time;
+
+static struct stream *		rst;
+static struct stream *		wst;
+static vbi3_sliced_filter *	sf;
 
 /* Data is all zero, hopefully ignored due to hamming and parity error. */
 static vbi3_sliced		sliced_blank;
 
-#ifndef HAVE_PROGRAM_INVOCATION_NAME
-static char *			program_invocation_name;
-static char *			program_invocation_short_name;
-#endif
+static vbi3_bool		started;
+
+static vbi3_bool
+filter_frame			(const vbi3_sliced *	sliced_in,
+				 unsigned int		n_lines,
+				 const uint8_t *	raw,
+				 const vbi3_sampling_par *sp,
+				 double			sample_time,
+				 int64_t		stream_time)
+{
+	vbi3_sliced sliced_out[64];
+	vbi3_sliced *s;
+	unsigned int n_lines_prev_in;
+	unsigned int n_lines_prev_out;
+	unsigned int n_lines_in;
+	unsigned int n_lines_out;
+	vbi3_bool success;
+
+	raw = raw; /* unused */
+	sp = sp;
+
+	if (!started) {
+		option_start_time += sample_time;
+		option_end_time += sample_time;
+
+		started = TRUE;
+	}
+
+	if (sample_time < option_start_time
+	    || sample_time >= option_end_time)
+		return TRUE;
+
+	if (0 == n_lines)
+		return TRUE;
+
+	n_lines_prev_in = 0;
+	n_lines_prev_out = 0;
+
+	do {
+		const unsigned int max_lines_out = N_ELEMENTS (sliced_out);
+
+		n_lines_in = n_lines - n_lines_prev_in;
+
+		success = vbi3_sliced_filter_cor
+			(sf,
+			 sliced_out + n_lines_prev_out,
+			 &n_lines_out,
+			 max_lines_out - n_lines_prev_out,
+			 sliced_in + n_lines_prev_in,
+			 &n_lines_in);
+
+		if (success)
+			break;
+
+		error_msg (vbi3_sliced_filter_errstr (sf));
+
+		if (option_abort_on_error) {
+			exit (EXIT_FAILURE);
+		}
+
+		/* Skip the consumed lines and the broken line. */
+		n_lines_prev_in += n_lines_in + 1;
+
+		n_lines_prev_out += n_lines_out;
+
+	} while (n_lines_prev_in < n_lines);
+
+	n_lines_in += n_lines_prev_in;
+	n_lines_out += n_lines_prev_out;
+
+	s = sliced_out;
+
+	if (0 == n_lines_out) {
+		if (0) {
+			/* Decoder may assume data loss without
+			   continuous timestamps. */
+			s = &sliced_blank;
+			n_lines_out = 1;
+		} else {
+			return TRUE;
+		}
+	}
+
+	write_stream_sliced (wst, s, n_lines_out,
+			     /* raw */ NULL,
+			     /* sp */ NULL,
+			     sample_time, stream_time);
+
+	return TRUE;
+}
 
 static void
-error_exit			(const char *		template,
-				 ...)
+usage				(FILE *			fp)
 {
-	va_list ap;
+	fprintf (fp, _("\
+%s %s -- Teletext filter\n\n\
+Copyright (C) 2005-2007 Michael H. Schimek\n\
+This program is licensed under GPLv2. NO WARRANTIES.\n\n\
+Usage: %s [options] [page numbers] < sliced VBI data > sliced VBI data\n\
+-h | --help | --usage  Print this message and exit\n\
+-q | --quiet           Suppress progress and error messages\n\
+-v | --verbose         Increase verbosity\n\
+-V | --version         Print the program version and exit\n\
+Input options:\n\
+-i | --input name      Read the VBI data from this file instead\n\
+                       of standard input\n\
+-P | --pes             Source is a DVB PES stream\n\
+-T | --ts pid          Source is a DVB TS stream\n\
+Filter options:\n\
+-s | --system          Keep system pages (page inventories, DRCS etc)\n\
+-t | --time from-to    Keep pages in this time interval, in seconds\n\
+                       since the first frame in the stream\n\
+Output options:\n\
+-o | --output name     Write the VBI data to this file instead of\n\
+                       standard output\n\
+Valid page numbers are 100 to 899. You can also specify a range like\n\
+150-299.\n\
+"),
+		 PROGRAM_NAME, VERSION, program_invocation_name);
+}
 
-	fprintf (stderr, "%s: ", program_invocation_short_name);
+static const char
+short_options [] = "ahi:o:qst:vxPT:V";
 
-	va_start (ap, template);
-	vfprintf (stderr, template, ap);
-	va_end (ap);         
+#ifdef HAVE_GETOPT_LONG
+static const struct option
+long_options [] = {
+	{ "abort-on-error",	no_argument,		NULL,	'a' },
+	{ "help",		no_argument,		NULL,	'h' },
+	{ "usage",		no_argument,		NULL,	'h' },
+	{ "input",		required_argument,	NULL,	'i' },
+	{ "output",		required_argument,	NULL,	'o' },
+	{ "quiet",		no_argument,		NULL,	'q' },
+	{ "system",		no_argument,		NULL,	's' },
+	{ "time",		no_argument,		NULL,	't' },
+	{ "verbose",		no_argument,		NULL,	'v' },
+	{ "experimental",	no_argument,		NULL,	'x' },
+	{ "pes",		no_argument,		NULL,	'P' },
+	{ "ts",			required_argument,	NULL,	'T' },
+	{ "version",		no_argument,		NULL,	'V' },
+	{ NULL, 0, 0, 0 }
+};
+#else
+#  define getopt_long(ac, av, s, l, i) getopt(ac, av, s)
+#endif
 
-	fputc ('\n', stderr);
+static int			option_index;
 
-	exit (EXIT_FAILURE);
+static void
+parse_option_time		(void)
+{
+	const char *s = optarg;
+	char *end;
+
+	assert (NULL != optarg);
+
+	option_start_time = strtod (s, &end);
+	s = end;
+
+	while (isspace (*s))
+		++s;
+
+	if ('-' != *s++)
+		goto invalid;
+
+	option_end_time = strtod (s, &end);
+	s = end;
+
+	if (option_start_time < 0
+	    || option_end_time < 0
+	    || option_end_time <= option_start_time)
+		goto invalid;
+
+	return;
+
+ invalid:
+	error_exit (_("Invalid time range '%s'."), optarg);
+}
+
+static vbi3_bool
+valid_pgno			(vbi3_pgno		pgno)
+{
+	return (vbi3_is_bcd (pgno)
+		&& pgno >= 0x100
+		&& pgno <= 0x899);
 }
 
 static void
@@ -89,256 +262,66 @@ invalid_pgno_exit		(const char *		arg)
 }
 
 static void
-no_mem_exit			(void)
+parse_page_numbers		(unsigned int		argc,
+				 char **		argv)
 {
-	error_exit (_("Out of memory."));
-}
+	unsigned int i;
 
-static void
-pes_frame			(const uint8_t *	bp,
-				 unsigned int *		left,
-				 vbi3_bool *		start)
-{
-	vbi3_sliced sliced_in[64];
-	vbi3_sliced sliced_out[64];
-	vbi3_sliced *sp;
-	unsigned int n_lines_in;
-	unsigned int n_lines_out;
-	int64_t pts;
-	vbi3_bool success;
-
-	n_lines_in = vbi3_dvb_demux_cor (dx,
-					  sliced_in,
-					  /* max_lines */ 64,
-					  &pts,
-					  bp, left);
-	if (0 == n_lines_in)
-		return;
-
-	if (*start) {
-		start_time = start_time * 90000 + pts;
-		end_time = end_time * 90000 + pts;
-		*start = FALSE;
-	}
-
-	n_lines_out = 0;
-
-	if (pts >= start_time
-	    && pts < end_time) {
-		success = vbi3_packet_filter_cor (pf,
-						  sliced_out, &n_lines_out,
-						  /* max_lines_out */ 64,
-						  sliced_in, n_lines_in);
-		if (success) {
-			sp = sliced_out;
-		} else {
-			/* Don't spoil recordings. */
-			fprintf (stderr, "%s: %s\n",
-				 program_invocation_short_name,
-				 vbi3_packet_filter_errstr (pf));
-		
-			sp = sliced_in;
-			n_lines_out = n_lines_in;
-		}
-	}
-
-	if (n_lines_out > 0) {
-		fprintf (stderr, "OOPS!\n");
-		/* Write sp, n_lines_out here. */
-		exit (EXIT_FAILURE);
-	}
-}
-
-static void
-pes_mainloop			(void)
-{
-	uint8_t buffer[2048];
-	vbi3_bool start;
-
-	start = TRUE;
-
-	while (1 == fread (buffer, sizeof (buffer), 1, stdin)) {
-		const uint8_t *bp;
-		unsigned int left;
-
-		bp = buffer;
-		left = sizeof (buffer);
-
-		while (left > 0) {
-			pes_frame (bp, &left, &start);
-		}
-	}
-
-	fprintf (stderr, "\rEnd of stream\n");
-}
-
-static void
-old_mainloop			(void)
-{
-	vbi3_bool start = TRUE;
-
-	for (;;) {
-		vbi3_sliced sliced_in[64];
-		vbi3_sliced sliced_out[64];
-		vbi3_sliced *sp;
-		unsigned int n_lines_in;
-		unsigned int n_lines_out;
-		double timestamp;
+	for (i = 0; i < argc; ++i) {
+		vbi3_pgno first_pgno;
+		vbi3_pgno last_pgno;
 		vbi3_bool success;
+		const char *s;
+		char *end;
 
-		n_lines_in = read_sliced (sliced_in,
-					  &timestamp,
-					  /* max_lines */ 64);
-		if ((int) n_lines_in < 0)
-			break; /* eof */
+		s = argv[i];
 
-		if (start) {
-			start_time += timestamp;
-			end_time += timestamp;
-			start = FALSE;
+		first_pgno = strtoul (s, &end, 16);
+		s = end;
+
+		if (!valid_pgno (first_pgno))
+			invalid_pgno_exit (argv[i]);
+
+		last_pgno = first_pgno;
+
+		while (*s && isspace (*s))
+			++s;
+
+		if ('-' == *s) {
+			++s;
+
+			while (*s && isspace (*s))
+				++s;
+
+			last_pgno = strtoul (s, &end, 16);
+			s = end;
+
+			if (!valid_pgno (last_pgno))
+				invalid_pgno_exit (argv[i]);
+		} else if (0 != *s) {
+			invalid_pgno_exit (argv[i]);
 		}
 
-		n_lines_out = 0;
-
-		if (timestamp >= start_time
-		    && timestamp < end_time) {
-			success = vbi3_packet_filter_cor
-				(pf,
-				 sliced_out, &n_lines_out,
-				 /* max_lines_out */ 64,
-				 sliced_in, n_lines_in);
-
-			if (success) {
-				sp = sliced_out;
-			} else {
-				/* Don't spoil recordings. */
-				fprintf (stderr, "%s: %s\n",
-					 program_invocation_short_name,
-					 vbi3_packet_filter_errstr (pf));
-
-				sp = sliced_in;
-				n_lines_out = n_lines_in;
-			}
-		}
-
-		if (n_lines_out > 0) {
-			success = write_sliced (sp, n_lines_out, timestamp);
-			assert (success);
-
-			fflush (stdout);
-		} else if (0) {
-			/* Decoder may assume data loss without
-			   continuous timestamps. */
-			success = write_sliced (&sliced_blank,
-						/* n_lines */ 1,
-						timestamp);
-			assert (success);
-		}
+		success = vbi3_sliced_filter_keep_ttx_pages
+			(sf, first_pgno, last_pgno);
+		if (!success)
+			no_mem_exit ();
 	}
-}
 
-static void
-usage				(FILE *			fp)
-{
-	fprintf (fp, _("\
-%s %s -- Teletext filter\n\n\
-Copyright (C) 2005-2006 Michael H. Schimek\n\
-This program is licensed under GPL 2. NO WARRANTIES.\n\n\
-Usage: %s [options] [pages] < sliced vbi data > sliced vbi data\n\n\
--h | --help | --usage  Print this message and exit\n\
--t | --time from-to    Keep pages in this time interval (in seconds)\n\
--s | --system          Keep system pages (page inventories, DRCS etc)\n\
--P | --pes             Source is a DVB PES\n\
--V | --version         Print the program version and exit\n\n\
-Valid page numbers are 100 to 899. You can also specify a range like\n\
-150-299.\n\
-"),
-		 PROGRAM_NAME, VERSION, program_invocation_name);
-}
-
-static const char
-short_options [] = "hst:PV";
-
-#ifdef HAVE_GETOPT_LONG
-static const struct option
-long_options [] = {
-	{ "help",	no_argument,		NULL,		'h' },
-	{ "usage",	no_argument,		NULL,		'h' },
-	{ "time",	no_argument,		NULL,		't' },
-	{ "system",	no_argument,		NULL,		's' },
-	{ "pes",	no_argument,		NULL,		'P' },
-	{ "version",	no_argument,		NULL,		'V' },
-	{ NULL, 0, 0, 0 }
-};
-#else
-#  define getopt_long(ac, av, s, l, i) getopt(ac, av, s)
-#endif
-
-static int			option_index;
-
-static vbi3_bool
-is_valid_pgno			(vbi3_pgno		pgno)
-{
-	if (!vbi3_is_bcd (pgno))
-		return FALSE;
-
-	if (pgno >= 0x100 && pgno <= 0x899)
-		return TRUE;
-
-	return FALSE;
-}
-
-static void
-option_time			(void)
-{
-	char *s = optarg;
-
-	start_time = strtod (s, &s);
-
-	while (isspace (*s))
-		++s;
-
-	if ('-' != *s++)
-		goto invalid;
-
-	end_time = strtod (s, &s);
-
-	if (start_time < 0
-	    || end_time < 0
-	    || end_time <= start_time)
-		goto invalid;
-
-	return;
-
- invalid:
-	fprintf (stderr, _("Invalid time range '%s'.\n"), optarg);
-	usage (stderr);
-	exit (EXIT_FAILURE);
+	if (0 == i)
+		error_exit (_("No page numbers specified."));
 }
 
 int
 main				(int			argc,
 				 char **		argv)
 {
-	int c;
+	init_helpers (argc, argv);
 
-#ifndef HAVE_PROGRAM_INVOCATION_NAME
-	{
-		unsigned int i;
+	option_in_file_format = FILE_FORMAT_SLICED;
 
-		for (i = strlen (argv[0]); i > 0; --i) {
-			if ('/' == argv[0][i - 1])
-				break;
-		}
-
-		program_invocation_short_name = &argv[0][i];
-	}
-#endif
-
-	setlocale (LC_ALL, "");
-
-	start_time = 0.0;
-	end_time = 1e40;
+	option_start_time = 0.0;
+	option_end_time	= 1e30;
 
 	for (;;) {
 		int c;
@@ -352,21 +335,51 @@ main				(int			argc,
 		case 0: /* getopt_long() flag */
 			break;
 
+		case 'a':
+			option_abort_on_error = TRUE;
+			break;
+
 		case 'h':
 			usage (stdout);
 			exit (EXIT_SUCCESS);
 
+		case 'i':
+			assert (NULL != optarg);
+			option_in_file_name = optarg;
+			break;
+
+		case 'o':
+			assert (NULL != optarg);
+			option_out_file_name = optarg;
+			break;
+
+		case 'q':
+			parse_option_quiet ();
+			break;
+
 		case 's':
-			option_keep_system_pages ^= TRUE;
+			option_keep_ttx_system_pages = TRUE;
 			break;
 
 		case 't':
-			assert (NULL != optarg);
-			option_time ();
+			parse_option_time ();
+			break;
+
+		case 'v':
+			parse_option_verbose ();
+			break;
+
+		case 'x':
+			option_experimental_output = TRUE;
 			break;
 
 		case 'P':
-			source_is_pes ^= TRUE;
+			option_in_file_format = FILE_FORMAT_DVB_PES;
+			break;
+
+		case 'T':
+			option_in_ts_pid = parse_option_ts ();
+			option_in_file_format = FILE_FORMAT_DVB_TS;
 			break;
 
 		case 'V':
@@ -379,102 +392,48 @@ main				(int			argc,
 		}
 	}
 
-	pf = vbi3_packet_filter_new (/* callback */ NULL,
+	sf = vbi3_sliced_filter_new (/* callback */ NULL,
 				     /* user_data */ NULL);
-	if (NULL == pf)
+	if (NULL == sf)
 		no_mem_exit ();
 
-	vbi3_packet_filter_keep_system_pages (pf, option_keep_system_pages);
+	vbi3_sliced_filter_keep_ttx_system_pages
+		(sf, option_keep_ttx_system_pages);
 
-	if (argc > optind) {
-		unsigned int n_pages;
-		int i;
-
-		n_pages = 0;
-
-		for (i = optind; i < argc; ++i) {
-			const char *s;
-			char *end;
-			vbi3_pgno first_pgno;
-			vbi3_pgno last_pgno;
-			vbi3_bool success;
-
-			s = argv[i];
-
-			first_pgno = strtoul (s, &end, 16);
-			s = end;
-
-			if (!is_valid_pgno (first_pgno))
-				invalid_pgno_exit (argv[i]);
-
-			last_pgno = first_pgno;
-
-			while (*s && isspace (*s))
-				++s;
-
-			if ('-' == *s) {
-				++s;
-
-				while (*s && isspace (*s))
-					++s;
-
-				last_pgno = strtoul (s, &end, 16);
-				s = end;
-
-				if (!is_valid_pgno (last_pgno))
-					invalid_pgno_exit (argv[i]);
-			} else if (0 != *s) {
-				invalid_pgno_exit (argv[i]);
-			}
-
-			success = vbi3_packet_filter_keep_pages
-				(pf, first_pgno, last_pgno);
-			if (!success)
-				no_mem_exit ();
-		}
-	}
+	assert (argc >= optind);
+	parse_page_numbers (argc - optind, &argv[optind]);
 
 	sliced_blank.id = VBI3_SLICED_TELETEXT_B_L10_625;
 	sliced_blank.line = 7;
 
-	if (isatty (STDIN_FILENO))
-		error_exit (_("No VBI data on standard input."));
-
-	c = getchar ();
-	ungetc (c, stdin);
-
-	if (0 == c || source_is_pes) {
-		dx = vbi3_dvb_pes_demux_new (/* callback */ NULL,
-					      /* user_data */ NULL);
-		if (NULL == dx)
-			no_mem_exit ();
-
-		pes_mainloop ();
+	if (option_experimental_output) {
+		wst = write_stream_new (option_out_file_name,
+					FILE_FORMAT_XML,
+					/* ts_pid */ 0,
+					/* system */ 625);
 	} else {
-		struct timeval tv;
-		double timestamp;
-		vbi3_bool success;
-		int r;
-
-		r = gettimeofday (&tv, NULL);
-		if (-1 == r)
-			error_exit (_("Cannot determine system time. %s."),
-				    strerror (errno));
-
-		timestamp = tv.tv_sec + tv.tv_usec * (1 / 1e6);
-
-		success = open_sliced_read (stdin);
-		if (!success)
-			error_exit (_("Cannot open input stream. %s."),
-				    strerror (errno));
-
-		success = open_sliced_write (stdout, timestamp);
-		if (!success)
-			error_exit (_("Cannot open output stream. %s."),
-				    strerror (errno));
-
-		old_mainloop ();
+		wst = write_stream_new (option_out_file_name,
+					FILE_FORMAT_SLICED,
+					/* ts_pid */ 0,
+					/* system */ 625);
 	}
 
+	rst = read_stream_new (option_in_file_name,
+			       option_in_file_format,
+			       option_in_ts_pid,
+			       filter_frame);
+
+	stream_loop (rst);
+
+	stream_delete (rst);
+	rst = NULL;
+
+	stream_delete (wst);
+	wst = NULL;
+
+	error_msg (_("End of stream."));
+
 	exit (EXIT_SUCCESS);
+
+	return 0;
 }

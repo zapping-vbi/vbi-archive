@@ -22,10 +22,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.h,v 1.1.2.5 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: vbi_decoder.h,v 1.1.2.6 2007-11-01 00:21:25 mschimek Exp $ */
 
-#ifndef __ZVBI3_VBI3_DECODER_H__
-#define __ZVBI3_VBI3_DECODER_H__
+#ifndef __ZVBI3_VBI_DECODER_H__
+#define __ZVBI3_VBI_DECODER_H__
 
 #include "macros.h"
 #include "page.h"		/* vbi3_page */
@@ -50,7 +50,7 @@ vbi3_decoder_get_page_va_list	(vbi3_decoder *		vbi,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
 				 va_list		format_options)
-  __attribute__ ((malloc,
+  __attribute__ ((_vbi3_alloc,
 		  _vbi3_nonnull (1)));
 extern vbi3_page *
 vbi3_decoder_get_page		(vbi3_decoder *		vbi,
@@ -58,7 +58,7 @@ vbi3_decoder_get_page		(vbi3_decoder *		vbi,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
 				 ...)
-  __attribute__ ((malloc,
+  __attribute__ ((_vbi3_alloc,
 		  _vbi3_nonnull (1),
 		  _vbi3_sentinel));
 extern void
@@ -116,8 +116,15 @@ extern vbi3_decoder *
 vbi3_decoder_new		(vbi3_cache *		ca,
 				 const vbi3_network *	nk,
 				 vbi3_videostd_set	videostd_set)
-  __attribute__ ((malloc));
+  __attribute__ ((_vbi3_alloc));
 
 VBI3_END_DECLS
 
-#endif /* __ZVBI3_VBI3_DECODER_H__ */
+#endif /* __ZVBI3_VBI_DECODER_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

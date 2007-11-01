@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.8.2.7 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: export.h,v 1.8.2.8 2007-11-01 00:21:23 mschimek Exp $ */
 
 #ifndef __ZVBI3_EXPORT_H__
 #define __ZVBI3_EXPORT_H__
@@ -394,9 +394,16 @@ vbi3_export_delete		(vbi3_export *		e);
 extern vbi3_export *
 vbi3_export_new			(const char *		keyword,
 				 char **		errstr)
-  __attribute__ ((malloc));
+  __attribute__ ((_vbi3_alloc));
 /** @} */
 
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_EXPORT_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

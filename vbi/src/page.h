@@ -17,10 +17,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: page.h,v 1.1.2.2 2006-05-26 00:43:06 mschimek Exp $ */
+/* $Id: page.h,v 1.1.2.3 2007-11-01 00:21:24 mschimek Exp $ */
 
-#ifndef PAGE_H
-#define PAGE_H
+#ifndef __ZVBI3_PAGE_H__
+#define __ZVBI3_PAGE_H__
 
 #include "macros.h"
 #include "bcd.h"	/* vbi3_pgno, vbi3_subno */
@@ -429,11 +429,11 @@ extern void
 vbi3_page_delete			(vbi3_page *		pg);
 extern vbi3_page *
 vbi3_page_dup			(const vbi3_page *	pg)
-  __attribute__ ((malloc,
+  __attribute__ ((_vbi3_alloc,
 		  _vbi3_nonnull (1)));
 extern vbi3_page *
 vbi3_page_new			(void)
-  __attribute__ ((malloc));
+  __attribute__ ((_vbi3_alloc));
 
 typedef enum {
 	VBI3_TABLE = 0x32f54a00,
@@ -447,4 +447,11 @@ typedef enum {
 
 VBI3_END_DECLS
 
-#endif /* PAGE_H */
+#endif /* __ZVBI3_PAGE_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

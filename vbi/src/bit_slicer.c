@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.c,v 1.1.2.13 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: bit_slicer.c,v 1.1.2.14 2007-11-01 00:21:22 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -262,35 +262,222 @@ do {									\
 static vbi3_bool								\
 bit_slicer_ ## fmt		(vbi3_bit_slicer *	bs,		\
 				 uint8_t *		buffer,		\
+				 vbi3_bit_slicer_point *points,		\
+				 unsigned int *		n_points,	\
 				 const uint8_t *	raw)		\
 {									\
 	static const vbi3_pixfmt pixfmt = VBI3_PIXFMT_ ## fmt;		\
-	static const unsigned int bpp =					\
+	unsigned int bpp =						\
 		vbi3_pixfmt_bytes_per_pixel (VBI3_PIXFMT_ ## fmt);	\
 	static const unsigned int oversampling = os;			\
-	static const vbi3_bit_slicer_point *points_start = NULL;		\
+	static const vbi3_bit_slicer_point *points_start = NULL;	\
 	static const vbi3_bool collect_points = FALSE;			\
-	vbi3_bit_slicer_point *points = NULL;				\
-	unsigned int *n_points = NULL;					\
 	unsigned int thresh_frac = tf;					\
 									\
 	CORE ();							\
 }
 
-BIT_SLICER (Y8, 4, 9)		/* any format with 0 bytes between Y or G */
-BIT_SLICER (YUYV, 4, 9)		/* 1 byte */
-BIT_SLICER (RGB24_LE, 4, 9)	/* 2 bytes */
-BIT_SLICER (RGBA24_LE, 4, 9)	/* 3 bytes */
+#define DEF_THR_FRAC 9
+
+BIT_SLICER (Y8, 4, DEF_THR_FRAC) /* any format with 0 bytes between Y or G */
+BIT_SLICER (YUYV, 4, DEF_THR_FRAC)               /* 1 byte */
+BIT_SLICER (RGB24_LE, 4, DEF_THR_FRAC)           /* 2 bytes */
+BIT_SLICER (RGBA24_LE, 4, DEF_THR_FRAC)          /* 3 bytes */
 BIT_SLICER (RGB16_LE, 4, bs->thresh_frac)
 BIT_SLICER (RGB16_BE, 4, bs->thresh_frac)
+#if 3 == VBI_VERSION_MINOR
 BIT_SLICER (RGB8, 8, bs->thresh_frac)
+#endif
+
+static const unsigned int	LP_AVG = 4;
+
+static vbi3_bool
+low_pass_bit_slicer_Y8		(vbi3_bit_slicer *	bs,
+				 uint8_t *		buffer,
+				 vbi3_bit_slicer_point *points,
+				 unsigned int *		n_points,
+				 const uint8_t *	raw)
+{
+	vbi3_bit_slicer_point *points_start;
+	const uint8_t *raw_start;
+	unsigned int i, j, k, m;
+	unsigned int cl;	/* clock */
+	unsigned int thresh0;	/* old 0/1 threshold */
+	unsigned int tr;	/* current threshold */
+	unsigned int c;		/* current byte */
+	unsigned int raw0;	/* oversampling temporary */
+	unsigned char b1;	/* previous bit */
+	unsigned int bps;
+	unsigned int raw0sum;
+
+	points_start = points;
+
+	raw_start = raw;
+	raw += bs->skip;
+
+	bps = bs->bytes_per_sample;
+
+	thresh0 = bs->thresh;
+
+	c = -1;
+	cl = 0;
+	b1 = 0;
+
+	raw0sum = raw[0];
+	for (m = bps; m < (bps << LP_AVG); m += bps) {
+		raw0sum += raw[m];
+	}
+
+	i = bs->cri_samples;
+
+	for (;;) {
+		unsigned char b; /* current bit */
+
+		tr = bs->thresh >> bs->thresh_frac;
+		raw0 = raw0sum;
+		raw0sum = raw0sum
+			+ raw[bps << LP_AVG]
+			- raw[0];
+		raw += bps;
+		bs->thresh += (int)(raw0 - tr)
+			* (int) ABS ((int)(raw0sum - raw0));
+
+		b = (raw0 >= tr);
+
+		if (unlikely (b ^ b1)) {
+			cl = bs->oversampling_rate >> 1;
+		} else {
+			cl += bs->cri_rate;
+
+			if (cl >= bs->oversampling_rate) {
+				if (unlikely (NULL != points)) {
+					points->kind = VBI3_CRI_BIT;
+					points->index =	(raw - raw_start)
+						* 256 / bs->bytes_per_sample
+						+ (1 << LP_AVG) * 128;
+					points->level = raw0 << (8 - LP_AVG);
+					points->thresh = tr << (8 - LP_AVG);
+					++points;
+				}
+
+				cl -= bs->oversampling_rate;
+				c = c * 2 + b;
+				if ((c & bs->cri_mask) == bs->cri) {
+					break;
+				}
+			}
+		}
+
+		b1 = b;
+
+		if (0 == --i) {
+			bs->thresh = thresh0;
+
+			if (unlikely (NULL != points))
+				*n_points = points - points_start;
+
+			return FALSE;
+		}
+	}
+
+#define LP_SAMPLE(_kind)						\
+do {									\
+	unsigned int ii = (i >> 8) * bps;				\
+									\
+	raw0 = raw[ii];							\
+	for (m = bps; m < (bps << LP_AVG); m += bps)			\
+		raw0 += raw[ii + m];					\
+	if (unlikely (NULL != points)) {				\
+		points->kind = _kind;					\
+		points->index = (raw - raw_start)			\
+			* 256 / bs->bytes_per_sample			\
+			+ (1 << LP_AVG) * 128				\
+			+ ii * 256;					\
+		points->level = raw0 << (8 - LP_AVG);			\
+		points->thresh = tr << (8 - LP_AVG);			\
+		++points;						\
+	}								\
+} while (0)
+
+	i = bs->phase_shift; /* current bit position << 8 */
+	c = 0;
+
+	for (j = bs->frc_bits; j > 0; --j) {
+		LP_SAMPLE (VBI3_FRC_BIT);
+		c = c * 2 + (raw0 >= tr);
+		i += bs->step; /* next bit */
+	}
+
+	if (c != bs->frc)
+		return FALSE;
+
+	c = 0;
+
+	switch (bs->endian) {
+	case 3: /* bitwise, lsb first */
+		for (j = 0; j < bs->payload; ++j) {
+			LP_SAMPLE (VBI3_PAYLOAD_BIT);
+			c = (c >> 1) + ((raw0 >= tr) << 7);
+			i += bs->step;
+			if ((j & 7) == 7)
+				*buffer++ = c;
+		}
+		*buffer = c >> ((8 - bs->payload) & 7);
+		break;
+
+	case 2: /* bitwise, msb first */
+		for (j = 0; j < bs->payload; ++j) {
+			LP_SAMPLE (VBI3_PAYLOAD_BIT);
+			c = c * 2 + (raw0 >= tr);
+			i += bs->step;
+			if ((j & 7) == 7)
+				*buffer++ = c;
+		}
+		*buffer = c & ((1 << (bs->payload & 7)) - 1);
+		break;
+
+	case 1: /* octets, lsb first */
+		j = bs->payload;
+		do {
+			for (k = 0; k < 8; ++k) {
+				LP_SAMPLE (VBI3_PAYLOAD_BIT);
+				c = (c >> 1) + ((raw0 >= tr) << 7);
+				i += bs->step;
+			}
+			*buffer++ = c;
+		} while (--j > 0);
+		break;
+
+	default: /* octets, msb first */
+		j = bs->payload;
+		do {
+			for (k = 0; k < 8; ++k) {
+				LP_SAMPLE (VBI3_PAYLOAD_BIT);
+				c = c * 2 + (raw0 >= tr);
+				i += bs->step;
+			}
+			*buffer++ = c;
+		} while (--j > 0);
+		break;
+	}
+
+	if (unlikely (NULL != points)) {
+		*n_points = points - points_start;
+	}
+
+	return TRUE;
+}
 
 static vbi3_bool
 null_function			(vbi3_bit_slicer *	bs,
 				 uint8_t *		buffer,
+				 vbi3_bit_slicer_point *points,
+				 unsigned int *		n_points,
 				 const uint8_t *	raw)
 {
 	buffer = buffer; /* unused */
+	points = points;
+	n_points = n_points;
 	raw = raw;
 
 	warning (&bs->log,
@@ -344,7 +531,7 @@ vbi3_bit_slicer_slice_with_points
 	static const vbi3_pixfmt pixfmt = VBI3_PIXFMT_Y8;
 	static const unsigned int bpp = 1;
 	static const unsigned int oversampling = 4; /* see above */
-	static const unsigned int thresh_frac = 9;
+	static const unsigned int thresh_frac = DEF_THR_FRAC;
 	static const vbi3_bool collect_points = TRUE;
 	vbi3_bit_slicer_point *points_start;
 
@@ -371,7 +558,9 @@ vbi3_bit_slicer_slice_with_points
 		return FALSE;
 	}
 
-	if (bit_slicer_Y8 != bs->func) {
+	if (low_pass_bit_slicer_Y8 == bs->func) {
+		return bs->func (bs, buffer, points, n_points, raw);
+	} else if (bit_slicer_Y8 != bs->func) {
 #if 3 == VBI_VERSION_MINOR
 		warning (&bs->log,
 			 "Function not implemented for pixfmt %s.",
@@ -381,7 +570,10 @@ vbi3_bit_slicer_slice_with_points
 			 "Function not implemented for pixfmt %u.",
 			 bs->sample_format);
 #endif
-		return bs->func (bs, buffer, raw);
+		return bs->func (bs, buffer,
+				 /* points */ NULL,
+				 /* n_points */ NULL,
+				 raw);
 	}
 
 	CORE ();
@@ -427,7 +619,10 @@ vbi3_bit_slicer_slice		(vbi3_bit_slicer *	bs,
 		return FALSE;
 	}
 
-	return bs->func (bs, buffer, raw);
+	return bs->func (bs, buffer,
+			 /* points */ NULL,
+			 /* n_points */ NULL,
+			 raw);
 }
 
 /**
@@ -501,7 +696,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 {
 	unsigned int c_mask;
 	unsigned int f_mask;
-	unsigned int bytes_per_sample;
+	unsigned int min_samples_per_bit;
 	unsigned int oversampling;
 	unsigned int data_bits;
 	unsigned int data_samples;
@@ -528,6 +723,8 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		goto failure;
 	}
 
+	min_samples_per_bit = sampling_rate / MAX (cri_rate, payload_rate);
+
 	bs->sample_format = sample_format;
 
 	c_mask = (cri_bits == 32) ? ~0U : (1U << cri_bits) - 1;
@@ -537,8 +734,8 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 	skip = 0;
 
 	/* 0-1 threshold, start value. */
-	bs->thresh = 105 << 9;
-	bs->thresh_frac = 9;
+	bs->thresh = 105 << DEF_THR_FRAC;
+	bs->thresh_frac = DEF_THR_FRAC;
 
 	switch (sample_format) {
 #if 3 == VBI_VERSION_MINOR
@@ -556,70 +753,130 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 	case VBI3_PIXFMT_YVU410:
 	case VBI3_PIXFMT_Y8:
 #endif
+		bs->bytes_per_sample = 1;
 		bs->func = bit_slicer_Y8;
-		bytes_per_sample = 1;
+		if (min_samples_per_bit > (3U << (LP_AVG - 1))) {
+			bs->func = low_pass_bit_slicer_Y8;
+			oversampling = 1;
+			bs->thresh <<= LP_AVG - 2;
+			bs->thresh_frac += LP_AVG - 2;
+		}
 		break;
 
 #if 3 == VBI_VERSION_MINOR
 	case VBI3_PIXFMT_YUVA24_LE:
 	case VBI3_PIXFMT_YVUA24_LE:
+		bs->bytes_per_sample = 4;
 		bs->func = bit_slicer_RGBA24_LE;
-		bytes_per_sample = 4;
+		if (min_samples_per_bit > (3U << (LP_AVG - 1))) {
+			bs->func = low_pass_bit_slicer_Y8;
+			oversampling = 1;
+			bs->thresh <<= LP_AVG - 2;
+			bs->thresh_frac += LP_AVG - 2;
+		}
 		break;
 
 	case VBI3_PIXFMT_YUVA24_BE:
 	case VBI3_PIXFMT_YVUA24_BE:
-		bs->func = bit_slicer_RGBA24_LE;
 		skip = 3;
-		bytes_per_sample = 4;
+		bs->bytes_per_sample = 4;
+		bs->func = bit_slicer_RGBA24_LE;
+		if (min_samples_per_bit > (3U << (LP_AVG - 1))) {
+			bs->func = low_pass_bit_slicer_Y8;
+			oversampling = 1;
+			bs->thresh <<= LP_AVG - 2;
+			bs->thresh_frac += LP_AVG - 2;
+		}
 		break;
 
 	case VBI3_PIXFMT_YUV24_LE:
 	case VBI3_PIXFMT_YVU24_LE:
+		bs->bytes_per_sample = 3;
 	        bs->func = bit_slicer_RGB24_LE;
-		bytes_per_sample = 3;
+		if (min_samples_per_bit > (3U << (LP_AVG - 1))) {
+			bs->func = low_pass_bit_slicer_Y8;
+			oversampling = 1;
+			bs->thresh <<= LP_AVG - 2;
+			bs->thresh_frac += LP_AVG - 2;
+		}
 		break;
 
 	case VBI3_PIXFMT_YUV24_BE:
 	case VBI3_PIXFMT_YVU24_BE:
-	        bs->func = bit_slicer_RGB24_LE;
 		skip = 2;
-		bytes_per_sample = 3;
+		bs->bytes_per_sample = 3;
+	        bs->func = bit_slicer_RGB24_LE;
+		if (min_samples_per_bit > (3U << (LP_AVG - 1))) {
+			bs->func = low_pass_bit_slicer_Y8;
+			oversampling = 1;
+			bs->thresh <<= LP_AVG - 2;
+			bs->thresh_frac += LP_AVG - 2;
+		}
 		break;
 #endif
 
 	case VBI3_PIXFMT_YUYV:
 	case VBI3_PIXFMT_YVYU:
+		bs->bytes_per_sample = 2;
 		bs->func = bit_slicer_YUYV;
-		bytes_per_sample = 2;
+		if (min_samples_per_bit > (3U << (LP_AVG - 1))) {
+			bs->func = low_pass_bit_slicer_Y8;
+			oversampling = 1;
+			bs->thresh <<= LP_AVG - 2;
+			bs->thresh_frac += LP_AVG - 2;
+		}
 		break;
 
 	case VBI3_PIXFMT_UYVY:
 	case VBI3_PIXFMT_VYUY:
-		bs->func = bit_slicer_YUYV;
 		skip = 1;
-		bytes_per_sample = 2;
+		bs->bytes_per_sample = 2;
+		bs->func = bit_slicer_YUYV;
+		if (min_samples_per_bit > (3U << (LP_AVG - 1))) {
+			bs->func = low_pass_bit_slicer_Y8;
+			oversampling = 1;
+			bs->thresh <<= LP_AVG - 2;
+			bs->thresh_frac += LP_AVG - 2;
+		}
 		break;
 
 	case VBI3_PIXFMT_RGBA24_LE:
 	case VBI3_PIXFMT_BGRA24_LE:
-		bs->func = bit_slicer_RGBA24_LE;
 		skip = 1;
-		bytes_per_sample = 4;
+		bs->bytes_per_sample = 4;
+		bs->func = bit_slicer_RGBA24_LE;
+		if (min_samples_per_bit > (3U << (LP_AVG - 1))) {
+			bs->func = low_pass_bit_slicer_Y8;
+			oversampling = 1;
+			bs->thresh <<= LP_AVG - 2;
+			bs->thresh_frac += LP_AVG - 2;
+		}
 		break;
 
 	case VBI3_PIXFMT_RGBA24_BE:
 	case VBI3_PIXFMT_BGRA24_BE:
-		bs->func = bit_slicer_RGBA24_LE;
 		skip = 2;
-		bytes_per_sample = 4;
+		bs->bytes_per_sample = 4;
+		bs->func = bit_slicer_RGBA24_LE;
+		if (min_samples_per_bit > (3U << (LP_AVG - 1))) {
+			bs->func = low_pass_bit_slicer_Y8;
+			oversampling = 1;
+			bs->thresh <<= LP_AVG - 2;
+			bs->thresh_frac += LP_AVG - 2;
+		}
 		break;
 
 	case VBI3_PIXFMT_RGB24_LE:
 	case VBI3_PIXFMT_BGR24_LE:
-	        bs->func = bit_slicer_RGB24_LE;
 		skip = 1;
-		bytes_per_sample = 3;
+		bs->bytes_per_sample = 3;
+	        bs->func = bit_slicer_RGB24_LE;
+		if (min_samples_per_bit > (3U << (LP_AVG - 1))) {
+			bs->func = low_pass_bit_slicer_Y8;
+			oversampling = 1;
+			bs->thresh <<= LP_AVG - 2;
+			bs->thresh_frac += LP_AVG - 2;
+		}
 		break;
 
 	case VBI3_PIXFMT_RGB16_LE:
@@ -628,7 +885,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		bs->green_mask = 0x07E0;
 		bs->thresh = 105 << (5 - 2 + 12);
 		bs->thresh_frac = 12;
-		bytes_per_sample = 2;
+		bs->bytes_per_sample = 2;
 		break;
 
 	case VBI3_PIXFMT_RGB16_BE:
@@ -637,7 +894,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		bs->green_mask = 0x07E0;
 		bs->thresh = 105 << (5 - 2 + 12);
 		bs->thresh_frac = 12;
-		bytes_per_sample = 2;
+		bs->bytes_per_sample = 2;
 		break;
 
 	case VBI3_PIXFMT_RGBA15_LE:
@@ -646,7 +903,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		bs->green_mask = 0x03E0;
 		bs->thresh = 105 << (5 - 3 + 11);
 		bs->thresh_frac = 11;
-		bytes_per_sample = 2;
+		bs->bytes_per_sample = 2;
 		break;
 
 	case VBI3_PIXFMT_RGBA15_BE:
@@ -655,7 +912,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		bs->green_mask = 0x03E0;
 		bs->thresh = 105 << (5 - 3 + 11);
 		bs->thresh_frac = 11;
-		bytes_per_sample = 2;
+		bs->bytes_per_sample = 2;
 		break;
 
 	case VBI3_PIXFMT_ARGB15_LE:
@@ -664,7 +921,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		bs->green_mask = 0x07C0;
 		bs->thresh = 105 << (6 - 3 + 12);
 		bs->thresh_frac = 12;
-		bytes_per_sample = 2;
+		bs->bytes_per_sample = 2;
 		break;
 
 	case VBI3_PIXFMT_ARGB15_BE:
@@ -673,7 +930,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		bs->green_mask = 0x07C0;
 		bs->thresh = 105 << (6 - 3 + 12);
 		bs->thresh_frac = 12;
-		bytes_per_sample = 2;
+		bs->bytes_per_sample = 2;
 		break;
 
 #if 3 == VBI_VERSION_MINOR
@@ -683,7 +940,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		bs->green_mask = 0x00F0;
 		bs->thresh = 105 << (4 - 4 + 9);
 		bs->thresh_frac = 9;
-		bytes_per_sample = 2;
+		bs->bytes_per_sample = 2;
 		break;
 
 	case VBI3_PIXFMT_RGBA12_BE:
@@ -692,7 +949,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		bs->green_mask = 0x00F0;
 		bs->thresh = 105 << (4 - 4 + 9);
 		bs->thresh_frac = 9;
-		bytes_per_sample = 2;
+		bs->bytes_per_sample = 2;
 		break;
 
 	case VBI3_PIXFMT_ARGB12_LE:
@@ -701,7 +958,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		bs->green_mask = 0x0F00;
 		bs->thresh = 105 << (8 - 4 + 13);
 		bs->thresh_frac = 13;
-		bytes_per_sample = 2;
+		bs->bytes_per_sample = 2;
 		break;
 
 	case VBI3_PIXFMT_ARGB12_BE:
@@ -710,7 +967,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		bs->green_mask = 0x0F00;
 		bs->thresh = 105 << (8 - 4 + 13);
 		bs->thresh_frac = 13;
-		bytes_per_sample = 2;
+		bs->bytes_per_sample = 2;
 		break;
 
 	case VBI3_PIXFMT_RGB8:
@@ -720,7 +977,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		bs->green_mask = 0x38;
 		bs->thresh = 105 << (3 - 5 + 7);
 		bs->thresh_frac = 7;
-		bytes_per_sample = 1;
+		bs->bytes_per_sample = 1;
 		oversampling = 8;
 		break;
 
@@ -731,7 +988,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		bs->green_mask = 0x1C;
 		bs->thresh = 105 << (2 - 5 + 6);
 		bs->thresh_frac = 6;
-		bytes_per_sample = 1;
+		bs->bytes_per_sample = 1;
 		oversampling = 8;
 		break;
 #endif
@@ -743,7 +1000,7 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 		return FALSE;
 	}
 
-	bs->skip = sample_offset * bytes_per_sample + skip;
+	bs->skip = sample_offset * bs->bytes_per_sample + skip;
 
 	bs->cri_mask = cri_mask & c_mask;
 	bs->cri = cri & bs->cri_mask;
@@ -909,3 +1166,10 @@ vbi3_bit_slicer_new		(void)
 
 	return bs;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

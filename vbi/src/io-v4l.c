@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.17 2006-05-26 00:43:05 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.18 2007-11-01 00:21:23 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -45,6 +45,8 @@ static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.17 2006-05-26 00:43:05 mschimek Exp
 #include <sys/mman.h>
 #include <pthread.h>
 
+#include "raw_decoder.h"
+
 #include "videodev.h"
 #include "_videodev.h"
 
@@ -55,7 +57,10 @@ static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.17 2006-05-26 00:43:05 mschimek Exp
    and result if log_fp is non-zero. */
 #define _ioctl(fd, cmd, arg)						\
 (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- device_ioctl (log_fp, fprint_ioctl_arg, fd, cmd, (void *)(arg)))
+ ioctl (fd, cmd, (void *)(arg)))
+
+#warning rewrite me
+// device_ioctl (log_fp, fprint_ioctl_arg, fd, cmd, (void *)(arg)))
 
 #define BTTV_VBISIZE		_IOR('v' , BASE_VIDIOCPRIVATE+8, int)
 static __inline__ void IOCTL_ARG_TYPE_CHECK_BTTV_VBISIZE (int *arg) {}
@@ -273,7 +278,8 @@ probe_video_device(char *name, struct stat *vbi3_stat,
 		return FALSE;
 	}
 
-	if (!(fd = device_open(log_fp, name, O_RDONLY | O_TRUNC, 0))) {
+	if (!(fd = open(name, O_RDONLY | O_TRUNC, 0))) {
+//	if (!(fd = device_open(log_fp, name, O_RDONLY | O_TRUNC, 0))) {
 		printv("Cannot open %s: %d, %s\n", name, errno, strerror(errno));
 		perm_check(name, trace);
 		return FALSE;
@@ -281,11 +287,13 @@ probe_video_device(char *name, struct stat *vbi3_stat,
 
 	if (!reverse_lookup(fd, vbi3_stat, trace)
 	    || !get_videostd(fd, mode, trace)) {
-		device_close(log_fp, fd);
+//		device_close(log_fp, fd);
+		close( fd);
 		return FALSE;
 	}
 
-	device_close(log_fp, fd);
+//	device_close(log_fp, fd);
+	close(fd);
 
 	return TRUE;
 }
@@ -361,7 +369,8 @@ guess_bttv_v4l(vbi3_capture_v4l *v, int *strict,
 	for (i = 0; i < sizeof(video_devices) / sizeof(video_devices[0]); i++) {
 		printv("Try %s: ", video_devices[i]);
 
-		if (probe_video_device(video_devices[i], &vbi3_stat, &mode, trace))
+		if (probe_video_device(video_devices[i], &vbi3_stat,
+				       &mode, trace))
 			goto finish;
 	}
 
@@ -519,7 +528,8 @@ v4l_delete(vbi3_capture *vc)
 		vbi3_free(v->raw_buffer[v->num_raw_buffers - 1].data);
 
 	if (v->fd != -1)
-		device_close(log_fp, v->fd);
+//		device_close(log_fp, v->fd);
+		close( v->fd);
 
 	vbi3_free(v);
 }
@@ -577,7 +587,8 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 	v->capture._delete = v4l_delete;
 	v->capture.get_fd = v4l_fd;
 
-	if ((v->fd = device_open(log_fp, dev_name, O_RDONLY, 0)) == -1) {
+//	if ((v->fd = device_open(log_fp, dev_name, O_RDONLY, 0)) == -1) {
+	if ((v->fd = open(dev_name, O_RDONLY, 0)) == -1) {
 		asprintf(errorstr, _("Cannot open '%s': %d, %s."),
 			     dev_name, errno, strerror(errno));
 		perm_check(dev_name, trace);
@@ -812,9 +823,9 @@ v4l_new(const char *dev_name, int given_fd, int scanning,
 	printv("Guessed videostandard %08x\n",
 	       v->dec.sampling.videostd_set);
 
-	v->dec.sampling.sampling_format = VBI3_PIXFMT_Y8;
+	v->dec.sampling.sample_format = VBI3_PIXFMT_Y8;
 
-	if (*services & ~(VBI3_SLICED_VBI3_525 | VBI3_SLICED_VBI3_625)) {
+	if (*services & ~(VBI3_SLICED_VBI_525 | VBI3_SLICED_VBI_625)) {
 		/* Nyquist */
 
 		if (v->dec.sampling.sampling_rate < max_rate * 3 / 2) {
@@ -939,3 +950,10 @@ vbi3_capture_v4l_new(const char *dev_name, int scanning,
 }
 
 #endif /* !ENABLE_V4L */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

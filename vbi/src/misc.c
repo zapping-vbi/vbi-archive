@@ -1,6 +1,6 @@
 /*
- *  Copyright (C) 2001-2006 Michael H. Schimek
  *  Copyright (C) 2000-2003 Iñaki García Etxebarria
+ *  Copyright (C) 2001-2007 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.c,v 1.4.2.6 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: misc.c,v 1.4.2.7 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -27,46 +27,85 @@
 #include <errno.h>
 
 #include "misc.h"
-#include "version.h"
 
-#if 2 == VBI_VERSION_MINOR
+#ifdef ZAPPING8
+const char vbi3_intl_domainname[] = PACKAGE;
+#else
+#  include "version.h"
+#  if 2 == VBI_VERSION_MINOR
 const char _zvbi3_intl_domainname[] = PACKAGE;
+#  else
+const char vbi3_intl_domainname[] = PACKAGE;
+#  endif
 #endif
 
 _vbi3_log_hook		_vbi3_global_log;
 
 /**
  * @internal
- * strlcpy() is a BSD/GNU extension.
+ * Number of set bits.
  */
-size_t
-_vbi3_strlcpy			(char *			dst,
-				 const char *		src,
-				 size_t			len)
+unsigned int
+_vbi_popcnt			(uint32_t		x)
 {
-	char *dst1;
-	char *end;
-	char c;
-
-	assert (NULL != dst);
-	assert (NULL != src);
-	assert (len > 0);
-
-	dst1 = dst;
-
-	end = dst + len - 1;
-
-	while (dst < end && (c = *src++))
-		*dst++ = c;
-
-	*dst = 0;
-
-	return dst - dst1;
+	x -= ((x >> 1) & 0x55555555);
+	x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+	x = (x + (x >> 4)) & 0x0F0F0F0F;
+	return ((uint32_t)(x * 0x01010101)) >> 24;
 }
 
 /**
  * @internal
- * strndup() is a BSD/GNU extension.
+ * @param dst The string will be stored in this buffer.
+ * @param src NUL-terminated string to be copied.
+ * @param size Maximum number of bytes to be copied, including the
+ *   terminating NUL (i.e. this is the size of the @a dst buffer).
+ *
+ * Copies @a src to @a dst, but no more than @a size - 1 characters.
+ * Always NUL-terminates @a dst, unless @a size is zero.
+ *
+ * strlcpy() is a BSD extension. Don't call this function
+ * directly, we #define strlcpy if necessary.
+ *
+ * @returns
+ * strlen (src).
+ */
+size_t
+_vbi3_strlcpy			(char *			dst,
+				 const char *		src,
+				 size_t			size)
+{
+	const char *src1;
+
+	assert (NULL != dst);
+	assert (NULL != src);
+
+	src1 = src;
+
+	if (likely (size > 1)) {
+		char *end = dst + size - 1;
+
+		do {
+			if (unlikely (0 == (*dst++ = *src++)))
+				goto finish;
+		} while (dst < end);
+
+		*dst = 0;
+	} else if (size > 0) {
+		*dst = 0;
+	}
+
+	while (*src++)
+		;
+
+ finish:
+	return src - src1 - 1;
+}
+
+/**
+ * @internal
+ * strndup() is a BSD/GNU extension. Don't call this function
+ * directly, we #define strndup if necessary.
  */
 char *
 _vbi3_strndup			(const char *		s,
@@ -81,7 +120,7 @@ _vbi3_strndup			(const char *		s,
 	n = strlen (s);
 	len = MIN (len, n);
 
-	r = malloc (len + 1);
+	r = vbi3_malloc (len + 1);
 
 	if (r) {
 		memcpy (r, s, len);
@@ -93,7 +132,8 @@ _vbi3_strndup			(const char *		s,
 
 /**
  * @internal
- * vasprintf() is a GNU extension.
+ * vasprintf() is a BSD/GNU extension. Don't call this function
+ * directly, we #define vasprintf if necessary.
  */
 int
 _vbi3_vasprintf			(char **		dstp,
@@ -117,7 +157,7 @@ _vbi3_vasprintf			(char **		dstp,
 		char *buf2;
 		long len;
 
-		if (!(buf2 = realloc (buf, size)))
+		if (!(buf2 = vbi3_realloc (buf, size)))
 			break;
 
 		buf = buf2;
@@ -137,7 +177,12 @@ _vbi3_vasprintf			(char **		dstp,
 		}
 	}
 
-	free (buf);
+	vbi3_free (buf);
+	buf = NULL;
+
+	/* According to "man 3 asprintf" GNU's version leaves *dstp
+	   undefined on error, so don't count on it. FreeBSD's
+	   asprintf NULLs *dstp, which is safer. */
 	*dstp = NULL;
 	errno = temp;
 
@@ -146,7 +191,8 @@ _vbi3_vasprintf			(char **		dstp,
 
 /**
  * @internal
- * asprintf() is a GNU extension.
+ * asprintf() is a GNU extension. Don't call this function
+ * directly, we #define asprintf if necessary.
  */
 int
 _vbi3_asprintf			(char **		dstp,
@@ -158,6 +204,7 @@ _vbi3_asprintf			(char **		dstp,
 
 	va_start (ap, templ);
 
+	/* May fail, returning -1. */
 	len = vasprintf (dstp, templ, ap);
 
 	va_end (ap);
@@ -229,9 +276,13 @@ vbi3_log_on_stderr		(vbi3_log_mask		level,
 {
 	vbi3_log_mask max_level;
 
+	/* This function exists in libzvbi 0.2 with vbi_ prefix and
+	   in libzvbi 0.3 and Zapping with vbi3_ prefix (so I can
+	   use both versions in Zapping until 0.3 is finished). */
 	if (0 == strncmp (context, "vbi3_", 4)) {
 		context += 4;
-	} else if (0 == strncmp (context, "vbi3_", 5)) {
+	/* Not "vbi3_" to prevent an accidental s/vbi3_/vbi_. */
+	} else if (0 == strncmp (context, "vbi" "3_", 5)) {
 		context += 5;
 	}
 
@@ -249,13 +300,19 @@ void
 _vbi3_log_vprintf		(vbi3_log_fn		log_fn,
 				 void *			user_data,
 				 vbi3_log_mask		mask,
+				 const char *		source_file,
 				 const char *		context,
 				 const char *		templ,
 				 va_list		ap)
 {
+	char ctx_buffer[160];
+	char *msg_buffer;
 	int saved_errno;
-	char *buffer;
+	unsigned int i;
+	int r;
 
+	assert (NULL != source_file);
+	assert (NULL != context);
 	assert (NULL != templ);
 
 	if (NULL == log_fn)
@@ -263,12 +320,26 @@ _vbi3_log_vprintf		(vbi3_log_fn		log_fn,
 
 	saved_errno = errno;
 
-	vasprintf (&buffer, templ, ap);
-	if (NULL != buffer) {
-		log_fn (mask, context, buffer, user_data);
+	for (i = 0; i < N_ELEMENTS (ctx_buffer) - 2; ++i) {
+		int c = source_file[i];
 
-		free (buffer);
-		buffer = NULL;
+		if ('.' == c)
+			break;
+
+		ctx_buffer[i] = c;
+	}
+
+	ctx_buffer[i++] = ':';
+
+	strlcpy (ctx_buffer + i, context,
+		 N_ELEMENTS (ctx_buffer) - i);
+
+	r = vasprintf (&msg_buffer, templ, ap);
+	if (r > 1 && NULL != msg_buffer) {
+		log_fn (mask, ctx_buffer, msg_buffer, user_data);
+
+		vbi3_free (msg_buffer);
+		msg_buffer = NULL;
 	}
 
 	errno = saved_errno;
@@ -279,6 +350,7 @@ void
 _vbi3_log_printf			(vbi3_log_fn		log_fn,
 				 void *			user_data,
 				 vbi3_log_mask		mask,
+				 const char *		source_file,
 				 const char *		context,
 				 const char *		templ,
 				 ...)
@@ -287,7 +359,15 @@ _vbi3_log_printf			(vbi3_log_fn		log_fn,
 
 	va_start (ap, templ);
 
-	_vbi3_log_vprintf (log_fn, user_data, mask, context, templ, ap);
+	_vbi3_log_vprintf (log_fn, user_data, mask,
+			  source_file, context, templ, ap);
 
 	va_end (ap);
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

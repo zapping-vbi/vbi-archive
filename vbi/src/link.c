@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: link.c,v 1.1.2.6 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: link.c,v 1.1.2.7 2007-11-01 00:21:24 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -224,3 +224,10 @@ vbi3_link_init		(vbi3_link *		ld)
 	ld->priority	= 9;
 	ld->autoload	= FALSE;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

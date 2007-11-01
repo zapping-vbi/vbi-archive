@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.c,v 1.1.2.10 2006-05-26 00:43:06 mschimek Exp $ */
+/* $Id: xds_demux.c,v 1.1.2.11 2007-11-01 00:21:25 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -137,7 +137,7 @@ vbi3_xds_demux_feed		(vbi3_xds_demux *	xd,
 
 		xd->curr_sp = NULL;
 
-		free (xd->errstr);
+		vbi3_free (xd->errstr);
 
 		/* Error ignored. */
 		xd->errstr = strdup (_("Parity error."));
@@ -274,7 +274,7 @@ _vbi3_xds_demux_destroy		(vbi3_xds_demux *	xd)
 {
 	assert (NULL != xd);
 
-	free (xd->errstr);
+	vbi3_free (xd->errstr);
 
 	CLEAR (*xd);
 }
@@ -349,3 +349,10 @@ vbi3_xds_demux_new		(vbi3_xds_demux_cb *	callback,
 
 	return xd;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

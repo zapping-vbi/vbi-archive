@@ -1,7 +1,7 @@
 /*
- *  libzvbi
+ *  libzvbi - DVB VBI demultiplexer
  *
- *  Copyright (C) 2004 Michael H. Schimek
+ *  Copyright (C) 2004, 2007 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb_demux.h,v 1.3.2.3 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: dvb_demux.h,v 1.3.2.4 2007-11-01 00:21:22 mschimek Exp $ */
 
 #ifndef __ZVBI3_DVB_DEMUX_H__
 #define __ZVBI3_DVB_DEMUX_H__
@@ -89,6 +89,32 @@ vbi3_dvb_pes_demux_new		(vbi3_dvb_demux_cb *	callback,
 
 /* Private */
 
+/* Experimental. */
+vbi3_bool
+_vbi3_dvb_skip_data_unit		(const uint8_t **	buffer,
+				 unsigned int *		buffer_left)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
+/* Experimental. */
+vbi3_bool
+_vbi3_dvb_demultiplex_sliced	(vbi3_sliced *		sliced,
+				 unsigned int * 	n_lines,
+				 unsigned int		max_lines,
+				 const uint8_t **	buffer,
+				 unsigned int *		buffer_left)
+  __attribute__ ((_vbi3_nonnull (1, 2, 4, 5)));
+/* Experimental. */
+extern vbi3_dvb_demux *
+_vbi3_dvb_ts_demux_new		(vbi3_dvb_demux_cb *	callback,
+				 void *			user_data,
+				 unsigned int		pid);
+
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_DVB_DEMUX_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

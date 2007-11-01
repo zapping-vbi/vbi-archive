@@ -17,9 +17,13 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top_title.c,v 1.1.2.4 2006-05-26 00:43:06 mschimek Exp $ */
+/* $Id: top_title.c,v 1.1.2.5 2007-11-01 00:21:25 mschimek Exp $ */
 
-#include <stdlib.h>		/* malloc(), qsort() */
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+#include <stdlib.h>		/* qsort() */
 #include "conv.h"		/* _vbi3_strdup_locale_teletext() */
 #include "lang.h"		/* vbi3_ttx_charset_code */
 #include "cache-priv.h"
@@ -184,9 +188,10 @@ _vbi3_top_title_from_ait_title
 	const struct page_stat *ps;
 	char *title;
 
-	title = vbi3_strndup_iconv_teletext (vbi3_locale_codeset (),
-					     ait->text, N_ELEMENTS (ait->text),
-					     cs);
+	title = vbi3_strndup_iconv_teletext (vbi3_locale_codeset (), cs,
+					     ait->text,
+					     N_ELEMENTS (ait->text),
+					     /* repl_char */ '?');
 	if (NULL == title) {
 		/* Make vbi3_top_title_destroy() safe. */
 		vbi3_top_title_init (tt);
@@ -410,3 +415,10 @@ vbi3_cache_get_top_titles	(vbi3_cache *		ca,
 
 	return tt;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

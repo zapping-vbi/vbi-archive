@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.h,v 1.1.2.13 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: pdc.h,v 1.1.2.14 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifndef __ZVBI3_PDC_H__
 #define __ZVBI3_PDC_H__
@@ -103,7 +103,10 @@ _vbi3_pil_dump			(vbi3_pil		pil,
  * 8/30 format 2 Label Channel Identifier.
  */
 typedef enum {
-	/** Data from Teletext packet 8/30 format 2, Label Channel 0. */
+	/**
+	 * Data from Teletext packet 8/30 format 2, Label Channel 0
+	 * (EN 300 706 section 9.8.2, EN 300 231 section 8.2.1).
+	 */
 	VBI3_PID_CHANNEL_LCI_0 = 0,
 
 	/** Data from Teletext packet 8/30 format 2, Label Channel 1. */
@@ -115,17 +118,25 @@ typedef enum {
 	/** Data from Teletext packet 8/30 format 2, Label Channel 3. */
 	VBI3_PID_CHANNEL_LCI_3,
 
-	/** Data from a VPS packet. */
+	/** Data from a VPS packet (EN 300 231). */
 	VBI3_PID_CHANNEL_VPS,
 
 	/**
 	 * Data from an XDS current class packet (about the currently
-	 * received program).
+	 * received program) (EIA 608-B section 9).
 	 */
 	VBI3_PID_CHANNEL_XDS_CURRENT,
 
 	/** Data from another XDS packet (about a future program). */
 	VBI3_PID_CHANNEL_XDS_FUTURE,
+
+	/** Data from a DVB PDC descriptor (EN 300 468 section 6.2.29). */
+	VBI3_PID_CHANNEL_PDC_DESCRIPTOR,
+
+	VBI3_PID_CHANNEL_RESERVED1,
+	VBI3_PID_CHANNEL_RESERVED2,
+	VBI3_PID_CHANNEL_RESERVED3,
+	VBI3_PID_CHANNEL_RESERVED4,
 
 	VBI3_MAX_PID_CHANNELS
 } vbi3_pid_channel;
@@ -391,10 +402,10 @@ _vbi3_preselection_array_delete	(vbi3_preselection *	p,
 extern vbi3_preselection *
 _vbi3_preselection_array_dup	(const vbi3_preselection *p,
 				 unsigned int		n_elements)
-  __attribute__ ((malloc));
+  __attribute__ ((_vbi3_alloc));
 extern vbi3_preselection *
 _vbi3_preselection_array_new	(unsigned int		n_elements)
-  __attribute__ ((malloc));
+  __attribute__ ((_vbi3_alloc));
 extern unsigned int
 _vbi3_pdc_method_a		(vbi3_preselection *	table,
 				 unsigned int		n_elements,
@@ -408,3 +419,10 @@ _vbi3_pdc_method_a		(vbi3_preselection *	table,
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_PDC_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

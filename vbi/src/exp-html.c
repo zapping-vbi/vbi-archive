@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.6.2.13 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.6.2.14 2007-11-01 00:21:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -28,15 +28,21 @@
 #include <setjmp.h>
 
 #include "misc.h"
-#include "version.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
+#  include "version.h"
 #  include "intl-priv.h"
 #endif
 #include "export-priv.h"	/* vbi3_export */
 #include "page.h"		/* vbi3_page */
 #include "lang.h"		/* vbi3_ttx_charset, ... */
+
+/* Resources:
+   http://www.w3.org/TR/1998/REC-html40-19980424/
+   http://www.w3.org/TR/html401/
+   http://wiki.svg.org/Inline_SVG (maybe?)
+*/
 
 struct style {
 	vbi3_char		ac;
@@ -844,7 +850,7 @@ static const vbi3_export_info
 export_info = {
 	.keyword		= "html",
 	.label			= N_("HTML"),
-	.tooltip		= N_("Export this page as HTML page"),
+	.tooltip		= N_("Export the page as HTML page"),
 
 	.mime_type		= "text/html",
 	.extension		= "html,htm",
@@ -865,3 +871,10 @@ _vbi3_export_module_html = {
 
 	.export			= export
 };
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

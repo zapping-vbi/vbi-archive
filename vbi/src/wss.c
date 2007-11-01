@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: wss.c,v 1.2.2.5 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: wss.c,v 1.2.2.6 2007-11-01 00:21:25 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -366,3 +366,10 @@ vbi3_decode_wss_cpr1204		(vbi3_aspect_ratio *	ar,
 
 	return TRUE;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

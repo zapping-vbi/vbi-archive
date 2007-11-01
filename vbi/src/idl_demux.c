@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: idl_demux.c,v 1.3.2.3 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: idl_demux.c,v 1.3.2.4 2007-11-01 00:21:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -426,7 +426,7 @@ vbi3_idl_demux_delete		(vbi3_idl_demux *	dx)
 
 	_vbi3_idl_demux_destroy (dx);
 
-	free (dx);		
+	vbi3_free (dx);		
 }
 
 /**
@@ -460,9 +460,16 @@ vbi3_idl_a_demux_new		(unsigned int		channel,
 
 	if (!_vbi3_idl_demux_init (dx, _VBI3_IDL_FORMAT_A, channel, address,
 				  callback, user_data)) {
-		free (dx);
+		vbi3_free (dx);
 		dx = NULL;
 	}
 
 	return dx;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

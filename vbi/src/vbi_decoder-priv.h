@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder-priv.h,v 1.1.2.3 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: vbi_decoder-priv.h,v 1.1.2.4 2007-11-01 00:21:25 mschimek Exp $ */
 
 #ifndef VBI3_DECODER_PRIV_H
 #define VBI3_DECODER_PRIV_H
@@ -81,3 +81,10 @@ _vbi3_decoder_init		(vbi3_decoder *		vbi,
 				 vbi3_videostd_set	videostd_set);
 
 #endif /* VBI3_DECODER_PRIV_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

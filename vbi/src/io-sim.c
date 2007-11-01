@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-sim.c,v 1.1.2.13 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: io-sim.c,v 1.1.2.14 2007-11-01 00:21:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -34,10 +34,22 @@
 #include "sampling_par.h"
 #include "raw_decoder.h"
 #include "hamm.h"
-#if 3 == VBI_VERSION_MINOR
+
+#if 2 == VBI_VERSION_MINOR
+#  define sp_sample_format sampling_format
+#  define SAMPLES_PER_LINE(sp)						\
+	((sp)->bytes_per_line / VBI_PIXFMT_BPP ((sp)->sampling_format))
+#  define SYSTEM_525(sp)						\
+	(525 == (sp)->scanning)
+#else
 #  include "vps.h"
 #  include "wss.h"
+#  define sp_sample_format sample_format
+#  define SAMPLES_PER_LINE(sp) ((sp)->samples_per_line)
+#  define SYSTEM_525(sp)						\
+	(0 != (VBI3_VIDEOSTD_SET_525_60 & (sp)->videostd_set))
 #endif
+
 #include "io-sim.h"
 
 /**
@@ -52,13 +64,13 @@
  */
 
 #if 2 == VBI_VERSION_MINOR
-#  define VBI3_PIXFMT_RGB24_LE VBI3_PIXFMT_RGB24
-#  define VBI3_PIXFMT_BGR24_LE VBI3_PIXFMT_BGR24
-#  define VBI3_PIXFMT_RGBA24_LE VBI3_PIXFMT_RGBA32_LE
-#  define VBI3_PIXFMT_BGRA24_LE VBI3_PIXFMT_BGRA32_LE
-#  define VBI3_PIXFMT_RGBA24_BE VBI3_PIXFMT_RGBA32_BE
-#  define VBI3_PIXFMT_BGRA24_BE VBI3_PIXFMT_BGRA32_BE
-#  define vbi3_pixfmt_bytes_per_pixel VBI3_PIXFMT_BPP
+#  define VBI_PIXFMT_RGB24_LE VBI_PIXFMT_RGB24
+#  define VBI_PIXFMT_BGR24_LE VBI_PIXFMT_BGR24
+#  define VBI_PIXFMT_RGBA24_LE VBI_PIXFMT_RGBA32_LE
+#  define VBI_PIXFMT_BGRA24_LE VBI_PIXFMT_BGRA32_LE
+#  define VBI_PIXFMT_RGBA24_BE VBI_PIXFMT_RGBA32_BE
+#  define VBI_PIXFMT_BGRA24_BE VBI_PIXFMT_BGRA32_BE
+#  define vbi_pixfmt_bytes_per_pixel VBI_PIXFMT_BPP
 #endif
 
 #undef warning
@@ -67,7 +79,7 @@ do {									\
 	if (_vbi3_global_log.mask & VBI3_LOG_WARNING)			\
 		_vbi3_log_printf (_vbi3_global_log.fn,			\
 				  _vbi3_global_log.user_data,		\
-				  VBI3_LOG_WARNING, function,		\
+				  VBI3_LOG_WARNING, __FILE__, function,	\
 				  templ , ##args);			\
 } while (0)
 
@@ -107,11 +119,18 @@ do {									\
 	PULSE (zero_level);						\
 } while (0)
 
-#if 3 == VBI_VERSION_MINOR
-#  define SAMPLES_PER_LINE(sp) ((sp)->samples_per_line)
-#else
-#  define SAMPLES_PER_LINE(sp)						\
-	((sp)->bytes_per_line / VBI3_PIXFMT_BPP ((sp)->sampling_format))
+#ifndef HAVE_SINCOS
+
+/* This is a GNU extension. */
+vbi3_inline void
+sincos				(double			x,
+				 double *		sinx,
+				 double *		cosx)
+{
+	*sinx = sin (x);
+	*cosx = cos (x);
+}
+
 #endif
 
 static void
@@ -290,6 +309,7 @@ signal_closed_caption		(uint8_t *		raw,
 				 const vbi3_sampling_par *sp,
 				 int			blank_level,
 				 int			white_level,
+				 unsigned int		flags,
 				 double			bit_rate,
 				 const vbi3_sliced *	sliced)
 {
@@ -301,9 +321,9 @@ signal_closed_caption		(uint8_t *		raw,
 	double t3 = t0 + 6.5 * D - 120e-9;
 	double q1 = PI * bit_rate * 2;
 	/* Max. rise/fall time 240 ns (EIA 608-B). */
-	double q2 = PI / 120e-9; 
-	double signal_mean = (white_level - blank_level) * .25; /* 25 IRE */
-	double signal_high = blank_level + (white_level - blank_level) * .5;
+	double q2 = PI / 120e-9;
+	double signal_mean;
+	double signal_high;
 	double sample_period = 1.0 / sp->sampling_rate;
 	unsigned int samples_per_line;
 	double t;
@@ -317,6 +337,23 @@ signal_closed_caption		(uint8_t *		raw,
 	t = sp->offset / (double) sp->sampling_rate;
 
 	samples_per_line = SAMPLES_PER_LINE (sp);
+
+	if (flags & _VBI3_RAW_SHIFT_CC_CRI) {
+		/* Wrong signal shape found by Rich Kadel,
+		   zapping-misc@lists.sourceforge.net 2006-07-16. */
+		t0 += D / 2;
+		t1 += D / 2;
+		t2 += D / 2;
+	}
+
+	if (flags & _VBI3_RAW_LOW_AMP_CC) {
+		/* Low amplitude signal found by Rich Kadel,
+		   zapping-misc@lists.sourceforge.net 2007-08-15. */
+		white_level = white_level * 6 / 10;
+	}
+
+	signal_mean = (white_level - blank_level) * .25; /* 25 IRE */
+	signal_high = blank_level + (white_level - blank_level) * .5;
 
 	for (i = 0; i < samples_per_line; ++i) {
 		if (t >= t1 && t < t2) {
@@ -374,13 +411,156 @@ clear_image			(uint8_t *		p,
 	}
 }
 
+/**
+ * @param raw Noise will be added to this raw VBI image.
+ * @param sp Describes the raw VBI data in the buffer. @a sp->sampling_format
+ *   must be @c VBI3_PIXFMT_Y8 (@c VBI_PIXFMT_YUV420 in libzvbi 0.2.x).
+ *   Note for compatibility in libzvbi 0.2.x vbi3_sampling_par is a
+ *   synonym of vbi3_raw_decoder, but the (private) decoder fields in
+ *   this structure are ignored.
+ * @param min_freq Minimum frequency of the noise in Hz.
+ * @param max_freq Maximum frequency of the noise in Hz. @a min_freq and
+ *   @a max_freq define the cut off frequency at the half power points
+ *   (gain -3 dB).
+ * @param amplitude Maximum amplitude of the noise, should lie in range
+ *   0 to 256.
+ * @param seed Seed for the pseudo random number generator built into
+ *   this function. Given the same @a seed value the function will add
+ *   the same noise, which can be useful for tests.
+ *
+ * This function adds white noise to a raw VBI image.
+ *
+ * To produce realistic noise @a min_freq = 0, @a max_freq = 5e6 and
+ * @a amplitude = 20 to 50 seems appropriate.
+ *
+ * @returns
+ * FALSE if the @a sp sampling parameters are invalid.
+ *
+ * @since 0.2.26
+ */
+vbi3_bool
+vbi3_raw_add_noise		(uint8_t *		raw,
+				 const vbi3_sampling_par *sp,
+				 unsigned int		min_freq,
+				 unsigned int		max_freq,
+				 unsigned int		amplitude,
+				 unsigned int		seed)
+{
+	double f0, w0, sn, cs, bw, alpha, a0;
+	float a1, a2, b0, b1, z0, z1, z2;
+	unsigned int n_lines;
+	unsigned long samples_per_line;
+	unsigned long padding;
+	uint32_t seed32;
+
+	assert (NULL != raw);
+	assert (NULL != sp);
+
+	if (unlikely (!_vbi3_sampling_par_valid_log (sp, /* log */ NULL)))
+		return FALSE;
+
+	switch (sp->sp_sample_format) {
+#if 3 == VBI_VERSION_MINOR
+	case VBI3_PIXFMT_YUV444:
+	case VBI3_PIXFMT_YVU444:
+	case VBI3_PIXFMT_YUV422:
+	case VBI3_PIXFMT_YVU422:
+	case VBI3_PIXFMT_YUV411:
+	case VBI3_PIXFMT_YVU411:
+	case VBI3_PIXFMT_YVU420:
+	case VBI3_PIXFMT_YUV410:
+	case VBI3_PIXFMT_YVU410:
+	case VBI3_PIXFMT_Y8:
+#endif
+	case VBI3_PIXFMT_YUV420:
+		break;
+
+	default:
+		return FALSE;
+	}
+
+	if (unlikely (sp->sampling_rate <= 0))
+		return FALSE;
+
+	/* Biquad bandpass filter.
+	   http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt */
+
+	f0 = ((double) min_freq + max_freq) * 0.5;
+
+	if (f0 <= 0.0)
+		return TRUE;
+
+	w0 = 2 * M_PI * f0 / sp->sampling_rate;
+	sincos (w0, &sn, &cs);
+	bw = fabs (log2 (MAX (min_freq, max_freq) / f0));
+	alpha = sn * sinh (log (2) / 2 * bw * w0 / sn);
+	a0 = 1 + alpha;
+	a1 = 2 * cs / a0;
+	a2 = (alpha - 1) / a0;
+	b0 = sn / (2*a0);
+	b1 = 0;
+
+	if (amplitude > 256)
+		amplitude = 256;
+
+	n_lines = sp->count[0] + sp->count[1];
+
+#if 2 == VBI_VERSION_MINOR
+	if (unlikely (0 == amplitude
+		      || 0 == n_lines
+		      || 0 == sp->bytes_per_line))
+		return TRUE;
+
+	samples_per_line = sp->bytes_per_line;
+	padding = 0;
+#else
+	if (unlikely (0 == amplitude
+		      || 0 == n_lines
+		      || 0 == sp->samples_per_line))
+		return TRUE;
+
+	samples_per_line = sp->samples_per_line;
+	padding = sp->bytes_per_line - samples_per_line;
+#endif
+
+	seed32 = seed;
+
+	z1 = 0;
+	z2 = 0;
+
+	do {
+		uint8_t *raw_end = raw + samples_per_line;
+
+		do {
+			int noise;
+
+			/* We use our own simple PRNG to produce
+			   predictable results for tests. */
+			seed32 = seed32 * 1103515245u + 12345;
+			noise = ((seed32 / 65536) % (amplitude * 2 + 1))
+				- amplitude;
+
+			z0 = noise + a1 * z1 + a2 * z2;
+			noise = (int)(b0 * (z0 - z2) + b1 * z1);
+			z2 = z1;
+			z1 = z0;
+
+			*raw++ = SATURATE (*raw + noise, 0, 255);
+		} while (raw < raw_end);
+
+		raw += padding;
+	} while (--n_lines > 0);
+
+	return TRUE;
+}
+
 static vbi3_bool
 signal_u8			(uint8_t *		raw,
 				 const vbi3_sampling_par *sp,
 				 int			blank_level,
 				 int			black_level,
 				 int			white_level,
-				 vbi3_bool		swap_fields,
+				 unsigned int		flags,
 				 const vbi3_sliced *	sliced,
 				 unsigned int		n_sliced_lines,
 				 const char *		caller)
@@ -410,8 +590,9 @@ signal_u8			(uint8_t *		raw,
 				goto bounds;
 
 			if (sp->interlaced) {
-				row = row * 2 + !swap_fields;
-			} else if (!swap_fields) {
+				row = row * 2
+					+ !(flags & _VBI3_RAW_SWAP_FIELDS);
+			} else if (0 == (flags & _VBI3_RAW_SWAP_FIELDS)) {
 				row += sp->count[0];
 			}
 		} else if (0 != sp->start[0]
@@ -421,8 +602,9 @@ signal_u8			(uint8_t *		raw,
 				goto bounds;
 
 			if (sp->interlaced) {
-				row *= 2 + !!swap_fields;
-			} else if (swap_fields) {
+				row *= 2
+					+ !!(flags & _VBI3_RAW_SWAP_FIELDS);
+			} else if (flags & _VBI3_RAW_SWAP_FIELDS) {
 				row += sp->count[0];
 			}
 		} else {
@@ -473,6 +655,7 @@ signal_u8			(uint8_t *		raw,
 			signal_closed_caption (raw1, sp,
 					       blank_level,
 					       white_level,
+					       flags,
 					       25 * 625 * 32,
 					       sliced);
 			break;
@@ -521,6 +704,7 @@ signal_u8			(uint8_t *		raw,
 			signal_closed_caption (raw1, sp,
 					       blank_level,
 					       white_level,
+					       flags,
 					       30000 * 525 * 32 / 1001,
 					       sliced);
 			break;
@@ -536,70 +720,13 @@ signal_u8			(uint8_t *		raw,
 	return TRUE;
 }
 
-/**
- * @example examples/rawout.c
- * Raw VBI output example.
- */
-
-/**
- * @param raw A raw VBI image will be stored here.
- * @param raw_size Size of the @a raw buffer in bytes. The buffer
- *   must be large enough for @a sp->count[0] + count[1] lines
- *   of @a sp->bytes_per_line each, with @a sp->samples_per_line
- *   (in libzvbi 0.2.x @a sp->bytes_per_line) bytes actually written.
- * @param sp Describes the raw VBI data to generate. @a sp->sampling_format
- *   must be @c VBI3_PIXFMT_Y8 (@c VBI3_PIXFMT_YUV420 with libzvbi 0.2.x).
- *   @a sp->synchronous is ignored. Note for compatibility in libzvbi
- *   0.2.x vbi3_sampling_par is a synonym of vbi3_raw_decoder, but the
- *   (private) decoder fields in this structure are ignored.
- * @param blank_level The level of the horizontal blanking in the raw
- *   VBI image. Must be <= @a white_level.
- * @param white_level The peak white level in the raw VBI image. Set to
- *   zero to get the default blanking and white level.
- * @param swap_fields If @c TRUE the second field will be stored first
- *   in the @c raw buffer. Note you can also get an interlaced image
- *   by setting @a sp->interlaced to @c TRUE. @a sp->synchronous is
- *   ignored.
- * @param sliced Pointer to an array of vbi3_sliced containing the
- *   VBI data to be encoded.
- * @param n_sliced_lines Number of elements in the @a sliced array.
- *
- * This function basically reverses the operation of the vbi3_raw_decoder,
- * taking sliced VBI data and generating a raw VBI image similar to those
- * you would get from raw VBI sampling hardware. The following data services
- * are currently supported: All Teletext services, VPS, WSS 625, Closed
- * Caption 525 and 625.
- *
- * The function encodes sliced data as is, e.g. without adding or
- * checking parity bits, without checking if the line number is correct
- * for the respective data service, or if the signal will fit completely
- * in the given space (@a sp->offset and @a sp->samples_per_line at
- * @a sp->sampling_rate).
- *
- * Apart of the payload the generated video signal is invariable and
- * attempts to be faithful to related standards. You can only change the
- * characteristics of the assumed capture device. Sync pulses and color
- * bursts and not generated if the sampling parameters extend to this area.
- *
- * @note
- * This function is mainly intended for testing purposes. It is optimized
- * for accuracy, not for speed.
- *
- * @returns
- * @c FALSE if the @a raw_size is too small, if the @a sp sampling
- * parameters are invalid, if the signal levels are invalid,
- * if the @a sliced array contains unsupported services or line numbers
- * outside the @a sp sampling parameters.
- *
- * @since 0.2.22
- */
 vbi3_bool
-vbi3_raw_vbi_image		(uint8_t *		raw,
+_vbi3_raw_vbi_image		(uint8_t *		raw,
 				 unsigned long		raw_size,
 				 const vbi3_sampling_par *sp,
 				 int			blank_level,
 				 int			white_level,
-				 vbi3_bool		swap_fields,
+				 unsigned int		flags,
 				 const vbi3_sliced *	sliced,
 				 unsigned int		n_sliced_lines)
 {
@@ -612,7 +739,8 @@ vbi3_raw_vbi_image		(uint8_t *		raw,
 	n_scan_lines = sp->count[0] + sp->count[1];
 	if (unlikely (n_scan_lines * sp->bytes_per_line > raw_size)) {
 		warning (__FUNCTION__,
-			 "%u + %u lines * %lu bytes_per_line > %lu raw_size.",
+			 "(%u + %u lines) * %lu bytes_per_line "
+			 "> %lu raw_size.",
 			 sp->count[0], sp->count[1],
 			 (unsigned long) sp->bytes_per_line, raw_size);
 		return FALSE;
@@ -625,11 +753,7 @@ vbi3_raw_vbi_image		(uint8_t *		raw,
 			 blank_level, white_level);
 	}
 
-#if 3 == VBI_VERSION_MINOR
-	if (VBI3_VIDEOSTD_SET_525_60 & sp->videostd_set) {
-#else
-	if (525 == sp->scanning) {
-#endif
+	if (SYSTEM_525 (sp)) {
 		/* Observed value. */
 		const unsigned int peak = 200; /* 255 */
 
@@ -655,7 +779,7 @@ vbi3_raw_vbi_image		(uint8_t *		raw,
 
 	return signal_u8 (raw, sp,
 			  blank_level, black_level, white_level,
-			  swap_fields,
+			  flags,
 			  sliced, n_sliced_lines,
 			  __FUNCTION__);
 }
@@ -746,57 +870,15 @@ do {									\
 	}								\
 } while (0)
 
-/**
- * @param raw A raw VBI image will be stored here.
- * @param raw_size Size of the @a raw buffer in bytes. The buffer
- *   must be large enough for @a sp->count[0] + count[1] lines
- *   of @a sp->bytes_per_line each, with @a sp->samples_per_line
- *   times bytes per pixel (in libzvbi 0.2.x @a sp->bytes_per_line)
- *   actually written.
- * @param sp Describes the raw VBI data to generate. Note for
- *  compatibility in libzvbi 0.2.x vbi3_sampling_par is a synonym of
- *  vbi3_raw_decoder, but the (private) decoder fields in this
- *  structure are ignored.
- * @param blank_level The level of the horizontal blanking in the raw
- *   VBI image. Must be <= @a black_level.
- * @param black_level The black level in the raw VBI image. Must be
- *   <= @a white_level.
- * @param white_level The peak white level in the raw VBI image. Set to
- *   zero to get the default blanking, black and white level.
- * @param pixel_mask This mask selects which color or alpha channel
- *   shall contain VBI data. Depending on @a sp->sampling_format it is
- *   interpreted as 0xAABBGGRR or 0xAAVVUUYY. A value of 0x000000FF
- *   for example writes data in "red bits", not changing other
- *   bits in the @a raw buffer. When the @a sp->sampling_format is a
- *   planar YUV the function writes the Y plane only.
- * @param swap_fields If @c TRUE the second field will be stored first
- *   in the @c raw buffer. Note you can also get an interlaced image
- *   by setting @a sp->interlaced to @c TRUE. @a sp->synchronous is
- *   ignored.
- * @param sliced Pointer to an array of vbi3_sliced containing the
- *   VBI data to be encoded.
- * @param n_sliced_lines Number of elements in the @a sliced array.
- *
- * Generates a raw VBI image similar to those you get from video
- * capture hardware. Otherwise identical to vbi3_raw_vbi_image().
- *
- * @returns
- * @c FALSE if the @a raw_size is too small, if the @a sp sampling
- * parameters are invalid, if the signal levels are invalid,
- * if the @a sliced array contains unsupported services or line numbers
- * outside the @a sp sampling parameters.
- *
- * @since 0.2.22
- */
 vbi3_bool
-vbi3_raw_video_image		(uint8_t *		raw,
+_vbi3_raw_video_image		(uint8_t *		raw,
 				 unsigned long		raw_size,
 				 const vbi3_sampling_par *sp,
 				 int			blank_level,
 				 int			black_level,
 				 int			white_level,
 				 unsigned int		pixel_mask,
-				 vbi3_bool		swap_fields,
+				 unsigned int		flags,
 				 const vbi3_sliced *	sliced,
 				 unsigned int		n_sliced_lines)
 {
@@ -829,7 +911,7 @@ vbi3_raw_video_image		(uint8_t *		raw,
 			 blank_level, black_level, white_level);
 	}
 
-	switch (sp->sampling_format) {
+	switch (sp->sp_sample_format) {
 #if 3 == VBI_VERSION_MINOR
 	case VBI3_PIXFMT_YVUA24_LE:	/* 0xAAUUVVYY */
 	case VBI3_PIXFMT_YVU24_LE:	/* 0x00UUVVYY */
@@ -889,7 +971,7 @@ vbi3_raw_video_image		(uint8_t *		raw,
 		break;
 	}
 
-	switch (sp->sampling_format) {
+	switch (sp->sp_sample_format) {
 	case VBI3_PIXFMT_RGB16_LE:
 	case VBI3_PIXFMT_RGB16_BE:
 	case VBI3_PIXFMT_BGR16_LE:
@@ -955,11 +1037,7 @@ vbi3_raw_video_image		(uint8_t *		raw,
 
 	/* ITU-R BT.601 sampling assumed. */
 
-#if 3 == VBI_VERSION_MINOR
-	if (VBI3_VIDEOSTD_SET_525_60 & sp->videostd_set) {
-#else
-	if (525 == sp->scanning) {
-#endif
+	if (SYSTEM_525 (sp)) {
 		if (0 == white_level) {
 			/* Cutting off the bottom of the signal
 			   confuses the vbi3_bit_slicer (can't adjust
@@ -983,9 +1061,9 @@ vbi3_raw_video_image		(uint8_t *		raw,
 	samples_per_line = SAMPLES_PER_LINE (sp);
 
 #if 3 == VBI_VERSION_MINOR
-	sp8.sampling_format = VBI3_PIXFMT_Y8;
+	sp8.sample_format = VBI3_PIXFMT_Y8;
 #else
-	sp8.sampling_format = VBI3_PIXFMT_YUV420;
+	sp8.sampling_format = VBI_PIXFMT_YUV420;
 #endif
 
 	sp8.bytes_per_line = samples_per_line * 1 /* bpp */;
@@ -1000,7 +1078,7 @@ vbi3_raw_video_image		(uint8_t *		raw,
 
 	if (!signal_u8 (buf, &sp8,
 			blank_level, black_level, white_level,
-			swap_fields,
+			flags,
 			sliced, n_sliced_lines,
 			__FUNCTION__)) {
 		vbi3_free (buf);
@@ -1013,7 +1091,7 @@ vbi3_raw_video_image		(uint8_t *		raw,
 	while (n_scan_lines-- > 0) {
 		unsigned int i;
 
-		switch (sp->sampling_format) {
+		switch (sp->sp_sample_format) {
 #if 3 == VBI_VERSION_MINOR
 		case VBI3_PIXFMT_NONE:
 		case VBI3_PIXFMT_RESERVED0:
@@ -1168,6 +1246,140 @@ vbi3_raw_video_image		(uint8_t *		raw,
 	return TRUE;
 }
 
+/**
+ * @example examples/rawout.c
+ * Raw VBI output example.
+ */
+
+/**
+ * @param raw A raw VBI image will be stored here.
+ * @param raw_size Size of the @a raw buffer in bytes. The buffer
+ *   must be large enough for @a sp->count[0] + count[1] lines
+ *   of @a sp->bytes_per_line each, with @a sp->samples_per_line
+ *   (in libzvbi 0.2.x @a sp->bytes_per_line) bytes actually written.
+ * @param sp Describes the raw VBI data to generate. @a sp->sampling_format
+ *   must be @c VBI3_PIXFMT_Y8 (@c VBI_PIXFMT_YUV420 with libzvbi 0.2.x).
+ *   @a sp->synchronous is ignored. Note for compatibility in libzvbi
+ *   0.2.x vbi3_sampling_par is a synonym of vbi3_raw_decoder, but the
+ *   (private) decoder fields in this structure are ignored.
+ * @param blank_level The level of the horizontal blanking in the raw
+ *   VBI image. Must be <= @a white_level.
+ * @param white_level The peak white level in the raw VBI image. Set to
+ *   zero to get the default blanking and white level.
+ * @param swap_fields If @c TRUE the second field will be stored first
+ *   in the @c raw buffer. Note you can also get an interlaced image
+ *   by setting @a sp->interlaced to @c TRUE. @a sp->synchronous is
+ *   ignored.
+ * @param sliced Pointer to an array of vbi3_sliced containing the
+ *   VBI data to be encoded.
+ * @param n_sliced_lines Number of elements in the @a sliced array.
+ *
+ * This function basically reverses the operation of the vbi3_raw_decoder,
+ * taking sliced VBI data and generating a raw VBI image similar to those
+ * you would get from raw VBI sampling hardware. The following data services
+ * are currently supported: All Teletext services, VPS, WSS 625, Closed
+ * Caption 525 and 625.
+ *
+ * The function encodes sliced data as is, e.g. without adding or
+ * checking parity bits, without checking if the line number is correct
+ * for the respective data service, or if the signal will fit completely
+ * in the given space (@a sp->offset and @a sp->samples_per_line at
+ * @a sp->sampling_rate).
+ *
+ * Apart of the payload the generated video signal is invariable and
+ * attempts to be faithful to related standards. You can only change the
+ * characteristics of the assumed capture device. Sync pulses and color
+ * bursts and not generated if the sampling parameters extend to this area.
+ *
+ * @note
+ * This function is mainly intended for testing purposes. It is optimized
+ * for accuracy, not for speed.
+ *
+ * @returns
+ * @c FALSE if the @a raw_size is too small, if the @a sp sampling
+ * parameters are invalid, if the signal levels are invalid,
+ * if the @a sliced array contains unsupported services or line numbers
+ * outside the @a sp sampling parameters.
+ *
+ * @since 0.2.22
+ */
+vbi3_bool
+vbi3_raw_vbi_image		(uint8_t *		raw,
+				 unsigned long		raw_size,
+				 const vbi3_sampling_par *sp,
+				 int			blank_level,
+				 int			white_level,
+				 vbi3_bool		swap_fields,
+				 const vbi3_sliced *	sliced,
+				 unsigned int		n_sliced_lines)
+{
+	return _vbi3_raw_vbi_image (raw, raw_size, sp,
+				   blank_level, white_level,
+				   swap_fields ? _VBI3_RAW_SWAP_FIELDS : 0,
+				   sliced, n_sliced_lines);
+}
+
+/**
+ * @param raw A raw VBI image will be stored here.
+ * @param raw_size Size of the @a raw buffer in bytes. The buffer
+ *   must be large enough for @a sp->count[0] + count[1] lines
+ *   of @a sp->bytes_per_line each, with @a sp->samples_per_line
+ *   times bytes per pixel (in libzvbi 0.2.x @a sp->bytes_per_line)
+ *   actually written.
+ * @param sp Describes the raw VBI data to generate. Note for
+ *  compatibility in libzvbi 0.2.x vbi3_sampling_par is a synonym of
+ *  vbi3_raw_decoder, but the (private) decoder fields in this
+ *  structure are ignored.
+ * @param blank_level The level of the horizontal blanking in the raw
+ *   VBI image. Must be <= @a black_level.
+ * @param black_level The black level in the raw VBI image. Must be
+ *   <= @a white_level.
+ * @param white_level The peak white level in the raw VBI image. Set to
+ *   zero to get the default blanking, black and white level.
+ * @param pixel_mask This mask selects which color or alpha channel
+ *   shall contain VBI data. Depending on @a sp->sampling_format it is
+ *   interpreted as 0xAABBGGRR or 0xAAVVUUYY. A value of 0x000000FF
+ *   for example writes data in "red bits", not changing other
+ *   bits in the @a raw buffer. When the @a sp->sampling_format is a
+ *   planar YUV the function writes the Y plane only.
+ * @param swap_fields If @c TRUE the second field will be stored first
+ *   in the @c raw buffer. Note you can also get an interlaced image
+ *   by setting @a sp->interlaced to @c TRUE. @a sp->synchronous is
+ *   ignored.
+ * @param sliced Pointer to an array of vbi3_sliced containing the
+ *   VBI data to be encoded.
+ * @param n_sliced_lines Number of elements in the @a sliced array.
+ *
+ * Generates a raw VBI image similar to those you get from video
+ * capture hardware. Otherwise identical to vbi3_raw_vbi_image().
+ *
+ * @returns
+ * @c FALSE if the @a raw_size is too small, if the @a sp sampling
+ * parameters are invalid, if the signal levels are invalid,
+ * if the @a sliced array contains unsupported services or line numbers
+ * outside the @a sp sampling parameters.
+ *
+ * @since 0.2.22
+ */
+vbi3_bool
+vbi3_raw_video_image		(uint8_t *		raw,
+				 unsigned long		raw_size,
+				 const vbi3_sampling_par *sp,
+				 int			blank_level,
+				 int			black_level,
+				 int			white_level,
+				 unsigned int		pixel_mask,
+				 vbi3_bool		swap_fields,
+				 const vbi3_sliced *	sliced,
+				 unsigned int		n_sliced_lines)
+{
+	return _vbi3_raw_video_image (raw, raw_size, sp,
+				     blank_level, black_level,
+				     white_level, pixel_mask,
+				     swap_fields ? _VBI3_RAW_SWAP_FIELDS : 0,
+				     sliced, n_sliced_lines);
+}
+
 /*
 	Capture interface
 */
@@ -1220,7 +1432,83 @@ typedef struct {
 	uint8_t			vps_buffer[13];
 
 	uint8_t			wss_buffer[2];
+
+	unsigned int		noise_min_freq;
+	unsigned int		noise_max_freq;
+	unsigned int		noise_amplitude;
+	unsigned int		noise_seed;
+
+	unsigned int		flags;
 } vbi3_capture_sim;
+
+unsigned int
+_vbi3_capture_sim_get_flags	(vbi3_capture *		cap)
+{
+	vbi3_capture_sim *sim;
+
+	assert (NULL != cap);
+
+	sim = PARENT (cap, vbi3_capture_sim, cap);
+	assert (MAGIC == sim->magic);
+
+	return sim->flags;
+}
+
+void
+_vbi3_capture_sim_set_flags	(vbi3_capture *		cap,
+				 unsigned int		flags)
+{
+	vbi3_capture_sim *sim;
+
+	assert (NULL != cap);
+
+	sim = PARENT (cap, vbi3_capture_sim, cap);
+	assert (MAGIC == sim->magic);
+
+	sim->flags = flags;
+}
+
+/**
+ * @param cap Initialized vbi3_capture context opened with
+ *   vbi3_capture_sim_new().
+ * @param min_freq Minimum frequency of the noise in Hz.
+ * @param max_freq Maximum frequency of the noise in Hz. @a min_freq and
+ *   @a max_freq define the cut off frequency at the half power points
+ *   (gain -3 dB).
+ * @param amplitude Maximum amplitude of the noise, should lie in range
+ *   0 to 256.
+ *
+ * This function shapes the white noise to be added to simulated raw VBI
+ * data. By default no noise is added. To disable the noise set
+ * @a amplitude to zero.
+ *
+ * To produce realistic noise @a min_freq = 0, @a max_freq = 5e6 and
+ * @a amplitude = 20 to 50 seems appropriate.
+ *
+ * @since 0.2.26
+ */
+void
+vbi3_capture_sim_add_noise	(vbi3_capture *		cap,
+				 unsigned int		min_freq,
+				 unsigned int		max_freq,
+				 unsigned int		amplitude)
+{
+	vbi3_capture_sim *sim;
+
+	assert (NULL != cap);
+
+	sim = PARENT (cap, vbi3_capture_sim, cap);
+	assert (MAGIC == sim->magic);
+
+	if (0 == max_freq)
+		amplitude = 0;
+
+	sim->noise_min_freq = min_freq;
+	sim->noise_max_freq = max_freq;
+	sim->noise_amplitude = amplitude;
+
+	sim->noise_seed = 123456789;
+}
 
 static vbi3_bool
 extend_buffer			(struct buffer *	b,
@@ -1539,7 +1827,7 @@ caption_append_command		(vbi3_capture_sim *	sim,
 	return TRUE;
 }
 
-#if 2 == VBI_VERSION_MINOR
+#if 3 != VBI_VERSION_MINOR
 static
 #endif
 vbi3_bool
@@ -1558,8 +1846,8 @@ vbi3_capture_sim_load_caption	(vbi3_capture *		cap,
 	assert (MAGIC == sim->magic);
 
 	if (!append) {
-		free (sim->caption_buffers[0].data);
-		free (sim->caption_buffers[1].data);
+		vbi3_free (sim->caption_buffers[0].data);
+		vbi3_free (sim->caption_buffers[1].data);
 
 		CLEAR (sim->caption_buffers);
 
@@ -1868,7 +2156,7 @@ vbi3_capture_sim_load_wss_625	(vbi3_capture *		cap,
 	return vbi3_encode_wss_625 (sim->wss_buffer, ar);
 }
 
-#endif /* 3 == VBI_VERSION_MINOR */
+#endif /* 3 == VBI3_VERSION_MINOR */
 
 static unsigned int
 gen_sliced_625			(vbi3_capture_sim *	sim)
@@ -2044,11 +2332,7 @@ sim_read			(vbi3_capture *		cap,
 
 	if (NULL != raw
 	    || NULL != sliced) {
-#if 3 == VBI_VERSION_MINOR
-		if (VBI3_VIDEOSTD_SET_525_60 & sim->sp.videostd_set) {
-#else
-		if (525 == sim->sp.scanning) {
-#endif
+		if (SYSTEM_525 (&sim->sp)) {
 			n_lines = gen_sliced_525 (sim);
 		} else {
 			n_lines = gen_sliced_625 (sim);
@@ -2074,15 +2358,28 @@ sim_read			(vbi3_capture *		cap,
 
 		memset (raw_data, 0x80, sim->raw_buffer.size);
 
-		success = vbi3_raw_vbi_image (raw_data,
-					     sim->raw_buffer.size,
-					     &sim->sp,
-					     /* blank_level */ 0,
-					     /* white_level */ 0,
-					      /* swap_fields */ FALSE,
-					     sim->sliced,
-					     n_lines);
+		success = _vbi3_raw_vbi_image (raw_data,
+					       sim->raw_buffer.size,
+					       &sim->sp,
+					       /* blank_level: default */ 0,
+					       /* white_level: default */ 0,
+					       sim->flags,
+					       sim->sliced,
+					       n_lines);
 		assert (success);
+
+		if (sim->noise_amplitude > 0) {
+			success = vbi3_raw_add_noise (raw_data,
+						      &sim->sp,
+						      sim->noise_min_freq,
+						      sim->noise_max_freq,
+						      sim->noise_amplitude,
+						      sim->noise_seed);
+			assert (success);
+
+			sim->noise_seed = sim->noise_seed
+				* 1103515245 + 56789;
+		}
 
 		if (!sim->sp.synchronous)
 			delay_raw_data (sim, raw_data);
@@ -2115,11 +2412,7 @@ sim_read			(vbi3_capture *		cap,
 		(*sliced)->timestamp = sim->capture_time;
 	}
 
-#if 3 == VBI_VERSION_MINOR
-	if (VBI3_VIDEOSTD_SET_525_60 & sim->sp.videostd_set) {
-#else
-	if (525 == sim->sp.scanning) {
-#endif
+	if (SYSTEM_525 (&sim->sp)) {
 		sim->capture_time += 1001 / 30000.0;
 	} else {
 		sim->capture_time += 1 / 25.0;
@@ -2128,25 +2421,48 @@ sim_read			(vbi3_capture *		cap,
 	return TRUE;
 }
 
-static vbi3_raw_decoder *
+static vbi3_bool
+sim_sampling_point		(vbi3_capture *		cap,
+				 vbi3_bit_slicer_point *point,
+				 unsigned int		row,
+				 unsigned int		nth_bit)
+{
+	vbi3_capture_sim *sim = PARENT (cap, vbi3_capture_sim, cap);
+
+	if (!sim->decode_raw)
+		return FALSE;
+
+	return vbi3_raw_decoder_sampling_point (sim->rd, point, row, nth_bit);
+}
+
+static vbi3_bool
+sim_debug			(vbi3_capture *		cap,
+				 vbi3_bool		enable)
+{
+	vbi3_capture_sim *sim = PARENT (cap, vbi3_capture_sim, cap);
+
+	return vbi3_raw_decoder_debug (sim->rd, enable);
+}
+
+/* For compatibility in libzvbi 0.2
+   struct vbi_sampling_par == vbi_raw_decoder. In 0.3
+   we'll drop the decoding related fields. */
+#if 3 == VBI_VERSION_MINOR
+static const vbi3_sampling_par *
+#else
+static vbi_raw_decoder *
+#endif
 sim_parameters			(vbi3_capture *		cap)
 {
 	vbi3_capture_sim *sim = PARENT (cap, vbi3_capture_sim, cap);
 
-	/* For compatibility in libzvbi 0.2
-	   struct vbi3_sampling_par == vbi3_raw_decoder. In 0.3
-	   we'll drop the decoding related fields. */
-#if 3 == VBI_VERSION_MINOR
-	return sim->rd;
-#else
 	return &sim->sp;
-#endif
 }
 
 static int
 sim_get_fd			(vbi3_capture *		cap)
 {
-	cap = cap;
+	cap = cap; /* unused */
 
 	return -1; /* not available */
 }
@@ -2162,14 +2478,14 @@ sim_delete			(vbi3_capture *		cap)
 
 	vbi3_raw_decoder_delete (sim->rd);
 
-	free (sim->desync_buffer[1]);
-	free (sim->desync_buffer[0]);
+	vbi3_free (sim->desync_buffer[1]);
+	vbi3_free (sim->desync_buffer[0]);
 
-	free (sim->raw_buffer.data);
+	vbi3_free (sim->raw_buffer.data);
 
 	CLEAR (*sim);
 
-	free (sim);
+	vbi3_free (sim);
 }
 
 /**
@@ -2224,6 +2540,8 @@ vbi3_capture_sim_new		(int			scanning,
 
 	sim->cap.read		= sim_read;
 	sim->cap.parameters	= sim_parameters;
+	sim->cap.debug		= sim_debug;
+	sim->cap.sampling_point	= sim_sampling_point;
 	sim->cap.get_fd		= sim_get_fd;
 	sim->cap._delete	= sim_delete;
 
@@ -2250,7 +2568,7 @@ vbi3_capture_sim_new		(int			scanning,
 	sim->raw_f2_size = sim->sp.bytes_per_line * sim->sp.count[1];
 
 	sim->raw_buffer.size = sim->raw_f1_size + sim->raw_f2_size;
-	sim->raw_buffer.data = malloc (sim->raw_buffer.size);
+	sim->raw_buffer.data = vbi3_malloc (sim->raw_buffer.size);
 	if (NULL == sim->raw_buffer.data) {
 		goto failure;
 	}
@@ -2277,7 +2595,7 @@ vbi3_capture_sim_new		(int			scanning,
 	/* Raw VBI decoder. */
 
 	sim->rd = vbi3_raw_decoder_new (&sim->sp);
-	if (0 == sim->rd) {
+	if (NULL == sim->rd) {
 		goto failure;
 	}
 
@@ -2317,3 +2635,10 @@ vbi3_capture_sim_new		(int			scanning,
 
 	return NULL;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top_title.h,v 1.1.2.3 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: top_title.h,v 1.1.2.4 2007-11-01 00:21:25 mschimek Exp $ */
 
 #ifndef __ZVBI3_TOP_TITLE_H__
 #define __ZVBI3_TOP_TITLE_H__
@@ -67,3 +67,10 @@ vbi3_top_title_array_delete	(vbi3_top_title *	tt,
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_TOP_TITLE_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

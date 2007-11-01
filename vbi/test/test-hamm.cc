@@ -3,7 +3,7 @@
  *  Copyright (C) 2003 Michael H. Schimek
  */
 
-/* $Id: test-hamm.cc,v 1.1.2.4 2006-05-07 06:05:00 mschimek Exp $ */
+/* $Id: test-hamm.cc,v 1.1.2.5 2007-11-01 00:21:26 mschimek Exp $ */
 
 #include <iostream>
 #include <iomanip>
@@ -91,6 +91,9 @@ main				(int			argc,
 {
 	unsigned int i;
 
+	argc = argc;
+	argv = argv;
+
 	for (i = 0; i < 10000; ++i) {
 		unsigned int n = (i < 256) ? i : mrand48 ();
 		uint8_t buf[4] = { n, n >> 8, n >> 16 };
@@ -174,12 +177,16 @@ main				(int			argc,
 		     + ((i & 0x7F0000) >> (17 - 12)));
 		
 		if (A && B && C && D && E) {
+			/* No error. */
 			assert (vbi::unham24 (buf) == d);
 		} else if (F) {
+			/* Uncorrectable error. */
 			assert (vbi::unham24 (buf) < 0);
 		} else {
 			unsigned int err;
 			unsigned int ii;
+
+			/* Single bit error. */
 
 			err = ((E << 4) | (D << 3)
 			       | (C << 2) | (B << 1) | A) ^ 0x1F;
@@ -190,6 +197,8 @@ main				(int			argc,
 				assert (vbi::unham24 (buf) < 0);
 				continue;
 			}
+
+			/* Correctable single bit error. */
 
 			ii = i ^ (1 << (err - 1));
 

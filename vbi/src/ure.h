@@ -20,7 +20,7 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ure.h,v 1.6.2.1 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: ure.h,v 1.6.2.2 2007-11-01 00:21:25 mschimek Exp $ */
 
 #ifndef _h_ure
 #define _h_ure
@@ -144,3 +144,10 @@ extern int ure_exec __((ure_dfa_t dfa, int flags,
 #endif /* HAVE_GLIBC21 || HAVE_LIBUNICODE */
 
 #endif /* _h_ure */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

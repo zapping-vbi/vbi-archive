@@ -18,10 +18,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: unicode.c,v 1.4.2.4 2006-05-18 16:49:21 mschimek Exp $ */
+/* $Id: unicode.c,v 1.4.2.5 2007-11-01 00:21:26 mschimek Exp $ */
 
+#include "src/lang.h"
 #include "src/misc.h"
-#include "src/zvbi.h"
 
 static void
 putwchar			(unsigned int		c)
@@ -151,7 +151,7 @@ main				(int			argc,
 		for (j = 0x40; j < 0x60; ++j) {
 			unsigned int c;
 
-			c = _vbi3_teletext_composed_unicode (i, j);
+			c = vbi3_teletext_composed_unicode (i, j);
 			putwchar ((0 == c) ? '-' : c);
 		}
 
@@ -174,7 +174,7 @@ main				(int			argc,
 		for (j = 0x60; j < 0x80; ++j) {
 			unsigned int c;
 
-			c = _vbi3_teletext_composed_unicode (i, j);
+			c = vbi3_teletext_composed_unicode (i, j);
 			putwchar ((0 == c) ? '-' : c);
 		}
 
@@ -187,7 +187,7 @@ main				(int			argc,
 
 	for (i = 0; i < 8; ++i) {
 		for (j = 0x20; j < 0x80; j += 8) {
-			putwchar (vbi3_caption_unicode (j + i));
+			putwchar (vbi3_caption_unicode (j + i, '?'));
 			putwchar (' ');
 		}
 
@@ -199,7 +199,7 @@ main				(int			argc,
 	putwstr ("EIA 608 Closed Captioning Special Characters\n\n");
 
 	for (i = 0; i < 16; ++i) {
-		putwchar (vbi3_caption_unicode (i));
+		putwchar (vbi3_caption_unicode (i, '?'));
 	}
 
 	putwchar ('\n');

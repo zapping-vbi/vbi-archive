@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_decoder.c,v 1.1.2.8 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: xds_decoder.c,v 1.1.2.9 2007-11-01 00:21:25 mschimek Exp $ */
 
 #if 0 // TODO
 
@@ -1100,3 +1100,10 @@ _vbi3_decode_xds		(vbi3_xds_demux *	xd,
 }
 
 #endif
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

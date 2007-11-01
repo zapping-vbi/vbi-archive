@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption.c,v 1.9.2.12 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: caption.c,v 1.9.2.13 2007-11-01 00:21:22 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1044,3 +1044,10 @@ vbi3_caption_decoder_new		(vbi3_cache *		ca)
 	/* TODO */
 	return NULL;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

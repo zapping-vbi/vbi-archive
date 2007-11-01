@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.c,v 1.1.2.7 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: packet-830.c,v 1.1.2.8 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -117,6 +117,8 @@ vbi3_decode_teletext_8301_local_time
 	       +  buffer[17]
 	       - 0x111111);
 
+/* FIXME do we have to consider leap seconds,
+   e.g. 235960 or even 235961? */
 	if (unlikely (vbi3_bcd_digits_greater (bcd, 0x295959)))
 		return FALSE;
 
@@ -279,3 +281,10 @@ vbi3_decode_teletext_8302_pdc	(vbi3_program_id *	pid,
 
 	return TRUE;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

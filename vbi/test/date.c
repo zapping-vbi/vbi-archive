@@ -1,7 +1,7 @@
 /*
- *  zvbi-date -- get station date and time from Teletext packet 8/30/2.
+ *  zvbi-date -- Get station date and time from Teletext packet 8/30/2
  *
- *  Copyright (C) 2006 Michael H. Schimek
+ *  Copyright (C) 2006, 2007 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,9 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: date.c,v 1.1.2.4 2006-05-19 01:11:38 mschimek Exp $ */
+/* $Id: date.c,v 1.1.2.5 2007-11-01 00:21:26 mschimek Exp $ */
+
+/* For libzvbi version 0.3.x. */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -35,41 +37,14 @@
 #include "src/zvbi.h"
 #include "src/intl-priv.h"
 
+#include "sliced.h"
+
 #define PROGRAM_NAME "zvbi-date"
 
-static vbi3_capture *		cap;
-static vbi3_decoder *		dec;
-
 static vbi3_bool		option_set_time;
-static unsigned int		option_verbosity;
 
-#ifndef HAVE_PROGRAM_INVOCATION_NAME
-static char *			program_invocation_name;
-static char *			program_invocation_short_name;
-#endif
-
-static void
-error_exit			(const char *		template,
-				 ...)
-{
-	va_list ap;
-
-	fprintf (stderr, "%s: ", program_invocation_short_name);
-
-	va_start (ap, template);
-	vfprintf (stderr, template, ap);
-	va_end (ap);         
-
-	fputc ('\n', stderr);
-
-	exit (EXIT_FAILURE);
-}
-
-static void
-no_mem_exit			(void)
-{
-	error_exit (_("Out of memory."));
-}
+static struct stream *		cst;
+static vbi3_decoder *		dec;
 
 static void
 print_time			(time_t			time,
@@ -86,7 +61,6 @@ print_time			(time_t			time,
 		error_exit (_("Invalid date received."));
 
 	buffer_size = 1 << 16;
-
 	buffer = malloc (buffer_size);
 	if (NULL == buffer)
 		no_mem_exit ();
@@ -112,8 +86,7 @@ print_time			(time_t			time,
 static void
 set_time			(time_t			time)
 {
-#ifdef HAVE_CLOCK_SETTIME
-#  ifdef CLOCK_REALTIME
+#if defined HAVE_CLOCK_SETTIME && defined CLOCK_REALTIME
 	{
 		struct timespec ts;
 
@@ -123,7 +96,6 @@ set_time			(time_t			time)
 		if (0 == clock_settime (CLOCK_REALTIME, ts))
 			return;
 	}
-#  endif
 #endif
 
 	{
@@ -136,19 +108,19 @@ set_time			(time_t			time)
 			return;
 	}
 
-	error_exit (_("Cannot set system time. %s."),
+	error_exit (_("Cannot set system time: %s."),
 		    strerror (errno));
 }
 
 static vbi3_bool
-handler				(const vbi3_event *	ev,
+event_handler			(const vbi3_event *	ev,
 				 void *			user_data)
 {
 	user_data = user_data; /* unused */
 
 	switch (ev->type) {
 	case VBI3_EVENT_LOCAL_TIME:
-		if (option_verbosity >= 1) {
+		if (option_log_mask & VBI3_LOG_NOTICE) {
 			print_time (ev->ev.local_time.time,
 				    ev->ev.local_time.gmtoff);
 		}
@@ -159,8 +131,6 @@ handler				(const vbi3_event *	ev,
 
 		exit (EXIT_SUCCESS);
 
-		break;
-
 	default:
 		assert (0);
 	}
@@ -168,186 +138,60 @@ handler				(const vbi3_event *	ev,
 	return TRUE; /* handled */
 }
 
-static void
-mainloop			(void)
+static vbi3_bool
+decode_function			(const vbi3_sliced *	sliced,
+				 unsigned int		n_lines,
+				 const uint8_t *	raw,
+				 const vbi3_sampling_par *sp,
+				 double			sample_time,
+				 int64_t		stream_time)
 {
-	vbi3_capture_buffer *sliced_buffer;
-	struct timeval timeout;
-	double first_timestamp;
+	static double first_sample_time = 0.0;
 
-	timeout.tv_sec = 2;
-	timeout.tv_usec = 0;
+	raw = raw; /* unused */
+	sp = sp;
+	stream_time = stream_time;
 
-	first_timestamp = 0.0;
-
-	for (;;) {
-		unsigned int n_lines;
-		int r;
-
-		r = vbi3_capture_pull (cap,
-				       /* raw_buffer */ NULL,
-				       &sliced_buffer,
-				       &timeout);
-		switch (r) {
-		case -1:
-			error_exit (_("VBI read error. %s."),
-				    strerror (errno));
-
-		case 0: 
-			error_exit (_("VBI read timeout."));
-
-		case 1: /* success */
-			break;
-
-		default:
-			assert (0);
-		}
-
-		if (first_timestamp <= 0.0) {
-			first_timestamp = sliced_buffer->timestamp;
-		/* Packet 8/30/2 should repeat once every second. */
-		} else if (sliced_buffer->timestamp - first_timestamp > 2.5) {
-			error_exit (_("No station tuned in, weak reception, "
-				      "or date and time not transmitted."));
-		}
-
-		n_lines = sliced_buffer->size / sizeof (vbi3_sliced);
-
-		vbi3_decoder_feed (dec,
-				   (vbi3_sliced *) sliced_buffer->data,
-				   n_lines,
-				   sliced_buffer->timestamp);
-	}
-}
-
-static vbi3_capture *
-open_device			(const char *		dev_name,
-				 int			dvb_pid,
-				 unsigned int		scanning,
-				 unsigned int *		services,
-				 int			strict)
-{
-	vbi3_capture *cap;
-	char *errstr;
-	vbi3_bool trace;
-
-	errstr = NULL;
-	trace = (option_verbosity >= 2);
-
-	if (0 == strcmp (dev_name, "sim")) {
-		cap = vbi3_capture_sim_new (scanning,
-					    services,
-					    /* interlaced */ FALSE,
-					    /* synchronous */ TRUE);
-		if (NULL != cap)
-			return cap;
-
-		no_mem_exit ();
+	/* Packet 8/30/2 should repeat once every second. */
+	if (first_sample_time <= 0.0) {
+		first_sample_time = sample_time;
+	} else if (sample_time - first_sample_time > 2.5) {
+		error_exit (_("No station tuned in, weak reception, "
+			      "or date and time not transmitted."));
 	}
 
-#ifdef ENABLE_V4L
+	vbi3_decoder_feed (dec, sliced, n_lines, sample_time);
 
-#  if 2 == VBI_VERSION_MINOR /* not ported to 0.3 yet. */
-
-	if (-1 != dvb_pid) {
-		cap = vbi3_capture_dvb_new (dev_name,
-					    scanning,
-					    services,
-					    strict,
-					    &errstr,
-					    trace);
-		if (NULL != cap) {
-			vbi3_capture_dvb_filter (cap, dvb_pid);
-			return cap;
-		}
-
-		error_exit (_("Cannot capture VBI data "
-			      "with DVB interface:\n%s"),
-			    errstr);
-	}
-
-#  endif
-
-	cap = vbi3_capture_v4l2_new (dev_name,
-				     /* buffers */ 5,
-				     services,
-				     strict,
-				     &errstr,
-				     trace);
-	if (NULL != cap)
-		return cap;
-
-	if (NULL != errstr) {
-		free (errstr);
-		errstr = NULL;
-	}
-
-	cap = vbi3_capture_v4l_new (dev_name,
-				    scanning,
-				    services,
-				    strict,
-				    &errstr,
-				    trace);
-	if (NULL != cap)
-		return cap;
-
-	if (NULL != errstr) {
-		fprintf (stderr, _("Cannot capture VBI data "
-				   "with V4L or V4L2 interface:\n%s\n"),
-			 errstr);
-
-		free (errstr);
-		errstr = NULL;
-	}
-
-#endif /* ENABLE_V4L */
-
-#ifdef ENABLE_BKTR
-
-	cap = vbi3_capture_bktr_new (dev_name,
-				     scanning,
-				     services,
-				     strict,
-				     &errstr,
-				     trace);
-	if (NULL != cap)
-		return cap;
-
-	if (NULL != errstr) {
-		fprintf (stderr, _("Cannot capture VBI data "
-				   "with BKTR interface:\n%s\n"),
-			 errstr);
-
-		free (errstr);
-		errstr = NULL;
-	}
-
-#endif /* ENABLE_BKTR */
-
-	return NULL;
+	return TRUE;
 }
 
 static void
 usage				(FILE *			fp)
 {
 	fprintf (fp, _("\
-%s %s -- get station date and time from Teletext\n\n\
-Copyright (C) 2006 Michael H. Schimek\n\
-This program is licensed under GPL 2. NO WARRANTIES.\n\n\
-Usage: %s [options]\n\n\
-Options:\n\
--d | --device name     VBI device to open [/dev/vbi]\n\
+%s %s -- Get date and time from Teletext\n\n\
+Copyright (C) 2006, 2007 Michael H. Schimek\n\
+This program is licensed under GPLv2+. NO WARRANTIES.\n\n\
+Usage: %s [options]\n\
 -h | --help | --usage  Print this message and exit\n\
--i | --pid n           Use Linux DVB interface and filter out\n\
-                         VBI packets with this PID\n\
--s | --set             Set system time from received date and time\n\
--p | --pal | --secam   Video standard hint for V4L and DVB interface [PAL]\n\
--n | --ntsc            Video standard hint\n\
+-q | --quiet           Suppress progress and error messages\n\
 -v | --verbose         Increase verbosity\n\
--q | --quiet           Decrease verbosity (do not print date and time)\n\
 -V | --version         Print the program version and exit\n\
+Device options:\n\
+-d | --device file     Capture from this device (default %s)\n\
+                       V4L/V4L2: /dev/vbi, /dev/vbi0, /dev/vbi1, ...\n\
+                       Linux DVB: /dev/dvb/adapter0/demux0, ...\n\
+		       *BSD bktr driver: /dev/vbi, /dev/vbi0, ...\n\
+-i | --pid pid         Capture the stream with this PID from a Linux\n\
+                       DVB device\n\
+-n | --ntsc            Video standard hint for V4L interface and\n\
+                       simulated VBI device (default PAL/SECAM)\n\
+-p | --pal | --secam   Video standard hint\n\
+Other options:\n\
+-s | --set             Set system time from received date and time\n\
 "),
-		 PROGRAM_NAME, VERSION, program_invocation_name);
+		 PROGRAM_NAME, VERSION, program_invocation_name,
+		 option_dev_name);
 }
 
 static const char short_options [] = "d:hi:npqsvV";
@@ -380,32 +224,17 @@ int
 main				(int			argc,
 				 char **		argv)
 {
-	const char *dev_name;
-	int dvb_pid;
+	unsigned int interfaces;
 	unsigned int scanning;
-	unsigned int services;
 	vbi3_bool success;
 
-#ifndef HAVE_PROGRAM_INVOCATION_NAME
-	{
-		unsigned int i;
+	init_helpers (argc, argv);
 
-		for (i = strlen (argv[0]); i > 0; --i) {
-			if ('/' == argv[0][i - 1])
-				break;
-		}
-
-		program_invocation_short_name = &argv[0][i];
-	}
-#endif
-
-	setlocale (LC_ALL, "");
-
-	dev_name = "/dev/vbi";
-	dvb_pid = -1;
 	scanning = 625;
 
-	option_verbosity = 1;
+	interfaces = (INTERFACE_V4L2 |
+		      INTERFACE_V4L |
+		      INTERFACE_BKTR);
 
 	for (;;) {
 		int c;
@@ -420,7 +249,7 @@ main				(int			argc,
 			break;
 
 		case 'd':
-			dev_name = optarg;
+			parse_option_dev_name ();
 			break;
 
 		case 'h':
@@ -428,7 +257,8 @@ main				(int			argc,
 			exit (EXIT_SUCCESS);
 
 		case 'i':
-			dvb_pid = strtol (optarg, NULL, 0);
+			parse_option_dvb_pid ();
+			interfaces = INTERFACE_DVB;
 			break;
 
 		case 'n':
@@ -440,16 +270,15 @@ main				(int			argc,
 			break;
 
 		case 'q':
-			if (option_verbosity > 0)
-				--option_verbosity;
+			parse_option_quiet ();
 			break;
 
 		case 's':
-			option_set_time ^= TRUE;
+			option_set_time = TRUE;
 			break;
 
 		case 'v':
-			++option_verbosity;
+			parse_option_verbose ();
 			break;
 
 		case 'V':
@@ -462,17 +291,21 @@ main				(int			argc,
 		}
 	}
 
-	services = VBI3_SLICED_TELETEXT_B;
+	cst = capture_stream_new (interfaces,
+				  option_dev_name,
+				  scanning,
+				  VBI3_SLICED_TELETEXT_B,
+				  /* n_buffers (V4L2 mmap) */ 5,
+				  option_dvb_pid,
+				  /* interlaced (SIM) */ FALSE,
+				  /* synchronous (SIM) */ TRUE,
+				  /* capture_raw_data */ FALSE,
+				  /* read_not_pull */ FALSE,
+				  /* strict */ 1,
+				  decode_function);
 
-	cap = open_device (dev_name, dvb_pid, scanning,
-			   &services, /* strict */ 0);
-	if (NULL == cap) {
-		/* Error message printed by open_device(). */
-		exit (EXIT_FAILURE);
-	}
-
-	dec = vbi3_decoder_new (/* cache */ NULL,
-				/* network */ NULL,
+	dec = vbi3_decoder_new (/* cache: allocate one */ NULL,
+				/* network: current */ NULL,
 				VBI3_VIDEOSTD_SET_625_50);
 	if (NULL == dec)
 		no_mem_exit ();
@@ -481,14 +314,15 @@ main				(int			argc,
 
 	success = vbi3_decoder_add_event_handler (dec,
 						  VBI3_EVENT_LOCAL_TIME,
-						  handler,
+						  event_handler,
 						  /* user_data */ NULL);
-	if (NULL == dec)
+	if (!success)
 		no_mem_exit ();
 
-	mainloop ();
+	stream_loop (cst);
+
+	stream_delete (cst);
+	cst = NULL;
 
 	exit (EXIT_SUCCESS);
-
-	return 0;
 }

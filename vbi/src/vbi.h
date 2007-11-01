@@ -22,10 +22,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.h,v 1.5.2.19 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: vbi.h,v 1.5.2.20 2007-11-01 00:21:25 mschimek Exp $ */
 
-#ifndef VBI3_H
-#define VBI3_H
+#ifndef __ZVBI3_VBI_H__
+#define __ZVBI3_VBI_H__
 
 #include <stdarg.h>
 #include "macros.h"
@@ -45,4 +45,11 @@ vbi3_version			(unsigned int *		major,
 
 VBI3_END_DECLS
 
-#endif /* VBI3_H */
+#endif /* __ZVBI3_VBI_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

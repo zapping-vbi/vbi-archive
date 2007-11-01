@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io-sim.h,v 1.1.2.7 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: io-sim.h,v 1.1.2.8 2007-11-01 00:21:23 mschimek Exp $ */
 
 #ifndef __ZVBI3_IO_SIM_H__
 #define __ZVBI3_IO_SIM_H__
@@ -26,6 +26,11 @@
 #include "version.h"
 #include "sampling_par.h"
 #include "io.h"
+
+#if 3 == VBI_VERSION_MINOR
+#  include "aspect_ratio.h"
+#  include "pdc.h"
+#endif
 
 VBI3_BEGIN_DECLS
 
@@ -47,6 +52,13 @@ vbi3_raw_video_image		(uint8_t *		raw,
 				 const vbi3_sliced *	sliced,
 				 unsigned int		n_sliced_lines);
 extern vbi3_bool
+vbi3_raw_add_noise		(uint8_t *		raw,
+				 const vbi3_sampling_par *sp,
+				 unsigned int		min_freq,
+				 unsigned int		max_freq,
+				 unsigned int		amplitude,
+				 unsigned int		seed);
+extern vbi3_bool
 vbi3_raw_vbi_image		(uint8_t *		raw,
 				 unsigned long		raw_size,
 				 const vbi3_sampling_par *sp,
@@ -60,6 +72,11 @@ vbi3_raw_vbi_image		(uint8_t *		raw,
  * @addtogroup Device
  * @{
  */
+extern void
+vbi3_capture_sim_add_noise	(vbi3_capture *		cap,
+				 unsigned int		min_freq,
+				 unsigned int		max_freq,
+				 unsigned int		amplitude);
 #if 3 == VBI_VERSION_MINOR
 extern vbi3_bool
 vbi3_capture_sim_load_vps	(vbi3_capture *		cap,
@@ -84,6 +101,48 @@ vbi3_capture_sim_new		(int			scanning,
 
 /* Private */
 
+extern unsigned int
+_vbi3_capture_sim_get_flags	(vbi3_capture *		cap);
+extern void
+_vbi3_capture_sim_set_flags	(vbi3_capture *		cap,
+				 unsigned int		flags);
+
+#define _VBI3_RAW_SWAP_FIELDS	(1 << 0)
+#define _VBI3_RAW_SHIFT_CC_CRI	(1 << 1)
+#define _VBI3_RAW_LOW_AMP_CC	(1 << 2)
+
+/* NB. Currently this flag has no effect in _vbi3_raw_*_image().
+   Call vbi3_raw_add_noise() instead. */
+#define _VBI3_RAW_NOISE_2	(1 << 17)
+
+extern vbi3_bool
+_vbi3_raw_video_image		(uint8_t *		raw,
+				 unsigned long		raw_size,
+				 const vbi3_sampling_par *sp,
+				 int			blank_level,
+				 int			black_level,
+				 int			white_level,
+				 unsigned int		pixel_mask,
+				 unsigned int		flags,
+				 const vbi3_sliced *	sliced,
+				 unsigned int		n_sliced_lines);
+extern vbi3_bool
+_vbi3_raw_vbi_image		(uint8_t *		raw,
+				 unsigned long		raw_size,
+				 const vbi3_sampling_par *sp,
+				 int			blank_level,
+				 int			white_level,
+				 unsigned int		flags,
+				 const vbi3_sliced *	sliced,
+				 unsigned int		n_sliced_lines);
+
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_IO_SIM_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

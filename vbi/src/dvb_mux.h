@@ -1,7 +1,7 @@
 /*
- *  libzvbi
+ *  libzvbi - DVB VBI multiplexer
  *
- *  Copyright (C) 2004 Michael H. Schimek
+ *  Copyright (C) 2004, 2007 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 as
@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb_mux.h,v 1.2.2.2 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: dvb_mux.h,v 1.2.2.3 2007-11-01 00:21:22 mschimek Exp $ */
 
 #ifndef __ZVBI3_DVB_MUX_H__
 #define __ZVBI3_DVB_MUX_H__
@@ -29,35 +29,47 @@
 
 VBI3_BEGIN_DECLS
 
+/* Public */
+
 /**
  * @addtogroup DVBMux
  * @{
  */
 
-extern void
-_vbi3_dvb_multiplex_sliced	(uint8_t **		packet,
+extern vbi3_bool
+vbi3_dvb_multiplex_sliced	(uint8_t **		packet,
 				 unsigned int *		packet_left,
 				 const vbi3_sliced **	sliced,
 				 unsigned int *		sliced_left,
+				 vbi3_service_set	service_mask,
 				 unsigned int		data_identifier,
-				 vbi3_service_set	service_set);
-extern void
-_vbi3_dvb_multiplex_samples	(uint8_t **		packet,
+				 vbi3_bool		stuffing)
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+  __attribute__ ((_vbi3_nonnull (1, 2, 3, 4)))
+#endif
+  ;
+extern vbi3_bool
+vbi3_dvb_multiplex_raw		(uint8_t **		packet,
 				 unsigned int *		packet_left,
-				 const uint8_t **	samples,
-				 unsigned int *		samples_left,
-				 unsigned int		samples_size,
+				 const uint8_t **	raw,
+				 unsigned int *		raw_left,
 				 unsigned int		data_identifier,
 				 vbi3_videostd_set	videostd_set,
 				 unsigned int		line,
-				 unsigned int		offset);
+				 unsigned int		first_pixel_position,
+				 unsigned int		n_pixels_total,
+				 vbi3_bool		stuffing)
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+  __attribute__ ((_vbi3_nonnull (1, 2, 3, 4)))
+#endif
+  ;
 
 /**
  * @brief DVB VBI multiplexer context.
  *
  * The contents of this structure are private.
  *
- * Call vbi3_dvb_mux_pes_new() or vbi3_dvb_mux_ts_new() to allocate
+ * Call vbi3_dvb_pes_mux_new() or vbi3_dvb_ts_mux_new() to allocate
  * a DVB VBI multiplexer context.
  */
 typedef struct _vbi3_dvb_mux vbi3_dvb_mux;
@@ -69,33 +81,74 @@ vbi3_dvb_mux_cb			(vbi3_dvb_mux *		mx,
 				 unsigned int		packet_size);
 
 extern void
-_vbi3_dvb_mux_reset		(vbi3_dvb_mux *		mx);
+vbi3_dvb_mux_reset		(vbi3_dvb_mux *		mx)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
-_vbi3_dvb_mux_mux		(vbi3_dvb_mux *		mx,
+vbi3_dvb_mux_cor		(vbi3_dvb_mux *		mx,
+				 uint8_t **		buffer,
+				 unsigned int *		buffer_left,
+				 const vbi3_sliced **	sliced,
+				 unsigned int *		sliced_lines,
+				 vbi3_service_set	service_mask,
+				 const uint8_t *	raw,
+				 const vbi3_sampling_par *sampling_par,	 
+				 int64_t		pts)
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+  __attribute__ ((_vbi3_nonnull (1, 2, 3, 4, 5)))
+#endif
+  ;
+extern vbi3_bool
+vbi3_dvb_mux_feed		(vbi3_dvb_mux *		mx,
 				 const vbi3_sliced *	sliced,
-				 unsigned int		sliced_size,
-				 vbi3_service_set	service_set,
-				 int64_t		pts);
+				 unsigned int		sliced_lines,
+				 vbi3_service_set	service_mask,
+				 const uint8_t *	raw,
+				 const vbi3_sampling_par *sampling_par,
+				 int64_t		pts)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern unsigned int
+vbi3_dvb_mux_get_data_identifier (const vbi3_dvb_mux *	mx)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern vbi3_bool
+vbi3_dvb_mux_set_data_identifier (vbi3_dvb_mux *	mx,
+				  unsigned int		data_identifier)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern unsigned int
+vbi3_dvb_mux_get_min_pes_packet_size
+				(vbi3_dvb_mux *		mx)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern unsigned int
+vbi3_dvb_mux_get_max_pes_packet_size
+				(vbi3_dvb_mux *		mx)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern vbi3_bool
+vbi3_dvb_mux_set_pes_packet_size (vbi3_dvb_mux *	mx,
+				  unsigned int		min_size,
+				  unsigned int		max_size)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
-_vbi3_dvb_mux_delete		(vbi3_dvb_mux *		mx);
+vbi3_dvb_mux_delete		(vbi3_dvb_mux *		mx);
 extern vbi3_dvb_mux *
-_vbi3_dvb_mux_pes_new		(unsigned int		data_identifier,
-				 unsigned int		packet_size,
-				 vbi3_videostd_set	videostd_set,
-				 vbi3_dvb_mux_cb *	callback,
+vbi3_dvb_pes_mux_new		(vbi3_dvb_mux_cb *	callback,
 				 void *			user_data)
-  __attribute ((_vbi3_alloc));
+  __attribute__ ((_vbi3_alloc));
 extern vbi3_dvb_mux *
-_vbi3_dvb_mux_ts_new		(unsigned int		pid,
-				 unsigned int		data_identifier,
-				 unsigned int		packet_size,
-				 vbi3_videostd_set	videostd_set,
+vbi3_dvb_ts_mux_new		(unsigned int		pid,
 				 vbi3_dvb_mux_cb *	callback,
 				 void *			user_data)
   __attribute__ ((_vbi3_alloc));
 
 /** @} */
 
+/* Private */
+
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_DVB_MUX_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

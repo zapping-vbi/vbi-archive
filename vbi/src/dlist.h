@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dlist.h,v 1.1.2.4 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: dlist.h,v 1.1.2.5 2007-11-01 00:21:22 mschimek Exp $ */
 
 #ifndef DLIST_H
 #define DLIST_H
@@ -357,3 +357,10 @@ list_length			(struct node *		l)
 }
 
 #endif /* DLIST_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

@@ -18,21 +18,23 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder-priv.h,v 1.1.2.3 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: caption_decoder-priv.h,v 1.1.2.4 2007-11-01 00:21:22 mschimek Exp $ */
 
 #ifndef CAPTION_DECODER_PRIV_H
 #define CAPTION_DECODER_PRIV_H
 
 #include "cache-priv.h"
 #include "event-priv.h"
-#include "xds_demux.h"
+#ifndef ZAPPING8
+#  include "xds_demux.h"
+#endif
 #include "caption_decoder.h"
 
-typedef enum {
+enum field_num {
 	FIELD_1 = 0,
 	FIELD_2,
 	N_FIELDS
-} field_num;
+};
 
 #define FIELD_UNKNOWN MAX_FIELDS
 
@@ -54,15 +56,17 @@ typedef enum {
 /** This structure maintains Closed Caption channel state. */
 typedef struct {
 	/**
-	 * Displayed and non-displayed buffer according to spec.
-	 * Snapshot of displayed buffer at last row update.
+	 * [0] and [1] are the displayed and non-displayed buffer
+	 * according to spec, and selected by displayed_buffer below.
+	 * [2] is a snapshot of the displayed buffer at the last row
+	 * update.
 	 */
 	vbi3_char		buffer[3][MAX_ROWS][MAX_COLUMNS];
 
 	/**
-	 * For all buffers, if bit (1 << row) is set this row contains
+	 * For each buffer, if bit (1 << row) is set this row contains
 	 * text, otherwise only TRANSPARENT_SPACEs. Intended to speed
-	 * up copying and conversion of characters.
+	 * up copying and character conversion.
 	 *
 	 * When dirty[n] < 0 this buffer shall be erased to all
 	 * TRANSPARENT_SPACEs before storing characters. Intended to
@@ -73,7 +77,10 @@ typedef struct {
 	/** Index of displayed buffer, 0 or 1. */
 	unsigned int		displayed_buffer;
 
-	/** Cursor position. */
+	/**
+	 * Cursor position: FIRST_ROW ... LAST_ROW and
+	 * FIRST_COLUMN ... LAST_COLUMN.
+	 */
 	unsigned int		curr_row;
 	unsigned int		curr_column;
 
@@ -126,14 +133,16 @@ struct _vbi3_caption_decoder {
 		caption_channel		channel[MAX_CHANNELS];
 
 		/**
-		 * Current channel, switched by caption control codes. Can
-		 * be @c CHANNEL_UNKNOWN (no channel number received yet).
+		 * Current channel, switched by caption control codes.
+		 * Can be one of @c VBI3_CAPTION_CC1 ... @c VBI3_CAPTION_CC4
+		 * or @c VBI3_CAPTION_T1 ... @c VBI3_CAPTION_T4 or
+		 * @c CHANNEL_UNKNOWN (no channel number received yet).
 		 */
 		vbi3_pgno		curr_ch_num;
 
 		/**
 		 * To send a display update event (VBI3_EVENT_CC_PAGE) when the
-		 * visible buffer of the current channel changed, but no more
+		 * displayed buffer of the current channel changed, but no more
 		 * than once for each pair of Closed Caption bytes.
 		 */
 		caption_channel *	event_pending;
@@ -152,27 +161,33 @@ struct _vbi3_caption_decoder {
 	struct {
 		/* XDS decoder */
 
+#ifndef ZAPPING8
 		vbi3_xds_demux		demux;
+#endif
 	}			xds;
 
 	/* Master demultiplexer */
 
-	/** Receiving ITV data (channel VBI3_CHAPTION_T2). */
+	/**
+	 * Receiving ITV data (normally channel VBI3_CHAPTION_T2,
+	 * FIELD_1 only, but the field number may be ambiguous).
+	 */
 	vbi3_bool		in_itv[N_FIELDS];
 
-	/** Receiving XDS data, as opposed to caption. */
+	/** Receiving XDS data, as opposed to caption / ITV data. */
 	vbi3_bool		in_xds[N_FIELDS];
 
 	/**
 	 * Caption control codes (two bytes) may repeat once for
-	 * error correction.
+	 * error correction. May be -1 if no repeated control code
+	 * can be expected.
 	 */
 	int			expect_ctrl[N_FIELDS][2];
 
 	/**
 	 * Remember past parity errors: One bit for each call of
-	 * vbi3_caption_decoder_feed(), most recent result in lsb. The idea
-	 * is to disable the decoder if we get too many errors.
+	 * vbi3_caption_decoder_feed(), most recent result in lsb. The
+	 * idea is to disable the decoder if we get too many errors.
 	 */
 	unsigned int		error_history;
 
@@ -209,3 +224,10 @@ _vbi3_caption_decoder_init	(vbi3_caption_decoder *	cd,
 				 vbi3_videostd_set	videostd_set);
 
 #endif /* CAPTION_DECODER_PRIV_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

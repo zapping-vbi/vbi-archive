@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: page-priv.h,v 1.1.2.5 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: page-priv.h,v 1.1.2.6 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifndef PAGE_PRIV_H
 #define PAGE_PRIV_H
@@ -90,3 +90,10 @@ extern void
 _vbi3_page_priv_init		(vbi3_page_priv *	pgp);
 
 #endif /* PAGE_PRIV_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

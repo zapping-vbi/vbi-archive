@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Unicode conversion helper functions
  *
- *  Copyright (C) 2003, 2004, 2006 Michael H. Schimek
+ *  Copyright (C) 2003-2006 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.c,v 1.1.2.8 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: conv.c,v 1.1.2.9 2007-11-01 00:21:22 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -28,123 +28,53 @@
 #include <langinfo.h>
 
 #include "misc.h"
-#include "version.h"
+#include "conv.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
 #  include "intl-priv.h"
 #endif
-#include "conv.h"
-
-#if 3 == VBI_VERSION_MINOR
-const char vbi3_intl_domainname [] = PACKAGE;
-#else
-const char *vbi3_intl_domainname = _zvbi_intl_domainname;
-#endif
-
-/**
- * @param src NUL-terminated UCS-2 string.
- *
- * Counts the characters in the string, excluding the terminating NUL.
- */
-size_t
-vbi3_strlen_ucs2		(const uint16_t *	src)
-{
-	const uint16_t *s;
-
-	if (NULL == src)
-		return 0;
-
-	for (s = src; 0 != *s; ++s)
-		;
-
-	return s - src;
-}
-
-/**
- * @internal
- * @param out_size Length of the resulting UTF-8 string in bytes.
- * @param src NUL-terminated UCS-2 string.
- * @param src_size Number of characters in the
- *   source string. Can be -1 if the string is NUL terminated.
- *
- * Converts a UCS-2 string to UTF-8 and stores the result in a newly
- * allocated buffer.
- */
-static char *
-strndup_utf8_ucs2		(size_t *		out_size,
-				 const uint16_t *	src,
-				 ssize_t		src_size)
-{
-	char *buffer;
-	char *d;
-
-	assert (NULL != out_size);
-	assert (NULL != src);
-	assert (0 != src_size);
-
-	if (src_size < 0)
-		src_size = vbi3_strlen_ucs2 (src) + 1;
-
-	buffer = vbi3_malloc (src_size * 3);
-	if (NULL == buffer)
-		return NULL;
-
-	d = buffer;
-
-	while (src_size > 0) {
-		unsigned int c = *src++;
-
-		if (c < 0x80) {
-			*d++ = c;
-		} else if (c < 0x800) {
-			d[0] = 0xC0 | (c >> 6);
-			d[1] = 0x80 | (c & 0x3F);
-			d += 2;
-		} else {
-			d[0] = 0xE0 | (c >> 12);
-			d[1] = 0x80 | ((c >> 6) & 0x3F);
-			d[2] = 0x80 | (c & 0x3F);
-			d += 3;
-		}
-	}
-
-	*out_size = d - buffer;
-
-	return buffer;
-}
 
 #ifdef HAVE_ICONV
+
 #  include <iconv.h>
+
 struct _vbi3_iconv_t {
-	iconv_t			cd;
+	iconv_t			icd;
+	uint16_t		ucs2_repl[1];
 };
+
 #else
+
 struct _vbi3_iconv_t {
 	int			dummy;
 };
+
 #endif
 
 #ifdef HAVE_ICONV
 
 /**
  * @internal
- * @param cd Conversion object.
+ * @param cd Conversion object returned by vbi3_iconv_open().
  * @param dst Pointer to output buffer pointer, will be incremented
  *   by the number of bytes written.
- * @param dst_size Space available in the output buffer, in bytes.
+ * @param dst_left Space available in the output buffer, in bytes.
  * @param src Pointer to input buffer pointer, will be incremented
  *   by the number of bytes read.
  * @param src_left Number of bytes left to read in the input buffer.
  *
- * Like iconv(), but converts unrepresentable characters to a
- * question mark 0x3F. The source is assumed to be UCS-2.
+ * Like iconv(), but converts unrepresentable characters to
+ * @a cd->ucs2_repl. The source is assumed to be in UCS-2 format
+ * (so we know how to skip unrepresentable characters).
  *
  * @returns
  * See iconv().
+ *
+ * @since 0.2.23
  */
 static size_t
-iconv_ucs2			(iconv_t		cd,
+iconv_ucs2			(vbi3_iconv_t *		cd,
 				 char **		dst,
 				 size_t *		dst_left,
 				 const char **		src,
@@ -152,35 +82,41 @@ iconv_ucs2			(iconv_t		cd,
 {
 	size_t r;
 
-	assert ((iconv_t) -1 != cd);
+	assert (NULL != cd);
 	assert (NULL != dst);
 	assert (NULL != dst_left);
 	assert (NULL != src);
 	assert (NULL != src_left);
 
+	r = 0;
+
 	while (*src_left > 0) {
-		static const uint16_t ucs2_repl[1] = { 0x003F };
 		const char *src1;
 		size_t src_left1;
 
 		/* iconv() source pointer may be defined as char **,
 		   should be const char ** or const void **. Ignore
 		   compiler warnings. */
-		r = iconv (cd, (void *) src, src_left, dst, dst_left);
+		r = iconv (cd->icd, (void *) src, src_left,
+			   dst, dst_left);
 		if (likely ((size_t) -1 != r))
 			break; /* success */
 
 		if (EILSEQ != errno)
 			break;
 
-		src1 = (const char *) ucs2_repl;
+		if (0 == cd->ucs2_repl[0])
+			return -1; /* do not replace */
+
+		src1 = (const char *) cd->ucs2_repl;
 		src_left1 = 2;
 
-		r = iconv (cd, (void *) &src1, &src_left1, dst, dst_left);
+		r = iconv (cd->icd, (void *) &src1, &src_left1,
+			   dst, dst_left);
 		if (unlikely ((size_t) -1 == r))
-			break;
+			break; /* failed */
 
-		*src += 2;
+		*src += 2; /* in UCS-2 format */
 		*src_left -= 2;
 	}
 
@@ -189,40 +125,43 @@ iconv_ucs2			(iconv_t		cd,
 
 #endif /* HAVE_ICONV */
 
+/** @internal */
 vbi3_bool
-_vbi3_iconv_ucs2		(vbi3_iconv_t *		cd,
+_vbi3_iconv_ucs2			(vbi3_iconv_t *		cd,
 				 char **		dst,
-				 size_t			dst_size,
+				 unsigned long		dst_size,
 				 const uint16_t *	src,
-				 ssize_t		src_size)
+				 long			src_length)
 {
-	static const uint16_t dummy[1] = { 0 };
-	const char *s;
-	size_t d_left;
-	size_t s_left;
-	size_t r;
-
 	assert (NULL != cd);
 	assert (NULL != dst);
+	assert (NULL != *dst);
+
+	if (NULL == src || 0 == src_length)
+		return TRUE;
 
 #ifdef HAVE_ICONV
-	if (NULL == src) {
-		s = (const char *) dummy;
-		s_left = 0;
-	} else {
-		if (src_size < 0)
-			src_size = vbi3_strlen_ucs2 (src) + 1;
+	{
+		const char *s;
+		size_t d_left;
+		size_t s_left;
+		size_t r;
+
+		if (src_length < 0)
+			src_length = vbi3_strlen_ucs2 (src) + 1;
 
 		s = (const char *) src;
-		s_left = src_size * 2;
+		s_left = src_length * 2;
+
+		d_left = dst_size;
+		
+		r = iconv_ucs2 (cd, dst, &d_left, &s, &s_left);
+
+		return ((size_t) -1 != r && 0 == s_left);
 	}
-
-	d_left = dst_size;
-
-	r = iconv_ucs2 (cd->cd, dst, &d_left, &s, &s_left);
-
-	return ((size_t) -1 != r && 0 == s_left);
 #else
+	dst_size = dst_size; /* unused */
+
 	return FALSE;
 #endif
 }
@@ -232,44 +171,53 @@ _vbi3_iconv_ucs2		(vbi3_iconv_t *		cd,
  * @param cd Conversion object returned by vbi3_iconv_open().
  *
  * Frees all resources associated with the conversion object.
+ *
+ * @since 0.2.23
  */
 void
 _vbi3_iconv_close		(vbi3_iconv_t *		cd)
 {
-#ifdef HAVE_ICONV
-	if (NULL != cd) {
-		if ((iconv_t) -1 != cd->cd) {
-			iconv_close (cd->cd);
-			cd->cd = (iconv_t) -1;
-		}
+	if (NULL == cd)
+		return;
 
-		free (cd);
+#ifdef HAVE_ICONV
+	if ((iconv_t) -1 != cd->icd) {
+		iconv_close (cd->icd);
+		cd->icd = (iconv_t) -1;
 	}
+
+	vbi3_free (cd);
 #endif
 }
 
 /**
+ * @internal
  * @param dst_codeset Character set name for iconv() conversion,
- *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
+ *   for example "ISO-8859-1". When @c NULL the default is UTF-8.
  * @param src_codeset Character set name for iconv() conversion,
- *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
+ *   for example "ISO-8859-1". When @c NULL the default is UTF-8.
  * @param dst Pointer to output buffer pointer, which will be
- *   incremented by the number of bytes written.
+ *   incremented by the number of bytes written. Can be @c NULL.
  * @param dst_size Space available in the output buffer, in bytes.
+ * @param repl_char UCS-2 replacement for characters which are not
+ *   representable in @a dst_codeset. When zero the _vbi3_iconv_ucs2()
+ *   function will return @c FALSE instead.
  *
  * Helper function to convert text. A start byte sequence will be
  * stored in @a dst if necessary.
  *
  * @returns
  * @c NULL when the conversion is impossible.
+ *
+ * @since 0.2.23
  */
 vbi3_iconv_t *
-_vbi3_iconv_open		(const char *		dst_codeset,
+_vbi3_iconv_open			(const char *		dst_codeset,
 				 const char *		src_codeset,
 				 char **		dst,
-				 size_t			dst_size)
+				 unsigned long		dst_size,
+				 int			repl_char)
 {
-#ifdef HAVE_ICONV
 	vbi3_iconv_t *cd;
 
 	if (NULL == dst_codeset)
@@ -278,38 +226,46 @@ _vbi3_iconv_open		(const char *		dst_codeset,
 	if (NULL == src_codeset)
 		src_codeset = "UCS-2";
 
-	cd = malloc (sizeof (*cd));
+#ifdef HAVE_ICONV
+	cd = vbi3_malloc (sizeof (*cd));
 	if (NULL == cd)
 		return NULL;
 
-	cd->cd = iconv_open (dst_codeset, src_codeset);
-	if ((iconv_t) -1 == cd->cd) {
-		free (cd);
+	cd->icd = iconv_open (dst_codeset, src_codeset);
+	if ((iconv_t) -1 == cd->icd) {
+		vbi3_free (cd);
 		return NULL;
 	}
 
+	cd->ucs2_repl[0] = repl_char;
+
 	if (NULL != dst) {
+		size_t d_left;
 		size_t n;
+
+		d_left = dst_size;
 
 		/* Write out the byte sequence to get into the
 		   initial state if this is necessary. */
-		n = iconv (cd->cd, NULL, NULL, dst, &dst_size);
+		n = iconv (cd->icd, NULL, NULL, dst, &d_left);
 
 		if ((size_t) -1 == n) {
-			iconv_close (cd->cd);
-			cd->cd = (iconv_t) -1;
-			free (cd);
+			_vbi3_iconv_close (cd);
 			return NULL;
 		}
 	}
 
-	return cd;
-
 #else /* !HAVE_ICONV */
-	return NULL;
+	dst = dst; /* unused */
+	dst_size = dst_size;
+	repl_char = repl_char;
+
+	cd = NULL;
 #endif
+	return cd;
 }
 
+/** @internal */
 static vbi3_bool
 same_codeset			(const char *		dst_codeset,
 				 const char *		src_codeset)
@@ -339,295 +295,306 @@ same_codeset			(const char *		dst_codeset,
 	}
 }
 
+/**
+ * @ingroup Conv
+ * @param src NUL-terminated UCS-2 string.
+ *
+ * Counts the characters in the string, up to and excluding
+ * the terminating NUL.
+ *
+ * @since 0.2.23
+ */
+unsigned long
+vbi3_strlen_ucs2			(const uint16_t *	src)
+{
+	const uint16_t *s;
+
+	if (NULL == src)
+		return 0;
+
+	for (s = src; 0 != *s; ++s)
+		;
+
+	return s - src;
+}
+
+/**
+ * @internal
+ * @param out_size If not @c NULL the actual number of bytes stored
+ *   in the buffer (excluding the terminating NUL) will be stored here.
+ * @param src Source string.
+ * @param src_size Number of bytes in the source string (excluding
+ *   the terminating NUL, if any).
+ *
+ * Copies a string into a newly allocated buffer, with a terminating
+ * NUL (4 bytes).
+ *
+ * @returns
+ * A pointer to the allocated buffer. You must free() the buffer
+ * when it is no longer needed. The function returns @c NULL when
+ * it runs out of memory, or when @a src is @c NULL.
+ *
+ * @since 0.2.23
+ */
 static char *
-strndup_iconv_ucs2		(size_t *		out_size,
-				 const char *		dst_codeset,
-				 const uint16_t *	src,
-				 ssize_t		src_size)
+strndup_identity		(unsigned long *	out_size,
+				 const char *		src,
+				 unsigned long		src_size)
 {
 	char *buffer;
-	char *d;
-	size_t buffer_size;
 
-	assert (NULL != out_size);
-	assert (NULL != dst_codeset);
-	assert (NULL != src);
-	assert (0 != src_size);
+	buffer = vbi3_malloc (src_size + 4);
+	if (NULL == buffer) {
+		if (NULL != out_size)
+			*out_size = 0;
 
-	if (src_size < 0)
-		src_size = vbi3_strlen_ucs2 (src) + 1;
-
-	if (same_codeset (dst_codeset, "UTF8")) {
-		return strndup_utf8_ucs2 (out_size,
-					  (const uint16_t *) src,
-					  src_size);
+		return NULL;
 	}
 
-#ifdef HAVE_ICONV
-	buffer = NULL;
-	buffer_size = 0;
+	memcpy (buffer, src, src_size);
+	memset (buffer + src_size, 0, 4);
 
-	for (;;) {
-		iconv_t cd;
-		const char *s;
-		size_t d_left;
-		size_t s_left;
-		size_t r;
-
-		d_left = src_size * 4;
-		if (buffer_size > 0)
-			d_left = buffer_size * 2;
-
-		d = vbi3_malloc (d_left);
-		if (unlikely (NULL == d)) {
-			errno = ENOMEM;
-			return NULL;
-		}
-
-		buffer = d;
-		buffer_size = d_left;
-
-		cd = _vbi3_iconv_open (dst_codeset, "UCS-2", &d, d_left);
-		if (unlikely ((iconv_t) -1 == cd)) {
-			free (buffer);
-			buffer = NULL;
-			return NULL;
-		}
-
-		d_left = buffer_size - (d - buffer);
-
-		s = (const char *) src;
-		s_left = src_size * 2;
-
-		r = iconv_ucs2 (cd, &d, &d_left, &s, &s_left);
-
-		iconv_close (cd);
-		cd = (iconv_t) -1;
-
-		if (likely ((size_t) -1 != r))
-			break;
-
-		free (buffer);
-		buffer = NULL;
-
-		if (E2BIG != errno)
-			return NULL;
-	}
-
-	*out_size = d - buffer;
-#else
-	buffer = NULL;
-	*out_size = 0;
-#endif /* !HAVE_ICONV */
+	if (NULL != out_size)
+		*out_size = src_size;
 
 	return buffer;
 }
 
 /**
  * @internal
- */
-static char *
-strndup_iconv			(size_t *		out_size,
-				 const char *		dst_codeset,
-				 const char *		src_codeset,
-				 const char *		src,
-				 ssize_t		src_size)
-{
-	char *buffer;
-	char *d;
-	size_t buffer_size;
-
-	assert (NULL != out_size);
-	assert (NULL != dst_codeset);
-	assert (NULL != src_codeset);
-	assert (NULL != src);
-	assert (src_size > 0);
-
-	if (same_codeset (src_codeset, "UCS2")) {
-		return strndup_iconv_ucs2 (out_size,
-					   dst_codeset,
-					   (const uint16_t *) src,
-					   src_size / 2);
-	}
-
-#ifdef HAVE_ICONV
-	buffer = NULL;
-	buffer_size = 0;
-
-	for (;;) {
-		iconv_t cd;
-		const char *s;
-		size_t d_left;
-		size_t s_left;
-		size_t r;
-
-		d_left = 16384;
-		if (buffer_size > 0)
-			d_left = buffer_size * 2;
-
-		d = vbi3_malloc (d_left);
-		if (unlikely (NULL == d)) {
-			errno = ENOMEM;
-			return NULL;
-		}
-
-		buffer = d;
-		buffer_size = d_left;
-
-		cd = _vbi3_iconv_open ("UCS-2", src_codeset, &d, d_left);
-		if (unlikely ((iconv_t) -1 == cd)) {
-			free (buffer);
-			buffer = NULL;
-			return NULL;
-		}
-
-		d_left = buffer_size - (d - buffer);
-
-		s = src;
-		s_left = src_size;
-
-		/* Ignore compiler warnings if second argument is declared
-		   as char** instead of const char**. */
-		r = iconv (cd, &s, &s_left, &d, &d_left);
-
-		iconv_close (cd);
-		cd = (iconv_t) -1;
-
-		if (likely ((size_t) -1 != r))
-			break;
-
-		free (buffer);
-		buffer = NULL;
-
-		if (E2BIG != errno)
-			return NULL;
-	}
-
-	if (same_codeset (dst_codeset, "UCS2")) {
-		*out_size = (d - buffer) / 2;
-		return buffer;
-	}
-
-	d = strndup_iconv_ucs2 (out_size,
-				dst_codeset,
-				(const uint16_t *) buffer,
-				(d - buffer) / 2);
-
-	free (buffer);
-	buffer = NULL;
-#else
-	d = NULL;
-#endif /* !HAVE_ICONV */
-
-	return d;
-}
-
-/**
- * @param dst_codeset Character set name for iconv() conversion,
- *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
- * @param src_codeset Character set name for iconv() conversion,
- *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
- * @param src Source buffer, can be @c NULL.
- * @param src_size Number of bytes in the source buffer.
+ * @param out_size If not @c NULL the actual number of bytes stored
+ *   in the buffer (excluding the terminating NUL) will be stored here.
+ * @param src Source string in UCS-2 format, can be @c NULL.
+ * @param src_length Number of characters (not bytes) in the source
+ *   string. Can be -1 if the string is NUL terminated.
  *
- * Converts a string with iconv() and writes the result into a
- * newly allocated buffer. Characters not representable in the
- * @a dst_codeset are converted to question marks 0x3F.
+ * Converts a string from UCS-2 to UTF-8 format and writes the
+ * result with a terminating NUL character into a newly allocated
+ * buffer. Note the buffer may be larger than necessary.
  *
  * @returns
  * A pointer to the allocated buffer. You must free() the buffer
  * when it is no longer needed. The function returns @c NULL when
- * the conversion fails, when it runs out of memory, when @a src
- * is @c NULL or when @a src_size is zero.
+ * it runs out of memory, or when @a src is @c NULL.
+ *
+ * @since 0.2.23
  */
-char *
-vbi3_strndup_iconv		(const char *		dst_codeset,
-				 const char *		src_codeset,
-				 const char *		src,
-				 ssize_t		src_size)
+static char *
+strndup_utf8_ucs2		(unsigned long *	out_size,
+				 const uint16_t *	src,
+				 long			src_length)
 {
-	char *result;
+	char *d;
+	char *buffer;
+	const uint16_t *end;
 
-	assert (src_size >= 0);
+	if (NULL != out_size)
+		*out_size = 0;
 
-	if (NULL == src || 0 == src_size)
+	if (unlikely (NULL == src))
 		return NULL;
 
-	if (NULL == dst_codeset)
-		dst_codeset = "UTF-8";
+	if (src_length < 0)
+		src_length = vbi3_strlen_ucs2 (src);
 
-	if (NULL == src_codeset)
-		src_codeset = "UTF-8";
+	buffer = vbi3_malloc (src_length * 3 + 1);
+	if (NULL == buffer)
+		return NULL;
 
-	if (same_codeset (dst_codeset, src_codeset)) {
-		result = vbi3_malloc (src_size);
-		if (NULL == result)
-			return NULL;
+	d = buffer;
 
-		memcpy (result, src, src_size);
-	} else {
-		char *buffer;
-		size_t size;
+	for (end = src + src_length; src < end; ++src) {
+		unsigned int c = *src;
 
-		buffer = strndup_iconv (&size,
-					dst_codeset,
-					src_codeset,
-					src, src_size);
-		if (NULL == buffer)
-			return NULL;
-
-		result = realloc (buffer, size);
-		if (NULL == result)
-			result = buffer;
+		if (c < 0x80) {
+			*d++ = c;
+		} else if (c < 0x800) {
+			d[0] = 0xC0 | (c >> 6);
+			d[1] = 0x80 | (c & 0x3F);
+			d += 2;
+		} else {
+			d[0] = 0xE0 | (c >> 12);
+			d[1] = 0x80 | ((c >> 6) & 0x3F);
+			d[2] = 0x80 | (c & 0x3F);
+			d += 3;
+		}
 	}
 
-	return result;
+	if (NULL != out_size)
+		*out_size = d - buffer;
+
+	*d = 0;
+
+	return buffer;
 }
 
 /**
+ * @internal
+ * @param out_size If not @c NULL the actual number of bytes stored
+ *   in the buffer (excluding the terminating NUL) will be stored here.
  * @param dst_codeset Character set name for iconv() conversion,
- *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
+ *   for example "ISO-8859-1". When @c NULL the default is UTF-8.
  * @param src Source string in UCS-2 format, can be @c NULL.
- * @param src_size Number of characters (not bytes) in the source
- *   string. Can be -1 if the string is NUL terminated. In this
- *   case the NUL is also converted.
+ * @param src_length Number of characters (not bytes) in the source
+ *   string. Can be -1 if the string is NUL terminated.
+ * @param repl_char UCS-2 replacement for characters which are not
+ *   representable in @a dst_codeset. When zero the function will
+ *   fail if the source buffer contains unrepresentable characters.
  *
- * Converts a UCS-2 string with iconv() and writes the result into
- * a newly allocated buffer. Characters not representable in the
- * @a dst_codeset are converted to question marks 0x3F.
+ * Converts a UCS-2 string with iconv() and writes the result with a
+ * terminating NUL character into a newly allocated buffer. Note the
+ * buffer may be larger than necessary.
  *
  * @returns
  * A pointer to the allocated buffer. You must free() the buffer
  * when it is no longer needed. The function returns @c NULL when
  * the conversion fails, when it runs out of memory or when @a src
- * is @c NULL. When @a src_size is zero it returns an empty string.
+ * is @c NULL.
+ *
+ * @since 0.2.23
+ */
+static char *
+strndup_iconv_from_ucs2		(unsigned long *	out_size,
+				 const char *		dst_codeset,
+				 const uint16_t *	src,
+				 long			src_length,
+				 int			repl_char)
+{
+	char *buffer;
+	unsigned long buffer_size;
+
+	if (NULL == dst_codeset || same_codeset (dst_codeset, "UTF8")) {
+		return strndup_utf8_ucs2 (out_size, src, src_length);
+	} else if (same_codeset (dst_codeset, "UCS2")) {
+		return strndup_identity (out_size, (const char *) src,
+					 src_length * 2);
+	}
+
+	if (NULL != out_size)
+		*out_size = 0;
+
+	if (unlikely (NULL == src))
+		return NULL;
+
+	buffer = NULL;
+	buffer_size = 0;
+
+#ifdef HAVE_ICONV
+	if (unlikely (src_length < 0)) {
+		src_length = vbi3_strlen_ucs2 (src);
+	}
+
+	{
+		char *d;
+		uint32_t *d32;
+
+		for (;;) {
+			vbi3_iconv_t *cd;
+			const char *s;
+			size_t d_left;
+			size_t s_left;
+			size_t r;
+
+			d_left = src_length * 4;
+			if (buffer_size > 0)
+				d_left = buffer_size * 2;
+
+			d = vbi3_malloc (d_left);
+			if (unlikely (NULL == d)) {
+				errno = ENOMEM;
+				return NULL;
+			}
+
+			buffer = d;
+			buffer_size = d_left;
+
+			cd = _vbi3_iconv_open (dst_codeset, "UCS-2",
+					       &d, d_left, repl_char);
+			if (NULL == cd) {
+				vbi3_free (buffer);
+				buffer = NULL;
+
+				return NULL;
+			}
+
+			d_left = buffer_size - (d - buffer)
+				- 4 /* room for a UCS-4 NUL */;
+
+			s = (const char *) src;
+			s_left = src_length * 2;
+
+			r = iconv_ucs2 (cd, &d, &d_left, &s, &s_left);
+
+			_vbi3_iconv_close (cd);
+			cd = NULL;
+
+			if (likely ((size_t) -1 != r))
+				break;
+
+			vbi3_free (buffer);
+			buffer = NULL;
+
+			if (E2BIG != errno)
+				return NULL;
+
+			/* Buffer was too small, try again. */
+		}
+
+		if (NULL != out_size)
+			*out_size = d - buffer;
+
+		d32 = (uint32_t *) d;
+		*d32 = 0;
+	}
+
+#else /* !HAVE_ICONV */
+	repl_char = repl_char; /* unused */
+
+#endif
+
+	return buffer;
+}
+
+/**
+ * @ingroup Conv
+ * @param dst_codeset Character set name for iconv() conversion,
+ *   for example "ISO-8859-1". When @c NULL the default is UTF-8.
+ * @param src Source string in UCS-2 format, can be @c NULL.
+ * @param src_length Number of characters (not bytes) in the source
+ *   string. Can be -1 if the string is NUL terminated.
+ * @param repl_char UCS-2 replacement for characters which are not
+ *   representable in @a dst_codeset. When zero the function will
+ *   fail if the source buffer contains unrepresentable characters.
+ *
+ * Converts a UCS-2 string with iconv() and writes the result with a
+ * terminating NUL character into a newly allocated buffer.
+ *
+ * @returns
+ * A pointer to the allocated buffer. You must free() the buffer
+ * when it is no longer needed. The function returns @c NULL when
+ * the conversion fails, when it runs out of memory or when @a src
+ * is @c NULL.
+ *
+ * @since 0.2.23
  */
 char *
 vbi3_strndup_iconv_ucs2		(const char *		dst_codeset,
 				 const uint16_t *	src,
-				 ssize_t		src_size)
+				 long			src_length,
+				 int			repl_char)
 {
-	static const uint16_t nul[1] = { 0 };
 	char *buffer;
 	char *result;
-	size_t size;
+	unsigned long size;
 
-	if (NULL == src)
-		return NULL;
-
-	if (NULL == dst_codeset)
-		dst_codeset = "UTF-8";
-
-	if (0 == src_size) {
-		src = nul;
-		src_size = 1;
-	}
-
-	buffer = strndup_iconv_ucs2 (&size, dst_codeset, src, src_size);
+	buffer = strndup_iconv_from_ucs2 (&size,
+					  dst_codeset,
+					  src, src_length,
+					  repl_char);
 	if (NULL == buffer)
 		return NULL;
 
-	result = realloc (buffer, size);
+	result = vbi3_realloc (buffer, size + 4);
 	if (NULL == result)
 		result = buffer;
 
@@ -635,109 +602,548 @@ vbi3_strndup_iconv_ucs2		(const char *		dst_codeset,
 }
 
 /**
- * @param dst_codeset Character set name for iconv() conversion,
- *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
- * @param src String of teletext characters, can be @c NULL.
- * @param src_size Number of characters (= bytes) in the
- *   source string. Can be -1 if the @a src string is NUL terminated.
- * @param cs Teletext character set descriptor.
+ * @internal
+ * @param out_size If not @c NULL the actual number of bytes stored
+ *   in the buffer (excluding the terminating NUL) will be stored here.
+ * @param src Source string in EIA 608 (Closed Caption) format, can
+ *   be @c NULL.
+ * @param src_length Number of characters (= bytes) in the source
+ *   string. Can be -1 if the string is NUL terminated.
+ * @param to_upper Convert the string to upper case.
  *
- * Converts a string of Teletext characters to another format and
- * stores the result in a newly allocated buffer. The function
- * ignores parity bits and removes leading and trailing control
- * code characters (0x00 ... 0x1F). Other characters not
- * representable in @a dst_format are converted to question marks
- * 0x3F.
+ * Converts a string from EIA 608 to UCS-2 format and writes the
+ * result with a terminating NUL character into a newly allocated
+ * buffer. The function ignores parity bits and the bytes 0x00 ...
+ * 0x1F except two byte special and extended characters (e.g.
+ * music note 0x11 0x37). Note the buffer may be larger than necessary.
  *
  * @returns
- * A NUL terminated string in the target codeset. You must free() the
- * string when it is no longer needed. The function returns @c NULL when
- * the conversion fails, when it runs out of memory or when @a src
- * is @c NULL. When @a src_size is zero it returns an empty string.
+ * A pointer to the allocated buffer. You must free() the buffer
+ * when it is no longer needed. The function returns @c NULL when the
+ * source buffer contains invalid two byte characters, when
+ * it runs out of memory, or when @a src is @c NULL.
+ *
+ * @since 0.2.23
  */
-char *
-vbi3_strndup_iconv_teletext	(const char *		dst_codeset,
-				 const uint8_t *	src,
-				 ssize_t		src_size,
-				 const vbi3_ttx_charset *cs)
+static char *
+strndup_ucs2_eia608		(unsigned long *	out_size,
+				 const char *		src,
+				 long			src_length,
+				 vbi3_bool		to_upper)
 {
-	uint16_t *buffer;
-	char *result;
-	ssize_t begin;
-	ssize_t end;
-	ssize_t i;
+	uint16_t *d16;
+	char *buffer;
+	long i;
 
-	assert (NULL != cs);
+	if (NULL != out_size)
+		*out_size = 0;
 
-	if (NULL == src)
+	if (unlikely (NULL == src))
 		return NULL;
 
-	if (src_size < 0)
-		src_size = strlen ((const char *) src);
+	if (src_length < 0)
+		src_length = strlen (src);
 
-	for (begin = 0; begin < src_size; ++begin)
-		if ((src[begin] & 0x7F) > 0x20)
+	buffer = vbi3_malloc (src_length * 2 + 2);
+	if (unlikely (NULL == buffer))
+		return NULL;
+
+	d16 = (uint16_t *) buffer;
+
+	for (i = 0; i < src_length; ++i) {
+		unsigned int c = src[i] & 0x7F;
+
+		switch (c) {
+		case 0x11 ... 0x13:
+		case 0x19 ... 0x1B:
+			if (unlikely (i + 1 >= src_length))
+				goto ilseq;
+
+			c = ((c * 256) + src[++i]) & 0x777F;
+			c = vbi3_caption_unicode (c, to_upper);
+
+			if (unlikely (0 == c))
+				goto ilseq;
+
+			*d16++ = c;
+
 			break;
 
-	for (end = src_size; end > begin; --end)
-		if ((src[end - 1] & 0x7F) > 0x20)
+		case 0x20 ... 0x7F:			
+			*d16++ = vbi3_caption_unicode (c, to_upper);
 			break;
 
-	if (end <= begin) {
-		static const uint16_t nul[1] = { 0 };
-
-		return vbi3_strndup_iconv_ucs2 (dst_codeset, nul, 1);
+		default:
+			break;
+		}
 	}
 
-	buffer = vbi3_malloc ((end - begin + 1) * sizeof (*buffer));
+	if (NULL != out_size)
+		*out_size = (char *) d16 - buffer;
+
+	*d16 = 0;
+
+	return buffer;
+	
+ilseq:
+	vbi3_free (buffer);
+	buffer = NULL;
+
+	errno = EILSEQ;
+
+	return NULL;
+}
+
+/**
+ * @internal
+ * @param out_size If not @c NULL the actual number of bytes stored
+ *   in the buffer (excluding the terminating NUL) will be stored here.
+ * @param src_codeset Character set name for iconv() conversion,
+ *   for example "ISO-8859-1". When @c NULL the default is UTF-8.
+ * @param src Source string, can be @c NULL.
+ * @param src_size Number of bytes in the source string (excluding
+ *   the terminating NUL, if any).
+ *
+ * Converts a string from @a src_codeset to UCS-2 and writes the result
+ * with a terminating NUL character into a newly allocated buffer. Note
+ * the buffer may be larger than necessary.
+ *
+ * @returns
+ * A pointer to the allocated buffer. You must free() the buffer
+ * when it is no longer needed. The function returns @c NULL when
+ * the conversion fails, when it runs out of memory or when @a src
+ * is @c NULL.
+ *
+ * @since 0.2.23
+ */
+static char *
+strndup_iconv_to_ucs2		(unsigned long *	out_size,
+				 const char *		src_codeset,
+				 const char *		src,
+				 unsigned long		src_size)
+{
+	char *buffer;
+	unsigned long buffer_size;
+
+	if (NULL == src_codeset) {
+		src_codeset = "UTF-8";
+	} else if (same_codeset (src_codeset, "UCS2")) {
+		return strndup_identity (out_size, src, src_size);
+	} else if (same_codeset (src_codeset, "EIA608")) {
+		return strndup_ucs2_eia608 (out_size, src, src_size, FALSE);
+	}
+
+	if (NULL != out_size)
+		*out_size = 0;
+
+	if (unlikely (NULL == src))
+		return NULL;
+
+	buffer = NULL;
+	buffer_size = 0;
+
+#ifdef HAVE_ICONV
+	{
+		char *d;
+		uint16_t *d16;
+
+		for (;;) {
+			vbi3_iconv_t *cd;
+			const char *s;
+			size_t d_left;
+			size_t s_left;
+			size_t r;
+
+			d_left = 16384;
+			if (buffer_size > 0)
+				d_left = buffer_size * 2;
+
+			d = vbi3_malloc (d_left);
+			if (NULL == d) {
+				errno = ENOMEM;
+				return NULL;
+			}
+
+			buffer = d;
+			buffer_size = d_left;
+
+			cd = _vbi3_iconv_open ("UCS-2", src_codeset,
+					       &d, d_left,
+					       /* repl_char */ 0);
+			if (NULL == cd) {
+				vbi3_free (buffer);
+				buffer = NULL;
+
+				return NULL;
+			}
+
+			d_left = buffer_size - (d - buffer)
+				- 2 /* room for a UCS-2 NUL */;
+
+			s = src;
+			s_left = src_size;
+
+			/* Ignore compiler warnings if second argument
+			   is declared as char** instead of const char**. */
+			r = iconv (cd->icd, &s, &s_left, &d, &d_left);
+
+			_vbi3_iconv_close (cd);
+			cd = NULL;
+
+			if ((size_t) -1 != r)
+				break;
+
+			vbi3_free (buffer);
+			buffer = NULL;
+
+			if (E2BIG != errno)
+				return NULL;
+
+			/* Buffer was too small, try again. */
+		}
+
+		if (NULL != out_size)
+			*out_size = d - buffer;
+
+		d16 = (uint16_t *) d;
+		*d16 = 0;
+	}
+
+#else /* !HAVE_ICONV */
+#endif
+
+	return buffer;
+}
+
+/**
+ * @internal
+ * @param out_size If not @c NULL the actual number of bytes stored
+ *   in the buffer (excluding the terminating NUL) will be stored here.
+ * @param dst_codeset Character set name for iconv() conversion,
+ *   for example "ISO-8859-1". When @c NULL the default is UTF-8.
+ * @param src_codeset Character set name for iconv() conversion,
+ *   for example "ISO-8859-1". When @c NULL the default is UTF-8.
+ * @param src Source string, can be @c NULL.
+ * @param src_size Number of bytes in the source string (excluding
+ *   the terminating NUL, if any).
+ * @param repl_char UCS-2 replacement for characters which are not
+ *   representable in @a dst_codeset. When zero the function will
+ *   fail if the source buffer contains unrepresentable characters.
+ *
+ * Converts a string with iconv() and writes the result with a
+ * terminating NUL character into a newly allocated buffer. Note
+ * the buffer may be larger than necessary.
+ *
+ * @returns
+ * A pointer to the allocated buffer. You must free() the buffer
+ * when it is no longer needed. The function returns @c NULL when
+ * the conversion fails, when it runs out of memory or when @a src
+ * is @c NULL.
+ *
+ * @since 0.2.23
+ */
+static char *
+strndup_iconv			(unsigned long *	out_size,
+				 const char *		dst_codeset,
+				 const char *		src_codeset,
+				 const char *		src,
+				 unsigned long		src_size,
+				 int			repl_char)
+{
+	if (same_codeset (dst_codeset, src_codeset)) {
+		return strndup_identity (out_size, src, src_size);
+	} else if (same_codeset (src_codeset, "UCS2")) {
+		if (NULL != src && 0 != (src_size & 1)) {
+			if (NULL != out_size)
+				*out_size = 0;
+			errno = EILSEQ;
+			return NULL;
+		}
+
+		return strndup_iconv_from_ucs2 (out_size,
+						dst_codeset,
+						(const uint16_t *) src,
+						src_size / 2,
+						repl_char);
+	} else {
+		char *buffer;
+		char *result;
+		unsigned long size;
+
+		buffer = strndup_iconv_to_ucs2 (&size,
+						src_codeset,
+						src,
+						src_size);
+		if (NULL == buffer)
+			return NULL;
+
+		if (same_codeset (dst_codeset, "UCS2"))
+			return buffer;
+
+		result = strndup_iconv_from_ucs2 (out_size,
+						  dst_codeset,
+						  (const uint16_t *) buffer,
+						  size / 2,
+						  repl_char);
+
+		vbi3_free (buffer);
+		buffer = NULL;
+
+		return result;
+	}
+}
+
+/**
+ * @ingroup Conv
+ * @param dst_codeset Character set name for iconv() conversion,
+ *   for example "ISO-8859-1". When @c NULL the default is UTF-8.
+ * @param src_codeset Character set name for iconv() conversion,
+ *   for example "ISO-8859-1". When @c NULL the default is UTF-8.
+ * @param src Source buffer, can be @c NULL.
+ * @param src_size Number of bytes in the source string (excluding
+ *   the terminating NUL, if any).
+ * @param repl_char UCS-2 replacement for characters which are not
+ *   representable in @a dst_codeset. When zero the function will
+ *   fail if the source buffer contains unrepresentable characters.
+ *
+ * Converts a string with iconv() and writes the result with a
+ * terminating NUL character into a newly allocated buffer.
+ *
+ * @returns
+ * A pointer to the allocated buffer. You must free() the buffer
+ * when it is no longer needed. The function returns @c NULL when
+ * the conversion fails, when it runs out of memory or when @a src
+ * is @c NULL.
+ *
+ * @since 0.2.23
+ */
+char *
+vbi3_strndup_iconv		(const char *		dst_codeset,
+				 const char *		src_codeset,
+				 const char *		src,
+				 unsigned long		src_size,
+				 int			repl_char)
+{
+	char *result;
+	char *buffer;
+	unsigned long size;
+
+	buffer = strndup_iconv (&size,
+				dst_codeset,
+				src_codeset,
+				src, src_size,
+				repl_char);
 	if (NULL == buffer)
 		return NULL;
 
-	for (i = begin; i < end; ++i) {
-		buffer[i - begin] = vbi3_teletext_unicode
-			(cs->g0, cs->subset, (unsigned int)(src[i] & 0x7F));
-	}
-
-	buffer[i - begin] = 0;
-
-	result = vbi3_strndup_iconv_ucs2 (dst_codeset, buffer,
-					  end - begin + 1);
-
-	free (buffer);
-	buffer = NULL;
+	result = vbi3_realloc (buffer, size + 4);
+	if (NULL == result)
+		result = buffer;
 
 	return result;
 }
 
 /**
+ * @ingroup internal
+ * @param dst_codeset Character set name for iconv() conversion,
+ *   for example "ISO-8859-1". When @c NULL the default is UTF-8.
+ * @param src String of Closed Caption characters, can be @c NULL.
+ * @param src_length Number of characters (= bytes) in the
+ *   source string. Can be -1 if the @a src string is NUL terminated.
+ * @param repl_char UCS-2 replacement for characters which are not
+ *   representable in @a dst_codeset. When zero the function will
+ *   fail if the source buffer contains unrepresentable characters.
+ *
+ * Converts a string of EIA 608 Closed Caption characters to another
+ * format and stores the result with a terminating NUL in a newly
+ * allocated buffer. The function ignores parity bits and the bytes
+ * 0x00 ... 0x1F except two byte special and extended characters (e.g.
+ * music note 0x11 0x37).
+ *
+ * @see vbi3_caption_unicode()
+ *
+ * @returns
+ * A pointer to the allocated buffer. You must free() the buffer
+ * when it is no longer needed. The function returns @c NULL when the
+ * source buffer contains invalid two byte characters, when the
+ * conversion fails, when it runs out of memory or when @a src is
+ * @c NULL.
+ *
+ * @since 0.2.23
+ */
+char *
+vbi3_strndup_iconv_caption	(const char *		dst_codeset,
+				 const char *		src,
+				 long			src_length,
+				 int			repl_char)
+{
+	if (NULL == src)
+		return NULL;
+
+	if (src_length < 0)
+		src_length = strlen (src);
+
+	return vbi3_strndup_iconv (dst_codeset, "EIA-608",
+				  src, src_length, repl_char);
+}
+
+#if defined ZAPPING8 || 3 == VBI_VERSION_MINOR
+
+/**
+ * @internal
+ * @param out_size If not @c NULL the actual number of bytes stored
+ *   in the buffer (excluding the terminating NUL) will be stored here.
+ * @param cs Teletext character set descriptor.
+ * @param src Source string in Teletext format, can be @c NULL.
+ * @param src_length Number of characters (= bytes) in the source
+ *   string. Can be -1 if the string is NUL terminated.
+ *
+ * Converts a string from Teletext to UCS-2 format and writes the
+ * result with a terminating NUL character into a newly allocated
+ * buffer. The function ignores parity bits and control codes
+ * (0x00 ... 0x1F). Note the buffer may be larger than necessary.
+ *
+ * @returns
+ * A pointer to the allocated buffer. You must free() the buffer
+ * when it is no longer needed. The function returns @c NULL when
+ * it runs out of memory, or when @a src is @c NULL.
+ *
+ * @since 0.2.23
+ */
+static char *
+strndup_ucs2_teletext		(unsigned long *	out_size,
+				 const vbi3_ttx_charset *cs,
+				 const uint8_t *	src,
+				 long			src_length)
+{
+	uint16_t *d16;
+	char *buffer;
+	long i;
+
+	assert (NULL != cs);
+
+	if (NULL != out_size)
+		*out_size = 0;
+
+	if (unlikely (NULL == src))
+		return NULL;
+
+	if (src_length < 0)
+		src_length = strlen ((const char *) src);
+
+	buffer = vbi3_malloc (src_length * 2 + 2);
+	if (NULL == buffer)
+		return NULL;
+
+	d16 = (uint16_t *) buffer;
+
+	for (i = 0; i < src_length; ++i) {
+		unsigned int c = src[i] & 0x7F;		
+
+		if (c >= 0x20) {
+			*d16++ = vbi3_teletext_unicode (cs->g0, cs->subset, c);
+		}
+	}
+
+	if (NULL != out_size)
+		*out_size = (char *) d16 - buffer;
+
+	*d16 = 0;
+
+	return buffer;
+}
+
+/**
+ * @ingroup Conv
+ * @param dst_codeset Character set name for iconv() conversion,
+ *   for example "ISO-8859-1". When @c NULL the default is UTF-8.
+ * @param cs Teletext character set descriptor.
+ * @param src String of Teletext characters, can be @c NULL.
+ * @param src_length Number of characters (= bytes) in the
+ *   source string. Can be -1 if the @a src string is NUL terminated.
+ * @param repl_char UCS-2 replacement for characters which are not
+ *   representable in @a dst_codeset. When zero the function will
+ *   fail if the source buffer contains unrepresentable characters.
+ *
+ * Converts a string of Teletext characters to @a dst_codeset and
+ * stores the result with a terminating NUL in a newly allocated buffer.
+ * The function ignores parity bits and control codes (0x00 ... 0x1F).
+ *
+ * @returns
+ * A pointer to the allocated buffer. You must free() the buffer
+ * when it is no longer needed. The function returns @c NULL when
+ * the conversion fails, when it runs out of memory or when @a src
+ * is @c NULL.
+ *
+ * @since 0.2.23
+ */
+char *
+vbi3_strndup_iconv_teletext	(const char *		dst_codeset,
+				 const vbi3_ttx_charset *cs,
+				 const uint8_t *	src,
+				 long			src_length,
+				 int			repl_char)
+{
+	char *buffer;
+	char *result;
+	unsigned long size;
+
+	buffer = strndup_ucs2_teletext (&size, cs, src, src_length);
+	if (NULL == buffer)
+		return NULL;
+
+	if (same_codeset (dst_codeset, "UCS2")) {
+		result = vbi3_realloc (buffer, size + 2);
+		if (NULL == result)
+			result = buffer;
+	} else {
+		result = vbi3_strndup_iconv (dst_codeset, "UCS-2",
+					    buffer, size,
+					    repl_char);
+		vbi3_free (buffer);
+		buffer = NULL;
+	}
+
+	return result;
+}
+
+#endif /* 3 == VBI3_VERSION_MINOR */
+
+/**
+ * @ingroup Conv
  * @param fp Output file.
  * @param dst_codeset Character set name for iconv() conversion,
- *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
+ *   for example "ISO-8859-1". When @c NULL the default is UTF-8.
  * @param src_codeset Character set name for iconv() conversion,
- *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
+ *   for example "ISO-8859-1". When @c NULL the default is UTF-8.
  * @param src Source buffer, can be @c NULL.
- * @param src_size Number of bytes in the source buffer.
+ * @param src_size Number of bytes in the source string (excluding
+ *   the terminating NUL, if any).
+ * @param repl_char UCS-2 replacement for characters which are not
+ *   representable in @a dst_codeset. When zero the function will
+ *   fail if the source buffer contains unrepresentable characters.
  *
  * Converts a string with iconv() and writes the result into the
- * given file. Characters not representable in the @a dst_codeset
- * are converted to question marks 0x3F.
+ * given file.
  *
  * @returns
  * FALSE on failure.
+ *
+ * @since 0.2.23
  */
 vbi3_bool
-vbi3_fputs_iconv		(FILE *			fp,
+vbi3_fputs_iconv			(FILE *			fp,
 				 const char *		dst_codeset,
 				 const char *		src_codeset,
 				 const char *		src,
-				 ssize_t		src_size)
+				 unsigned long		src_size,
+				 int			repl_char)
 {
 	char *buffer;
-	size_t size;
+	unsigned long size;
 	size_t actual;
 
 	assert (NULL != fp);
-	assert (src_size >= 0);
 
 	if (NULL == src || 0 == src_size)
 		return TRUE;
@@ -749,81 +1155,77 @@ vbi3_fputs_iconv		(FILE *			fp,
 		src_codeset = "UTF-8";
 
 	if (same_codeset (dst_codeset, src_codeset)) {
-		return ((size_t) src_size == fwrite (src, 1, src_size, fp));
+		return ((size_t) src_size
+			== fwrite (src, 1, src_size, fp));
 	}
 
 	buffer = strndup_iconv (&size,
 				dst_codeset,
 				src_codeset,
-				src, src_size);
+				src, src_size,
+				repl_char);
 	if (NULL == buffer)
 		return FALSE;
 
 	actual = fwrite (buffer, 1, size, fp);
 
-	free (buffer);
+	vbi3_free (buffer);
 	buffer = NULL;
 
-	return (actual == size);
+	return (actual == (size_t) size);
 }
 
 /**
+ * @ingroup Conv
  * @param fp Output file.
  * @param dst_codeset Character set name for iconv() conversion,
- *   for example "ISO-8859-1". When @c NULL, the default is UTF-8.
+ *   for example "ISO-8859-1". When @c NULL the default is UTF-8.
  * @param src Source string in UCS-2 format, can be @c NULL.
- * @param src_size Number of characters (not bytes) in the source
+ * @param src_length Number of characters (not bytes) in the source
  *   string. Can be -1 if the string is NUL terminated.
+ * @param repl_char UCS-2 replacement for characters which are not
+ *   representable in @a dst_codeset. When zero the function will
+ *   fail if the source buffer contains unrepresentable characters.
  *
  * Converts a UCS-2 string with iconv() and writes the result into
- * the given file. Characters not representable in the @a dst_codeset
- * are converted to question marks 0x3F.
+ * the given file.
  *
  * @returns
  * FALSE on failure.
+ *
+ * @since 0.2.23
  */
 vbi3_bool
 vbi3_fputs_iconv_ucs2		(FILE *			fp,
 				 const char *		dst_codeset,
 				 const uint16_t *	src,
-				 ssize_t		src_size)
+				 long			src_length,
+				 int			repl_char)
 {
-	char *buffer;
-	size_t size;
-	size_t actual;
-
-	assert (NULL != fp);
-
 	if (NULL == src)
 		return TRUE;
 
-	if (src_size < 0)
-		src_size = vbi3_strlen_ucs2 (src);
+	if (src_length < 0)
+		src_length = vbi3_strlen_ucs2 (src);
 
-	if (0 == src_size)
-		return TRUE;
-
-	if (NULL == dst_codeset)
-		dst_codeset = "UTF8";
-
-	buffer = strndup_iconv_ucs2 (&size,
-				     dst_codeset,
-				     src, src_size);
-	if (NULL == buffer)
-		return FALSE;
-
-	actual = fwrite (buffer, 1, size, fp);
-
-	free (buffer);
-	buffer = NULL;
-
-	return (actual == size);
+	return vbi3_fputs_iconv (fp, dst_codeset, "UCS-2",
+				(const char *) src, src_length * 2,
+				repl_char);
 }
 
 /**
- * @returns
- * The character encoding used by the current locale, for example
+ * @ingroup Conv
+ * Returns the character encoding used by the current locale, for example
  * "UTF-8". @c NULL if unknown.
+ *
+ * Note applications must call
+ * @code
+ * setlocale (LC_ALL, "");
+ * @endcode
+ * to use the locale specified by the environment. The default C locale
+ * uses ASCII encoding.
+ *
+ * @since 0.2.23
  */
 const char *
 vbi3_locale_codeset		(void)
@@ -837,3 +1239,10 @@ vbi3_locale_codeset		(void)
 
 	return dst_format; /* may be NULL */
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

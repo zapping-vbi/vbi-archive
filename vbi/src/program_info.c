@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: program_info.c,v 1.1.2.4 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: program_info.c,v 1.1.2.5 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -102,3 +102,10 @@ vbi3_program_info_init		(vbi3_program_info *	pi)
 	pi->audio[0].mode = VBI3_XDS_AUDIO_UNKNOWN;
 	pi->audio[1].mode = VBI3_XDS_AUDIO_UNKNOWN;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

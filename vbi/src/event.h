@@ -21,10 +21,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.h,v 1.5.2.11 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: event.h,v 1.5.2.12 2007-11-01 00:21:23 mschimek Exp $ */
 
-#ifndef EVENT_H
-#define EVENT_H
+#ifndef __ZVBI3_EVENT_H__
+#define __ZVBI3_EVENT_H__
 
 /* TO DO */
 
@@ -248,4 +248,11 @@ vbi3_event_cb			(const vbi3_event *	event,
 
 VBI3_END_DECLS
 
-#endif /* EVENT_H */
+#endif /* __ZVBI3_EVENT_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

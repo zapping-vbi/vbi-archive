@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.10.2.12 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.10.2.13 2007-11-01 00:21:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -34,10 +34,10 @@
 #include "page.h"		/* vbi3_page */
 #include "conv.h"
 #include "lang.h"		/* vbi3_is_print() */
-#include "version.h"
 #ifdef ZAPPING8
 #  include "common/intl-priv.h"
 #else
+#  include "version.h"
 #  include "intl-priv.h"
 #endif
 #include "export-priv.h"	/* vbi3_export */
@@ -126,7 +126,8 @@ option_info [] = {
 	 10, user_encodings, N_ELEMENTS (user_encodings), NULL),
         /* one for users, another for programs */
 	_VBI3_OPTION_STRING_INITIALIZER
-	("charset", NULL, "UTF-8", NULL),
+	("charset", NULL, "locale",
+	 N_("Character set, for example ISO-8859-1, UTF-8")),
 	_VBI3_OPTION_STRING_INITIALIZER
 	("gfx_chr", N_("Graphics char"),
 	 "#", N_("Replacement for block graphic characters: "
@@ -136,7 +137,8 @@ option_info [] = {
 	 FALSE, N_("Replace graphic characters by ASCII art")),
 	_VBI3_OPTION_MENU_INITIALIZER
 	("control", N_("Control codes"),
-	 0, terminal, N_ELEMENTS (terminal), NULL),
+	 0, terminal, N_ELEMENTS (terminal),
+	 N_("Insert color and text style control codes")),
 };
 
 static vbi3_export *
@@ -178,7 +180,10 @@ option_get			(vbi3_export *		e,
 	if (KEYWORD ("format") || KEYWORD ("encoding")) {
 		value->num = text->encoding;
 	} else if (KEYWORD ("charset")) {
-		value->str = _vbi3_export_strdup (e, NULL, text->charset);
+		const char *codeset;
+
+		codeset = _vbi3_export_codeset (text->charset);
+		value->str = _vbi3_export_strdup (e, NULL, codeset);
 		if (!value->str)
 			return FALSE;
 	} else if (KEYWORD ("gfx_chr")) {
@@ -594,7 +599,7 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 			break;
 
 		case VBI3_SCALE:
-			va_arg (export_options, vbi3_bool);
+			(void) va_arg (export_options, vbi3_bool);
 			break;
 
 		default:
@@ -618,7 +623,7 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 	p = buffer;
 	buffer_end = buffer + buffer_size;
 
-	cd = _vbi3_iconv_open (format, "UCS-2", &p, buffer_size);
+	cd = _vbi3_iconv_open (format, "UCS-2", &p, buffer_size, '?');
 	if (NULL == cd) {
 		return 0;
 	}
@@ -966,6 +971,7 @@ export				(vbi3_export *		e,
 {
 	text_instance *text = PARENT (e, text_instance, export);
 	const vbi3_char *acp;
+	const char *codeset;
 	vbi3_char last;
 	unsigned int row;
 	unsigned int column;
@@ -1000,12 +1006,16 @@ export				(vbi3_export *		e,
 
 		d = text->text.bp;
 
-		if (row + 1 >= pg->rows) {
+		/* Reset background color because terminals scroll
+		   that color in if the display is wider than the page. */
+		if (1 || row + 1 >= pg->rows) {
 			if (TERMINAL_NONE != text->term) {
 				d[0] = 27; /* reset */
 				d[1] = '[';
 				d[2] = 'm';
 				d += 3;
+
+				SET (last);
 			}
 		}
 
@@ -1016,8 +1026,10 @@ export				(vbi3_export *		e,
 
 	size = text->text.bp - text->text.buffer;
 
-	if (!vbi3_fputs_iconv_ucs2 (text->export.fp, text->charset,
-				    text->text.buffer, size)) {
+	codeset = _vbi3_export_codeset (text->charset);
+
+	if (!vbi3_fputs_iconv_ucs2 (text->export.fp, codeset,
+				    text->text.buffer, size, '?')) {
 		_vbi3_export_write_error (&text->export);
 		return FALSE;
 	}
@@ -1029,7 +1041,7 @@ static const vbi3_export_info
 export_info = {
 	.keyword		= "text",
 	.label			= N_("Text"),
-	.tooltip		= N_("Export this page as text file"),
+	.tooltip		= N_("Export the page as text file"),
 
 	.mime_type		= "text/plain",
 	.extension		= "txt",
@@ -1050,3 +1062,10 @@ _vbi3_export_module_text = {
 
 	.export			= export
 };
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.c,v 1.1.2.15 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: pdc.c,v 1.1.2.16 2007-11-01 00:21:24 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -28,7 +28,7 @@
 #include <ctype.h>
 
 #include "misc.h"
-#include "hamm.h"		/* vbi3_ipar8() */
+#include "hamm.h"		/* vbi3_unpar8() */
 #include "bcd.h"		/* vbi3_is_bcd() */
 #include "pdc.h"
 #include "conv.h"
@@ -580,7 +580,7 @@ Some observations:
 
 #define pdc_log(templ, args...)						\
 do {									\
-	if (PDC_LOG)							\
+	if (PDC_LOG > 0)						\
 		fprintf (stderr, templ , ##args);			\
 } while (0)
 
@@ -718,9 +718,10 @@ pdc_ptl				(vbi3_preselection *	table,
 		ctrl1 = ctrl2;
 		ctrl2 = vbi3_unpar8 (raw[column + 1]);
 
-		if (0)
+		if (PDC_LOG > 1) {
 			pdc_log ("%d %d %02x-%02x\n",
 				 row, column, ctrl1, ctrl2);
+		}
 
 		if (ctrl2 < 0)
 			return 0; /* hamming error */
@@ -801,9 +802,10 @@ pdc_number			(unsigned int * const	value,
 	while (*column <= 39) {
 		int c = vbi3_unpar8 (raw[(*column)++]);
 
-		if (0)
+		if (PDC_LOG > 1) {
 			pdc_log ("%d %02x value=%x digits=%x\n",
 				 *column - 1, c, *value, *digits);
+		}
 
 		switch (c) {
 		case 0x41 ... 0x46: /* xdigit */
@@ -823,7 +825,7 @@ pdc_number			(unsigned int * const	value,
 
 		case 0x20: /* space, observation 2) */
 			for (; *column <= 39; ++(*column)) {
-				c = vbi3_par8 (raw[*column]);
+				c = vbi3_unpar8 (raw[*column]);
 				if (c != 0x20)
 					break;
 			}
@@ -907,8 +909,8 @@ add_n_days			(unsigned int *		year_inout,
 	tm.tm_mon = *month_inout - 1;
 	tm.tm_year = *year_inout - 1900;
 
-	t = mktime (&tm) + n_days * (24 * 60 * 60);
-	localtime_r (&t, &tm);
+	t = timegm (&tm) + n_days * (24 * 60 * 60);
+	gmtime_r (&t, &tm);
 
 	*day_inout = tm.tm_mday;
 	*month_inout = tm.tm_mon + 1;
@@ -1196,10 +1198,229 @@ _vbi3_pdc_title_post_proc	(vbi3_page *		pg,
 
 	/* Error ignored. */
 	p->title = vbi3_strndup_iconv_ucs2 (vbi3_locale_codeset (),
-					    buffer, up - buffer);
+					    buffer, up - buffer, '?');
 
 	vbi3_free (buffer);
 	buffer = NULL;
+}
+
+static vbi3_bool
+is_digit			(int			c)
+{
+	return (c >= '0' && c <= '9');
+}
+
+static vbi3_bool
+ff_date				(unsigned int *		day,
+				 unsigned int *		month,
+				 unsigned int *		year,
+				 const uint16_t **	sp,
+				 const uint16_t *	end,
+				 const char *		format)
+{
+	const uint16_t *s;
+	unsigned int value;
+	unsigned int n_digits;
+	vbi3_bool no_digit;
+
+	*day = 0;
+	*month = 0;
+	*year = 0;
+
+	s = *sp;
+
+	no_digit = FALSE;
+
+	while (s < end) {
+		int c;
+		int f;
+
+		c = *s++;
+		f = *format++;
+
+		switch (f) {
+		case 0:
+			if (no_digit && is_digit (c))
+				return FALSE;
+			goto finish;
+
+		case 0x20:
+			if (c > 0x20)
+				return FALSE;
+			no_digit = FALSE;
+			break;
+
+		case '%':
+			f = *format++;
+
+			if ('%' == f)
+				goto exact_match;
+
+			if (!is_digit (c))
+				return FALSE;
+
+			value = c - '0';
+			n_digits = 1;
+
+			c = *s;
+			if (is_digit (c)) {
+				++s;
+				value = value * 10 + c - '0';
+				n_digits = 2;
+			}
+
+			switch (f) {
+			case 'd':
+				if (*day > 0 || value < 1 || value > 31)
+					return FALSE;
+				*day = value;
+				break;
+
+			case 'm':
+				if (*month > 0 || value < 1 || value > 12)
+					return FALSE;
+				*month = value;
+				break;
+
+			case 'y':
+				if (*year > 0 || n_digits < 2)
+					return FALSE;
+				*year = value + 2000;
+				break;
+
+			default:
+				return FALSE;
+			}
+
+			no_digit = TRUE;
+
+			break;
+
+		default:
+		exact_match:
+			if (c != f)
+				return FALSE;
+			no_digit = FALSE;
+			break;
+		}
+	}
+
+	if (0 != *format)
+		return FALSE;
+
+ finish:
+	if (0 == day || 0 == month)
+		return FALSE;
+
+	*sp = s;
+
+	return TRUE;
+}
+
+static vbi3_bool
+ff_time				(unsigned int *		hour,
+				 unsigned int *		minute,
+				 const uint16_t **	sp,
+				 const uint16_t *	end,
+				 const char *		format)
+{
+	const uint16_t *s;
+	unsigned int value;
+	unsigned int n_digits;
+	vbi3_bool no_digit;
+
+	*hour = -1;
+	*minute = -1;
+
+	s = *sp;
+
+	no_digit = FALSE;
+
+	while (s < end) {
+		int c;
+		int f;
+
+		c = *s++;
+		f = *format++;
+
+		switch (f) {
+		case 0:
+			if (no_digit && is_digit (c))
+				return FALSE;
+			goto finish;
+
+		case 0x20:
+			if (c > 0x20)
+				return FALSE;
+			no_digit = FALSE;
+			break;
+
+		case '%':
+			f = *format++;
+
+			if ('%' == f)
+				goto exact_match;
+
+			if (!is_digit (c))
+				return FALSE;
+
+			value = c - '0';
+			n_digits = 1;
+
+			c = *s;
+			if (is_digit (c)) {
+				++s;
+				value = value * 10 + c - '0';
+				n_digits = 2;
+			}
+
+			switch (f) {
+			case 'H':
+				if (n_digits < 2)
+					return FALSE;
+
+				/* fall through */
+
+			case 'k':
+				if ((int) *hour > 0 || value > 23)
+					return FALSE;
+				*hour = value;
+				break;
+
+			case 'M':
+				if ((int) *minute > 0
+				    || n_digits < 2 || value > 59)
+					return FALSE;
+				*minute = value;
+				break;
+
+			default:
+				return FALSE;
+			}
+
+			no_digit = TRUE;
+
+			break;
+
+		default:
+		exact_match:
+			if (c != f)
+				return FALSE;
+			no_digit = FALSE;
+			break;
+		}
+	}
+
+	if (0 != *format)
+		return FALSE;
+
+ finish:
+	if ((int) *hour < 0 || (int) *minute < 0)
+		return FALSE;
+
+	*sp = s;
+
+	return TRUE;
 }
 
 /**
@@ -1240,126 +1461,32 @@ ff_date_string			(vbi3_preselection *	p2,
 	if (err < 0)
 		return FALSE; /* hamming error */
 
-	day = 0;
-	month = 0;
-	year = 0;
-
 	for (s1 = raw; s1 < end; ++s1) {
-		const int16_t *s;
-		const char *f;
+		if (ff_date (&day, &month, &year,
+			     &s1, end, pdc->date_format)) {
+			p2->day = day;
+			p2->month = month;
 
-		f = pdc->date_format;
-
-		for (s = s1; s < end; ++s) {
-			switch (*f++) {
-				unsigned int number;
-				unsigned int n_digits;
+			if (0 == year) {
 				struct tm tm;
 				time_t t;
+				
+				t = time (NULL); 
+				gmtime_r (&t, &tm);
 
-			case 0:
-				if (0 == day || 0 == month)
-					break;
-
-				p2->day = day;
-				p2->month = month;
-
-				if (0 == year) {
-					t = time (NULL); 
-					gmtime_r (&t, &tm);
-
-					if ((unsigned int) tm.tm_mon + 1
-					    < month) {
-						year = 1901 + tm.tm_year;
-					} else {
-						year = 1900 + tm.tm_year;
-					}
-				}
-
-				p2->year = year;
-
-				add_n_days (&p2->year,
-					    &p2->month,
-					    &p2->day,
-					    pdc->time_offset / (24 * 60));
-
-				return TRUE;
-
-			case 0x20:
-				if (*s <= 0x20)
-					continue;
-				break;
-
-			case '%':
-				if ('%' == *f) {
-					if ('%' == *s) {
-						++f;
-						continue;
-					}
-
-					break;
-				}
-
-				number = 0;
-				n_digits = 0;
-
-				for (; s < end; ++s) {
-					if (*s < '0' || *s > '9')
-						break;
-
-					number = number * 10 + *s - '0';
-					++n_digits;
-				}
-
-				if (n_digits <= 0)
-					break;
-
-				--s;
-
-				switch (*f++) {
-				case 'd':
-					if (n_digits <= 2
-					    && number >= 1
-					    && number <= 31) {
-						day = number;
-						continue;
-					}
-
-					break;
-
-				case 'm':
-					if (n_digits <= 2
-					    && number >= 1
-					    && number <= 12) {
-						month = number;
-						continue;
-					}
-
-					break;
-
-				case 'y':
-					if (2 == n_digits) {
-						year = 2000 + number;
-						continue;
-					}
-
-					break;
-
-				default:
-					break;
-				}
-
-			default:
-				if (*s == f[-1])
-					continue;
-				break;
+				year = 1900 + tm.tm_year;
+				if ((unsigned int) tm.tm_mon + 1 < month)
+					++year;
 			}
 
-			s = end;
+			p2->year = year;
 
-			day = 0;
-			month = 0;
-			year = 0;
+			add_n_days (&p2->year,
+				    &p2->month,
+				    &p2->day,
+				    pdc->time_offset / (24 * 60));
+
+			return TRUE;
 		}
 	}
 
@@ -1499,10 +1626,11 @@ _vbi3_pdc_method_a		(vbi3_preselection *	table,
 			char1 = ctrl2;
 			ctrl2 = vbi3_unpar8 (raw[column + 1]);
 
-			if (0)
+			if (PDC_LOG > 1) {
 				pdc_log ("%d,%d %02x-%02x-%02x %d\n",
 					 row, column, ctrl0, ctrl1,
 					 ctrl2, combine);
+			}
 
 			if ((ctrl0 | ctrl1 | ctrl2) < 0) {
 				return 0; /* hamming error */
@@ -1536,7 +1664,9 @@ _vbi3_pdc_method_a		(vbi3_preselection *	table,
 				goto store_open_title;
 			} else {
 				++column;
-				non_space += (ctrl1 > 0x20);
+				/* Permit no alphanumeric characters left
+				   of a non-PDC AT-1. */
+				non_space |= (ctrl1 >= 0x30);
 				combine = FALSE;
 				continue;
 			}
@@ -1835,14 +1965,12 @@ _vbi3_pdc_method_a		(vbi3_preselection *	table,
 		vbi3_preselection *pp;
 
 		/* AT-2 hour 25 to skip a program. */
-		if (25 == p2[0].at2_hour) {
-			memmove (p2, p2 + 1, (p1 - p2 - 1) * sizeof (*p2));
-			--p1;
-			--p2;
-			continue;
-		}
+		if (25 == p2[0].at2_hour)
+			goto skip;
 
 		if (p2[0].length <= 0) {
+			/* Determine length from start of
+			   next program on same network. */
 			for (pp = p2 + 1; pp < p1; ++pp) {
 				if (p2[0].cni == pp[0].cni) {
 					p2[0].length = pdc_duration
@@ -1869,14 +1997,18 @@ _vbi3_pdc_method_a		(vbi3_preselection *	table,
 		}
 
 		if (p2[0].length <= 0) {
-			if (pdc && pdc->date_format
-			    && p2 > table
+			/* There is no further program on this page.
+			   If this AT-1 starts in the same column as
+			   the previous one it's probably a real
+			   program, not an "until ..." string. */
+			if (p2 > table
 			    && (p2[-1]._at1_ptl[0].column_begin
 				== p2[0]._at1_ptl[0].column_begin))
 			    continue;
 		}
 
 		if (p2[0].length <= 0) {
+		skip:
 			memmove (p2, p2 + 1, (p1 - p2 - 1) * sizeof (*p2));
 			--p1;
 			--p2;
@@ -1888,6 +2020,20 @@ _vbi3_pdc_method_a		(vbi3_preselection *	table,
 		_vbi3_preselection_array_dump (table, p2 - table, stderr);
 
 	return p2 - table;
+}
+
+/**
+ * @internal
+ */
+unsigned int
+_vbi3_pseudo_pdc		(vbi3_preselection *	table,
+				 unsigned int		max_elements,
+				 const vbi3_page *	pg)
+{
+	/* TODO */
+	/* grab date using ff_date. grab times using ff_time:
+	   <spaces>time<title>. Title may be line-wrapped. */
+	return 0;
 }
 
 /**
@@ -1920,8 +2066,11 @@ vbi3_preselection_time		(const vbi3_preselection *p,
 	tm.tm_hour	= p->at1_hour;
 	tm.tm_min	= p->at1_minute;
 
-	tm.tm_isdst	= -1; /* unknown */
+	tm.tm_isdst	= -1; /* determine from time zone */
 
+/* FIXME is this reliable? Does p->at1 include a DST offset?
+   Does p->seconds_east include a DST offset? Also consider
+   times falling into the DST begin or end hour. */
 	if (p->seconds_east_valid)
 		tm.tm_gmtoff = p->seconds_east;
 	else
@@ -1929,3 +2078,10 @@ vbi3_preselection_time		(const vbi3_preselection *p,
 
 	return mktime (&tm);
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

@@ -1,39 +1,55 @@
 /*
- *  libzvbi test
- *  Copyright (C) 2004 Michael H. Schimek
+ *  libzvbi - vbi3_raw_decoder unit test
+ *
+ *  Copyright (C) 2004, 2007 Michael H. Schimek
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: test-raw_decoder.cc,v 1.1.2.9 2006-05-26 00:43:07 mschimek Exp $ */
+/* $Id: test-raw_decoder.cc,v 1.1.2.10 2007-11-01 00:21:26 mschimek Exp $ */
 
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-#include "src/zvbi.h"
+#include "src/version.h"
+#if 2 == VBI_VERSION_MINOR
+#  include "src/raw_decoder.h"
+#  include "src/io-sim.h"
+#  define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
+#  define vbi_pixfmt_bytes_per_pixel(pf) VBI_PIXFMT_BPP(pf)
+#  define VBI3_PIXFMT_IS_YUV(pf) (0 != (VBI_PIXFMT_SET (pf)		\
+					& VBI_PIXFMT_SET_YUV))
+#else
+#  include "src/misc.h"
+#  include "src/zvbi.h"
+#endif
 
-#define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
+#include "test-common.h"
 
 bool verbose;
 
 typedef struct {
-	unsigned int		service;
+	vbi3_service_set	service;
+
+	/* Scan lines. */
 	unsigned int		first;
 	unsigned int		last;
 } block;
 
 #define BLOCK_END { 0, 0, 0 }
-
-static void *
-memset_rand			(void *			d1,
-				 size_t			n)
-{
-	uint8_t *d = (uint8_t *) d1;
-
-	while (n-- > 0)
-		*d++ = rand ();
-
-	return d1;
-}
 
 static void
 dump_hex			(const uint8_t *	p,
@@ -47,7 +63,7 @@ static void
 sliced_rand_lines		(const vbi3_sliced *	s_start,
 				 const vbi3_sliced *	s_end,
 				 vbi3_sliced *		s,
-				 unsigned int		service,
+				 vbi3_service_set	service,
 				 unsigned int		first_line,
 				 unsigned int		last_line)
 {
@@ -76,7 +92,7 @@ sliced_rand			(vbi3_sliced *		s,
 				 const block *		b)
 {
 	const vbi3_sliced *s_start;
-	unsigned int services;
+	vbi3_service_set services;
 
 	s_start = s;
 	services = 0;
@@ -100,20 +116,48 @@ sliced_rand			(vbi3_sliced *		s,
 	return s - s_start;
 }
 
+static void
+dump_sliced_pair		(const vbi3_sliced *	s1,
+				 const vbi3_sliced *	s2,
+				 unsigned int		n_lines)
+{
+	unsigned int i;
+
+	for (i = 0; i < n_lines; ++i)
+		fprintf (stderr, "%2u: "
+			 "%30s %3u %02x %02x %02x <-> "
+			 "%30s %3u %02x %02x %02x\n",
+			 i,
+			 vbi3_sliced_name (s1[i].id),
+			 s1[i].line,
+			 s1[i].data[0],
+			 s1[i].data[1],
+			 s1[i].data[2],
+			 vbi3_sliced_name (s2[i].id),
+			 s2[i].line,
+			 s2[i].data[0],
+			 s2[i].data[1],
+			 s2[i].data[2]);
+}
+
 static unsigned int
 create_raw			(uint8_t **		raw,
 				 vbi3_sliced **		sliced,
 				 const vbi3_sampling_par *sp,
 				 const block *		b,
-				 unsigned int		pixel_mask)
+				 unsigned int		pixel_mask,
+				 unsigned int		raw_flags)
 {
 	unsigned int scan_lines;
 	unsigned int sliced_lines;
 	unsigned int raw_size;
+	unsigned int blank_level;
+	unsigned int black_level;
+	unsigned int white_level;
 	vbi3_bool success;
 
 	scan_lines = sp->count[0] + sp->count[1];
-	raw_size = scan_lines * sp->bytes_per_line;
+	raw_size = sp->bytes_per_line * scan_lines;
 
 	*raw = (uint8_t *) malloc (raw_size);
 	assert (NULL != *raw);
@@ -123,25 +167,44 @@ create_raw			(uint8_t **		raw,
 
 	sliced_lines = sliced_rand (*sliced, 50, b);
 
+	/* Use defaults. */
+	blank_level = 0;
+	black_level = 0;
+	white_level = 0;
+
 	if (pixel_mask) {
-	  	memset_rand (*raw, raw_size);
+		memset_rand (*raw, raw_size);
 
-		success = vbi3_raw_video_image (*raw, raw_size, sp,
-						/* blank_level */ 0,
-						/* black_level */ 0,
-						/* white_level */ 0,
-						pixel_mask,
-						/* swap_fields */ FALSE,
-						*sliced, sliced_lines);
+		success = _vbi3_raw_video_image (*raw, raw_size, sp,
+						 blank_level,
+						 black_level,
+						 white_level,
+						 pixel_mask,
+						 raw_flags,
+						 *sliced, sliced_lines);
+		assert (success);
 	} else {
-		success = vbi3_raw_vbi_image (*raw, raw_size, sp,
-					      /* blank_level */ 0,
-					      /* white_level */ 0,
-					      /* swap_fields */ FALSE,
-					      *sliced, sliced_lines);
-	}
+		success = _vbi3_raw_vbi_image (*raw, raw_size, sp,
+					       blank_level,
+					       white_level,
+					       raw_flags,
+					       *sliced, sliced_lines);
+		assert (success);
 
-	assert (success);
+		if (raw_flags & _VBI3_RAW_NOISE_2) {
+			static uint32_t seed = 12345678;
+
+			/* Shape as in capture_stream_sim_add_noise(). */
+			success = vbi3_raw_add_noise (*raw, sp,
+						      /* min_freq */ 0,
+						      /* max_freq */ 5000000,
+						      /* amplitude */ 25,
+						      seed);
+			assert (success);
+
+			seed = seed * 1103515245 + 56789;
+		}
+	}
 
 	return sliced_lines;
 }
@@ -152,25 +215,80 @@ create_decoder			(const vbi3_sampling_par *sp,
 				 unsigned int		strict)
 {
 	vbi3_raw_decoder *rd;
-	unsigned int services;
+	vbi3_service_set in_services;
+	vbi3_service_set out_services;
 
-	services = 0;
+	in_services = 0;
 
 	while (b->service) {
-		services |= b->service;
+		in_services |= b->service;
 		++b;
 	}
 
-	assert (NULL != (rd = vbi3_raw_decoder_new (sp)));
+	rd = vbi3_raw_decoder_new (sp);
+	assert (NULL != rd);
 
-	assert (services == vbi3_raw_decoder_add_services
-		(rd, services, strict));
+	if (sp->synchronous) {
+#if 2 == VBI_VERSION_MINOR
+		vbi3_raw_decoder_set_log_fn
+			(rd,
+			 vbi3_log_on_stderr,
+			 /* user_data */ NULL,
+			 (vbi_log_mask)(VBI3_LOG_INFO * 2 - 1));
+#else
+		vbi3_raw_decoder_set_log_fn
+			(rd,
+			 (vbi3_log_mask)(VBI3_LOG_INFO * 2 - 1),
+			 vbi3_log_on_stderr,
+			 /* user_data */ NULL);
+#endif
+	} else {
+		/* Don't complain about expected failures.
+		   XXX Check for those in a different function. */
+	}
+
+	out_services = vbi3_raw_decoder_add_services (rd, in_services, strict);
+
+	if (!sp->synchronous) {
+		/* Ambiguous. */
+		in_services &= ~(VBI3_SLICED_VPS |
+				 VBI3_SLICED_VPS_F2 |
+				 VBI3_SLICED_WSS_625 |
+				 VBI3_SLICED_CAPTION_625 |
+				 VBI3_SLICED_CAPTION_525);
+	}
+
+	assert (in_services == out_services);
 
 	return rd;
 }
 
 static void
-compare_sliced			(const vbi3_sliced *	in,
+compare_payload			(const vbi3_sliced *	in,
+				 const vbi3_sliced *	out)
+{
+	unsigned int payload;
+
+	payload = vbi3_sliced_payload_bits (out->id);
+	if (0 != memcmp (in->data, out->data, payload >> 3)) {
+		dump_sliced_pair (in, out, /* n_lines */ 1);
+		assert (0);
+	}
+
+	if (payload & 7) {
+		unsigned int mask = (1 << (payload & 7)) - 1;
+
+		payload = (payload >> 3);
+
+		/* MSBs zero, rest as sent */
+		assert (0 == ((in->data[payload] & mask)
+			      ^ out->data[payload]));
+	}
+}
+
+static void
+compare_sliced			(const vbi3_sampling_par *sp,
+				 const vbi3_sliced *	in,
 				 const vbi3_sliced *	out,
 				 const vbi3_sliced *	old,
 				 unsigned int		in_lines,
@@ -179,72 +297,102 @@ compare_sliced			(const vbi3_sliced *	in,
 {
 	unsigned int i;
 	unsigned int min;
-	const vbi3_sliced *s;
+	unsigned int id;
+	vbi3_sliced *in1;
+	vbi3_sliced *s;
 
 	min = 0;
 
 	for (i = 0; i < out_lines; ++i) {
 		unsigned int payload;
 
-		/* Ascending line numbers */
-		assert (out[i].line > min);
-		min = out[i].line;
+		if (sp->synchronous) {
+			/* Ascending line numbers. */
+			assert (out[i].line > min);
+			min = out[i].line;
+		} else {
+			/* Could be first or second field,
+			   we don't know. */
+			assert (0 == out[i].line);
+		}
 
-		/* Valid service id */
+		/* Valid service id. */
 		assert (0 != out[i].id);
 		payload = (vbi3_sliced_payload_bits (out[i].id) + 7) >> 3;
 		assert (payload > 0);
 
-		/* vbi3_sliced big enough */
+		/* vbi_sliced big enough. */
 		assert (payload <= sizeof (out[i].data));
 
-		/* Writes more than payload */
+		/* Writes more than payload. */
 		assert (0 == memcmp (out[i].data + payload,
 				     old[i].data + payload,
 				     sizeof (out[i].data) - payload));
 	}
 
-	/* Respects limits */
+	/* Respects limits. */
 	assert (0 == memcmp (out + out_lines,
 			     old + out_lines,
 			     sizeof (*old) * (old_lines - out_lines)));
 
-	while (out_lines-- > 0) {
-		unsigned int payload;
+	in1 = (vbi3_sliced *) xmemdup (in, sizeof (*in) * in_lines);
 
-		for (s = in; s < in + in_lines; ++s)
-			if (s->line == out->line)
-				break;
+	for (i = 0; i < out_lines; ++i) {
+		if (sp->synchronous) {
+			for (s = in1; s < in1 + in_lines; ++s)
+				if (s->line == out[i].line)
+					break;
 
-		/* Found something we didn't send */
-		assert (s < in + in_lines);
+			/* Found something we didn't send. */
+			assert (s < in1 + in_lines);
 
-		/* Identified as something else */
-		// fprintf (stderr, "%3u id %08x %08x\n", s->line, s->id, out->id);
-		assert (s->id == out->id);
+			/* Identified as something else. */
+			/* fprintf (stderr, "%3u id %08x %08x\n", s->line, s->id, out[i].id); */
+			assert (s->id == out[i].id);
+		} else {
+			/* fprintf (stderr, "%08x ", out[i].id); */
 
-		/* Same data as sent */
-		payload = vbi3_sliced_payload_bits (out->id);
-		assert (0 == memcmp (s->data, out->data, payload >> 3));
+			/* No line numbers, but data must be in
+			   same order. */
+			for (s = in1; s < in1 + in_lines; ++s)
+				if (s->id == out[i].id)
+					break;
+			
+			assert (s < in1 + in_lines);
 
-		if (payload & 7) {
-			unsigned int mask = (1 << (payload & 7)) - 1;
-
-			payload = (payload >> 3);
-
-			/* MSBs zero, rest as sent */
-			assert (0 == ((s->data[payload] & mask)
-				      ^ out->data[payload]));
+			/* fprintf (stderr, "from line %3u\n", s->line); */
 		}
 
-		++out;
+		compare_payload (s, &out[i]);
+
+		s->id = 0;
 	}
+
+	id = 0;
+	for (s = in1; s < in1 + in_lines; ++s)
+		id |= s->id;
+
+	if (!sp->synchronous) {
+		/* Ok these are ambiguous. */
+		id &= ~(VBI3_SLICED_VPS |
+			VBI3_SLICED_VPS_F2 |
+			VBI3_SLICED_WSS_625 |
+			VBI3_SLICED_CAPTION_625 |
+			VBI3_SLICED_CAPTION_525);
+	}
+
+	/* Anything missed? */
+	assert (0 == id);
+
+	free (in1);
+	in1 = NULL;
 }
 
 static void
 test_cycle			(const vbi3_sampling_par *sp,
 				 const block *		b,
 				 unsigned int		pixel_mask,
+				 unsigned int		raw_flags,
 				 unsigned int		strict)
 {
 	vbi3_sliced *in;
@@ -255,7 +403,7 @@ test_cycle			(const vbi3_sampling_par *sp,
 	unsigned int in_lines;
 	unsigned int out_lines;
 
-	in_lines = create_raw (&raw, &in, sp, b, pixel_mask);
+	in_lines = create_raw (&raw, &in, sp, b, pixel_mask, raw_flags);
 
 	if (verbose)
 		dump_hex (raw + 120, 12);
@@ -267,18 +415,56 @@ test_cycle			(const vbi3_sampling_par *sp,
 
 	out_lines = vbi3_raw_decoder_decode (rd, out, 40, raw);
 
-	if (verbose)
+	if (verbose) {
+#if 2 == VBI_VERSION_MINOR
+		fprintf (stderr, "%s %08x in=%u out=%u\n",
+			 __FUNCTION__,
+			 sp->sampling_format,
+			 in_lines, out_lines);
+#else
 		fprintf (stderr, "%s %s in=%u out=%u\n",
 			 __FUNCTION__,
-			 vbi3_pixfmt_name (sp->sampling_format),
+			 vbi3_pixfmt_name (sp->sample_format),
 			 in_lines, out_lines);
+#endif
+	}
 
-	assert (in_lines == out_lines);
+	if (sp->synchronous) {
+		if (verbose && in_lines != out_lines)
+			dump_sliced_pair (in, out, MIN (in_lines, out_lines));
 
-	compare_sliced (in, out, old, in_lines, out_lines, 50);
+		assert (in_lines == out_lines);
+	}
+
+	compare_sliced (sp, in, out, old, in_lines, out_lines, 50);
+
+	vbi3_raw_decoder_delete (rd);
 
 	free (in);
 	free (raw);
+}
+
+static vbi3_bool
+block_contains_service		(const block *		b,
+				 vbi3_service_set	services,
+				 vbi3_bool		exclusive)
+{
+	vbi3_service_set all_services = 0;
+
+	assert (0 != services);
+
+	while (b->service) {
+		all_services |= b->service;
+		++b;
+	}
+
+	if (0 == (all_services & services))
+		return FALSE;
+
+	if (exclusive && 0 != (all_services & ~services))
+		return FALSE;
+
+	return TRUE;
 }
 
 static void
@@ -286,7 +472,28 @@ test_vbi			(const vbi3_sampling_par *sp,
 				 const block *		b,
 				 unsigned int		strict)
 {
-	test_cycle (sp, b, 0, strict);
+	test_cycle (sp, b, /* pixel_mask */ 0,
+		    /* raw_flags */ 0, strict);
+
+	/* Tests incorrect signal shape reported by Rich Kadel. */
+	if (block_contains_service (b, VBI3_SLICED_CAPTION_525,
+				    /* exclusive */ FALSE))
+		test_cycle (sp, b, /* pixel_mask */ 0,
+			    _VBI3_RAW_SHIFT_CC_CRI, strict);
+
+	/* Tests low amplitude CC signals reported by Rich Kadel. */
+	if (block_contains_service (b, VBI3_SLICED_CAPTION_525,
+				    /* exclusive */ TRUE)
+	    && sp->sampling_rate >= 27000000) {
+		unsigned int i;
+
+		/* Repeat because the noise varies. */
+		for (i = 0; i < 1000; ++i) {
+			test_cycle (sp, b, /* pixel_mask */ 0,
+				    _VBI3_RAW_LOW_AMP_CC |
+				    _VBI3_RAW_NOISE_2, strict);
+		}
+	}
 }
 
 static void
@@ -297,16 +504,27 @@ test_video			(const vbi3_sampling_par *sp,
 	vbi3_sampling_par sp2;
 	unsigned int pixel_mask;
 	vbi3_pixfmt pixfmt;
+	unsigned int samples_per_line;
 
 	sp2 = *sp;
+#if 2 == VBI_VERSION_MINOR
+	samples_per_line = sp->bytes_per_line
+		/ vbi_pixfmt_bytes_per_pixel (sp->sampling_format);
+#else
+	samples_per_line = sp->samples_per_line;
+#endif
 
 	for (pixfmt = (vbi3_pixfmt) 0; pixfmt < VBI3_MAX_PIXFMTS;
 	     pixfmt = (vbi3_pixfmt)(pixfmt + 1)) {
 		if (0 == (VBI3_PIXFMT_SET_ALL & VBI3_PIXFMT_SET (pixfmt)))
 			continue;
 
+#if 2 == VBI_VERSION_MINOR
 		sp2.sampling_format = pixfmt;
-		sp2.bytes_per_line = sp2.samples_per_line
+#else
+		sp2.sample_format = pixfmt;
+#endif
+		sp2.bytes_per_line = samples_per_line
 			* vbi3_pixfmt_bytes_per_pixel (pixfmt);
 
 		/* Check bit slicer looks at Y/G */
@@ -315,7 +533,13 @@ test_video			(const vbi3_sampling_par *sp,
 		else
 			pixel_mask = 0xFF00;
 
-		test_cycle (&sp2, b, pixel_mask, strict);
+		test_cycle (&sp2, b, pixel_mask,
+			    /* raw_flags */ 0, strict);
+
+		if (block_contains_service (b, VBI3_SLICED_CAPTION_525,
+					    /* exclusive */ FALSE))
+			test_cycle (&sp2, b, pixel_mask,
+				    _VBI3_RAW_SHIFT_CC_CRI, strict);
 	}
 }
 
@@ -337,22 +561,32 @@ static const block ttx_d_625 [] = {
 	BLOCK_END,
 };
 
-static const block hi_625 [] = {
+static const block ttx_wss_cc_625 [] = {
 	{ VBI3_SLICED_TELETEXT_B_625,	6, 21 },
-	{ VBI3_SLICED_TELETEXT_B_625,	318, 334 },
 	{ VBI3_SLICED_CAPTION_625,	22, 22 },
+	{ VBI3_SLICED_WSS_625,		23, 23 },
+	{ VBI3_SLICED_TELETEXT_B_625,	318, 334 },
 	{ VBI3_SLICED_CAPTION_625,	335, 335 },
+	BLOCK_END,
+};
+
+static const block hi_f1_625 [] = {
+	{ VBI3_SLICED_VPS,		16, 16 },
+	{ VBI3_SLICED_CAPTION_625_F1,	22, 22 },
 	{ VBI3_SLICED_WSS_625,		23, 23 },
 	BLOCK_END,
 };
 
-static const block low_625 [] = {
-/* No simulation yet.
+static const block hi_f2_525 [] = {
+	{ VBI3_SLICED_CAPTION_525_F2,	284, 284 },
+	BLOCK_END,
+};
+
+static const block vps_wss_cc_625 [] = {
 	{ VBI3_SLICED_VPS,		16, 16 },
-*/
 	{ VBI3_SLICED_CAPTION_625,	22, 22 },
-	{ VBI3_SLICED_CAPTION_625,	335, 335 },
 	{ VBI3_SLICED_WSS_625,		23, 23 },
+	{ VBI3_SLICED_CAPTION_625,	335, 335 },
 	BLOCK_END,
 };
 
@@ -376,13 +610,13 @@ static const block ttx_d_525 [] = {
 
 static const block hi_525 [] = {
 	{ VBI3_SLICED_TELETEXT_B_525,	10, 20 },
-	{ VBI3_SLICED_TELETEXT_B_525,	272, 283 },
 	{ VBI3_SLICED_CAPTION_525,	21, 21 },
+	{ VBI3_SLICED_TELETEXT_B_525,	272, 283 },
 	{ VBI3_SLICED_CAPTION_525,	284, 284 },
 	BLOCK_END,
 };
 
-static const block low_525 [] = {
+static const block cc_525 [] = {
 	{ VBI3_SLICED_CAPTION_525,	21, 21 },
 	{ VBI3_SLICED_CAPTION_525,	284, 284 },
 	BLOCK_END,
@@ -391,22 +625,45 @@ static const block low_525 [] = {
 static void
 test2				(const vbi3_sampling_par *sp)
 {
+#if 2 == VBI_VERSION_MINOR
+	if (625 == sp->scanning) {
+#else
 	if (sp->videostd_set & VBI3_VIDEOSTD_SET_625_50) {
+#endif
 		if (sp->sampling_rate >= 13500000) {
+			vbi3_sampling_par sp1;
+
 			/* We cannot mix Teletext standards; bit rate and
 			   FRC are too similar to reliable distinguish. */
 			test_vbi (sp, ttx_a, 1);
 			test_vbi (sp, ttx_c_625, 1);
 
 			/* Needs sampling beyond 0H + 63 us (?) */
-			if (2048 == sp->samples_per_line)
+#if 2 == VBI_VERSION_MINOR
+			if (sp->bytes_per_line
+			    == 2048 * VBI_PIXFMT_BPP (sp->sampling_format))
 				test_vbi (sp, ttx_d_625, 1);
+#else
+			if (sp->bytes_per_line == 2048
+			    * vbi3_pixfmt_bytes_per_pixel (sp->sample_format))
+				test_vbi (sp, ttx_d_625, 1);
+#endif
 
-			test_vbi (sp, hi_625, 1);
-			test_video (sp, hi_625, 1);
+			test_vbi (sp, ttx_wss_cc_625, 1);
+			test_video (sp, ttx_wss_cc_625, 1);
+
+			/* For low_pass_bit_slicer test. */
+			test_vbi (sp, vps_wss_cc_625, 1);
+
+			if (!sp->interlaced) {
+				sp1 = *sp;
+				sp1.start[1] = 0;
+				sp1.count[1] = 0;
+				test_vbi (&sp1, hi_f1_625, 2);
+			}
 		} else if (sp->sampling_rate >= 5000000) {
-			test_vbi (sp, low_625, 1);
-			test_video (sp, low_625, 1);
+			test_vbi (sp, vps_wss_cc_625, 1);
+			test_video (sp, vps_wss_cc_625, 1);
 		} else {
 			/* WSS not possible below 5 MHz due to a cri_rate
 			   check in bit_slicer_init(), but much less won't
@@ -416,14 +673,26 @@ test2				(const vbi3_sampling_par *sp)
 		}
 	} else {
 		if (sp->sampling_rate >= 13500000) {
+			vbi3_sampling_par sp1;
+
 			test_vbi (sp, ttx_c_525, 1);
 			test_vbi (sp, ttx_d_525, 1);
 
 			test_vbi (sp, hi_525, 1);
 			test_video (sp, hi_525, 1);
+
+			/* CC only for the low-amp CC test. */
+			test_vbi (sp, cc_525, 1);
+
+			if (!sp->interlaced) {
+				sp1 = *sp;
+				sp1.start[0] = 0;
+				sp1.count[0] = 0;
+				test_vbi (&sp1, hi_f2_525, 2);
+			}
 		} else {
-			test_vbi (sp, low_525, 1);
-			test_video (sp, low_525, 1);
+			test_vbi (sp, cc_525, 1);
+			test_video (sp, cc_525, 1);
 		}
 	}
 }
@@ -456,43 +725,33 @@ test1				(const vbi3_sampling_par *sp)
 
 		sp2 = *sp;
 		sp2.sampling_rate	= res[i].sampling_rate;
+#if 2 == VBI_VERSION_MINOR
+		sp2.bytes_per_line	= res[i].samples_per_line
+			* vbi3_pixfmt_bytes_per_pixel (sp2.sampling_format);
+#else
 		sp2.samples_per_line	= res[i].samples_per_line;
-		sp2.bytes_per_line	= res[i].samples_per_line;
+		sp2.bytes_per_line	= res[i].samples_per_line
+			* vbi3_pixfmt_bytes_per_pixel (sp2.sample_format);
+#endif
+
 		sp2.offset		= (int)(9.7e-6 * sp2.sampling_rate);
 
 		test2 (&sp2);
 	}
 }
 
-#if 0
 static void
-log	       			(vbi3_log_level		level,
-				 const char *		function,
-				 const char *		message,
-				 void *			user_data)
-{
-	fprintf (stderr, "%s: %s\n", function, message);
-}
-#endif
-
-int
-main				(int			argc,
-				 char **		argv)
+test_services			(void)
 {
 	vbi3_sampling_par sp;
 	vbi3_service_set set;
 
-	verbose = (argc > 1);
-
-	/*	if (verbose)
-		vbi3_set_log_fn (log, NULL);
-	*/
-
 	memset (&sp, 0x55, sizeof (sp));
 
-	set = vbi3_sampling_par_from_services (&sp, NULL,
+	set = vbi3_sampling_par_from_services (&sp,
+					       /* &max_rate */ NULL,
 					       VBI3_VIDEOSTD_SET_625_50,
-					       ~VBI3_SLICED_VBI3_625);
+					       ~0 & ~VBI3_SLICED_VBI_625);
 	assert (set == (VBI3_SLICED_TELETEXT_A |
 			VBI3_SLICED_TELETEXT_B_625 |
 			VBI3_SLICED_TELETEXT_C_625 |
@@ -503,9 +762,10 @@ main				(int			argc,
 			VBI3_SLICED_WSS_625));
 	test2 (&sp);
 
-	set = vbi3_sampling_par_from_services (&sp, NULL,
+	set = vbi3_sampling_par_from_services (&sp,
+					       /* &max_rate */ NULL,
 					       VBI3_VIDEOSTD_SET_525_60,
-					       ~VBI3_SLICED_VBI3_525);
+					       ~0 & ~VBI3_SLICED_VBI_525);
 	assert (set == (VBI3_SLICED_TELETEXT_B_525 |
 			VBI3_SLICED_TELETEXT_C_525 |
 			VBI3_SLICED_TELETEXT_D_525 |
@@ -514,17 +774,28 @@ main				(int			argc,
 			/* Needs fix */
 			/* | VBI3_SLICED_WSS_CPR1204 */ ));
 	test2 (&sp);
+}
+
+static void
+test_line_order			(vbi3_bool		synchronous)
+{
+	vbi3_sampling_par sp;
 
 	memset (&sp, 0x55, sizeof (sp));
 
-	sp.videostd_set		= VBI3_VIDEOSTD_SET_PAL_BG;
+#if 2 == VBI_VERSION_MINOR
+	sp.scanning		= 625;
 	sp.sampling_format	= VBI3_PIXFMT_YUV420;
+#else
+	sp.videostd_set		= VBI3_VIDEOSTD_SET_PAL_BG;
+	sp.sample_format	= VBI3_PIXFMT_YUV420;
+#endif
 	sp.start[0]		= 6;
 	sp.count[0]		= 23 - 6 + 1;
 	sp.start[1]		= 318;
 	sp.count[1]		= 335 - 318 + 1;
 	sp.interlaced		= FALSE;
-	sp.synchronous		= TRUE;
+	sp.synchronous		= synchronous;
 
 	test1 (&sp);
 
@@ -532,18 +803,44 @@ main				(int			argc,
 
 	test1 (&sp);
 
-	sp.videostd_set		= VBI3_VIDEOSTD_SET_NTSC;
+#if 2 == VBI_VERSION_MINOR
+	sp.scanning		= 525;
 	sp.sampling_format	= VBI3_PIXFMT_YUV420;
+#else
+	sp.videostd_set		= VBI3_VIDEOSTD_SET_NTSC;
+	sp.sample_format	= VBI3_PIXFMT_YUV420;
+#endif
 	sp.start[0]		= 10;
 	sp.count[0]		= 21 - 10 + 1;
 	sp.start[1]		= 272;
 	sp.count[1]		= 284 - 272 + 1;
 	sp.interlaced		= FALSE;
-	sp.synchronous		= TRUE;
+	sp.synchronous		= synchronous;
 
 	test1 (&sp);
+}
+
+int
+main				(int			argc,
+				 char **		argv)
+{
+	argv = argv;
+
+	verbose = (argc > 1);
+
+	test_services ();
+
+	test_line_order (/* synchronous */ TRUE);
+	test_line_order (/* synchronous */ FALSE);
 
 	/* More... */
 
 	return 0;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

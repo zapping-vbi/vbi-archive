@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder.h,v 1.1.2.4 2006-05-14 14:14:11 mschimek Exp $ */
+/* $Id: caption_decoder.h,v 1.1.2.5 2007-11-01 00:21:22 mschimek Exp $ */
 
 #ifndef __ZVBI3_CAPTION_DECODER_H__
 #define __ZVBI3_CAPTION_DECODER_H__
@@ -50,9 +50,14 @@ typedef enum {
 } vbi3_caption_mode;
 
 /**
- * @brief Meta data and statistical info about a Closed Caption channels.
+ * @brief Meta data and statistical info about a Closed Caption channel.
  */
 typedef struct {
+	/**
+	 * The caption channel this structure refers to, one of
+	 * @c VBI3_CAPTION_CC1 ... @c VBI3_CAPTION_CC4 or
+	 * @c VBI3_CAPTION_T1 ... @c VBI3_CAPTION_T4.
+	 */
 	vbi3_pgno		channel;
 
 	/** VBI3_SUBTITLE_PAGE or VBI3_NORMAL_PAGE. */
@@ -99,13 +104,13 @@ vbi3_caption_decoder_get_page_va_list
 				(vbi3_caption_decoder *	cd,
 				 vbi3_pgno		channel,
 				 va_list		format_options)
-  __attribute__ ((malloc,
+  __attribute__ ((_vbi3_alloc,
 		  _vbi3_nonnull (1)));
 extern vbi3_page *
 vbi3_caption_decoder_get_page	(vbi3_caption_decoder *	cd,
 				 vbi3_pgno		channel,
 				 ...)
-  __attribute__ ((malloc,
+  __attribute__ ((_vbi3_alloc,
 		  _vbi3_nonnull (1),
 		  _vbi3_sentinel));
 extern vbi3_bool
@@ -145,10 +150,17 @@ extern vbi3_caption_decoder *
 vbi3_caption_decoder_new	(vbi3_cache *		ca,
 				 const vbi3_network *	nk,
 				 vbi3_videostd_set	videostd_set)
-  __attribute__ ((malloc));
+  __attribute__ ((_vbi3_alloc));
 
 /** @} */
 
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_CAPTION_DECODER_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.c,v 1.6.2.11 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: search.c,v 1.6.2.12 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -737,7 +737,8 @@ vbi3_search_utf8_new		(vbi3_cache *		ca,
 
 	ucs2_pattern = (uint16_t *) vbi3_strndup_iconv ("UCS-2", "UTF-8",
 							pattern,
-							strlen (pattern) + 1);
+							strlen (pattern) + 1,
+							'?');
 	if (!ucs2_pattern)
 		return NULL;
 
@@ -815,3 +816,10 @@ vbi3_search_utf8_new		(vbi3_cache *		ca,
 }
 
 #endif /* !HAVE_GLIBC21 && !HAVE_LIBUNICODE */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

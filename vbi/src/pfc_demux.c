@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pfc_demux.c,v 1.1.2.8 2006-05-26 00:43:06 mschimek Exp $ */
+/* $Id: pfc_demux.c,v 1.1.2.9 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -356,13 +356,13 @@ vbi3_pfc_demux_delete		(vbi3_pfc_demux *	dx)
 
 	_vbi3_pfc_demux_destroy (dx);
 
-	free (dx);		
+	vbi3_free (dx);		
 }
 
 /**
  * @param pgno Page to take PFC data from.
  * @param stream PFC stream to be demultiplexed.
- * @param cb Function to be called by vbi3_pfc_demux_demux() when
+ * @param callback Function to be called by vbi3_pfc_demux_demux() when
  *   a new data block is available.
  * @param user_data User pointer passed through to @a cb function.
  *
@@ -382,15 +382,22 @@ vbi3_pfc_demux_new		(vbi3_pgno		pgno,
 {
 	vbi3_pfc_demux *dx;
 
-	if (!(dx = malloc (sizeof (*dx)))) {
+	if (!(dx = vbi3_malloc (sizeof (*dx)))) {
 		return NULL;
 	}
 
 	if (!_vbi3_pfc_demux_init (dx, pgno, stream,
 				  callback, user_data)) {
-		free (dx);
+		vbi3_free (dx);
 		dx = NULL;
 	}
 
 	return dx;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

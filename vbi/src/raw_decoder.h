@@ -17,10 +17,10 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.h,v 1.1.2.9 2006-05-26 00:43:06 mschimek Exp $ */
+/* $Id: raw_decoder.h,v 1.1.2.10 2007-11-01 00:21:24 mschimek Exp $ */
 
-#ifndef RAW_DECODER_H
-#define RAW_DECODER_H
+#ifndef __ZVBI3_RAW_DECODER_H__
+#define __ZVBI3_RAW_DECODER_H__
 
 #include <stdio.h>
 #include "macros.h"
@@ -42,7 +42,7 @@ typedef struct _vbi3_raw_decoder vbi3_raw_decoder;
  * @{
  */
 extern vbi3_bool
-vbi3_raw_decoder_get_point	(vbi3_raw_decoder *	rd,
+vbi3_raw_decoder_sampling_point	(vbi3_raw_decoder *	rd,
 				 vbi3_bit_slicer_point *point,
 				 unsigned int		row,
 				 unsigned int		nth_bit);
@@ -54,14 +54,17 @@ vbi3_raw_decoder_decode		(vbi3_raw_decoder *	rd,
 extern void
 vbi3_raw_decoder_reset		(vbi3_raw_decoder *	rd);
 extern vbi3_service_set
-vbi3_raw_decoder_remove_services	(vbi3_raw_decoder *	rd,
+vbi3_raw_decoder_services	(vbi3_raw_decoder *	rd);
+extern vbi3_service_set
+vbi3_raw_decoder_remove_services
+				(vbi3_raw_decoder *	rd,
 				 vbi3_service_set	services);
 extern vbi3_service_set
 vbi3_raw_decoder_add_services	(vbi3_raw_decoder *	rd,
 				 vbi3_service_set	services,
 				 unsigned int		strict);
 extern vbi3_bool
-vbi3_raw_decoder_collect_points	(vbi3_raw_decoder *	rd,
+vbi3_raw_decoder_debug		(vbi3_raw_decoder *	rd,
 				 vbi3_bool		enable);
 extern vbi3_service_set
 vbi3_raw_decoder_set_sampling_par
@@ -103,12 +106,19 @@ typedef struct {
 	unsigned int		n_points;
 } _vbi3_raw_decoder_sp_line;
 
-/** @internal */
+/**
+ * @internal
+ * Don't dereference pointers to this structure.
+ * I guarantee it will change.
+ */
 struct _vbi3_raw_decoder {
 	vbi3_sampling_par	sampling;
+
 	vbi3_service_set	services;
+
 	_vbi3_log_hook		log;
-	vbi3_bool		collect_points;
+	vbi3_bool		debug;
+
 	unsigned int		n_jobs;
 	unsigned int		n_sp_lines;
 	int			readjust;
@@ -117,6 +127,7 @@ struct _vbi3_raw_decoder {
 	_vbi3_raw_decoder_sp_line *sp_lines;
 };
 
+/** @internal */
 typedef enum {
 	/** Requires field line numbers. */ 
 	_VBI3_SP_LINE_NUM	= (1 << 0),
@@ -187,4 +198,11 @@ _vbi3_raw_decoder_init		(vbi3_raw_decoder *	rd,
 
 VBI3_END_DECLS
 
-#endif /* RAW_DECODER_H */
+#endif /* __ZVBI3_RAW_DECODER_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

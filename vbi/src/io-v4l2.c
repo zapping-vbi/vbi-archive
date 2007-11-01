@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l2.c,v 1.12.2.17 2006-05-26 00:43:05 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l2.c,v 1.12.2.18 2007-11-01 00:21:23 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -46,6 +46,8 @@ static char rcsid[] = "$Id: io-v4l2.c,v 1.12.2.17 2006-05-26 00:43:05 mschimek E
 #include <asm/types.h>		/* for videodev2.h */
 #include <pthread.h>
 
+#include "raw_decoder.h"
+
 #ifndef HAVE_S64_U64
 /* Linux 2.6.x/x86 defines them only if __GNUC__.
    They're required to compile videodev2.h. */
@@ -63,7 +65,10 @@ typedef uint64_t __u64;
    and result if log_fp is non-zero. */
 #define _ioctl(fd, cmd, arg)						\
 (IOCTL_ARG_TYPE_CHECK_ ## cmd (arg),					\
- device_ioctl (log_fp, fprint_ioctl_arg, fd, cmd, (void *)(arg)))
+ ioctl (fd, cmd, (void *)(arg)))
+
+#warning rewrite me
+// device_ioctl (log_fp, fprint_ioctl_arg, fd, cmd, (void *)(arg)))
 
 
 #define V4L2_LINE 0 /* API rev. Nov 2000 (-1 -> 0) */
@@ -275,12 +280,12 @@ v4l2_read(vbi3_capture *vc, vbi3_capture_buffer **raw,
 	return 1;
 }
 
-static vbi3_raw_decoder *
+static const vbi3_sampling_par *
 v4l2_parameters(vbi3_capture *vc)
 {
 	vbi3_capture_v4l2 *v = PARENT(vc, vbi3_capture_v4l2, capture);
 
-	return &v->dec;
+	return &v->dec.sampling;
 }
 
 static void
@@ -299,7 +304,8 @@ v4l2_delete(vbi3_capture *vc)
 			vbi3_free(v->raw_buffer[v->num_raw_buffers - 1].data);
 
 	if (v->fd != -1)
-		device_close(log_fp, v->fd);
+//		device_close(log_fp, v->fd);
+		close(v->fd);
 
 	vbi3_free(v);
 }
@@ -313,7 +319,7 @@ v4l2_fd(vbi3_capture *vc)
 }
 
 static void
-print_vfmt(char *s, const struct v4l2_format *vfmt)
+print_vfmt(const char *s, const struct v4l2_format *vfmt)
 {
 	fprintf(stderr, "%s%d Hz, %d bpl, offs %d, "
 		"F1 %d+%d, F2 %d+%d, flags %08x\n", s,
@@ -360,8 +366,10 @@ vbi3_capture_v4l2_new(const char *dev_name, int buffers,
 	v->capture.get_fd = v4l2_fd;
 
 	/* O_RDWR required for PROT_WRITE */
-	if ((v->fd = device_open(log_fp, dev_name, O_RDWR, 0)) == -1) {
-		if ((v->fd = device_open(log_fp, dev_name, O_RDONLY, 0)) == -1) {
+//	if ((v->fd = device_open(log_fp, dev_name, O_RDWR, 0)) == -1) {
+	if ((v->fd = open(dev_name, O_RDWR, 0)) == -1) {
+//		if ((v->fd = device_open(log_fp, dev_name, O_RDONLY, 0)) == -1) {
+		if ((v->fd = open(dev_name, O_RDONLY, 0)) == -1) {
 			asprintf (errorstr, _("Cannot open '%s': %d, %s."),
 				     dev_name, errno, strerror(errno));
 			goto io_error;
@@ -372,8 +380,8 @@ vbi3_capture_v4l2_new(const char *dev_name, int buffers,
 
 	if (_ioctl (v->fd, VIDIOC_QUERYCAP, &vcap) == -1) {
 /*
-		_vbi3_asprintf(errorstr, _("Cannot identify '%s': %d, %s."),
-			     dev_name, errno, strerror(errno));
+		asprintf(errorstr, _("Cannot identify '%s': %d, %s."),
+			 dev_name, errno, strerror(errno));
 		guess = _("Probably not a v4l2 device.");
 
 		goto io_error;
@@ -381,8 +389,13 @@ vbi3_capture_v4l2_new(const char *dev_name, int buffers,
 		v4l2_delete (&v->capture);
 
 		/* Try api revision 2002-10 */
-		return vbi3_capture_v4l2k_new (dev_name, 0, buffers,
-					      services, strict, errorstr, trace);
+		return vbi3_capture_v4l2k_new (dev_name,
+					       /* fd */ -1,
+					       buffers,
+					       services,
+					       strict,
+					       errorstr,
+					       trace);
 	}
 
 	if (vcap.type != V4L2_TYPE_VBI) {
@@ -397,8 +410,8 @@ vbi3_capture_v4l2_new(const char *dev_name, int buffers,
 
 #ifdef REQUIRE_SELECT
 	if (!v->select) {
-		_vbi3_asprintf(errorstr, _("%s (%s) does not support the select() function."),
-			     dev_name, vcap.name);
+		asprintf(errorstr, _("%s (%s) does not support the select() function."),
+			 dev_name, vcap.name);
 		goto failure;
 	}
 #endif
@@ -436,8 +449,8 @@ vbi3_capture_v4l2_new(const char *dev_name, int buffers,
 	if ((g_fmt = _ioctl (v->fd, VIDIOC_G_FMT, &vfmt)) == -1) {
 		printv("failed\n");
 #ifdef REQUIRE_G_FMT
-		_vbi3_asprintf(errorstr, _("Cannot query current vbi parameters of %s (%s): %d, %s."),
-			     dev_name, vcap.name, errno, strerror(errno));
+		asprintf(errorstr, _("Cannot query current vbi parameters of %s (%s): %d, %s."),
+			 dev_name, vcap.name, errno, strerror(errno));
 		goto io_error;
 #else
 		strict = MAX(0, strict);
@@ -553,9 +566,9 @@ vbi3_capture_v4l2_new(const char *dev_name, int buffers,
 		goto failure;
 	}
 
-	v->dec.sampling.sampling_format = VBI3_PIXFMT_Y8;
+	v->dec.sampling.sample_format = VBI3_PIXFMT_Y8;
 
-	if (*services & ~(VBI3_SLICED_VBI3_525 | VBI3_SLICED_VBI3_625)) {
+	if (*services & ~(VBI3_SLICED_VBI_525 | VBI3_SLICED_VBI_625)) {
 		/* Nyquist (we're generous at 1.5) */
 
 		if (v->dec.sampling.sampling_rate < max_rate * 3 / 2) {
@@ -799,3 +812,10 @@ vbi3_capture_v4l2_new(const char *dev_name, int buffers,
 }
 
 #endif /* !ENABLE_V4L2 */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

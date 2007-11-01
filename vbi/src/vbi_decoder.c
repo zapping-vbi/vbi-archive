@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.c,v 1.1.2.6 2006-05-18 16:49:20 mschimek Exp $ */
+/* $Id: vbi_decoder.c,v 1.1.2.7 2007-11-01 00:21:25 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -876,3 +876,10 @@ vbi3_decoder_new		(vbi3_cache *		ca,
 
 	return vbi;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

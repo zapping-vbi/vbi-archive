@@ -62,6 +62,7 @@ FILE_PATTERNS          = *.c \
                          cc.h \
 			 conv.h \
                          decoder.h \
+			 dvb_mux.h \
                          event.h \
                          exp-gfx.h \
                          exp-txt.h \

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: osc.c,v 1.9.2.8 2006-05-26 00:43:07 mschimek Exp $ */
+/* $Id: osc.c,v 1.9.2.9 2007-11-01 00:21:26 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -38,19 +38,25 @@
 #include "src/vbi.h"
 #include "src/zvbi.h"
 
+#include "sliced.h"
+
+#undef _
+#define _(x) (x) /* later */
+
 #ifndef X_DISPLAY_MISSING
 
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <X11/Xutil.h>
 
+static vbi3_bool	option_sim_interlaced;
+static vbi3_bool	option_sim_synchronous;
+static unsigned int	option_sim_flags; /* _VBI3_RAW_... */
+
 vbi3_capture *		cap;
-vbi3_raw_decoder *	rd;
 vbi3_sampling_par	sp;
 
 int			src_w, src_h;
-vbi3_sliced *		sliced;
-int			n_lines;
 vbi3_bool		quit;
 
 int			do_sim;
@@ -58,6 +64,9 @@ int			ignore_error;
 int			desync;
 vbi3_bool		show_grid;
 vbi3_bool		show_points;
+
+
+static struct stream *		cst;
 
 Display *		display;
 int			screen;
@@ -74,6 +83,10 @@ int			depth;
 int			draw_row, draw_offset;
 int			draw_count = -1;
 int                     cur_x, cur_y;
+vbi3_sliced		sliced2[50];
+unsigned int		sliced2_lines;
+int			step_mode;
+double			sample_time2;
 
 static const char *
 teletext			(const uint8_t		buffer[42],
@@ -109,7 +122,7 @@ teletext			(const uint8_t		buffer[42],
 }
 
 static const char *
-vps				(uint8_t		buffer[13],
+vps				(const uint8_t		buffer[13],
 				 unsigned int		line)
 {
 	static char text[256];
@@ -203,7 +216,7 @@ vps				(uint8_t		buffer[13],
 }
 
 static const char *
-wss_625				(uint8_t		buffer[2],
+wss_625				(const uint8_t		buffer[2],
 				 unsigned int		line)
 {
 	static char text[256];
@@ -227,7 +240,33 @@ wss_625				(uint8_t		buffer[2],
 }
 
 static const char *
-generic				(uint8_t		buffer[2],
+caption				(const uint8_t		buffer[2],
+				 unsigned int		line,
+				 unsigned int		size)
+{
+	static char text[16];
+	int c1, c2, n;
+
+	line = line; /* unused */
+	size = size;
+
+	c1 = vbi3_unpar8 (buffer[0]);
+	c2 = vbi3_unpar8 (buffer[1]);
+
+	n = snprintf (text, sizeof (text),
+		      " %s%02x %s%02x %c%c",
+		      (c1 < 0) ? ">" : "", buffer[0],
+		      (c2 < 0) ? ">" : "", buffer[1],
+		      _vbi3_to_ascii (buffer[0]),
+		      _vbi3_to_ascii (buffer[1]));
+
+	assert (n < (int) sizeof (text));
+
+	return text;
+}
+
+static const char *
+generic				(const uint8_t		buffer[2],
 				 unsigned int		line,
 				 unsigned int		size)
 {
@@ -239,7 +278,7 @@ generic				(uint8_t		buffer[2],
 	assert (size * 4 + 1 < sizeof (text));
 
 	for (i = 0; i < size; ++i)
-		sprintf (text + i * 3, "%02x ", buffer[i]);
+		snprintf (text + i * 3, 256 - i * 3, "%02x ", buffer[i]);
 
 	for (i = 0; i < size; ++i)
 		text[size * 3 + i] = _vbi3_to_ascii (buffer[i]);
@@ -250,12 +289,17 @@ generic				(uint8_t		buffer[2],
 }
 
 static void
-draw(unsigned char *raw)
+draw				(const vbi3_sliced *	sliced,
+				 unsigned int		n_lines,
+				 const uint8_t *	raw,
+				 double			sample_time)
 {
 	int rem = src_w - draw_offset;
-	unsigned char buf[256];
-	unsigned char *data = raw;
-	int i, v, h0, field, end, line;
+	char buf[256];
+	const uint8_t *data = raw;
+	int v, h0, field, end;
+	unsigned int line;
+	unsigned int i;
         XTextItem xti;
 
 	if (draw_count == 0)
@@ -266,13 +310,21 @@ draw(unsigned char *raw)
 
 	memcpy(raw2, raw, src_w * src_h);
 
+	assert (n_lines < N_ELEMENTS (sliced2));
+	memcpy (sliced2, sliced, n_lines * sizeof (*sliced));
+	sliced2_lines = n_lines;
+
+	sample_time2 = sample_time;
+
 	if (depth == 24) {
 		unsigned int *p = ximgdata;
-		
+		int i;
+
 		for (i = src_w * src_h; i >= 0; i--)
 			*p++ = palette[(int) *data++];
 	} else {
 		unsigned short *p = ximgdata; // 64 bit safe?
+		int i;
 
 		for (i = src_w * src_h; i >= 0; i--)
 			*p++ = palette[(int) *data++];
@@ -296,7 +348,7 @@ draw(unsigned char *raw)
 
 	XSetForeground(display, gc, ~0);
 
-	field = (draw_row >= sp.count[0]);
+	field = (draw_row >= (int) sp.count[0]);
 
 	if (sp.start[field] <= 0) {
 		xti.nchars = snprintf (buf, 255, "Row %d Line ?", draw_row);
@@ -320,7 +372,7 @@ draw(unsigned char *raw)
 
 		text = vbi3_sliced_name (sliced[i].id);
 		xti.nchars += snprintf (buf + xti.nchars, 255 - xti.nchars,
-					" %s ", text ? text : "?");
+					" %.4f %s ", sample_time, text ? text : "?");
 
 		switch (sliced[i].id) {
 		case VBI3_SLICED_TELETEXT_A:
@@ -350,7 +402,7 @@ draw(unsigned char *raw)
 		case VBI3_SLICED_CAPTION_625_F1:
 		case VBI3_SLICED_CAPTION_625_F2:
 		case VBI3_SLICED_CAPTION_625:
-			text = generic (sliced[i].data, sliced[i].line, 2);
+			text = caption (sliced[i].data, sliced[i].line, 2);
 			break;
 
 		case VBI3_SLICED_VPS:
@@ -380,6 +432,7 @@ draw(unsigned char *raw)
 					"%s", text);
 	} else {
 		int s = 0, sd = 0;
+		int i;
 
 		data = raw + draw_row * src_w;
 
@@ -393,7 +446,8 @@ draw(unsigned char *raw)
 		sd /= src_w;
 
 		xti.nchars += snprintf(buf + xti.nchars, 255 - xti.nchars,
-				       (sd < 5) ? " Blank" : " Unknown signal");
+				       (sd < 5) ? " %.4f Blank" : " %.4f Unknown signal",
+				       sample_time);
 	        xti.nchars += snprintf(buf + xti.nchars, 255 - xti.nchars,
 				       " (%d)", sd);
 	}
@@ -423,12 +477,13 @@ draw(unsigned char *raw)
 			unsigned int x, y;
 			int h;
 
-			if (!vbi3_raw_decoder_get_point (rd, &point,
-							 draw_row, i))
+			if (!capture_stream_get_point (cst, &point,
+						       draw_row, i))
 				break;
 
 			switch (point.kind) {
 			case VBI3_CRI_BIT:
+#warning "shouldn't this be a pixel, e.g. 565?"
 				XSetForeground (display, gc, 0x888800);
 				break;
 			case VBI3_FRC_BIT:
@@ -472,73 +527,139 @@ draw(unsigned char *raw)
 	if (dst_w < end)
 		end = dst_w;
 
-	for (i = 1; i < end; i++) {
-		int h = dst_h - (data[i] * v) / 256;
+	{
+		int i;
 
-		XDrawLine(display, window, gc, i - 1, h0, i, h);
-		h0 = h;
+		for (i = 1; i < end; i++) {
+			int h = dst_h - (data[i] * v) / 256;
+
+			XDrawLine(display, window, gc, i - 1, h0, i, h);
+			h0 = h;
+		}
 	}
 }
 
 static void
 xevent(void)
 {
-	while (XPending(display)) {
+	vbi3_bool next_frame = FALSE;
+
+	while (step_mode || XPending(display)) {
 		XNextEvent(display, &event);
 
 		switch (event.type) {
 		case KeyPress:
 		{
-			switch (XLookupKeysym(&event.xkey, 0)) {
+			switch (XLookupKeysym (&event.xkey, 0)) {
+			case 'a':
+				option_sim_flags ^= _VBI3_RAW_LOW_AMP_CC;
+				capture_stream_sim_set_flags
+					(cst, option_sim_flags);
+				break;
+
+			case 'c':
+				if (event.xkey.state & ControlMask)
+					exit (EXIT_SUCCESS);
+
+				option_sim_flags ^= _VBI3_RAW_SHIFT_CC_CRI;
+				capture_stream_sim_set_flags
+					(cst, option_sim_flags);
+				break;
+
+			case 'f':
+				option_sim_flags ^= _VBI3_RAW_SWAP_FIELDS;
+				capture_stream_sim_set_flags
+					(cst, option_sim_flags);
+				break;
+
 			case 'g':
 				draw_count = 1;
+				next_frame = TRUE;
 				break;
 
 			case 'i':
 				show_grid ^= TRUE;
-				break;
+				goto redraw;
 
 			case 'l':
 				draw_count = -1;
 				break;
 
+			case 'o':
+				option_sim_flags ^= _VBI3_RAW_NOISE_2;
+				capture_stream_sim_set_flags
+					(cst, option_sim_flags);
+				break;
+
 			case 'p':
 				show_points ^= TRUE;
-				vbi3_raw_decoder_collect_points
-					(rd, show_points);
+				capture_stream_debug (cst, show_points);
 				if (do_sim)
-					vbi3_capture_sim_decode_raw
-						(cap, show_points);
-				break;
+					capture_stream_sim_decode_raw
+						(cst, show_points);
+				goto redraw;
 
 			case 'q':
-			case 'c':
-				quit = TRUE;
-				break;
+			case XK_Escape:
+				exit (EXIT_SUCCESS);
 
 			case XK_Up:
-			    if (draw_row > 0)
-				    draw_row--;
-			    goto redraw;
+				if (draw_row > 0) {
+					draw_row--;
+					goto redraw;
+				}
+				break;
 
 			case XK_Down:
-			    if (draw_row < (src_h - 1))
-				    draw_row++;
-			    goto redraw;
+				if (draw_row < (src_h - 1)) {
+					draw_row++;
+					goto redraw;
+				}
+				break;
 
 			case XK_Left:
-			    if (draw_offset > 0)
-				    draw_offset -= 10;
-			    goto redraw;
+				if (draw_offset > 0) {
+					draw_offset -= 10;
+					goto redraw;
+				}
+				break;
 
 			case XK_Right:
-			    if (draw_offset < (src_w - 10))
-				    draw_offset += 10;
-			    goto redraw;  
+				if (draw_offset < (src_w - 10)) {
+					draw_offset += 10;
+					goto redraw;  
+				}
+				break;
 			}
 
 			break;
 		}
+
+		case ButtonPress:
+			fprintf (stderr, "%08x %08x\n",
+				 event.xbutton.state,
+				 event.xbutton.button);
+
+			switch (event.xbutton.button) {
+			case Button4:
+				if (draw_row > 0) {
+					draw_row--;
+					goto redraw;
+				}
+				break;
+
+			case Button5:
+				if (draw_row < (src_h - 1)) {
+					draw_row++;
+					goto redraw;
+				}
+				break;
+
+			default:
+				break;
+			}
+
+			break;
 
 		case ConfigureNotify:
 			dst_w = event.xconfigurerequest.width;
@@ -546,7 +667,8 @@ xevent(void)
 redraw:
 			if (draw_count == 0) {
 				draw_count = 1;
-				draw(raw2);
+				draw(sliced2, sliced2_lines, raw2,
+				     sample_time2);
 			}
 
 			break;
@@ -555,16 +677,20 @@ redraw:
 		       cur_x = event.xmotion.x;
 		       cur_y = event.xmotion.y;
 		       // printf("Got MotionNotify: (%d, %d)\n", event.xmotion.x, event.xmotion.y);
+		       goto redraw;
 		       break;
 		   
 		case ClientMessage:
 			exit(EXIT_SUCCESS);
 		}
+
+		if (next_frame)
+			break;
 	}
 }
 
 static void
-init_window(int ac, char **av, char *dev_name)
+init_window(const char *dev_name)
 {
 	char buf[256];
 	Atom delete_window_atom;
@@ -657,7 +783,12 @@ init_window(int ac, char **av, char *dev_name)
 
 	delete_window_atom = XInternAtom(display, "WM_DELETE_WINDOW", False);
 
-	XSelectInput(display, window, PointerMotionMask | KeyPressMask | ExposureMask | StructureNotifyMask);
+	XSelectInput(display, window, (PointerMotionMask |
+				       KeyPressMask |
+				       ButtonPressMask |
+				       ExposureMask |
+				       StructureNotifyMask));
+
 	XSetWMProtocols(display, window, &delete_window_atom, 1);
 	snprintf(buf, sizeof(buf) - 1, "%s - [cursor] [g]rab [l]ive gr[i]d [p]oints", dev_name);
 	XStoreName(display, window, buf);
@@ -669,262 +800,235 @@ init_window(int ac, char **av, char *dev_name)
 	XSync(display, False);
 }
 
-static void
-mainloop(void)
+static vbi3_bool
+decode_function			(const vbi3_sliced *	sliced,
+				 unsigned int		n_lines,
+				 const uint8_t *	raw,
+				 const vbi3_sampling_par *spp,
+				 double			sample_time,
+				 int64_t		stream_time)
 {
-	double timestamp;
-	struct timeval tv;
+	sample_time = sample_time;
+	stream_time = stream_time;
 
-	tv.tv_sec = 2;
-	tv.tv_usec = 0;
+	if (NULL != raw) {
+		if (0 == src_w) {
+			sp = *spp;
 
-	assert((sliced = malloc(sizeof(vbi3_sliced) * src_h)));
+			assert (sp.sample_format == VBI3_PIXFMT_Y8);
 
-	for (quit = FALSE; !quit;) {
-		int r;
+			src_w = sp.bytes_per_line / 1;
+			src_h = sp.count[0] + sp.count[1];
 
-		r = vbi3_capture_read(cap, raw1, sliced,
-				      &n_lines, &timestamp, &tv);
-		switch (r) {
-		case -1:
-			fprintf(stderr, "VBI read error: %d, %s%s\n",
-				errno, strerror(errno),
-				ignore_error ? " (ignored)" : "");
-			if (ignore_error)
-				continue;
-			else
-				exit(EXIT_FAILURE);
-		case 0: 
-			fprintf(stderr, "VBI read timeout%s\n",
-				ignore_error ? " (ignored)" : "");
-			if (ignore_error)
-				continue;
-			else
-				exit(EXIT_FAILURE);
-		case 1:
-			break;
-		default:
-			assert(!"reached");
+			init_window (option_dev_name);
+		} else {
+			assert (spp->bytes_per_line == sp.bytes_per_line);
+			assert (spp->count[0] == sp.count[0]);
+			assert (spp->count[1] == sp.count[1]);
 		}
 
-		draw(raw1);
+		draw (sliced, n_lines, raw, sample_time);
+	} else {
+		printf ("no raw data...\n");
+		return TRUE;
+	}
 
-/*		printf("raw: %f; sliced: %d\n", timestamp, n_lines); */
+/*	printf("raw: %f; sliced: %d\n", timestamp, n_lines); */
 
+	if (0 != src_w) {
 		xevent();
 	}
+
+	return TRUE;
 }
 
-static const char short_options[] = "123cde:npsv";
+static const char short_options[] = "123acd:efino:pqsvy";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
 long_options[] = {
-	{ "desync",	no_argument,		NULL,		'c' },
-	{ "device",	required_argument,	NULL,		'd' },
-	{ "ignore-error", no_argument,		NULL,		'e' },
-	{ "ntsc",	no_argument,		NULL,		'n' },
-	{ "pal",	no_argument,		NULL,		'p' },
-	{ "sim",	no_argument,		NULL,		's' },
-	{ "v4l",	no_argument,		NULL,		'1' },
-	{ "v4l2-read",	no_argument,		NULL,		'2' },
-	{ "v4l2-mmap",	no_argument,		NULL,		'3' },
-	{ "verbose",	no_argument,		NULL,		'v' },
+	{ "v4l",		no_argument,		NULL,	'1' },
+	{ "v4l2-read",		no_argument,		NULL,	'2' },
+	{ "v4l2-mmap",		no_argument,		NULL,	'3' },
+	{ "sim-low-amp-cc",	no_argument,		NULL,	'a' },
+	{ "sim-shift-cc-cri",	no_argument,		NULL,	'c' },
+	{ "device",		required_argument,	NULL,	'd' },
+	{ "ignore-error", 	no_argument,		NULL,	'e' },
+	{ "sim-swap-fields",	no_argument,		NULL,	'f' },
+	{ "sim-interlaced",	no_argument,		NULL,	'i' },
+	{ "ntsc",		no_argument,		NULL,	'n' },
+	{ "sim-noise",		optional_argument,	NULL,	'o' },
+	{ "pal",		no_argument,		NULL,	'p' },
+	{ "quiet",		no_argument,		NULL,	'q' },
+	{ "sim",		no_argument,		NULL,	's' },
+	{ "verbose",		no_argument,		NULL,	'v' },
+	{ "desync",		no_argument,		NULL,	'y' },
+	{ "sim-desync",		no_argument,		NULL,	'y' },
 	{ NULL, 0, 0, 0 }
 };
 #else
 #define getopt_long(ac, av, s, l, i) getopt(ac, av, s)
 #endif
 
+static int			option_index;
+
 int
 main(int argc, char **argv)
 {
-	char *dev_name = "/dev/vbi";
-	char *errstr;
-	unsigned int services;
-	int scanning = 625;
-	int verbose = 0;
-	int interface = 0;
-	int c, index;
+	unsigned int scanning;
+	unsigned int interfaces;
+	vbi3_bool have_dev_name;
 
-	setlocale (LC_ALL, "");
+	init_helpers (argc, argv);
 
-	while ((c = getopt_long(argc, argv, short_options,
-				long_options, &index)) != -1)
-		switch (c) {
-		case 0: /* set flag */
+	option_dev_name = "/dev/vbi";
+	have_dev_name = FALSE;
+
+	scanning = 625;
+
+	interfaces = (INTERFACE_V4L2 |
+		      INTERFACE_V4L |
+		      INTERFACE_BKTR);
+
+	for (;;) {
+		int c;
+
+		c = getopt_long (argc, argv, short_options,
+				 long_options, &option_index);
+		if (-1 == c)
 			break;
+
+		switch (c) {
+		case 0: /* getopt_long() flag */
+			break;
+
+		case '1':
+			interfaces = INTERFACE_V4L;
+			break;
+
 		case '2':
 			/* Preliminary hack for tests (0.2 branch). */
 //			vbi3_capture_force_read_mode = TRUE;
-			/* fall through */
-		case '1':
+			interfaces = INTERFACE_V4L2;
+			break;
+
 		case '3':
-			interface = c - '0';
+			interfaces = INTERFACE_V4L2;
 			break;
+
+		case 'a':
+			interfaces = INTERFACE_SIM;
+			option_sim_flags |= _VBI3_RAW_LOW_AMP_CC;
+			break;
+
 		case 'c':
-			desync ^= TRUE;
+			interfaces = INTERFACE_SIM;
+			option_sim_flags |= _VBI3_RAW_SHIFT_CC_CRI;
 			break;
+
 		case 'd':
-			dev_name = optarg;
+			option_dev_name = optarg;
+			have_dev_name = TRUE;
 			break;
+
 		case 'e':
 			ignore_error ^= TRUE;
 			break;
+
+		case 'f':
+			interfaces = INTERFACE_SIM;
+			option_sim_flags |= _VBI3_RAW_SWAP_FIELDS;
+			break;
+
 		case 'n':
 			scanning = 525;
 			break;
+
+		case 'o':
+			/* Optional optarg: noise parameters
+			   (not implemented yet). */
+			interfaces = INTERFACE_SIM;
+			option_sim_flags |= _VBI3_RAW_NOISE_2;
+			break;
+
 		case 'p':
 			scanning = 625;
 			break;
+
+		case 'q':
+			parse_option_quiet ();
+			break;
+
 		case 's':
-			do_sim ^= TRUE;
+			interfaces = INTERFACE_SIM;
 			break;
+
 		case 'v':
-			++verbose;
+			parse_option_verbose ();
 			break;
+
+		case 'y':
+			interfaces = INTERFACE_SIM;
+			option_sim_synchronous = FALSE;
+			break;
+
 		default:
 			fprintf(stderr, "Unknown option\n");
 			exit(EXIT_FAILURE);
 		}
-
-	if (verbose) {
-		vbi3_set_log_fn (VBI3_LOG_INFO - 1,
-				 vbi3_log_on_stderr,
-				 /* user_data */ NULL);
 	}
 
-	services = VBI3_SLICED_VBI3_525 | VBI3_SLICED_VBI3_625 |
-		VBI3_SLICED_TELETEXT_A |
-		VBI3_SLICED_TELETEXT_B |
-		VBI3_SLICED_TELETEXT_C_625 |
-		VBI3_SLICED_TELETEXT_D_625 |
-		VBI3_SLICED_CAPTION_625 |
-		VBI3_SLICED_VPS |
-		VBI3_SLICED_WSS_625 |
-		VBI3_SLICED_TELETEXT_B_525 |
-		VBI3_SLICED_TELETEXT_C_525 |
-		VBI3_SLICED_TELETEXT_D_525 |
-		VBI3_SLICED_CAPTION_525 |
-		VBI3_SLICED_WSS_CPR1204 |
-		0;
+	if (!have_dev_name && !isatty (STDIN_FILENO)) {
+		const char *option_in_file_name = NULL;
+		int option_in_file_format = FILE_FORMAT_SLICED;
+		int option_in_ts_pid = 0;
 
-	do {
-		if (do_sim) {
-			cap = vbi3_capture_sim_new (scanning, &services,
-						    /* interlaced */ FALSE,
-						    !desync);
-			assert (NULL != cap);
-			break;
-		}
+		cst = read_stream_new (option_in_file_name,
+				       option_in_file_format,
+				       option_in_ts_pid,
+				       decode_function);
+		step_mode = TRUE;
+	} else {
+		cst = capture_stream_new (interfaces,
+					  option_dev_name,
+					  scanning,
+					  /* services */ -1,
+					  /* n_buffers (V4L2 mmap) */ 5,
+					  /* ts_pid (DVB) */ 0,
+					  option_sim_interlaced,
+					  option_sim_synchronous,
+					  /* capture_raw_data */ TRUE,
+					  /* read_not_pull */ FALSE,
+					  /* strict */ 0,
+					  decode_function);
 
-		if (1 != interface) {
-			cap = vbi3_capture_v4l2k_new
-				(dev_name, /* fd */ -1,
-				 /* buffers */ 5, &services,
-				 /* strict */ 0, &errstr,
-				 /* trace */ !!verbose);
-
-			if (cap)
-				break;
-
-			fprintf (stderr, "Cannot capture vbi data "
-				 "with v4l2k interface:\n%s\n",
-				 errstr);
-
-			free (errstr);
-
-			cap = vbi3_capture_v4l2_new (dev_name,
-						     /* buffers */ 5,
-						     &services,
-						     /* strict */ 0,
-						     &errstr,
-						     /* trace */
-						     !!verbose);
-			if (cap)
-				break;
-
-			fprintf (stderr, "Cannot capture vbi data "
-				 "with v4l2 interface:\n%s\n", errstr);
-
-			free (errstr);
-		}
-
-		if (interface < 2) {
-			cap = vbi3_capture_v4l_new (dev_name,
-						    scanning,
-						    &services,
-						    /* strict */ 0,
-						    &errstr,
-						    /* trace */
-						    !!verbose);
-			if (cap)
-				break;
-
-			fprintf (stderr, "Cannot capture vbi data "
-				 "with v4l interface:\n%s\n", errstr);
-
-			free (errstr);
-		}
-
-		/* BSD interface */
-		if (1) {
-			cap = vbi3_capture_bktr_new (dev_name,
-						     scanning,
-						     &services,
-						     /* strict */ 0,
-						     &errstr,
-						     /* trace */
-						     !!verbose);
-			if (cap)
-				break;
-
-			fprintf (stderr, "Cannot capture vbi data "
-				 "with bktr interface:\n%s\n", errstr);
-
-			free (errstr);
-		}
-
-		exit(EXIT_FAILURE);
-	} while (0);
-
-	assert ((rd = vbi3_capture_parameters(cap)));
-
-	if (verbose > 1) {
-// 0.2		vbi3_capture_set_log_fp (cap, stderr);
+		capture_stream_sim_set_flags (cst, option_sim_flags);
 	}
 
 	show_grid = TRUE;
+
 	show_points = TRUE;
+	capture_stream_debug (cst, TRUE);
 
-	vbi3_raw_decoder_collect_points (rd, TRUE);
-	if (do_sim)
-		vbi3_capture_sim_decode_raw (cap, TRUE);
+	capture_stream_sim_decode_raw (cst, TRUE);
 
-	vbi3_raw_decoder_get_sampling_par (rd, &sp);
+	stream_loop (cst);
 
-	assert (sp.sampling_format == VBI3_PIXFMT_Y8);
+	stream_delete (cst);
 
-	src_w = sp.bytes_per_line / 1;
-	src_h = sp.count[0] + sp.count[1];
-
-	init_window(argc, argv, dev_name);
-
-	mainloop();
-
-	vbi3_capture_delete (cap);
-
-	exit(EXIT_SUCCESS);	
+	exit (EXIT_SUCCESS);	
 }
-
 
 #else /* X_DISPLAY_MISSING */
 
 int
-main(int argc, char **argv)
+main				(int			argc,
+				 char **		argv)
 {
-	printf("Could not find X11 or has been disabled at configuration time\n");
-	exit(EXIT_FAILURE);
+	printf (_("Could not find X11 or X11 support has "
+		  "been disabled at configuration time."));
+
+	exit (EXIT_FAILURE);
 }
 
 #endif

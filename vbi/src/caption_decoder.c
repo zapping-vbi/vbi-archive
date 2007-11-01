@@ -18,7 +18,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder.c,v 1.1.2.4 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: caption_decoder.c,v 1.1.2.5 2007-11-01 00:21:22 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include "misc.h"
 #include "hamm.h"
@@ -26,6 +30,7 @@
 #include "caption_decoder-priv.h"
 
 #define XDS_EVENTS 0 /* TODO */
+
 #define CAPTION_EVENTS (VBI3_EVENT_CC_PAGE |				\
 			VBI3_EVENT_CC_RAW |				\
 			VBI3_EVENT_PAGE_TYPE)
@@ -37,11 +42,10 @@
   Section 15.119 "Closed caption decoder requirements for analog
   television receivers".
 
+  http://www.gpoaccess.gov/cfr/index.html
+
   EIA 608-B "Line 21 Data Services"
   http://global.ihs.com
-
-  Video Demystified
-  http://www.video-demystified.com
 
   Related documents:
 
@@ -85,6 +89,7 @@
   http://www.atsc.org
   http://www.atvef.com
   http://www.robson.org
+  http://www.video-demystified.com
   http://www.vchipeducation.org
   http://developer.webtv.net/itv/links/main.htm
   http://www.geocities.com/mcpoodle43/SCC_TOOLS/DOCS/CC_XDS.HTML
@@ -96,7 +101,7 @@
 
 /* Closed Caption decoder ****************************************************/
 
-#define ALL_DIRTY ((1 << MAX_ROWS) - 1)
+#define ALL_ROWS ((1 << MAX_ROWS) - 1)
 
 #define WORD_UPDATE (VBI3_CHAR_UPDATE | VBI3_WORD_UPDATE)
 #define ROW_UPDATE (WORD_UPDATE | VBI3_ROW_UPDATE)
@@ -697,7 +702,7 @@ move_window			(vbi3_caption_decoder *	cd,
 			 copy_chars * sizeof (*text));
 
 		ch->dirty[n] = (ch->dirty[n] << (new_base_row - ch->curr_row))
-			& ALL_DIRTY;
+			& ALL_ROWS;
 	}
 
 	while (erase_begin < erase_end) {
@@ -1370,7 +1375,7 @@ static void
 caption_control_code		(vbi3_caption_decoder *	cd,
 				 unsigned int		c1,
 				 unsigned int		c2,
-				 field_num		f)
+				 enum field_num		f)
 {
 	unsigned int ch_num0;
 	caption_channel *ch;
@@ -1440,7 +1445,8 @@ caption_control_code		(vbi3_caption_decoder *	cd,
 			if (9 == c2) {
 				put_transparent_space (cd, ch);
 			} else {
-				put_char (cd, ch, vbi3_caption_unicode (c2));
+				put_char (cd, ch,
+					  vbi3_caption_unicode (c2, '?'));
 			}
 		} else {
 			/* Mid-Row Codes		001 c001  010 xxxu */
@@ -1462,7 +1468,7 @@ caption_control_code		(vbi3_caption_decoder *	cd,
 		   e.g. u<udiaresis>. */
 		backspace (cd, ch);
 
-		unicode = vbi3_caption_unicode ((c1 * 256 + c2) & 0x777F);
+		unicode = vbi3_caption_unicode ((c1 * 256 + c2) & 0x777F, '?');
 
 		put_char (cd, ch, unicode);
 
@@ -1519,7 +1525,7 @@ caption_text			(vbi3_caption_decoder *	cd,
 
 		if (c < 0 && VBI3_CAPTION_MODE_UNKNOWN != ch->mode) {
 			/* 47 CFR Section 15.119 (j)(1). */
-			put_char (cd, ch, vbi3_caption_unicode (0x7F));
+			put_char (cd, ch, vbi3_caption_unicode (0x7F, '?'));
 		}
 
 		return FALSE;
@@ -1542,7 +1548,7 @@ caption_text			(vbi3_caption_decoder *	cd,
 	}
 
 	if (VBI3_CAPTION_MODE_UNKNOWN != ch->mode)
-		put_char (cd, ch, vbi3_caption_unicode (c));
+		put_char (cd, ch, vbi3_caption_unicode (c, '?'));
 
 	return TRUE;
 }
@@ -1573,9 +1579,11 @@ itv_text			(vbi3_caption_decoder *	cd,
 	cd->itv.buffer[cd->itv.size] = 0;
 	cd->itv.size = 0;
 
-#warning TODO
+#ifndef ZAPPING8
+#  warning TODO
 	/* vbi3_atvef_trigger(vbi, cc->itv_buf);
 	   event */
+#endif
 
 	return TRUE;
 }
@@ -1638,6 +1646,8 @@ itv_control_code		(vbi3_caption_decoder *	cd,
 
 /* XDS decoder ***************************************************************/
 
+#ifndef ZAPPING8
+
 static vbi3_bool
 xds_callback			(vbi3_xds_demux *	xd,
 				 const vbi3_xds_packet *	xp,
@@ -1653,6 +1663,8 @@ xds_callback			(vbi3_xds_demux *	xd,
 
 	return FALSE;
 }
+
+#endif
 
 /* Demultiplexer *************************************************************/
 
@@ -1674,7 +1686,7 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 {
 	int c1;
 	int c2;
-	field_num f;
+	enum field_num f;
 	vbi3_bool all_successful;
 
 	assert (NULL != cd);
@@ -1698,8 +1710,10 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 		f = FIELD_2;
 
 		if (cd->handlers.event_mask & XDS_EVENTS) {
+#ifndef ZAPPING8
 			all_successful &=
 				vbi3_xds_demux_feed (&cd->xds.demux, buffer);
+#endif
 		}
 
 		break;
@@ -2181,6 +2195,7 @@ _vbi3_caption_decoder_init	(vbi3_caption_decoder *	cd,
 		return FALSE;
 	}
 
+#ifndef ZAPPING8
 	if (!_vbi3_xds_demux_init (&cd->xds.demux,
 				   xds_callback,
 				   /* user_data */ cd)) {
@@ -2189,6 +2204,7 @@ _vbi3_caption_decoder_init	(vbi3_caption_decoder *	cd,
 
 		return FALSE;
 	}
+#endif
 
 	cd->virtual_reset = internal_reset;
 
@@ -2268,3 +2284,10 @@ vbi3_caption_decoder_new	(vbi3_cache *		ca,
 
 	return cd;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

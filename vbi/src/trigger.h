@@ -18,14 +18,16 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: trigger.h,v 1.2.2.2 2006-05-07 06:04:59 mschimek Exp $ */
+/* $Id: trigger.h,v 1.2.2.3 2007-11-01 00:21:25 mschimek Exp $ */
 
-#ifndef TRIGGER_H
-#define TRIGGER_H
+#ifndef __ZVBI3_TRIGGER_H__
+#define __ZVBI3_TRIGGER_H__
 
 #include <inttypes.h>		/* uint8_t */
 #include "network.h"		/* vbi3_network */
 #include "event-priv.h"		/* _vbi3_event_handler_list */
+
+VBI3_BEGIN_DECLS
 
 typedef struct _vbi3_trigger _vbi3_trigger;
 
@@ -56,4 +58,13 @@ _vbi3_trigger_list_add_atvef	(_vbi3_trigger **	list,
 				 const vbi3_network *	nk,
 				 double			current_time);
 
-#endif /* TRIGGER_H */
+VBI3_END_DECLS
+
+#endif /* __ZVBI3_TRIGGER_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

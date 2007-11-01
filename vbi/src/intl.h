@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: intl.h,v 1.1.2.3 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: intl.h,v 1.1.2.4 2007-11-01 00:21:23 mschimek Exp $ */
 
 #ifndef __ZVBI3_INTL_H__
 #define __ZVBI3_INTL_H__
@@ -36,7 +36,14 @@ VBI3_BEGIN_DECLS
  * a character set different from the current locale.
  */
 extern const char vbi3_intl_domainname [];
-
+ 
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_INTL_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

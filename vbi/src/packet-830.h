@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.h,v 1.1.2.5 2006-05-14 14:14:12 mschimek Exp $ */
+/* $Id: packet-830.h,v 1.1.2.6 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifndef __ZVBI3_PACKET_830_H__
 #define __ZVBI3_PACKET_830_H__
@@ -55,4 +55,11 @@ vbi3_decode_teletext_8302_pdc	(vbi3_program_id *	pid,
 
 VBI3_END_DECLS
 
-#endif /* __ZVBI3__PACKET_830_H__ */
+#endif /* __ZVBI3_PACKET_830_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

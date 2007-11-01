@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb.h,v 1.1.2.2 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: dvb.h,v 1.1.2.3 2007-11-01 00:21:22 mschimek Exp $ */
 
 #ifndef DVB_H
 #define DVB_H
@@ -93,3 +93,10 @@ typedef enum {
 } data_unit_id;
 
 #endif /* DVB_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

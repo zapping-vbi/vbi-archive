@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: tables.h,v 1.3.2.3 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: tables.h,v 1.3.2.4 2007-11-01 00:21:25 mschimek Exp $ */
 
 #ifndef TABLES_H
 #define TABLES_H
@@ -39,3 +39,10 @@ extern const char *	vbi3_prog_type_string(vbi3_prog_classf classf, int id);
 /* Private */
 
 #endif /* TABLES_H */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

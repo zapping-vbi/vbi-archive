@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling_par.c,v 1.1.2.5 2006-05-26 00:43:06 mschimek Exp $ */
+/* $Id: sampling_par.c,v 1.1.2.6 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -32,14 +32,11 @@
 #include "version.h"
 
 #if 2 == VBI_VERSION_MINOR
-#  define vbi3_pixfmt_bytes_per_pixel VBI3_PIXFMT_BPP
+#  define vbi_pixfmt_bytes_per_pixel VBI_PIXFMT_BPP
+#  define sp_sample_format sampling_format
+#else
+#  define sp_sample_format sample_format
 #endif
-
-#define sp_log(level, templ, args...)					\
-do {									\
-	_vbi3_log_printf (log_fn, log_user_data,			\
-			  level, __FUNCTION__, templ , ##args);		\
-} while (0)
 
 /**
  * @addtogroup Sampling Raw VBI sampling
@@ -93,10 +90,11 @@ _vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
 				 _vbi3_log_hook *	log)
 {
 	vbi3_videostd_set videostd_set;
+	unsigned int bpp;
 
 	assert (NULL != sp);
 
-	switch (sp->sampling_format) {
+	switch (sp->sp_sample_format) {
 	case VBI3_PIXFMT_YUV420:
 #if 2 == VBI_VERSION_MINOR
 		/* This conflicts with the ivtv driver, which returns an
@@ -105,15 +103,34 @@ _vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
 #else
 		if (sp->samples_per_line & 1)
 			goto bad_samples;
+
+		/* fall through */
+
+	case VBI3_PIXFMT_Y8: /* very common */
+		if (sp->samples_per_line > sp->bytes_per_line)
+			goto too_many_samples;
 #endif
 		break;
 
 	default:
-		if (0 != (sp->bytes_per_line
-			  % vbi3_pixfmt_bytes_per_pixel (sp->sampling_format)))
+		bpp = vbi3_pixfmt_bytes_per_pixel (sp->sp_sample_format);
+#if 2 == VBI_VERSION_MINOR
+		if (0 != (sp->bytes_per_line % bpp))
 			goto bad_samples;
+#else
+		if (sp->samples_per_line * bpp > sp->bytes_per_line)
+			goto too_many_samples;
+#endif
 		break;
 	}
+
+#if 2 == VBI_VERSION_MINOR
+	if (0 == sp->bytes_per_line)
+		goto no_samples;
+#else
+	if (0 == sp->samples_per_line)
+		goto no_samples;
+#endif
 
 	if (0 == sp->count[0]
 	    && 0 == sp->count[1])
@@ -146,7 +163,7 @@ _vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
 			goto bad_range;
 	} else {
 	ambiguous:
-		notice (log,
+		info (log,
 			"Ambiguous videostd_set 0x%x.",
 			videostd_set);
 		return FALSE;
@@ -155,7 +172,7 @@ _vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
 	if (sp->interlaced
 	    && (sp->count[0] != sp->count[1]
 		|| 0 == sp->count[0])) {
-		notice (log,
+		info (log,
 			"Line counts %u, %u must be equal and "
 			"non-zero when raw VBI data is interlaced.",
 			sp->count[0], sp->count[1]);
@@ -164,17 +181,31 @@ _vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
 
 	return TRUE;
 
+ no_samples:
+	info (log, "samples_per_line is zero.");
+	return FALSE;
+
+#if 3 == VBI_VERSION_MINOR
+ too_many_samples:
+	info (log,
+		"samples_per_line %u times bytes per samples %u is "
+		"greater than bytes_per_line %u.",
+		sp->samples_per_line,
+		vbi3_pixfmt_bytes_per_pixel (sp->sp_sample_format),
+		sp->bytes_per_line);
+	return FALSE;
+#endif
+
  bad_samples:
-	/* XXX permit sp->samples_per_line * bpp < sp->bytes_per_line. */
-	notice (log,
+	info (log,
 		"bytes_per_line value %u is no multiple of "
 		"the sample size %u.",
 		sp->bytes_per_line,
-		vbi3_pixfmt_bytes_per_pixel (sp->sampling_format));
+		vbi3_pixfmt_bytes_per_pixel (sp->sp_sample_format));
 	return FALSE;
 
  bad_range:
-	notice (log,
+	info (log,
 		"Invalid VBI scan range %u-%u (%u lines), "
 		"%u-%u (%u lines).",
 		sp->start[0], sp->start[0] + sp->count[0] - 1,
@@ -206,7 +237,7 @@ _vbi3_sampling_par_permit_service
 	videostd_set = sp->videostd_set;
 #endif
 	if (0 == (par->videostd_set & videostd_set)) {
-		notice (log,
+		info (log,
 			"Service 0x%08x (%s) requires "
 			"videostd_set 0x%x, "
 			"have 0x%x.",
@@ -216,9 +247,11 @@ _vbi3_sampling_par_permit_service
 	}
 
 	if (par->flags & _VBI3_SP_LINE_NUM) {
-                if ((par->first[0] > 0 && unknown == sp->start[0])
-                    || (par->first[1] > 0 && unknown == sp->start[1])) {
-			notice (log,
+                if ((par->first[0] > 0
+		     && unknown == (unsigned int) sp->start[0])
+                    || (par->first[1] > 0
+			&& unknown == (unsigned int) sp->start[1])) {
+			info (log,
 				"Service 0x%08x (%s) requires known "
 				"line numbers.",
 				par->id, par->label);
@@ -243,7 +276,7 @@ _vbi3_sampling_par_permit_service
 		}
 
 		if (rate > (unsigned int) sp->sampling_rate) {
-			notice (log,
+			info (log,
 				"Sampling rate %f MHz too low "
 				"for service 0x%08x (%s).",
 				sp->sampling_rate / 1e6,
@@ -273,7 +306,7 @@ _vbi3_sampling_par_permit_service
 		end = (sp->offset + samples_per_line) / sampling_rate;
 
 		if (offset > (par->offset / 1e3 - 0.5e-6)) {
-			notice (log,
+			info (log,
 				"Sampling starts at 0H + %f us, too "
 				"late for service 0x%08x (%s) at "
 				"%f us.",
@@ -284,7 +317,7 @@ _vbi3_sampling_par_permit_service
 		}
 
 		if (end < (par->offset / 1e9 + signal + 0.5e-6)) {
-			notice (log,
+			info (log,
 				"Sampling ends too early at 0H + "
 				"%f us for service 0x%08x (%s) "
 				"which ends at %f us",
@@ -303,7 +336,7 @@ _vbi3_sampling_par_permit_service
 			samples -= 1e-6; /* headroom */
 
 		if (samples < signal) {
-			notice (log,
+			info (log,
 				"Service 0x%08x (%s) signal length "
 				"%f us exceeds %f us sampling length.",
 				par->id, par->label,
@@ -314,7 +347,7 @@ _vbi3_sampling_par_permit_service
 
 	if ((par->flags & _VBI3_SP_FIELD_NUM)
 	    && !sp->synchronous) {
-		notice (log,
+		info (log,
 			"Service 0x%08x (%s) requires "
 			"synchronous field order.",
 			par->id, par->label);
@@ -335,7 +368,7 @@ _vbi3_sampling_par_permit_service
 		}
 
 		if (0 == sp->count[field]) {
-			notice (log,
+			info (log,
 				"Service 0x%08x (%s) requires "
 				"data from field %u",
 				par->id, par->label, field + 1);
@@ -354,7 +387,7 @@ _vbi3_sampling_par_permit_service
 		
 		if (start > par->first[field]
 		    || end < par->last[field]) {
-			notice (log,
+			info (log,
 				"Service 0x%08x (%s) requires "
 				"lines %u-%u, have %u-%u.",
 				par->id, par->label,
@@ -470,7 +503,7 @@ _vbi3_sampling_par_from_services_log
 			margin = 2.0e-6;
 
 		if (0 == (par->videostd_set & videostd_set)) {
-			notice (log,
+			info (log,
 				"Service 0x%08x (%s) requires "
 				"videostd_set 0x%x, "
 				"have 0x%x.",
@@ -527,12 +560,12 @@ _vbi3_sampling_par_from_services_log
 
 #if 3 == VBI_VERSION_MINOR
 	sp->videostd_set	= videostd_set;
-	sp->sampling_format	= VBI3_PIXFMT_Y8;
+	sp->sp_sample_format	= VBI3_PIXFMT_Y8;
 	sp->samples_per_line	= samples_per_line;
 #else
 	sp->scanning		= (videostd_set & VBI3_VIDEOSTD_SET_525_60)
 		? 525 : 625;
-	sp->sampling_format	= VBI3_PIXFMT_YUV420;
+	sp->sp_sample_format	= VBI3_PIXFMT_YUV420;
 #endif
 
 	/* Note bpp is 1. */
@@ -653,3 +686,10 @@ _vbi3_videostd_name		(vbi3_videostd		videostd)
 }
 
 #endif /* 3 == VBI_VERSION_MINOR */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

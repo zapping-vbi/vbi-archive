@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.h,v 1.2.2.4 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: search.h,v 1.2.2.5 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifndef __ZVBI3_SEARCH_H__
 #define __ZVBI3_SEARCH_H__
@@ -123,7 +123,7 @@ vbi3_search_ucs2_new		(vbi3_cache *		ca,
 				 vbi3_bool		regexp,
 				 vbi3_search_progress_cb *progress,
 				 void *			user_data)
-  __attribute__ ((malloc,
+  __attribute__ ((_vbi3_alloc,
 		  _vbi3_nonnull (1, 2, 5)));
 extern vbi3_search *
 vbi3_search_utf8_new		(vbi3_cache *		ca,
@@ -135,10 +135,17 @@ vbi3_search_utf8_new		(vbi3_cache *		ca,
 				 vbi3_bool		regexp,
 				 vbi3_search_progress_cb *progress,
 				 void *			user_data)
-  __attribute__ ((malloc,
+  __attribute__ ((_vbi3_alloc,
 		  _vbi3_nonnull (1, 2, 5)));
 /** @} */
 
 VBI3_END_DECLS
 
-#endif /* __ZVBI3_CACHE_H__ */
+#endif /* __ZVBI3_SEARCH_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

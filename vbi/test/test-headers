@@ -1,0 +1,55 @@
+#!/bin/sh
+# Test if zvbi.h includes all libzvbi headers and
+# they also compile on their own.
+
+result=0
+
+srcdir="$srcdir/../src"
+
+instheaders=`grep '^#include' "$srcdir/zvbi.h" | \
+  sed 's/[^"]*"\([^"]\+\)"/\1/'`
+
+allheaders=`cd "$srcdir"; ls -1 *.h`
+
+for header in $allheaders ; do
+  if echo "$instheaders" | grep -q $header ; then
+    wrapper=__ZVBI3_`echo $header | tr a-z.- A-Z__`__
+    for tinsel in \
+      "#ifndef $wrapper" \
+      "#define $wrapper" \
+      VBI3_BEGIN_DECLS \
+      VBI3_END_DECLS \
+      "#endif /\* $wrapper \*/" ; do
+      if ! grep -q "$tinsel" "$srcdir/$header" ; then
+        echo $srcdir/$header does not contain $tinsel
+	result=1
+      fi
+    done
+  elif grep -q BEGIN_DECLS "$srcdir/$header" ; then
+    echo $srcdir/zvbi.h does not include $header
+    result=1
+  fi
+done
+
+if test -z "`echo $instheaders | sed 's/ //g'`" ; then
+  echo No headers found
+  result=1
+fi
+
+for header in $instheaders zvbi.h ; do
+  cat >test-hdrs.cc <<EOF
+#include "$srcdir/$header"
+int main (void) { return 0; }
+EOF
+  if ! $CXX $CXXFLAGS -o test-hdrs.out test-hdrs.cc 2> test-hdrs.log ; then
+    echo Cannot compile $header
+    echo Failed program:
+    cat test-hdrs.cc
+    echo Failed command: $CXX $CXXFLAGS -o test-hdrs.out test-hdrs.cc
+    cat test-hdrs.log
+    result=1
+  fi
+  rm -f test-hdrs.{out,cc,log}
+done
+
+exit $result

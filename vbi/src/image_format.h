@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.1.2.1 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: image_format.h,v 1.1.2.2 2007-11-01 00:21:23 mschimek Exp $ */
 
 #ifndef __ZVBI3_IMAGE_FORMAT_H__
 #define __ZVBI3_IMAGE_FORMAT_H__
@@ -373,3 +373,10 @@ typedef struct {
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_IMAGE_FORMAT_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

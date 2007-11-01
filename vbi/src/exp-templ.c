@@ -2,7 +2,7 @@
  *  Template for export modules
  */
 
-/* $Id: exp-templ.c,v 1.6.2.7 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: exp-templ.c,v 1.6.2.8 2007-11-01 00:21:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -266,3 +266,10 @@ _vbi3_export_module_tmpl = {
 	/* Function to export a page, mandatory */
 	.export			= export
 };
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

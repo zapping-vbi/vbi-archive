@@ -14,16 +14,21 @@ BUILT_SOURCES = \
 	zvbi.h \
 	wstfont2.xbm
 
-EXTRA_DIST = $(structpr) network-table.pl $(BUILT_SOURCES)
-CLEANFILES = $(BUILT_SOURCES) fontgen
+EXTRA_DIST = \
+	$(BUILT_SOURCES) \
+	$(structpr) \
+	ccfont3.pbm \
+	network-table.pl \
+	wstfont2.pbm
 
-INCLUDES = \
-	-W -Wall -Wunused -Wfloat-equal \
-	-Wpointer-arith -Wbad-function-cast -Wcast-qual -Wcast-align \
-	-Wwrite-strings -Winline -Wmissing-prototypes \
-	-Wmissing-declarations
-#	-Wpadded -Wconversion
-INCLUDES += -D_REENTRANT -D_GNU_SOURCE
+# -D_GNU_SOURCE to declare pthread_rwlocks,
+#   and asprintf if available.
+AM_CPPFLAGS = \
+        $(UNICODE_CFLAGS) \
+        -D_REENTRANT \
+        -D_GNU_SOURCE
+
+INCLUDES = -D_REENTRANT -D_GNU_SOURCE
 INCLUDES += $(X_CFLAGS) $(UNICODE_CFLAGS)
 
 INSTALLHDRS = \
@@ -41,6 +46,7 @@ INSTALLHDRS = \
 	exp-txt.h \
 	hamm.h \
 	idl_demux.h \
+	image_format.h \
 	intl.h \
 	io.h \
 	io-sim.h \
@@ -49,8 +55,8 @@ INSTALLHDRS = \
 	macros.h \
 	network.h \
 	packet-830.h \
-	packet_filter.h \
 	page.h \
+	page_table.h \
 	pdc.h \
 	pfc_demux.h \
 	program_info.h \
@@ -58,9 +64,11 @@ INSTALLHDRS = \
 	sampling_par.h \
 	search.h \
 	sliced.h \
+	sliced_filter.h \
 	teletext_decoder.h \
 	top_title.h \
 	trigger.h \
+	vbi.h \
 	vbi_decoder.h \
 	vps.h \
 	wss.h \
@@ -104,8 +112,8 @@ libzvbi_0_3_la_SOURCES = \
 	network.c network.h \
 	network-table.pl network-table.h \
 	packet-830.c packet-830.h \
-	packet_filter.c packet_filter.h \
 	page.h page-priv.h \
+	page_table.c page_table.h \
 	pdc.c pdc.h \
 	pfc_demux.c pfc_demux.h \
 	program_info.c program_info.h \
@@ -113,6 +121,7 @@ libzvbi_0_3_la_SOURCES = \
 	sampling_par.c sampling_par.h \
 	search.c search.h \
 	sliced.h \
+	sliced_filter.c sliced_filter.h \
 	structpr.pl \
 	tables.c tables.h \
 	teletext.c \
@@ -125,36 +134,44 @@ libzvbi_0_3_la_SOURCES = \
 	vps.c vps.h \
 	wss.c wss.h \
 	xds_decoder.c xds_decoder.h \
-	xds_demux.c xds_demux.h
+	xds_demux.c xds_demux.h \
+	vt.h
 
 libzvbi_0_3includedir = $(includedir)/zvbi-0.3/zvbi
 libzvbi_0_3include_HEADERS = $(INSTALLHDRS) version.h zvbi.h
 
 exp-gfx.c: wstfont2.xbm ccfont3.xbm
 
-wstfont2.xbm: wstfont2.pbm Makefile.am
-	$(MAKE) $(AM_MAKEFLAGS) fontgen$(EXEEXT)
-	$(top_builddir)/src/fontgen$(EXEEXT) xbm wstfont2 10 < $< > $@
-ccfont3.xbm: ccfont3.pbm Makefile.am
-	$(MAKE) $(AM_MAKEFLAGS) fontgen$(EXEEXT)
-	$(top_builddir)/src/fontgen$(EXEEXT) xbm ccfont3 13 < $< > $@
-
 libzvbi_0_3_la_LIBADD = $(PTHREAD_LIB) $(PNG_LIB) $(UNICODE_LIBS)
 libzvbi_0_3_la_LDFLAGS = -version-info $(LIBZVBI_SO_VERSION)
+
+if MAINTAINER_MODE
+
+fontgen: fontgen.c misc.h version.h
+	$(CC) -o fontgen $(srcdir)/fontgen.c
+
+wstfont2.xbm: wstfont2.pbm fontgen$(EXEEXT) Makefile.am
+	$(top_builddir)/src/fontgen$(EXEEXT) xbm wstfont2 10 < $< > $@
+
+ccfont3.xbm: ccfont3.pbm fontgen$(EXEEXT) Makefile.am
+	$(top_builddir)/src/fontgen$(EXEEXT) xbm ccfont3 13 < $< > $@
 
 version.h: Makefile.am
 	echo -e "#ifndef __ZVBI3_VERSION_H__" > $@
 	echo -e "#define __ZVBI3_VERSION_H__\n" >> $@
-	echo -e "\n#define VBI_VERSION_MAJOR" `echo @VERSION@ \
+	echo -e "#include \"macros.h\"\n" >> $@
+	echo -e "VBI3_BEGIN_DECLS\n" >> $@
+	echo -e "#define VBI_VERSION_MAJOR" `echo @VERSION@ \
 	 | sed "s/[^0-9.]//g" \
 	 | sed "s/\./\\\\\n#define VBI_VERSION_MINOR /" \
 	 | sed "s/\./\\\\\n#define VBI_VERSION_MICRO /"` >> $@
-	echo -e "\n#endif /* __ZVBI3_VERSION_H__ */" >> $@
+	echo -e "\nVBI3_END_DECLS\n" >> $@
+	echo -e "#endif /* __ZVBI3_VERSION_H__ */" >> $@
 
 zvbi.h: $(INSTALLHDRS) version.h Makefile.am
 	echo -e "#ifndef __ZVBI_H__\n#define __ZVBI_H__\n" > $@
-	for i in $(INSTALLHDRS); do \
-		echo -e "#include \"$$i\"" >> $@; \
+	for header in $(INSTALLHDRS); do \
+		echo -e "#include \"$$header\"" >> $@; \
 	done
 	echo -e "#include \"version.h\"\n" >> $@
 	echo -e "\n#endif /* __ZVBI_H__ */" >> $@
@@ -281,8 +298,9 @@ _videodev2.h: Makefile.am $(structpr) videodev2.h
 
 # XXX v4l2_timecode.flags has V4L2_TC_USERBITS_field subset.
 _videodev2k.h: Makefile.am $(structpr) videodev2k.h
-	$(srcdir)/$(structpr) <$(srcdir)/videodev2k.h \
-	"v4l2_fract={ fprintf (fp, \"%u/%u\", t->numerator, t->denominator); }" \
+	sed '/#ifdef/,/#endif/d' <$(srcdir)/videodev2k.h | \
+	$(srcdir)/$(structpr) \
+	"v4l2_fract={ n += snprintf (str + n, size - n, \"%u/%u\", t->numerator, t->denominator); n = MIN (size - 1, n); }" \
 	v4l2_capability.driver=string \
 	v4l2_capability.card=string \
 	v4l2_capability.bus_info=string \
@@ -357,3 +375,5 @@ great_rename:
 	  sed "s/vbi_/vbi3_/g;s/VBI_/VBI3_/g" <$$file >tmp; \
 	  mv tmp $$file; \
 	done
+
+endif

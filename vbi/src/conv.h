@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Unicode conversion helper functions
  *
- *  Copyright (C) 2003, 2004 Michael H. Schimek
+ *  Copyright (C) 2003-2006 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,79 +18,112 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.h,v 1.1.2.7 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: conv.h,v 1.1.2.8 2007-11-01 00:21:22 mschimek Exp $ */
 
 #ifndef __ZVBI3_CONV_H__
 #define __ZVBI3_CONV_H__
 
-#include <stdio.h>
-#include <inttypes.h>		/* uint16_t */
 #include "macros.h"
 #include "lang.h"		/* vbi3_ttx_charset */
-#include "version.h"
+#ifndef ZAPPING8
+#  include "version.h"
+#endif
 
 VBI3_BEGIN_DECLS
 
 /* Public */
 
+#include <stdio.h>
+#include <inttypes.h>		/* uint16_t */
+
+/**
+ * @addtogroup Conv Character set conversion functions
+ * @ingroup LowDec
+ * @brief Helper functions to convert between Closed Caption, Teletext,
+ *   Unicode and the locale character set.
+ * @{
+ */
+ 
 #define VBI3_NUL_TERMINATED -1
 
-extern size_t
-vbi3_strlen_ucs2		(const uint16_t *	src);
+extern unsigned long
+vbi3_strlen_ucs2			(const uint16_t *	src);
 extern char *
 vbi3_strndup_iconv		(const char *		dst_codeset,
 				 const char *		src_codeset,
 				 const char *		src,
-				 ssize_t		src_size)
+				 unsigned long		src_size,
+				 int			repl_char)
   __attribute__ ((_vbi3_alloc));
 extern char *
 vbi3_strndup_iconv_ucs2		(const char *		dst_codeset,
 				 const uint16_t *	src,
-				 ssize_t		src_size)
+				 long			src_length,
+				 int			repl_char)
   __attribute__ ((_vbi3_alloc));
-#if 3 == VBI_VERSION_MINOR
+extern char *
+vbi3_strndup_iconv_caption	(const char *		dst_codeset,
+				 const char *		src,
+				 long			src_length,
+				 int			repl_char)
+  __attribute__ ((_vbi3_alloc));
+#if defined ZAPPING8 || 3 == VBI_VERSION_MINOR
 extern char *
 vbi3_strndup_iconv_teletext	(const char *		dst_codeset,
+				 const vbi3_ttx_charset *cs,
 				 const uint8_t *	src,
-				 ssize_t		src_size,
-				 const vbi3_ttx_charset *cs)
+				 long			src_length,
+				 int			repl_char)
   __attribute__ ((_vbi3_alloc,
-		  _vbi3_nonnull (4)));
+		  _vbi3_nonnull (2)));
 #endif
 extern vbi3_bool
-vbi3_fputs_iconv		(FILE *			fp,
+vbi3_fputs_iconv			(FILE *			fp,
 				 const char *		dst_codeset,
 				 const char *		src_codeset,
 				 const char *		src,
-				 ssize_t		src_size)
-  __attribute__ ((_vbi3_nonnull (2)));
+				 unsigned long		src_size,
+				 int			repl_char)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_fputs_iconv_ucs2		(FILE *			fp,
 				 const char *		dst_codeset,
 				 const uint16_t *	src,
-				 ssize_t		src_size)
-  __attribute__ ((_vbi3_nonnull (2)));
+				 long			src_length,
+				 int			repl_char)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern const char *
 vbi3_locale_codeset		(void);
+
+/** @} */
 
 /* Private */
 
 typedef struct _vbi3_iconv_t vbi3_iconv_t;
 
 extern vbi3_bool
-_vbi3_iconv_ucs2		(vbi3_iconv_t *		cd,
+_vbi3_iconv_ucs2			(vbi3_iconv_t *		cd,
 				 char **		dst,
-				 size_t			dst_size,
+				 unsigned long		dst_size,
 				 const uint16_t *	src,
-				 ssize_t		src_size);
+				 long			src_length)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern void
 _vbi3_iconv_close		(vbi3_iconv_t *		cd);
 extern vbi3_iconv_t *
-_vbi3_iconv_open		(const char *		dst_codeset,
+_vbi3_iconv_open			(const char *		dst_codeset,
 				 const char *		src_codeset,
 				 char **		dst,
-				 size_t			dst_size);
+				 unsigned long		dst_size,
+				 int			repl_char);
 
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_CONV_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

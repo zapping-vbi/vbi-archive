@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.2.2.15 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: cache.h,v 1.2.2.16 2007-11-01 00:21:22 mschimek Exp $ */
 
 #ifndef __ZVBI3_CACHE_H__
 #define __ZVBI3_CACHE_H__
@@ -79,6 +79,7 @@ typedef enum {
 extern const char *
 vbi3_page_type_name		(vbi3_page_type		type)
   __attribute__ ((const));
+
 /**
  * @brief Meta data and statistical info about a cached Teletext page.
  *
@@ -297,8 +298,15 @@ extern void
 vbi3_cache_delete		(vbi3_cache *		ca);
 extern vbi3_cache *
 vbi3_cache_new			(void)
-  __attribute__ ((malloc));
+  __attribute__ ((_vbi3_alloc));
 
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_CACHE_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

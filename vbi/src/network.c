@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: network.c,v 1.1.2.13 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: network.c,v 1.1.2.14 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -409,9 +409,11 @@ vbi3_network_id_string		(const vbi3_network *	nk)
 {
 	char buffer[sizeof (nk->call_sign) * 3 + 5 * 9 + 1];
 	char *s;
+	char *s_end;
 	unsigned int i;
 
 	s = buffer;
+	s_end = buffer + sizeof (buffer);
 
 	for (i = 0; i < sizeof (nk->call_sign); ++i) {
 		if (0 == nk->call_sign[i]) {
@@ -419,16 +421,17 @@ vbi3_network_id_string		(const vbi3_network *	nk)
 		} else if (isalnum (nk->call_sign[i])) {
 			*s++ = nk->call_sign[i];
 		} else {
-			s += sprintf (s, "%%%02x", nk->call_sign[i]);
+			s += snprintf (s, s_end - s, "%%%02x",
+				       nk->call_sign[i]);
 		}
 	}
 
-	s += sprintf (s, "-%8x", nk->cni_vps);
-	s += sprintf (s, "-%8x", nk->cni_8301);
-	s += sprintf (s, "-%8x", nk->cni_8302);
+	s += snprintf (s, s_end - s, "-%8x", nk->cni_vps);
+	s += snprintf (s, s_end - s, "-%8x", nk->cni_8301);
+	s += snprintf (s, s_end - s, "-%8x", nk->cni_8302);
 /* XXX we don't compare these: */
-	s += sprintf (s, "-%8x", nk->cni_pdc_a);
-	s += sprintf (s, "-%8x", nk->cni_pdc_b);
+	s += snprintf (s, s_end - s, "-%8x", nk->cni_pdc_a);
+	s += snprintf (s, s_end - s, "-%8x", nk->cni_pdc_b);
 
 	/* DVB/ATSC PID? */
 
@@ -489,7 +492,7 @@ static char *
 strdup_table_name		(const char *		name)
 {
 	return vbi3_strndup_iconv (vbi3_locale_codeset (), "UTF-8",
-				   name, strlen (name) + 1);
+				   name, strlen (name) + 1, '?');
 }
 
 /**
@@ -631,9 +634,9 @@ vbi3_network_set_cni		(vbi3_network *		nk,
 	if (0 == nk->country_code[0]) {
 		assert (p->country < N_ELEMENTS (country_table));
 
-		_vbi3_strlcpy (nk->country_code,
-			      country_table[p->country].country_code,
-			      sizeof (nk->country_code));
+		strlcpy (nk->country_code,
+			 country_table[p->country].country_code,
+			 sizeof (nk->country_code));
 	}
 
 	return TRUE;
@@ -648,7 +651,7 @@ vbi3_network_set_call_sign	(vbi3_network *		nk,
 	assert (NULL != nk);
 	assert (NULL != call_sign);
 
-	_vbi3_strlcpy (nk->call_sign, call_sign, sizeof (nk->call_sign));
+	strlcpy (nk->call_sign, call_sign, sizeof (nk->call_sign));
 
 	if (0 == nk->country_code[0]) {
 		const char *country_code;
@@ -699,9 +702,9 @@ vbi3_network_set_call_sign	(vbi3_network *		nk,
 			break;
 		}
 
-		_vbi3_strlcpy (nk->country_code,
-			      country_code,
-			      sizeof (nk->country_code));
+		strlcpy (nk->country_code,
+			 country_code,
+			 sizeof (nk->country_code));
 	}
 
 	return TRUE;
@@ -941,3 +944,10 @@ vbi3_network_array_delete	(vbi3_network *		nk,
 
 	vbi3_free (nk);
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

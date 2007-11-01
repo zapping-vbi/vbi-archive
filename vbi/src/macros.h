@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: macros.h,v 1.1.2.8 2006-05-26 00:43:05 mschimek Exp $ */
+/* $Id: macros.h,v 1.1.2.9 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifndef __ZVBI3_MACROS_H__
 #define __ZVBI3_MACROS_H__
@@ -122,8 +122,13 @@ typedef enum {
 
 	/** Information useful to debug the library. */
 	VBI3_LOG_DEBUG		= 1 << 7,
-	VBI3_LOG_DEBUG2		= 1 << 8,
-	VBI3_LOG_DEBUG3		= 1 << 9,
+
+	/** Driver responses (strace). Not implemented yet. */
+	VBI3_LOG_DRIVER		= 1 << 8,
+
+	/** More detailed debugging information. */
+	VBI3_LOG_DEBUG2		= 1 << 9,
+	VBI3_LOG_DEBUG3		= 1 << 10,
 } vbi3_log_mask;
 
 typedef void
@@ -146,3 +151,10 @@ typedef struct {
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_MACROS_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

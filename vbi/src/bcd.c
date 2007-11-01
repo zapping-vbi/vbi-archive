@@ -18,7 +18,11 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.c,v 1.1.2.4 2006-05-18 16:49:19 mschimek Exp $ */
+/* $Id: bcd.c,v 1.1.2.5 2007-11-01 00:21:22 mschimek Exp $ */
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include "misc.h"
 #include "bcd.h"
@@ -31,14 +35,15 @@
  * numbers in range 0x100 to 0x8FF. The packed bcd format encodes one
  * decimal digit in every hex nibble (four bits) of the number. Page
  * numbers containing digits 0xA to 0xF are reserved for various
- * system purposes and not intended for display.
+ * system purposes, such as the transmission of page inventories,
+ * and not intended for display.
  *
- * BCD numbers are stored in int types. The four most significant bits
- * contain the sign. Negative BCDs are expressed
- * as ten's complement, for example -1 as 0xF9999999, assumed
- * sizeof(int) is 4. Their limits as signed packed bcd value
- * is VBI3_BCD_MIN .. VBI3_BCD_MAX, as two's complement
- * binary VBI3_BCD_BIN_MIN ... VBI3_BCD_BIN_MAX. That is -10 ** n ...
+ * The library stores packed BCD numbers in int types, with the four
+ * most significant bits containing the sign. Negative BCDs are
+ * expressed as ten's complement, for example -1 as 0xF9999999, assumed
+ * sizeof(int) is 4. Their limits as signed packed bcd value is
+ * VBI3_BCD_MIN .. VBI3_BCD_MAX, as two's complement binary
+ * VBI3_BCD_BIN_MIN ... VBI3_BCD_BIN_MAX. That is -10 ** n ...
  * (10 ** n) - 1, where n = 2 * sizeof(int) - 1.
  */
 
@@ -58,7 +63,7 @@ vbi3_bin2bcd			(int			bin)
 {
 	int t = 0;
 
-	/* Try x87 bcd for large values? */
+	/* XXX Try x87 bcd for large values? */
 
 	/* Teletext page numbers are unsigned. */
 	if (unlikely (bin < 0)) {
@@ -139,3 +144,10 @@ vbi3_bcd2bin			(int			bcd)
 
 	return t;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

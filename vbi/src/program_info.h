@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: program_info.h,v 1.1.2.2 2006-05-07 06:04:58 mschimek Exp $ */
+/* $Id: program_info.h,v 1.1.2.3 2007-11-01 00:21:24 mschimek Exp $ */
 
 #ifndef __ZVBI3_PROGRAM_INFO_H__
 #define __ZVBI3_PROGRAM_INFO_H__
@@ -278,3 +278,10 @@ _vbi3_program_info_dump		(const vbi3_program_info *pi,
 VBI3_END_DECLS
 
 #endif /* __ZVBI3_PROGRAM_INFO_H__ */
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/

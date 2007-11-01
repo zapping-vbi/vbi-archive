@@ -18,11 +18,15 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: capture.c,v 1.7.2.12 2006-05-26 00:43:07 mschimek Exp $ */
+/* $Id: capture.c,v 1.7.2.13 2007-11-01 00:21:26 mschimek Exp $ */
+
+/* For libzvbi version 0.2.x / 0.3.x. */
 
 #undef NDEBUG
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,101 +40,70 @@
 #include <getopt.h>
 #endif
 
-#include "src/vbi.h"
-#include "src/zvbi.h"
-#include "src/misc.h"
+#include "src/version.h"
+#if 2 == VBI_VERSION_MINOR
+#  include "src/hamm.h"
+#  define SCANNING(sp) ((sp)->scanning)
+#elif 3 == VBI_VERSION_MINOR
+#  include "src/vbi.h"
+#  include "src/zvbi.h"
+#  include "src/misc.h"
+#  define SCANNING(sp)							\
+	(0 != ((sp)->videostd_set & VBI3_VIDEOSTD_SET_525_60) ? 525 : 625)
+#else
+#  error VBI_VERSION_MINOR == ?
+#endif
+
 #include "sliced.h"
 
-#define _(x) x
+#undef _
+#define _(x) x /* TODO */
 
-vbi3_capture *		cap;
-vbi3_raw_decoder *	rd;
-vbi3_sampling_par	sp;
-vbi3_dvb_mux *		mx;
-vbi3_bool		quit;
-int			src_w, src_h;
+#define PROGRAM_NAME "zvbi-capture"
 
-int			dump;
-int			dump_xds;
-int			dump_cc;
-int			dump_wss;
-int			dump_sliced;
-int			bin_sliced;
-int			bin_pes;
-int			bin_ts;
-int			do_read = TRUE;
-int			do_sim;
-int			desync;
+static const char *		option_out_file_name;
+static enum file_format		option_out_file_format;
+static unsigned int		option_out_ts_pid;
+
+static int			option_read_not_pull;
+static int			option_strict;
+static int			option_dump_wss;
+static int			option_dump_sliced;
+static int			option_cc_test;
+static int			option_cc_test_test;
+static vbi3_bool		option_raw_output;
+static vbi3_bool		option_sliced_output;
+static unsigned int		option_sim_flags;
+
+static struct stream *		cst;
+static struct stream *		wst;
+static const char **		sim_cc_streams;
+static unsigned int		n_sim_cc_streams;
+
+struct frame {
+	vbi3_sliced		sliced[50];
+	unsigned int		n_lines;
+
+	uint8_t *		raw;
+
+	double			sample_time;
+	int64_t			stream_time;
+};
+
+static struct frame		frame_buffers[5];
+static unsigned int		next_frame;
+static unsigned int		n_frames_buffered;
+static unsigned int		sliced_output_count;
+static unsigned int		raw_output_count;
 
 /*
  *  Dump
  */
 
-static inline int
-odd_parity(uint8_t c)
-{
-	c ^= (c >> 4);
-	c ^= (c >> 2);
-	c ^= (c >> 1);
-
-	return c & 1;
-}
-
-static inline int
-vbi3_hamm16(uint8_t *p)
-{
-	return vbi3_unham16p (p);
-}
-
-extern int vbi3_printable (int);
+extern int vbi_printable (int);
 
 static void
-decode_xds(uint8_t *buf)
-{
-	if (dump_xds) {
-		char c;
-
-		c = odd_parity(buf[0]) ? buf[0] & 0x7F : '?';
-		c = _vbi3_to_ascii (c);
-		putchar(c);
-		c = odd_parity(buf[1]) ? buf[1] & 0x7F : '?';
-		c = _vbi3_to_ascii (c);
-		putchar(c);
-		fflush(stdout);
-	}
-}
-
-static void
-decode_caption(uint8_t *buf, int line)
-{
-	static vbi3_bool xds_transport = FALSE;
-	char c = buf[0] & 0x7F;
-
-	if (line >= 280) { /* field 2 */
-		/* 0x01xx..0x0Exx ASCII_or_NUL[0..32] 0x0Fchks */
-		if (odd_parity(buf[0]) && (c >= 0x01 && c <= 0x0F)) {
-			decode_xds(buf);
-			xds_transport = (c != 0x0F);
-		} else if (xds_transport) {
-			decode_xds(buf);
-		}
-
-		return;
-	}
-
-	if (dump_cc) {
-		c = odd_parity(buf[0]) ? buf[0] & 0x7F : '?';
-		c = _vbi3_to_ascii (c);
-		putchar(c);
-		c = odd_parity(buf[1]) ? buf[1] & 0x7F : '?';
-		c = _vbi3_to_ascii (c);
-		putchar(c);
-		fflush(stdout);
-	}
-}
-
-static void
-decode_wss_625(uint8_t *buf)
+decode_wss_625			(const uint8_t *	buf)
 {
 	static const char *formats[] = {
 		"Full format 4:3, 576 lines",
@@ -151,39 +124,39 @@ decode_wss_625(uint8_t *buf)
 	int g1 = buf[0] & 15;
 	int parity;
 
-	if (dump_wss) {
+	if (option_dump_wss) {
 		parity = g1;
 		parity ^= parity >> 2;
 		parity ^= parity >> 1;
 		g1 &= 7;
 
-		printf("WSS PAL: ");
+		printf ("WSS PAL: ");
 		if (!(parity & 1))
-			printf("<parity error> ");
-		printf("%s; %s mode; %s colour coding;\n"
-		       "      %s helper; reserved b7=%d; %s\n"
-		       "      open subtitles: %s; %scopyright %s; copying %s\n",
-		       formats[g1],
-		       (buf[0] & 0x10) ? "film" : "camera",
-		       (buf[0] & 0x20) ? "MA/CP" : "standard",
-		       (buf[0] & 0x40) ? "modulated" : "no",
-		       !!(buf[0] & 0x80),
-		       (buf[1] & 0x01) ? "have TTX subtitles; " : "",
-		       subtitles[(buf[1] >> 1) & 3],
-		       (buf[1] & 0x08) ? "surround sound; " : "",
-		       (buf[1] & 0x10) ? "asserted" : "unknown",
-		       (buf[1] & 0x20) ? "restricted" : "not restricted");
+			printf ("<parity error> ");
+		printf ("%s; %s mode; %s colour coding;\n"
+			"  %s helper; reserved b7=%d; %s\n"
+			"  open subtitles: %s; %scopyright %s; copying %s\n",
+			formats[g1],
+			(buf[0] & 0x10) ? "film" : "camera",
+			(buf[0] & 0x20) ? "MA/CP" : "standard",
+			(buf[0] & 0x40) ? "modulated" : "no",
+			!!(buf[0] & 0x80),
+			(buf[1] & 0x01) ? "have TTX subtitles; " : "",
+			subtitles[(buf[1] >> 1) & 3],
+			(buf[1] & 0x08) ? "surround sound; " : "",
+			(buf[1] & 0x10) ? "asserted" : "unknown",
+			(buf[1] & 0x20) ? "restricted" : "not restricted");
 	}
 }
 
 static void
-decode_wss_cpr1204(uint8_t *buf)
+decode_wss_cpr1204		(const uint8_t *	buf)
 {
-	const int poly = (1 << 6) + (1 << 1) + 1;
-	int g = (buf[0] << 12) + (buf[1] << 4) + buf[2];
-	int j, crc;
+	if (option_dump_wss) {
+		const int poly = (1 << 6) + (1 << 1) + 1;
+		int g = (buf[0] << 12) + (buf[1] << 4) + buf[2];
+		int j, crc;
 
-	if (dump_wss) {
 		crc = g | (((1 << 6) - 1) << (14 + 6));
 
 		for (j = 14 + 6 - 1; j >= 0; j--) {
@@ -191,174 +164,340 @@ decode_wss_cpr1204(uint8_t *buf)
 				crc ^= poly << j;
 		}
 
-		fprintf(stderr, "WSS CPR >> g=%08x crc=%08x\n", g, crc);
+		fprintf (stderr, "WSS CPR >> g=%08x crc=%08x\n", g, crc);
 	}
 }
 
 static void
-decode_sliced(vbi3_sliced *s, double time, int lines)
+decode_sliced			(const vbi3_sliced *	s,
+				 unsigned int		n_lines,
+				 double			sample_time,
+				 int64_t		stream_time)
 {
-	if (dump_sliced) {
-		vbi3_sliced *q = s;
-		int i;
+	if (option_dump_sliced) {
+		const vbi3_sliced *q = s;
+		unsigned int i;
 
-		printf("Sliced time: %f\n", time);
+		printf ("Frame %f %010" PRId64 "\n",
+			sample_time, stream_time);
 
-		for (i = 0; i < lines; q++, i++) {
+		for (i = 0; i < n_lines; q++, i++) {
 			unsigned int j;
 
-			printf("%04x %3d > ", q->id, q->line);
+			printf ("%08x %3d  ", q->id, q->line);
 
 			for (j = 0; j < sizeof(q->data); j++) {
-				printf("%02x ", (uint8_t) q->data[j]);
+				printf ("%02x ", 0xFF & q->data[j]);
 			}
 
-			putchar(' ');
+			putchar (' ');
 
 			for (j = 0; j < sizeof(q->data); j++) {
 				char c = _vbi3_to_ascii (q->data[j]);
-				putchar(c);
+				putchar (c);
 			}
 
-			putchar('\n');
+			putchar ('\n');
 		}
 	}
 
-	for (; lines > 0; s++, lines--) {
+	for (; n_lines > 0; s++, n_lines--) {
 		if (s->id == 0) {
 			continue;
-		} else if (s->id & VBI3_SLICED_VPS) {
-		} else if (s->id & VBI3_SLICED_TELETEXT_B) {
-		} else if (s->id & VBI3_SLICED_CAPTION_525) {
-			decode_caption(s->data, s->line);
-		} else if (s->id & VBI3_SLICED_CAPTION_625) {
-			decode_caption(s->data, s->line);
+		} else if (s->id & (VBI3_SLICED_VPS |
+				    VBI3_SLICED_TELETEXT_B |
+				    VBI3_SLICED_CAPTION_525 |
+				    VBI3_SLICED_CAPTION_625)) {
+			/* Nothing to do.
+			   Use the 'decode' tool instead. */
 		} else if (s->id & VBI3_SLICED_WSS_625) {
-			decode_wss_625(s->data);
+			decode_wss_625 (s->data);
 		} else if (s->id & VBI3_SLICED_WSS_CPR1204) {
-			decode_wss_cpr1204(s->data);
+			decode_wss_cpr1204 (s->data);
 		} else {
-			fprintf(stderr, "Oops. Unhandled vbi service %08x\n",
-				s->id);
+			fprintf (stderr, "Oops. Unhandled VBI service %08x\n",
+				 s->id);
 		}
 	}
+}
+
+/* Purpose of this function is to record raw and sliced VBI data
+   around three kinds of events for remote examination:
+   - Frames without data,
+   - Lines which contain 0x00 0x00 instead of 0x80 0x80 bytes,
+   - Lines where the transmitted bytes have wrong parity.
+   The raw VBI data may be required to understand what happened,
+   and due to its volume we cannot record it unconditionally. */
+static vbi3_bool
+cc_test				(const vbi3_sliced *	sliced,
+				 unsigned int		n_lines)
+{
+	static const unsigned int max_error_count[3] = { 5, 5, 5 };
+	static unsigned int error_count[3];
+	static unsigned int frame_count;
+	unsigned int error_set;
+	unsigned int i;
+
+	error_set = 0;
+
+	if (option_cc_test_test && 0 == rand() % 300)
+		n_lines = 0;
+
+	if (0 == n_lines) {
+		error_msg ("No data on this frame...");
+		if (error_count[0] < max_error_count[0]) {
+			++error_count[0];
+			error_set |= 1 << 0;
+		}
+	} else {
+		for (i = 0; i < n_lines; ++i) {
+			if (sliced[i].id & (VBI3_SLICED_CAPTION_525 |
+					    VBI3_SLICED_CAPTION_625)) {
+				int b1, b2;
+				int c1, c2;
+
+				b1 = sliced[i].data[0];
+				b2 = sliced[i].data[1];
+
+				if (option_cc_test_test
+				    && 0 == rand() % 300) {
+					b1 = 0;
+					b2 = 0;
+				}
+
+				if (0x00 == b1 && 0x00 == b2) {
+					error_msg ("Null bytes...");
+					if (error_count[1]
+					    < max_error_count[1]) {
+						++error_count[1];
+						error_set |= 1 << 1;
+					}
+				}
+
+				c1 = vbi3_unpar8 (b1);
+				c2 = vbi3_unpar8 (b2);
+
+				if (option_cc_test_test
+				    && 0 == rand() % 300) {
+					c2 = -1;
+				}
+
+				if ((c1 | c2) < 0) {
+					error_msg ("Parity error...");
+					if (error_count[2]
+					    < max_error_count[2]) {
+						++error_count[2];
+						error_set |= 1 << 2;
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	if (0 != error_set) {
+		unsigned int n_errors = 0;
+		unsigned int n_kinds = 0;
+
+		for (i = 0; i < N_ELEMENTS (error_count); ++i) {
+			n_errors += 5 - error_count[i];
+			n_kinds += (error_count[i] < 5);
+		}
+
+		if (0 == n_kinds) {
+			error_msg ("Done.");
+			return FALSE; /* terminate loop */
+		}
+
+		if (0 == frame_count % (5 * 30)) {
+			error_msg ("Waiting for %u errors of %u kinds...",
+				   n_errors, n_kinds);
+		}
+	}
+
+	++frame_count;
+ 
+	if (option_raw_output != (0 != error_set)) {
+		option_sliced_output = (0 != error_set);
+
+		raw_output_count = N_ELEMENTS (frame_buffers) * 2;
+
+		if (sliced_output_count < raw_output_count)
+			sliced_output_count = raw_output_count;
+	}
+
+	return TRUE; /* success, continue loop */
 }
 
 static vbi3_bool
-binary_ts_pes			(vbi3_dvb_mux *		mx,
-				 void *			user_data,
-				 const uint8_t *	packet,
-				 unsigned int		packet_size)
+decode_frame			(const vbi3_sliced *	sliced,
+				 unsigned int		n_lines,
+				 const uint8_t *	raw,
+				 const vbi3_sampling_par *sp,
+				 double			sample_time,
+				 int64_t		stream_time)
 {
-	size_t r;
+	if (option_dump_sliced || option_dump_wss)
+		decode_sliced (sliced, n_lines,
+			       sample_time, stream_time);
 
-	mx = mx;
-	user_data = user_data;
+	if (option_cc_test) {
+		struct frame *f;
+		unsigned int size;
 
-	r = fwrite (packet, 1, packet_size, stdout);
+		f = frame_buffers + next_frame;
 
-	return (r == packet_size);
+		if (n_frames_buffered >= N_ELEMENTS (frame_buffers)) {
+			write_stream_sliced (wst,
+					     (sliced_output_count > 0) ?
+					     f->sliced : NULL,
+					     f->n_lines,
+					     (raw_output_count > 0) ?
+					     f->raw : NULL,
+					     sp,
+					     f->sample_time,
+					     f->stream_time);
+
+			if (sliced_output_count > 0)
+				--sliced_output_count;
+			if (raw_output_count > 0)
+				--raw_output_count;
+
+			n_frames_buffered = N_ELEMENTS (frame_buffers) - 1;
+		}
+
+		assert (n_lines <= N_ELEMENTS (f->sliced));
+
+		memcpy (f->sliced, sliced, n_lines * sizeof (*sliced));
+		f->n_lines = n_lines;
+
+		size = (sp->count[0] + sp->count[1]) * sp->bytes_per_line;
+		memcpy (f->raw, raw, size);
+
+		f->sample_time = sample_time;
+		f->stream_time = stream_time;
+
+		if (++next_frame >= N_ELEMENTS (frame_buffers))
+			next_frame = 0;
+
+		++n_frames_buffered;	
+
+		if (!cc_test (sliced, n_lines))
+			return FALSE;
+
+	} else if (option_raw_output || option_sliced_output) {
+		write_stream_sliced (wst,
+				     option_sliced_output ? sliced : NULL,
+				     n_lines,
+				     option_raw_output ? raw : NULL,
+				     sp,
+				     sample_time,
+				     stream_time);
+	}
+
+	return TRUE;
 }
 
 static void
-mainloop(void)
+init_frame_buffers		(const vbi3_sampling_par *sp)
 {
-	uint8_t	*raw;
-	vbi3_sliced *sliced;
-	int n_lines;
-	vbi3_capture_buffer *raw_buffer;
-	vbi3_capture_buffer *sliced_buffer;
-	double timestamp;
-	struct timeval tv;
-	int64_t pts;
+	unsigned int size;
+	unsigned int i;
 
-	tv.tv_sec = 2;
-	tv.tv_usec = 0;
+	size = (sp->count[0] + sp->count[1]) * sp->bytes_per_line;
 
-	raw = malloc(src_w * src_h);
-	sliced = malloc(sizeof(vbi3_sliced) * src_h);
-
-	assert(raw && sliced);
-
-	pts = 0;
-
-	for (quit = FALSE; !quit;) {
-		int r;
-
-		if (do_read) {
-			r = vbi3_capture_read(cap, raw, sliced,
-					     &n_lines, &timestamp, &tv);
-		} else {
-			r = vbi3_capture_pull(cap, &raw_buffer,
-					     &sliced_buffer, &tv);
-		}
-
-		switch (r) {
-		case -1:
-			fprintf(stderr, "VBI read error: %d, %s\n",
-				errno, strerror(errno));
-			exit(EXIT_FAILURE);
-		case 0: 
-			fprintf(stderr, "VBI read timeout\n");
-			exit(EXIT_FAILURE);
-		case 1:
-			break;
-		default:
-			assert(!"reached");
-		}
-
-		if (!do_read) {
-			sliced = sliced_buffer->data;
-			n_lines = sliced_buffer->size / sizeof (vbi3_sliced);
-			timestamp = sliced_buffer->timestamp;
-		}
-
-		if (dump)
-			decode_sliced(sliced, timestamp, n_lines);
-
-		if (bin_sliced) {
-			/* Error ignored. */
-			write_sliced (sliced, n_lines, timestamp);
-		}
-
-		if (bin_pes || bin_ts) {
-			/* XXX shouldn't use system time. */
-			pts = timestamp * 90000;
-			/* Error ignored. */
-			_vbi3_dvb_mux_mux(mx, sliced, n_lines, -1, pts);
-		}
+	for (i = 0; i < N_ELEMENTS (frame_buffers); ++i) {
+		frame_buffers[i].raw = malloc (size);
+		if (NULL == frame_buffers[i].raw)
+			no_mem_exit ();
 	}
 }
 
-static const char short_options[] = "a:cd:elnpstvPT";
+static void
+usage				(FILE *			fp)
+{
+	fprintf (fp, _("\
+%s %s -- VBI capture tool\n\n\
+Copyright (C) 2000-2007 Michael H. Schimek\n\
+This program is licensed under GPLv2 or later. NO WARRANTIES.\n\n\
+Usage: %s [options] > sliced VBI data\n\
+-h | --help | --usage  Print this message and exit\n\
+-q | --quiet           Suppress progress and error messages\n\
+-v | --verbose         Increase verbosity\n\
+-V | --version         Print the program version and exit\n\
+Device options:\n\
+-c | --sim-cc file     Simulate a VBI device and load this Closed Caption\n\
+                       test stream into the simulation\n\
+-d | --device file     Capture from this device (default %s)\n\
+                       V4L/V4L2: /dev/vbi, /dev/vbi0, /dev/vbi1, ...\n\
+                       Linux DVB: /dev/dvb/adapter0/demux0, ...\n\
+		       *BSD bktr driver: /dev/vbi, /dev/vbi0, ...\n\
+-i | --pid pid         Capture the stream with this PID from a Linux\n\
+                       DVB device\n\
+-m | --sim-laced       Simulate a VBI device capturing interlaced raw\n\
+                       VBI data\n\
+-n | --ntsc            Video standard hint for V4L interface and\n\
+                       simulated VBI device (default PAL/SECAM)\n\
+-p | --pal | --secam   Video standard hint for V4L interface\n\
+-s | --sim             Simulate a VBI device\n\
+-u | --sim-unsync      Simulate a VBI device with wrong/unknown field\n\
+                       parity\n\
+-w | --sim-noise       Simulate a VBI device with noisy signal\n\
+Output options:\n\
+-j | --dump            Sliced VBI data (text)\n\
+-l | --sliced          Sliced VBI data (binary)\n\
+-o | --output name     Write the VBI data to this file instead of\n\
+                       standard output\n"
+/* later */ /*
+"-r | --raw             Raw VBI data (binary)\n"
+*/
+"-P | --pes             DVB PES stream\n\
+-T | --ts pid          DVB TS stream\n\
+"),
+		 PROGRAM_NAME, VERSION, program_invocation_name,
+		 option_dev_name);
+}
+
+static const char short_options[] = "c:d:hi:jlmno:pqr:suvwPT:V";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
 long_options[] = {
-	{ "sim-cc",	required_argument,	NULL,		'a' },
-	{ "desync",	no_argument,		NULL,		'c' },
+	{ "sim-cc",	required_argument,	NULL,		'c' },
 	{ "device",	required_argument,	NULL,		'd' },
-	{ "dump-xds",	no_argument,		&dump_xds,	TRUE },
-	{ "dump-cc",	no_argument,		&dump_cc,	TRUE },
-	{ "dump-wss",	no_argument,		&dump_wss,	TRUE },
-	{ "dump-sliced",no_argument,		&dump_sliced,	TRUE },
-	{ "pes",	no_argument,		NULL,		'P' },
+	{ "help",	no_argument,		NULL,		'h' },
+	{ "usage",	no_argument,		NULL,		'h' },
+	{ "pid",	required_argument,	NULL,		'i' },
+	{ "dump",	no_argument,		NULL,		'j' },
 	{ "sliced",	no_argument,		NULL,		'l' },
-	{ "ts",		no_argument,		NULL,		'T' },
-	{ "read",	no_argument,		&do_read,	TRUE },
-	{ "pull",	no_argument,		&do_read,	FALSE },
-	{ "sim",	no_argument,		NULL,		's' },
+	{ "sim-laced",	no_argument,		NULL,		'm' },
 	{ "ntsc",	no_argument,		NULL,		'n' },
+	{ "output",	required_argument,	NULL,		'o' },
 	{ "pal",	no_argument,		NULL,		'p' },
+	{ "secam",	no_argument,		NULL,		'p' },
+	{ "quiet",	no_argument,		NULL,		'q' },
+	{ "raw",	optional_argument,	NULL,		'r' },
+	{ "sim",	no_argument,		NULL,		's' },
+	{ "sim-unsync",	no_argument,		NULL,		'u' },
 	{ "verbose",	no_argument,		NULL,		'v' },
+	{ "sim-noise",  optional_argument,	NULL,		'w' },
+	{ "pes",	no_argument,		NULL,		'P' },
+	{ "ts",		required_argument,	NULL,		'T' },
+	{ "version",	no_argument,		NULL,		'V' },
+	{ "loose",	no_argument,	&option_strict,		0 },
+	{ "strict",	no_argument,	&option_strict,		2 },
+	{ "cc-test",	no_argument,	&option_cc_test,	TRUE },
+	{ "cc-test-test", no_argument,	&option_cc_test_test,	TRUE },
+	{ "dump-wss",	no_argument,	&option_dump_wss,	TRUE },
+	{ "read",	no_argument,	&option_read_not_pull,	TRUE },
+	{ "pull",	no_argument,	&option_read_not_pull,	FALSE },
 	{ NULL, 0, 0, 0 }
 };
 #else
 #define getopt_long(ac, av, s, l, i) getopt(ac, av, s)
 #endif
 
-static const char **sim_cc_streams;
-static unsigned int n_sim_cc_streams;
+static int			option_index;
 
 static char *
 load_string			(const char *		name)
@@ -414,7 +553,7 @@ load_string			(const char *		name)
 }
 
 static void
-load_caption			(void)
+sim_load_caption		(void)
 {
 	unsigned int i;
 
@@ -425,33 +564,54 @@ load_caption			(void)
 		fprintf (stderr, "Loading '%s'.\n", sim_cc_streams[i]);
 
 		buffer = load_string (sim_cc_streams[i]);
-		success = vbi3_capture_sim_load_caption
-			(cap, buffer, /* append */ (i > 0));
+		success = capture_stream_sim_load_caption
+			(cst, buffer, /* append */ (i > 0));
 		assert (success);
 	}
 }
 
 int
-main(int argc, char **argv)
+main				(int			argc,
+				 char **		argv)
 {
-	const char *dev_name = "/dev/vbi";
-	char *errstr;
+	unsigned int interfaces;
+	unsigned int scanning;
 	unsigned int services;
-	int scanning = 625;
-	vbi3_bool verbose = FALSE;
-	int c, index;
+	vbi3_bool sim_interlaced;
+	vbi3_bool sim_synchronous;
 
-	setlocale (LC_ALL, "");
+	init_helpers (argc, argv);
 
-	sim_cc_streams = NULL;
-	n_sim_cc_streams = 0;
+	scanning = 625;
 
-	while ((c = getopt_long(argc, argv, short_options,
-				long_options, &index)) != -1) {
-		switch (c) {
-		case 0: /* set flag */
+	sim_interlaced = FALSE;
+	sim_synchronous = TRUE;
+
+	option_strict = 1;
+	option_dump_wss = FALSE;
+	option_read_not_pull = FALSE;
+
+	interfaces = (INTERFACE_V4L2 |
+		      INTERFACE_V4L |
+		      INTERFACE_BKTR);
+
+	for (;;) {
+		int c;
+
+		c = getopt_long (argc, argv, short_options,
+				 long_options, &option_index);
+		if (-1 == c)
 			break;
-		case 'a':
+
+		switch (c) {
+		case 0: /* getopt_long() flag */
+			if (option_dump_wss) {
+				option_raw_output = FALSE;
+				option_sliced_output = FALSE;
+			}
+			break;
+
+		case 'c':
 		{
 			const char **pp;
 
@@ -461,157 +621,184 @@ main(int argc, char **argv)
 			assert (NULL != pp);
 			sim_cc_streams = pp;
 			sim_cc_streams[n_sim_cc_streams++] = optarg;
-			do_sim = TRUE;
+			interfaces = INTERFACE_SIM;
 			break;
 		}
 
-		case 'c':
-			desync ^= TRUE;
-			break;
 		case 'd':
-			dev_name = optarg;
+			parse_option_dev_name ();
 			break;
-		case 'P':
-			bin_pes ^= TRUE;
+
+		case 'h':
+			usage (stdout);
+			exit (EXIT_SUCCESS);
+
+		case 'i':
+			parse_option_dvb_pid ();
+			interfaces = INTERFACE_DVB;
 			break;
+
+		case 'j':
+			option_dump_sliced = TRUE;
+			option_raw_output = FALSE;
+			option_sliced_output = FALSE;
+			break;
+
 		case 'l':
-			bin_sliced ^= TRUE;
+			option_sliced_output = TRUE;
+			option_dump_sliced = FALSE;
+			option_dump_wss = FALSE;
+			if (FILE_FORMAT_XML != option_out_file_format)
+				option_out_file_format = FILE_FORMAT_SLICED;
 			break;
+
+		case 'm':
+			sim_interlaced = TRUE;
+			interfaces = INTERFACE_SIM;
+			break;
+
 		case 'n':
 			scanning = 525;
 			break;
+
+		case 'o':
+			assert (NULL != optarg);
+			option_out_file_name = optarg;
+			break;
+
 		case 'p':
 			scanning = 625;
 			break;
+
+		case 'q':
+			parse_option_quiet ();
+			break;
+
+#if 0
+		case 'r':
+			/* Optional optarg: line numbers
+			   (not implemented yet). */
+			option_raw_output = TRUE;
+			option_dump_sliced = FALSE;
+			option_dump_wss = FALSE;
+			option_out_file_format = FILE_FORMAT_XML;
+			break;
+#endif
 		case 's':
-			do_sim ^= TRUE;
+			interfaces = INTERFACE_SIM;
 			break;
-		case 'T':
-			bin_ts ^= TRUE;
+
+		case 'u':
+			sim_synchronous = FALSE;
+			interfaces = INTERFACE_SIM;
 			break;
+
 		case 'v':
-			verbose ^= TRUE;
+			parse_option_verbose ();
 			break;
+
+		case 'w':
+			/* Optional optarg: noise parameters
+			   (not implemented yet). */
+			interfaces = INTERFACE_SIM;
+			option_sim_flags |= _VBI3_RAW_NOISE_2;
+			break;
+
+		case 'P':
+			option_sliced_output = TRUE;
+			option_dump_sliced = FALSE;
+			option_dump_wss = FALSE;
+			option_out_file_format = FILE_FORMAT_DVB_PES;
+			break;
+
+		case 'T':
+			option_sliced_output = TRUE;
+			option_dump_sliced = FALSE;
+			option_dump_wss = FALSE;
+			option_out_ts_pid = parse_option_ts ();
+			option_out_file_format = FILE_FORMAT_DVB_TS;
+			break;
+
+		case 'V':
+			printf (PROGRAM_NAME " " VERSION "\n");
+			exit (EXIT_SUCCESS);
+
 		default:
-			fprintf(stderr, "Unknown option\n");
-			exit(EXIT_FAILURE);
+			usage (stderr);
+			exit (EXIT_FAILURE);
 		}
 	}
 
-	dump = dump_xds | dump_cc
-		| dump_wss | dump_sliced;
+	if (!(option_sliced_output
+	      || option_raw_output
+	      || option_dump_sliced
+	      || option_dump_wss)) {
+		error_msg (_("Give one of the -j, -l, -P or -T options\n"
+			     "to enable output, or -h for help."));
+		exit (EXIT_FAILURE);
+	}
 
-	services = VBI3_SLICED_VBI3_525 | VBI3_SLICED_VBI3_625
+	services = VBI3_SLICED_VBI_525 | VBI3_SLICED_VBI_625
 		| VBI3_SLICED_TELETEXT_B | VBI3_SLICED_CAPTION_525
 		| VBI3_SLICED_CAPTION_625
 	  	| VBI3_SLICED_VPS | VBI3_SLICED_VPS_F2
 		| VBI3_SLICED_WSS_625 | VBI3_SLICED_WSS_CPR1204;
 
-	if (verbose) {
-		vbi3_set_log_fn (VBI3_LOG_INFO - 1,
-				 vbi3_log_on_stderr,
-				 /* user_data */ NULL);
+	cst = capture_stream_new (interfaces,
+				  option_dev_name,
+				  scanning,
+				  services,
+				  /* n_buffers (V4L2 mmap) */ 5,
+				  option_dvb_pid,
+				  sim_interlaced,
+				  sim_synchronous,
+				  option_raw_output,
+				  option_read_not_pull,
+				  option_strict,
+				  decode_frame);
+
+	if (interfaces & INTERFACE_SIM) {
+		sim_load_caption ();
+
+		capture_stream_sim_set_flags (cst, option_sim_flags);
+
+		if (0 != option_sim_flags)
+			capture_stream_sim_decode_raw (cst, TRUE);
 	}
 
-	do {
-		if (do_sim) {
-			cap = vbi3_capture_sim_new (scanning, &services,
-						    /* interlaced */ FALSE,
-						    !desync);
-			assert (NULL != cap);
-			
-			load_caption ();
+	if (option_cc_test_test)
+		option_cc_test = TRUE;
 
-			break;
-		}
-
-		cap = vbi3_capture_v4l2_new (dev_name,
-					     /* buffers */ 5,
-					     &services,
-					     /* strict */ 0,
-					     &errstr,
-					     /* trace */ verbose);
-		if (cap)
-			break;
-
-		fprintf (stderr, "Cannot capture vbi data "
-			 "with v4l2 interface:\n%s\n", errstr);
-
-		free (errstr);
-
-		cap = vbi3_capture_v4l_new (dev_name,
-					    scanning,
-					    &services,
-					    /* strict */ 0,
-					    &errstr,
-					    /* trace */ verbose);
-		if (cap)
-			break;
-
-		fprintf (stderr, "Cannot capture vbi data "
-			 "with v4l interface:\n%s\n", errstr);
-
-		free (errstr);
-
-		cap = vbi3_capture_bktr_new (dev_name,
-					     scanning,
-					     &services,
-					     /* strict */ 0,
-					     &errstr,
-					     /* trace */ verbose);
-		if (cap)
-			break;
-
-		fprintf (stderr, "Cannot capture vbi data "
-			 "with bktr interface:\n%s\n", errstr);
-
-		free (errstr);
-
-		exit(EXIT_FAILURE);
-	} while (0);
-
-	assert ((rd = vbi3_capture_parameters(cap)));
-
-	vbi3_raw_decoder_get_sampling_par (rd, &sp);
-
-	assert (sp.sampling_format == VBI3_PIXFMT_Y8);
-
-	src_w = sp.bytes_per_line / 1;
-	src_h = sp.count[0] + sp.count[1];
-
-	if (bin_sliced) {
-		struct timeval tv;
-		double timestamp;
-		vbi3_bool success;
-		int r;
-
-		r = gettimeofday (&tv, NULL);
-		assert (0 == r);
-
-		timestamp = tv.tv_sec + tv.tv_usec * (1 / 1e6);
-
-		success = open_sliced_write (stdout, timestamp);
-		assert (success);
-	} else if (bin_pes) {
-		mx = _vbi3_dvb_mux_pes_new (/* data_identifier */ 0x10,
-					   /* packet_size */ 8 * 184,
-					   VBI3_VIDEOSTD_SET_625_50,
-					   binary_ts_pes,
-					   /* user_data */ NULL);
-		assert (NULL != mx);
-	} else if (bin_ts) {
-		mx = _vbi3_dvb_mux_ts_new (/* pid */ 123,
-					  /* data_identifier */ 0x10,
-					  /* packet_size */ 8 * 184,
-					  VBI3_VIDEOSTD_SET_625_50,
-					  binary_ts_pes,
-					  /* user_data */ NULL);
-		assert (NULL != mx);
+	if (option_cc_test) {
+		option_raw_output = FALSE;
+		option_sliced_output = TRUE;
+		option_dump_sliced = FALSE;
+		option_dump_wss = FALSE;
+		option_out_file_format = FILE_FORMAT_SLICED;
+		sliced_output_count = 2 * 60 * 30;
 	}
 
-	mainloop();
+	if (option_raw_output || option_sliced_output) {
+		vbi3_sampling_par sp;
 
-	vbi3_capture_delete (cap);
+		capture_stream_get_sampling_par (cst, &sp);
+
+		if (option_cc_test)
+			init_frame_buffers (&sp);
+
+		wst = write_stream_new (option_out_file_name,
+					option_out_file_format,
+					option_out_ts_pid,
+					SCANNING (&sp));
+	}
+
+	stream_loop (cst);
+
+	stream_delete (wst);
+	wst = NULL;
+
+	stream_delete (cst);
+	cst = NULL;
 
 	exit(EXIT_SUCCESS);	
 }
