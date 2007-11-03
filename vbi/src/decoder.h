@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decoder.h,v 1.9 2007-07-23 20:01:17 mschimek Exp $ */
+/* $Id: decoder.h,v 1.9.2.1 2007-11-03 21:09:45 tomzo Exp $ */
 
 #ifndef DECODER_H
 #define DECODER_H
@@ -136,6 +136,7 @@ typedef enum {
 	VBI_PIXFMT_YVYU,
 	VBI_PIXFMT_UYVY,
 	VBI_PIXFMT_VYUY,
+        VBI_PIXFMT_PAL8,
 	VBI_PIXFMT_RGBA32_LE = 32,
 	VBI_PIXFMT_RGBA32_BE,
 	VBI_PIXFMT_BGRA32_LE,
