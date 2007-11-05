@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.27.2.1 2007-11-03 21:10:49 tomzo Exp $ */
+/* $Id: export.c,v 1.27.2.2 2007-11-05 17:44:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -33,6 +33,9 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <ctype.h>
+#include <limits.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include <iconv.h>
 
@@ -924,8 +927,357 @@ vbi_export_option_menu_set(vbi_export *export, const char *keyword,
 	}
 }
 
+/* Output functions. */
+
+vbi_bool
+_vbi_export_grow_buffer_space	(vbi_export *		e,
+				 unsigned int		min_space)
+{
+	const unsigned int element_size = sizeof (*e->buffer.data);
+	unsigned int offset = e->buffer.offset;
+	unsigned int capacity = e->buffer.capacity;
+
+	assert (NULL != e);
+	assert (0 != e->target);
+	assert (offset <= capacity);
+
+	if (e->write_error)
+		return FALSE;
+
+	if (capacity >= min_space && offset <= capacity - min_space)
+		return TRUE;
+
+	if (VBI_EXPORT_TARGET_MEM == e->target)
+		goto failed;
+
+	if (offset > UINT_MAX - min_space)
+		goto failed;
+
+	if (_vbi_grow_vector_capacity ((void **) &e->buffer.data,
+					&e->buffer.capacity,
+					offset + min_space,
+					element_size)) {
+		return TRUE;
+	}
+
+ failed:
+	_vbi_export_malloc_error (e);
+
+	e->write_error = TRUE;
+
+	return FALSE;
+}
+
+vbi_bool
+vbi_export_putc		(vbi_export *		e,
+				 int			c)
+{
+	unsigned int offset;
+
+	if (!_vbi_export_grow_buffer_space (e, 1))
+		return FALSE;
+
+	offset = e->buffer.offset;
+	e->buffer.data[offset] = c;
+	e->buffer.offset = offset + 1;
+
+	return TRUE;
+}
+
+vbi_bool
+vbi_export_write		(vbi_export *		e,
+				 const void *		s,
+				 size_t			n_bytes)
+{
+	unsigned int offset;
+
+	assert (NULL != s);
+
+	if (!_vbi_export_grow_buffer_space (e, n_bytes))
+		return FALSE;
+
+	offset = e->buffer.offset;
+	memcpy (e->buffer.data + offset, s, n_bytes);
+	e->buffer.offset = offset + n_bytes;
+
+	return TRUE;
+}
+
+vbi_bool
+vbi_export_puts		(vbi_export *		e,
+				 const char *		s)
+{
+	assert (NULL != s);
+
+	return vbi_export_write (e, s, strlen (s));
+}
+
+vbi_bool
+vbi_export_vprintf		(vbi_export *		e,
+				 const char *		templ,
+				 va_list		ap)
+{
+	unsigned int offset = e->buffer.offset;
+	unsigned int i;
+
+	assert (NULL != e);
+	assert (NULL != templ);
+	assert (0 != e->target);
+	assert (offset <= e->buffer.capacity);
+
+	if (e->write_error)
+		return FALSE;
+
+	for (i = 0;; ++i) {
+		unsigned int avail = e->buffer.capacity - offset;
+		long len;
+
+		len = vsnprintf (e->buffer.data + offset,
+				 avail, templ, ap);
+		if (len < 0) {
+			/* Not enough. */
+
+			if (avail > (1 << 16)) {
+				/* Now that's silly. */
+				break;
+			}
+
+			if (!_vbi_export_grow_buffer_space (e, 256))
+				return FALSE;
+		} else if ((unsigned long) len < avail) {
+			e->buffer.offset = offset + len;
+			return TRUE;
+		} else {
+			/* Size needed. */
+
+			if (i > 0) {
+				/* Again? */
+				break;
+			}
+
+			/* Plus one because the buffer must also hold
+			   a terminating NUL, although we don't need it. */
+			if (!_vbi_export_grow_buffer_space (e, len + 1))
+				return FALSE;
+		}
+	}
+
+	_vbi_export_malloc_error (e);
+
+	e->write_error = TRUE;
+
+	return FALSE;
+}
+
+vbi_bool
+vbi_export_printf		(vbi_export *		e,
+				 const char *		templ,
+				 ...)
+{
+	va_list ap;
+	vbi_bool success;
+
+	va_start (ap, templ);
+
+	success = vbi_export_vprintf (e, templ, ap);
+
+	va_end (ap);
+
+	return success;
+}
+
+vbi_bool
+vbi_export_flush		(vbi_export *		e)
+{
+	assert (NULL != e);
+
+	if (e->write_error)
+		return FALSE;
+
+	switch (e->target) {
+	case VBI_EXPORT_TARGET_MEM:
+	case VBI_EXPORT_TARGET_ALLOC:
+		/* Nothing to do. */
+		break;
+
+	case VBI_EXPORT_TARGET_FP:
+	{
+		size_t actual;
+
+		if (0 == e->buffer.offset)
+			return TRUE;
+
+		actual = fwrite (e->buffer.data,
+				 sizeof (*e->buffer.data),
+				 e->buffer.offset,
+				 e->_handle.fp);
+
+		if (unlikely (actual < e->buffer.offset)) {
+			vbi_export_write_error (e);
+			e->write_error = TRUE;
+			return FALSE;
+		}
+
+		e->buffer.offset = 0;
+
+		break;
+	}
+
+	case VBI_EXPORT_TARGET_FD:
+	case VBI_EXPORT_TARGET_FILE:
+	{
+		ssize_t actual;
+		unsigned int retry;
+
+		if (0 == e->buffer.offset)
+			return TRUE;
+
+		assert (e->buffer.offset <= (unsigned int) SSIZE_MAX);
+
+		for (retry = 10;;) {
+			actual = write (e->_handle.fd,
+					e->buffer.data,
+					e->buffer.offset);
+
+			if (likely (actual == (ssize_t) e->buffer.offset))
+				break;
+
+			if (0 != actual || 0 == retry) {
+				vbi_export_write_error (e);
+				e->write_error = TRUE;
+				return FALSE;
+			}
+
+			--retry;
+		}
+
+		e->buffer.offset = 0;
+
+		break;
+	}
+
+	default:
+		assert (0);
+	}
+
+	return TRUE;
+}
+
+
 /**
- * @param export Pointer to a initialized vbi_export object.
+ * @param e Initialized vbi_export object.
+ * @param buffer Output buffer.
+ * @param buffer_size Size of the output buffer in bytes.
+ * @param pg Page to be exported.
+ * 
+ * This function writes the @a pg contents, converted to the respective
+ * export module format, into the @a buffer.
+ *
+ * You can call this function as many times as you want, it does not
+ * change vbi_export state or the vbi_page.
+ * 
+ * @return
+ * Zero on failure, the number of bytes stored in the buffer on success.
+ *
+ * @since 0.2.26
+ */
+unsigned int
+vbi_export_mem			(vbi_export *		e,
+				 void *			buffer,
+				 size_t			buffer_size,
+				 const vbi_page *	pg)
+{
+	unsigned int actual;
+
+	assert (NULL != e);
+	assert (NULL != buffer);
+
+	reset_error (e);
+
+	e->target = VBI_EXPORT_TARGET_MEM;
+
+	e->buffer.data = buffer;
+	e->buffer.offset = 0;
+	e->buffer.capacity = buffer_size;
+
+	e->write_error = FALSE;
+
+	if (e->_class->export (e, pg))
+		actual = e->buffer.offset;
+	else
+		actual = 0; /* failed */
+
+	CLEAR (e->buffer);
+
+	e->target = 0;
+
+	return actual;
+}
+
+/**
+ * @param e Initialized vbi_export object.
+ * @param buffer The address of the output buffer will be stored here.
+ * @param buffer_size The size of the output buffer in bytes will be
+ *   stored here.
+ * @param pg Page to be exported.
+ * 
+ * This function writes the @a pg contents, converted to the respective
+ * export module format, into a newly allocated buffer. You must free()
+ * this buffer when it is no longer needed.
+ *
+ * You can call this function as many times as you want, it does not
+ * change vbi_export state or the vbi_page.
+ * 
+ * @returns
+ * @c FALSE on failure, and @a buffer and @a buffer_size remain
+ * unmodified. @c TRUE on success.
+ *
+ * @since 0.2.26
+ */
+vbi_bool
+vbi_export_alloc		(vbi_export *		e,
+				 void **		buffer,
+				 size_t *		buffer_size,
+				 const vbi_page *	pg)
+{
+	vbi_bool success;
+
+	assert (NULL != e);
+	assert (NULL != buffer);
+	assert (NULL != buffer_size);
+
+	reset_error (e);
+
+	e->target = VBI_EXPORT_TARGET_ALLOC;
+
+	CLEAR (e->buffer);
+
+	e->write_error = FALSE;
+
+	success = e->_class->export (e, pg);
+
+	if (success) {
+		void *data = e->buffer.data;
+		unsigned int offset = e->buffer.offset;
+
+		/* Let's not waste space. */
+		data = realloc (data, offset);
+		if (NULL == data)
+			data = e->buffer.data;
+
+		*buffer = data;
+		*buffer_size = offset;
+	}
+
+	CLEAR (e->buffer);
+
+	e->target = 0;
+
+	return success;
+}
+
+/**
+ * @param e Initialized vbi_export object.
  * @param fp Buffered i/o stream to write to.
  * @param pg Page to be exported.
  * 
@@ -939,86 +1291,133 @@ vbi_export_option_menu_set(vbi_export *export, const char *keyword,
  * change vbi_export state or the vbi_page.
  * 
  * @return 
- * @c TRUE on success.
+ * @c FALSE on failure, @c TRUE on success.
  */
 vbi_bool
-vbi_export_stdio(vbi_export *export, FILE *fp, vbi_page *pg)
+vbi_export_stdio		(vbi_export *		e,
+				 FILE *			fp,
+				 vbi_page *		pg)
 {
 	vbi_bool success;
+	int saved_errno;
 
-	if (!export || !fp || !pg)
+	if (NULL == e || NULL == fp || NULL == pg)
 		return FALSE;
 
-	reset_error(export);
-	clearerr(fp);
+	reset_error (e);
 
-	success = export->_class->export(export, fp, pg);
+	e->target = VBI_EXPORT_TARGET_FP;
 
-	if (success && ferror(fp)) {
-		vbi_export_write_error(export);
-		success = FALSE;
-	}
+	e->_handle.fp = fp;
+	clearerr (fp);
+
+	CLEAR (e->buffer);
+
+	e->write_error = FALSE;
+
+	success = e->_class->export (e, pg);
+
+	if (success)
+		success = vbi_export_flush (e);
+
+	saved_errno = errno;
+
+	free (e->buffer.data);
+	CLEAR (e->buffer);
+
+	e->_handle.fp = (void *) -1;
+
+	e->target = 0;
+
+	errno = saved_errno;
 
 	return success;
 }
 
 /**
- * @param export Pointer to a initialized vbi_export object.
+ * @param e Initialized vbi_export object.
  * @param name File to be created.
  * @param pg Page to be exported.
  * 
- * This function writes the @a pg contents, converted to the respective
+ * Writes the @a pg contents, converted to the respective
  * export format, into a new file of the given @a name. When an error
  * occured the incomplete file will be deleted.
  * 
  * You can call this function as many times as you want, it does not
  * change vbi_export state or the vbi_page.
  * 
- * @return 
- * @c TRUE on success.
+ * @returns
+ * @c FALSE on failure, @c TRUE on success.
  */
 vbi_bool
-vbi_export_file(vbi_export *export, const char *name,
-		vbi_page *pg)
+vbi_export_file			(vbi_export *		e,
+				 const char *		name,
+				 vbi_page *		pg)
 {
 	struct stat st;
 	vbi_bool success;
-	FILE *fp;
+	int saved_errno;
 
-	if (!export || !name || !pg)
+	if (NULL == e || NULL == name || NULL == pg)
 		return FALSE;
 
-	reset_error(export);
+	reset_error (e);
 
-	if (!(fp = fopen(name, "w"))) {
-		vbi_export_error_printf(export,
-					_("Cannot create file '%s': %s."),
-					name, strerror(errno));
+	/* For error messages. */
+	e->name = name;
+
+	e->target = VBI_EXPORT_TARGET_FILE;
+
+	e->_handle.fd = open (name,
+			      O_WRONLY | O_CREAT | O_TRUNC,
+			      (S_IRUSR | S_IWUSR |
+			       S_IRGRP | S_IWGRP |
+			       S_IROTH | S_IWOTH));
+	if (-1 == e->_handle.fd) {
+		vbi_export_error_printf
+			(e, _("Cannot create file '%s': %s."),
+			 name, strerror (errno));
 		return FALSE;
 	}
 
-	export->name = (char *) name;
+	CLEAR (e->buffer);
 
-	success = export->_class->export(export, fp, pg);
+	e->write_error = FALSE;
 
-	if (success && ferror(fp)) {
-		vbi_export_write_error(export);
-		success = FALSE;
-	}
+	success = e->_class->export (e, pg);
 
-	if (fclose(fp))
+	if (success)
+		success = vbi_export_flush (e);
+
+	saved_errno = errno;
+
+	free (e->buffer.data);
+	CLEAR (e->buffer);
+
+	if (-1 == close (e->_handle.fd)) {
 		if (success) {
-			vbi_export_write_error(export);
+			saved_errno = errno;
+			vbi_export_write_error (e);
 			success = FALSE;
 		}
+	}
 
-	if (!success && stat(name, &st) == 0 && S_ISREG(st.st_mode))
-		remove(name);
+	e->_handle.fp = (void *) -1;
 
-	export->name = NULL;
+	e->target = 0;
+
+	if (!success
+	    && 0 == stat (name, &st)
+	    && S_ISREG (st.st_mode))
+		remove (name);
+
+	e->name = NULL;
+
+	errno = saved_errno;
 
 	return success;
 }
+
 
 /**
  * @param export Pointer to a initialized vbi_export object.
@@ -1074,6 +1473,15 @@ vbi_export_write_error(vbi_export *export)
 	} else {
 		vbi_export_error_printf(export, "%s.", t);
 	}
+}
+
+void
+_vbi_export_malloc_error	(vbi_export *		e)
+{
+	if (!e)
+		return;
+
+	vbi_export_error_printf (e, _("Out of memory."));
 }
 
 static char *
