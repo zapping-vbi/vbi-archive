@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.20 2007-11-03 10:04:14 mschimek Exp $ */
+/* $Id: export.c,v 1.20.2.1 2007-11-05 17:43:55 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -65,6 +65,7 @@ typedef unsigned int vbi_ttx_charset_code;
 
 #define PROGRAM_NAME "zvbi-export"
 
+static const char *		option_in_file_name;
 static enum file_format		option_in_file_format;
 static unsigned int		option_in_ts_pid;
 
@@ -85,6 +86,7 @@ static vbi_bool		option_row_update;
 static vbi_bool		option_subtitles;
 static vbi_rgba		option_default_bg;
 static vbi_rgba		option_default_fg;
+static unsigned int		option_target = 3;
 
 static struct stream *		rst;
 static vbi_decoder *		vbi;
@@ -93,8 +95,8 @@ static vbi_export *		ex;
 static vbi_page_table *	pt;
 static vbi_pgno		cc_chan;
 
-static char *			filename_prefix;
-static char *			filename_suffix;
+static char *			out_file_name_prefix;
+static char *			out_file_name_suffix;
 
 static int			cr;
 
@@ -111,22 +113,38 @@ close_output_file		(FILE *			fp)
 	}
 }
 
+static char *
+output_file_name		(vbi_pgno		pgno,
+				 vbi_subno		subno)
+{
+	char *name;
+	int r;
+
+	if (NULL == out_file_name_prefix) {
+		error_exit ("This target requires "
+			    "an output file name.\n");
+	}
+
+	r = asprintf (&name, "%s-%03x-%02x.%s",
+		      out_file_name_prefix, pgno, subno,
+		      out_file_name_suffix);
+	if (r < 0 || NULL == name)
+		no_mem_exit ();
+
+	return name;
+}
+
 static FILE *
 open_output_file		(vbi_pgno		pgno,
 				 vbi_subno		subno)
 {
-	FILE *fp;
 	char *name;
-	int r;
+	FILE *fp;
 
-	if (NULL == filename_prefix)
+	if (NULL == out_file_name_prefix)
 		return stdout;
 
-	r = asprintf (&name, "%s-%03x-%02x.%s",
-		      filename_prefix, pgno, subno,
-		      filename_suffix);
-	if (r < 0 || NULL == name)
-		no_mem_exit ();
+	name = output_file_name (pgno, subno);
 
 	fp = fopen (name, "w");
 	if (NULL == fp) {
@@ -177,6 +195,9 @@ do_export			(vbi_pgno		pgno,
 	FILE *fp;
 	vbi_page page;
 	vbi_bool success;
+	char *file_name;
+	void *buffer;
+	size_t size;
 
 	if (option_delay > 1) {
 		--option_delay;
@@ -197,17 +218,64 @@ do_export			(vbi_pgno		pgno,
 		page_dump (&page);
 	}
 
-	fp = open_output_file (pgno, subno);
+	switch (option_target) {
+	case 1:
+		buffer = malloc (1 << 20);
+		if (NULL == buffer)
+			no_mem_exit ();
+		size = vbi_export_mem (ex, buffer, 1 << 20, &page);
+		success = (size > 0);
+		if (success) {
+			size_t size2;
 
-	success = vbi_export_stdio (ex, fp, &page);
+			fp = open_output_file (pgno, subno);
+			if (1 != fwrite (buffer, size, 1, fp))
+				write_error_exit (/* msg: errno */ NULL);
+			close_output_file (fp);
+
+			/* Test. */
+			assert (0 == vbi_export_mem (ex, buffer, 0, &page));
+			assert (0 == vbi_export_mem (ex, buffer, 1, &page));
+			size2 = vbi_export_mem (ex, buffer, size - 1, &page);
+			assert (0 == size2);
+		}
+		free (buffer);
+		break;
+
+	case 2:
+		buffer = NULL;
+		success = vbi_export_alloc (ex, &buffer, &size, &page);
+		if (success) {
+			fp = open_output_file (pgno, subno);
+			if (1 != fwrite (buffer, size, 1, fp))
+				write_error_exit (/* msg: errno */ NULL);
+			close_output_file (fp);
+			free (buffer);
+		}
+		break;
+
+	case 3:
+		fp = open_output_file (pgno, subno);
+		success = vbi_export_stdio (ex, fp, &page);
+		close_output_file (fp);
+		break;
+
+	case 5:
+		file_name = output_file_name (pgno, subno);
+		success = vbi_export_file (ex, file_name, &page);
+		free (file_name);
+		break;
+
+	default:
+		error_exit ("Invalid target %u.", option_target);
+		break;
+	}
+
 	if (!success) {
-		error_exit (_("Export of page %x failed: %s."),
+		error_exit (_("Export of page %x failed: %s"),
 			    pgno,
 			    vbi_export_errstr (ex));
 	}
-
-	close_output_file (fp);
-	fp = NULL;
 
 	vbi_unref_page (&page);
 }
@@ -306,13 +374,13 @@ pdc_dump			(vbi_page *		pg)
 }
 
 static vbi_bool
-export_link			(vbi_export *		export,
+export_link			(vbi_export *		e,
 				 void *			user_data,
-				 FILE *			fp,
 				 const vbi_link *	link)
 {
-	export = export;
-	user_data = user_data;
+	vbi_bool success;
+
+	user_data = user_data; /* unused */
 
 	if (0)
 		fprintf (stderr, "link text: \"%s\"\n", link->name);
@@ -321,55 +389,57 @@ export_link			(vbi_export *		export,
 	case VBI_LINK_HTTP:
 	case VBI_LINK_FTP:
 	case VBI_LINK_EMAIL:
-		fprintf (fp, "<a href=\"%s\">%s</a>",
-			 link->url, link->name);
+		success = vbi_export_printf (e, "<a href=\"%s\">%s</a>",
+					      link->url, link->name);
 		break;
 
 	case VBI_LINK_PAGE:
 	case VBI_LINK_SUBPAGE:
-		fprintf (fp, "<a href=\"%s-%3x-%02x.%s\">%s</a>",
-			 filename_prefix ? filename_prefix : "ttx",
-			 link->pgno,
-			 (VBI_ANY_SUBNO == link->subno) ? 0 : link->subno,
-			 filename_suffix ? filename_suffix : "html",
-			 link->name);
+		success = vbi_export_printf (e, "<a href=\"%s-%3x-%02x"
+					      ".%s\">%s</a>",
+					      out_file_name_prefix ?
+					      out_file_name_prefix : "ttx",
+					      link->pgno,
+					      (VBI_ANY_SUBNO == link->subno) ?
+					      0 : link->subno,
+					      out_file_name_suffix ?
+					      out_file_name_suffix : "html",
+					      link->name);
 		break;
 
 	default:
-		fputs (link->name, fp);
+		success = vbi_export_puts (e, link->name);
 		break;
 	}
 
-	return 0 == ferror (fp);
+	return success;
 }
 
 static vbi_bool
-export_pdc			(vbi_export *		export,
+export_pdc			(vbi_export *		e,
 				 void *			user_data,
-				 FILE *			fp,
 				 const vbi_preselection *pl,
 				 const char *		text)
 {
 	unsigned int end;
+	vbi_bool success;
 
-	export = export;
-	user_data = user_data;
+	user_data = user_data; /* unused */
 
 	end = pl->at1_hour * 60 + pl->at1_minute + pl->length;
 
 	/* XXX pl->title uses locale encoding but the html page may not.
 	   (export charset parameter) */
-	fprintf (fp, "<acronym title=\"%04u-%02u-%02u "
-		 "%02u:%02u-%02u:%02u "
-		 "VPS/PDC: %02u%02u TTX: %x Title: %s"
-		 "\">%s</acronym>",
-		 pl->year, pl->month, pl->day,
-		 pl->at1_hour, pl->at1_minute,
-		 (end / 60 % 24), end % 60,
-		 pl->at2_hour, pl->at2_minute,
-		 pl->_pgno, pl->title, text);
-
-	return 0 == ferror (fp);
+	success = vbi_export_printf (e, "<acronym title=\"%04u-%02u-%02u "
+				      "%02u:%02u-%02u:%02u "
+				      "VPS/PDC: %02u%02u TTX: %x Title: %s"
+				      "\">%s</acronym>",
+				      pl->year, pl->month, pl->day,
+				      pl->at1_hour, pl->at1_minute,
+				      (end / 60 % 24), end % 60,
+				      pl->at2_hour, pl->at2_minute,
+				      pl->_pgno, pl->title, text);
+	return success;
 }
 
 static void
@@ -436,7 +506,7 @@ do_export			(vbi_pgno		pgno,
 	vbi_export_set_timestamp (ex, timestamp);
 
 	if (!vbi_export_stdio (ex, fp, pg)) {
-		error_exit (_("Export of page %x failed: %s."),
+		error_exit (_("Export of page %x failed: %s"),
 			    pgno,
 			    vbi_export_errstr (ex));
 	}
@@ -561,7 +631,7 @@ finalize			(void)
 
 	xi = vbi_export_info_from_export (ex);
 
-	if (xi->open_format && NULL == filename_prefix) {
+	if (xi->open_format && NULL == out_file_name_prefix) {
 		if (!vbi_export_stdio (ex, stdout, NULL))
 			write_error_exit (vbi_export_errstr (ex));
 	}
@@ -633,7 +703,7 @@ init_export_module		(const char *		module_name)
 
 	ex = vbi_export_new (module_name, &errstr);
 	if (NULL == ex) {
-		error_exit (_("Cannot open export module '%s': %s."),
+		error_exit (_("Cannot open export module '%s': %s"),
 			    module_name, errstr);
 		/* NB. free (errstr); here if you don't exit(). */
 	}
@@ -653,14 +723,15 @@ init_export_module		(const char *		module_name)
 	if (NULL == xi)
 		no_mem_exit ();
 
-	if (NULL == filename_suffix) {
+	if (NULL == out_file_name_suffix) {
 		char *end = NULL;
 
-		filename_suffix = strdup (xi->extension);
-		if (NULL == filename_suffix)
+		out_file_name_suffix = strdup (xi->extension);
+		if (NULL == out_file_name_suffix)
 			no_mem_exit ();
 
-		filename_suffix = strtok_r (filename_suffix, ",", &end);
+		out_file_name_suffix = strtok_r (out_file_name_suffix,
+						 ",", &end);
 	}
 
 #if 3 == VBI_VERSION_MINOR
@@ -759,6 +830,8 @@ Usage: %s [options] format [page number(s)] < sliced vbi data > file\n\
 -v | --verbose         Increase verbosity\n\
 -V | --version         Print the program version and exit\n\
 Input options:\n\
+-i | --input name      Read the VBI data from this file instead of\n\
+                       standard input\n\
 -P | --pes             Source is a DVB PES stream\n\
 -T | --ts pid          Source is a DVB TS stream\n\
 Scan options:\n"
@@ -816,12 +889,13 @@ Valid page numbers are:\n"
 }
 
 static const char
-short_options [] = "1cdefghilno:pqrsvwAB:C:F:H:O:PT:V";
+short_options [] = "1a:cdefghi:lmno:pqrsvwAB:C:F:H:O:PT:V";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
 long_options [] = {
 	{ "all-pages",		no_argument,		NULL,	'1' },
+	{ "target",		required_argument,	NULL,	'a' },
 	{ "dcc",		no_argument,		NULL,	'c' },
 	{ "pad",		no_argument,		NULL,	'd' },
 	{ "pdc-enum",		no_argument,		NULL,	'e' },
@@ -829,8 +903,9 @@ long_options [] = {
 	{ "dump-pg",		no_argument,		NULL,	'g' },
 	{ "help",		no_argument,		NULL,	'h' },
 	{ "usage",		no_argument,		NULL,	'h' },
-	{ "list",		no_argument,		NULL,	'i' },
+	{ "input",		required_argument,	NULL,	'i' },
 	{ "links",		no_argument,		NULL,	'l' },
+	{ "list",		no_argument,		NULL,	'm' },
 	{ "nav",		no_argument,		NULL,	'n' },
 	{ "output",		required_argument,	NULL,	'o' },
 	{ "pdc",		no_argument,		NULL,	'p' },
@@ -861,11 +936,11 @@ parse_output_option		(void)
 {
 	assert (NULL != optarg);
 
-	free (filename_prefix);
-	filename_prefix = NULL;
+	free (out_file_name_prefix);
+	out_file_name_prefix = NULL;
 
-	free (filename_suffix);
-	filename_suffix = NULL;
+	free (out_file_name_suffix);
+	out_file_name_suffix = NULL;
 
 	if (0 == strcmp (optarg, "-")) {
 		/* Write to stdout. */
@@ -874,17 +949,19 @@ parse_output_option		(void)
 
 		s = strrchr (optarg, '.');
 		if (NULL == s) {
-			filename_prefix = strdup (optarg);
-			if (NULL == filename_prefix)
+			out_file_name_prefix = strdup (optarg);
+			if (NULL == out_file_name_prefix)
 				no_mem_exit ();
 		} else {
-			filename_prefix = strndup (optarg, s - optarg);
-			if (NULL == filename_prefix)
+			out_file_name_prefix = strndup (optarg, s - optarg);
+			if (NULL == out_file_name_prefix)
 				no_mem_exit ();
 
-			filename_suffix = strdup (s + 1);
-			if (NULL == filename_suffix)
-				no_mem_exit ();
+			if (0 != s[1]) {
+				out_file_name_suffix = strdup (s + 1);
+				if (NULL == out_file_name_suffix)
+					no_mem_exit ();
+			}
 		}
 	}
 }
@@ -1002,6 +1079,12 @@ main				(int			argc,
 			all_pages = TRUE;
 			break;
 
+		case 'a':
+			/* For debugging. */
+			assert (NULL != optarg);
+			option_target = strtoul (optarg, NULL, 0);
+			break;
+
 		case 'c':
 			option_dcc = TRUE;
 			break;
@@ -1027,12 +1110,17 @@ main				(int			argc,
 			exit (EXIT_SUCCESS);
 
 		case 'i':
-			list_modules ();
-			exit (EXIT_SUCCESS);
+			assert (NULL != optarg);
+			option_in_file_name = optarg;
+			break;
 
 		case 'l':
 			option_hyperlinks = TRUE;
 			break;
+
+		case 'm':
+			list_modules ();
+			exit (EXIT_SUCCESS);
 
 		case 'n':
 			option_navigation = TRUE;
@@ -1129,8 +1217,8 @@ main				(int			argc,
 	if (all_pages) {
 		/* Compatibility. */
 
-		filename_prefix = strdup ("test");
-		if (NULL == filename_prefix)
+		out_file_name_prefix = strdup ("test");
+		if (NULL == out_file_name_prefix)
 			no_mem_exit ();
 	} else {
 		parse_page_numbers (argc - optind, &argv[optind]);
@@ -1143,7 +1231,7 @@ main				(int			argc,
 			      "a single page number."));
 	}
 
-	if (NULL == filename_prefix) {
+	if (NULL == out_file_name_prefix) {
 		switch (n_pages) {
 		case 0: /* all pages? */
 			error_exit (_("No page number or "
@@ -1179,11 +1267,11 @@ main				(int			argc,
 
 	finalize ();
 
-	free (filename_prefix);
-	filename_prefix = NULL;
+	free (out_file_name_prefix);
+	out_file_name_prefix = NULL;
 
-	free (filename_suffix);
-	filename_suffix = NULL;
+	free (out_file_name_suffix);
+	out_file_name_suffix = NULL;
 
 	if (!option_subtitles) {
 		n_pages = vbi_page_table_num_pages (pt);
