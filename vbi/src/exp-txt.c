@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.20 2007-08-27 06:45:17 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.20.2.1 2007-11-05 17:44:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -594,7 +594,8 @@ print_char(text_instance *text, int endian, vbi_page *pg, vbi_char old, vbi_char
 }
 
 static vbi_bool
-export(vbi_export *e, FILE *fp, vbi_page *pg)
+export				(vbi_export *		e,
+				 vbi_page *		pg)
 {
 	int endian = vbi_ucs2be();
 	text_instance *text = PARENT(e, text_instance, export);
@@ -631,9 +632,9 @@ export(vbi_export *e, FILE *fp, vbi_page *pg)
 				iconv_close(text->cd);
 				return FALSE;
 			} else if (n == 1) {
-				fputc(text->buf[0], fp);
+				vbi_export_putc (e, text->buf[0]);
 			} else {
-				fwrite(text->buf, 1, n, fp);
+				vbi_export_write (e, text->buf, n);
 			}
 
 			old = *cp++;
@@ -643,17 +644,17 @@ export(vbi_export *e, FILE *fp, vbi_page *pg)
 
 		if (row >= pg->rows) {
 			if (text->term > 0)
-				fprintf(fp, "\e[m\n"); /* reset */
+				vbi_export_printf (e, "\e[m\n"); /* reset */
 			else
-				fputc('\n', fp);
+				vbi_export_putc(e, '\n');
 			break;
 		} else
-			fputc('\n', fp);
+			vbi_export_putc (e, '\n');
 	}
 
 	iconv_close(text->cd);
 
-	return !ferror(fp);
+	return !e->write_error;
 }
 
 static vbi_export_info

@@ -25,7 +25,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.10 2007-07-23 20:01:17 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.10.2.1 2007-11-05 17:44:29 mschimek Exp $ */
 
 /*
  *  VTX is the file format used by VideoteXt. It stores Teletext pages in
@@ -68,7 +68,7 @@ struct header {
  */
 
 static vbi_bool
-export(vbi_export *e, FILE *fp, vbi_page *pg)
+export(vbi_export *e, vbi_page *pg)
 {
 	vt_page page, *vtp;
 	struct header h;
@@ -112,16 +112,15 @@ export(vbi_export *e, FILE *fp, vbi_page *pg)
 	h.vtx_flags = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 4) | (0 << 3);
 	/* notfound, pblf (?), hamming error, virtual, seven bits */
 
-	if (fwrite(&h, sizeof(h), 1, fp) != 1)
-		goto write_error;
+	if (!vbi_export_write (e, &h, sizeof (h)))
+		goto error;
 
-	if (fwrite(page.data.lop.raw, 40 * 24, 1, fp) != 1)
-		goto write_error;
+	if (!vbi_export_write (e, page.data.lop.raw, 40 * 24))
+		goto error;
 
 	return TRUE;
 
-write_error:
-	vbi_export_write_error(e);
+  error:
 	return FALSE;
 }
 
