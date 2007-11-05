@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.18 2007-10-14 14:54:11 mschimek Exp $ */
+/* $Id: misc.h,v 1.18.2.1 2007-11-05 17:44:00 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -283,6 +283,19 @@ _vbi_keyword_lookup		(int *			value,
 				 const char **		inout_s,
 				 const _vbi_key_value_pair * table,
 				 unsigned int		n_pairs);
+
+extern void
+_vbi_shrink_vector_capacity	(void **		vector,
+				 size_t *		capacity,
+				 size_t			min_capacity,
+				 size_t			element_size)
+  __attribute__ ((_vbi_nonnull (1, 2)));
+extern vbi_bool
+_vbi_grow_vector_capacity	(void **		vector,
+				 size_t *		capacity,
+				 size_t			min_capacity,
+				 size_t			element_size)
+  __attribute__ ((_vbi_nonnull (1, 2)));
 
 /* Logging stuff. */
 
