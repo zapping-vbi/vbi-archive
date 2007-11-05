@@ -1,3 +1,44 @@
+2007-11-05    <mschimek@users.sf.net>
+
+	* test/exp-test.sh: Added for a quick export target test.
+	* test/export.c: Resynched with 0.2/0.3 branch. Added --target
+	  option to test export to buffer and file.
+	(export_link, export_pdc): The file pointer is not a parameter
+	  anymore, use the new vbi_export output functions instead of
+	  printf().
+
+	* src/misc.h, src/misc.c (_vbi_shrink_vector_capacity)
+	(_vbi_grow_vector_capacity): New helper functions based on the
+	  page_table.c code.
+
+	* src/macros.h: Added __attribute__ format macro for
+	  vbi_export_printf(), vbi_export_vprintf().
+
+	* src/export.c, src/export.h: Added output buffer and
+	  functions vbi_export_putc(), vbi_export_puts(),
+	  vbi_export_vprintf(), vbi_export_printf(),
+	  vbi_export_write(), vbi_export_grow_buffer_space().
+	(vbi_export_mem): Added for export into client supplied
+	  buffer.
+	(vbi_export_alloc): Added for export into library allocated
+	  buffer.
+	(vbi_export_stdio, vbi_export_file): Use the new output
+	  buffer functions.
+	(_vbi_export_malloc_error): New helper function.
+
+	* src/exp-vtx.c (export), src/exp-txt.c (export),
+	  src/exp-templ.c (export): Replaced stdio output by
+	  vbi_export buffer.
+
+	* src/exp-html.c: Bug fix: Did not free the styles list on
+	  error.
+	(export): Replaced stdio output by vbi_export buffer.
+
+	* src/exp-gfx.c (ppm_export, xpm_export, png_export):
+	  Replaced stdio output by vbi_export buffer.
+	(png_export): Moved the ugly and unportable nested write
+	  function out.
+
 2007-11-03    <mschimek@users.sf.net>
 
 	* test/export.c (parse_output_option): Drop the period from

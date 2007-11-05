@@ -49,8 +49,10 @@ typedef struct vbi_decoder vbi_decoder;
 
 #if (__GNUC__ == 3 && __GNUC_MINOR__ >= 3) || __GNUC__ >= 4
 #  define _vbi_nonnull(args...) nonnull(args)
+#  define _vbi_format(args...) format(args)
 #else
 #  define _vbi_nonnull(args...)
+#  define _vbi_format(args...)
 #endif
 
 #if __GNUC__ >= 3
@@ -719,6 +721,18 @@ extern vbi_bool			vbi_export_option_get(vbi_export *, const char *keyword,
 extern vbi_bool			vbi_export_option_menu_set(vbi_export *, const char *keyword, int entry);
 extern vbi_bool			vbi_export_option_menu_get(vbi_export *, const char *keyword, int *entry);
 
+extern unsigned int
+vbi_export_mem			(vbi_export *		e,
+				 void *			buffer,
+				 size_t			buffer_size,
+				 const vbi_page *	pg)
+  __attribute__ ((_vbi_nonnull (1, 2))); /* sic */
+extern vbi_bool
+vbi_export_alloc		(vbi_export *		e,
+				 void **		buffer,
+				 size_t *		buffer_size,
+				 const vbi_page *	pg)
+  __attribute__ ((_vbi_nonnull (1, 2, 3))); /* sic */
 extern vbi_bool			vbi_export_stdio(vbi_export *, FILE *fp, vbi_page *pg);
 extern vbi_bool			vbi_export_file(vbi_export *, const char *name, vbi_page *pg);
 
@@ -842,6 +856,7 @@ typedef enum {
 	VBI_PIXFMT_YVYU,
 	VBI_PIXFMT_UYVY,
 	VBI_PIXFMT_VYUY,
+        VBI_PIXFMT_PAL8,
 	VBI_PIXFMT_RGBA32_LE = 32,
 	VBI_PIXFMT_RGBA32_BE,
 	VBI_PIXFMT_BGRA32_LE,
