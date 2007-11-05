@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.13 2007-07-23 20:01:17 mschimek Exp $ */
+/* $Id: export.h,v 1.13.2.1 2007-11-05 17:44:25 mschimek Exp $ */
 
 #ifndef EXPORT_H
 #define EXPORT_H
@@ -250,6 +250,18 @@ extern vbi_bool			vbi_export_option_get(vbi_export *, const char *keyword,
 extern vbi_bool			vbi_export_option_menu_set(vbi_export *, const char *keyword, int entry);
 extern vbi_bool			vbi_export_option_menu_get(vbi_export *, const char *keyword, int *entry);
 
+extern unsigned int
+vbi_export_mem			(vbi_export *		e,
+				 void *			buffer,
+				 size_t			buffer_size,
+				 const vbi_page *	pg)
+  __attribute__ ((_vbi_nonnull (1, 2))); /* sic */
+extern vbi_bool
+vbi_export_alloc		(vbi_export *		e,
+				 void **		buffer,
+				 size_t *		buffer_size,
+				 const vbi_page *	pg)
+  __attribute__ ((_vbi_nonnull (1, 2, 3))); /* sic */
 extern vbi_bool			vbi_export_stdio(vbi_export *, FILE *fp, vbi_page *pg);
 extern vbi_bool			vbi_export_file(vbi_export *, const char *name, vbi_page *pg);
 
@@ -272,6 +284,24 @@ extern const char _zvbi_intl_domainname[];
 
 typedef struct vbi_export_class vbi_export_class;
 
+/** The export target. */
+enum _vbi_export_target {
+	/** Exporting to a client supplied buffer in memory. */
+	VBI_EXPORT_TARGET_MEM = 1,
+
+	/** Exporting to a newly allocated buffer. */
+	VBI_EXPORT_TARGET_ALLOC,
+
+	/** Exporting to a client supplied file pointer. */
+	VBI_EXPORT_TARGET_FP,
+
+	/** Exporting to a client supplied file descriptor. */
+	VBI_EXPORT_TARGET_FD,
+
+	/** Exporting to a file. */
+	VBI_EXPORT_TARGET_FILE,
+};
+
 /**
  * @ingroup Exmod
  *
@@ -287,11 +317,14 @@ struct vbi_export {
 	 */
 	vbi_export_class *	_class;
 	char *			errstr;		/**< Frontend private. */
+
 	/**
-	 * Name of the file we are writing, @c NULL if none (may be
-	 * an anonymous FILE though).
+	 * If @c target is @c VBI3_EXPORT_FILE the name of the file
+	 * we are writing to, as supplied by the client. Otherwise
+	 * @c NULL. This is intended for debugging and error messages.
 	 */
 	char *			name;
+
 	/**
 	 * Generic option: Network name or @c NULL.
 	 */
@@ -304,6 +337,57 @@ struct vbi_export {
 	 * Generic option: Reveal hidden characters.
 	 */
 	vbi_bool		reveal;
+
+	/** The export target. */
+	enum _vbi_export_target	target;
+
+	/**
+	 * If @a target is @c VBI_EXPORT_TARGET_FP or
+	 * @c VBI_EXPORT_TARGET_FD the file pointer or file descriptor
+	 * supplied by the client. If @c VBI_EXPORT_TARGET_FILE the
+	 * file descriptor of the file we opened. Otherwise undefined.
+	 *
+	 * Private field. Not to be accessed by export modules.
+	 */
+	union {
+		FILE *			fp;
+		int			fd;
+	}			_handle;
+
+	/**
+	 * Output buffer. Export modules can write into this buffer
+	 * directly after ensuring sufficient capacity, and/or call
+	 * the vbi_export_putc() etc functions. Keep in mind these
+	 * functions may call realloc(), changing the @a data pointer.
+	 */
+	struct {
+		/**
+		 * Pointer to the start of the buffer in memory.
+		 * @c NULL if @c capacity is zero.
+		 */
+		char *			data;
+
+		/**
+		 * The number of bytes written into the buffer
+		 * so far. Must be <= @c capacity.
+		 */
+		size_t			offset;
+
+		/**
+		 * Number of bytes we can store in the buffer, may be
+		 * zero.
+		 *
+		 * Call _vbi_export_grow_buffer_space() to increase the
+		 * capacity. Keep in mind this may change the @a data
+		 * pointer. When @a target is @a VBI_EXPORT_TARGET_MEM
+		 * the capacity is fixed and
+		 * _vbi_export_grow_buffer_space() will fail.
+		 */
+		size_t			capacity;
+	}			buffer;
+
+	/** A write error occurred (like ferror()). */
+	vbi_bool		write_error;
 };
 
 /**
@@ -329,7 +413,7 @@ struct vbi_export_class {
 	vbi_bool		(* option_get)(vbi_export *, const char *keyword,
 					       vbi_option_value *value);
 
-	vbi_bool		(* export)(vbi_export *, FILE *fp, vbi_page *pg);
+	vbi_bool		(* export)(vbi_export *, vbi_page *pg);
 };
 
 /**
@@ -343,12 +427,49 @@ struct vbi_export_class {
  *  Helper functions
  */
 
+/* Output functions. */
+
+extern vbi_bool
+_vbi_export_grow_buffer_space	(vbi_export *		e,
+				 unsigned int		min_space)
+  __attribute__ ((_vbi_nonnull (1)));
+
+extern vbi_bool
+vbi_export_putc		(vbi_export *		e,
+				 int			c)
+  __attribute__ ((_vbi_nonnull (1)));
+extern vbi_bool
+vbi_export_puts		(vbi_export *		e,
+				 const char *		s)
+  __attribute__ ((_vbi_nonnull (1, 2)));
+extern vbi_bool
+vbi_export_vprintf		(vbi_export *		e,
+				 const char *		templ,
+				 va_list		ap)
+  __attribute__ ((_vbi_nonnull (1, 2)));
+extern vbi_bool
+vbi_export_printf		(vbi_export *		e,
+				 const char *		templ,
+				 ...)
+  __attribute__ ((_vbi_nonnull (1, 2),
+		  _vbi_format (printf, 2, 3)));
+extern vbi_bool
+vbi_export_write		(vbi_export *		e,
+				 const void *		s,
+				 size_t			n_bytes)
+  __attribute__ ((_vbi_nonnull (1, 2)));
+extern vbi_bool
+vbi_export_flush		(vbi_export *		e)
+  __attribute__ ((_vbi_nonnull (1)));
+
 /**
  * @addtogroup Exmod
  * @{
  */
 extern void			vbi_register_export_module(vbi_export_class *);
 
+extern void
+_vbi_export_malloc_error	(vbi_export *		e);
 extern void			vbi_export_write_error(vbi_export *);
 extern void			vbi_export_unknown_option(vbi_export *, const char *keyword);
 extern void			vbi_export_invalid_option(vbi_export *, const char *keyword, ...);
