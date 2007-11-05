@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.13.2.1 2007-11-03 21:10:29 tomzo Exp $ */
+/* $Id: exp-gfx.c,v 1.13.2.2 2007-11-05 17:44:51 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -570,10 +570,11 @@ vbi_draw_cc_page_region(vbi_page *pg,
 				    * (3 << 24)) /* cell row 24, 25 */,
 				   VBI_NORMAL_SIZE);
 
-			canvas += CCW * canvas_type;
+			canvas = (uint8_t *) canvas
+				+ CCW * canvas_type;
 		}
 
-		canvas += row_adv;
+		canvas = (uint8_t *) canvas + row_adv;
 	}
 }
 
@@ -841,7 +842,7 @@ option_set(vbi_export *e, const char *keyword, va_list args)
  * The label is inserted as comment inside of XPM or PNG image files.
  */
 static void
-get_image_title(vbi_export *e, vbi_page *pg, char *title, int title_max)
+get_image_title(vbi_export *e, const vbi_page *pg, char *title, int title_max)
 {
         int size = 0;
 
@@ -874,10 +875,11 @@ get_image_title(vbi_export *e, vbi_page *pg, char *title, int title_max)
  */
 
 static vbi_bool
-ppm_export(vbi_export *e, FILE *fp, vbi_page *pg)
+ppm_export(vbi_export *e, vbi_page *pg)
 {
 	gfx_instance *gfx = PARENT(e, gfx_instance, export);
 	int cw, ch, ww, size, scale, row;
+	unsigned int image_height;
 	vbi_rgba *image;
 	uint8_t *body;
 	int i;
@@ -902,11 +904,11 @@ ppm_export(vbi_export *e, FILE *fp, vbi_page *pg)
 		return FALSE;
 	}
 
-	fprintf(fp, "P6 %d %d 255\n",
-		cw * pg->columns, (ch * pg->rows / 2) << scale);
+	image_height = (ch * pg->rows) << gfx->double_height;
 
-	if (ferror(fp))
-		goto write_error;
+	if (!vbi_export_printf (e, "P6 %u %u 255\n",
+				ww, image_height))
+		goto failed;
 
 	for (row = 0; row < pg->rows; row++) {
 		if (pg->columns < 40)
@@ -945,13 +947,13 @@ ppm_export(vbi_export *e, FILE *fp, vbi_page *pg)
 			stride = ww * 3;
 
 			for (i = 0; i < rows; i++, body += stride * 2)
-				if (!fwrite(body, stride, 1, fp))
-					goto write_error;
+				if (!vbi_export_write (e, body, stride))
+					goto failed;
 			break;
 
 		case 1:
-			if (!fwrite(image, size * 3, 1, fp))
-				goto write_error;
+			if (!vbi_export_write (e, image, size * 3))
+				goto failed;
 			break;
 
 		case 2:
@@ -959,14 +961,18 @@ ppm_export(vbi_export *e, FILE *fp, vbi_page *pg)
 			stride = cw * pg->columns * 3;
 
 			for (i = 0; i < ch; body += stride, i++) {
-				if (!fwrite(body, stride, 1, fp))
-					goto write_error;
-				if (!fwrite(body, stride, 1, fp))
-					goto write_error;
+				if (!vbi_export_write (e, body, stride))
+					goto failed;
+				if (!vbi_export_write (e, body, stride))
+					goto failed;
 			}
 
 			break;
 		}
+
+		/* Saves buffer space. */
+		if (!vbi_export_flush (e))
+			goto failed;
 	}
 
 	free(image);
@@ -974,11 +980,8 @@ ppm_export(vbi_export *e, FILE *fp, vbi_page *pg)
 
 	return TRUE;
 
-write_error:
-	vbi_export_write_error(e);
-
-	if (image)
-		free(image);
+ failed:
+	free(image);
 
 	return FALSE;
 }
@@ -1370,7 +1373,7 @@ xpm_convert_img_row(uint8_t * img, uint8_t * buf, int ww, int ch, int scale, int
 }
 
 static vbi_bool
-xpm_export(vbi_export *e, FILE *fp, vbi_page *pg)
+xpm_export(vbi_export *e, vbi_page *pg)
 {
 	gfx_instance *gfx = PARENT(e, gfx_instance, export);
 	uint8_t *image = NULL;
@@ -1439,10 +1442,8 @@ xpm_export(vbi_export *e, FILE *fp, vbi_page *pg)
 
         img_size = (canvas - image) * sizeof(uint8_t);
 
-        if (fwrite(image, 1, img_size, fp) < img_size) {
-	        vbi_export_write_error(e);
+        if (!vbi_export_write (e, image, img_size))
                 goto abort;
-        }
 
         result = TRUE;
 
@@ -1489,24 +1490,136 @@ VBI_AUTOREG_EXPORT_MODULE(vbi_export_class_xpm)
 #include "png.h"
 #include "setjmp.h"
 
+static void
+write_data			(png_structp		png_ptr,
+				 png_bytep		data,
+				 png_size_t		length)
+{
+	gfx_instance *gfx = (gfx_instance *) png_get_io_ptr (png_ptr);
+
+	vbi_export_write (&gfx->export, data, length);
+}
+
+static void
+flush_data			(png_structp		png_ptr)
+{
+	gfx_instance *gfx = (gfx_instance *) png_get_io_ptr (png_ptr);
+
+	vbi_export_flush (&gfx->export);
+}
+
 static vbi_bool
-png_export(vbi_export *e, FILE *fp, vbi_page *pg)
+write_png			(gfx_instance *		gfx,
+				 const vbi_page *	pg,
+				 png_structp		png_ptr,
+				 png_infop		info_ptr,
+				 png_bytep		image,
+				 png_bytep *		row_pointer,
+				 unsigned int		ww,
+				 unsigned int		wh,
+				 unsigned int		scale)
+{
+	png_color palette[80];
+	png_byte alpha[80];
+	png_text text[4];
+	char title[80];
+	unsigned int i;
+
+	if (setjmp (png_ptr->jmpbuf))
+		return FALSE;
+
+	png_set_write_fn (png_ptr,
+			  (voidp) gfx,
+			  write_data,
+			  flush_data);
+
+	png_set_IHDR (png_ptr,
+		      info_ptr,
+		      ww,
+		      (wh << scale) >> 1,
+		      /* bit_depth */ 8,
+		      PNG_COLOR_TYPE_PALETTE,
+		      gfx->double_height ?
+		      PNG_INTERLACE_ADAM7 : PNG_INTERLACE_NONE,
+		      PNG_COMPRESSION_TYPE_DEFAULT,
+		      PNG_FILTER_TYPE_DEFAULT);
+
+	/* Could be optimized (or does libpng?) */
+	for (i = 0; i < 40; i++) {
+		/* opaque */
+		palette[i].red   = pg->color_map[i] & 0xFF;
+		palette[i].green = (pg->color_map[i] >> 8) & 0xFF;
+		palette[i].blue	 = (pg->color_map[i] >> 16) & 0xFF;
+		alpha[i]	 = 255;
+
+		/* translucent */
+		palette[i + 40]  = palette[i];
+		alpha[i + 40]	 = 128;
+	}
+
+	alpha[VBI_TRANSPARENT_BLACK] = 0;
+	alpha[40 + VBI_TRANSPARENT_BLACK] = 0;
+
+	png_set_PLTE (png_ptr, info_ptr, palette, 80);
+	png_set_tRNS (png_ptr, info_ptr, alpha, 80, NULL);
+
+	png_set_gAMA (png_ptr, info_ptr, 1.0 / 2.2);
+
+        get_image_title (&gfx->export, pg, title, sizeof (title));
+
+	CLEAR (text);
+
+	text[0].key = "Title";
+	text[0].text = title;
+	text[0].compression = PNG_TEXT_COMPRESSION_NONE;
+	text[1].key = "Software";
+	text[1].text = gfx->export.creator;
+	text[1].compression = PNG_TEXT_COMPRESSION_NONE;
+
+	png_set_text (png_ptr, info_ptr, text, 2);
+
+	png_write_info (png_ptr, info_ptr);
+
+	switch (scale) {
+	case 0:
+		for (i = 0; i < wh / 2; i++)
+			row_pointer[i] = image + i * 2 * ww;
+		break;
+
+	case 1:
+		for (i = 0; i < wh; i++)
+			row_pointer[i] = image + i * ww;
+		break;
+
+	case 2:
+		for (i = 0; i < wh; i++)
+			row_pointer[i * 2 + 0] =
+			row_pointer[i * 2 + 1] = image + i * ww;
+		break;
+	}
+
+	png_write_image (png_ptr, row_pointer);
+
+	png_write_end (png_ptr, info_ptr);
+
+	return TRUE;
+}
+
+static vbi_bool
+png_export(vbi_export *e, vbi_page *pg)
 {
 	gfx_instance *gfx = PARENT(e, gfx_instance, export);
 	png_structp png_ptr;
 	png_infop info_ptr;
-	png_color palette[80];
-	png_byte alpha[80];
-	png_text text[4];
         uint8_t pen[128];
-	char title[80];
 	png_bytep *row_pointer;
 	png_bytep image;
 	int ww, wh, rowstride, row_adv, scale;
 	int row;
 	int i;
 
-	assert((sizeof(png_byte) == sizeof(uint8_t)) && (sizeof(*image) == sizeof(uint8_t)));
+	assert ((sizeof(png_byte) == sizeof(uint8_t))
+		&& (sizeof(*image) == sizeof(uint8_t)));
 
 	if (pg->columns < 40) /* caption */ {
 		/* characters are already line-doubled */
@@ -1553,7 +1666,8 @@ png_export(vbi_export *e, FILE *fp, vbi_page *pg)
 
 	/* Now save the image */
 
-	if (!(png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)))
+	if (!(png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING,
+						NULL, NULL, NULL)))
 		goto unknown_error;
 
 	if (!(info_ptr = png_create_info_struct(png_ptr))) {
@@ -1561,92 +1675,20 @@ png_export(vbi_export *e, FILE *fp, vbi_page *pg)
 		goto unknown_error;
 	}
 
-	/* avoid possible longjmp breakage due to libpng ugliness */
-	/* XXX not portable, to be removed */
-	{ int do_write() {
-	if (setjmp(png_ptr->jmpbuf))
-		return 1;
-
-	png_init_io(png_ptr, fp);
-
-	png_set_IHDR(png_ptr, info_ptr, ww, (wh << scale) >> 1,
-		8 /* bit_depth */,
-		PNG_COLOR_TYPE_PALETTE,
-		(gfx->double_height) ?
-			PNG_INTERLACE_ADAM7 : PNG_INTERLACE_NONE,
-		PNG_COMPRESSION_TYPE_DEFAULT,
-		PNG_FILTER_TYPE_DEFAULT);
-
-	/* Could be optimized (or does libpng?) */
-	for (i = 0; i < 40; i++) {
-		/* opaque */
-		palette[i].red   = pg->color_map[i] & 0xFF;
-		palette[i].green = (pg->color_map[i] >> 8) & 0xFF;
-		palette[i].blue	 = (pg->color_map[i] >> 16) & 0xFF;
-		alpha[i]	 = 255;
-
-		/* translucent */
-		palette[i + 40]  = palette[i];
-		alpha[i + 40]	 = 128;
+	if (!write_png (gfx, pg, png_ptr, info_ptr,
+			image, row_pointer, ww, wh, scale)) {
+		png_destroy_write_struct (&png_ptr, &info_ptr);
+		goto write_error;
 	}
 
-	alpha[VBI_TRANSPARENT_BLACK] = 0;
-	alpha[40 + VBI_TRANSPARENT_BLACK] = 0;
+	png_destroy_write_struct (&png_ptr, &info_ptr);
 
-	png_set_PLTE(png_ptr, info_ptr, palette, 80);
-	png_set_tRNS(png_ptr, info_ptr, alpha, 80, NULL);
+	if (gfx->export.write_error)
+		goto failed;
 
-	png_set_gAMA(png_ptr, info_ptr, 1.0 / 2.2);
+	free (row_pointer);
 
-        get_image_title(e, pg, title, sizeof(title));
-
-	memset(text, 0, sizeof(text));
-
-	text[0].key = "Title";
-	text[0].text = title;
-	text[0].compression = PNG_TEXT_COMPRESSION_NONE;
-	text[1].key = "Software";
-	text[1].text = e->creator;
-	text[1].compression = PNG_TEXT_COMPRESSION_NONE;
-
-	png_set_text(png_ptr, info_ptr, text, 2);
-
-	png_write_info(png_ptr, info_ptr);
-
-	switch (scale) {
-	case 0:
-		for (i = 0; i < wh / 2; i++)
-			row_pointer[i] = image + i * 2 * ww;
-		break;
-
-	case 1:
-		for (i = 0; i < wh; i++)
-			row_pointer[i] = image + i * ww;
-		break;
-
-	case 2:
-		for (i = 0; i < wh; i++)
-			row_pointer[i * 2 + 0] =
-			row_pointer[i * 2 + 1] = image + i * ww;
-		break;
-	}
-
-	png_write_image(png_ptr, row_pointer);
-
-	png_write_end(png_ptr, info_ptr);
-
-	png_destroy_write_struct(&png_ptr, &info_ptr);
-
-	return 0;
-
-	} if (do_write()) goto write_error; }
-
-abort:
-	free(row_pointer);
-	row_pointer = NULL;
-
-	free(image);
-	image = NULL;
+	free (image);
 
 	return TRUE;
 
@@ -1654,11 +1696,10 @@ write_error:
 	vbi_export_write_error(e);
 
 unknown_error:
-	if (row_pointer)
-		free(row_pointer);
+failed:
+	free (row_pointer);
 
-	if (image)
-		free(image);
+	free (image);
 
 	return FALSE;
 }
