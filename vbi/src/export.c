@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.27.2.2 2007-11-05 17:44:20 mschimek Exp $ */
+/* $Id: export.c,v 1.27.2.3 2007-11-09 04:39:43 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -931,55 +931,171 @@ vbi_export_option_menu_set(vbi_export *export, const char *keyword,
 
 vbi_bool
 _vbi_export_grow_buffer_space	(vbi_export *		e,
-				 unsigned int		min_space)
+				 size_t			min_space)
 {
-	const unsigned int element_size = sizeof (*e->buffer.data);
-	unsigned int offset = e->buffer.offset;
-	unsigned int capacity = e->buffer.capacity;
+	const size_t element_size = sizeof (*e->buffer.data);
+	size_t offset = e->buffer.offset;
+	size_t capacity = e->buffer.capacity;
+	vbi_bool success;
 
 	assert (NULL != e);
 	assert (0 != e->target);
 	assert (offset <= capacity);
 
-	if (e->write_error)
+	if (unlikely (e->write_error))
 		return FALSE;
 
-	if (capacity >= min_space && offset <= capacity - min_space)
+	if (capacity >= min_space
+	    && offset <= capacity - min_space)
 		return TRUE;
 
-	if (VBI_EXPORT_TARGET_MEM == e->target)
+	if (unlikely (VBI_EXPORT_TARGET_MEM == e->target))
 		goto failed;
 
-	if (offset > UINT_MAX - min_space)
+	if (unlikely (offset > SIZE_MAX - min_space))
 		goto failed;
 
-	if (_vbi_grow_vector_capacity ((void **) &e->buffer.data,
-					&e->buffer.capacity,
-					offset + min_space,
-					element_size)) {
+	success = _vbi_grow_vector_capacity ((void **) &e->buffer.data,
+					     &e->buffer.capacity,
+					     offset + min_space,
+					     element_size);
+	if (likely (success))
 		return TRUE;
-	}
 
  failed:
 	_vbi_export_malloc_error (e);
 
-	e->write_error = TRUE;
-
 	return FALSE;
 }
 
+static vbi_bool
+write_fp			(vbi_export *		e,
+				 const void *		s,
+				 size_t			n_bytes)
+{
+	size_t actual;
+
+	actual = fwrite (s, 1, n_bytes, e->_handle.fp);
+	if (unlikely (actual != n_bytes)) {
+		vbi_export_write_error (e);
+		e->write_error = TRUE;
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static vbi_bool
+write_fd			(vbi_export *		e,
+				 const void *		s,
+				 size_t			n_bytes)
+{
+	while (n_bytes > 0) {
+		size_t count;
+		ssize_t actual;
+		unsigned int retry;
+
+		count = n_bytes;
+		if (unlikely (n_bytes > SSIZE_MAX))
+			count = SSIZE_MAX & -4096;
+
+		for (retry = 10;; --retry) {
+			actual = write (e->_handle.fd, s, count);
+			if (likely (actual == (ssize_t) count))
+				break;
+
+			if (0 != actual || 0 == retry) {
+				vbi_export_write_error (e);
+				e->write_error = TRUE;
+				return FALSE;
+			}
+		}
+
+		s = (const char *) s + actual;
+		n_bytes -= actual;
+	}
+
+	return TRUE;
+}
+
+static vbi_bool
+fast_flush			(vbi_export *		e)
+{
+	if (e->buffer.offset > 0) {
+		vbi_bool success;
+
+		success = e->_write (e,
+				     e->buffer.data,
+				     e->buffer.offset);
+		if (unlikely (!success)) {
+			e->write_error = TRUE;
+			return FALSE;
+		}
+
+		e->buffer.offset = 0;
+	}
+
+	return TRUE;
+}
+
 vbi_bool
-vbi_export_putc		(vbi_export *		e,
+vbi_export_flush		(vbi_export *		e)
+{
+	assert (NULL != e);
+
+	if (unlikely (e->write_error))
+		return FALSE;
+
+	switch (e->target) {
+	case VBI_EXPORT_TARGET_MEM:
+	case VBI_EXPORT_TARGET_ALLOC:
+		/* Nothing to do. */
+		break;
+
+	case VBI_EXPORT_TARGET_FP:
+	case VBI_EXPORT_TARGET_FD:
+	case VBI_EXPORT_TARGET_FILE:
+		return fast_flush (e);
+
+	default:
+		assert (0);
+	}
+
+	return TRUE;
+}
+
+vbi_bool
+vbi_export_putc			(vbi_export *		e,
 				 int			c)
 {
-	unsigned int offset;
+	size_t offset;
 
-	if (!_vbi_export_grow_buffer_space (e, 1))
+	assert (NULL != e);
+
+	if (unlikely (!_vbi_export_grow_buffer_space (e, 1))) {
+		e->write_error = TRUE;
 		return FALSE;
+	}
 
 	offset = e->buffer.offset;
 	e->buffer.data[offset] = c;
 	e->buffer.offset = offset + 1;
+
+	return TRUE;
+}
+
+static vbi_bool
+fast_write			(vbi_export *		e,
+				 const void *		s,
+				 size_t			n_bytes)
+{
+	if (unlikely (!fast_flush (e)))
+		return FALSE;
+
+	if (unlikely (!e->_write (e, s, n_bytes))) {
+		e->write_error = TRUE;
+		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -989,12 +1105,35 @@ vbi_export_write		(vbi_export *		e,
 				 const void *		s,
 				 size_t			n_bytes)
 {
-	unsigned int offset;
+	size_t offset;
 
+	assert (NULL != e);
 	assert (NULL != s);
 
-	if (!_vbi_export_grow_buffer_space (e, n_bytes))
+	if (unlikely (e->write_error))
 		return FALSE;
+
+	switch (e->target) {
+	case VBI_EXPORT_TARGET_MEM:
+	case VBI_EXPORT_TARGET_ALLOC:
+		/* Use buffered I/O. */
+		break;
+
+	case VBI_EXPORT_TARGET_FP:
+	case VBI_EXPORT_TARGET_FD:
+	case VBI_EXPORT_TARGET_FILE:
+		if (n_bytes >= 4096)
+			return fast_write (e, s, n_bytes);
+		break;
+
+	default:
+		assert (0);
+	}
+
+	if (unlikely (!_vbi_export_grow_buffer_space (e, n_bytes))) {
+		e->write_error = TRUE;
+		return FALSE;
+	}
 
 	offset = e->buffer.offset;
 	memcpy (e->buffer.data + offset, s, n_bytes);
@@ -1004,9 +1143,10 @@ vbi_export_write		(vbi_export *		e,
 }
 
 vbi_bool
-vbi_export_puts		(vbi_export *		e,
+vbi_export_puts			(vbi_export *		e,
 				 const char *		s)
 {
+	assert (NULL != e);
 	assert (NULL != s);
 
 	return vbi_export_write (e, s, strlen (s));
@@ -1017,53 +1157,66 @@ vbi_export_vprintf		(vbi_export *		e,
 				 const char *		templ,
 				 va_list		ap)
 {
-	unsigned int offset = e->buffer.offset;
+	size_t offset;
 	unsigned int i;
 
 	assert (NULL != e);
 	assert (NULL != templ);
 	assert (0 != e->target);
-	assert (offset <= e->buffer.capacity);
 
-	if (e->write_error)
+	if (unlikely (e->write_error))
 		return FALSE;
 
+	if (VBI_EXPORT_TARGET_FP == e->target) {
+		if (unlikely (!fast_flush (e)))
+			return FALSE;
+
+		if (unlikely (vfprintf (e->_handle.fp, templ, ap) < 0)) {
+			e->write_error = TRUE;
+			return FALSE;
+		}
+
+		return TRUE;
+	}
+
+	offset = e->buffer.offset;
+
 	for (i = 0;; ++i) {
-		unsigned int avail = e->buffer.capacity - offset;
-		long len;
+		size_t avail = e->buffer.capacity - offset;
+		int len;
 
 		len = vsnprintf (e->buffer.data + offset,
 				 avail, templ, ap);
 		if (len < 0) {
-			/* Not enough. */
+			/* avail is not enough. */
 
-			if (avail > (1 << 16)) {
-				/* Now that's silly. */
-				break;
-			}
+			if (unlikely (avail >= (1 << 16)))
+				break; /* now that's ridiculous */
 
+			/* Note 256 is the minimum free space we want
+			   but the buffer actually grows by a factor
+			   two in each iteration. */
 			if (!_vbi_export_grow_buffer_space (e, 256))
-				return FALSE;
-		} else if ((unsigned long) len < avail) {
+				goto failed;
+		} else if ((size_t) len < avail) {
 			e->buffer.offset = offset + len;
 			return TRUE;
 		} else {
-			/* Size needed. */
-
-			if (i > 0) {
-				/* Again? */
-				break;
-			}
-
 			/* Plus one because the buffer must also hold
 			   a terminating NUL, although we don't need it. */
-			if (!_vbi_export_grow_buffer_space (e, len + 1))
-				return FALSE;
+			size_t needed = (size_t) len + 1;
+
+			if (unlikely (i > 0))
+				break; /* again? */
+
+			if (!_vbi_export_grow_buffer_space (e, needed))
+				goto failed;
 		}
 	}
 
 	_vbi_export_malloc_error (e);
 
+ failed:
 	e->write_error = TRUE;
 
 	return FALSE;
@@ -1086,82 +1239,6 @@ vbi_export_printf		(vbi_export *		e,
 	return success;
 }
 
-vbi_bool
-vbi_export_flush		(vbi_export *		e)
-{
-	assert (NULL != e);
-
-	if (e->write_error)
-		return FALSE;
-
-	switch (e->target) {
-	case VBI_EXPORT_TARGET_MEM:
-	case VBI_EXPORT_TARGET_ALLOC:
-		/* Nothing to do. */
-		break;
-
-	case VBI_EXPORT_TARGET_FP:
-	{
-		size_t actual;
-
-		if (0 == e->buffer.offset)
-			return TRUE;
-
-		actual = fwrite (e->buffer.data,
-				 sizeof (*e->buffer.data),
-				 e->buffer.offset,
-				 e->_handle.fp);
-
-		if (unlikely (actual < e->buffer.offset)) {
-			vbi_export_write_error (e);
-			e->write_error = TRUE;
-			return FALSE;
-		}
-
-		e->buffer.offset = 0;
-
-		break;
-	}
-
-	case VBI_EXPORT_TARGET_FD:
-	case VBI_EXPORT_TARGET_FILE:
-	{
-		ssize_t actual;
-		unsigned int retry;
-
-		if (0 == e->buffer.offset)
-			return TRUE;
-
-		assert (e->buffer.offset <= (unsigned int) SSIZE_MAX);
-
-		for (retry = 10;;) {
-			actual = write (e->_handle.fd,
-					e->buffer.data,
-					e->buffer.offset);
-
-			if (likely (actual == (ssize_t) e->buffer.offset))
-				break;
-
-			if (0 != actual || 0 == retry) {
-				vbi_export_write_error (e);
-				e->write_error = TRUE;
-				return FALSE;
-			}
-
-			--retry;
-		}
-
-		e->buffer.offset = 0;
-
-		break;
-	}
-
-	default:
-		assert (0);
-	}
-
-	return TRUE;
-}
 
 
 /**
@@ -1195,6 +1272,7 @@ vbi_export_mem			(vbi_export *		e,
 	reset_error (e);
 
 	e->target = VBI_EXPORT_TARGET_MEM;
+	e->_write = NULL;
 
 	e->buffer.data = buffer;
 	e->buffer.offset = 0;
@@ -1249,6 +1327,7 @@ vbi_export_alloc		(vbi_export *		e,
 	reset_error (e);
 
 	e->target = VBI_EXPORT_TARGET_ALLOC;
+	e->_write = NULL;
 
 	CLEAR (e->buffer);
 
@@ -1307,6 +1386,7 @@ vbi_export_stdio		(vbi_export *		e,
 	reset_error (e);
 
 	e->target = VBI_EXPORT_TARGET_FP;
+	e->_write = write_fp;
 
 	e->_handle.fp = fp;
 	clearerr (fp);
@@ -1367,6 +1447,7 @@ vbi_export_file			(vbi_export *		e,
 	e->name = name;
 
 	e->target = VBI_EXPORT_TARGET_FILE;
+	e->_write = write_fd;
 
 	e->_handle.fd = open (name,
 			      O_WRONLY | O_CREAT | O_TRUNC,
