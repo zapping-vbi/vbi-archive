@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.13.2.1 2007-11-05 17:44:25 mschimek Exp $ */
+/* $Id: export.h,v 1.13.2.2 2007-11-09 04:39:38 mschimek Exp $ */
 
 #ifndef EXPORT_H
 #define EXPORT_H
@@ -302,6 +302,11 @@ enum _vbi_export_target {
 	VBI_EXPORT_TARGET_FILE,
 };
 
+typedef vbi_bool
+_vbi_export_write_fn		(vbi_export *		e,
+				 const void *		s,
+				 size_t			n_bytes);
+
 /**
  * @ingroup Exmod
  *
@@ -323,7 +328,7 @@ struct vbi_export {
 	 * we are writing to, as supplied by the client. Otherwise
 	 * @c NULL. This is intended for debugging and error messages.
 	 */
-	char *			name;
+	const char *		name;
 
 	/**
 	 * Generic option: Network name or @c NULL.
@@ -353,6 +358,13 @@ struct vbi_export {
 		FILE *			fp;
 		int			fd;
 	}			_handle;
+
+	/**
+	 * Function to write data into @a _handle.
+	 *
+	 * Private field. Not to be accessed by export modules.
+	 */
+	_vbi_export_write_fn *	_write;
 
 	/**
 	 * Output buffer. Export modules can write into this buffer
