@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.20.2.1 2007-11-05 17:43:55 mschimek Exp $ */
+/* $Id: export.c,v 1.20.2.2 2007-11-09 04:39:10 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -872,7 +872,7 @@ Scan options:\n"
                        for caption/subtitle formats.\n"
 #endif
 "Formats:\n\
--i | --list            List available output formats and their options.\n\
+-m | --list            List available output formats and their options.\n\
 		       Append options to the format name separated by\n\
                        commas: text,charset=UTF-8\n\
 Valid page numbers are:\n"
