@@ -1,7 +1,7 @@
 /*
  *  libzvbi - Closed Caption and Teletext rendering
  *
- *  Copyright (C) 2000, 2001, 2002 Michael H. Schimek
+ *  Copyright (C) 2000, 2001, 2002, 2007 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998, 1999 Edgar Toernig <froese@gmx.de>
@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.13.2.2 2007-11-05 17:44:51 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.13.2.3 2007-11-09 04:39:34 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -875,115 +875,200 @@ get_image_title(vbi_export *e, const vbi_page *pg, char *title, int title_max)
  */
 
 static vbi_bool
-ppm_export(vbi_export *e, vbi_page *pg)
+ppm_export			(vbi_export *		e,
+				 vbi_page *		pg)
 {
 	gfx_instance *gfx = PARENT(e, gfx_instance, export);
-	int cw, ch, ww, size, scale, row;
+	vbi_rgba *rgba_image;
+	const vbi_rgba *rgba_row_buffer;
+	unsigned int image_width; /* in pixels */
 	unsigned int image_height;
-	vbi_rgba *image;
-	uint8_t *body;
-	int i;
+	unsigned int char_width; /* in pixels */
+	unsigned int char_height;
+	unsigned int scale;
+	unsigned int row;
+	size_t rgba_row_size;
+	size_t ppm_row_size;
+	size_t needed;
+	vbi_bool result;
+
+	rgba_image = NULL;
+	result = FALSE;
 
 	if (pg->columns < 40) /* caption */ {
-		cw = CCW;
-		ch = CCH;
-		/* characters already line-doubled */
+		char_width = CCW;
+		char_height = CCH;
+		/* Characters are already line-doubled. */
 		scale = !!gfx->double_height;
 	} else {
-		cw = TCW;
-		ch = TCH;
+		char_width = TCW;
+		char_height = TCH;
 		scale = 1 + !!gfx->double_height;
 	}
 
-	ww = cw * pg->columns;
-	size = ww * ch * 1; /* one character row */
+	image_width = char_width * pg->columns;
+	image_height = ((char_height * pg->rows) << scale) >> 1;
 
-	if (!(image = malloc(size * sizeof(*image)))) {
-		vbi_export_error_printf(e, _("Unable to allocate %d KB image buffer."),
-					size * sizeof(*image) / 1024);
-		return FALSE;
+	rgba_row_size = image_width * char_height;
+	ppm_row_size = ((rgba_row_size << scale) >> 1) * 3;
+	rgba_row_size *= sizeof (vbi_rgba);
+
+	if (VBI_EXPORT_TARGET_MEM == e->target) {
+		if (!vbi_export_printf (e, "P6 %u %u 255\n",
+					image_width, image_height))
+			goto failed;
+
+		/* Check in advance if enough space is available for
+		   the rest of the PPM image. */
+		needed = ppm_row_size * pg->rows;
+		if (!_vbi_export_grow_buffer_space (e, needed))
+			goto failed;
+
+		rgba_image = malloc (rgba_row_size);
+		if (NULL == rgba_image) {
+			_vbi_export_malloc_error (e);
+			goto failed;
+		}
+
+		rgba_row_buffer = rgba_image;
+	} else {
+		size_t margin;
+
+		/* vbi_export_printf() and _vbi_export_grow_buffer_space()
+		   allocate more buffer memory as needed, but for
+		   efficiency we estimate the required space and
+		   allocate it all in advance. We use the same buffer
+		   for the RGBA and PPM image. One row is enough as we
+		   flush() after each row. It should be enough for the
+		   header too, if it is buffered at all. Otherwise
+		   vbi_export_printf() below will allocate more memory. */
+		margin = (2 == scale) ? image_width * sizeof (vbi_rgba): 0;
+		needed = MAX (rgba_row_size - margin,
+			      ppm_row_size) + margin;
+
+		if (VBI_EXPORT_TARGET_ALLOC == e->target) {
+			/* The buffer must hold the entire PPM image.
+			   When we're done vbi_export_alloc() will
+			   truncate it with realloc(). */
+			needed += 64; /* max. header size */
+			needed += ppm_row_size * (pg->rows - 1);
+		}
+
+		if (!_vbi_export_grow_buffer_space (e, needed))
+			goto failed;
+
+		if (!vbi_export_printf (e, "P6 %u %u 255\n",
+					image_width, image_height))
+			goto failed;
+
+		if (!vbi_export_flush (e))
+			goto failed;
+
+		rgba_row_buffer = (const vbi_rgba *)
+			(e->buffer.data
+			 + ((e->buffer.capacity - rgba_row_size)
+			    & -sizeof (*rgba_row_buffer))); /* align */
 	}
 
-	image_height = (ch * pg->rows) << gfx->double_height;
+	for (row = 0; row < pg->rows; ++row) {
+		uint8_t *d;
+		uint8_t *d_end;
+		const vbi_rgba *s;
+		unsigned int count;
 
-	if (!vbi_export_printf (e, "P6 %u %u 255\n",
-				ww, image_height))
-		goto failed;
+		if (pg->columns < 40) {
+			vbi_draw_cc_page_region (pg, VBI_PIXFMT_RGBA32_LE,
+						 rgba_row_buffer,
+						 /* rowstride: auto */ -1,
+						 /* column */ 0, row,
+						 pg->columns, /* rows */ 1);
+		} else {
+			vbi_draw_vt_page_region (pg, VBI_PIXFMT_RGBA32_LE,
+						 rgba_row_buffer,
+						 /* rowstride: auto */ -1,
+						 /* column */ 0, row,
+						 pg->columns, /* rows */ 1,
+						 /* reveal */ !e->reveal,
+						 /* flash_on */ TRUE);
+		}
 
-	for (row = 0; row < pg->rows; row++) {
-		if (pg->columns < 40)
-			vbi_draw_cc_page_region(pg, VBI_PIXFMT_RGBA32_LE, image, -1,
-						0, row, pg->columns, 1 /* rows */);
-		else
-			vbi_draw_vt_page_region(pg, VBI_PIXFMT_RGBA32_LE, image, -1,
-						0, row, pg->columns, 1 /* rows */,
-						!e->reveal, 1 /* flash_on */);
-		body = (uint8_t *) image;
-
-		if (scale == 0)
-			for (i = 0; i < size; body += 3, i++) {
-				body[0] = ((image[i] & 0xFF) + (image[i + ww] & 0xFF)
-					   + 0x01) >> 1;
-				body[1] = ((image[i] & 0xFF00) + (image[i + ww] & 0xFF00)
-					   + 0x0100) >> 9;
-				body[2] = ((image[i] & 0xFF0000) + (image[i + ww] & 0xFF0000)
-					   + 0x010000) >> 17;
-			}
-		else
-			for (i = 0; i < size; body += 3, i++) {
-				unsigned int n = image[i];
-
-				body[0] = n;
-				body[1] = n >> 8;
-				body[2] = n >> 16;
-			}
+		d = e->buffer.data + e->buffer.offset;
+		s = rgba_row_buffer;
 
 		switch (scale) {
-			int rows, stride;
-
 		case 0:
-			body = (uint8_t *) image;
-			rows = ch / 2;
-			stride = ww * 3;
+			count = char_height >> 1;
+			do {
+				d_end = d + image_width * 3;
+				do {
+					vbi_rgba n1 = s[image_width];
+					vbi_rgba n0 = *s++;
 
-			for (i = 0; i < rows; i++, body += stride * 2)
-				if (!vbi_export_write (e, body, stride))
-					goto failed;
+					d[0] = ((n0 & 0xFF) + (n1 & 0xFF)
+						+ 0x01) >> 1;
+					d[1] = ((n0 & 0xFF00) + (n1 & 0xFF00)
+						+ 0x0100) >> 9;
+					d[2] = ((n0 & 0xFF0000)
+						+ (n1 & 0xFF0000)
+						+ 0x010000) >> 17;
+					d += 3;
+				} while (d < d_end);
+
+				s += image_width;
+			} while (--count > 0);
+
 			break;
 
 		case 1:
-			if (!vbi_export_write (e, image, size * 3))
-				goto failed;
+			d_end = d + image_width * char_height * 3;
+			do {
+				vbi_rgba n = *s++;
+
+				d[0] = n;
+				d[1] = n >> 8;
+				d[2] = n >> 16;
+				d += 3;
+			} while (d < d_end);
+
 			break;
 
 		case 2:
-			body = (uint8_t *) image;
-			stride = cw * pg->columns * 3;
+			count = char_height;
+			do {
+				d_end = d + image_width * 3;
+				do {
+					vbi_rgba n = *s++;
 
-			for (i = 0; i < ch; body += stride, i++) {
-				if (!vbi_export_write (e, body, stride))
-					goto failed;
-				if (!vbi_export_write (e, body, stride))
-					goto failed;
-			}
+					d[0] = n;
+					d[1] = n >> 8;
+					d[2] = n >> 16;
+					d[image_width * 3 + 0] = n;
+					d[image_width * 3 + 1] = n >> 8;
+					d[image_width * 3 + 2] = n >> 16;
+					d += 3;
+				} while (d < d_end);
+
+				d += image_width * 3;
+			} while (--count > 0);
 
 			break;
+
+		default:
+			assert (0);
 		}
 
-		/* Saves buffer space. */
+		e->buffer.offset = (char *) d - e->buffer.data;
+
 		if (!vbi_export_flush (e))
 			goto failed;
 	}
 
-	free(image);
-	image = NULL;
-
-	return TRUE;
+	result = TRUE;
 
  failed:
-	free(image);
+	free (rgba_image);
 
-	return FALSE;
+	return result;
 }
 
 static vbi_export_info
@@ -1147,176 +1232,135 @@ draw_row_indexed(vbi_page * pg, vbi_char * ac, uint8_t * canvas, uint8_t * pen,
         }
 }
 
-#define ABORT_ON_MALLOC_FAILURE(E,PTR,SZ) \
-	do {if ((PTR) == NULL) { \
-		vbi_export_error_printf((E), _("Unable to allocate %d KB image buffer."), \
-					(SZ) / 1024); \
-		goto abort; \
-	}}while(0)
-
-#if 0
-#define xpm_append_data(IMG,BUF_LEN,FMT...) (IMG) += sprintf((IMG), ## FMT );
-#else
-/* hackery required because libzvbi shuns the friendly sprintf */
-#define xpm_append_data(IMG,BUF_LEN,FMT...) \
-        do { \
-                if ((BUF_LEN)>0) { \
-                        int __len = snprintf((IMG), (BUF_LEN), ## FMT); \
-                        if ((__len < 0) || (__len >= (BUF_LEN))) { \
-                                (BUF_LEN) = 0; \
-                                return (IMG); \
-                        } \
-                        (IMG) += __len; \
-                        (BUF_LEN) -= __len; \
-                } else { \
-                        /* already failed earlier */ \
-                } \
-        } while(0)
-#endif
-
 /*
  *  XPM - X Pixmap
  *
  *  According to "XPM Manual" version 3.4i, 1996-09-10, by Arnaud Le Hors
  */
-static const uint8_t xpm_col_codes[40] = " 1234567.BCDEFGHIJKLMNOPabcdefghijklmnop";
+
+static const uint8_t xpm_col_codes[40] =
+	" 1234567.BCDEFGHIJKLMNOPabcdefghijklmnop";
 
 /**
  * @internal
- * @param ww Image width in pixels
- * @param wh Image height in pixels
- * @param title Optional title to be included in extension data, or @c NULL.
- * @param creator Optional software name and version to be included in
- *   extension data, or @c NULL.
- * 
- * This function calculates and returns the size of an XPM image of the given
- * size and including optional extension data.  The result is intended to be
- * used for allocating a buffer. The result is not exact as a small
- * safety margin is included.
- */
-static int
-xpm_calc_img_buf_size(int ww, int wh, const char * title, const char *creator)
-{
-        int l = 109 +                   /* header (incl. 4-digit width & height & 2-digit col num) */
-                15 * 40 +               /* color palette with 40 members */
-                13 +                    /* row start comment */
-                13 + (ww + 4) * wh +    /* data rows */
-                3 +                     /* closing bracket */
-                50;                     /* safety margin */
-
-        if ((title != NULL) || (creator != NULL)) {
-                l += 7 +                /* XPMEXT keyword in header */
-                     ((title == NULL) ? 0: (strlen(title)+17)) + /* XPMEXT keywords + label + content */
-                     ((creator == NULL) ? 0: (strlen(creator)+20)) +
-                     12;                /* XPMENDEXT keyword */
-
-        }
-
-        return l;
-}
-
-/**
- * @internal
+ * @param e Export context
  * @param pg Page reference
- * @param img Image data output buffer pointer
- * @param ww Image width
- * @param wh Image height
+ * @param image_width Image width
+ * @param image_height Image height
  * @param title Optional title to be included in extension data, or @c NULL.
  * @param creator Optional software name and version to be included in
  *   extension data, or @c NULL.
- * @param buf_len Pointer to remaining space in @a img buffer. This value
- *   is updated after appending data to the buffer.
  * 
  * This function writes an XPM header and color palette for an image with
  * the given size and optional extension data.  The color palette is
  * retrieved from the page referenced by @a pg.
+ *
+ * @returns
+ * @c FALSE on error.
  */
-static uint8_t *
-xpm_write_img_header(vbi_page * pg, uint8_t * img, int ww, int wh,
-                     const char * title, const char *creator, int * buf_len)
+static vbi_bool
+xpm_write_header		(vbi_export *		e,
+				 const vbi_page *	pg,
+				 unsigned int		image_width,
+				 unsigned int		image_height,
+				 unsigned int		scale,
+				 const char *		title,
+				 const char *		creator)
 {
-        vbi_bool do_ext = ((title != NULL) || (creator != NULL));
-        int idx;
+        vbi_bool do_ext = (NULL != title || NULL != creator);
+        unsigned int i;
 
-        /* warning: adapt buf size calculation when changing the text! */
-        xpm_append_data(img, *buf_len,
-                             "/* XPM */\n"
-                             "static char *image[] = {\n"
-                             "/* width height ncolors chars_per_pixel */\n"
-                             "\"%d %d %d %d%s\",\n"
-                             "/* colors */\n",
-                             ww, wh, 40, 1,
-                             do_ext ? " XPMEXT":"");
+        /* Warning: adapt buf size estimation when changing the text! */
+        vbi_export_printf (e,
+			   "/* XPM */\n"
+			   "static char *image[] = {\n"
+			   "/* width height ncolors chars_per_pixel */\n"
+			   "\"%d %d %d %d%s\",\n"
+			   "/* colors */\n",
+			   image_width, image_height, 40, 1,
+			   do_ext ? " XPMEXT":"");
 
-        /* write color palette (including unused colors - could be optimized) */
-        for (idx = 0; idx < 40; idx++) {
-                if (idx == 8) {
-                        xpm_append_data(img, *buf_len,
-                                        "\"%c c None\",\n", xpm_col_codes[idx]);
+        /* Write color palette (including unused colors
+	   - could be optimized). */
+        for (i = 0; i < 40; ++i) {
+                if (8 == i) {
+                        vbi_export_printf (e,
+					   "\"%c c None\",\n",
+					   xpm_col_codes[i]);
                 } else {
-                        xpm_append_data(img, *buf_len,
-                                        "\"%c c #%02X%02X%02X\",\n",
-                                        xpm_col_codes[idx],
-                                        pg->color_map[idx] & 0xFF,
-                                        (pg->color_map[idx] >> 8) & 0xFF,
-                                        (pg->color_map[idx] >> 16) & 0xFF);
+                        vbi_export_printf (e,
+					   "\"%c c #%02X%02X%02X\",\n",
+					   xpm_col_codes[i],
+					   pg->color_map[i] & 0xFF,
+					   (pg->color_map[i] >> 8) & 0xFF,
+					   (pg->color_map[i] >> 16) & 0xFF);
                 }
         }
 
-        xpm_append_data(img, *buf_len, "/* pixels */\n");
+        vbi_export_printf (e, "/* pixels */\n");
 
-        return img;
+	/* Note this also returns FALSE if any of the
+	   vbi_export_printf() calls above failed. */
+        return vbi_export_flush (e);
 }
 
 /**
  * @internal
- * @param img Image data output buffer pointer
+ * @param e Export context
  * @param title Optional title to be included in extension data, or @c NULL.
  * @param creator Optional software name and version to be included in
  *   extension data, or @c NULL.
- * @param buf_len Pointer to remaining space in @a img buffer. This value
- *   is updated after appending data to the buffer.
  * 
  * This function writes an XPM "footer" (i.e. anything following the actual
  * image data) and optionally appends image title and software names as
  * extension data.
+ *
+ * @returns
+ * @c FALSE on error.
  */
-static uint8_t *
-xpm_write_img_footer(uint8_t * img, const char * title, const char *creator, int *buf_len)
+static vbi_bool
+xpm_write_footer		(vbi_export *		e,
+				 const char *		title,
+				 const char *		creator)
 {
-        char * p;
+        char *p;
 
-        /* warning: adapt buf size calculation when changing the text! */
-        if ((title != NULL) && (title[0] != 0)) {
+        /* Warning: adapt buf size estimation when changing the text! */
+        if (NULL != title && 0 != title[0]) {
                 while ((p = strchr(title, '"')) != NULL)
                         *p = '\'';
-                xpm_append_data(img, *buf_len, "\"XPMEXT title %s\",\n", title);
+                vbi_export_printf (e, "\"XPMEXT title %s\",\n", title);
         }
-        if ((creator != NULL) && (creator[0] != 0)) {
+
+        if (NULL != creator && 0 != creator[0]) {
                 while ((p = strchr(creator, '"')) != NULL)
                         *p = '\'';
-                xpm_append_data(img, *buf_len, "\"XPMEXT software %s\",\n", creator);
-        }
-        if ((title != NULL) || (creator != NULL)) {
-                xpm_append_data(img, *buf_len, "\"XPMENDEXT\"\n");
+                vbi_export_printf (e, "\"XPMEXT software %s\",\n", creator);
         }
 
-        xpm_append_data(img, *buf_len, "};\n");
+        if (NULL != title || NULL != creator) {
+                vbi_export_printf (e, "\"XPMENDEXT\"\n");
+        }
 
-        return img;
+        vbi_export_printf (e, "};\n");
+
+	/* Note this also returns FALSE if any of the
+	   vbi_export_printf() calls above failed. */
+        return vbi_export_flush (e);
 }
 
 /**
  * @internal
- * @param img Image data output buffer pointer
- * @param buf Image source data as written by @c draw_row_indexed()
- * @param title Optional title to be included in extension data, or @c NULL.
- * @param creator Optional software name and version to be included in
- *   extension data, or @c NULL.
- * @param buf_len Pointer to remaining space in @a img buffer. This value
- *   is updated after appending data to the buffer.
+ * @param e Export context
+ * @param s Image source data as written by draw_row_indexed()
+ * @param image_width Image width
+ * @param char_height Character height
+ * @param scale Scale image:
+ *   - 0 to half height
+ *   - 1 to normal height
+ *   - 2 to double height
  * 
- * This function writes XPM image data for one teletext or closed caption
+ * This function writes XPM image data for one Teletext or Closed Caption
  * row (i.e. several pixel lines) into the given buffer. The image is scaled
  * vertically on the fly.
  *
@@ -1325,135 +1369,189 @@ xpm_write_img_footer(uint8_t * img, const char * title, const char *creator, int
  * characters.  CLUT 1 color 0 is hard-coded as transparent; semi-transparent
  * colors are also mapped to the transparent color code since XPM does not
  * have an alpha channel.
+ *
+ * @returns
+ * @c FALSE on error.
  */
-static uint8_t *
-xpm_convert_img_row(uint8_t * img, uint8_t * buf, int ww, int ch, int scale, int *buf_len)
+static vbi_bool
+xpm_write_row			(vbi_export *		e,
+				 const uint8_t *	s,
+				 unsigned int		image_width,
+				 unsigned int		char_height,
+				 unsigned int		scale)
 {
-        uint8_t * startp = img;
-        int row;
-        int col;
+	size_t needed;
+	char *d;
 
-        if (scale == 0)
-                ch /= 2;
-        else if (scale == 2)
-                ch *= 2;
+	needed = (((image_width + 4) * char_height) << scale) >> 1;
+	if (unlikely (!_vbi_export_grow_buffer_space (e, needed)))
+		return FALSE;
 
-        if (*buf_len < ch * (ww + 4)) {
-                *buf_len = 0;
-                return img;
-        }
+	d = e->buffer.data + e->buffer.offset;
 
-        for (row = 0; row < ch; row++) {
-                *(img++) = '"';
+	do {
+		char *d_end;
 
-                for (col = 0; col < ww; col++) {
-                        uint8_t c = *(buf++);
-                        if (c < sizeof(xpm_col_codes)) {
-                                *(img++) = xpm_col_codes[c];
+                *d++ = '"';
+
+		d_end = d + image_width;
+		do {
+                        uint8_t c = *s++;
+
+                        if (c < sizeof (xpm_col_codes)) {
+                                *d++ = xpm_col_codes[c];
                         } else {
-                                *(img++) = '.';  /* transparent */
+                                *d++ = '.';  /* transparent */
                         }
-                }
-                *(img++) = '"';
-                *(img++) = ',';
-                *(img++) = '\n';
+                } while (d < d_end);
 
-                if (scale == 0) {
-                        /* scale down - use every 2nd row */
-                        buf += ww;
-                } else if (scale == 2) {
-                        /* scale up - double each line */
-                        if ((row & 1) == 0)
-                                buf -= ww;
-                }
-        }
-        *buf_len -= (img - startp);
+                d[0] = '"';
+                d[1] = ',';
+                d[2] = '\n';
+		d += 3;
 
-        return img;
+                if (0 == scale) {
+                        /* Scale down - use every 2nd row. */
+			--char_height;
+                        s += image_width;
+                } else if (2 == scale) {
+                        /* Scale up - double each line. */
+			memcpy (d, d - image_width - 4, image_width + 4);
+			d += image_width + 4;
+		}
+        } while (--char_height > 0);
+
+	e->buffer.offset = d - e->buffer.data;
+
+        return vbi_export_flush (e);
 }
 
 static vbi_bool
-xpm_export(vbi_export *e, vbi_page *pg)
+xpm_export			(vbi_export *		e,
+				 vbi_page *		pg)
 {
 	gfx_instance *gfx = PARENT(e, gfx_instance, export);
-	uint8_t *image = NULL;
-        uint8_t *row_buf = NULL;
-        uint8_t *canvas;
         uint8_t pen[128];
         char title[80];
-	int ch, ww, wh, scale, woh;
-        int img_size;
-	int row;
-	int i;
-        vbi_bool result = FALSE;
+	uint8_t *indexed_image;
+	unsigned int image_width;
+	unsigned int image_height;
+	unsigned int char_width;
+	unsigned int char_height;
+	unsigned int scale;
+	unsigned int row;
+        vbi_bool result;
+
+	indexed_image = NULL;
+	result = FALSE;
 
 	if (pg->columns < 40) /* caption */ {
-		/* characters are already line-doubled */
-		scale = gfx->double_height ? 1 : 0;
-                ch = CCH;
-	        ww = CCW * pg->columns;
-	        wh = CCH * pg->rows;
+		char_width = CCW;
+                char_height = CCH;
+		/* Characters are already line-doubled. */
+		scale = !!gfx->double_height;
 	} else {
-		scale = gfx->double_height ? 2 : 1;
-                ch = TCH;
-	        ww = TCW * pg->columns;
-	        wh = TCH * pg->rows;
+		char_width = TCW;
+                char_height = TCH;
+		scale = 1 + !!gfx->double_height;
 	}
 
-        switch (scale) {
-                case 0:  woh = wh / 2; break;
-                case 2:  woh = wh * 2; break;
-                default: woh = wh; break;
-        }
-        get_image_title(e, pg, title, sizeof(title));
-        img_size = xpm_calc_img_buf_size(ww, woh, title, e->creator);
+	image_width = char_width * pg->columns;
+	image_height = ((char_height * pg->rows) << scale) >> 1;
 
-	image = canvas = malloc(img_size);
-        ABORT_ON_MALLOC_FAILURE(e, image, img_size);
-
-        row_buf = malloc(ww * ch);
-        ABORT_ON_MALLOC_FAILURE(e, row_buf, ww * ch);
+        get_image_title (e, pg, title, sizeof (title));
 
         if (pg->drcs_clut) {
+		unsigned int i;
+
                 for (i = 2; i < 2 + 8 + 32; i++) {
                         pen[i]      = pg->drcs_clut[i]; /* opaque */
                         pen[i + 64] = 40; /* translucent */
                 }
         }
 
-        canvas = xpm_write_img_header(pg, image, ww, woh, title, e->creator, &img_size);
+	indexed_image = malloc (image_width * char_height);
+	if (unlikely (NULL == indexed_image)) {
+		_vbi_export_malloc_error (e);
+		goto failed;
+	}
 
-        for (row = 0; row < pg->rows; row++) {
-                draw_row_indexed(pg, &pg->text[row * pg->columns],
-                                 row_buf, pen, ww,
-                                 !e->reveal, pg->columns < 40, scale);
+	switch (e->target) {
+		size_t header_size;
+		size_t footer_size;
+		size_t xpm_row_size;
+		size_t needed;
 
-                canvas = xpm_convert_img_row(canvas, row_buf, ww, ch, scale, &img_size);
+	case VBI_EXPORT_TARGET_MEM:
+		/* vbi_export_printf() and _vbi_export_grow_buffer_space()
+		   will check on the fly if enough space is available. */
+		break;
+
+	case VBI_EXPORT_TARGET_FP:
+		/* Header and footer are not e->buffered and we allocate
+		   the XPM data buffer once in xpm_write_row(). */
+		break;
+
+	default:
+		/* vbi_export_printf() and _vbi_export_grow_buffer_space()
+		   allocate more buffer memory as needed, but for
+		   efficiency we estimate the XPM image size and
+		   allocate it all in advance. */
+
+		header_size = 109	/* header (incl. 4-digit width
+					   and height and 2-digit col num) */
+			+ 15 * 40	/* color palette with 40 members */
+			+ 13;		/* row start comment */
+		xpm_row_size = (((image_width + 4) * char_height)
+				<< scale) >> 1;
+		footer_size = 3;	/* closing bracket */
+
+		if (NULL != title || NULL != e->creator) {
+			header_size += 7; /* XPMEXT keyword */
+			footer_size += 12; /* XPMENDEXT keyword */
+			if (NULL != title) {
+				/* XPMEXT keywords + label + content */
+				footer_size += 17 + strlen (title);
+			}
+			if (NULL != e->creator)
+				footer_size += 20 + strlen (e->creator);
+		}
+
+		if (VBI_EXPORT_TARGET_ALLOC == e->target) {
+			needed = header_size + footer_size
+				+ xpm_row_size * pg->rows;
+		} else {
+			/* We flush() after writing header, footer and
+			   each row. */
+			needed = MAX (header_size, footer_size);
+			needed = MAX (needed, xpm_row_size);
+		}
+
+		if (unlikely (!_vbi_export_grow_buffer_space (e, needed)))
+			return FALSE;
+	}
+
+        if (!xpm_write_header (e, pg, image_width, image_height, scale,
+			       title, e->creator))
+		goto failed;
+
+        for (row = 0; row < pg->rows; ++row) {
+                draw_row_indexed (pg, &pg->text[row * pg->columns],
+				  indexed_image, pen, image_width,
+				  !e->reveal, pg->columns < 40, scale);
+
+                if (!xpm_write_row (e, indexed_image,
+				    image_width, char_height, scale))
+			goto failed;
         }
 
-        canvas = xpm_write_img_footer(canvas, title, e->creator, &img_size);
-
-        if (img_size <= 0) {
-		vbi_export_error_printf(e, _("Internal error: XPM output buffer overflow.\n"
-                                             "(Please report: Image size: %dx%d + EXT %d)"),
-                                             ww, woh, strlen(title) + strlen(e->creator));
-                goto abort;
-        }
-
-        img_size = (canvas - image) * sizeof(uint8_t);
-
-        if (!vbi_export_write (e, image, img_size))
-                goto abort;
+	if (!xpm_write_footer (e, title, e->creator))
+		goto failed;
 
         result = TRUE;
 
-abort:
-	if (row_buf != NULL) {
-	        free(row_buf);
-        }
-	if (image != NULL) {
-	        free(image);
-        }
+ failed:
+	free (indexed_image);
 
 	return result;
 }
