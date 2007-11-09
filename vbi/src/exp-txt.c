@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.20.2.1 2007-11-05 17:44:34 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.20.2.2 2007-11-09 04:39:14 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -609,10 +609,16 @@ export				(vbi_export *		e,
 	else
 		charset = iconv_formats[text->format];
 
-	if ((text->cd = iconv_open(charset, "UCS-2")) == (iconv_t) -1 || endian < 0) {
+	text->cd = iconv_open (charset, "UCS-2");
+	if ((iconv_t) -1 == text->cd || endian < 0) {
 		vbi_export_error_printf(&text->export,
-			_("Character conversion Unicode (UCS-2) to %s not supported."),
-			charset);
+					_("Character conversion Unicode "
+					  "(UCS-2) to %s not supported."),
+					charset);
+
+		if ((iconv_t) -1 != text->cd)
+			iconv_close (text->cd);
+
 		return FALSE;
 	}
 
@@ -646,10 +652,11 @@ export				(vbi_export *		e,
 			if (text->term > 0)
 				vbi_export_printf (e, "\e[m\n"); /* reset */
 			else
-				vbi_export_putc(e, '\n');
+				vbi_export_putc (e, '\n');
 			break;
-		} else
+		} else {
 			vbi_export_putc (e, '\n');
+		}
 	}
 
 	iconv_close(text->cd);
