@@ -25,7 +25,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.10.2.1 2007-11-05 17:44:29 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.10.2.2 2007-11-09 04:39:29 mschimek Exp $ */
 
 /*
  *  VTX is the file format used by VideoteXt. It stores Teletext pages in
@@ -71,11 +71,13 @@ static vbi_bool
 export(vbi_export *e, vbi_page *pg)
 {
 	vt_page page, *vtp;
-	struct header h;
+	struct header *h;
+	size_t needed;
 
 	if (pg->pgno < 0x100 || pg->pgno > 0x8FF) {
 		/* TRANSLATORS: Not Closed Caption pages. */
-		vbi_export_error_printf(e, _("Can only export Teletext pages."));
+		vbi_export_error_printf
+			(e, _("Can only export Teletext pages."));
 		return FALSE;
 	}
 
@@ -93,35 +95,38 @@ export(vbi_export *e, vbi_page *pg)
 
 	if (page.function != PAGE_FUNCTION_UNKNOWN
 	    && page.function != PAGE_FUNCTION_LOP) {
-		vbi_export_error_printf(e, _("Cannot export this page, not displayable."));
+		vbi_export_error_printf
+			(e, _("Cannot export this page, not displayable."));
 		return FALSE;
 	}
 
-	memcpy(h.signature, "VTXV4", 5);
+	needed = sizeof (*h);
+	if (VBI_EXPORT_TARGET_ALLOC == e->target)
+		needed += 40 * 24;
 
-	h.pagenum_l = page.pgno & 0xFF;
-	h.pagenum_h = (page.pgno >> 8) & 15;
+	if (!_vbi_export_grow_buffer_space (e, needed))
+		return FALSE;
 
-	h.hour = 0;
-	h.minute = 0;
+	h = (struct header *)(e->buffer.data + e->buffer.offset);
 
-	h.charset = page.national & 7;
+	memcpy (h->signature, "VTXV4", 5);
 
-	h.wst_flags = page.flags & C4_ERASE_PAGE;
-	h.wst_flags |= vbi_rev8 (page.flags >> 12);
-	h.vtx_flags = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 4) | (0 << 3);
+	h->pagenum_l = page.pgno & 0xFF;
+	h->pagenum_h = (page.pgno >> 8) & 15;
+
+	h->hour = 0;
+	h->minute = 0;
+
+	h->charset = page.national & 7;
+
+	h->wst_flags = page.flags & C4_ERASE_PAGE;
+	h->wst_flags |= vbi_rev8 (page.flags >> 12);
+	h->vtx_flags = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 4) | (0 << 3);
 	/* notfound, pblf (?), hamming error, virtual, seven bits */
 
-	if (!vbi_export_write (e, &h, sizeof (h)))
-		goto error;
+	e->buffer.offset += sizeof (*h);
 
-	if (!vbi_export_write (e, page.data.lop.raw, 40 * 24))
-		goto error;
-
-	return TRUE;
-
-  error:
-	return FALSE;
+	return vbi_export_write (e, page.data.lop.raw, 40 * 24);
 }
 
 static vbi_export_info
