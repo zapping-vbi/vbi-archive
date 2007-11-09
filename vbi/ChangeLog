@@ -1,3 +1,23 @@
+2007-11-09    <mschimek@users.sf.net>
+
+	* test/export.c (usage): Short form of --list is -m, not -i.
+
+	* src/exp-txt.c (iconv_formats): Bug fix: Did not free the iconv
+	  structure after the endianess check failed.
+
+	* src/exp-html.c (header): Invalid iconv_t is -1, not NULL.
+
+	* test/exp-test.sh: Test PNG, PPM, XPM with different aspect
+	  options. 
+	* src/exp-vtx.c (export), src/exp-gfx.c (ppm_export, xpm_export):
+	  Rewrote to reduce memory usage, malloc/realloc() and memcpy()
+	  calls.
+	* src/export.h: Added a write callback to simplify things.
+	* src/export.c (vbi_export_write): Does not buffer large writes
+	  with TARGET_FP, TARGET_FD, TARGET_FILE anymore.
+	(vbi_export_vprintf): Calls vfprintf() for TARGET_FP instead of
+	  buffering.
+
 2007-11-05    <mschimek@users.sf.net>
 
 	* test/exp-test.sh: Added for a quick export target test.
