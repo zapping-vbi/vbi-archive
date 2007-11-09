@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.10.2.1 2007-11-05 17:44:45 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.10.2.2 2007-11-09 04:39:18 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -388,10 +388,12 @@ header(html_instance *html, vbi_page *pg)
 		break;
 	}
 
-	if ((html->cd = iconv_open(charset, "UCS-2")) == (iconv_t) -1) {
-		vbi_export_error_printf(&html->export,
-					_("Character conversion Unicode (UCS-2) "
-					  "to %s not supported."), charset);
+	html->cd = iconv_open (charset, "UCS-2");
+	if ((iconv_t) -1 == html->cd) {
+		vbi_export_error_printf (&html->export,
+					 _("Character conversion "
+					   "Unicode (UCS-2) "
+					   "to %s not supported."), charset);
 		return FALSE;
 	}
 
@@ -705,12 +707,16 @@ export(vbi_export *e, vbi_page *pgp)
 				in[0 + endian] = acp[j].unicode;
 				in[1 - endian] = acp[j].unicode >> 8;
 
-				r = iconv (html->cd, (void *) &ip, &li, (void *) &op, &lo);
+				r = iconv (html->cd,
+					   (void *) &ip, &li,
+					   (void *) &op, &lo);
 				if ((size_t) -1 == r
-				    || (out[0] == 0x40 && acp[j].unicode != 0x0040))
+				    || (out[0] == 0x40
+					&& acp[j].unicode != 0x0040)) {
 					printf("&#%u;", acp[j].unicode);
-				else
+				} else {
 					escaped_putc(html, out[0]);
+				}
 			} else if (vbi_is_gfx(acp[j].unicode)) {
 				putc(html->gfx_chr);
 			} else {
@@ -742,7 +748,7 @@ export(vbi_export *e, vbi_page *pgp)
 	putc('\n');
 
 	iconv_close(html->cd);
-	html->cd = NULL;
+	html->cd = (iconv_t) -1;
 
 	if (html->export.write_error)
 		goto failed;
@@ -752,9 +758,9 @@ export(vbi_export *e, vbi_page *pgp)
  failed:
 	free_styles (html);
 
-	if (NULL != html->cd) {
-		iconv_close(html->cd);
-		html->cd = NULL;
+	if ((iconv_t) -1 != html->cd) {
+		iconv_close (html->cd);
+		html->cd = (iconv_t) -1;
 	}
 
 	return FALSE;
