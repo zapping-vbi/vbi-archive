@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.20.2.3 2007-11-11 01:38:11 mschimek Exp $ */
+/* $Id: export.c,v 1.20.2.4 2007-11-11 03:04:13 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -192,12 +192,8 @@ static void
 do_export			(vbi_pgno		pgno,
 				 vbi_subno		subno)
 {
-	FILE *fp;
 	vbi_page page;
 	vbi_bool success;
-	char *file_name;
-	void *buffer;
-	size_t size;
 
 	if (option_delay > 1) {
 		--option_delay;
@@ -219,7 +215,11 @@ do_export			(vbi_pgno		pgno,
 	}
 
 	switch (option_target) {
+		char *file_name;
+		void *buffer;
 		void *buffer2;
+		FILE *fp;
+		size_t size;
 		ssize_t ssize;
 
 	case 1:
@@ -458,8 +458,8 @@ do_export			(vbi_pgno		pgno,
 				 vbi_subno		subno,
 				 double			timestamp)
 {
-	FILE *fp;
 	vbi_page *pg;
+	vbi_bool success;
 
 	if (option_delay > 1) {
 		--option_delay;
@@ -511,12 +511,81 @@ do_export			(vbi_pgno		pgno,
 		page_dump (pg);
 	}
 
-	fp = open_output_file (pgno, subno);
+	switch (option_target) {
+		char *file_name;
+		void *buffer;
+		void *buffer2;
+		FILE *fp;
+		size_t size;
+		ssize_t ssize;
 
-	/* For proper timing of subtitles. */
-	vbi_export_set_timestamp (ex, timestamp);
+	case 1:
+		buffer = malloc (1 << 20);
+		if (NULL == buffer)
+			no_mem_exit ();
+		ssize = vbi_export_mem (ex, buffer, 1 << 20, pg);
+		success = (ssize >= 0);
+		if (success) {
+			ssize_t ssize2;
 
-	if (!vbi_export_stdio (ex, fp, pg)) {
+			fp = open_output_file (pgno, subno);
+			if (1 != fwrite (buffer, ssize, 1, fp))
+				write_error_exit (/* msg: errno */ NULL);
+			close_output_file (fp);
+
+			/* Test. */
+			ssize2 = vbi_export_mem (ex, buffer, 0, pg);
+			assert (ssize == ssize2);
+			assert (ssize > 0);
+			ssize2 = vbi_export_mem (ex, buffer, ssize - 1, pg);
+			assert (ssize == ssize2);
+		}
+		free (buffer);
+		break;
+
+	case 2:
+		buffer = NULL;
+		buffer2 = vbi_export_alloc (ex, &buffer, &size, pg);
+		/* Test. */
+		assert (buffer == buffer2);
+		success = (NULL != buffer);
+		if (success) {
+			fp = open_output_file (pgno, subno);
+			if (1 != fwrite (buffer, size, 1, fp))
+				write_error_exit (/* msg: errno */ NULL);
+			close_output_file (fp);
+			free (buffer);
+		}
+		break;
+
+	case 3:
+		/* This is the default target. The other cases are only
+		   implemented for tests and will be removed when I
+		   wrote proper unit tests. */
+
+		fp = open_output_file (pgno, subno);
+
+		/* For proper timing of subtitles. */
+		vbi_export_set_timestamp (ex, timestamp);
+
+		success = vbi_export_stdio (ex, fp, pg);
+
+		close_output_file (fp);
+
+		break;
+
+	case 5:
+		file_name = output_file_name (pgno, subno);
+		success = vbi_export_file (ex, file_name, pg);
+		free (file_name);
+		break;
+
+	default:
+		error_exit ("Invalid target %u.", option_target);
+		break;
+	}
+
+	if (!success) {
 		error_exit (_("Export of page %x failed: %s"),
 			    pgno,
 			    vbi_export_errstr (ex));
@@ -525,9 +594,6 @@ do_export			(vbi_pgno		pgno,
 	if (option_pdc_enum) {
 		pdc_dump (pg);
 	}
-
-	close_output_file (fp);
-	fp = NULL;
 
 	vbi_page_delete (pg);
 	pg = NULL;
@@ -1264,7 +1330,8 @@ main				(int			argc,
 
 	cr = isatty (STDERR_FILENO) ? '\r' : '\n';
 
-	rst = read_stream_new (option_in_file_format,
+	rst = read_stream_new (/* option_in_file_name, */
+			       option_in_file_format,
 			       option_in_ts_pid,
 			       decode_frame);
 

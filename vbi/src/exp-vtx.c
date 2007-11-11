@@ -1,7 +1,7 @@
 /*
  *  libzvbi - VTX export function
  *
- *  Copyright (C) 2001 Michael H. Schimek
+ *  Copyright (C) 2001, 2007 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998, 1999 Edgar Toernig <froese@gmx.de>
@@ -25,7 +25,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.10.2.2 2007-11-09 04:39:29 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.10.2.3 2007-11-11 03:04:13 mschimek Exp $ */
 
 /*
  *  VTX is the file format used by VideoteXt. It stores Teletext pages in

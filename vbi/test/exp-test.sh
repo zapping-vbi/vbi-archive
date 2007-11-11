@@ -31,8 +31,11 @@ for module in html text vtx ; do
   target_loop
 done
 for module in png ppm xpm ; do
-  target_loop ,aspect=0
-  target_loop ,aspect=1
+  # xpm not ported to 0.3 yet.
+  if ./export -m | grep -q $module ; then
+    target_loop ,aspect=0
+    target_loop ,aspect=1
+  fi
 done
 
 echo "Test complete"

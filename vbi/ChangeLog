@@ -1,5 +1,7 @@
 2007-11-11    <mschimek@users.sf.net>
 
+	* test/export.c, test/exp-test.sh: Resynched with branch 0.3.
+
 	* test/export.c (do_export): vbi_export_mem() and
 	  vbi_export_alloc() interface changed.
 
