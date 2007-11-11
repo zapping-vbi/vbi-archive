@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder.c,v 1.1.2.5 2007-11-01 00:21:22 mschimek Exp $ */
+/* $Id: caption_decoder.c,v 1.1.2.6 2007-11-11 03:06:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1847,6 +1847,40 @@ vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 	cd->error_history *= 2;
 
 	return FALSE;
+}
+
+/**
+ * @param cd Caption decoder allocated with vbi3_caption_decoder_new().
+ * @param sliced Sliced VBI data.
+ * @param n_lines Number of lines in the @a sliced array.
+ * @param timestamp System time in seconds when the sliced data was
+ *   captured.
+ *
+ * This function works like vbi3_caption_decoder_feed() but operates
+ * on sliced VBI data and filters out @c VBI3_SLICED_CAPTION_625.
+ */
+vbi3_bool
+vbi3_caption_decoder_feed_frame	(vbi3_caption_decoder *	cd,
+				 const vbi3_sliced *	sliced,
+				 unsigned int		n_lines,
+				 double			timestamp)
+{
+	const vbi3_sliced *end;
+
+	assert (NULL != cd);
+	assert (NULL != sliced);
+
+	for (end = sliced + n_lines; sliced < end; ++sliced) {
+		if (sliced->id & VBI3_SLICED_CAPTION_525) {
+			if (!vbi3_caption_decoder_feed (cd,
+							sliced->data,
+							sliced->line,
+							timestamp))
+				return FALSE;
+		}
+	}
+
+	return TRUE;
 }
 
 void

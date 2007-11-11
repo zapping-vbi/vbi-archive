@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.7.2.14 2007-11-01 00:21:23 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.7.2.15 2007-11-11 03:06:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1453,6 +1453,9 @@ vbi3_page_draw_teletext		(const vbi3_page *	pg,
 typedef struct {
 	vbi3_export		export;
 
+	/* A write error occurred. */
+	vbi3_bool		write_error;
+
 	/* Options */
 
 	/* The raw image contains the same information a real TV
@@ -1540,6 +1543,7 @@ export_ppm			(vbi3_export *		e,
 	gfx_instance *gfx = PARENT (e, gfx_instance, export);
 	vbi3_image_format format;
 	unsigned int cw, ch;
+	unsigned int image_height;
 	uint8_t *image;
 	unsigned int row;
 
@@ -1563,11 +1567,11 @@ export_ppm			(vbi3_export *		e,
 		return FALSE;
 	}
 
-	fprintf (e->fp, "P6 %u %u 255\n",
-		 format.width, (ch * pg->rows) << gfx->double_height);
+	image_height = (ch * pg->rows) << gfx->double_height;
 
-	if (ferror (e->fp))
-		goto write_error;
+	if (!vbi3_export_printf (e, "P6 %u %u 255\n",
+				 format.width, image_height))
+		goto failed;
 
 	for (row = 0; row < pg->rows; ++row) {
 		vbi3_bool success;
@@ -1598,30 +1602,31 @@ export_ppm			(vbi3_export *		e,
 			body = image;
 
 			for (line = 0; line < ch; ++line) {
-				if (format.width !=
-				    fwrite (body, 3, format.width, e->fp))
-					goto write_error;
+				if (!vbi3_export_write (e, body,
+							3 * format.width))
+					goto failed;
 
-				if (format.width !=
-				    fwrite (body, 3, format.width, e->fp))
-					goto write_error;
+				if (!vbi3_export_write (e, body,
+							3 * format.width))
+					goto failed;
 
 				body += format.width * 3;
 			}
 		} else {
-			if (format.size != fwrite (image, 1,
-						   format.size, e->fp))
-				goto write_error;
+			if (!vbi3_export_write (e, image, format.size))
+				goto failed;
 		}
+
+		/* Saves buffer space. */
+		if (!vbi3_export_flush (e))
+			goto failed;
 	}
 
 	vbi3_free (image);
 
 	return TRUE;
 
- write_error:
-	_vbi3_export_write_error (e);
-
+ failed:
 	vbi3_free (image);
 
 	return FALSE;
@@ -1652,6 +1657,8 @@ _vbi3_export_module_ppm = {
 
 	.export			= export_ppm
 };
+
+#warning port XPM export function from 0.2
 
 /*
  *  PNG - Portable Network Graphics File
@@ -1760,6 +1767,27 @@ png_draw_char			(uint8_t *		canvas,
 	}
 }
 
+static void
+user_write_data			(png_structp		png_ptr,
+				 png_bytep		data,
+				 png_size_t		length)
+{
+	gfx_instance *gfx = (gfx_instance *) png_get_io_ptr (png_ptr);
+
+	if (!gfx->write_error)
+		gfx->write_error = !vbi3_export_write (&gfx->export,
+						       data, length);
+}
+
+static void
+user_flush_data			(png_structp		png_ptr)
+{
+	gfx_instance *gfx = (gfx_instance *) png_get_io_ptr (png_ptr);
+
+	if (!gfx->write_error)
+		gfx->write_error = !vbi3_export_flush (&gfx->export);
+}
+
 static vbi3_bool
 write_png			(vbi3_export *		e,
 				 const vbi3_page *	pg,
@@ -1770,6 +1798,7 @@ write_png			(vbi3_export *		e,
 				 const vbi3_image_format *format,
 				 vbi3_bool		double_height)
 {
+	gfx_instance *gfx = PARENT (e, gfx_instance, export);
 	png_color palette[PALETTE_SIZE];
 	png_byte alpha[PALETTE_SIZE];
 	png_text text[4];
@@ -1780,7 +1809,10 @@ write_png			(vbi3_export *		e,
 	if (setjmp (png_ptr->jmpbuf))
 		return FALSE;
 
-	png_init_io (png_ptr, e->fp);
+	png_set_write_fn (png_ptr,
+			  (voidp) gfx,
+			  user_write_data,
+			  user_flush_data);
 
 	png_set_IHDR (png_ptr, info_ptr,
 		      format->width,
@@ -2000,6 +2032,8 @@ export_png			(vbi3_export *		e,
 		goto unknown_error;
 	}
 
+	gfx->write_error = FALSE;
+
 	if (!write_png (e, pg, png_ptr, info_ptr,
 			image, row_pointer, &format,
 			gfx->double_height)) {
@@ -2008,6 +2042,9 @@ export_png			(vbi3_export *		e,
 	}
 
 	png_destroy_write_struct (&png_ptr, &info_ptr);
+
+	if (gfx->write_error)
+		goto failed;
 
 	vbi3_free (row_pointer);
 	vbi3_free (image);
@@ -2018,6 +2055,7 @@ export_png			(vbi3_export *		e,
 	_vbi3_export_write_error (e);
 
  unknown_error:
+ failed:
 	if (row_pointer)
 		vbi3_free (row_pointer);
 

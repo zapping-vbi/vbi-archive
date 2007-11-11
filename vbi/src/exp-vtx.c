@@ -1,7 +1,7 @@
 /*
  *  libzvbi - VTX export function
  *
- *  Copyright (C) 2001, 2002, 2003, 2004 Michael H. Schimek
+ *  Copyright (C) 2001, 2002, 2003, 2004, 2007 Michael H. Schimek
  *
  *  Based on code from AleVT 1.5.1
  *  Copyright (C) 1998, 1999 Edgar Toernig <froese@gmx.de>
@@ -26,7 +26,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-vtx.c,v 1.4.2.9 2007-11-01 00:21:23 mschimek Exp $ */
+/* $Id: exp-vtx.c,v 1.4.2.10 2007-11-11 03:06:12 mschimek Exp $ */
 
 /* VTX is the file format used by the VideoteXt application. It stores
    Teletext pages in raw level 1.0 format. Level 1.5 additional characters
@@ -76,7 +76,8 @@ export				(vbi3_export *		e,
 {
 	const vbi3_page_priv *pgp;
 	const cache_page *cp;
-	struct header h;
+	struct header *h;
+	size_t needed;
 
 	if (pg->pgno < 0x100 || pg->pgno > 0x8FF) {
 		_vbi3_export_error_printf
@@ -100,31 +101,36 @@ export				(vbi3_export *		e,
 		goto error;
 	}
 
-	memcpy (h.signature, "VTXV4", 5);
+	needed = sizeof (*h);
+	if (VBI3_EXPORT_TARGET_ALLOC == e->target)
+		needed += 40 * 24;
 
-	h.pagenum_l = cp->pgno & 0xFF;
-	h.pagenum_h = (cp->pgno >> 8) & 15;
+	if (!_vbi3_export_grow_buffer_space (e, needed))
+		return FALSE;
 
-	h.hour = 0;
-	h.minute = 0;
+	h = (struct header *)(e->buffer.data + e->buffer.offset);
 
-	h.charset = cp->national & 7;
+	memcpy (h->signature, "VTXV4", 5);
 
-	h.wst_flags = cp->flags & C4_ERASE_PAGE;
-	h.wst_flags |= vbi3_rev8 (cp->flags >> 12);
-	h.vtx_flags = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 4) | (0 << 3);
+	h->pagenum_l = pg->pgno & 0xFF;
+	h->pagenum_h = (pg->pgno >> 8) & 15;
+
+	h->hour = 0;
+	h->minute = 0;
+
+	h->charset = cp->national & 7;
+
+	h->wst_flags = cp->flags & C4_ERASE_PAGE;
+	h->wst_flags |= vbi3_rev8 (cp->flags >> 12);
+	h->vtx_flags = (0 << 7) | (0 << 6) | (0 << 5) | (0 << 4) | (0 << 3);
 	/* notfound, pblf (?), hamming error, virtual, seven bits */
 
-	if (fwrite (&h, sizeof (h), 1, e->fp) != 1)
-		goto write_error;
+	e->buffer.offset += sizeof (*h);
 
-	if (fwrite (cp->data.lop.raw, 40 * 24, 1, e->fp) != 1)
-		goto write_error;
+	if (!vbi3_export_write (e, cp->data.lop.raw, 40 * 24))
+		goto error;
 
 	return TRUE;
-
- write_error:
-	_vbi3_export_write_error (e);
 
  error:
 	return FALSE;

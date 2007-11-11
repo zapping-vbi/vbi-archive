@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.h,v 1.1.2.8 2007-11-01 00:21:22 mschimek Exp $ */
+/* $Id: conv.h,v 1.1.2.9 2007-11-11 03:06:12 mschimek Exp $ */
 
 #ifndef __ZVBI3_CONV_H__
 #define __ZVBI3_CONV_H__
@@ -101,6 +101,15 @@ vbi3_locale_codeset		(void);
 
 typedef struct _vbi3_iconv_t vbi3_iconv_t;
 
+extern char *
+_vbi3_strndup_iconv		(unsigned long *	out_size,
+				 const char *		dst_codeset,
+				 const char *		src_codeset,
+				 const char *		src,
+				 unsigned long		src_size,
+				 int			repl_char)
+  __attribute__ ((_vbi3_alloc,
+		  _vbi3_nonnull (1, 2, 3)));
 extern vbi3_bool
 _vbi3_iconv_ucs2			(vbi3_iconv_t *		cd,
 				 char **		dst,

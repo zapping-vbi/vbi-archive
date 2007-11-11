@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pfc_demux.c,v 1.1.2.9 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: pfc_demux.c,v 1.1.2.10 2007-11-11 03:06:13 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -305,6 +305,39 @@ vbi3_pfc_demux_feed		(vbi3_pfc_demux *	dx,
 	vbi3_pfc_demux_reset (dx);
 
 	return FALSE;
+}
+
+/**
+ * @param dx PFC demultiplexer context allocated with vbi3_pfc_demux_new().
+ * @param sliced Sliced VBI data.
+ * @param n_lines Number of lines in the @a sliced array.
+ *
+ * This function works like vbi3_pfc_demux_feed() but operates
+ * on sliced VBI data and filters out @c VBI3_SLICED_TELETEXT_B_625.
+ *
+ * @returns
+ * FALSE if any Teletext lines contained incorrectable errors.
+ *
+ * @since 0.2.26
+ */
+vbi3_bool
+vbi3_pfc_demux_feed_frame	(vbi3_pfc_demux *	dx,
+				 const vbi3_sliced *	sliced,
+				 unsigned int		n_lines)
+{
+	const vbi3_sliced *end;
+
+	assert (NULL != dx);
+	assert (NULL != sliced);
+
+	for (end = sliced + n_lines; sliced < end; ++sliced) {
+		if (sliced->id & VBI3_SLICED_TELETEXT_B_625) {
+			if (!vbi3_pfc_demux_feed (dx, sliced->data))
+				return FALSE;
+		}
+	}
+
+	return TRUE;
 }
 
 /**

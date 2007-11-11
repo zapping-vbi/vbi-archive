@@ -1,4 +1,4 @@
-$Id: BUGS,v 1.12.2.5 2007-11-01 00:21:21 mschimek Exp $
+$Id: BUGS,v 1.12.2.6 2007-11-11 03:06:12 mschimek Exp $
 
 * v4l and v4l2 i/o can ignore timeout parameter
   > maybe a sleep() loop works, but what about timestamping?
@@ -14,3 +14,4 @@ $Id: BUGS,v 1.12.2.5 2007-11-01 00:21:21 mschimek Exp $
 * strerror() isn't thread-safe.
 * SWR Level 2.5 is broken.
 * ATV+ 100 does not render correctly.
+* Should rename vbi_decoder to vbi_frame_decoder for clarity.

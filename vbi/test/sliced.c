@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced.c,v 1.4.2.4 2007-11-01 00:21:26 mschimek Exp $ */
+/* $Id: sliced.c,v 1.4.2.5 2007-11-11 03:06:14 mschimek Exp $ */
 
 /* For libzvbi version 0.2.x / 0.3.x. */
 
@@ -546,6 +546,13 @@ write_func_xml			(struct stream *	st,
 
 	return TRUE;
 }
+
+#if 0
+static vbi3_bool
+write_func_new_sliced		(struct stream *	st)
+{
+}
+#endif
 
 static vbi3_bool
 write_func_old_sliced		(struct stream *	st,

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder.h,v 1.1.2.5 2007-11-01 00:21:22 mschimek Exp $ */
+/* $Id: caption_decoder.h,v 1.1.2.6 2007-11-11 03:06:12 mschimek Exp $ */
 
 #ifndef __ZVBI3_CAPTION_DECODER_H__
 #define __ZVBI3_CAPTION_DECODER_H__
@@ -117,6 +117,12 @@ extern vbi3_bool
 vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 				 const uint8_t		buffer[2],
 				 unsigned int		line,
+				 double			timestamp)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
+extern vbi3_bool
+vbi3_caption_decoder_feed_frame	(vbi3_caption_decoder *	cd,
+				 const vbi3_sliced *	sliced,
+				 unsigned int		n_lines,
 				 double			timestamp)
   __attribute__ ((_vbi3_nonnull (1, 2)));
 extern void

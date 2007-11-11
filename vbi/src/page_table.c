@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: page_table.c,v 1.3.2.2 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: page_table.c,v 1.3.2.3 2007-11-11 03:06:13 mschimek Exp $ */
 
 /* XXX UNTESTED */
 
@@ -78,8 +78,8 @@ struct _vbi3_page_table {
 	/* A vector of subpages, current size and capacity
 	   (counting struct subpage_range). */
 	struct subpage_range *	subpages;
-	unsigned int		subpages_size;
-	unsigned int		subpages_capacity;
+	size_t			subpages_size;
+	size_t			subpages_capacity;
 };
 
 static __inline__ vbi3_bool
@@ -350,80 +350,15 @@ vbi3_page_table_num_pages	(const vbi3_page_table *pt)
 }
 
 static void
-shrink_vector			(void **		vector,
-				 unsigned int *		capacity,
-				 unsigned int		min_capacity,
-				 unsigned int		element_size)
-{
-	void *new_vec;
-	unsigned int new_capacity;
-
-	if (min_capacity >= *capacity)
-		return;
-
-	new_capacity = min_capacity;
-
-	new_vec = vbi3_realloc (*vector, new_capacity * element_size);
-	if (unlikely (NULL == new_vec))
-		return;
-
-	*vector = new_vec;
-	*capacity = new_capacity;
-}
-
-static vbi3_bool
-extend_vector			(void **		vector,
-				 unsigned int *		capacity,
-				 unsigned int		min_capacity,
-				 unsigned int		element_size)
-{
-	void *new_vec;
-	unsigned int new_capacity;
-	unsigned int max_capacity;
-
-	assert (min_capacity > 0);
-	assert (element_size > 0);
-
-	/* This looks a bit odd to prevent overflows. */
-
-	max_capacity = UINT_MAX / element_size;
-
-	if (unlikely (min_capacity > max_capacity)) {
-		errno = ENOMEM;
-		return FALSE;
-	}
-
-	new_capacity = *capacity;
-
-	if (unlikely (new_capacity > (max_capacity / 2))) {
-		new_capacity = max_capacity;
-	} else {
-		new_capacity = MIN (min_capacity, new_capacity * 2);
-	}
-
-	new_vec = vbi3_realloc (*vector, new_capacity * element_size);
-	if (unlikely (NULL == new_vec)) {
-		/* XXX we should try less new_capacity before giving up. */
-		errno = ENOMEM;
-		return FALSE;
-	}
-
-	*vector = new_vec;
-	*capacity = new_capacity;
-
-	return TRUE;
-}
-
-static void
 shrink_subpages_vector		(vbi3_page_table *	pt)
 {
 	if (pt->subpages_size >= pt->subpages_capacity / 4)
 		return;
 
-	shrink_vector ((void **) &pt->subpages,
-		       &pt->subpages_capacity,
-		       pt->subpages_capacity / 2,
-		       sizeof (*pt->subpages));
+	_vbi3_shrink_vector_capacity ((void **) &pt->subpages,
+				      &pt->subpages_capacity,
+				      pt->subpages_capacity / 2,
+				      sizeof (*pt->subpages));
 }
 
 static vbi3_bool
@@ -433,10 +368,10 @@ extend_subpages_vector		(vbi3_page_table *	pt,
 	if (min_capacity <= pt->subpages_capacity)
 		return TRUE;
 
-	return extend_vector ((void **) &pt->subpages,
-			      &pt->subpages_capacity,
-			      min_capacity,
-			      sizeof (*pt->subpages));
+	return _vbi3_grow_vector_capacity ((void **) &pt->subpages,
+					   &pt->subpages_capacity,
+					   min_capacity,
+					   sizeof (*pt->subpages));
 }
 
 static vbi3_bool

@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.h,v 1.1.2.7 2007-11-01 00:21:25 mschimek Exp $ */
+/* $Id: teletext_decoder.h,v 1.1.2.8 2007-11-11 03:06:13 mschimek Exp $ */
 
 #ifndef __ZVBI3_TELETEXT_DECODER_H__
 #define __ZVBI3_TELETEXT_DECODER_H__
@@ -138,6 +138,13 @@ vbi3_teletext_decoder_reset	(vbi3_teletext_decoder *	td,
 extern vbi3_bool
 vbi3_teletext_decoder_feed	(vbi3_teletext_decoder *	td,
 				 const uint8_t		buffer[42],
+				 double			timestamp)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
+extern vbi3_bool
+vbi3_teletext_decoder_feed_frame
+				(vbi3_teletext_decoder *	td,
+				 const vbi3_sliced *	sliced,
+				 unsigned int		n_lines,
 				 double			timestamp)
   __attribute__ ((_vbi3_nonnull (1, 2)));
 extern void

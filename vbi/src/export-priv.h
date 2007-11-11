@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export-priv.h,v 1.1.2.3 2007-11-01 00:21:23 mschimek Exp $ */
+/* $Id: export-priv.h,v 1.1.2.4 2007-11-11 03:06:12 mschimek Exp $ */
 
 #ifndef EXPORT_PRIV_H
 #define EXPORT_PRIV_H
@@ -29,6 +29,29 @@
 #include "export.h"
 
 typedef struct _vbi3_export_module _vbi3_export_module;
+
+/** The export target. */
+enum _vbi3_export_target {
+	/** Exporting to a client supplied buffer in memory. */
+	VBI3_EXPORT_TARGET_MEM = 1,
+
+	/** Exporting to a newly allocated buffer. */
+	VBI3_EXPORT_TARGET_ALLOC,
+
+	/** Exporting to a client supplied file pointer. */
+	VBI3_EXPORT_TARGET_FP,
+
+	/** Exporting to a client supplied file descriptor. */
+	VBI3_EXPORT_TARGET_FD,
+
+	/** Exporting to a file. */
+	VBI3_EXPORT_TARGET_FILE,
+};
+
+typedef vbi3_bool
+_vbi3_export_write_fn		(vbi3_export *		e,
+				 const void *		s,
+				 size_t			n_bytes);
 
 /**
  * @ingroup Exmod
@@ -53,11 +76,12 @@ struct _vbi3_export {
 	 */
 	char *			errstr;
 
-	/** Name of the file we are writing, @c NULL if anonymous. */
-	const char *		name;
-
-	/** File we are writing. */
-	FILE *			fp;
+	/**
+	 * If @c target is @c VBI3_EXPORT_FILE the name of the file
+	 * we are writing as supplied by the client. Otherwise @c NULL.
+	 * This is intended for debugging and error messages.
+	 */
+	const char *		file_name;
 
 	/** Generic option: Network name or @c NULL. */
 	char *			network;
@@ -86,6 +110,67 @@ struct _vbi3_export {
 	/** See vbi3_export_set_pdc_cb(). */
 	vbi3_export_pdc_cb *	pdc_callback;
 	void *			pdc_user_data;
+
+	/**
+	 * The export target. Note _vbi_export_grow_buffer_space() may
+	 * change the target from TARGET_MEM to TARGET_ALLOC if the
+	 * buffer supplied by the application is too small.
+	 */
+	enum _vbi3_export_target	target;
+
+	/**
+	 * If @a target is @c VBI_EXPORT_TARGET_FP or
+	 * @c VBI_EXPORT_TARGET_FD the file pointer or file descriptor
+	 * supplied by the client. If @c VBI_EXPORT_TARGET_FILE the
+	 * file descriptor of the file we opened. Otherwise undefined.
+	 *
+	 * Private field. Not to be accessed by export modules.
+	 */
+	union {
+		FILE *			fp;
+		int			fd;
+	}			_handle;
+
+	/**
+	 * Function to write data into @a _handle.
+	 *
+	 * Private field. Not to be accessed by export modules.
+	 */
+	_vbi3_export_write_fn *	_write;
+
+	/**
+	 * Output buffer. Export modules can write into this buffer
+	 * directly after ensuring sufficient capacity, and/or call
+	 * the vbi_export_putc() etc functions. Keep in mind these
+	 * functions may call realloc(), changing the @a data pointer,
+	 * and/or vbi_export_flush(), changing the @a offset.
+	 */
+	struct {
+		/**
+		 * Pointer to the start of the buffer in memory.
+		 * @c NULL if @a capacity is zero.
+		 */
+		char *			data;
+
+		/**
+		 * The number of bytes written into the buffer
+		 * so far. Must be <= @c capacity.
+		 */
+		size_t			offset;
+
+		/**
+		 * Number of bytes we can store in the buffer, may be
+		 * zero.
+		 *
+		 * Call _vbi_export_grow_buffer_space() to increase the
+		 * capacity. Keep in mind this may change the @a data
+		 * pointer.
+		 */
+		size_t			capacity;
+	}			buffer;
+
+	/** A write error occurred (use like ferror()). */
+	vbi3_bool		write_error;
 
 	/** @internal */
 	const vbi3_export_info *	local_export_info;
@@ -132,25 +217,45 @@ struct _vbi3_export_module {
  * @addtogroup Exmod
  * @{
  */
+
+/* Error functions. */
+
 extern void
-_vbi3_export_write_error		(vbi3_export *		e);
+_vbi3_export_error_printf	(vbi3_export *		e,
+				 const char *		templ,
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2),
+		  _vbi3_format (printf, 2, 3)));
 extern void
-_vbi3_export_malloc_error		(vbi3_export *		e);
+_vbi3_export_write_error	(vbi3_export *		e)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern void
+_vbi3_export_malloc_error	(vbi3_export *		e)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
 _vbi3_export_unknown_option	(vbi3_export *		e,
-				 const char *		keyword);
+				 const char *		keyword)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
 _vbi3_export_invalid_option	(vbi3_export *		e,
 				 const char *		keyword,
-				 ...);
-extern void
-_vbi3_export_error_printf	(vbi3_export *		e,
-				 const char *		template,
-				 ...);
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1)));
+
+/* Output functions. */
+
+extern vbi3_bool
+_vbi3_export_grow_buffer_space	(vbi3_export *		e,
+				 size_t			min_space)
+  __attribute__ ((_vbi3_nonnull (1)));
+
+/* Misc. helper functions. */
+
 extern char *
 _vbi3_export_strdup		(vbi3_export *		e,
 				 char **		d,
-				 const char *		s);
+				 const char *		s)
+  __attribute__ ((_vbi3_nonnull (1, 3))); /* sic */
 extern const char *
 _vbi3_export_codeset		(const char *		codeset);
 

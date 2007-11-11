@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.h,v 1.1.2.8 2007-11-01 00:21:25 mschimek Exp $ */
+/* $Id: xds_demux.h,v 1.1.2.9 2007-11-11 03:06:13 mschimek Exp $ */
 
 #ifndef __ZVBI3_XDS_DEMUX_H__
 #define __ZVBI3_XDS_DEMUX_H__
@@ -26,6 +26,7 @@
 #include <stdio.h>		/* FILE */
 #include <inttypes.h>		/* uint8_t */
 #include "macros.h"
+#include "sliced.h"
 
 VBI3_BEGIN_DECLS
 
@@ -165,6 +166,11 @@ extern vbi3_bool
 vbi3_xds_demux_feed		(vbi3_xds_demux *	xd,
 				 const uint8_t		buffer[2])
   __attribute__ ((_vbi3_nonnull (1, 2)));
+extern vbi3_bool
+vbi3_xds_demux_feed_frame	(vbi3_xds_demux *	xd,
+				 const vbi3_sliced *	sliced,
+				 unsigned int		n_lines)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern const char *
 vbi3_xds_demux_errstr		(vbi3_xds_demux *	xd)
   __attribute__ ((_vbi3_nonnull (1)));
@@ -173,7 +179,8 @@ vbi3_xds_demux_delete		(vbi3_xds_demux *	xd);
 extern vbi3_xds_demux *
 vbi3_xds_demux_new		(vbi3_xds_demux_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_alloc));
+  __attribute__ ((_vbi3_alloc,
+		  _vbi3_nonnull (1)));
 
 /* Private */
 
@@ -211,11 +218,13 @@ struct _vbi3_xds_demux {
 };
 
 extern void
-_vbi3_xds_demux_destroy		(vbi3_xds_demux *	xd);
+_vbi3_xds_demux_destroy		(vbi3_xds_demux *	xd)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 _vbi3_xds_demux_init		(vbi3_xds_demux *	xd,
 				 vbi3_xds_demux_cb *	callback,
-				 void *			user_data);
+				 void *			user_data)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 
 /** @} */
 

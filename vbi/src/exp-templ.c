@@ -2,7 +2,7 @@
  *  Template for export modules
  */
 
-/* $Id: exp-templ.c,v 1.6.2.8 2007-11-01 00:21:23 mschimek Exp $ */
+/* $Id: exp-templ.c,v 1.6.2.9 2007-11-11 03:06:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -59,7 +59,7 @@ tmpl_new			(const _vbi3_export_module *unused)
 static void
 tmpl_delete			(vbi3_export *		e)
 {
-/* Safer than tmpl_instance *tmpl = (tmpl_instance *)(vbi3_export *) e */
+	/* Safer than tmpl_instance *tmpl = (tmpl_instance *)(vbi3_export *) e */
 	tmpl_instance *tmpl = PARENT (e, tmpl_instance, export);
 
 	/* Uninitialize our private stuff and options */
@@ -216,8 +216,8 @@ export				(vbi3_export *		e,
 {
 	tmpl_instance *tmpl = PARENT (e, tmpl_instance, export);
 
-	/* Write pg to e->fp, that's all. */
-	fprintf (e->fp, "Page %x.%x\n", pg->pgno, pg->subno);
+	/* Write pg to target, that's all. */
+	vbi3_export_printf (e, "Page %x.%x\n", pg->pgno, pg->subno);
 
 	tmpl->counter++; /* just for fun */
 

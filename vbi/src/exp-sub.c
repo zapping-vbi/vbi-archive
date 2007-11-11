@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-sub.c,v 1.1.2.10 2007-11-01 00:21:23 mschimek Exp $ */
+/* $Id: exp-sub.c,v 1.1.2.11 2007-11-11 03:06:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -612,7 +612,6 @@ flush				(sub_instance *		sub)
 	char *buffer;
 	char *d;
 	size_t length;
-	size_t actual;
 
 	length = (long)(sub->text1.bp - sub->text1.buffer);
 
@@ -628,8 +627,7 @@ flush				(sub_instance *		sub)
 
 	length = d - buffer;
 
-	actual = fwrite (buffer, 1, length, sub->export.fp);
-	if (actual != length)
+	if (!vbi3_export_write (&sub->export, buffer, length))
 		goto failure;
 
 	vbi3_free (buffer);
@@ -1350,7 +1348,7 @@ export				(vbi3_export *		e,
 
 		n = d - buffer;
 		if (n > 0)
-			if (n != fwrite (buffer, 1, n, sub->export.fp))
+			if (!vbi3_export_write (&sub->export, buffer, n))
 				longjmp (sub->main, -1);
 
 		header (sub, pg);

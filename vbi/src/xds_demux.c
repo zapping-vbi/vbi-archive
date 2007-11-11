@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.c,v 1.1.2.11 2007-11-01 00:21:25 mschimek Exp $ */
+/* $Id: xds_demux.c,v 1.1.2.12 2007-11-11 03:06:13 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -263,6 +263,48 @@ vbi3_xds_demux_feed		(vbi3_xds_demux *	xd,
 		sp->count += 1 + (0 != c2);
 
 		break;
+	}
+
+	return TRUE;
+}
+
+/**
+ * @param xd XDS demultiplexer context allocated with vbi3_xds_demux_new().
+ * @param sliced Sliced VBI data.
+ * @param n_lines Number of lines in the @a sliced array.
+ *
+ * This function works like vbi3_xds_demux_feed() but operates on sliced
+ * VBI data and filters out @c VBI3_SLICED_CAPTION_525 on NTSC line 284.
+ */
+vbi3_bool
+vbi3_xds_demux_feed_frame	(vbi3_xds_demux *	xd,
+				 const vbi3_sliced *	sliced,
+				 unsigned int		n_lines)
+{
+	const vbi3_sliced *end;
+
+	assert (NULL != xd);
+	assert (NULL != sliced);
+
+	for (end = sliced + n_lines; sliced < end; ++sliced) {
+		switch (sliced->id) {
+		case VBI3_SLICED_CAPTION_525:
+			if (0 == sliced->line)
+				continue;
+
+		case VBI3_SLICED_CAPTION_525_F2:
+			if (284 != sliced->line
+			    && 0 != sliced->line)
+				continue;
+
+			if (!vbi3_xds_demux_feed (xd, sliced->data))
+				return FALSE;
+
+			break;
+
+		default:
+			break;
+		}
 	}
 
 	return TRUE;

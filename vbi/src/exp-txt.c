@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.c,v 1.10.2.13 2007-11-01 00:21:23 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.10.2.14 2007-11-11 03:06:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -972,10 +972,12 @@ export				(vbi3_export *		e,
 	text_instance *text = PARENT (e, text_instance, export);
 	const vbi3_char *acp;
 	const char *codeset;
+	char *buffer;
 	vbi3_char last;
 	unsigned int row;
 	unsigned int column;
 	unsigned int size;
+	vbi3_bool success;
 
 	create_palette (text, pg);
 
@@ -1028,13 +1030,23 @@ export				(vbi3_export *		e,
 
 	codeset = _vbi3_export_codeset (text->charset);
 
-	if (!vbi3_fputs_iconv_ucs2 (text->export.fp, codeset,
-				    text->text.buffer, size, '?')) {
-		_vbi3_export_write_error (&text->export);
+	buffer = vbi3_strndup_iconv_ucs2 (codeset,
+					  text->text.buffer,
+					  size,
+					  /* repl_char */ '?');
+	if (NULL == buffer) {
+		_vbi3_export_malloc_error (e);
 		return FALSE;
 	}
 
-	return TRUE;
+#warning FIXME buffer may not contain an ASCII or UTF-8 string
+	success = vbi3_export_write (&text->export, buffer,
+				     strlen (buffer));
+
+	free (buffer);
+	buffer = NULL;
+
+	return success;
 }
 
 static const vbi3_export_info

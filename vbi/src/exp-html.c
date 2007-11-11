@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-html.c,v 1.6.2.14 2007-11-01 00:21:23 mschimek Exp $ */
+/* $Id: exp-html.c,v 1.6.2.15 2007-11-11 03:06:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -390,13 +390,10 @@ static void
 flush				(html_instance *	html)
 {
 	size_t n;
-	ssize_t r;
 
 	n = html->text.bp - html->text.buffer;
-	r = fwrite (html->text.buffer, 1, n, html->export.fp);
 
-	if ((ssize_t) n != r) {
-		_vbi3_export_write_error (&html->export);
+	if (!vbi3_export_write (&html->export, html->text.buffer, n)) {
 		longjmp (html->main, -1);
 	}
 
@@ -673,18 +670,27 @@ link_end			(html_instance *	html,
 
 	putwc (html, 0, FALSE);
 
+	if (VBI3_EXPORT_TARGET_FP == html->export.target) {
+		/* In case the client writes through the fp
+		   instead of the export buffer functions. */
+		vbi3_export_flush (&html->export);
+	}
+
 	if (pdc) {
 		success = html->export.pdc_callback
-			(&html->export, html->export.pdc_user_data,
-			 html->export.fp, html->pdc, html->text.buffer);
+			(&html->export,
+			 html->export.pdc_user_data,
+			 html->pdc,
+			 html->text.buffer);
 
 		html->in_pdc_link = FALSE;
 	} else {
 		html->link.name = html->text.buffer;
 
 		success = html->export.link_callback
-			(&html->export, html->export.link_user_data,
-			 html->export.fp, &html->link);
+			(&html->export,
+			 html->export.link_user_data,
+			 &html->link);
 
 		html->link.name = NULL;
 

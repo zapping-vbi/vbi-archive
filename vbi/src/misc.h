@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: misc.h,v 1.2.2.21 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.22 2007-11-11 03:06:13 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -243,15 +243,19 @@ do {									\
 #  define vbi_strdup strdup
 #  define vbi_free free
 #else
+
 extern void *
 (* vbi3_malloc)			(size_t);
 extern void *
 (* vbi3_realloc)		(void *,
-				 size_t);
+				 size_t)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern char *
-(* vbi3_strdup)			(const char *);
+(* vbi3_strdup)			(const char *)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern void
 (* vbi3_free)			(void *);
+
 #endif
 
 #define vbi3_cache_malloc vbi3_malloc
@@ -282,28 +286,45 @@ extern vbi3_bool
 _vbi3_keyword_lookup		(int *			value,
 				 const char **		inout_s,
 				 const _vbi3_key_value_pair * table,
-				 unsigned int		n_pairs);
+				 unsigned int		n_pairs)
+  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+
+extern void
+_vbi3_shrink_vector_capacity	(void **		vector,
+				 size_t *		capacity,
+				 size_t			min_capacity,
+				 size_t			element_size)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
+extern vbi3_bool
+_vbi3_grow_vector_capacity	(void **		vector,
+				 size_t *		capacity,
+				 size_t			min_capacity,
+				 size_t			element_size)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 
 /* Logging stuff. */
 
 extern _vbi3_log_hook		_vbi3_global_log;
 
 extern void
-_vbi3_log_vprintf		(vbi3_log_fn		log_fn,
+_vbi3_log_vprintf		(vbi3_log_fn *		log_fn,
 				 void *			user_data,
 				 vbi3_log_mask		level,
 				 const char *		source_file,
 				 const char *		context,
 				 const char *		templ,
-				 va_list		ap);
+				 va_list		ap)
+  __attribute__ ((_vbi3_nonnull (1, 4, 5, 6)));
 extern void
-_vbi3_log_printf			(vbi3_log_fn		log_fn,
+_vbi3_log_printf		(vbi3_log_fn *		log_fn,
 				 void *			user_data,
 				 vbi3_log_mask		level,
 				 const char *		source_file,
 				 const char *		context,
 				 const char *		templ,
-				 ...);
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 4, 5, 6),
+		  _vbi3_format (printf, 6, 7)));
 
 #define _vbi3_log(hook, level, templ, args...)				\
 do {									\
@@ -365,7 +386,8 @@ do {									\
 extern size_t
 _vbi3_strlcpy			(char *			dst,
 				 const char *		src,
-				 size_t			size);
+				 size_t			size)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 
 /* strndup() is a BSD/GNU extension. */
 #ifndef HAVE_STRNDUP
@@ -374,7 +396,8 @@ _vbi3_strlcpy			(char *			dst,
 
 extern char *
 _vbi3_strndup			(const char *		s,
-				 size_t			len);
+				 size_t			len)
+  __attribute__ ((_vbi3_nonnull (1)));
 
 /* vasprintf() is a GNU extension. */
 #ifndef HAVE_VASPRINTF
@@ -384,7 +407,8 @@ _vbi3_strndup			(const char *		s,
 extern int
 _vbi3_vasprintf			(char **		dstp,
 				 const char *		templ,
-				 va_list		ap);
+				 va_list		ap)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 
 /* asprintf() is a GNU extension. */
 #ifndef HAVE_ASPRINTF
@@ -394,7 +418,9 @@ _vbi3_vasprintf			(char **		dstp,
 extern int
 _vbi3_asprintf			(char **		dstp,
 				 const char *		templ,
-				 ...);
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2),
+		  _vbi3_format (printf, 2, 3)));
 
 #undef sprintf
 #define sprintf use_snprintf_or_asprintf_instead

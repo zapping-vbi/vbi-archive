@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced.h,v 1.3.2.3 2007-11-01 00:21:26 mschimek Exp $ */
+/* $Id: sliced.h,v 1.3.2.4 2007-11-11 03:06:14 mschimek Exp $ */
 
 /* For libzvbi version 0.2.x / 0.3.x. */
 
@@ -48,7 +48,8 @@ enum file_format {
 	FILE_FORMAT_RAW,
 	FILE_FORMAT_XML,
 	FILE_FORMAT_DVB_PES,
-	FILE_FORMAT_DVB_TS
+	FILE_FORMAT_DVB_TS,
+	FILE_FORMAT_NEW_SLICED,
 };
 
 enum interface {

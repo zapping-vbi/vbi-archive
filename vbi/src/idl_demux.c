@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: idl_demux.c,v 1.3.2.4 2007-11-01 00:21:23 mschimek Exp $ */
+/* $Id: idl_demux.c,v 1.3.2.5 2007-11-11 03:06:13 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -81,8 +81,10 @@ idl_a_demux_feed		(vbi3_idl_demux *	dx,
 	unsigned int i;
 	unsigned int j;
 
-	if ((ial = vbi3_unham8 (buffer[3])) < 0)
+	ial = vbi3_unham8 (buffer[3]);
+	if (ial < 0) {
 		return FALSE;
+	}
 
 	spa_length = (unsigned int) ial & 7;
 	if (7 == spa_length) /* reserved */
@@ -93,8 +95,9 @@ idl_a_demux_feed		(vbi3_idl_demux *	dx,
 	for (i = 0; i < spa_length; ++i)
 		spa |= vbi3_unham8 (buffer[4 + i]) << (4 * i);
 
-	if (spa < 0)
+	if (spa < 0) {
 		return FALSE;
+	}
 
 	if (spa != dx->address)
 		return TRUE;
@@ -118,7 +121,7 @@ idl_a_demux_feed		(vbi3_idl_demux *	dx,
 	}
 
 	if (0 != crc) {
-		if (!(ri & RI_PACKET_REPEATS)) {
+		if (0 == (ri & RI_PACKET_REPEATS)) {
 			/* Packet is corrupt and won't repeat. */
 
 			dx->ci = -1;
@@ -351,6 +354,39 @@ vbi3_idl_demux_feed		(vbi3_idl_demux *	dx,
 	}
 }
 
+/**
+ * @param dx IDL demultiplexer allocated with vbi3_idl_a_demux_new().
+ * @param sliced Sliced VBI data.
+ * @param n_lines Number of lines in the @a sliced array.
+ *
+ * This function works like vbi3_idl_demux_feed() but operates
+ * on sliced VBI data and filters out @c VBI3_SLICED_TELETEXT_B_625.
+ *
+ * @returns
+ * FALSE if any Teletext lines contained incorrectable errors.
+ *
+ * @since 0.2.26
+ */
+vbi3_bool
+vbi3_idl_demux_feed_frame	(vbi3_idl_demux *	dx,
+				 const vbi3_sliced *	sliced,
+				 unsigned int		n_lines)
+{
+	const vbi3_sliced *end;
+
+	assert (NULL != dx);
+	assert (NULL != sliced);
+
+	for (end = sliced + n_lines; sliced < end; ++sliced) {
+		if (sliced->id & VBI3_SLICED_TELETEXT_B_625) {
+			if (!vbi3_idl_demux_feed (dx, sliced->data))
+				return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
 /** @internal */
 void
 _vbi3_idl_demux_destroy		(vbi3_idl_demux *	dx)
@@ -453,6 +489,8 @@ vbi3_idl_a_demux_new		(unsigned int		channel,
 				 void *			user_data)
 {
 	vbi3_idl_demux *dx;
+
+	assert (NULL != callback);
 
 	if (!(dx = vbi3_malloc (sizeof (*dx)))) {
 		return NULL;

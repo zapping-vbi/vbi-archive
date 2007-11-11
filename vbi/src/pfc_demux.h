@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pfc_demux.h,v 1.1.2.6 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: pfc_demux.h,v 1.1.2.7 2007-11-11 03:06:13 mschimek Exp $ */
 
 #ifndef __ZVBI3_PFC_DEMUX_H__
 #define __ZVBI3_PFC_DEMUX_H__
@@ -25,6 +25,7 @@
 #include <inttypes.h>		/* uint8_t */
 #include <stdio.h>		/* FILE */
 #include "bcd.h"		/* vbi3_pgno */
+#include "sliced.h"
 
 VBI3_BEGIN_DECLS
 
@@ -71,22 +72,35 @@ typedef struct _vbi3_pfc_demux vbi3_pfc_demux;
  * @param user_data User pointer given to vbi3_pfc_demux_new().
  * @param block Structure describing the received data block.
  * 
- * Function called by vbi3_pfc_demux_demux() when a
+ * Function called by vbi3_pfc_demux_feed() when a
  * new data block is available.
  *
  * @returns
  * FALSE on error, will be returned by vbi3_pfc_demux_feed().
+ *
+ * @bugs
+ * vbi_pfc_demux_feed() returns the @a user_data pointer as second
+ * parameter the @a block pointer as third parameter, but prior to
+ * version 0.2.26 this function incorrectly defined @a block as
+ * second and @a user_data as third parameter.
  */
 typedef vbi3_bool
 vbi3_pfc_demux_cb		(vbi3_pfc_demux *	dx,
-				 const vbi3_pfc_block *	block,
-				 void *			user_data);
+				 void *			user_data,
+				 const vbi3_pfc_block *	block);
 
 extern void
-vbi3_pfc_demux_reset		(vbi3_pfc_demux *	dx);
+vbi3_pfc_demux_reset		(vbi3_pfc_demux *	dx)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 vbi3_pfc_demux_feed		(vbi3_pfc_demux *	dx,
-				 const uint8_t		buffer[42]);
+				 const uint8_t		buffer[42])
+  __attribute__ ((_vbi3_nonnull (1, 2)));
+extern vbi3_bool
+vbi3_pfc_demux_feed_frame	(vbi3_pfc_demux *	dx,
+				 const vbi3_sliced *	sliced,
+				 unsigned int		n_lines)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern void
 vbi3_pfc_demux_delete		(vbi3_pfc_demux *	dx);
 extern vbi3_pfc_demux *
@@ -94,7 +108,8 @@ vbi3_pfc_demux_new		(vbi3_pgno		pgno,
 				 unsigned int		stream,
 				 vbi3_pfc_demux_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_alloc));
+  __attribute__ ((_vbi3_alloc,
+		  _vbi3_nonnull (3)));
 
 /* Private */
 
@@ -124,18 +139,23 @@ struct _vbi3_pfc_demux {
 extern void
 _vbi3_pfc_block_dump		(const vbi3_pfc_block *	pb,
 				 FILE *			fp,
-				 vbi3_bool		binary);
+				 vbi3_bool		binary)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern vbi3_bool
 _vbi3_pfc_demux_decode		(vbi3_pfc_demux *	dx,
-				 const uint8_t		buffer[42]);
+				 const uint8_t		buffer[42])
+  __attribute__ ((_vbi3_nonnull (1, 2)));
 extern void
-_vbi3_pfc_demux_destroy		(vbi3_pfc_demux *	dx);
+_vbi3_pfc_demux_destroy		(vbi3_pfc_demux *	dx)
+  __attribute__ ((_vbi3_nonnull (1)));
 extern vbi3_bool
 _vbi3_pfc_demux_init		(vbi3_pfc_demux *	dx,
 				 vbi3_pgno		pgno,
 				 unsigned int		stream,
 				 vbi3_pfc_demux_cb *	callback,
-				 void *			user_data);
+				 void *			user_data)
+  __attribute__ ((_vbi3_nonnull (1, 4)));
+
 /** @} */
 
 VBI3_END_DECLS

@@ -19,7 +19,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: decode.c,v 1.1.2.13 2007-11-01 00:21:26 mschimek Exp $ */
+/* $Id: decode.c,v 1.1.2.14 2007-11-11 03:06:13 mschimek Exp $ */
 
 /* For libzvbi version 0.2.x / 0.3.x. */
 
@@ -464,8 +464,8 @@ packet_8302			(const uint8_t		buffer[42],
 
 static vbi3_bool
 page_function_clear_cb		(vbi3_pfc_demux *	dx,
-		                 const vbi3_pfc_block *	block,
-				 void *			user_data)
+				 void *			user_data,
+		                 const vbi3_pfc_block *	block)
 {
 	dx = dx; /* unused */
 	user_data = user_data;
@@ -621,6 +621,14 @@ teletext			(const uint8_t		buffer[42],
 		if (!vbi3_pfc_demux_feed (pfc, buffer)) {
 			printf ("Error in Teletext "
 				"PFC packet.\n");
+			return;
+		}
+	}
+
+	if (NULL != idl) {
+		if (!vbi3_idl_demux_feed (idl, buffer)) {
+			printf ("Error in Teletext "
+				"IDL packet.\n");
 			return;
 		}
 	}
@@ -903,7 +911,7 @@ Decoding options:\n"
                        -i     decode IDL packets\n\
                        -a     decode everything\n\
                        -a -i  everything except IDL\n\
--c | --idl-ch N\n\
+-l | --idl-ch N\n\
 -d | --idl-addr NNN    Decode Teletext IDL format A data from channel N,\n\
                        service packet address NNN (default 0)\n\
 -r | --vps-other       Decode VPS data unrelated to PDC\n\
@@ -1015,7 +1023,7 @@ main				(int			argc,
 
 		case 'd':
 			assert (NULL != optarg);
-			option_idl_address = strtol (optarg, NULL, 10);
+			option_idl_address = strtol (optarg, NULL, 0);
 			break;
 
 		case 'e':
@@ -1037,7 +1045,7 @@ main				(int			argc,
 
 		case 'l':
 			assert (NULL != optarg);
-			option_idl_channel = strtol (optarg, NULL, 10);
+			option_idl_channel = strtol (optarg, NULL, 0);
 			break;
 
 		case 'm':
@@ -1063,7 +1071,7 @@ main				(int			argc,
 
 		case 's':
 			assert (NULL != optarg);
-			option_pfc_stream = strtol (optarg, NULL, 10);
+			option_pfc_stream = strtol (optarg, NULL, 0);
 			break;
 
 		case 't':

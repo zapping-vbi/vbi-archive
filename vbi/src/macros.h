@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: macros.h,v 1.1.2.9 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: macros.h,v 1.1.2.10 2007-11-11 03:06:13 mschimek Exp $ */
 
 #ifndef __ZVBI3_MACROS_H__
 #define __ZVBI3_MACROS_H__
@@ -44,8 +44,10 @@ VBI3_BEGIN_DECLS
 
 #if (__GNUC__ == 3 && __GNUC_MINOR__ >= 3) || __GNUC__ >= 4
 #  define _vbi3_nonnull(args...) nonnull(args)
+#  define _vbi3_format(args...) format(args)
 #else
 #  define _vbi3_nonnull(args...)
+#  define _vbi3_format(args...)
 #endif
 
 #if __GNUC__ >= 3

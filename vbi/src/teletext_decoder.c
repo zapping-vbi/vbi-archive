@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.1.2.5 2007-11-01 00:21:25 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.1.2.6 2007-11-11 03:06:13 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -3993,6 +3993,40 @@ vbi3_teletext_decoder_feed	(vbi3_teletext_decoder *	td,
  finish:
 	td->error_history = td->error_history * 2 + success;
 	return success;
+}
+
+/**
+ * @param td Teletext decoder allocated with vbi3_teletext_decoder_new().
+ * @param sliced Sliced VBI data.
+ * @param n_lines Number of lines in the @a sliced array.
+ * @param timestamp System time in seconds when the sliced data was
+ *   captured.
+ *
+ * This function works like vbi3_teletext_decoder_feed() but operates
+ * on sliced VBI data and filters out @c VBI3_SLICED_TELETEXT_B_625.
+ */
+vbi3_bool
+vbi3_teletext_decoder_feed_frame
+				(vbi3_teletext_decoder *	td,
+				 const vbi3_sliced *	sliced,
+				 unsigned int		n_lines,
+				 double			timestamp)
+{
+	const vbi3_sliced *end;
+
+	assert (NULL != td);
+	assert (NULL != sliced);
+
+	for (end = sliced + n_lines; sliced < end; ++sliced) {
+		if (sliced->id & VBI3_SLICED_TELETEXT_B_625) {
+			if (!vbi3_teletext_decoder_feed (td,
+							 sliced->data,
+							 timestamp))
+				return FALSE;
+		}
+	}
+
+	return TRUE;
 }
 
 /**

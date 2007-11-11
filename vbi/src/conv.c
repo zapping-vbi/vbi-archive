@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.c,v 1.1.2.9 2007-11-01 00:21:22 mschimek Exp $ */
+/* $Id: conv.c,v 1.1.2.10 2007-11-11 03:06:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -842,8 +842,8 @@ strndup_iconv_to_ucs2		(unsigned long *	out_size,
  *
  * @since 0.2.23
  */
-static char *
-strndup_iconv			(unsigned long *	out_size,
+char *
+_vbi3_strndup_iconv		(unsigned long *	out_size,
 				 const char *		dst_codeset,
 				 const char *		src_codeset,
 				 const char *		src,
@@ -928,11 +928,11 @@ vbi3_strndup_iconv		(const char *		dst_codeset,
 	char *buffer;
 	unsigned long size;
 
-	buffer = strndup_iconv (&size,
-				dst_codeset,
-				src_codeset,
-				src, src_size,
-				repl_char);
+	buffer = _vbi3_strndup_iconv (&size,
+				      dst_codeset,
+				      src_codeset,
+				      src, src_size,
+				      repl_char);
 	if (NULL == buffer)
 		return NULL;
 
@@ -1159,11 +1159,11 @@ vbi3_fputs_iconv			(FILE *			fp,
 			== fwrite (src, 1, src_size, fp));
 	}
 
-	buffer = strndup_iconv (&size,
-				dst_codeset,
-				src_codeset,
-				src, src_size,
-				repl_char);
+	buffer = _vbi3_strndup_iconv (&size,
+				      dst_codeset,
+				      src_codeset,
+				      src, src_size,
+				      repl_char);
 	if (NULL == buffer)
 		return FALSE;
 

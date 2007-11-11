@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.8.2.8 2007-11-01 00:21:23 mschimek Exp $ */
+/* $Id: export.h,v 1.8.2.9 2007-11-11 03:06:13 mschimek Exp $ */
 
 #ifndef __ZVBI3_EXPORT_H__
 #define __ZVBI3_EXPORT_H__
@@ -236,12 +236,57 @@ typedef struct {
 	const char *		tooltip;
 } vbi3_option_info;
 
+/* Output functions. */
+
+extern vbi3_bool
+vbi3_export_flush		(vbi3_export *		e)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern vbi3_bool
+vbi3_export_putc			(vbi3_export *		e,
+				 int			c)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern vbi3_bool
+vbi3_export_write		(vbi3_export *		e,
+				 const void *		src,
+				 size_t			src_size)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
+extern vbi3_bool
+vbi3_export_puts			(vbi3_export *		e,
+				 const char *		src)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern vbi3_bool
+vbi3_export_puts_iconv		(vbi3_export *		e,
+				 const char *		dst_codeset,
+				 const char *		src_codeset,
+				 const char *		src,
+				 unsigned long		src_size,
+				 int			repl_char)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern vbi3_bool
+vbi3_export_puts_iconv_ucs2	(vbi3_export *		e,
+				 const char *		dst_codeset,
+				 const uint16_t *	src,
+				 long			src_length,
+				 int			repl_char)
+  __attribute__ ((_vbi3_nonnull (1)));
+extern vbi3_bool
+vbi3_export_vprintf		(vbi3_export *		e,
+				 const char *		templ,
+				 va_list		ap)
+  __attribute__ ((_vbi3_nonnull (1, 2)));
+extern vbi3_bool
+vbi3_export_printf		(vbi3_export *		e,
+				 const char *		templ,
+				 ...)
+  __attribute__ ((_vbi3_nonnull (1, 2),
+		  _vbi3_format (printf, 2, 3)));
+
+
 /**
  * @param e Export context passed to vbi3_export_stdio() or
  *   other output functions.
  * @param user_data User pointer passed through by
  *   vbi3_export_set_link_cb().
- * @param fp Output stream.
  * @param link Structure describing the link.
  *
  * Export modules call this type of function to write a link text
@@ -258,14 +303,12 @@ typedef struct {
 typedef vbi3_bool
 vbi3_export_link_cb		(vbi3_export *		e,
 				 void *			user_data,
-				 FILE *			fp,
-				 const vbi3_link *	lnk);
+				 const vbi3_link *	link);
 /**
  * @param e Export context passed to vbi3_export_stdio() or
  *   other output functions.
  * @param user_data User pointer passed through by
  *   vbi3_export_set_pdc_cb().
- * @param fp Output stream.
  * @param ps Structure describing the program.
  * @param text Text of the link.
  *
@@ -279,7 +322,6 @@ vbi3_export_link_cb		(vbi3_export *		e,
 typedef vbi3_bool
 vbi3_export_pdc_cb		(vbi3_export *		e,
 				 void *			user_data,
-				 FILE *			fp,
 				 const vbi3_preselection *ps,
 				 const char *		text);
 
@@ -290,6 +332,18 @@ vbi3_export_pdc_cb		(vbi3_export *		e,
 extern const char *
 vbi3_export_errstr		(vbi3_export *		e)
   __attribute__ ((_vbi3_nonnull (1)));
+extern ssize_t
+vbi3_export_mem			(vbi3_export *		e,
+				 void *			buffer,
+				 size_t			buffer_size,
+				 const vbi3_page *	pg)
+  __attribute__ ((_vbi3_nonnull (1))); /* sic */
+extern void *
+vbi3_export_alloc		(vbi3_export *		e,
+				 void **		buffer,
+				 size_t *		buffer_size,
+				 const vbi3_page *	pg)
+  __attribute__ ((_vbi3_nonnull (1))); /* sic */
 extern vbi3_bool
 vbi3_export_stdio		(vbi3_export *		e,
 				 FILE *			fp,

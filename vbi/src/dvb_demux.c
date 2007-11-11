@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb_demux.c,v 1.9.2.6 2007-11-01 00:21:22 mschimek Exp $ */
+/* $Id: dvb_demux.c,v 1.9.2.7 2007-11-11 03:06:12 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -2530,7 +2530,7 @@ _vbi3_dvb_ts_demux_new		(vbi3_dvb_demux_cb *	callback,
 /**
  * @brief Allocates DVB VBI demux.
  * @param callback Function to be called by vbi3_dvb_demux_demux() when
- *   a new frame is available.
+ *   a new frame is available. 
  * @param user_data User pointer passed through to @a callback function.
  *
  * Allocates a new DVB VBI (EN 301 472, EN 301 775) demultiplexer taking

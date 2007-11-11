@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling_par.c,v 1.1.2.6 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: sampling_par.c,v 1.1.2.7 2007-11-11 03:06:13 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -188,11 +188,11 @@ _vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
 #if 3 == VBI_VERSION_MINOR
  too_many_samples:
 	info (log,
-		"samples_per_line %u times bytes per samples %u is "
-		"greater than bytes_per_line %u.",
-		sp->samples_per_line,
-		vbi3_pixfmt_bytes_per_pixel (sp->sp_sample_format),
-		sp->bytes_per_line);
+	      "samples_per_line %lu times bytes per samples %u is "
+	      "greater than bytes_per_line %lu.",
+	      sp->samples_per_line,
+	      vbi3_pixfmt_bytes_per_pixel (sp->sp_sample_format),
+	      sp->bytes_per_line);
 	return FALSE;
 #endif
 
