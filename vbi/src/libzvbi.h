@@ -721,18 +721,18 @@ extern vbi_bool			vbi_export_option_get(vbi_export *, const char *keyword,
 extern vbi_bool			vbi_export_option_menu_set(vbi_export *, const char *keyword, int entry);
 extern vbi_bool			vbi_export_option_menu_get(vbi_export *, const char *keyword, int *entry);
 
-extern unsigned int
+extern ssize_t
 vbi_export_mem			(vbi_export *		e,
 				 void *			buffer,
 				 size_t			buffer_size,
 				 const vbi_page *	pg)
-  __attribute__ ((_vbi_nonnull (1, 2))); /* sic */
-extern vbi_bool
+  __attribute__ ((_vbi_nonnull (1))); /* sic */
+extern void *
 vbi_export_alloc		(vbi_export *		e,
 				 void **		buffer,
 				 size_t *		buffer_size,
 				 const vbi_page *	pg)
-  __attribute__ ((_vbi_nonnull (1, 2, 3))); /* sic */
+  __attribute__ ((_vbi_nonnull (1))); /* sic */
 extern vbi_bool			vbi_export_stdio(vbi_export *, FILE *fp, vbi_page *pg);
 extern vbi_bool			vbi_export_file(vbi_export *, const char *name, vbi_page *pg);
 

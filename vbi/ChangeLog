@@ -1,3 +1,35 @@
+2007-11-11    <mschimek@users.sf.net>
+
+	* test/export.c (do_export): vbi_export_mem() and
+	  vbi_export_alloc() interface changed.
+
+	* src/export.h: Noted that output functions may flush the
+	  buffer and the effect of _vbi_export_grow_buffer_space()
+	  with TARGET_MEM.
+
+	* src/export.c: Doxumented the new output functions.
+	(vbi_export_mem): Allowed NULL buffer parameter. Now returns
+	  the actual size needed if the given buffer is too small.
+	(_vbi_export_grow_buffer_space): Now changes TARGET_MEM to
+	  TARGET_ALLOC if the buffer is too small, however the data
+	  which doesn't fit will be discarded by vbi_export_mem().
+	(vbi_export_alloc): Changed the return type to pointer and
+	  allowed NULL buffer and buffer_size parameters. Fix: Delete
+	  the allocated buffer on failure.
+	(vbi_export_file): Fix: Handle EINTR on open() and close().
+
+	* src/exp-gfx.c (ppm_export): Signed compare fix.
+	(xpm_write_header): Removed unused scale parameter.
+
+	* src/export.h, src/export.c:
+	(vbi_export_puts_iconv, vbi_export_puts_iconv_ucs2): New
+	  function for 0.3 text export module.
+	* src/conv.h, src/conv.c: Renamed strndup_iconv() to
+	  _vbi_strndup_iconv() and made the function global for
+	  vbi_export_puts_iconv().
+
+	* src/dvb_demux.c: Resynched with main branch.
+
 2007-11-09    <mschimek@users.sf.net>
 
 	* test/export.c (usage): Short form of --list is -m, not -i.

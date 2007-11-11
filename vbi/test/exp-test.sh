@@ -22,7 +22,7 @@ target_loop() {
 }
 
 if [ -z "$sliced_bz2" ] ; then
-  die "Please name bzip2'ed sliced VBI file"
+  die "Please name a bzip2'ed sliced VBI file"
 fi
 
 rm -f exp-test-out-*
