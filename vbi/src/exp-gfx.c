@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.13.2.3 2007-11-09 04:39:34 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.13.2.4 2007-11-11 01:38:26 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -970,7 +970,7 @@ ppm_export			(vbi_export *		e,
 			    & -sizeof (*rgba_row_buffer))); /* align */
 	}
 
-	for (row = 0; row < pg->rows; ++row) {
+	for (row = 0; row < (unsigned int) pg->rows; ++row) {
 		uint8_t *d;
 		uint8_t *d_end;
 		const vbi_rgba *s;
@@ -992,7 +992,7 @@ ppm_export			(vbi_export *		e,
 						 /* flash_on */ TRUE);
 		}
 
-		d = e->buffer.data + e->buffer.offset;
+		d = (uint8_t *) e->buffer.data + e->buffer.offset;
 		s = rgba_row_buffer;
 
 		switch (scale) {
@@ -1263,7 +1263,6 @@ xpm_write_header		(vbi_export *		e,
 				 const vbi_page *	pg,
 				 unsigned int		image_width,
 				 unsigned int		image_height,
-				 unsigned int		scale,
 				 const char *		title,
 				 const char *		creator)
 {
@@ -1531,11 +1530,11 @@ xpm_export			(vbi_export *		e,
 			return FALSE;
 	}
 
-        if (!xpm_write_header (e, pg, image_width, image_height, scale,
+        if (!xpm_write_header (e, pg, image_width, image_height,
 			       title, e->creator))
 		goto failed;
 
-        for (row = 0; row < pg->rows; ++row) {
+        for (row = 0; row < (unsigned int) pg->rows; ++row) {
                 draw_row_indexed (pg, &pg->text[row * pg->columns],
 				  indexed_image, pen, image_width,
 				  !e->reveal, pg->columns < 40, scale);
