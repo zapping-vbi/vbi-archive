@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.h,v 1.13.2.2 2007-11-09 04:39:38 mschimek Exp $ */
+/* $Id: export.h,v 1.13.2.3 2007-11-11 01:38:16 mschimek Exp $ */
 
 #ifndef EXPORT_H
 #define EXPORT_H
@@ -250,18 +250,18 @@ extern vbi_bool			vbi_export_option_get(vbi_export *, const char *keyword,
 extern vbi_bool			vbi_export_option_menu_set(vbi_export *, const char *keyword, int entry);
 extern vbi_bool			vbi_export_option_menu_get(vbi_export *, const char *keyword, int *entry);
 
-extern unsigned int
+extern ssize_t
 vbi_export_mem			(vbi_export *		e,
 				 void *			buffer,
 				 size_t			buffer_size,
 				 const vbi_page *	pg)
-  __attribute__ ((_vbi_nonnull (1, 2))); /* sic */
-extern vbi_bool
+  __attribute__ ((_vbi_nonnull (1))); /* sic */
+extern void *
 vbi_export_alloc		(vbi_export *		e,
 				 void **		buffer,
 				 size_t *		buffer_size,
 				 const vbi_page *	pg)
-  __attribute__ ((_vbi_nonnull (1, 2, 3))); /* sic */
+  __attribute__ ((_vbi_nonnull (1))); /* sic */
 extern vbi_bool			vbi_export_stdio(vbi_export *, FILE *fp, vbi_page *pg);
 extern vbi_bool			vbi_export_file(vbi_export *, const char *name, vbi_page *pg);
 
@@ -343,7 +343,11 @@ struct vbi_export {
 	 */
 	vbi_bool		reveal;
 
-	/** The export target. */
+	/**
+	 * The export target. Note _vbi_export_grow_buffer_space() may
+	 * change the target from TARGET_MEM to TARGET_ALLOC if the
+	 * buffer supplied by the application is too small.
+	 */
 	enum _vbi_export_target	target;
 
 	/**
@@ -370,12 +374,13 @@ struct vbi_export {
 	 * Output buffer. Export modules can write into this buffer
 	 * directly after ensuring sufficient capacity, and/or call
 	 * the vbi_export_putc() etc functions. Keep in mind these
-	 * functions may call realloc(), changing the @a data pointer.
+	 * functions may call realloc(), changing the @a data pointer,
+	 * and/or vbi_export_flush(), changing the @a offset.
 	 */
 	struct {
 		/**
 		 * Pointer to the start of the buffer in memory.
-		 * @c NULL if @c capacity is zero.
+		 * @c NULL if @a capacity is zero.
 		 */
 		char *			data;
 
@@ -391,9 +396,7 @@ struct vbi_export {
 		 *
 		 * Call _vbi_export_grow_buffer_space() to increase the
 		 * capacity. Keep in mind this may change the @a data
-		 * pointer. When @a target is @a VBI_EXPORT_TARGET_MEM
-		 * the capacity is fixed and
-		 * _vbi_export_grow_buffer_space() will fail.
+		 * pointer.
 		 */
 		size_t			capacity;
 	}			buffer;
@@ -443,17 +446,40 @@ struct vbi_export_class {
 
 extern vbi_bool
 _vbi_export_grow_buffer_space	(vbi_export *		e,
-				 unsigned int		min_space)
+				 size_t			min_space)
   __attribute__ ((_vbi_nonnull (1)));
 
 extern vbi_bool
-vbi_export_putc		(vbi_export *		e,
+vbi_export_flush		(vbi_export *		e)
+  __attribute__ ((_vbi_nonnull (1)));
+extern vbi_bool
+vbi_export_putc			(vbi_export *		e,
 				 int			c)
   __attribute__ ((_vbi_nonnull (1)));
 extern vbi_bool
-vbi_export_puts		(vbi_export *		e,
-				 const char *		s)
+vbi_export_write		(vbi_export *		e,
+				 const void *		src,
+				 size_t			src_size)
   __attribute__ ((_vbi_nonnull (1, 2)));
+extern vbi_bool
+vbi_export_puts			(vbi_export *		e,
+				 const char *		src)
+  __attribute__ ((_vbi_nonnull (1)));
+extern vbi_bool
+vbi_export_puts_iconv		(vbi_export *		e,
+				 const char *		dst_codeset,
+				 const char *		src_codeset,
+				 const char *		src,
+				 unsigned long		src_size,
+				 int			repl_char)
+  __attribute__ ((_vbi_nonnull (1)));
+extern vbi_bool
+vbi_export_puts_iconv_ucs2	(vbi_export *		e,
+				 const char *		dst_codeset,
+				 const uint16_t *	src,
+				 long			src_length,
+				 int			repl_char)
+  __attribute__ ((_vbi_nonnull (1)));
 extern vbi_bool
 vbi_export_vprintf		(vbi_export *		e,
 				 const char *		templ,
@@ -465,14 +491,6 @@ vbi_export_printf		(vbi_export *		e,
 				 ...)
   __attribute__ ((_vbi_nonnull (1, 2),
 		  _vbi_format (printf, 2, 3)));
-extern vbi_bool
-vbi_export_write		(vbi_export *		e,
-				 const void *		s,
-				 size_t			n_bytes)
-  __attribute__ ((_vbi_nonnull (1, 2)));
-extern vbi_bool
-vbi_export_flush		(vbi_export *		e)
-  __attribute__ ((_vbi_nonnull (1)));
 
 /**
  * @addtogroup Exmod
