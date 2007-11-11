@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.20.2.2 2007-11-09 04:39:10 mschimek Exp $ */
+/* $Id: export.c,v 1.20.2.3 2007-11-11 01:38:11 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -219,32 +219,39 @@ do_export			(vbi_pgno		pgno,
 	}
 
 	switch (option_target) {
+		void *buffer2;
+		ssize_t ssize;
+
 	case 1:
 		buffer = malloc (1 << 20);
 		if (NULL == buffer)
 			no_mem_exit ();
-		size = vbi_export_mem (ex, buffer, 1 << 20, &page);
-		success = (size > 0);
+		ssize = vbi_export_mem (ex, buffer, 1 << 20, &page);
+		success = (ssize >= 0);
 		if (success) {
-			size_t size2;
+			ssize_t ssize2;
 
 			fp = open_output_file (pgno, subno);
-			if (1 != fwrite (buffer, size, 1, fp))
+			if (1 != fwrite (buffer, ssize, 1, fp))
 				write_error_exit (/* msg: errno */ NULL);
 			close_output_file (fp);
 
 			/* Test. */
-			assert (0 == vbi_export_mem (ex, buffer, 0, &page));
-			assert (0 == vbi_export_mem (ex, buffer, 1, &page));
-			size2 = vbi_export_mem (ex, buffer, size - 1, &page);
-			assert (0 == size2);
+			ssize2 = vbi_export_mem (ex, buffer, 0, &page);
+			assert (ssize == ssize2);
+			assert (ssize > 0);
+			ssize2 = vbi_export_mem (ex, buffer, ssize - 1, &page);
+			assert (ssize == ssize2);
 		}
 		free (buffer);
 		break;
 
 	case 2:
 		buffer = NULL;
-		success = vbi_export_alloc (ex, &buffer, &size, &page);
+		buffer2 = vbi_export_alloc (ex, &buffer, &size, &page);
+		/* Test. */
+		assert (buffer == buffer2);
+		success = (NULL != buffer);
 		if (success) {
 			fp = open_output_file (pgno, subno);
 			if (1 != fwrite (buffer, size, 1, fp))
@@ -255,6 +262,10 @@ do_export			(vbi_pgno		pgno,
 		break;
 
 	case 3:
+		/* This is the default target. The other cases are only
+		   implemented for tests and will be removed when I
+		   wrote proper unit tests. */
+
 		fp = open_output_file (pgno, subno);
 		success = vbi_export_stdio (ex, fp, &page);
 		close_output_file (fp);
