@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb_demux.c,v 1.17 2007-10-14 14:55:09 mschimek Exp $ */
+/* $Id: dvb_demux.c,v 1.17.2.1 2007-11-11 01:38:41 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1341,8 +1341,11 @@ decode_timestamp		(vbi_dvb_demux *	dx,
 {
 	unsigned int t;
 
-	if (mark != (p[0] & 0xF1u))
+	if (mark != (p[0] & 0xF1u)) {
+		debug2 (&dx->frame.log,
+			"Invalid PTS/DTS byte[0]=0x%02x.", p[0]);
 		return FALSE;
+	}
 
 	t  = p[1] << 22;
 	t |= (p[2] & ~1) << 14;
@@ -1371,29 +1374,35 @@ valid_pes_packet_header		(vbi_dvb_demux *	dx,
 				 const uint8_t *	p)
 {
 	unsigned int header_length;
+	unsigned int data_identifier;
 
 	/* PES_header_data_length [8] */
 	header_length = p[8];
 
 	debug1 (&dx->frame.log,
-		"PES_header_length=%u.",
-		header_length);
+		"PES_header_length=%u (%s).",
+		header_length,
+		(36 == header_length) ? "ok" : "bad");
 
 	/* EN 300 472 section 4.2: Must be 0x24. */
 	if (36 != header_length)
 		return FALSE;
 
-	debug1 (&dx->frame.log,
-		"data_identifier=%u.",
-		p[9 + 36]);
+	data_identifier = p[9 + 36];
 
 	/* data_identifier (EN 301 775 section 4.3.2) */
-	switch (p[9 + 36]) {
+	switch (data_identifier) {
 	case 0x10 ... 0x1F:
 	case 0x99 ... 0x9B:
+		debug1 (&dx->frame.log,
+			"data_identifier=%u (ok).",
+			data_identifier);
 		break;
 
 	default:
+		debug2 (&dx->frame.log,
+			"data_identifier=%u (bad).",
+			data_identifier);
 		return FALSE;
 	}
 
@@ -1404,8 +1413,12 @@ valid_pes_packet_header		(vbi_dvb_demux *	dx,
 	     starts immediately after header),
 	   copyright,
 	   original_or_copy */
-	if (0x84 != (p[6] & 0xF4))
+	if (0x84 != (p[6] & 0xF4)) {
+		debug2 (&dx->frame.log,
+			"Invalid PES header byte[6]=0x%02x.",
+			p[6]);
 		return FALSE;
+	}
 
 	/* PTS_DTS_flags [2],
 	   ESCR_flag,
@@ -1429,8 +1442,13 @@ valid_pes_packet_header		(vbi_dvb_demux *	dx,
 		/* EN 300 472 section 4.2: a VBI PES packet [...]
 		   always carries a PTS. (But we don't need one
 		   if this packet continues the previous frame.) */
+		debug2 (&dx->frame.log,
+			"PTS missing in PES header.");
+
+		/* XXX make this optional to handle broken sources. */
 		if (dx->new_frame)
 			return FALSE;
+
 		break;
 	}
 
@@ -2272,6 +2290,10 @@ demux_ts_packet			(vbi_dvb_demux *	dx,
  * converts them to vbi_sliced format and stores the sliced data at
  * @a sliced.
  *
+ * Thou shalt not call this function when you passed a callback to
+ * vbi_dvb_pes_demux_new(), for it is wicked and will bring upon thee
+ * much howling and gnashing of teeth. Try vbi_dvb_demux_feed() instead.
+ *
  * @returns
  * When a frame is complete, the function returns the number of elements
  * stored in the @a sliced array. When more data is needed (@a
@@ -2298,6 +2320,9 @@ vbi_dvb_demux_cor		(vbi_dvb_demux *	dx,
 
 	/* FIXME in future version:
 	   buffer_left ought to be an unsigned long. */
+
+	/* FIXME can we handle this? */
+	assert (NULL == dx->callback);
 
 	/* Doesn't work with TS, and isn't safe in any case. */
 	/* dx->frame.sliced_begin = sliced;
@@ -2511,8 +2536,10 @@ _vbi_dvb_ts_demux_new		(vbi_dvb_demux_cb *	callback,
 
 /**
  * @brief Allocates DVB VBI demux.
- * @param callback Function to be called by vbi_dvb_demux_demux() when
- *   a new frame is available.
+ * @param callback Function to be called by vbi_dvb_demux_feed() when
+ *   a new frame is available. If you want to use the vbi_dvb_demux_cor()
+ *   function instead, @a callback must be @c NULL. Conversely you
+ *   must not call vbi_dvb_demux_cor() if a @a callback is given.
  * @param user_data User pointer passed through to @a callback function.
  *
  * Allocates a new DVB VBI (EN 301 472, EN 301 775) demultiplexer taking
