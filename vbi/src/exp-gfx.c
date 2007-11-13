@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.13.2.4 2007-11-11 01:38:26 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.13.2.5 2007-11-13 22:59:42 tomzo Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -760,6 +760,8 @@ typedef struct gfx_instance
 	 *  think one should export raw, not scaled data (which is
 	 *  still possible in Zapping using the screenshot plugin).
 	 */
+	unsigned		titled : 1;
+	unsigned		transparency : 1;
 } gfx_instance;
 
 static vbi_export *
@@ -785,7 +787,14 @@ gfx_options[] = {
 	VBI_OPTION_BOOL_INITIALIZER
 	  ("aspect", N_("Correct aspect ratio"),
 	   TRUE, N_("Approach an image aspect ratio similar to "
-		    "a real TV. This will double the image size."))
+		    "a real TV. This will double the image size.")),
+	VBI_OPTION_BOOL_INITIALIZER
+	  ("transparency", N_("Include transparency"),
+	   TRUE, N_("If not enabled, transparency is mapped to black.")),
+	VBI_OPTION_BOOL_INITIALIZER
+	  ("titled", N_("Include page title"),
+	   TRUE, N_("Embed a title string which names network "
+		    "and page number."))
 };
 
 #define elements(array) (sizeof(array) / sizeof(array[0]))
@@ -808,6 +817,10 @@ option_get(vbi_export *e, const char *keyword, vbi_option_value *value)
 
 	if (strcmp(keyword, "aspect") == 0) {
 		value->num = gfx->double_height;
+	} else if (strcmp(keyword, "titled") == 0) {
+		value->num = gfx->titled;
+	} else if (strcmp(keyword, "transparency") == 0) {
+		value->num = gfx->transparency;
 	} else {
 		vbi_export_unknown_option(e, keyword);
 		return FALSE;
@@ -823,6 +836,10 @@ option_set(vbi_export *e, const char *keyword, va_list args)
 
 	if (strcmp(keyword, "aspect") == 0) {
 		gfx->double_height = !!va_arg(args, int);
+	} else if (strcmp(keyword, "titled") == 0) {
+		gfx->titled = !!va_arg(args, int);
+	} else if (strcmp(keyword, "transparency") == 0) {
+		gfx->transparency = !!va_arg(args, int);
 	} else {
 		vbi_export_unknown_option(e, keyword);
 		return FALSE;
@@ -844,7 +861,13 @@ option_set(vbi_export *e, const char *keyword, va_list args)
 static void
 get_image_title(vbi_export *e, const vbi_page *pg, char *title, int title_max)
 {
+	gfx_instance *gfx = PARENT(e, gfx_instance, export);
         int size = 0;
+
+        if (!gfx->titled) {
+                title[0] = 0;
+                return;
+        }
 
         if (e->network)
                 size = snprintf(title, title_max - 1, "%s ", e->network);
@@ -1266,7 +1289,9 @@ xpm_write_header		(vbi_export *		e,
 				 const char *		title,
 				 const char *		creator)
 {
-        vbi_bool do_ext = (NULL != title || NULL != creator);
+	gfx_instance *gfx = PARENT(e, gfx_instance, export);
+        vbi_bool do_ext =    ((NULL != title) && (0 != title[0]))
+                          || ((NULL != creator) && (0 != creator[0]));
         unsigned int i;
 
         /* Warning: adapt buf size estimation when changing the text! */
@@ -1282,7 +1307,7 @@ xpm_write_header		(vbi_export *		e,
         /* Write color palette (including unused colors
 	   - could be optimized). */
         for (i = 0; i < 40; ++i) {
-                if (8 == i) {
+                if ((8 == i) && gfx->transparency) {
                         vbi_export_printf (e,
 					   "\"%c c None\",\n",
 					   xpm_col_codes[i]);
@@ -1324,20 +1349,22 @@ xpm_write_footer		(vbi_export *		e,
 {
         char *p;
 
-        /* Warning: adapt buf size estimation when changing the text! */
-        if (NULL != title && 0 != title[0]) {
-                while ((p = strchr(title, '"')) != NULL)
-                        *p = '\'';
-                vbi_export_printf (e, "\"XPMEXT title %s\",\n", title);
-        }
+        if (    ((NULL != title) && (0 != title[0]))
+             || ((NULL != creator) && (0 != creator[0])) ) {
 
-        if (NULL != creator && 0 != creator[0]) {
-                while ((p = strchr(creator, '"')) != NULL)
-                        *p = '\'';
-                vbi_export_printf (e, "\"XPMEXT software %s\",\n", creator);
-        }
+                /* Warning: adapt buf size estimation when changing the text! */
+                if (NULL != title && 0 != title[0]) {
+                        while ((p = strchr(title, '"')) != NULL)
+                                *p = '\'';
+                        vbi_export_printf (e, "\"XPMEXT title %s\",\n", title);
+                }
 
-        if (NULL != title || NULL != creator) {
+                if (NULL != creator && 0 != creator[0]) {
+                        while ((p = strchr(creator, '"')) != NULL)
+                                *p = '\'';
+                        vbi_export_printf (e, "\"XPMEXT software %s\",\n", creator);
+                }
+
                 vbi_export_printf (e, "\"XPMENDEXT\"\n");
         }
 
@@ -1501,11 +1528,14 @@ xpm_export			(vbi_export *		e,
 					   and height and 2-digit col num) */
 			+ 15 * 40	/* color palette with 40 members */
 			+ 13;		/* row start comment */
+                if (gfx->transparency)
+                        header_size -= 7 - 4;   /* "#RRGGBB" - "None" */
 		xpm_row_size = (((image_width + 4) * char_height)
 				<< scale) >> 1;
 		footer_size = 3;	/* closing bracket */
 
-		if (NULL != title || NULL != e->creator) {
+                if (   ((NULL != title) && (0 != title[0]))
+                    || ((NULL != e->creator) && (0 != e->creator[0])) ) {
 			header_size += 7; /* XPMEXT keyword */
 			footer_size += 12; /* XPMENDEXT keyword */
 			if (NULL != title) {
