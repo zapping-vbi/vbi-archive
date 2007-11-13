@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: export.c,v 1.27.2.4 2007-11-11 01:38:21 mschimek Exp $ */
+/* $Id: export.c,v 1.27.2.5 2007-11-13 05:12:26 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1445,6 +1445,7 @@ vbi_export_vprintf		(vbi_export *		e,
 {
 	size_t offset;
 	unsigned int i;
+	va_list ap2;
 
 	assert (NULL != e);
 	assert (NULL != templ);
@@ -1464,6 +1465,8 @@ vbi_export_vprintf		(vbi_export *		e,
 
 		return TRUE;
 	}
+
+	__va_copy (ap2, ap);
 
 	offset = e->buffer.offset;
 
@@ -1498,6 +1501,9 @@ vbi_export_vprintf		(vbi_export *		e,
 			if (!_vbi_export_grow_buffer_space (e, needed))
 				goto failed;
 		}
+
+		/* vsnprintf() may advance ap. */
+		__va_copy (ap, ap2);
 	}
 
 	_vbi_export_malloc_error (e);
