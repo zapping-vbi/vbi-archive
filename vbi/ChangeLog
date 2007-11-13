@@ -1,3 +1,9 @@
+2007-11-13    <mschimek@users.sf.net>
+
+	* src/misc.c (_vbi_vasprintf), src/export.c (vbi_export_vprintf):
+	  Save the va_list parameter across vsnprintf() because the
+	  function may change it.
+
 2007-11-11    <mschimek@users.sf.net>
 
 	* test/export.c, test/exp-test.sh: Resynched with branch 0.3.
