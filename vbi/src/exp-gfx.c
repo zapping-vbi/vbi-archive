@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.13.2.5 2007-11-13 22:59:42 tomzo Exp $ */
+/* $Id: exp-gfx.c,v 1.13.2.6 2007-11-14 21:51:32 tomzo Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -761,7 +761,17 @@ typedef struct gfx_instance
 	 *  still possible in Zapping using the screenshot plugin).
 	 */
 	unsigned		titled : 1;
+        /*
+         *  By default a title string is embedded in the images which
+         *  names the page number and optionally the network. This
+         *  option can be used to suppress this feature
+         */
 	unsigned		transparency : 1;
+        /*
+         *  By default, image formats which support transparency
+         *  use transparent background for boxed pages. This option
+         *  can be used to define transparent areas as black.
+         */
 } gfx_instance;
 
 static vbi_export *
@@ -784,10 +794,12 @@ gfx_delete(vbi_export *e)
 
 static vbi_option_info
 gfx_options[] = {
+        /* all formats */
 	VBI_OPTION_BOOL_INITIALIZER
 	  ("aspect", N_("Correct aspect ratio"),
 	   TRUE, N_("Approach an image aspect ratio similar to "
 		    "a real TV. This will double the image size.")),
+        /* XPM and PNG only */
 	VBI_OPTION_BOOL_INITIALIZER
 	  ("transparency", N_("Include transparency"),
 	   TRUE, N_("If not enabled, transparency is mapped to black.")),
@@ -805,6 +817,17 @@ option_enum(vbi_export *e, int index)
 	e = e;
 
 	if (index < 0 || index >= (int) elements(gfx_options))
+		return NULL;
+	else
+		return gfx_options + index;
+}
+
+static vbi_option_info *
+option_enum_ppm(vbi_export *e, int index)
+{
+	e = e;
+
+	if (index != 0)
 		return NULL;
 	else
 		return gfx_options + index;
@@ -1109,7 +1132,7 @@ vbi_export_class_ppm = {
 	._public		= &info_ppm,
 	._new			= gfx_new,
 	._delete		= gfx_delete,
-	.option_enum		= option_enum,
+	.option_enum		= option_enum_ppm,
 	.option_get		= option_get,
 	.option_set		= option_set,
 	.export			= ppm_export
@@ -1688,7 +1711,9 @@ write_png			(gfx_instance *		gfx,
 	alpha[40 + VBI_TRANSPARENT_BLACK] = 0;
 
 	png_set_PLTE (png_ptr, info_ptr, palette, 80);
-	png_set_tRNS (png_ptr, info_ptr, alpha, 80, NULL);
+
+        if (gfx->transparency)
+	        png_set_tRNS (png_ptr, info_ptr, alpha, 80, NULL);
 
 	png_set_gAMA (png_ptr, info_ptr, 1.0 / 2.2);
 
@@ -1696,14 +1721,20 @@ write_png			(gfx_instance *		gfx,
 
 	CLEAR (text);
 
-	text[0].key = "Title";
-	text[0].text = title;
-	text[0].compression = PNG_TEXT_COMPRESSION_NONE;
-	text[1].key = "Software";
-	text[1].text = gfx->export.creator;
-	text[1].compression = PNG_TEXT_COMPRESSION_NONE;
-
-	png_set_text (png_ptr, info_ptr, text, 2);
+        i = 0;
+        if (0 != title[0]) {
+	        text[i].key = "Title";
+	        text[i].text = title;
+	        text[i].compression = PNG_TEXT_COMPRESSION_NONE;
+                i++;
+        }
+        if (NULL != gfx->export.creator && 0 != gfx->export.creator[0]) {
+	        text[i].key = "Software";
+	        text[i].text = gfx->export.creator;
+	        text[i].compression = PNG_TEXT_COMPRESSION_NONE;
+                i++;
+        }
+	png_set_text (png_ptr, info_ptr, text, i);
 
 	png_write_info (png_ptr, info_ptr);
 
