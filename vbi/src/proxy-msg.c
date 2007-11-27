@@ -14,7 +14,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  *  Description:
@@ -29,9 +29,12 @@
  *    Both UNIX domain and IPv4 and IPv6 sockets are implemented, but
  *    the latter ones are currently not officially supported.
  *
- *  $Id: proxy-msg.c,v 1.18 2007-08-27 10:17:50 mschimek Exp $
+ *  $Id: proxy-msg.c,v 1.19 2007-11-27 18:31:07 mschimek Exp $
  *
  *  $Log: not supported by cvs2svn $
+ *  Revision 1.18  2007/08/27 10:17:50  mschimek
+ *  *** empty log message ***
+ *
  *  Revision 1.17  2007/08/27 06:44:40  mschimek
  *  vbi_proxy_msg_get_local_socket_addr, vbi_proxy_msg_accept_connection,
  *  vbi_proxy_msg_resolve_symlinks: Replaced strncpy() by the faster a
