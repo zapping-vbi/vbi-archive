@@ -296,3 +296,6 @@ AC_OUTPUT([
   zvbi.spec
   zvbi-0.2.pc
 ])
+
+echo -e '\nNote this branch xpm_support is stale. All changes have'
+echo -e 'been merged into the trunk on 2007-11-24 for libzvbi 0.2.26.\n'

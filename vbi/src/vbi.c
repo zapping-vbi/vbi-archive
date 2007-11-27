@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi.c,v 1.21 2007-07-23 20:01:18 mschimek Exp $ */
+/* $Id: vbi.c,v 1.21.2.1 2007-11-27 17:42:38 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -816,9 +816,17 @@ vbi_reset_prog_info(vbi_program_info *pi)
 void
 vbi_decoder_delete(vbi_decoder *vbi)
 {
+	struct event_handler *eh;
+
 	vbi_trigger_flush(vbi);
 
 	vbi_caption_destroy(vbi);
+
+	while (NULL != (eh = vbi->handlers)) {
+		vbi_event_handler_unregister (vbi,
+					      eh->handler,
+					      eh->user_data);
+	}
 
 	pthread_mutex_destroy(&vbi->prog_info_mutex);
 	pthread_mutex_destroy(&vbi->event_mutex);
