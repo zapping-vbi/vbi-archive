@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: prepare_dox.sh,v 1.11 2006-04-25 20:47:27 mschimek Exp $
+# $Id: prepare_dox.sh,v 1.12 2008-02-22 04:18:34 mschimek Exp $
 #
 # This checks out a copy of the module, runs doxygen, puts
 # the generated files online and cleans up.
@@ -16,7 +16,9 @@ set -e -x
 # By default all files are world read-only.
 umask 006
 
-cvs -z3 -d:pserver:anonymous@cvs1:/cvsroot/zapping co $1
+#cvs -z3 -d:pserver:anonymous@cvs1:/cvsroot/zapping co $1
+#cvs -d:pserver:anonymous@zapping.cvs.sourceforge.net:/cvsroot/zapping login
+cvs -z3 -d:pserver:anonymous@zapping.cvs.sourceforge.net:/cvsroot/zapping co $1
 
 # Generate documentation.
 cd $1/doc
