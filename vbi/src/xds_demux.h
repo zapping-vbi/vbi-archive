@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_demux.h,v 1.1.2.9 2007-11-11 03:06:13 mschimek Exp $ */
+/* $Id: xds_demux.h,v 1.1.2.10 2008-02-25 20:58:56 mschimek Exp $ */
 
 #ifndef __ZVBI3_XDS_DEMUX_H__
 #define __ZVBI3_XDS_DEMUX_H__
@@ -86,14 +86,14 @@ typedef enum {
 	VBI3_XDS_PROGRAM_CGMS,
 	VBI3_XDS_PROGRAM_ASPECT_RATIO,
 	VBI3_XDS_PROGRAM_DESCRIPTION_BEGIN = 0x10,
-	VBI3_XDS_PROGRAM_DESCRIPTION_END = 0x18,
+	VBI3_XDS_PROGRAM_DESCRIPTION_END = 0x18
 } vbi3_xds_subclass_program;
 
 /** @brief @c VBI3_XDS_CLASS_CHANNEL subclass. */
 typedef enum {
 	VBI3_XDS_CHANNEL_NAME = 1,
 	VBI3_XDS_CHANNEL_CALL_LETTERS,
-	VBI3_XDS_CHANNEL_TAPE_DELAY,
+	VBI3_XDS_CHANNEL_TAPE_DELAY
 } vbi3_xds_subclass_channel;
 
 /** @brief @c VBI3_XDS_CLASS_MISC subclass. */
@@ -101,7 +101,7 @@ typedef enum {
 	VBI3_XDS_MISC_TIME_OF_DAY = 1,
 	VBI3_XDS_MISC_IMPULSE_CAPTURE_ID,
 	VBI3_XDS_MISC_SUPPLEMENTAL_DATA_LOCATION,
-	VBI3_XDS_MISC_LOCAL_TIME_ZONE,
+	VBI3_XDS_MISC_LOCAL_TIME_ZONE
 } vbi3_xds_subclass_misc;
 
 #define VBI3_XDS_MAX_SUBCLASSES 0x80
@@ -135,7 +135,7 @@ typedef struct {
 extern void
 _vbi3_xds_packet_dump		(const vbi3_xds_packet *	xp,
 				 FILE *			fp)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 
 /**
  * @brief XDS demultiplexer.
@@ -161,26 +161,25 @@ vbi3_xds_demux_cb		(vbi3_xds_demux *	xd,
 
 extern void
 vbi3_xds_demux_reset		(vbi3_xds_demux *	xd)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_xds_demux_feed		(vbi3_xds_demux *	xd,
 				 const uint8_t		buffer[2])
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern vbi3_bool
 vbi3_xds_demux_feed_frame	(vbi3_xds_demux *	xd,
 				 const vbi3_sliced *	sliced,
 				 unsigned int		n_lines)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern const char *
 vbi3_xds_demux_errstr		(vbi3_xds_demux *	xd)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_xds_demux_delete		(vbi3_xds_demux *	xd);
 extern vbi3_xds_demux *
 vbi3_xds_demux_new		(vbi3_xds_demux_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_alloc,
-		  _vbi3_nonnull (1)));
+  _vbi3_alloc _vbi3_nonnull ((1));
 
 /* Private */
 
@@ -219,12 +218,12 @@ struct _vbi3_xds_demux {
 
 extern void
 _vbi3_xds_demux_destroy		(vbi3_xds_demux *	xd)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 _vbi3_xds_demux_init		(vbi3_xds_demux *	xd,
 				 vbi3_xds_demux_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 
 /** @} */
 

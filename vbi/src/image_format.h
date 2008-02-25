@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: image_format.h,v 1.1.2.2 2007-11-01 00:21:23 mschimek Exp $ */
+/* $Id: image_format.h,v 1.1.2.3 2008-02-25 21:00:29 mschimek Exp $ */
 
 #ifndef __ZVBI3_IMAGE_FORMAT_H__
 #define __ZVBI3_IMAGE_FORMAT_H__
@@ -300,20 +300,20 @@ typedef uint64_t vbi3_pixfmt_set;
 
 extern const char *
 vbi3_pixfmt_name			(vbi3_pixfmt		pixfmt)
-  __attribute__ ((const));
+  _vbi3_const;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 extern unsigned int
 _vbi3_pixfmt_bytes_per_pixel	(vbi3_pixfmt		pixfmt)
-  __attribute__ ((const));
+  _vbi3_const;
 
 #endif
 
 /** Color space identifier. No values defined yet. */
 typedef enum {
 	VBI3_COLOR_SPACE_NONE,				/**< */
-	VBI3_COLOR_SPACE_UNKNOWN = VBI3_COLOR_SPACE_NONE,	/**< */
+	VBI3_COLOR_SPACE_UNKNOWN = VBI3_COLOR_SPACE_NONE	/**< */
 } vbi3_color_space;
 
 /** This structure describes an image buffer. */

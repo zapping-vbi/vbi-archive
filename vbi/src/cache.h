@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache.h,v 1.2.2.16 2007-11-01 00:21:22 mschimek Exp $ */
+/* $Id: cache.h,v 1.2.2.17 2008-02-25 21:01:20 mschimek Exp $ */
 
 #ifndef __ZVBI3_CACHE_H__
 #define __ZVBI3_CACHE_H__
@@ -72,13 +72,13 @@ typedef enum {
 	VBI3_ACI_PAGE		= 0xFD,
 	VBI3_TOP_PAGE		= 0xFE,		/* MPT, AIT, MPT-EX */
 
-	VBI3_UNKNOWN_PAGE	= 0xFF,		/* libzvbi private */
+	VBI3_UNKNOWN_PAGE	= 0xFF		/* libzvbi private */
 } vbi3_page_type;
 
 /* in packet.c */
 extern const char *
 vbi3_page_type_name		(vbi3_page_type		type)
-  __attribute__ ((const));
+  _vbi3_const;
 
 /**
  * @brief Meta data and statistical info about a cached Teletext page.
@@ -109,28 +109,28 @@ typedef struct {
 
 extern void
 vbi3_ttx_page_stat_destroy	(vbi3_ttx_page_stat *	ps)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_ttx_page_stat_init		(vbi3_ttx_page_stat *	ps)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_cache_get_ttx_page_stat	(vbi3_cache *		ca,
 				 vbi3_ttx_page_stat *	ps,
 				 const vbi3_network *	nk,
 				 vbi3_pgno		pgno)
-  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+  _vbi3_nonnull ((1, 2, 3));
 extern vbi3_bool
 vbi3_cache_get_top_title		(vbi3_cache *		ca,
 				 vbi3_top_title *	tt,
 				 const vbi3_network *	nk,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno)
-  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+  _vbi3_nonnull ((1, 2, 3));
 extern vbi3_top_title *
 vbi3_cache_get_top_titles	(vbi3_cache *		ca,
 				 const vbi3_network *	nk,
 				 unsigned int *		n_elements)
-  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+  _vbi3_nonnull ((1, 2, 3));
 
 /**
  * @brief Values for the vbi3_format_option @c VBI3_WST_LEVEL.
@@ -245,7 +245,7 @@ typedef enum {
 	VBI3_OVERRIDE_CHARSET_1,
 	VBI3_DEFAULT_FOREGROUND, /* XXX document me */
 	VBI3_DEFAULT_BACKGROUND,
-	VBI3_ROW_CHANGE,
+	VBI3_ROW_CHANGE
 } vbi3_format_option;
 
 /* in teletext.c */
@@ -256,49 +256,49 @@ vbi3_cache_get_teletext_page_va_list
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
 				 va_list		format_options)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern vbi3_page *
 vbi3_cache_get_teletext_page	(vbi3_cache *		ca,
 				 const vbi3_network *	nk,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
 				 ...)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 /* in cache.c */
 extern vbi3_network *
 vbi3_cache_get_networks		(vbi3_cache *		ca,
 				 unsigned int *		n_elements)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 /* in cache.c */
 extern void
 vbi3_cache_remove_event_handler	(vbi3_cache *		ca,
 				 vbi3_event_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_cache_add_event_handler	(vbi3_cache *		ca,
 				 vbi3_event_mask	event_mask,
 				 vbi3_event_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_cache_set_memory_limit	(vbi3_cache *		ca,
 				 unsigned long		limit)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_cache_set_network_limit	(vbi3_cache *		ca,
 				 unsigned int		limit)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_cache_unref		(vbi3_cache *		ca);
 extern vbi3_cache *
 vbi3_cache_ref			(vbi3_cache *		ca)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_cache_delete		(vbi3_cache *		ca);
 extern vbi3_cache *
 vbi3_cache_new			(void)
-  __attribute__ ((_vbi3_alloc));
+  _vbi3_alloc;
 
 VBI3_END_DECLS
 

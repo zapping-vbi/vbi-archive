@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pdc.h,v 1.1.2.14 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: pdc.h,v 1.1.2.15 2008-02-25 20:59:46 mschimek Exp $ */
 
 #ifndef __ZVBI3_PDC_H__
 #define __ZVBI3_PDC_H__
@@ -79,7 +79,7 @@ enum {
 	VBI3_PIL_INTERRUPT		= VBI3_PIL (15, 0, 29, 63),
 
 	/** PDC: Continue recording. */
-	VBI3_PIL_CONTINUE		= VBI3_PIL (15, 0, 28, 63),
+	VBI3_PIL_CONTINUE		= VBI3_PIL (15, 0, 28, 63)
 };
 
 extern time_t
@@ -88,14 +88,14 @@ vbi3_pil_to_time		(vbi3_pil		pil,
 extern vbi3_bool
 vbi3_pil_from_string		(vbi3_pil *		pil,
 				 const char **		inout_s)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 
 /* Private */
 
 extern void
 _vbi3_pil_dump			(vbi3_pil		pil,
 				 FILE *			fp)
-  __attribute__ ((_vbi3_nonnull (2)));
+  _vbi3_nonnull ((2));
 
 /**
  * A program identification can be transmitted on different logical
@@ -241,18 +241,18 @@ typedef struct {
 
 extern void
 vbi3_program_id_destroy		(vbi3_program_id *	pid)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_program_id_init		(vbi3_program_id *	pid,
 				 vbi3_pid_channel	channel)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 
 /* Private */
 
 extern void
 _vbi3_program_id_dump		(const vbi3_program_id *	pid,
 				 FILE *			fp)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 
 struct _vbi3_at1_ptl {
 	uint8_t			row;		/**< 1 ... 23 */
@@ -263,9 +263,10 @@ struct _vbi3_at1_ptl {
 
 typedef enum {
 	/** The program is encrypted (PDC CAF Conditional Access flag). */
-	VBI3_PDC_ENCRYPTED	= (1 << 0),
+	VBI3_PDC_ENCRYPTED	= (1 << 0)
 
 #if 0 /* future stuff */
+	,
 	VBI3_PDC_BILINGUAL	= (1 << 1),
 	VBI3_PDC_BW		= (1 << 2),
 	VBI3_PDC_DOLBY51	= (1 << 3),
@@ -276,7 +277,7 @@ typedef enum {
 	VBI3_PDC_STEREO		= (1 << 8),
 	VBI3_PDC_SUBTITLES	= (1 << 9),
 	VBI3_PDC_SURROUND	= (1 << 10),
-	VBI3_PDC_WIDESCREEN	= (1 << 11),
+	VBI3_PDC_WIDESCREEN	= (1 << 11)
 #endif
 } vbi3_preselection_flags;
 
@@ -373,46 +374,46 @@ typedef struct {
 extern time_t
 vbi3_preselection_time		(const vbi3_preselection *p,
 				 int			seconds_east)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_preselection_copy		(vbi3_preselection *	dst,
 				 const vbi3_preselection *src)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_preselection_destroy	(vbi3_preselection *	p)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_preselection_init		(vbi3_preselection *	p)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 
 /* Private */
 
 extern void
 _vbi3_preselection_dump		(const vbi3_preselection *p,
 				 FILE *			fp)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern void
 _vbi3_preselection_array_dump	(const vbi3_preselection *p,
 				 unsigned int		n_elements,
 				 FILE *			fp)
-  __attribute__ ((_vbi3_nonnull (1, 3)));
+  _vbi3_nonnull ((1, 3));
 extern void
 _vbi3_preselection_array_delete	(vbi3_preselection *	p,
 				 unsigned int		n_elements);
 extern vbi3_preselection *
 _vbi3_preselection_array_dup	(const vbi3_preselection *p,
 				 unsigned int		n_elements)
-  __attribute__ ((_vbi3_alloc));
+  _vbi3_alloc;
 extern vbi3_preselection *
 _vbi3_preselection_array_new	(unsigned int		n_elements)
-  __attribute__ ((_vbi3_alloc));
+  _vbi3_alloc;
 extern unsigned int
 _vbi3_pdc_method_a		(vbi3_preselection *	table,
 				 unsigned int		n_elements,
 				 const vbi3_network *	nk,
 				 vbi3_pgno		pgno,
 				 const uint8_t		lop_raw[26][40])
-  __attribute__ ((_vbi3_nonnull (1, 3, 5)));
+  _vbi3_nonnull ((1, 3, 5));
 
 /** @} */
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: page.h,v 1.1.2.3 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: page.h,v 1.1.2.4 2008-02-25 20:59:53 mschimek Exp $ */
 
 #ifndef __ZVBI3_PAGE_H__
 #define __ZVBI3_PAGE_H__
@@ -187,7 +187,7 @@ typedef enum {
 	/**
 	 * PDC link.
 	 */
-	VBI3_PDC		= (1 << 7),
+	VBI3_PDC		= (1 << 7)
 } vbi3_attr;
 
 /**
@@ -392,12 +392,12 @@ vbi3_page_get_hyperlink		(const vbi3_page *	pg,
 				 vbi3_link *		ld,
 				 unsigned int		column,
 				 unsigned int		row)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern const vbi3_link *
 vbi3_page_get_teletext_link	(const vbi3_page *	pg,
 				 unsigned int		indx)
-  __attribute__ ((_vbi3_nonnull (1)));
-vbi3_inline const vbi3_link *
+  _vbi3_nonnull ((1));
+_vbi3_inline const vbi3_link *
 vbi3_page_get_home_link		(const vbi3_page *	pg)
 {
 	return vbi3_page_get_teletext_link (pg, 5);
@@ -406,34 +406,33 @@ extern const vbi3_preselection *
 vbi3_page_get_pdc_link		(const vbi3_page *	pg,
 				 unsigned int		column,
 				 unsigned int		row)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern const vbi3_preselection *
 vbi3_page_get_preselections	(const vbi3_page *	pg,
 				 unsigned int *		n_elements)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern const uint8_t *
 vbi3_page_get_drcs_data		(const vbi3_page *	pg,
 				 unsigned int		unicode)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern const vbi3_ttx_charset *
 vbi3_page_get_ttx_charset	(const vbi3_page *	pg,
 				 unsigned int		level)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_page_unref			(vbi3_page *		pg)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_page *
 vbi3_page_ref			(vbi3_page *		pg)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_page_delete			(vbi3_page *		pg);
 extern vbi3_page *
 vbi3_page_dup			(const vbi3_page *	pg)
-  __attribute__ ((_vbi3_alloc,
-		  _vbi3_nonnull (1)));
+  _vbi3_alloc _vbi3_nonnull ((1));
 extern vbi3_page *
 vbi3_page_new			(void)
-  __attribute__ ((_vbi3_alloc));
+  _vbi3_alloc;
 
 typedef enum {
 	VBI3_TABLE = 0x32f54a00,
@@ -442,7 +441,7 @@ typedef enum {
 	VBI3_REVEAL,
 	VBI3_FLASH_ON,
 	VBI3_BRIGHTNESS,
-	VBI3_CONTRAST,
+	VBI3_CONTRAST
 } vbi3_export_option;
 
 VBI3_END_DECLS

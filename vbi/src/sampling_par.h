@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling_par.h,v 1.1.2.5 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: sampling_par.h,v 1.1.2.6 2008-02-25 20:59:33 mschimek Exp $ */
 
 #ifndef __ZVBI3_SAMPLING_PAR_H__
 #define __ZVBI3_SAMPLING_PAR_H__
@@ -68,7 +68,7 @@ typedef enum {
 	VBI3_VIDEOSTD_SECAM_K,
 	VBI3_VIDEOSTD_SECAM_K1,
 	VBI3_VIDEOSTD_SECAM_L,
-	VBI3_VIDEOSTD_SECAM_LC,
+	VBI3_VIDEOSTD_SECAM_LC
 } vbi3_videostd;
 
 /**
@@ -120,11 +120,11 @@ typedef unsigned int vbi3_videostd_set;
 
 extern const char *
 _vbi3_videostd_name		(vbi3_videostd		videostd)
-  __attribute__ ((const));
+  _vbi3_const;
 
 extern vbi3_videostd_set
 _vbi3_videostd_set_from_scanning (int			scanning)
-  __attribute__ ((const));
+  _vbi3_const;
 
 /**
  * @brief Raw VBI sampling parameters.
@@ -205,7 +205,7 @@ vbi3_sampling_par_check_services
 				(const vbi3_sampling_par *sp,
 				 vbi3_service_set	services,
 				 unsigned int		strict)
-  __attribute__ ((_vbi3_pure));
+  _vbi3_pure;
 /** @} */
 
 /* Private */
@@ -223,11 +223,11 @@ _vbi3_sampling_par_check_services_log
 				 vbi3_service_set	services,
 				 unsigned int		strict,
 				 _vbi3_log_hook *	log)
-  __attribute__ ((_vbi3_pure));
+  _vbi3_pure;
 extern vbi3_bool
 _vbi3_sampling_par_valid_log	(const vbi3_sampling_par *sp,
 				 _vbi3_log_hook *	log)
-  __attribute__ ((_vbi3_pure));
+  _vbi3_pure;
 
 #endif /* !ZAPPING8 */
 
