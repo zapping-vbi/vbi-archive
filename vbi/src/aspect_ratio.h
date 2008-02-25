@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: aspect_ratio.h,v 1.1.2.7 2007-11-01 00:21:22 mschimek Exp $ */
+/* $Id: aspect_ratio.h,v 1.1.2.8 2008-02-25 21:34:11 mschimek Exp $ */
 
 #ifndef __ZVBI3_ASPECT_RATIO_H__
 #define __ZVBI3_ASPECT_RATIO_H__
@@ -54,7 +54,7 @@ typedef enum {
 	VBI3_SUBTITLES_MATTE,
 
 	/** Closed caption / subtitles encoded in VBI. */
-	VBI3_SUBTITLES_CLOSED,
+	VBI3_SUBTITLES_CLOSED
 } vbi3_subtitles;
 
 /* in wss.c */
