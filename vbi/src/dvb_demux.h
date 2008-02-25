@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb_demux.h,v 1.3.2.4 2007-11-01 00:21:22 mschimek Exp $ */
+/* $Id: dvb_demux.h,v 1.3.2.5 2008-02-25 21:00:55 mschimek Exp $ */
 
 #ifndef __ZVBI3_DVB_DEMUX_H__
 #define __ZVBI3_DVB_DEMUX_H__
@@ -93,7 +93,7 @@ vbi3_dvb_pes_demux_new		(vbi3_dvb_demux_cb *	callback,
 vbi3_bool
 _vbi3_dvb_skip_data_unit		(const uint8_t **	buffer,
 				 unsigned int *		buffer_left)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 /* Experimental. */
 vbi3_bool
 _vbi3_dvb_demultiplex_sliced	(vbi3_sliced *		sliced,
@@ -101,7 +101,7 @@ _vbi3_dvb_demultiplex_sliced	(vbi3_sliced *		sliced,
 				 unsigned int		max_lines,
 				 const uint8_t **	buffer,
 				 unsigned int *		buffer_left)
-  __attribute__ ((_vbi3_nonnull (1, 2, 4, 5)));
+  _vbi3_nonnull ((1, 2, 4, 5));
 /* Experimental. */
 extern vbi3_dvb_demux *
 _vbi3_dvb_ts_demux_new		(vbi3_dvb_demux_cb *	callback,

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: pfc_demux.h,v 1.1.2.7 2007-11-11 03:06:13 mschimek Exp $ */
+/* $Id: pfc_demux.h,v 1.1.2.8 2008-02-25 20:59:39 mschimek Exp $ */
 
 #ifndef __ZVBI3_PFC_DEMUX_H__
 #define __ZVBI3_PFC_DEMUX_H__
@@ -91,16 +91,16 @@ vbi3_pfc_demux_cb		(vbi3_pfc_demux *	dx,
 
 extern void
 vbi3_pfc_demux_reset		(vbi3_pfc_demux *	dx)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_pfc_demux_feed		(vbi3_pfc_demux *	dx,
 				 const uint8_t		buffer[42])
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern vbi3_bool
 vbi3_pfc_demux_feed_frame	(vbi3_pfc_demux *	dx,
 				 const vbi3_sliced *	sliced,
 				 unsigned int		n_lines)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern void
 vbi3_pfc_demux_delete		(vbi3_pfc_demux *	dx);
 extern vbi3_pfc_demux *
@@ -108,8 +108,7 @@ vbi3_pfc_demux_new		(vbi3_pgno		pgno,
 				 unsigned int		stream,
 				 vbi3_pfc_demux_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_alloc,
-		  _vbi3_nonnull (3)));
+  _vbi3_alloc _vbi3_nonnull ((3));
 
 /* Private */
 
@@ -140,21 +139,21 @@ extern void
 _vbi3_pfc_block_dump		(const vbi3_pfc_block *	pb,
 				 FILE *			fp,
 				 vbi3_bool		binary)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern vbi3_bool
 _vbi3_pfc_demux_decode		(vbi3_pfc_demux *	dx,
 				 const uint8_t		buffer[42])
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern void
 _vbi3_pfc_demux_destroy		(vbi3_pfc_demux *	dx)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 _vbi3_pfc_demux_init		(vbi3_pfc_demux *	dx,
 				 vbi3_pgno		pgno,
 				 unsigned int		stream,
 				 vbi3_pfc_demux_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_nonnull (1, 4)));
+  _vbi3_nonnull ((1, 4));
 
 /** @} */
 

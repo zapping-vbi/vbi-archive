@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sliced.h,v 1.3.2.7 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: sliced.h,v 1.3.2.8 2008-02-25 20:59:24 mschimek Exp $ */
 
 #ifndef __ZVBI3_SLICED_H__
 #define __ZVBI3_SLICED_H__
@@ -295,10 +295,10 @@ typedef struct {
  */
 extern const char *
 vbi3_sliced_name			(vbi3_service_set	service)
-  __attribute__ ((const));
+  _vbi3_const;
 extern unsigned int
 vbi3_sliced_payload_bits		(vbi3_service_set	service)
-  __attribute__ ((const));
+  _vbi3_const;
 /** @} */
 
 /* Private */

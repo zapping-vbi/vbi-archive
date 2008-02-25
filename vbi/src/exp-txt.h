@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-txt.h,v 1.5.2.6 2007-11-01 00:21:23 mschimek Exp $ */
+/* $Id: exp-txt.h,v 1.5.2.7 2008-02-25 21:00:44 mschimek Exp $ */
 
 #ifndef __ZVBI3_EXP_TXT_H__
 #define __ZVBI3_EXP_TXT_H__
@@ -48,7 +48,7 @@ vbi3_print_page_region_va_list	(vbi3_page *		pg,
 				 unsigned int		width,
 				 unsigned int		height,
 				 va_list		export_options)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern unsigned int
 vbi3_print_page_region		(vbi3_page *		pg,
 				 char *			buffer,
@@ -61,23 +61,21 @@ vbi3_print_page_region		(vbi3_page *		pg,
 				 unsigned int		width,
 				 unsigned int		height,
 				 ...)
-  __attribute__ ((_vbi3_nonnull (1, 2),
-		  _vbi3_sentinel));
+  _vbi3_nonnull ((1, 2)) _vbi3_sentinel;
 extern unsigned int
 vbi3_print_page_va_list		(vbi3_page *		pg,
 				 char *			buffer,
 				 unsigned int		buffer_size,
 				 const char *		format,
 				 va_list		export_options)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern unsigned int
 vbi3_print_page			(vbi3_page *		pg,
 				 char *			buffer,
 				 unsigned int		buffer_size,
 				 const char *		format,
 				 ...)
-  __attribute__ ((_vbi3_nonnull (1, 2),
-		  _vbi3_sentinel));
+  _vbi3_nonnull ((1, 2)) _vbi3_sentinel;
 /** @} */
 
 VBI3_END_DECLS

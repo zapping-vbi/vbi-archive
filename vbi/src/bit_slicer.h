@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bit_slicer.h,v 1.1.2.10 2007-11-01 00:21:22 mschimek Exp $ */
+/* $Id: bit_slicer.h,v 1.1.2.11 2008-02-25 21:01:32 mschimek Exp $ */
 
 #ifndef __ZVBI3_BIT_SLICER_H__
 #define __ZVBI3_BIT_SLICER_H__
@@ -103,13 +103,13 @@ vbi3_bit_slicer_slice_with_points
 				 unsigned int *		n_points,
 				 unsigned int		max_points,
 				 const uint8_t *	raw)
-  __attribute__ ((_vbi3_nonnull (1, 2, 4, 5, 7)));
+  _vbi3_nonnull ((1, 2, 4, 5, 7));
 extern vbi3_bool
 vbi3_bit_slicer_slice		(vbi3_bit_slicer *	bs,
 				 uint8_t *		buffer,
 				 unsigned int		buffer_size,
 				 const uint8_t *	raw)
-  __attribute__ ((_vbi3_nonnull (1, 2, 4)));
+  _vbi3_nonnull ((1, 2, 4));
 extern vbi3_bool
 vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 				 vbi3_pixfmt		sample_format,
@@ -126,18 +126,18 @@ vbi3_bit_slicer_set_params	(vbi3_bit_slicer *	bs,
 				 unsigned int		payload_bits,
 				 unsigned int		payload_rate,
 				 vbi3_modulation	modulation)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_bit_slicer_set_log_fn	(vbi3_bit_slicer *	bs,
 				 vbi3_log_mask		mask,
 				 vbi3_log_fn *		log_fn,
 				 void *			user_data)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_bit_slicer_delete		(vbi3_bit_slicer *	bs);
 extern vbi3_bit_slicer *
 vbi3_bit_slicer_new		(void)
-  __attribute__ ((_vbi3_alloc));
+  _vbi3_alloc;
 
 /* Private */
 
@@ -176,10 +176,10 @@ struct _vbi3_bit_slicer {
 
 extern void
 _vbi3_bit_slicer_destroy	(vbi3_bit_slicer *	bs)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 _vbi3_bit_slicer_init		(vbi3_bit_slicer *	bs)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 
 /** @} */
 

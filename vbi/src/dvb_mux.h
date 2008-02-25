@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb_mux.h,v 1.2.2.3 2007-11-01 00:21:22 mschimek Exp $ */
+/* $Id: dvb_mux.h,v 1.2.2.4 2008-02-25 21:00:51 mschimek Exp $ */
 
 #ifndef __ZVBI3_DVB_MUX_H__
 #define __ZVBI3_DVB_MUX_H__
@@ -45,7 +45,7 @@ vbi3_dvb_multiplex_sliced	(uint8_t **		packet,
 				 unsigned int		data_identifier,
 				 vbi3_bool		stuffing)
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-  __attribute__ ((_vbi3_nonnull (1, 2, 3, 4)))
+  _vbi3_nonnull ((1, 2, 3, 4))
 #endif
   ;
 extern vbi3_bool
@@ -60,7 +60,7 @@ vbi3_dvb_multiplex_raw		(uint8_t **		packet,
 				 unsigned int		n_pixels_total,
 				 vbi3_bool		stuffing)
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-  __attribute__ ((_vbi3_nonnull (1, 2, 3, 4)))
+  _vbi3_nonnull ((1, 2, 3, 4))
 #endif
   ;
 
@@ -82,7 +82,7 @@ vbi3_dvb_mux_cb			(vbi3_dvb_mux *		mx,
 
 extern void
 vbi3_dvb_mux_reset		(vbi3_dvb_mux *		mx)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_dvb_mux_cor		(vbi3_dvb_mux *		mx,
 				 uint8_t **		buffer,
@@ -94,7 +94,7 @@ vbi3_dvb_mux_cor		(vbi3_dvb_mux *		mx,
 				 const vbi3_sampling_par *sampling_par,	 
 				 int64_t		pts)
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-  __attribute__ ((_vbi3_nonnull (1, 2, 3, 4, 5)))
+  _vbi3_nonnull ((1, 2, 3, 4, 5))
 #endif
   ;
 extern vbi3_bool
@@ -105,38 +105,38 @@ vbi3_dvb_mux_feed		(vbi3_dvb_mux *		mx,
 				 const uint8_t *	raw,
 				 const vbi3_sampling_par *sampling_par,
 				 int64_t		pts)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern unsigned int
 vbi3_dvb_mux_get_data_identifier (const vbi3_dvb_mux *	mx)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_dvb_mux_set_data_identifier (vbi3_dvb_mux *	mx,
 				  unsigned int		data_identifier)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern unsigned int
 vbi3_dvb_mux_get_min_pes_packet_size
 				(vbi3_dvb_mux *		mx)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern unsigned int
 vbi3_dvb_mux_get_max_pes_packet_size
 				(vbi3_dvb_mux *		mx)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_dvb_mux_set_pes_packet_size (vbi3_dvb_mux *	mx,
 				  unsigned int		min_size,
 				  unsigned int		max_size)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_dvb_mux_delete		(vbi3_dvb_mux *		mx);
 extern vbi3_dvb_mux *
 vbi3_dvb_pes_mux_new		(vbi3_dvb_mux_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_alloc));
+  _vbi3_alloc;
 extern vbi3_dvb_mux *
 vbi3_dvb_ts_mux_new		(unsigned int		pid,
 				 vbi3_dvb_mux_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_alloc));
+  _vbi3_alloc;
 
 /** @} */
 

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: idl_demux.h,v 1.3.2.6 2007-11-11 03:06:13 mschimek Exp $ */
+/* $Id: idl_demux.h,v 1.3.2.7 2008-02-25 21:00:24 mschimek Exp $ */
 
 #ifndef __ZVBI3_IDL_DEMUX_H__
 #define __ZVBI3_IDL_DEMUX_H__
@@ -93,16 +93,16 @@ vbi3_idl_demux_cb		(vbi3_idl_demux *	dx,
 
 extern void
 vbi3_idl_demux_reset		(vbi3_idl_demux *	dx)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_idl_demux_feed		(vbi3_idl_demux *	dx,
 				 const uint8_t		buffer[42])
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern vbi3_bool
 vbi3_idl_demux_feed_frame	(vbi3_idl_demux *	dx,
 				 const vbi3_sliced *	sliced,
 				 unsigned int		n_lines)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern void
 vbi3_idl_demux_delete		(vbi3_idl_demux *	dx);
 extern vbi3_idl_demux *
@@ -110,8 +110,7 @@ vbi3_idl_a_demux_new		(unsigned int		channel,
 				 unsigned int		address,
 				 vbi3_idl_demux_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_alloc,
-		  _vbi3_nonnull (3)));
+  _vbi3_alloc _vbi3_nonnull ((3));
 
 /** @} */
 
@@ -149,7 +148,7 @@ struct _vbi3_idl_demux {
 
 extern void
 _vbi3_idl_demux_destroy		(vbi3_idl_demux *	dx)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 _vbi3_idl_demux_init		(vbi3_idl_demux *	dx,
 				 _vbi3_idl_format	format,
@@ -157,7 +156,7 @@ _vbi3_idl_demux_init		(vbi3_idl_demux *	dx,
 				 unsigned int		address,
 				 vbi3_idl_demux_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_nonnull (1, 5)));
+  _vbi3_nonnull ((1, 5));
 
 VBI3_END_DECLS
 

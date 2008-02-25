@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: page_table.h,v 1.2.2.2 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: page_table.h,v 1.2.2.3 2008-02-25 20:59:49 mschimek Exp $ */
 
 #ifndef __ZVBI3_PAGE_TABLE_H__
 #define __ZVBI3_PAGE_TABLE_H__
@@ -33,12 +33,12 @@ extern vbi3_bool
 vbi3_page_table_contains_all_subpages
 				(const vbi3_page_table *pt,
 				 vbi3_pgno		pgno)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_page_table_contains_subpage	(const vbi3_page_table *pt,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 
 /**
  * @param pt Teletext page table allocated with vbi3_page_table_new().
@@ -59,20 +59,20 @@ extern vbi3_bool
 vbi3_page_table_next_subpage	(const vbi3_page_table *pt,
 				 vbi3_pgno *		pgno,
 				 vbi3_subno *		subno)
-  __attribute__ ((_vbi3_nonnull (1, 2, 3)));
+  _vbi3_nonnull ((1, 2, 3));
 extern vbi3_bool
 vbi3_page_table_next_page	(const vbi3_page_table *pt,
 				 vbi3_pgno *		pgno)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern unsigned int
 vbi3_page_table_num_pages	(const vbi3_page_table *pt)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_page_table_remove_subpages	(vbi3_page_table *	pt,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		first_subno,
 				 vbi3_subno		last_subno)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 
 /**
  * @param pt Teletext page table allocated with vbi3_page_table_new().
@@ -101,7 +101,7 @@ vbi3_page_table_add_subpages	(vbi3_page_table *	pt,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		first_subno,
 				 vbi3_subno		last_subno)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 
 /**
  * @param pt Teletext page table allocated with vbi3_page_table_new().
@@ -129,7 +129,7 @@ extern vbi3_bool
 vbi3_page_table_remove_pages	(vbi3_page_table *	pt,
 				 vbi3_pgno		first_pgno,
 				 vbi3_pgno		last_pgno)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 
 /**
  * @param pt Teletext page table allocated with vbi3_page_table_new().
@@ -153,7 +153,7 @@ extern vbi3_bool
 vbi3_page_table_add_pages	(vbi3_page_table *	pt,
 				 vbi3_pgno		first_pgno,
 				 vbi3_pgno		last_pgno)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 
 /**
  * @param pt Teletext page table allocated with vbi3_page_table_new().
@@ -185,14 +185,14 @@ vbi3_page_table_add_page		(vbi3_page_table *	pt,
 
 extern void
 vbi3_page_table_remove_all_pages	(vbi3_page_table *	pt)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_page_table_add_all_displayable_pages
 				(vbi3_page_table *	pt)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_page_table_add_all_pages	(vbi3_page_table *	pt)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_page_table_delete		(vbi3_page_table *	pt);
 extern vbi3_page_table *

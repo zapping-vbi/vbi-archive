@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: search.h,v 1.2.2.5 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: search.h,v 1.2.2.6 2008-02-25 20:59:27 mschimek Exp $ */
 
 #ifndef __ZVBI3_SEARCH_H__
 #define __ZVBI3_SEARCH_H__
@@ -102,14 +102,13 @@ vbi3_search_next_va_list	(vbi3_search *		s,
 				 const vbi3_page **	pg,
 				 int			dir,
 				 va_list		format_options)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern vbi3_search_status
 vbi3_search_next		(vbi3_search *		s,
 				 const vbi3_page **	pg,
 				 int			dir,
 				 ...)
-  __attribute__ ((_vbi3_nonnull (1, 2),
-		  _vbi3_sentinel));
+  _vbi3_nonnull ((1, 2)) _vbi3_sentinel;
 extern void
 vbi3_search_delete		(vbi3_search *		s);
 extern vbi3_search *
@@ -123,8 +122,7 @@ vbi3_search_ucs2_new		(vbi3_cache *		ca,
 				 vbi3_bool		regexp,
 				 vbi3_search_progress_cb *progress,
 				 void *			user_data)
-  __attribute__ ((_vbi3_alloc,
-		  _vbi3_nonnull (1, 2, 5)));
+  _vbi3_alloc _vbi3_nonnull ((1, 2, 5));
 extern vbi3_search *
 vbi3_search_utf8_new		(vbi3_cache *		ca,
 				 const vbi3_network *	nk,
@@ -135,8 +133,7 @@ vbi3_search_utf8_new		(vbi3_cache *		ca,
 				 vbi3_bool		regexp,
 				 vbi3_search_progress_cb *progress,
 				 void *			user_data)
-  __attribute__ ((_vbi3_alloc,
-		  _vbi3_nonnull (1, 2, 5)));
+  _vbi3_alloc _vbi3_nonnull ((1, 2, 5));
 /** @} */
 
 VBI3_END_DECLS

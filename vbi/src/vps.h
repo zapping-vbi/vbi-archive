@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vps.h,v 1.1.2.7 2007-11-01 00:21:25 mschimek Exp $ */
+/* $Id: vps.h,v 1.1.2.8 2008-02-25 20:59:00 mschimek Exp $ */
 
 #ifndef __ZVBI3_VPS_H__
 #define __ZVBI3_VPS_H__
@@ -41,13 +41,13 @@ extern vbi3_bool
 vbi3_decode_vps_cni		(unsigned int *		cni,
 				 const uint8_t		buffer[13])
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-  __attribute__ ((_vbi3_nonnull (1, 2)))
+  _vbi3_nonnull ((1, 2))
 #endif
   ;
 extern vbi3_bool
 vbi3_encode_vps_cni		(uint8_t		buffer[13],
 				 unsigned int		cni)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 
 /* Private */
 
@@ -56,28 +56,28 @@ extern vbi3_bool
 vbi3_decode_vps_pdc		(vbi3_program_id *	pid,
 				 const uint8_t		buffer[13])
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-  __attribute__ ((_vbi3_nonnull (1, 2)))
+  _vbi3_nonnull ((1, 2))
 #endif
   ;
 extern vbi3_bool
 vbi3_encode_vps_pdc		(uint8_t		buffer[13],
 				 const vbi3_program_id *pid)
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-  __attribute__ ((_vbi3_nonnull (1, 2)))
+  _vbi3_nonnull ((1, 2))
 #endif
   ;
 vbi3_bool
 vbi3_decode_dvb_pdc_descriptor	(vbi3_program_id *	pid,
 				 const uint8_t		buffer[5])
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-  __attribute__ ((_vbi3_nonnull (1, 2)))
+  _vbi3_nonnull ((1, 2))
 #endif
   ;
 vbi3_bool
 vbi3_encode_dvb_pdc_descriptor	(uint8_t		buffer[5],
 				 const vbi3_program_id *pid)
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-  __attribute__ ((_vbi3_nonnull (1, 2)))
+  _vbi3_nonnull ((1, 2))
 #endif
   ;
 #endif

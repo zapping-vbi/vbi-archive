@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: link.h,v 1.1.2.5 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: link.h,v 1.1.2.6 2008-02-25 21:00:15 mschimek Exp $ */
 
 #ifndef __ZVBI3_LINK_H__
 #define __ZVBI3_LINK_H__
@@ -76,7 +76,7 @@ typedef enum {
 
 extern const char *
 vbi3_link_type_name		(vbi3_link_type		type)
-  __attribute__ ((const));
+  _vbi3_const;
 
 /**
  * @ingroup Event
@@ -174,21 +174,21 @@ typedef struct {
 
 extern void
 vbi3_link_destroy		(vbi3_link *		lk)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_link_copy			(vbi3_link *		dst,
 				 const vbi3_link *	src)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_link_init			(vbi3_link *		lk)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 
 /* Private */
 
 extern void
 _vbi3_link_dump			(const vbi3_link *	lk,
 				 FILE *			fp)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 
 VBI3_END_DECLS
 

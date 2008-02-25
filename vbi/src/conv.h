@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: conv.h,v 1.1.2.9 2007-11-11 03:06:12 mschimek Exp $ */
+/* $Id: conv.h,v 1.1.2.10 2008-02-25 21:01:05 mschimek Exp $ */
 
 #ifndef __ZVBI3_CONV_H__
 #define __ZVBI3_CONV_H__
@@ -54,19 +54,19 @@ vbi3_strndup_iconv		(const char *		dst_codeset,
 				 const char *		src,
 				 unsigned long		src_size,
 				 int			repl_char)
-  __attribute__ ((_vbi3_alloc));
+  _vbi3_alloc;
 extern char *
 vbi3_strndup_iconv_ucs2		(const char *		dst_codeset,
 				 const uint16_t *	src,
 				 long			src_length,
 				 int			repl_char)
-  __attribute__ ((_vbi3_alloc));
+  _vbi3_alloc;
 extern char *
 vbi3_strndup_iconv_caption	(const char *		dst_codeset,
 				 const char *		src,
 				 long			src_length,
 				 int			repl_char)
-  __attribute__ ((_vbi3_alloc));
+  _vbi3_alloc;
 #if defined ZAPPING8 || 3 == VBI_VERSION_MINOR
 extern char *
 vbi3_strndup_iconv_teletext	(const char *		dst_codeset,
@@ -74,8 +74,7 @@ vbi3_strndup_iconv_teletext	(const char *		dst_codeset,
 				 const uint8_t *	src,
 				 long			src_length,
 				 int			repl_char)
-  __attribute__ ((_vbi3_alloc,
-		  _vbi3_nonnull (2)));
+  _vbi3_alloc _vbi3_nonnull ((2));
 #endif
 extern vbi3_bool
 vbi3_fputs_iconv			(FILE *			fp,
@@ -84,14 +83,14 @@ vbi3_fputs_iconv			(FILE *			fp,
 				 const char *		src,
 				 unsigned long		src_size,
 				 int			repl_char)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_fputs_iconv_ucs2		(FILE *			fp,
 				 const char *		dst_codeset,
 				 const uint16_t *	src,
 				 long			src_length,
 				 int			repl_char)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern const char *
 vbi3_locale_codeset		(void);
 
@@ -108,15 +107,14 @@ _vbi3_strndup_iconv		(unsigned long *	out_size,
 				 const char *		src,
 				 unsigned long		src_size,
 				 int			repl_char)
-  __attribute__ ((_vbi3_alloc,
-		  _vbi3_nonnull (1, 2, 3)));
+  _vbi3_alloc _vbi3_nonnull ((1, 2, 3));
 extern vbi3_bool
 _vbi3_iconv_ucs2			(vbi3_iconv_t *		cd,
 				 char **		dst,
 				 unsigned long		dst_size,
 				 const uint16_t *	src,
 				 long			src_length)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern void
 _vbi3_iconv_close		(vbi3_iconv_t *		cd);
 extern vbi3_iconv_t *

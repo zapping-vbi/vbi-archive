@@ -22,7 +22,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: vbi_decoder.h,v 1.1.2.6 2007-11-01 00:21:25 mschimek Exp $ */
+/* $Id: vbi_decoder.h,v 1.1.2.7 2008-02-25 20:59:03 mschimek Exp $ */
 
 #ifndef __ZVBI3_VBI_DECODER_H__
 #define __ZVBI3_VBI_DECODER_H__
@@ -50,73 +50,68 @@ vbi3_decoder_get_page_va_list	(vbi3_decoder *		vbi,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
 				 va_list		format_options)
-  __attribute__ ((_vbi3_alloc,
-		  _vbi3_nonnull (1)));
+  _vbi3_alloc _vbi3_nonnull ((1));
 extern vbi3_page *
 vbi3_decoder_get_page		(vbi3_decoder *		vbi,
 				 const vbi3_network *	nk,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
 				 ...)
-  __attribute__ ((_vbi3_alloc,
-		  _vbi3_nonnull (1),
-		  _vbi3_sentinel));
+  _vbi3_alloc _vbi3_nonnull ((1)) _vbi3_sentinel;
 extern void
 vbi3_decoder_get_program_id	(vbi3_decoder *		vbi,
 				 vbi3_program_id *	pid,
 				 vbi3_pid_channel	channel)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 #ifndef ZAPPING8
 extern void
 vbi3_decoder_get_aspect_ratio	(vbi3_decoder *		vbi,
 				 vbi3_aspect_ratio *	ar)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 #endif
 extern vbi3_teletext_decoder *
 vbi3_decoder_cast_to_teletext_decoder
 				(vbi3_decoder *		vbi)
-  __attribute__ ((_vbi3_nonnull (1),
-		  _vbi3_pure));
+  _vbi3_nonnull ((1)) _vbi3_pure;
 extern vbi3_caption_decoder *
 vbi3_decoder_cast_to_caption_decoder
 				(vbi3_decoder *		vbi)
-  __attribute__ ((_vbi3_nonnull (1),
-		  _vbi3_pure));
+  _vbi3_nonnull ((1)) _vbi3_pure;
 extern void
 vbi3_decoder_detect_channel_change
 				(vbi3_decoder *		vbi,
 				 vbi3_bool		enable)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_decoder_feed		(vbi3_decoder *		vbi,
 				 const vbi3_sliced *	sliced,
 				 unsigned int		n_lines,
 				 double			time)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern void
 vbi3_decoder_reset		(vbi3_decoder *		vbi,
 				 const vbi3_network *	nk,
 				 vbi3_videostd_set	videostd_set)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_decoder_remove_event_handler
 				(vbi3_decoder *		vbi,
 				 vbi3_event_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_decoder_add_event_handler	(vbi3_decoder *		vbi,
 				 vbi3_event_mask	event_mask,
 				 vbi3_event_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_decoder_delete		(vbi3_decoder *		vbi);
 extern vbi3_decoder *
 vbi3_decoder_new		(vbi3_cache *		ca,
 				 const vbi3_network *	nk,
 				 vbi3_videostd_set	videostd_set)
-  __attribute__ ((_vbi3_alloc));
+  _vbi3_alloc;
 
 VBI3_END_DECLS
 

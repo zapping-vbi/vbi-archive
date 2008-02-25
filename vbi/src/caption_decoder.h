@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: caption_decoder.h,v 1.1.2.6 2007-11-11 03:06:12 mschimek Exp $ */
+/* $Id: caption_decoder.h,v 1.1.2.7 2008-02-25 21:01:14 mschimek Exp $ */
 
 #ifndef __ZVBI3_CAPTION_DECODER_H__
 #define __ZVBI3_CAPTION_DECODER_H__
@@ -80,10 +80,10 @@ typedef struct {
 
 extern void
 vbi3_cc_channel_stat_destroy	(vbi3_cc_channel_stat *	cs)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_cc_channel_stat_init	(vbi3_cc_channel_stat *	cs)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 
 /**
  * @brief Caption decoder.
@@ -98,54 +98,51 @@ vbi3_caption_decoder_get_cc_channel_stat
 				(vbi3_caption_decoder *	cd,
 				 vbi3_cc_channel_stat *	cs,
 				 vbi3_pgno		channel)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern vbi3_page *
 vbi3_caption_decoder_get_page_va_list
 				(vbi3_caption_decoder *	cd,
 				 vbi3_pgno		channel,
 				 va_list		format_options)
-  __attribute__ ((_vbi3_alloc,
-		  _vbi3_nonnull (1)));
+  _vbi3_alloc _vbi3_nonnull ((1));
 extern vbi3_page *
 vbi3_caption_decoder_get_page	(vbi3_caption_decoder *	cd,
 				 vbi3_pgno		channel,
 				 ...)
-  __attribute__ ((_vbi3_alloc,
-		  _vbi3_nonnull (1),
-		  _vbi3_sentinel));
+  _vbi3_alloc _vbi3_nonnull ((1)) _vbi3_sentinel;
 extern vbi3_bool
 vbi3_caption_decoder_feed	(vbi3_caption_decoder *	cd,
 				 const uint8_t		buffer[2],
 				 unsigned int		line,
 				 double			timestamp)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern vbi3_bool
 vbi3_caption_decoder_feed_frame	(vbi3_caption_decoder *	cd,
 				 const vbi3_sliced *	sliced,
 				 unsigned int		n_lines,
 				 double			timestamp)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern void
 vbi3_caption_decoder_remove_event_handler
 				(vbi3_caption_decoder *	cd,
 				 vbi3_event_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_caption_decoder_add_event_handler
 				(vbi3_caption_decoder *	cd,
 				 unsigned int		event_mask,
 				 vbi3_event_cb *	callback,
 				 void *			user_data)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_caption_decoder_get_network
 				(vbi3_caption_decoder *	cd,
 				 vbi3_network *		nk)
-  __attribute__ ((_vbi3_nonnull (1, 2)));
+  _vbi3_nonnull ((1, 2));
 extern vbi3_cache *
 vbi3_caption_decoder_get_cache	(vbi3_caption_decoder *	cd)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_caption_decoder_reset	(vbi3_caption_decoder *	cd,
 				 const vbi3_network *	nk,
@@ -156,7 +153,7 @@ extern vbi3_caption_decoder *
 vbi3_caption_decoder_new	(vbi3_cache *		ca,
 				 const vbi3_network *	nk,
 				 vbi3_videostd_set	videostd_set)
-  __attribute__ ((_vbi3_alloc));
+  _vbi3_alloc;
 
 /** @} */
 

@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: top_title.h,v 1.1.2.4 2007-11-01 00:21:25 mschimek Exp $ */
+/* $Id: top_title.h,v 1.1.2.5 2008-02-25 20:59:07 mschimek Exp $ */
 
 #ifndef __ZVBI3_TOP_TITLE_H__
 #define __ZVBI3_TOP_TITLE_H__
@@ -52,14 +52,14 @@ typedef struct {
 
 extern void
 vbi3_top_title_destroy		(vbi3_top_title *	tt)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern vbi3_bool
 vbi3_top_title_copy		(vbi3_top_title *	dst,
 				 const vbi3_top_title *	src)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_top_title_init		(vbi3_top_title *	tt)
-  __attribute__ ((_vbi3_nonnull (1)));
+  _vbi3_nonnull ((1));
 extern void
 vbi3_top_title_array_delete	(vbi3_top_title *	tt,
 				 unsigned int		n_elements);
