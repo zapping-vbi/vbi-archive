@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: lang.h,v 1.2.2.9 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: lang.h,v 1.2.2.10 2008-02-25 20:58:02 mschimek Exp $ */
 
 #ifndef __ZVBI3_LANG_H__
 #define __ZVBI3_LANG_H__
@@ -104,17 +104,17 @@ typedef struct {
 
 extern const vbi3_ttx_charset *
 vbi3_ttx_charset_from_code	(vbi3_ttx_charset_code	code)
-  __attribute__ ((const));
+  _vbi3_const;
 
 extern unsigned int
 vbi3_teletext_unicode		(vbi3_charset		charset,
 				 vbi3_subset		subset,
 				 unsigned int		c)
-  __attribute__ ((const));
+  _vbi3_const;
 extern unsigned int
 vbi3_caption_unicode		(unsigned int		c,
 				 vbi3_bool		to_upper)
-  __attribute__ ((const));
+  _vbi3_const;
 
 /**
  * @param unicode Unicode as in vbi3_char.
@@ -128,7 +128,7 @@ vbi3_caption_unicode		(unsigned int		c,
  * Mosaics and Line Drawing Set, with codes U+EE00 ... U+EFFF, and
  * Teletext DRCS coded U+F000 ... U+F7FF.
  */
-vbi3_inline vbi3_bool
+_vbi3_inline vbi3_bool
 vbi3_is_print			(unsigned int		unicode)
 {
 	return unicode < 0xE600;
@@ -141,7 +141,7 @@ vbi3_is_print			(unsigned int		unicode)
  * @c TRUE if @a unicode represents a Teletext G1 Block Mosaic or G3 Smooth
  * Mosaics and Line Drawing Set, that is a code in range U+EE00 ... U+EFFF.
  */
-vbi3_inline vbi3_bool
+_vbi3_inline vbi3_bool
 vbi3_is_gfx			(unsigned int		unicode)
 {
 	return unicode >= 0xEE00 && unicode <= 0xEFFF;
@@ -154,7 +154,7 @@ vbi3_is_gfx			(unsigned int		unicode)
  * @c TRUE if @a unicode represents a Teletext DRCS (Dynamically
  * Redefinable Character), that is a code in range U+F000 ... U+F7FF.
  **/
-vbi3_inline vbi3_bool
+_vbi3_inline vbi3_bool
 vbi3_is_drcs			(unsigned int		unicode)
 {
 	return unicode >= 0xF000;
@@ -164,11 +164,11 @@ vbi3_is_drcs			(unsigned int		unicode)
 
 extern unsigned int
 _vbi3_teletext_ascii_art		(unsigned int		c)
-  __attribute__ ((const));
+  _vbi3_const;
 extern unsigned int
 vbi3_teletext_composed_unicode	(unsigned int		a,
 				 unsigned int		c)
-  __attribute__ ((const));
+  _vbi3_const;
 
 VBI3_END_DECLS
 

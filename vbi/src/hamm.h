@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: hamm.h,v 1.4.2.9 2007-11-01 00:21:23 mschimek Exp $ */
+/* $Id: hamm.h,v 1.4.2.10 2008-02-25 20:58:12 mschimek Exp $ */
 
 #ifndef __ZVBI3_HAMM_H__
 #define __ZVBI3_HAMM_H__
@@ -51,7 +51,7 @@ extern const int8_t		_vbi3_hamm24_inv_par [3][256];
  * @returns
  * Data bits 0 [msb] ... 7 [lsb].
  */
-vbi3_inline unsigned int
+_vbi3_inline unsigned int
 vbi3_rev8			(unsigned int		c)
 {
 	return _vbi3_bit_reverse[c & 0xFF];
@@ -65,7 +65,7 @@ vbi3_rev8			(unsigned int		c)
  * @returns
  * Data bits 0 [msb] ... 15 [lsb].
  */
-vbi3_inline unsigned int
+_vbi3_inline unsigned int
 vbi3_rev16			(unsigned int		c)
 {
 	return _vbi3_bit_reverse[(uint8_t) c] * 256
@@ -81,7 +81,7 @@ vbi3_rev16			(unsigned int		c)
  * @returns
  * Data bits 0 [msb] ... 15 [lsb].
  */
-vbi3_inline unsigned int
+_vbi3_inline unsigned int
 vbi3_rev16p			(const uint8_t *	p)
 {
 	return _vbi3_bit_reverse[p[0]] * 256
@@ -95,7 +95,7 @@ vbi3_rev16p			(const uint8_t *	p)
  * Changes the most significant bit of the byte
  * to make the number of set bits odd.
  */
-vbi3_inline unsigned int
+_vbi3_inline unsigned int
 vbi3_par8			(unsigned int		c)
 {
 #if 0
@@ -124,7 +124,7 @@ vbi3_par8			(unsigned int		c)
  * If the byte has odd parity (sum of bits modulo 2 is 1) the
  * byte AND 127, otherwise a negative value.
  */
-vbi3_inline int
+_vbi3_inline int
 vbi3_unpar8			(unsigned int		c)
 {
 #ifdef __GNUC__
@@ -164,7 +164,7 @@ vbi3_unpar			(uint8_t *		p,
  * @returns
  * Hamming encoded unsigned byte, lsb first transmitted.
  */
-vbi3_inline unsigned int
+_vbi3_inline unsigned int
 vbi3_ham8			(unsigned int		c)
 {
 	return _vbi3_hamm8_fwd[c & 15];
@@ -180,7 +180,7 @@ vbi3_ham8			(unsigned int		c)
  * Data bits (D4 [msb] ... D1 [lsb]) or a negative
  * value if the byte contained incorrectable errors.
  */
-vbi3_inline int
+_vbi3_inline int
 vbi3_unham8			(unsigned int		c)
 {
 	return _vbi3_hamm8_inv[(uint8_t) c];
@@ -198,7 +198,7 @@ vbi3_unham8			(unsigned int		c)
  * of second byte, or a negative value if any of the bytes
  * contained incorrectable errors.
  */
-vbi3_inline int
+_vbi3_inline int
 vbi3_unham16p			(const uint8_t *	p)
 {
 	return ((int) _vbi3_hamm8_inv[p[0]])
@@ -207,7 +207,7 @@ vbi3_unham16p			(const uint8_t *	p)
 
 extern int
 vbi3_unham24p			(const uint8_t *	p)
-  __attribute__ ((_vbi3_pure));
+  _vbi3_pure;
 
 /** @} */
 
