@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.h,v 1.6.2.9 2008-02-25 20:13:15 mschimek Exp $ */
+/* $Id: io.h,v 1.6.2.10 2008-02-25 21:12:04 mschimek Exp $ */
 
 #ifndef __ZVBI3_IO_H__
 #define __ZVBI3_IO_H__
