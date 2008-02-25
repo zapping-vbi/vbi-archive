@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: io.h,v 1.6.2.7 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: io.h,v 1.6.2.8 2008-02-25 20:12:06 mschimek Exp $ */
 
 #ifndef __ZVBI3_IO_H__
 #define __ZVBI3_IO_H__
@@ -72,7 +72,7 @@ typedef enum {
         * not the actual device.  In this case it can only be
         * used for select(2) and not for ioctl(2)
         */
-        VBI3_FD_IS_DEVICE   = 1<<2,
+        VBI3_FD_IS_DEVICE   = 1<<2
 } VBI3_CAPTURE_FD_FLAGS;
 
 /**
@@ -172,7 +172,7 @@ vbi3_capture_set_log_fn		(vbi3_capture *		cap,
 
 /* Private */
 
-#if 0 // -> io-priv.h
+#if 0 /* -> io-priv.h */
 
 #include <stdarg.h>
 #include <stddef.h>
@@ -271,7 +271,7 @@ struct vbi3_capture {
 	FILE *			sys_log_fp;
 };
 
-#endif // 0
+#endif /* 0 */
 
 VBI3_END_DECLS
 
