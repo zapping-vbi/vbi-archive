@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: bcd.h,v 1.6.2.13 2007-11-01 00:21:22 mschimek Exp $ */
+/* $Id: bcd.h,v 1.6.2.14 2008-02-25 20:58:47 mschimek Exp $ */
 
 #ifndef __ZVBI3_BCD_H__
 #define __ZVBI3_BCD_H__
@@ -29,8 +29,12 @@ VBI3_BEGIN_DECLS
 
 #ifndef DOXYGEN_SHOULD_IGNORE_THIS
 
-#define _VBI3_BCD_10 (((int) 0x1111111111111111LL) << 4)
-#define _VBI3_BCD_06 (((int) 0x6666666666666666LL) >> 4)
+/* We need 32 or 64 bit constants depending on the size of int,
+   but we cannot cast to long long or use the LL suffix for ISO C89
+   compatibility, and GCC warns about 32 bit shifts if ints are
+   32 bits wide */
+#define _VBI3_BCD_10 ((int)((0x22222222 << 31) | 0x11111110))
+#define _VBI3_BCD_06 (((int)((0xCCCCCCCC << 31) | 0x66666666)) >> 4)
 
 #endif
 
@@ -39,12 +43,14 @@ VBI3_BEGIN_DECLS
  * @{
  */
 
-#define VBI3_BCD_MIN (0xF << (sizeof (int) * 8 - 4))
-#define VBI3_BCD_MAX (VBI3_BCD_MIN ^ ~_VBI3_BCD_06)
+#define VBI3_BCD_MIN ((int)(0xF << (sizeof (int) * 8 - 4)))
+#define VBI3_BCD_MAX ((int)(VBI3_BCD_MIN ^ ~_VBI3_BCD_06))
 
-#define VBI3_BCD_BIN_MAX   /* FEDCBA9876543210    F6543210 */		\
-	((8 == sizeof (int)) ? 999999999999999LL : 9999999)
-#define VBI3_BCD_BIN_MIN ((-VBI3_BCD_BIN_MAX) - 1)
+/* We cannot use the LL suffix for ISO C89 compatibility. */
+#define VBI3_BCD_BIN_MAX						\
+	((int)(((sizeof (int) > 4) ? 9999999 : 0) * 10000000 + 9999999))
+
+#define VBI3_BCD_BIN_MIN ((int)((-VBI3_BCD_BIN_MAX) - 1))
 
 /** Older name. */
 #define vbi3_dec2bcd vbi3_bin2bcd
@@ -53,10 +59,10 @@ VBI3_BEGIN_DECLS
 
 extern int
 vbi3_bin2bcd			(int			bin)
-  __attribute__ ((const));
+  _vbi3_const;
 extern int
 vbi3_bcd2bin			(int			bcd)
-  __attribute__ ((const));
+  _vbi3_const;
 
 /**
  * @param a BCD number.
@@ -68,7 +74,7 @@ vbi3_bcd2bin			(int			bcd)
  * BCD number. The result is undefined when any of the arguments
  * contain hex digits 0xA ... 0xF, except for the sign nibble.
  */
-vbi3_inline int
+_vbi3_inline int
 vbi3_add_bcd			(int			a,
 				 int			b)
 {
@@ -94,7 +100,7 @@ vbi3_add_bcd			(int			a,
  * as signed packed bcd, this function will return VBI3_BCD_MAX + 1
  * (0x10000000) instead.
  */
-vbi3_inline int
+_vbi3_inline int
 vbi3_neg_bcd			(int			bcd)
 {
 	int t = -bcd;
@@ -113,7 +119,7 @@ vbi3_neg_bcd			(int			bcd)
  * BCD number. The result is undefined when any of the arguments
  * contain hex digits 0xA ... 0xF, except for the sign nibble.
  */
-vbi3_inline int
+_vbi3_inline int
 vbi3_sub_bcd			(int			a,
 				 int			b)
 {
@@ -129,7 +135,7 @@ vbi3_sub_bcd			(int			a,
  * @c FALSE if @a bcd contains hex digits 0xA ... 0xF, ignoring
  * the four most significant bits i.e. the sign nibble.
  */
-vbi3_inline vbi3_bool
+_vbi3_inline vbi3_bool
 vbi3_is_bcd			(int			bcd)
 {
 	bcd &= ~VBI3_BCD_MIN;
@@ -151,7 +157,7 @@ vbi3_is_bcd			(int			bcd)
  * @c TRUE if any digit of @a bcd is greater than the
  * corresponding digit of @a maximum.
  */
-vbi3_inline vbi3_bool
+_vbi3_inline vbi3_bool
 vbi3_bcd_digits_greater		(unsigned int		bcd,
 				 unsigned int		maximum)
 {
@@ -308,7 +314,7 @@ namespace vbi {
 
   static const Bcd any_subno (VBI3_ANY_SUBNO);
   static const Bcd no_subno (VBI3_NO_SUBNO);
-};
+}
 
 #endif /* __cplusplus */
 
