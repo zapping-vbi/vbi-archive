@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: event.h,v 1.5.2.12 2007-11-01 00:21:23 mschimek Exp $ */
+/* $Id: event.h,v 1.5.2.13 2008-02-25 20:57:44 mschimek Exp $ */
 
 #ifndef __ZVBI3_EVENT_H__
 #define __ZVBI3_EVENT_H__
@@ -184,7 +184,7 @@ typedef enum {
 	 * 0x0FF). In the latter case a rolling header should display only
 	 * pages from the same magazine.
 	 */
-	VBI3_SERIAL		= 0x100000,
+	VBI3_SERIAL		= 0x100000
 } vbi3_ttx_page_flags; 
 
 typedef enum {
@@ -192,7 +192,7 @@ typedef enum {
 	VBI3_WORD_UPDATE	= (1 << 1), /* XXX not implemented yet */
 	VBI3_ROW_UPDATE		= (1 << 2),
 	VBI3_PAGE_UPDATE	= (1 << 3), /* XXX not implemented yet */
-	VBI3_START_ROLLING	= (1 << 4),
+	VBI3_START_ROLLING	= (1 << 4)
 } vbi3_cc_page_flags;
 
 /**
@@ -230,14 +230,16 @@ typedef struct vbi3_event {
 		const vbi3_aspect_ratio *aspect;
 		const vbi3_program_info *prog_info;
 #endif
-		struct { }		page_type;
-		struct { }		top_change;
+		/* Empty struct not permitted by ISO C89. */
+		/* struct { }		page_type; */
+		/* struct { }		top_change; */
 		struct {
 			time_t			time;
 			int			gmtoff;
 		}			local_time;
 		const vbi3_program_id *	prog_id;
-		struct { }		remove_network;
+		/* Empty struct not permitted by ISO C89. */
+		/* struct { }		remove_network; */
 
 	}			ev;
 } vbi3_event;
