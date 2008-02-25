@@ -1,7 +1,7 @@
 /*
  *  libzvbi test
  *
- *  Copyright (C) 2002-2003 Michael H. Schimek
+ *  Copyright (C) 2002, 2003 Michael H. Schimek
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,13 +18,14 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cpptest.cc,v 1.1.2.3 2006-05-07 06:05:00 mschimek Exp $ */
+/* $Id: cpptest.cc,v 1.1.2.4 2008-02-25 20:57:27 mschimek Exp $ */
 
 #include "src/zvbi.h"
 
+/* Just a test to see if the header compiles without errors. */
+
 int
-main				(int			argc,
-				 char **		argv)
+main (void)
 {
 	return 0;
 }
