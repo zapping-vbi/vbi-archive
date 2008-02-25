@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: program_info.h,v 1.1.2.3 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: program_info.h,v 1.1.2.4 2008-02-25 20:57:35 mschimek Exp $ */
 
 #ifndef __ZVBI3_PROGRAM_INFO_H__
 #define __ZVBI3_PROGRAM_INFO_H__
@@ -178,7 +178,7 @@ typedef struct {
 	 */
 	struct {
 		/* If unknown mode == VBI3_AUDIO_MODE_UNKNOWN */
-//		vbi3_audio_mode		mode;
+/*		vbi3_audio_mode		mode; */
 		/* If unknown lang_code == NULL */
 		const char *		lang_code; /* ISO 639 */
 	}			audio[2];	/* primary and secondary */
