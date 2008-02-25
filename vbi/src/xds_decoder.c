@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: xds_decoder.c,v 1.1.2.9 2007-11-01 00:21:25 mschimek Exp $ */
+/* $Id: xds_decoder.c,v 1.1.2.10 2008-02-25 20:57:32 mschimek Exp $ */
 
 #if 0 // TODO
 
@@ -79,26 +79,20 @@ language[8] = {
 	NULL	/* "None" */
 };
 
-#ifdef __GNUC__
-#define UNUSED __attribute__ ((unused))
-#else
-#define UNUSED
-#endif
-
 static const char *
-map_type[] UNUSED = {
+map_type[] _vbi_unused = {
 	"unknown", "mono", "simulated stereo", "stereo",
 	"stereo surround", "data service", "unknown", "none"
 };
 
 static const char *
-sap_type[] UNUSED = {
+sap_type[] _vbi_unused = {
 	"unknown", "mono", "video descriptions", "non-program audio",
 	"special effects", "data service", "unknown", "none"
 };
 
 static const char *
-cgmsa[] UNUSED = {
+cgmsa[] _vbi_unused = {
 	"copying permitted",
 	"-",
 	"one generation copy allowed",
@@ -106,7 +100,7 @@ cgmsa[] UNUSED = {
 };
 
 static const char *
-scrambling[] UNUSED = {
+scrambling[] _vbi_unused = {
 	"no pseudo-sync pulse",
 	"pseudo-sync pulse on; color striping off",
 	"pseudo-sync pulse on; 2-line color striping on",
@@ -114,13 +108,13 @@ scrambling[] UNUSED = {
 };
 
 static const char *
-month_names[] UNUSED = {
+month_names[] _vbi_unused = {
 	"0?", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug",
 	"Sep", "Oct", "Nov", "Dec", "13?", "14?", "15?"
 };
 
 static const char *
-day_names[] UNUSED = {
+day_names[] _vbi_unused = {
 	"0?", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 };
 
