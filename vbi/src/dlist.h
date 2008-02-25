@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dlist.h,v 1.1.2.5 2007-11-01 00:21:22 mschimek Exp $ */
+/* $Id: dlist.h,v 1.1.2.6 2008-02-25 20:58:34 mschimek Exp $ */
 
 #ifndef DLIST_H
 #define DLIST_H
@@ -39,7 +39,7 @@ struct node {
 	struct node *		_pred;
 };
 
-vbi3_inline void
+_vbi3_inline void
 verify_ring			(const struct node *	n)
 {
 	unsigned int counter;
@@ -60,7 +60,7 @@ verify_ring			(const struct node *	n)
 	} while (n != start);
 }
 
-vbi3_inline struct node *
+_vbi3_inline struct node *
 _remove_nodes			(struct node *		before,
 				 struct node *		after,
 				 struct node *		first,
@@ -89,7 +89,7 @@ _remove_nodes			(struct node *		before,
 	return first;
 }
 
-vbi3_inline struct node *
+_vbi3_inline struct node *
 _insert_nodes			(struct node *		before,
 				 struct node *		after,
 				 struct node *		first,
@@ -110,7 +110,7 @@ _insert_nodes			(struct node *		before,
  * @internal
  * Adds struct node n to a list or ring after struct node a.
  */
-vbi3_inline struct node *
+_vbi3_inline struct node *
 insert_after			(struct node *		a,
 				 struct node *		n)
 {
@@ -121,7 +121,7 @@ insert_after			(struct node *		a,
  * @internal
  * Adds struct node n to a list or ring before struct node b.
  */
-vbi3_inline struct node *
+_vbi3_inline struct node *
 insert_before			(struct node *		b,
 				 struct node *		n)
 {
@@ -132,7 +132,7 @@ insert_before			(struct node *		b,
  * @internal
  * Removes struct node n from its list or ring.
  */
-vbi3_inline struct node *
+_vbi3_inline struct node *
 unlink_node			(struct node *		n)
 {
 	return _remove_nodes (n->_pred, n->_succ, n, n, TRUE, FALSE);
@@ -169,7 +169,7 @@ for (verify_ring (l), p = PARENT ((l)->_pred, __typeof__ (* p), _node);	\
  * @internal
  * Destroys list l (not its nodes).
  */
-vbi3_inline struct node *
+_vbi3_inline struct node *
 list_destroy			(struct node *		l)
 {
 	return _remove_nodes (l->_pred, l->_succ, l, l, FALSE, FALSE);
@@ -179,7 +179,7 @@ list_destroy			(struct node *		l)
  * @internal
  * Initializes list l.
  */
-vbi3_inline struct node *
+_vbi3_inline struct node *
 list_init			(struct node *		l)
 {
 	l->_succ = l;
@@ -192,7 +192,7 @@ list_init			(struct node *		l)
  * @internal
  * TRUE if struct node n is at head of list l.
  */
-vbi3_inline vbi3_bool
+_vbi3_inline vbi3_bool
 is_head				(const struct node *	l,
 				 const struct node *	n)
 {
@@ -205,7 +205,7 @@ is_head				(const struct node *	l,
  * @internal
  * TRUE if struct node n is at tail of list l.
  */
-vbi3_inline vbi3_bool
+_vbi3_inline vbi3_bool
 is_tail				(const struct node *	l,
 				 const struct node *	n)
 {
@@ -218,7 +218,7 @@ is_tail				(const struct node *	l,
  * @internal
  * TRUE if list l is empty.
  */
-vbi3_inline int
+_vbi3_inline int
 is_empty			(const struct node *	l)
 {
 	return is_head (l, l);
@@ -228,7 +228,7 @@ is_empty			(const struct node *	l)
  * @internal
  * TRUE if struct node n is a member of list l.
  */
-vbi3_inline vbi3_bool
+_vbi3_inline vbi3_bool
 is_member			(const struct node *	l,
 				 const struct node *	n)
 {
@@ -249,7 +249,7 @@ is_member			(const struct node *	l,
  * @internal
  * Adds struct node n at begin of list l.
  */
-vbi3_inline struct node *
+_vbi3_inline struct node *
 add_head			(struct node *		l,
 				 struct node *		n)
 {
@@ -260,7 +260,7 @@ add_head			(struct node *		l,
  * @internal
  * Adds struct node n at end of list l.
  */
-vbi3_inline struct node *
+_vbi3_inline struct node *
 add_tail			(struct node *		l,
 				 struct node *		n)
 {
@@ -271,7 +271,7 @@ add_tail			(struct node *		l,
  * @internal
  * Removes all nodes from list l2 and adds them at end of list l1.
  */
-vbi3_inline struct node *
+_vbi3_inline struct node *
 add_tail_list			(struct node *		l1,
 				 struct node *		l2)
 {
@@ -295,7 +295,7 @@ add_tail_list			(struct node *		l1,
  * @internal
  * Removes struct node n if member of list l.
  */
-vbi3_inline struct node *
+_vbi3_inline struct node *
 rem_node			(struct node *		l,
 				 struct node *		n)
 {
@@ -310,7 +310,7 @@ rem_node			(struct node *		l,
  * @internal
  * Removes first struct node of list l, returns NULL if empty list.
  */
-vbi3_inline struct node *
+_vbi3_inline struct node *
 rem_head			(struct node *		l)
 {
 	struct node *n = l->_succ;
@@ -326,7 +326,7 @@ rem_head			(struct node *		l)
  * @internal
  * Removes last struct node of list l, returns NULL if empty list.
  */
-vbi3_inline struct node *
+_vbi3_inline struct node *
 rem_tail			(struct node *		l)
 {
 	struct node *n = l->_pred;
@@ -342,7 +342,7 @@ rem_tail			(struct node *		l)
  * @internal
  * Returns number of nodes in list l.
  */
-vbi3_inline unsigned int
+_vbi3_inline unsigned int
 list_length			(struct node *		l)
 {
 	unsigned int count = 0;

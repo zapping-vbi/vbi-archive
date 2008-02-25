@@ -916,7 +916,7 @@ cache_page_copy			(cache_page *		dst,
 	return TRUE;
 }
 
-vbi3_inline unsigned int
+_vbi3_inline unsigned int
 hash				(vbi3_pgno		pgno)
 {
 	return pgno % HASH_SIZE;

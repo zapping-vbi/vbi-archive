@@ -28,7 +28,7 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* $Id: ure.c,v 1.4.2.6 2007-11-01 00:21:25 mschimek Exp $ */
+/* $Id: ure.c,v 1.4.2.7 2008-02-25 20:57:50 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -128,7 +128,7 @@
  * with a character and tests to see if the character has one or more of those
  * properties.
  */
-vbi3_inline int
+_vbi3_inline int
 #ifdef __STDC__
 _ure_matches_properties(unsigned long props, ucs4_t c)
 #else

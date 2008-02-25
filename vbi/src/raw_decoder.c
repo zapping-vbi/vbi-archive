@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.c,v 1.1.2.11 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: raw_decoder.c,v 1.1.2.12 2008-02-25 20:57:58 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -247,7 +247,7 @@ _vbi3_service_table [] = {
 	}
 };
 
-vbi3_inline const _vbi3_service_par *
+_vbi3_inline const _vbi3_service_par *
 find_service_par		(unsigned int		service)
 {
 	unsigned int i;
@@ -405,7 +405,7 @@ _vbi3_raw_decoder_dump		(const vbi3_raw_decoder *rd,
 	}
 }
 
-vbi3_inline int
+_vbi3_inline int
 cpr1204_crc			(const vbi3_sliced *	sliced)
 {
 	const int poly = (1 << 6) + (1 << 1) + 1;
@@ -450,7 +450,7 @@ slice				(vbi3_raw_decoder *	rd,
 	}
 }
 
-vbi3_inline vbi3_sliced *
+_vbi3_inline vbi3_sliced *
 decode_pattern			(vbi3_raw_decoder *	rd,
 				 vbi3_sliced *		sliced,
 				 int8_t *		pattern,

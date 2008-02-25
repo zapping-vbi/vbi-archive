@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.18 2007-11-01 00:21:23 mschimek Exp $";
+static char rcsid[] = "$Id: io-v4l.c,v 1.9.2.19 2008-02-25 20:58:09 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -424,7 +424,7 @@ guess_bttv_v4l(vbi3_capture_v4l *v, int *strict,
 	return TRUE;
 }
 
-vbi3_inline vbi3_bool
+_vbi3_inline vbi3_bool
 set_parameters(vbi3_capture_v4l *v, struct vbi_format *vfmt, int *max_rate,
 	       const char *dev_name, char *driver_name,
 	       unsigned int *services, int strict,

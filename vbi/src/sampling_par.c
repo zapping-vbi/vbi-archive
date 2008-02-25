@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: sampling_par.c,v 1.1.2.7 2007-11-11 03:06:13 mschimek Exp $ */
+/* $Id: sampling_par.c,v 1.1.2.8 2008-02-25 20:57:53 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -66,7 +66,7 @@ _vbi3_videostd_set_from_scanning
 	return 0;
 }
 
-vbi3_inline vbi3_bool
+_vbi3_inline vbi3_bool
 range_check			(unsigned int		start,
 				 unsigned int		count,
 				 unsigned int		min,

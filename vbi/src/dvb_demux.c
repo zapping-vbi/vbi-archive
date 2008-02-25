@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb_demux.c,v 1.9.2.7 2007-11-11 03:06:12 mschimek Exp $ */
+/* $Id: dvb_demux.c,v 1.9.2.8 2008-02-25 20:58:30 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -117,7 +117,7 @@ struct wrap {
  * If more data is needed the function returns FALSE, and *src_left
  * will be 0.
  */
-vbi3_inline vbi3_bool
+_vbi3_inline vbi3_bool
 wrap_around			(struct wrap *		w,
 				 const uint8_t **	dst,
 				 const uint8_t **	scan_end,
@@ -1173,7 +1173,7 @@ extract_data_units		(struct frame *		f,
  * Reset the VBI data unit decoding context at the beginning of a
  * new frame (after extract_data_units() returned -1).
  */
-vbi3_inline void
+_vbi3_inline void
 reset_frame			(struct frame *		f)
 {
 	f->sp = f->sliced_begin;

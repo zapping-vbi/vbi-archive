@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb_mux.c,v 1.6.2.4 2007-11-01 00:21:22 mschimek Exp $ */
+/* $Id: dvb_mux.c,v 1.6.2.5 2008-02-25 20:58:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -512,7 +512,7 @@ insert_sliced_data_units	(uint8_t **		packet,
 	return 0; /* success */
 }
 
-vbi3_inline vbi3_bool
+_vbi3_inline vbi3_bool
 fixed_length_format		(unsigned int		data_identifier)
 {
 	/* EN 301 775 section 4.4.2: If the data_identifier has a
@@ -1188,7 +1188,7 @@ samples_pointer			(const uint8_t **	samples,
 	return 0; /* success */
 }
 				 
-vbi3_inline void
+_vbi3_inline void
 encode_timestamp		(uint8_t *		p,
 				 int64_t		pts,
 				 unsigned int		mark)

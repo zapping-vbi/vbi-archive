@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: cache-priv.h,v 1.1.2.7 2007-11-01 00:21:22 mschimek Exp $ */
+/* $Id: cache-priv.h,v 1.1.2.8 2008-02-25 20:58:43 mschimek Exp $ */
 
 #ifndef CACHE_PRIV_H
 #define CACHE_PRIV_H
@@ -273,7 +273,7 @@ typedef struct {
 } cache_page;
 
 /** @internal */
-vbi3_inline struct magazine *
+_vbi3_inline struct magazine *
 cache_network_magazine		(cache_network *	cn,
 				 vbi3_pgno		pgno)
 {
@@ -282,7 +282,7 @@ cache_network_magazine		(cache_network *	cn,
 }
 
 /** @internal */
-vbi3_inline const struct magazine *
+_vbi3_inline const struct magazine *
 cache_network_const_magazine	(const cache_network *	cn,
 				 vbi3_pgno		pgno)
 {
@@ -291,7 +291,7 @@ cache_network_const_magazine	(const cache_network *	cn,
 }
 
 /** @internal */
-vbi3_inline struct page_stat *
+_vbi3_inline struct page_stat *
 cache_network_page_stat		(cache_network *	cn,
 				 vbi3_pgno		pgno)
 {
@@ -300,7 +300,7 @@ cache_network_page_stat		(cache_network *	cn,
 }
 
 /** @internal */
-vbi3_inline const struct page_stat *
+_vbi3_inline const struct page_stat *
 cache_network_const_page_stat	(const cache_network *	cn,
 				 vbi3_pgno		pgno)
 {

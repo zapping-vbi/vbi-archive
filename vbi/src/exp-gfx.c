@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: exp-gfx.c,v 1.7.2.15 2007-11-11 03:06:12 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.7.2.16 2008-02-25 20:58:17 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -60,7 +60,7 @@
  *
  * unicode_wstfont2() subroutine.
  */
-vbi3_inline unsigned int
+_vbi3_inline unsigned int
 unicode_wstfont2_special	(unsigned int		c,
 				 vbi3_bool		italic)
 {
