@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: raw_decoder.h,v 1.1.2.10 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: raw_decoder.h,v 1.1.2.11 2008-02-25 21:01:35 mschimek Exp $ */
 
 #ifndef __ZVBI3_RAW_DECODER_H__
 #define __ZVBI3_RAW_DECODER_H__
@@ -132,7 +132,7 @@ typedef enum {
 	/** Requires field line numbers. */ 
 	_VBI3_SP_LINE_NUM	= (1 << 0),
 	/** Requires field numbers. */
-	_VBI3_SP_FIELD_NUM	= (1 << 1),
+	_VBI3_SP_FIELD_NUM	= (1 << 1)
 } _vbi3_service_par_flag;
 
 /* typedef _vbi3_service_par in sliced.h */
