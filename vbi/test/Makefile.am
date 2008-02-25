@@ -1,17 +1,94 @@
 ## Process this file with automake to produce Makefile.in
 
-UNIT_TESTS = \
+compile_tests = \
+	ctest \
+	cpptest
+
+cpptest_SOURCES = cpptest.cc
+
+if HAVE_GCC_C89_SUPPORT
+compile_tests += ctest-c89 ctest-gnu89
+
+ctest_c89_SOURCES = ctest.c
+ctest_c89_CFLAGS = -pedantic-errors -std=c89
+
+ctest_gnu89_SOURCES = ctest.c
+ctest_gnu89_CFLAGS = -pedantic-errors -std=gnu89
+endif
+
+if HAVE_GCC_C94_SUPPORT
+compile_tests += ctest-c94
+
+ctest_c94_SOURCES = ctest.c
+ctest_c94_CFLAGS = -pedantic-errors -std=iso9899:199409
+endif
+
+if HAVE_GCC_C99_SUPPORT
+compile_tests += ctest-c99 ctest-gnu99
+
+ctest_c99_SOURCES = ctest.c
+ctest_c99_CFLAGS = -pedantic-errors -std=c99
+
+ctest_gnu99_SOURCES = ctest.c
+ctest_gnu99_CFLAGS = -pedantic-errors -std=gnu99
+endif
+
+if HAVE_GXX_CXX98_SUPPORT
+compile_tests += cpptest-cxx98 cpptest-gnuxx98
+
+cpptest_cxx98_SOURCES = cpptest.cc
+cpptest_cxx98_CXXFLAGS = -pedantic-errors -std=c++98
+
+cpptest_gnuxx98_SOURCES = cpptest.cc
+cpptest_gnuxx98_CXXFLAGS = -pedantic-errors -std=gnu++98
+endif
+
+unit_tests = \
 	test-bcd \
+	test-dvb_demux \
 	test-dvb_mux \
 	test-hamm \
+	test-io \
 	test-raw_decoder \
 	test-vps
 
 TESTS = \
-	$(UNIT_TESTS) \
+	$(compile_tests) \
+	$(unit_tests) \
+	test-explist \
 	test-headers \
-	test-io \
-	test-explist
+	test-unicode
+
+check_PROGRAMS = \
+	$(compile_tests) \
+	$(unit_tests)
+
+test_bcd_SOURCES = test-bcd.cc
+
+test_dvb_demux_SOURCES = \
+	test-dvb_mux.cc \
+	test-common.cc test-common.h
+
+test_dvb_mux_SOURCES = \
+	test-dvb_mux.cc \
+	test-common.cc test-common.h
+
+test_hamm_SOURCES = test-hamm.cc
+
+test_io_SOURCES = test-io.cc
+
+test_raw_decoder_SOURCES = \
+	test-raw_decoder.cc \
+	test-common.cc test-common.h
+
+check_SCRIPTS = \
+	test-explist \
+	test-headers \
+	test-unicode
+
+test-explist: explist
+
+test-unicode: unicode
 
 noinst_PROGRAMS = \
 	caption \
@@ -24,50 +101,59 @@ noinst_PROGRAMS = \
 	glyph \
 	osc \
 	sliced2pes \
-	test-bcd \
-	test-dvb_mux \
-	test-hamm \
-	test-io \
-	test-raw_decoder \
-	test-vps \
 	ttxfilter \
 	unicode
 
-check_SCRIPTS = \
-	test-explist \
-	test-headers
+caption_SOURCES = \
+	caption.c \
+	sliced.c sliced.h
 
-test_bcd_SOURCES = test-bcd.cc
-test_hamm_SOURCES = test-hamm.cc
-test_io_SOURCES = test-io.cc
+capture_SOURCES = \
+	capture.c \
+	sliced.c sliced.h
 
-test_dvb_mux_SOURCES = \
-	test-dvb_mux.cc \
-	test-common.cc test-common.h
+date_SOURCES = \
+	date.c \
+	sliced.c sliced.h
 
-test_raw_decoder_SOURCES = \
-	test-raw_decoder.cc \
-	test-common.cc test-common.h
+decode_SOURCES = \
+	decode.c \
+	sliced.c sliced.h
 
-caption_SOURCES = caption.c sliced.c sliced.h
-capture_SOURCES = capture.c sliced.c sliced.h
-date_SOURCES = date.c sliced.c sliced.h
-decode_SOURCES = decode.c sliced.c sliced.h
-event_SOURCES = event.c sliced.c sliced.h
-export_SOURCES = export.c sliced.c sliced.h
-osc_SOURCES = osc.c sliced.c sliced.h
-sliced2pes_SOURCES = sliced2pes.c sliced.c sliced.h
-ttxfilter_SOURCES = ttxfilter.c sliced.c sliced.h
+event_SOURCES = \
+	event.c \
+	sliced.c sliced.h
+
+export_SOURCES = \
+	export.c \
+	sliced.c sliced.h
+
+osc_SOURCES = \
+	osc.c \
+	sliced.c sliced.h
+
+sliced2pes_SOURCES = \
+	sliced2pes.c \
+	sliced.c sliced.h
+
+ttxfilter_SOURCES = \
+	ttxfilter.c \
+	sliced.c sliced.h
+
+noinst_SCRIPTS = \
+	uclist
 
 EXTRA_DIST = \
-	$(check_SCRIPTS)
+	$(noinst_SCRIPTS) \
+	$(check_SCRIPTS) \
 	README \
-	uclist
+	unicode-out-ref.txt
 
 CLEANFILES = \
 	test-hdrs.cc \
 	test-hdrs.log \
-	test-hdrs.out
+	test-hdrs.out \
+	unicode-out.txt
 
 # $(top_srcdir) for VPATH zvbi.h
 AM_CFLAGS = \
@@ -79,6 +165,7 @@ AM_CXXFLAGS = \
 	-I$(top_srcdir) -I$(top_srcdir)/src \
 	$(COMMON_INCLUDES) $(X_CFLAGS)
 
+# For the test-headers script.
 TESTS_ENVIRONMENT = \
 	CXX="$(CXX)" \
 	CXXFLAGS="$(CXXFLAGS)"
@@ -94,17 +181,17 @@ endif
 
 LDADD += $(PTHREAD_LIB) -lm $(PNG_LIB) $(X_LIBS)
 
-check-valgrind: $(UNIT_TESTS)
-	for test in $(UNIT_TESTS) ; do \
+check-valgrind: $(unit_tests)
+	for test in $(unit_tests) ; do \
 	  echo Testing $$test ; \
 	  valgrind --leak-check=full $$test || \
 	    (echo Test failed ; exit 1) ; \
 	done
 
 # NB this works only if you add -fprofile-arcs -ftest-coverage
-# to CFLAGS and CXXFLAGS.
-check-coverage: $(UNIT_TESTS)
-	for test in $(UNIT_TESTS) ; do \
+# to CFLAGS and CXXFLAGS when you configure.
+check-coverage: $(unit_tests)
+	for test in $(unit_tests) ; do \
 	  module=`echo "$$test" | sed 's/^test-//'` ; \
 	  echo Testing $$test ; \
 	  ./$$test ; \
