@@ -1,3 +1,69 @@
+2008-02-25    <mschimek@users.sf.net>
+
+	* src/zvbi.h: Include packet_filter.h.
+
+	* test/unicode-out-ref.txt: Copied from branch 0.2, except for
+	  Teletext national subset character Turkish Lira, for
+	  test/test-unicode.
+
+	* test/unicode.c: Updated from branch 0.2.
+
+	* test/test-unicode, test/test-dvb_demux.cc: Copied from branch 0.2.
+
+	* test/Makefile.am: Added strict ISO C89, C94, C99, and C++98
+	  checks of the libzvbi header. Added uclist to noinst_SCRIPTS.
+	(TESTS): Added test-dvb_demux, test-unicode.
+	(EXTRA_DIST): Added unicode-out-ref.txt.
+	(CLEANFILES): Added unicode-out.txt.
+
+	* test/ctest.c, test/cpptest.cc: Cleaned up.
+	* test/ctest.c: New file for strict ISO C89, C94 and C99 check
+	  of the libzvbi header.
+
+	* src/xds_decoder.c: Replaced UNUSED macro by _vbi_unused from
+	  macros.h.
+
+	* src/program_info.h: ISO C89 does not permit C++ line comments.
+
+	* src/export.h: Did not declare ssize_t.
+
+	* src/event.h: ISO C89 does not permit empty structures.
+
+	* src/ure.c, src/sampling_par.c, src/raw_decoder.c, src/lang.h: 
+	* src/io-v4l.c, src/hamm.h, src/exp-gfx.c, src/dvb_mux.c: 
+	* src/dvb_demux.c, src/dlist.h, src/cache.c, src/cache-priv.h:
+	* src/bcd.h: Renamed vbi3_inline to _vbi3_inline.
+	* test/test-common.h, src/xds_demux.h, src/vps.h:
+	* src/vbi_decoder.h, src/top_title.h, src/teletext_decoder.h:
+	* src/sliced_filter.h, src/sliced.h, src/search.h:
+	* src/sampling_par.h, src/pfc_demux.h, src/pdc.h:
+	* src/page_table.h, src/page.h, src/packet_filter.h:
+	* src/packet-830.h, src/network.h, src/misc.h, src/link.h: 
+	* src/lang.h, src/idl_demux.h, src/hamm.h, src/image_format.h: 
+	* src/export.h, src/export-priv.h, src/exp-txt.h, src/exp-gfx.h: 
+	* src/dvb_mux.h, src/dvb_demux.h, src/conv.h: 
+	* src/caption_decoder.h, src/cache.h, src/bit_slicer.h:
+	* src/bcd.h: Rewrote the GCC __attribute__ wrapper macros for
+	  compatibility with strict ISO C.
+
+	* src/bcd.h (_VBI3_BCD_10, _VBI3_BCD_06, VBI3_BCD_BIN_MAX):
+	  Rewrote the defines for compatibility with ISO C89.
+
+	* src/xds_demux.h, src/sampling_par.h, src/raw_decoder.h:
+	* src/pdc.h, src/page.h, src/network.h, src/macros.h: 
+	* src/image_format.h, src/event.h, src/io.h, src/cache.h: 
+	* src/aspect_ratio.h: ISO C89 does not permit a comma at the
+	  end of an enumerator list.
+
+	* configure.in: Updated from branch 0.2, adding a gcc -std check
+	  for test/ctest.c and test/cpptest.cc.
+
+	* src/macros.h: Updated from branch 0.2. The GCC __attribute__
+	  wrapper macros changed for compatibility with strict ISO C.
+	  The license changed to LGPLv2+.
+
+	* autogen-maint.sh: Copied from branch 0.2.
+
 2005-06-30    <mschimek@users.sf.net>
 
 	* src/structpr.pl: Didn't log VIDIOC_G|S_STD.
@@ -27,8 +93,8 @@
 	  and type fixes.
 	* src/pdc.h (VBI_PIL_MINUTE): Fixed.
 	  (vbi_program_id): Added mising PDC flags.
-	* src/pdc.c, src/pdc.h:
-	  (vbi_program_id_dump): Added.
+	* src/pdc.c (vbi_program_id_dump):
+	* src/pdc.h (vbi_program_id_dump): Added.
 	* src/vbi.h, src/packet.c, src/packet-pfc.c, src/packet-pfc.h:
 	  Moved page format clear demux code into packet-pfc.c, packet-pfc.h.
 	* src/vt.h, src/packet.c, src/teletext.c: New Teletext page
