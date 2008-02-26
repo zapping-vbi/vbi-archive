@@ -1,40 +1,48 @@
 /*
- *  libzvbi - Teletext cache
+ *  libzvbi -- Teletext cache
  *
- *  Copyright (C) 2001, 2002, 2003, 2004 Michael H. Schimek
+ *  Copyright (C) 2001, 2002, 2003, 2004, 2007 Michael H. Schimek
  *
- *  Based on code from AleVT 1.5.1
- *  Copyright (C) 1998, 1999 Edgar Toernig <froese@gmx.de>
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the 
+ *  Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+ *  Boston, MA  02110-1301  USA.
  */
 
-#include "../site_def.h"
+#include "site_def.h"
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
 #include <errno.h>
-#include "event-priv.h"
-#include "cache-priv.h"
-#ifdef ZAPPING8
-#  include "common/intl-priv.h"
-#else
-#  include "version.h"
+
+#include "version.h"
+#if 2 == VBI_VERSION_MINOR
+#  include "event.h"
+#  include "cache-priv.h"
 #  include "intl-priv.h"
+#  include "vbi.h"		/* vbi3_page_type */
+#elif 3 == VBI_VERSION_MINOR
+#  include "event-priv.h"
+#  include "cache-priv.h"
+#  ifdef ZAPPING8
+#    include "common/intl-priv.h"
+#  else
+#    include "intl-priv.h"
+#  endif
+#else
+#  error VBI_VERSION_MINOR == ?
 #endif
 
 /* Enable logging by default (site_def.h). */
@@ -51,55 +59,6 @@
 #ifndef CACHE_CONSISTENCY
 #  define CACHE_CONSISTENCY 0
 #endif
-
-/** @internal */
-struct _vbi3_cache {
-	/**
-	 * Lists of Teletext pages by pgno, most recently used at head
-	 * of each list. Points to a cache_page.hash_node.
-	 */
-	struct node		hash[HASH_SIZE];
-
-	/** Total number of pages cached, for statistics. */
-	unsigned int		n_cached_pages;
-
-	unsigned int		ref_count;
-
-	/**
-	 * List of Teletext pages to be replaced when out of memory,
-	 * oldest at head of list. Points to a cache_page.pri_node.
-	 */
-	struct node		priority;
-
-	/**
-	 * List of Teletext pages which are referenced by the client.
-	 * Points to a cache_page.pri_node.
-	 */
-	struct node		referenced;
-
-	/**
-	 * Memory used by all pages except referenced and zombies. (We
-	 * would deadlock if the memory_limit has been reached and the
-	 * client unreferences pages only when receiving new pages.)
-	 */
-	unsigned long		memory_used;
-	unsigned long		memory_limit;
-
-	/**
-	 * List of cached networks, most recently used at head of list.
-	 */
-	struct node		networks;
-
-	/** Number of networks in cache except referenced and zombies. */
-	unsigned int		n_cached_networks;
-	unsigned int		n_networks_limit;
-
-	_vbi3_event_handler_list handlers;
-
-	char *			errstr;
-
-	_vbi3_log_hook		log;
-};
 
 static void
 set_errstr			(vbi3_cache *		ca,
@@ -166,7 +125,7 @@ static void
 cache_network_remove_page	(cache_network *	cn,
 				 cache_page *		cp)
 {
-	struct page_stat *ps;
+	struct ttx_page_stat *ps;
 
 	if (CACHE_CONSISTENCY)
 		assert (cn == cp->network);
@@ -185,7 +144,7 @@ static void
 cache_network_add_page		(cache_network *	cn,
 				 cache_page *		cp)
 {
-	struct page_stat *ps;
+	struct ttx_page_stat *ps;
 
 	if (cn->zombie) {
 		assert (NULL != cn->cache);
@@ -218,26 +177,30 @@ cache_network_add_page		(cache_network *	cn,
 	if (CACHE_CONSISTENCY)
 		assert (ps->n_subpages <= 80);
 
-	/* Subno must be 0 (no subpages),
-	   0x0 ... 0xF (system pages),
-	   0x01 ... 0x79 bcd (regular subpages),
-	   0x0000 ... 0x2359 bcd (clock pages).
-
-	   Note clock pages replace any page with same pgno, unless they
-	   have no page_type and subno is 0x0000 ... 0x0059. So we store
-	   at most 60 clock subpages. */
 	if (CACHE_CONSISTENCY) {
+		assert (cp->pgno >= 0);
+		assert (cp->pgno <= 0x8FF);
 		assert (cp->subno >= 0);
+		assert (cp->subno <= 0x3F7F);
 
-		if (cp->subno >= 0x10) {
+		if (vbi3_is_bcd (cp->pgno)) {
+			/* We store only subno numbers
+			   0 - no subpages,
+			   0x01 ... 0x79 bcd - regular subpages,
+			   0x0000 ... 0x2359 bcd - clock page. */
 			assert (vbi3_is_bcd (cp->subno));
-
 			if (cp->subno >= 0x0100) {
 				assert (cp->subno <= 0x2359);
 				assert ((cp->subno & 0xFF) <= 0x59);
 			} else {
 				assert (cp->subno <= 0x79);
 			}
+		} else {
+			/* We do not store filler/terminator. */
+			assert (0xFF != (cp->pgno & 0xFF));
+
+			/* All subcodes are valid (0xnnXs). */
+			assert (0 == (cp->subno & ~0x3F7F));
 		}
 	}
 
@@ -273,16 +236,18 @@ delete_network			(vbi3_cache *		ca,
 	if (!cn->zombie)
 		--ca->n_cached_networks;
 
+#if 3 == VBI_VERSION_MINOR
 	if (ca->handlers.event_mask & VBI3_EVENT_REMOVE_NETWORK) {
 		vbi3_event e;
 
+		CLEAR (e);
+
 		e.type		= VBI3_EVENT_REMOVE_NETWORK;
 		e.network	= &cn->network;
-		e.timestamp	= 0;
 
 		_vbi3_event_handler_list_send (&ca->handlers, &e);
 	}
-
+#endif
 	if (cn->ref_count > 0
 	    || cn->n_referenced_pages > 0) {
 		cn->zombie = TRUE;
@@ -291,6 +256,7 @@ delete_network			(vbi3_cache *		ca,
 
 	unlink_node (&cn->node);
 
+#if 3 == VBI_VERSION_MINOR
 	vbi3_network_destroy (&cn->network);
 
 #ifndef ZAPPING8
@@ -303,10 +269,11 @@ delete_network			(vbi3_cache *		ca,
 		for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
 			vbi3_program_id_destroy (&cn->program_id[ch]);
 	}
+#endif /* !ZAPPING8 */
 
-#endif
 	cache_network_destroy_caption (cn);
 	cache_network_destroy_teletext (cn);
+#endif /* 3 == VBI_VERSION_MINOR */
 
 	CLEAR (*cn);
 
@@ -344,11 +311,15 @@ delete_surplus_networks		(vbi3_cache *		ca)
 			continue;
 
 		if (cn->zombie
+#if 3 == VBI_VERSION_MINOR
 		    || vbi3_network_is_anonymous (&cn->network)
+#endif
 		    || ca->n_cached_networks > ca->n_networks_limit)
 			delete_network (ca, cn);
 	}
 }
+
+#if 3 == VBI_VERSION_MINOR
 
 /**
  * @internal
@@ -369,10 +340,15 @@ vbi3_cache_set_network_limit	(vbi3_cache *		ca,
 {
 	assert (NULL != ca);
 
-	ca->n_networks_limit = SATURATE (limit, 1, 3000);
+	if (2 == VBI_VERSION_MINOR)
+		ca->n_networks_limit = 1;
+	else
+		ca->n_networks_limit = SATURATE (limit, 1, 3000);
 
 	delete_surplus_networks (ca);
 }
+
+#endif /* 3 == VBI_VERSION_MINOR */
 
 static cache_network *
 network_by_id			(vbi3_cache *		ca,
@@ -385,6 +361,7 @@ network_by_id			(vbi3_cache *		ca,
 		if (&cn->network == nk)
 			goto found;
 
+#if 3 == VBI_VERSION_MINOR
 	if (nk->user_data) {
 		FOR_ALL_NODES (cn, cn1, &ca->networks, node)
 			if (cn->network.user_data == nk->user_data)
@@ -417,9 +394,11 @@ network_by_id			(vbi3_cache *		ca,
 		FOR_ALL_NODES (cn, cn1, &ca->networks, node)
 			if (0 == strcmp (cn->network.call_sign, nk->call_sign))
 				goto found3;
+#endif /* 3 == VBI_VERSION_MINOR */
 
 	return NULL;
 
+#if 3 == VBI_VERSION_MINOR
 	/* All given IDs must match unless the ID is not stored yet. */
 
  found3:
@@ -442,6 +421,7 @@ network_by_id			(vbi3_cache *		ca,
 	if (nk->call_sign[0] && cn->network.call_sign[0]
 	    && 0 != strcmp (cn->network.call_sign, nk->call_sign))
 		return NULL;
+#endif /* 3 == VBI_VERSION_MINOR */
 
  found:
 	/* Find faster next time, delete last. */
@@ -477,13 +457,14 @@ recycle_network			(vbi3_cache *		ca)
 
 	cn->zombie = FALSE;
 
+#if 3 == VBI_VERSION_MINOR
 	vbi3_network_destroy (&cn->network);
-
+#endif
 	cn->confirm_cni_vps = 0;
 	cn->confirm_cni_8301 = 0;
 	cn->confirm_cni_8302 = 0;
 
-#ifndef ZAPPING8
+#if 3 == VBI_VERSION_MINOR && !defined ZAPPING8
 	vbi3_program_info_destroy (&cn->program_info);
 	vbi3_aspect_ratio_destroy (&cn->aspect_ratio);
 
@@ -500,8 +481,10 @@ recycle_network			(vbi3_cache *		ca)
 
 	cn->n_referenced_pages = 0;
 
+#if 3 == VBI_VERSION_MINOR
 	cache_network_destroy_caption (cn);
 	cache_network_destroy_teletext (cn);
+#endif
 
 	return cn;
 }
@@ -513,8 +496,8 @@ add_network			(vbi3_cache *		ca,
 {
 	cache_network *cn;
 
-#ifdef ZAPPING8
-	videostd_set = videostd_set; /* unused, no warning */
+#if 2 == VBI_VERSION_MINOR || defined ZAPPING8
+	videostd_set = videostd_set; /* unused, no warning please */
 #endif
 
 	if (nk && (cn = network_by_id (ca, nk))) {
@@ -538,6 +521,7 @@ add_network			(vbi3_cache *		ca,
 
 	cn->cache = ca;
 
+#if 3 == VBI_VERSION_MINOR
 	if (nk)
 		vbi3_network_copy (&cn->network, nk);
 
@@ -551,12 +535,16 @@ add_network			(vbi3_cache *		ca,
 		for (ch = 0; ch < N_ELEMENTS (cn->program_id); ++ch)
 			vbi3_program_id_init (&cn->program_id[ch], ch);
 	}
-#endif
+#endif /* !ZAPPING8 */
+
 	cache_network_init_caption (cn);
 	cache_network_init_teletext (cn);
+#endif /* 3 == VBI_VERSION_MINOR */
 
 	return cn;
 }
+
+#if 3 == VBI_VERSION_MINOR
 
 /**
  */
@@ -588,7 +576,9 @@ cache_network_get_ttx_page_stat	(const cache_network *	cn,
 				 vbi3_ttx_page_stat *	ps,
 				 vbi3_pgno		pgno)
 {
-	const struct page_stat *ps1;
+	const struct ttx_page_stat *ps1;
+	vbi3_ttx_charset_code charset_code;
+	unsigned int subcode;
 
 	assert (NULL != ps);
 
@@ -611,24 +601,27 @@ cache_network_get_ttx_page_stat	(const cache_network *	cn,
 		ps->page_type = (vbi3_page_type) ps1->page_type;
 	}
 
-	if (0xFF == ps1->ttx_charset_code) {
+	charset_code = (vbi3_ttx_charset_code) ps1->charset_code;
+
+	if (0xFF == charset_code) {
 		/* Unknown. */
 		ps->ttx_charset = NULL;
 	} else {
-		ps->ttx_charset = vbi3_ttx_charset_from_code
-			((vbi3_ttx_charset_code) ps1->ttx_charset_code);
+		ps->ttx_charset = vbi3_ttx_charset_from_code (charset_code);
 	}
 
-	if (ps1->subcode <= 9)
-		ps->subpages	= ps1->subcode; /* common */
-	else if (SUBCODE_UNKNOWN == ps1->subcode)
+	subcode = ps1->subcode;
+
+	if (subcode <= 9)
+		ps->subpages	= subcode; /* common */
+	else if (SUBCODE_UNKNOWN == subcode)
 		ps->subpages	= 0;
-	else if (SUBCODE_MULTI_PAGE == ps1->subcode)
+	else if (SUBCODE_MULTI_PAGE == subcode)
 		ps->subpages	= 2; /* two or more */
-	else if (ps1->subcode >= 0x80)
+	else if (subcode > 0x79 || !vbi3_is_bcd (subcode))
 		ps->subpages	= 0; /* non-standard (clock etc) */
 	else
-		ps->subpages	= vbi3_bcd2bin (ps1->subcode);
+		ps->subpages	= vbi3_bcd2bin (subcode);
 
 	ps->subno_min	= (vbi3_subno) ps1->subno_min;
 	ps->subno_max	= (vbi3_subno) ps1->subno_max;
@@ -660,6 +653,10 @@ vbi3_cache_get_ttx_page_stat	(vbi3_cache *		ca,
 
 	return TRUE;
 }
+
+#endif /* 3 == VBI_VERSION_MINOR */
+
+#if 3 == VBI_VERSION_MINOR
 
 /**
  * DOCUMENT ME
@@ -709,10 +706,12 @@ vbi3_cache_get_networks		(vbi3_cache *		ca,
 	return nk;
 }
 
+#endif /* 3 == VBI_VERSION_MINOR */
+
 /**
  * @internal
- * @param cn cache_network obtained with _vbi3_cache_add_cache_network()
- *   or _vbi3_cache_get_cache_network(), can be @c NULL.
+ * @param cn cache_network obtained with _vbi3_cache_add_network()
+ *   or _vbi3_cache_get_network(), can be @c NULL.
  *
  * Releases a network reference.
  */
@@ -838,13 +837,13 @@ cache_page_dump			(const cache_page *	cp,
 	fprintf (fp, "page %x.%x ", cp->pgno, cp->subno);
 
 	if ((cn = cp->network)) {
-		const struct page_stat *ps;
+		const struct ttx_page_stat *ps;
 
 		ps = cache_network_const_page_stat (cn, cp->pgno);
 
 		fprintf (fp, "%s/L%u/S%04x subp=%u/%u (%u-%u) ",
 			 vbi3_page_type_name (ps->page_type),
-			 ps->ttx_charset_code,
+			 ps->charset_code,
 			 ps->subcode,
 			 ps->n_subpages,
 			 ps->max_subpages,
@@ -1035,6 +1034,8 @@ delete_surplus_pages		(vbi3_cache *		ca)
 	}
 }
 
+#if 3 == VBI_VERSION_MINOR
+
 /**
  * @param ca Cache allocated with vbi3_cache_new().
  * @param limit Amount of memory in bytes.
@@ -1042,7 +1043,7 @@ delete_surplus_pages		(vbi3_cache *		ca)
  * Limits the amount of memory used by the Teletext page cache. Reasonable
  * values range from 16 KB to 1 GB, default is 1 GB as in libzvbi 0.2.
  * The number of pages transmitted by networks varies. Expect on the order
- * of one megabyte for a complete set.
+ * of one or two megabytes for a complete set.
  * 
  * When the cache is too small to contain all pages of a network,
  * newly received pages will replace older pages. Pages of the
@@ -1060,10 +1061,22 @@ vbi3_cache_set_memory_limit	(vbi3_cache *		ca,
 {
 	assert (NULL != ca);
 
+#if 2 == VBI_VERSION_MINOR
+	/* We must never delete pages because reference counting
+	   doesn't work right and we can't fix that without
+	   breaking compatibility. (E.g. DRCS data referenced in
+	   a vbi3_page isn't reference counted. Also some apps may
+	   not call vbi3_unref_page() because that did not cause
+	   problems in earlier versions.) */
+	limit = 1 << 30;
+#endif
+
 	ca->memory_limit = SATURATE (limit, 1 << 10, 1 << 30);
 
 	delete_surplus_pages (ca);
 }
+
+#endif /* 3 == VBI_VERSION_MINOR */
 
 static cache_page *
 page_by_pgno			(vbi3_cache *		ca,
@@ -1079,6 +1092,8 @@ page_by_pgno			(vbi3_cache *		ca,
 		assert (ca == cn->cache);
 		assert (is_member (&ca->networks, &cn->node));
 	}
+
+	subno &= subno_mask;
 
 	hash_list = ca->hash + hash (pgno);
 
@@ -1232,6 +1247,33 @@ cache_page_ref			(cache_page *		cp)
 	return cp;
 }
 
+#if 2 == VBI_VERSION_MINOR
+
+/**
+ * @param pg Previously fetched vbi3_page.
+ *
+ * A vbi3_page fetched from cache with vbi3_fetch_vt_page() or
+ * vbi3_fetch_cc_page() may reference other resource in cache which
+ * are locked after fetching. When done processing the page, you
+ * must call this function to unlock all the resources associated
+ * with this vbi3_page.
+ */
+void
+vbi3_unref_page			(vbi3_page *		pg)
+{
+	/* Reference counting never really worked and we can't
+	   easily fix that in libzvbi 0.2 without breaking binary
+	   compatibility. For example DRCS data referenced in a
+	   vbi3_page isn't reference counted. Also some apps may
+	   not call vbi3_unref_page() as there are no consequences. */
+
+	/* Nothing to do. */
+
+	pg = pg;
+}
+
+#endif
+
 /**
  * @internal
  *
@@ -1261,11 +1303,14 @@ _vbi3_cache_get_page		(vbi3_cache *		ca,
 	if (CACHE_CONSISTENCY)
 		assert (is_member (&ca->networks, &cn->node));
 
-	if (pgno < 0x100 || pgno > 0x8FF) {
+	if (pgno < 0x100 || pgno > 0x8FF || 0xFF == (pgno & 0xFF)) {
 		warning (&ca->log,
 			 "Invalid pgno 0x%x.", pgno);
 		return NULL;
 	}
+
+	if (VBI3_ANY_SUBNO == subno)
+		subno_mask = 0;
 
 	if (CACHE_DEBUG) {
 		fprintf (stderr, "Get %x.%x/%x ", pgno, subno, subno_mask);
@@ -1275,22 +1320,20 @@ _vbi3_cache_get_page		(vbi3_cache *		ca,
 		fputc ('\n', stderr);
 	}
 
-	if (VBI3_ANY_SUBNO == subno)
-		subno_mask = 0;
-
-	if (!(cp = page_by_pgno (ca, cn, pgno, subno, subno_mask)))
-		goto failure;
-
-	if (CACHE_DEBUG) {
-		fputs ("Found ", stderr);
-		cache_page_dump (cp, stderr);
-		fputc ('\n', stderr);
+	cp = page_by_pgno (ca, cn, pgno, subno, subno_mask);
+	if (NULL == cp) {
+		if (CACHE_DEBUG)
+			fputs ("Page not cached\n", stderr);
+		return NULL;
+	} else {
+		if (CACHE_DEBUG) {
+			fputs ("Found ", stderr);
+			cache_page_dump (cp, stderr);
+			fputc ('\n', stderr);
+		}
 	}
 
 	return cache_page_ref (cp);
-
- failure:
-	return NULL;
 }
 
 /**
@@ -1298,7 +1341,7 @@ _vbi3_cache_get_page		(vbi3_cache *		ca,
  * For vbi3_search.
  */
 int
-_vbi3_cache_foreach_page	(vbi3_cache *		ca,
+_vbi3_cache_foreach_page		(vbi3_cache *		ca,
 				 cache_network *	cn,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
@@ -1307,7 +1350,7 @@ _vbi3_cache_foreach_page	(vbi3_cache *		ca,
 				 void *			user_data)
 {
 	cache_page *cp;
-	struct page_stat *ps;
+	struct ttx_page_stat *ps;
 	vbi3_bool wrapped;
 
 	assert (NULL != ca);
@@ -1384,7 +1427,7 @@ _vbi3_cache_foreach_page	(vbi3_cache *		ca,
  * Puts a copy of @a cp in the cache.
  * 
  * @returns
- * cache_page pointer (in the cache, not @a cp), NULL on failure
+ * cache_page pointer (in the cache, not @a cp), @c NULL on failure
  * (out of memory). You must unref the returned page if no longer needed.
  */
 cache_page *
@@ -1399,6 +1442,8 @@ _vbi3_cache_put_page		(vbi3_cache *		ca,
 	long memory_needed;
 	cache_priority pri;
 	cache_page *new_cp;
+	vbi3_subno subno;
+	vbi3_subno subno_mask;
 
 	assert (NULL != ca);
 	assert (NULL != cn);
@@ -1408,6 +1453,8 @@ _vbi3_cache_put_page		(vbi3_cache *		ca,
 
 	memory_needed = cache_page_size (cp);
 	memory_available = ca->memory_limit - ca->memory_used;
+
+	death_count = 0;
 
 	if (CACHE_CONSISTENCY)
 		assert (is_member (&ca->networks, &cn->node));
@@ -1420,32 +1467,57 @@ _vbi3_cache_put_page		(vbi3_cache *		ca,
 		fputc (' ', stderr);
 	}
 
-	death_count = 0;
+	/* EN 300 706 Section A.1, E.2. */
 
-	{
-		const struct page_stat *ps;
-		vbi3_subno subno_mask;
-
-		/* EN 300 706, A.1, E.2: Pages with subno > 0x79 do not really
-		   have subpages. In this case we use subno_mask zero,
-		   replacing any previously received subpage. XXX doesn't
-		   work for clock pages without page_type between 00:00
-		   and 00:59. */
-
-		ps = cache_network_const_page_stat (cn, cp->pgno);
-
-		if (VBI3_NONSTD_SUBPAGES == (vbi3_page_type) ps->page_type)
-			subno_mask = 0;
-		else
-			subno_mask = - ((unsigned int) cp->subno <= 0x79);
-
-		old_cp = page_by_pgno (ca, cn,
-				       cp->pgno,
-				       cp->subno & subno_mask,
-				       subno_mask);
+	if (0xFF == (cp->pgno & 0xFF)) {
+		warning (&ca->log,
+			 "Invalid pgno 0x%x.", cp->pgno);
+		return NULL;
 	}
 
-	if (old_cp) {
+	subno = cp->subno;
+	subno_mask = 0;
+
+	if (likely (vbi3_is_bcd (cp->pgno))) {
+		if (likely (0 == subno)) {
+			/* The page has no subpages or is a clock page
+			   at 00:00. We store only one version. */
+		} else {
+			const struct ttx_page_stat *ps;
+			vbi3_page_type page_type;
+
+			ps = cache_network_const_page_stat (cn, cp->pgno);
+			page_type = ps->page_type;
+
+			if (VBI3_CLOCK_PAGE == page_type
+			    || subno >= 0x0100) {
+				/* A clock page or a rolling page without
+				   subpages (Section A.1 Note 1).
+				   One version. */
+				if (vbi3_bcd_digits_greater (subno, 0x2959)
+				    || subno > 0x2300)
+					subno = 0; /* invalid */
+			} else if (vbi3_bcd_digits_greater (subno, 0x79)) {
+				/* A rolling page without subpages.
+				   One version. */
+				subno = 0; /* invalid */
+			} else {
+				/* A page with subpages or an unmarked
+				   clock page between 00:00 and 00:59.
+				   We store all versions. */
+				subno_mask = 0xFF;
+			}
+		}
+	} else {
+		/* S1 element is the subpage number. */
+		subno_mask = 0x000F;
+	}
+
+	old_cp = page_by_pgno (ca, cn,
+			       cp->pgno,
+			       subno & subno_mask,
+			       subno_mask);
+	if (NULL != old_cp) {
 		if (CACHE_DEBUG) {
 			fputs ("is cached ", stderr);
 			cache_page_dump (old_cp, stderr);
@@ -1454,7 +1526,7 @@ _vbi3_cache_put_page		(vbi3_cache *		ca,
 
 		if (old_cp->ref_count > 0) {
 			/* This page is still in use. We remove it from
-			   the cache and mark for deletion when unref'd.
+			   the cache and mark it for deletion when unref'd.
 			   old_cp->pri_node remains on ca->referenced. */
 			unlink_node (&old_cp->hash_node);
 
@@ -1517,8 +1589,8 @@ _vbi3_cache_put_page		(vbi3_cache *		ca,
 	goto failure;
 
  replace:
-	if (memory_available == memory_needed
-	    && 1 == death_count) {
+	if (likely (memory_available == memory_needed
+		    && 1 == death_count)) {
 		/* Usually we can replace a single page of same size. */
 
 		new_cp = death_row[0];
@@ -1564,7 +1636,9 @@ _vbi3_cache_put_page		(vbi3_cache *		ca,
 	else if (PAGE_FUNCTION_LOP != cp->function)
 		new_cp->priority = CACHE_PRI_SPECIAL;
 	/* Regular subpage, not clock, not rotating ads etc. */
-	else if (cp->subno > 0x00 && cp->subno < 0x79)
+	else if (vbi3_is_bcd (cp->pgno)
+		 && subno > 0x00
+		 && subno <= 0x79)
 		new_cp->priority = CACHE_PRI_SPECIAL;
 	else
 		new_cp->priority = CACHE_PRI_NORMAL;
@@ -1572,7 +1646,7 @@ _vbi3_cache_put_page		(vbi3_cache *		ca,
 	new_cp->function		= cp->function;
 
 	new_cp->pgno			= cp->pgno;
-	new_cp->subno			= cp->subno;
+	new_cp->subno			= subno;
 
 	new_cp->national		= cp->national;
 
@@ -1621,7 +1695,7 @@ _vbi3_cache_put_page		(vbi3_cache *		ca,
 
 /** @internal */
 void
-_vbi3_cache_dump		(const vbi3_cache *	ca,
+_vbi3_cache_dump			(const vbi3_cache *	ca,
 				 FILE *			fp)
 {
 	fprintf (fp, "cache ref=%u pages=%u mem=%lu/%lu KiB networks=%u/%u",
@@ -1632,6 +1706,8 @@ _vbi3_cache_dump		(const vbi3_cache *	ca,
 		 ca->n_cached_networks,
 		 ca->n_networks_limit);
 }
+
+#if 3 == VBI_VERSION_MINOR
 
 /**
  * @param ca Cache allocated with vbi3_cache_new().
@@ -1645,7 +1721,7 @@ _vbi3_cache_dump		(const vbi3_cache *	ca,
  */
 void
 vbi3_cache_remove_event_handler	(vbi3_cache *		ca,
-				 vbi3_event_cb *	callback,
+				 vbi3_event_cb *		callback,
 				 void *			user_data)
 {
 	assert (NULL != ca);
@@ -1678,8 +1754,8 @@ vbi3_cache_remove_event_handler	(vbi3_cache *		ca,
  */
 vbi3_bool
 vbi3_cache_add_event_handler	(vbi3_cache *		ca,
-				 vbi3_event_mask	event_mask,
-				 vbi3_event_cb *	callback,
+				 vbi3_event_mask		event_mask,
+				 vbi3_event_cb *		callback,
 				 void *			user_data)
 {
 	assert (NULL != ca);
@@ -1692,6 +1768,8 @@ vbi3_cache_add_event_handler	(vbi3_cache *		ca,
 	return (NULL != _vbi3_event_handler_list_add
 		(&ca->handlers, event_mask, callback, user_data));
 }
+
+#endif /* 3 == VBI_VERSION_MINOR */
 
 /**
  * @param ca Cache allocated with vbi3_cache_new(), can be @c NULL.
@@ -1720,7 +1798,9 @@ vbi3_cache_delete		(vbi3_cache *		ca)
 			 "memory leaks.");
 	}
 
+#if 3 == VBI_VERSION_MINOR
 	_vbi3_event_handler_list_destroy (&ca->handlers);
+#endif
 
 	list_destroy (&ca->networks);
 	list_destroy (&ca->priority);
@@ -1814,10 +1894,12 @@ vbi3_cache_new			(void)
 
 	ca->ref_count = 1;
 
+#if 3 == VBI_VERSION_MINOR
 	if (!_vbi3_event_handler_list_init (&ca->handlers)) {
 		vbi3_cache_delete (ca);
 		ca = NULL;
 	}
+#endif
 
 	return ca;
 }
