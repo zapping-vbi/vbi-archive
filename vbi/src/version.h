@@ -1,3 +1,5 @@
+/* Generated file, do not edit! */
+
 #ifndef __ZVBI3_VERSION_H__
 #define __ZVBI3_VERSION_H__
 

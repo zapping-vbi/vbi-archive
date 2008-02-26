@@ -1,3 +1,31 @@
+2008-02-26    <mschimek@users.sf.net>
+
+	* src/network-table.h: Updated from Updated from TS 101 231
+          rev. 2008-02.
+
+	* src/cache.h (vbi3_ttx_page_stat): Include sys/time.h to
+	  declare struct timeval.
+	(vbi3_format_option): ISO C89 does not permit a
+	  comma at the end of an enumerator list.
+
+	* src/Makefile.am (INSTALLHDRS): Added packet_filter.h.
+	(version.h, zvbi.h): Prepend a "generated file" warning.
+	(network-table.h): Restored the rule.
+	(icheck): Was replaced by test/test-headers.
+
+	* src/vt.h: Added ttx_page_function_valid() and
+	  ttx_page_coding_valid() helpers for src/teletext_decoder.c. 
+
+	* src/top_title.c, src/teletext_decoder.c:
+	* src/teletext_decoder-priv.h, src/teletext.c, src/page-priv.h: 
+	  Various type and field names changed in src/vt.h.
+
+	* src/cache.h, src/cache.c, src/cache-priv.h, src/vt.h:
+	  Updated from branch 0.2. Changed the license to LGPLv2+.
+
+	* src/bit_slicer.h, src/bit_slicer.c: Changed the license to
+	  LGPLv2+.
+
 2008-02-25    <mschimek@users.sf.net>
 
 	* src/zvbi.h: Include packet_filter.h.
