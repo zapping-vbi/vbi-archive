@@ -1,3 +1,5 @@
+/* Generated file, do not edit! */
+
 #ifndef __ZVBI_H__
 #define __ZVBI_H__
 
@@ -40,10 +42,11 @@
 #include "trigger.h"
 #include "vbi.h"
 #include "vbi_decoder.h"
-#include "version.h"
 #include "vps.h"
 #include "wss.h"
 #include "xds_decoder.h"
 #include "xds_demux.h"
+#include "version.h"
+
 
 #endif /* __ZVBI_H__ */
