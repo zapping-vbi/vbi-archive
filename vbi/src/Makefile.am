@@ -38,23 +38,24 @@ INSTALLHDRS = \
 	cache.h \
 	caption_decoder.h \
 	conv.h \
-	dvb_mux.h \
 	dvb_demux.h \
+	dvb_mux.h \
 	event.h \
-	export.h \
 	exp-gfx.h \
 	exp-txt.h \
+	export.h \
 	hamm.h \
 	idl_demux.h \
 	image_format.h \
 	intl.h \
-	io.h \
 	io-sim.h \
+	io.h \
 	lang.h \
 	link.h \
 	macros.h \
 	network.h \
 	packet-830.h \
+	packet_filter.h \
 	page.h \
 	page_table.h \
 	pdc.h \
@@ -84,33 +85,33 @@ libzvbi_0_3_la_SOURCES = \
 	conv.c conv.h \
 	dlist.h \
 	dvb.h \
-	dvb_mux.c dvb_mux.h \
 	dvb_demux.c dvb_demux.h \
+	dvb_mux.c dvb_mux.h \
 	event.c event.h event-priv.h \
-	export.c export.h export-priv.h \
 	exp-gfx.c exp-gfx.h \
 	exp-html.c \
 	exp-sub.c \
 	exp-templ.c \
 	exp-txt.c exp-txt.h \
 	exp-vtx.c \
+	export.c export.h export-priv.h \
 	hamm.c hamm.h \
 	idl_demux.c idl_demux.h \
 	image_format.c image_format.h \
 	intl.h intl-priv.h \
-	io.c io.h io-priv.h \
 	io-bktr.c \
 	io-dvb.c \
 	io-sim.c io-sim.h \
-	io-v4l2k.c videodev2k.h \
-	io-v4l2.c videodev2.h \
 	io-v4l.c videodev.h \
+	io-v4l2.c videodev2.h \
+	io-v4l2k.c videodev2k.h \
+	io.c io.h io-priv.h \
 	lang.c lang.h \
 	link.c link.h \
 	macros.h \
 	misc.c misc.h \
-	network.c network.h \
 	network-table.pl network-table.h \
+	network.c network.h \
 	packet-830.c packet-830.h \
 	page.h page-priv.h \
 	page_table.c page_table.h \
@@ -129,13 +130,13 @@ libzvbi_0_3_la_SOURCES = \
 	top_title.c top_title.h \
 	trigger.c trigger.h \
 	ure.c ure.h \
-	vbi_decoder.c vbi_decoder.h vbi_decoder-priv.h \
 	vbi.c vbi.h \
+	vbi_decoder.c vbi_decoder.h vbi_decoder-priv.h \
 	vps.c vps.h \
+	vt.h \
 	wss.c wss.h \
 	xds_decoder.c xds_decoder.h \
-	xds_demux.c xds_demux.h \
-	vt.h
+	xds_demux.c xds_demux.h
 
 libzvbi_0_3includedir = $(includedir)/zvbi-0.3/zvbi
 libzvbi_0_3include_HEADERS = $(INSTALLHDRS) version.h zvbi.h
@@ -157,7 +158,8 @@ ccfont3.xbm: ccfont3.pbm fontgen$(EXEEXT) Makefile.am
 	$(top_builddir)/src/fontgen$(EXEEXT) xbm ccfont3 13 < $< > $@
 
 version.h: Makefile.am
-	echo -e "#ifndef __ZVBI3_VERSION_H__" > $@
+	echo -e "/* Generated file, do not edit! */\n" > $@
+	echo -e "#ifndef __ZVBI3_VERSION_H__" >> $@
 	echo -e "#define __ZVBI3_VERSION_H__\n" >> $@
 	echo -e "#include \"macros.h\"\n" >> $@
 	echo -e "VBI3_BEGIN_DECLS\n" >> $@
@@ -169,7 +171,8 @@ version.h: Makefile.am
 	echo -e "#endif /* __ZVBI3_VERSION_H__ */" >> $@
 
 zvbi.h: $(INSTALLHDRS) version.h Makefile.am
-	echo -e "#ifndef __ZVBI_H__\n#define __ZVBI_H__\n" > $@
+	echo -e "/* Generated file, do not edit! */\n" > $@
+	echo -e "#ifndef __ZVBI_H__\n#define __ZVBI_H__\n" >> $@
 	for header in $(INSTALLHDRS); do \
 		echo -e "#include \"$$header\"" >> $@; \
 	done
@@ -177,19 +180,9 @@ zvbi.h: $(INSTALLHDRS) version.h Makefile.am
 	echo -e "\n#endif /* __ZVBI_H__ */" >> $@
 
 network-table.h: network-table.pl Makefile.am
-	cat /vid/txt/networks.xml | $(srcdir)/network-table.pl > $@
-#	wget -q -O- --proxy=yes http://zapping.sourceforge.net/zvbi-0.3/networks.xml | \
-#	  $(srcdir)/network-table.pl > $@
-
-icheck: $(libzvbi_0_3include_HEADERS)
-	for i in $(libzvbi_0_3include_HEADERS); do \
-		echo Checking $$i; \
-		grep "VBI_BEGIN_DECLS" $$i >/dev/null || exit 1; \
-		grep "VBI_END_DECLS" $$i >/dev/null || exit 1; \
-		echo -e "#include \"$$i\"" >_include_test.c; \
-		$(CC) -c _include_test.c || exit 1; \
-	done
-	rm _include_test*
+	wget -q -O- --proxy=off \
+	  http://zapping.sourceforge.net/zvbi-0.3/networks.xml | \
+	  $(srcdir)/network-table.pl > $@
 
 _videodev.h: Makefile.am $(structpr) videodev.h
 	$(srcdir)/$(structpr) <$(srcdir)/videodev.h \
