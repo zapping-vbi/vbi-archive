@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder.c,v 1.1.2.6 2007-11-11 03:06:13 mschimek Exp $ */
+/* $Id: teletext_decoder.c,v 1.1.2.7 2008-02-26 10:43:28 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -84,7 +84,7 @@ default_color_map [40] = {
 
 /** @internal */
 const char *
-page_function_name		(page_function		function)
+ttx_page_function_name		(enum ttx_page_function	function)
 {
 	switch (function) {
 
@@ -93,6 +93,7 @@ page_function_name		(page_function		function)
 
 	CASE (ACI)
 	CASE (EPG)
+	CASE (EACEM_TRIGGER)
 	CASE (DISCARD)
 	CASE (UNKNOWN)
 	CASE (LOP)
@@ -107,7 +108,7 @@ page_function_name		(page_function		function)
 	CASE (AIT)
 	CASE (MPT)
 	CASE (MPT_EX)
-	CASE (TRIGGER)
+	CASE (IEC_TRIGGER)
 
 	}
 
@@ -116,7 +117,7 @@ page_function_name		(page_function		function)
 
 /** @internal */
 const char *
-page_coding_name		(page_coding		coding)
+ttx_page_coding_name		(enum ttx_page_coding	coding)
 {
 	switch (coding) {
 
@@ -138,7 +139,7 @@ page_coding_name		(page_coding		coding)
 
 /** @internal */
 const char *
-object_type_name		(object_type		type)
+ttx_object_type_name		(enum ttx_object_type	type)
 {
 	switch (type) {
 	case OBJECT_TYPE_NONE:		return "NONE/LOCAL_ENH";
@@ -152,7 +153,7 @@ object_type_name		(object_type		type)
 
 /** @internal */
 const char *
-drcs_mode_name			(drcs_mode		mode)
+ttx_drcs_mode_name			(enum ttx_drcs_mode	mode)
 {
 	switch (mode) {
 
@@ -192,7 +193,7 @@ vbi3_page_type_name		(vbi3_page_type		type)
 	CASE (NORMAL_PAGE)
 	CASE (SUBTITLE_PAGE)
 	CASE (SUBTITLE_INDEX)
-	CASE (NONSTD_SUBPAGES)
+	CASE (CLOCK_PAGE)
 	CASE (PROGR_WARNING)
 	CASE (CURRENT_PROGR)
 	CASE (NOW_AND_NEXT)
@@ -221,18 +222,18 @@ vbi3_page_type_name		(vbi3_page_type		type)
 
 /** @internal */
 void
-pagenum_dump			(const pagenum *	pn,
+ttx_page_link_dump		(const struct ttx_page_link *pl,
 				 FILE *			fp)
 {
 	fprintf (fp, "%s %3x.%04x",
-		 page_function_name (pn->function),
-		 pn->pgno, pn->subno);
+		 ttx_page_function_name (pl->function),
+		 pl->pgno, pl->subno);
 }
 
 static void
 cache_page_raw_dump		(const cache_page *	cp,
 				 FILE *			fp,
-				 page_coding		coding)
+				 enum ttx_page_coding	coding)
 {
 	unsigned int i;
 	unsigned int j;
@@ -281,7 +282,7 @@ cache_page_raw_dump		(const cache_page *	cp,
 
 /** @internal */
 void
-extension_dump			(const struct extension *ext,
+ttx_extension_dump		(const struct ttx_extension *ext,
 				 FILE *			fp)
 {
 	unsigned int i;
@@ -333,7 +334,7 @@ extension_dump			(const struct extension *ext,
 }
 
 static vbi3_bool
-unham8_page_number		(pagenum *		pn,
+unham_page_link			(struct ttx_page_link *	pl,
 				 const uint8_t		buffer[6],
 				 unsigned int		mag0)
 {
@@ -348,9 +349,9 @@ unham8_page_number		(pagenum *		pn,
 
 	mag0 ^= ((b3 >> 5) & 6) + (b2 >> 7);
 
-	pn->function	= PAGE_FUNCTION_UNKNOWN;
-	pn->pgno	= MAG8 (mag0) * 256 + b1;
-	pn->subno	= (b3 * 256 + b2) & 0x3F7F;
+	pl->function	= PAGE_FUNCTION_UNKNOWN;
+	pl->pgno	= MAG8 (mag0) * 256 + b1;
+	pl->subno	= (b3 * 256 + b2) & 0x3F7F;
 
 	/* subno flags? */
 
@@ -463,7 +464,7 @@ decode_pop_packet		(cache_page *		cp,
 
 	case 5 ... 42:
 	{
-		struct triplet *trip;
+		struct ttx_triplet *trip;
 
 		trip = &cp->data.pop.triplet[(packet - 3) * 13];
 
@@ -488,7 +489,7 @@ decode_pop_packet		(cache_page *		cp,
 static vbi3_bool
 convert_pop_page		(cache_page *		dst,
 				 const cache_page *	src,
-				 page_function		function)
+				 enum ttx_page_function	function)
 {
 	unsigned int packet;
 	const uint8_t *raw;
@@ -525,7 +526,7 @@ convert_pop_page		(cache_page *		dst,
  */
 
 static void
-decode_mot_page_lut		(struct magazine *	mag,
+decode_mot_page_lut		(struct ttx_magazine *	mag,
 				 const uint8_t		buffer[2],
 				 vbi3_pgno		pgno)
 {
@@ -546,7 +547,7 @@ decode_mot_page_lut		(struct magazine *	mag,
 
 static void
 decode_mot_page_pop		(vbi3_teletext_decoder *	td,
-				 struct pop_link	pop[4],
+				 struct ttx_pop_link	pop[4],
 				 const uint8_t		buffer[40])
 {
 	unsigned int i;
@@ -555,7 +556,7 @@ decode_mot_page_pop		(vbi3_teletext_decoder *	td,
 		int n4[10];
 		int err;
 		unsigned int j;
-		struct page_stat *ps;
+		struct ttx_page_stat *ps;
 
 		err = 0;
 
@@ -573,7 +574,6 @@ decode_mot_page_pop		(vbi3_teletext_decoder *	td,
 		pop->pgno = MAG8 (n4[0] & 7) * 256 + n4[1] * 16 + n4[2];
 
 		ps = cache_network_page_stat (td->network, pop->pgno);
-
 		ps->page_type = VBI3_SYSTEM_PAGE;
 		ps->subcode = n4[3]; /* highest S1 transmitted */
 
@@ -591,10 +591,10 @@ decode_mot_page_pop		(vbi3_teletext_decoder *	td,
 			pop->fallback.right_panel_columns = "\00\00\20\10"[s];
 		}
 
-		pop->default_obj[0].type = (object_type)(n4[5] & 3);
+		pop->default_obj[0].type = (enum ttx_object_type)(n4[5] & 3);
 		pop->default_obj[0].address = (n4[7] << 4) + n4[6];
 
-		pop->default_obj[1].type = (object_type)(n4[5] >> 2);
+		pop->default_obj[1].type = (enum ttx_object_type)(n4[5] >> 2);
 		pop->default_obj[1].address = (n4[9] << 4) + n4[8];
 
 		++pop;
@@ -612,7 +612,7 @@ decode_mot_page_drcs		(vbi3_teletext_decoder *	td,
 		int n4[4];
 		int err;
 		unsigned int j;
-		struct page_stat *ps;
+		struct ttx_page_stat *ps;
 
 		err = 0;
 
@@ -640,7 +640,7 @@ static void
 decode_mot_page			(vbi3_teletext_decoder *	td,
 				 const cache_page *	cp)
 {
-	struct magazine *mag;
+	struct ttx_magazine *mag;
 	const uint8_t *raw;
 	unsigned int packet;
 	vbi3_pgno pgno;
@@ -727,7 +727,7 @@ decode_mot_page			(vbi3_teletext_decoder *	td,
 */
 
 static vbi3_bool
-top_page_number			(pagenum *		pn,
+unham_top_page_number			(struct ttx_page_link *	pl,
 				 const uint8_t		buffer[8])
 {
 	int n4[8];
@@ -750,26 +750,26 @@ top_page_number			(pagenum *		pn,
 
 	subno = (n4[3] << 12) | (n4[4] << 8) | (n4[5] << 4) | n4[6];
 
-	switch ((top_page_function) n4[7]) {
+	switch ((enum ttx_top_page_function) n4[7]) {
 	case TOP_PAGE_FUNCTION_AIT:
-		pn->function = PAGE_FUNCTION_AIT;
+		pl->function = PAGE_FUNCTION_AIT;
 		break;
 
 	case TOP_PAGE_FUNCTION_MPT:
-		pn->function = PAGE_FUNCTION_MPT;
+		pl->function = PAGE_FUNCTION_MPT;
 		break;
 
 	case TOP_PAGE_FUNCTION_MPT_EX:
-		pn->function = PAGE_FUNCTION_MPT_EX;
+		pl->function = PAGE_FUNCTION_MPT_EX;
 		break;
 
 	default:
-		pn->function = PAGE_FUNCTION_UNKNOWN;
+		pl->function = PAGE_FUNCTION_UNKNOWN;
 		break;
 	}
 
-	pn->pgno = pgno;
-	pn->subno = subno & 0x3F7F; /* flags? */
+	pl->pgno = pgno;
+	pl->subno = subno & 0x3F7F; /* flags? */
 
 	return TRUE;
 }
@@ -779,9 +779,9 @@ top_page_number			(pagenum *		pn,
 static vbi3_bool
 top_page_stat			(cache_network *	cn,
 				 vbi3_pgno		pgno,
-				 btt_page_type		btt_type)
+				 enum ttx_btt_page_type	btt_type)
 {
-	struct page_stat *ps;
+	struct ttx_page_stat *ps;
 	vbi3_page_type page_type;
 	unsigned int subcode;
 	vbi3_bool changed;
@@ -877,24 +877,24 @@ static vbi3_bool
 top_link_stat			(cache_network *	cn,
 				 unsigned int		link)
 {
-	pagenum *pn;
-	struct page_stat *ps;
+	const struct ttx_page_link *pl;
+	struct ttx_page_stat *ps;
 
 	cn->have_top = TRUE;
 
-	pn = &cn->btt_link[link];
+	pl = &cn->btt_link[link];
 
-	switch (pn->function) {
+	switch (pl->function) {
 	case PAGE_FUNCTION_MPT:
 	case PAGE_FUNCTION_AIT:
 	case PAGE_FUNCTION_MPT_EX:
 		if (TELETEXT_DECODER_LOG) {
 			log ("BTT %2u: ", link);
-			pagenum_dump (pn, stderr);
+			ttx_page_link_dump (pl, stderr);
 			fputc ('\n', stderr);
 		}
 
-		ps = cache_network_page_stat (cn, pn->pgno);
+		ps = cache_network_page_stat (cn, pl->pgno);
 		ps->page_type = VBI3_TOP_PAGE;
 
 		return TRUE;
@@ -925,7 +925,7 @@ decode_btt_page			(vbi3_teletext_decoder *	td,
 
 		if (cp->lop_packets & (1 << packet)) {
 			for (i = 0; i < 40; ++i) {
-				btt_page_type btt_type;
+				enum ttx_btt_page_type btt_type;
 
 				btt_type = vbi3_unham8 (raw[i]);
 
@@ -958,7 +958,7 @@ decode_btt_page			(vbi3_teletext_decoder *	td,
 			l = (packet - 21) * 5;
 
 			for (i = 0; i < 5; ++i) {
-				if (top_page_number (&cn->btt_link[l], raw))
+				if (unham_top_page_number (&cn->btt_link[l], raw))
 					top_link_stat (cn, l);
 
 				raw += 8;
@@ -991,17 +991,18 @@ decode_ait_packet		(cache_page *		cp,
 {
 	unsigned int i;
 
-	assert (46 * sizeof (struct ait_title) == sizeof (cp->data.ait.title));
+	assert (46 * sizeof (struct ttx_ait_title)
+		== sizeof (cp->data.ait.title));
 
 	if (packet < 1 || packet > 23)
 		return FALSE;
 
 	for (i = 0; i < 2; ++i) {
-		struct ait_title temp;
+		struct ttx_ait_title temp;
 		unsigned int j;
 		int c;
 
-		if (!top_page_number (&temp.page, buffer))
+		if (!unham_top_page_number (&temp.link, buffer))
 			continue;
 
 		buffer += 8;
@@ -1023,7 +1024,7 @@ decode_ait_packet		(cache_page *		cp,
 
 		if (TELETEXT_DECODER_LOG) {
 			log ("AIT %2u: ", packet * 2 - 2 + i);
-			pagenum_dump (&temp.page, stderr);
+			ttx_page_link_dump (&temp.link, stderr);
 			fputc (' ', stderr);
 			for (j = 0; j < 12; ++j)
 				log ("%02x ", temp.text[j] & 0xFF);
@@ -1085,7 +1086,7 @@ decode_mpt_page			(vbi3_teletext_decoder *	td,
 			unsigned int i;
 
 			for (i = 0; i < 40; ++i) {
-				struct page_stat *ps;
+				struct ttx_page_stat *ps;
 				vbi3_page_type page_type;
 				unsigned int subcode;
 				int n;
@@ -1148,34 +1149,34 @@ decode_mpt_ex_page		(vbi3_teletext_decoder *	td,
 			unsigned int i;
 
 			for (i = 0; i < 5; ++i) {
-				pagenum pn;
-				struct page_stat *ps;
+				struct ttx_page_link pl;
+				struct ttx_page_stat *ps;
 				vbi3_page_type page_type;
 				unsigned int subcode;
 
-				if (!top_page_number (&pn, raw)) {
+				if (!unham_top_page_number (&pl, raw)) {
 					raw += 8;
 					continue;
 				}
 
-				pn.subno = vbi3_bin2bcd (pn.subno & 0x7F);
+				pl.subno = vbi3_bin2bcd (pl.subno & 0x7F);
 
 				if (TELETEXT_DECODER_LOG) {
 					log ("MPT-EX %3u: ",
 					     (packet - 1) * 5 + i);
-					pagenum_dump (&pn, stderr);
+					ttx_page_link_dump (&pl, stderr);
 					fputc ('\n', stderr);
 				}
 
-				if (pn.pgno < 0x100)
+				if (pl.pgno < 0x100)
 					break;
-				else if (pn.pgno > 0x8FF
-					 || pn.subno < 0x02
-					 || pn.subno > 0x99)
+				else if (pl.pgno > 0x8FF
+					 || pl.subno < 0x02
+					 || pl.subno > 0x99)
 					continue;
 
 				ps = cache_network_page_stat
-					(td->network, pn.pgno);
+					(td->network, pl.pgno);
 
 				page_type = ps->page_type;
 				subcode = ps->subcode;
@@ -1187,8 +1188,8 @@ decode_mpt_ex_page		(vbi3_teletext_decoder *	td,
 
 				if (VBI3_NO_PAGE != page_type
 				    && VBI3_UNKNOWN_PAGE != page_type
-				    && (unsigned int) pn.subno > subcode) {
-					ps->subcode = pn.subno;
+				    && (unsigned int) pl.subno > subcode) {
+					ps->subcode = pl.subno;
 				}
 
 				raw += 8;
@@ -1210,7 +1211,7 @@ mip_page_stat			(cache_network *	cn,
 				 unsigned int *		sub_index,
 				 vbi3_pgno		pgno)
 {
-	struct page_stat *ps;
+	struct ttx_page_stat *ps;
 	vbi3_page_type page_type;
 	vbi3_page_type old_type;
 	int code;
@@ -1311,20 +1312,20 @@ mip_page_stat			(cache_network *	cn,
 		page_type = VBI3_SUBTITLE_PAGE;
 		subcode = 0;
 
-		if (0xFF == ps->ttx_charset_code) {
-			const struct magazine *mag;
-			vbi3_ttx_charset_code cs_code;
+		if (0xFF == ps->charset_code) {
+			const struct ttx_magazine *mag;
+			vbi3_ttx_charset_code charset_code;
 
 			mag = cache_network_magazine (cn, cp->pgno);
 
-			cs_code = (mag->extension.charset_code[0]
-				   & (unsigned int) ~7)
+			charset_code = (mag->extension.charset_code[0]
+					& (unsigned int) ~7)
 				| (code & 7);
 
-			if (vbi3_ttx_charset_from_code (cs_code)) {
-				ps->ttx_charset_code = cs_code;
+			if (vbi3_ttx_charset_from_code (charset_code)) {
+				ps->charset_code = charset_code;
 			} else {
-				ps->ttx_charset_code = cs_code & 7;
+				ps->charset_code = charset_code & 7;
 			}
 
 			changed = TRUE;
@@ -1332,8 +1333,8 @@ mip_page_stat			(cache_network *	cn,
 
 		break;
 
-	case 0x79:	    /* VBI3_NONSTD_SUBPAGES (e.g. clock page) */
-		page_type = VBI3_NONSTD_SUBPAGES;
+	case 0x79:
+		page_type = VBI3_CLOCK_PAGE;
 		subcode = 0x3F7F;
 		break;
 
@@ -1381,7 +1382,7 @@ mip_page_stat			(cache_network *	cn,
 	}
 
 	log ("MIP %04x: %02x:%02x:%04x %s\n",
-	     pgno, page_type, ps->ttx_charset_code, subcode,
+	     pgno, page_type, ps->charset_code, subcode,
 	     vbi3_page_type_name (page_type));
 
 	return changed;
@@ -1563,7 +1564,7 @@ decode_drcs_page		(cache_page *		cp)
 		unsigned int j;
 		unsigned int q;
 
-		switch ((drcs_mode) cp->data.drcs.mode[i]) {
+		switch ((enum ttx_drcs_mode) cp->data.drcs.mode[i]) {
 		case DRCS_MODE_12_10_1:
 			if (invalid & (((uint64_t) 1) << i)) {
 				s += 20;
@@ -1673,7 +1674,7 @@ decode_drcs_page		(cache_page *		cp)
  */
 cache_page *
 _vbi3_convert_cached_page	(cache_page *		cp,
-				 page_function		new_function)
+				 enum ttx_page_function	new_function)
 {
 	cache_page temp;
 	cache_page *cp1;
@@ -1683,8 +1684,8 @@ _vbi3_convert_cached_page	(cache_page *		cp,
 	}
 
 	log ("Convert page %s -> %s\n",
-	     page_function_name (cp->function),
-	     page_function_name (new_function));
+	     ttx_page_function_name (cp->function),
+	     ttx_page_function_name (new_function));
 
 	cache_page_copy (&temp, cp);
 
@@ -1793,35 +1794,35 @@ static vbi3_ttx_charset_code
 page_charset_code		(vbi3_teletext_decoder *	td,
 				 const cache_page *	cp)
 {
-	vbi3_ttx_charset_code code;
-	const struct magazine *mag;
+	vbi3_ttx_charset_code charset_code;
+	const struct ttx_magazine *mag;
 
 	if (cp->x28_designations
 	    & cp->data.ext_lop.ext.designations & 0x11) {
-		code = (cp->data.ext_lop.ext.charset_code[0]
-			& (unsigned int) ~7) + cp->national;
+		charset_code = (cp->data.ext_lop.ext.charset_code[0]
+				& (unsigned int) ~7) + cp->national;
 
-		if (vbi3_ttx_charset_from_code (code))
-			return code;
+		if (vbi3_ttx_charset_from_code (charset_code))
+			return charset_code;
 
-		code = cp->data.ext_lop.ext.charset_code[0];
+		charset_code = cp->data.ext_lop.ext.charset_code[0];
 
-		if (vbi3_ttx_charset_from_code (code))
-			return code;
+		if (vbi3_ttx_charset_from_code (charset_code))
+			return charset_code;
 	}
 
 	mag = cache_network_magazine (td->network, cp->pgno);
 
-	code = (mag->extension.charset_code[0] &
-		(unsigned int) ~7) + cp->national;
+	charset_code = (mag->extension.charset_code[0] &
+			(unsigned int) ~7) + cp->national;
 
-	if (vbi3_ttx_charset_from_code (code))
-		return code;
+	if (vbi3_ttx_charset_from_code (charset_code))
+		return charset_code;
 
-	code = mag->extension.charset_code[0];
+	charset_code = mag->extension.charset_code[0];
 
-	if (vbi3_ttx_charset_from_code (code))
-		return code;
+	if (vbi3_ttx_charset_from_code (charset_code))
+		return charset_code;
 
 	return 0xFF; /* unknown */
 }
@@ -2066,7 +2067,7 @@ store_page			(vbi3_teletext_decoder *	td,
 
 	case PAGE_FUNCTION_LOP:
 	{
-		struct page_stat *ps;
+		struct ttx_page_stat *ps;
 		vbi3_bool roll_header;
 
 		if (0)
@@ -2106,8 +2107,8 @@ store_page			(vbi3_teletext_decoder *	td,
 			else
 				ps->page_type = VBI3_NORMAL_PAGE;
 
-			if (0xFF == ps->ttx_charset_code) {
-				ps->ttx_charset_code =
+			if (0xFF == ps->charset_code) {
+				ps->charset_code =
 					page_charset_code (td, cp);
 			}
 
@@ -2117,8 +2118,8 @@ store_page			(vbi3_teletext_decoder *	td,
 			if (cp->flags & C6_SUBTITLE)
 				ps->page_type = VBI3_SUBTITLE_PAGE;
 
-			if (0xFF == ps->ttx_charset_code) {
-				ps->ttx_charset_code =
+			if (0xFF == ps->charset_code) {
+				ps->charset_code =
 					page_charset_code (td, cp);
 			}
 
@@ -2127,14 +2128,14 @@ store_page			(vbi3_teletext_decoder *	td,
 		case VBI3_TOP_BLOCK:
 		case VBI3_TOP_GROUP:
 		case VBI3_SUBTITLE_INDEX:
-		case VBI3_NONSTD_SUBPAGES:
+		case VBI3_CLOCK_PAGE:
 		case VBI3_PROGR_WARNING:
 		case VBI3_CURRENT_PROGR:
 		case VBI3_NOW_AND_NEXT:
 		case VBI3_PROGR_INDEX:
 		case VBI3_PROGR_SCHEDULE:
-			if (0xFF == ps->ttx_charset_code) {
-				ps->ttx_charset_code =
+			if (0xFF == ps->charset_code) {
+				ps->charset_code =
 					page_charset_code (td, cp);
 			}
 
@@ -2143,7 +2144,7 @@ store_page			(vbi3_teletext_decoder *	td,
 		case VBI3_SUBTITLE_PAGE:
 			if (cp->flags & C6_SUBTITLE) {
 				/* Keep up-to-date, just in case. */
-				ps->ttx_charset_code =
+				ps->charset_code =
 					page_charset_code (td, cp);
 			} else {
 				/* Fixes bug in ORF 1 BTT. */
@@ -2292,7 +2293,8 @@ store_page			(vbi3_teletext_decoder *	td,
 		decode_mpt_ex_page (td, cp);
 		break;
 
-	case PAGE_FUNCTION_TRIGGER:
+	case PAGE_FUNCTION_EACEM_TRIGGER:
+	case PAGE_FUNCTION_IEC_TRIGGER:
 		if (td->handlers.event_mask & VBI3_EVENT_TRIGGER)
 			eacem_trigger (td, cp);
 		break;
@@ -2469,7 +2471,7 @@ decode_packet_0			(vbi3_teletext_decoder *	td,
 
 		cached_cp = NULL;
 	} else {
-		struct page_stat *ps;
+		struct ttx_page_stat *ps;
 		
 		/* Page is not cached, we rebuild from scratch.
 		   EPG, DATA and TRIGGER pages are never cached, they must
@@ -2525,7 +2527,7 @@ decode_packet_0			(vbi3_teletext_decoder *	td,
 	   opportunity arises when we receive packet X/28, see there. */
 
 	if (PAGE_FUNCTION_UNKNOWN == cp->function) {
-		struct page_stat *ps;
+		struct ttx_page_stat *ps;
 
 		ps = cache_network_page_stat (td->network, cp->pgno);
 
@@ -2541,7 +2543,7 @@ decode_packet_0			(vbi3_teletext_decoder *	td,
 		case VBI3_TOP_GROUP:
 		case VBI3_SUBTITLE_PAGE:
 		case VBI3_SUBTITLE_INDEX:
-		case VBI3_NONSTD_SUBPAGES:
+		case VBI3_CLOCK_PAGE:
 		case VBI3_CURRENT_PROGR:
 		case VBI3_NOW_AND_NEXT:
 		case VBI3_PROGR_WARNING:
@@ -2630,7 +2632,7 @@ decode_packet_0			(vbi3_teletext_decoder *	td,
 		}
 
 		case VBI3_TRIGGER_DATA:
-			cp->function = PAGE_FUNCTION_TRIGGER;
+			cp->function = PAGE_FUNCTION_EACEM_TRIGGER;
 			break;
 
 		case VBI3_PFC_EPG_DATA:
@@ -2666,12 +2668,13 @@ decode_packet_0			(vbi3_teletext_decoder *	td,
 		}
 
 		log ("... identified as %s\n",
-		     page_function_name (cp->function));
+		     ttx_page_function_name (cp->function));
 	}
 
 	switch (cp->function) {
 	case PAGE_FUNCTION_ACI:
-	case PAGE_FUNCTION_TRIGGER:
+	case PAGE_FUNCTION_EACEM_TRIGGER:
+	case PAGE_FUNCTION_IEC_TRIGGER:
 		/* ? */
 		break;
 
@@ -2748,7 +2751,7 @@ decode_packet_26		(vbi3_teletext_decoder *	td,
 	int n18[13];
 	int designation;
 	int err;
-	struct triplet *trip;
+	struct ttx_triplet *trip;
 	unsigned int i;
 
 	switch (cp->function) {
@@ -2776,7 +2779,8 @@ decode_packet_26		(vbi3_teletext_decoder *	td,
 
 	case PAGE_FUNCTION_UNKNOWN:
 	case PAGE_FUNCTION_LOP:
-	case PAGE_FUNCTION_TRIGGER:
+	case PAGE_FUNCTION_EACEM_TRIGGER:
+	case PAGE_FUNCTION_IEC_TRIGGER:
 		break;
 	}
 
@@ -2852,7 +2856,8 @@ decode_packet_27		(vbi3_teletext_decoder *	td,
 	case PAGE_FUNCTION_AIT:
 	case PAGE_FUNCTION_MPT:
 	case PAGE_FUNCTION_MPT_EX:
-	case PAGE_FUNCTION_TRIGGER:
+	case PAGE_FUNCTION_EACEM_TRIGGER:
+	case PAGE_FUNCTION_IEC_TRIGGER:
 		/* Not supposed to have X/27, tx error? */
 		_vbi3_teletext_decoder_resync (td);
 		return FALSE;
@@ -2904,18 +2909,18 @@ decode_packet_27		(vbi3_teletext_decoder *	td,
 		/* X/27/0 ... 4 */
 
 		for (i = 0; i < 6; ++i) {
-			pagenum *pn;
+			struct ttx_page_link *pl;
 
-			pn = &cp->data.lop.link[designation * 6 + i];
+			pl = &cp->data.lop.link[designation * 6 + i];
 
 			/* Hamming error ignored. We just don't store
 			   broken page numbers. */
-			unham8_page_number (pn, p,
-					   (unsigned int)(cp->pgno >> 8) & 7);
+			unham_page_link (pl, p,
+					 (unsigned int)(cp->pgno >> 8) & 7);
 			p += 6;
 
 			log ("... link[%u] = %03x.%04x\n",
-			     i, pn->pgno, pn->subno);
+			     i, pl->pgno, pl->subno);
 		}
 
 		cp->x27_designations |= 1 << designation;
@@ -2933,7 +2938,7 @@ decode_packet_27		(vbi3_teletext_decoder *	td,
 		    let's hope the code is correct.) */
 
 		for (i = 0; i < 6; ++i) {
-			pagenum *pn;
+			struct ttx_page_link *pl;
 			int t1, t2;
 
 			t1 = vbi3_unham24p (p + 0);
@@ -2953,26 +2958,26 @@ decode_packet_27		(vbi3_teletext_decoder *	td,
 				/* t1: tt ttmmm1uu uuxxvvff */
 				/* t2: ss ssssssss ssssssx0 */
 
-				pn = &cp->data.lop.link[designation * 6 + i];
+				pl = &cp->data.lop.link[designation * 6 + i];
 
 				/* GPOP, POP, GDRCS, DRCS */
-				pn->function = PAGE_FUNCTION_GPOP + (t1 & 3);
+				pl->function = PAGE_FUNCTION_GPOP + (t1 & 3);
 
 				validity = (t1 >> 2) & 3;
 
 				mag0 = (cp->pgno ^ (t1 >> 3)) & 0x700;
 
-				pn->pgno = ((0 == mag0) ? 0x800 : mag0)
+				pl->pgno = ((0 == mag0) ? 0x800 : mag0)
 					+ (t1 >> 10)
 					+ ((t1 >> 6) & 0x00F);
 
 				/* NB this is "set of required subpages",
 				   not a real subno. */
-				pn->subno = t2 >> 2;
+				pl->subno = t2 >> 2;
 
 				log ("... link[%u] = %s %x/%x\n",
-				     i, page_function_name (pn->function),
-				     pn->pgno, pn->subno);
+				     i, ttx_page_function_name (pl->function),
+				     pl->pgno, pl->subno);
 
 				/* XXX
 
@@ -3054,7 +3059,7 @@ decode_packet_28_29		(vbi3_teletext_decoder *	td,
 	int designation;
 	int n18[13];
 	struct bit_stream bs;
-	struct extension *ext;
+	struct ttx_extension *ext;
 	unsigned int i;
 	unsigned int j;
 	int err;
@@ -3155,8 +3160,8 @@ decode_packet_28_29		(vbi3_teletext_decoder *	td,
 
 	case 4:
 	{
-		page_function function;
-		page_coding coding;
+		enum ttx_page_function function;
+		enum ttx_page_coding coding;
 
 		/* X/28/0, M/29/0 Level 2.5 */
 		/* X/28/4, M/29/4 Level 3.5 */
@@ -3168,11 +3173,11 @@ decode_packet_28_29		(vbi3_teletext_decoder *	td,
 		coding = get_bits (&bs, 3);
 
 		log ("... %s, %s\n",
-		     page_function_name (function),
-		     page_coding_name (coding));
+		     ttx_page_function_name (function),
+		     ttx_page_coding_name (coding));
 
-		if (function > PAGE_FUNCTION_TRIGGER
-		    || coding > PAGE_CODING_META84)
+		if (!ttx_page_function_valid (function)
+		    || !ttx_page_coding_valid (coding))
 			break; /* undefined */
 
 		if (28 == packet) {
@@ -3199,7 +3204,8 @@ decode_packet_28_29		(vbi3_teletext_decoder *	td,
 				case PAGE_FUNCTION_BTT:
 				case PAGE_FUNCTION_MPT:
 				case PAGE_FUNCTION_MPT_EX:
-				case PAGE_FUNCTION_TRIGGER:
+				case PAGE_FUNCTION_EACEM_TRIGGER:
+				case PAGE_FUNCTION_IEC_TRIGGER:
 					cp->function = function;
 					break;
 
@@ -3344,7 +3350,7 @@ decode_packet_28_29		(vbi3_teletext_decoder *	td,
 		ext->designations |= 1 << designation;
 
 		if (0)
-			extension_dump (ext, stderr);
+			ttx_extension_dump (ext, stderr);
 
 		break;
 	}
@@ -3389,8 +3395,8 @@ decode_packet_28_29		(vbi3_teletext_decoder *	td,
 
 	case 3:
 	{
-		page_function function;
-		page_coding coding;
+		enum ttx_page_function function;
+		enum ttx_page_coding coding;
 
 		/* X/28/3 Level 3.5 DRCS download page modes */
 
@@ -3406,8 +3412,8 @@ decode_packet_28_29		(vbi3_teletext_decoder *	td,
 		coding = get_bits (&bs, 3);
 
 		log ("... %s, %s\n",
-		     page_function_name (function),
-		     page_coding_name (coding));
+		     ttx_page_function_name (function),
+		     ttx_page_coding_name (coding));
 
 		if (PAGE_FUNCTION_GDRCS != function
 		    && PAGE_FUNCTION_DRCS != function)
@@ -3551,15 +3557,15 @@ decode_packet_8_30		(vbi3_teletext_decoder *	td,
 
 	if (td->reset_time <= 0.0) {
 		if (td->handlers.event_mask & VBI3_EVENT_TTX_PAGE) {
-			pagenum pn;
+			struct ttx_page_link pl;
 
-			if (!unham8_page_number (&pn, buffer + 3, 0))
+			if (!unham_page_link (&pl, buffer + 3, 0))
 				return FALSE;
 
 			/* 9.8.1 Table 18 Note 2 */
-			if (!NO_PAGE (pn.pgno)) {
-				pn.function = PAGE_FUNCTION_LOP;
-				td->network->initial_page = pn;
+			if (!NO_PAGE (pl.pgno)) {
+				pl.function = PAGE_FUNCTION_LOP;
+				td->network->initial_page = pl;
 			}
 		}
 
@@ -3902,7 +3908,8 @@ vbi3_teletext_decoder_feed	(vbi3_teletext_decoder *	td,
 			break;
 
 		case PAGE_FUNCTION_LOP:
-		case PAGE_FUNCTION_TRIGGER:
+		case PAGE_FUNCTION_EACEM_TRIGGER:
+		case PAGE_FUNCTION_IEC_TRIGGER:
 		{
 			unsigned int i;
 			int err;
@@ -4308,11 +4315,11 @@ cache_network_dump_teletext	(const cache_network *	cn,
 	unsigned int i;
 	vbi3_pgno pgno;
 
-	pagenum_dump (&cn->initial_page, fp);
+	ttx_page_link_dump (&cn->initial_page, fp);
 
 	for (i = 0; i < N_ELEMENTS (cn->btt_link); ++i) {
 		fprintf (fp, "\nbtt_link[%u]=", i);
-		pagenum_dump (cn->btt_link + i, fp);
+		ttx_page_link_dump (cn->btt_link + i, fp);
 	}
 
 	fputs ("\nstatus=\"", fp);
@@ -4326,13 +4333,13 @@ cache_network_dump_teletext	(const cache_network *	cn,
 		vbi3_pgno unit;
 
 		for (unit = 0; unit < 8; ++unit) {
-			const struct page_stat *ps;
+			const struct ttx_page_stat *ps;
 
 			ps = cache_network_const_page_stat (cn, pgno + unit);
 
 			fprintf (fp, "%02x:%02x:%04x:%2u/%2u:%02x-%02x ",
 				 ps->page_type,
-				 ps->ttx_charset_code,
+				 ps->charset_code,
 				 ps->subcode,
 				 ps->n_subpages,
 				 ps->max_subpages,
@@ -4347,7 +4354,7 @@ cache_network_dump_teletext	(const cache_network *	cn,
 }
 
 static void
-extension_init			(struct extension *	ext)
+ttx_extension_init		(struct ttx_extension *	ext)
 {
 	unsigned int i;
 
@@ -4367,9 +4374,9 @@ extension_init			(struct extension *	ext)
 }
 
 static void
-magazine_init			(struct magazine *	mag)
+ttx_magazine_init		(struct ttx_magazine *	mag)
 {
-	extension_init (&mag->extension);
+	ttx_extension_init (&mag->extension);
 
 	/* Valid range 0 ... 7. */
 	memset (mag->pop_lut, -1, sizeof (mag->pop_lut));
@@ -4384,28 +4391,28 @@ magazine_init			(struct magazine *	mag)
  * @internal
  *
  * Provides default magazine parameters to be used at Level 1 and 1.5.
- * Remember editors can redefine cache_network_magazine() at Level 2.5
- * and 3.5.
+ * Remember editors can redefine most of the magazine parameters at
+ * Level 2.5 and 3.5.
  */
-const struct magazine *
+const struct ttx_magazine *
 _vbi3_teletext_decoder_default_magazine
 				(void)
 {
-	static struct magazine default_magazine;
+	static struct ttx_magazine default_magazine;
 
 	if (!NO_PAGE (default_magazine.pop_link[0][0].pgno))
-		magazine_init (&default_magazine);
+		ttx_magazine_init (&default_magazine);
 
 	return &default_magazine;
 }
 
 static void
-page_stat_init			(struct page_stat *	ps)
+ttx_page_stat_init		(struct ttx_page_stat *	ps)
 {
 	CLEAR (*ps);
 
 	ps->page_type		= VBI3_UNKNOWN_PAGE;
-	ps->ttx_charset_code	= 0xFF;
+	ps->charset_code	= 0xFF;
 	ps->subcode		= SUBCODE_UNKNOWN;
 }
 
@@ -4435,10 +4442,10 @@ cache_network_init_teletext	(cache_network *	cn)
 	cn->initial_page.subno		= VBI3_ANY_SUBNO;
 
 	for (i = 0; i < N_ELEMENTS (cn->_magazines); ++i)
-		magazine_init (&cn->_magazines[i]);
+		ttx_magazine_init (&cn->_magazines[i]);
 
 	for (i = 0; i < N_ELEMENTS (cn->_pages); ++i)
-		page_stat_init (&cn->_pages[i]);
+		ttx_page_stat_init (&cn->_pages[i]);
 
 	/* NO_PAGE (pgno): (pgno & 0xFF) == 0xFF. */
 	memset (cn->btt_link, -1, sizeof (cn->btt_link));

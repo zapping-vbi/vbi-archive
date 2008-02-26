@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: page-priv.h,v 1.1.2.6 2007-11-01 00:21:24 mschimek Exp $ */
+/* $Id: page-priv.h,v 1.1.2.7 2008-02-26 10:43:48 mschimek Exp $ */
 
 #ifndef PAGE_PRIV_H
 #define PAGE_PRIV_H
@@ -36,8 +36,8 @@ struct _vbi3_page_priv {
 	cache_network *		cn;
 
 	/* Only used in _vbi3_page_priv_from_cache_page_va_list(). */
-	const struct magazine *	mag;
-	const struct extension *ext;
+	const struct ttx_magazine *mag;
+	const struct ttx_extension *ext;
 
 	/* Source page, reference counted. */
 	cache_page *		cp;

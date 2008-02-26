@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext.c,v 1.7.2.25 2007-11-01 00:21:25 mschimek Exp $ */
+/* $Id: teletext.c,v 1.7.2.26 2008-02-26 10:43:44 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -68,8 +68,8 @@ do {									\
 
 static vbi3_bool
 enhance				(vbi3_page_priv *	pgp,
-				 object_type		type,
-				 const struct triplet *	trip,
+				 enum ttx_object_type	type,
+				 const struct ttx_triplet *trip,
 				 unsigned int		n_triplets,
 				 unsigned int		inv_row,
 				 unsigned int		inv_column);
@@ -129,7 +129,7 @@ void
 _vbi3_ttx_charset_init		(const vbi3_ttx_charset *charset[2],
 				 vbi3_ttx_charset_code	default_code_0,
 				 vbi3_ttx_charset_code	default_code_1,
-				 const struct extension *ext,
+				 const struct ttx_extension *ext,
 				 const cache_page *	cp)
 {
 	unsigned int i;
@@ -458,7 +458,7 @@ static cache_page *
 get_system_page			(const vbi3_page_priv *	pgp,
 				 vbi3_pgno		pgno,
 				 vbi3_subno		subno,
-				 page_function		function)
+				 enum ttx_page_function	function)
 {
 	cache_page *cp;
 	cache_page *cp1;
@@ -480,7 +480,7 @@ get_system_page			(const vbi3_page_priv *	pgp,
 			return cp1;
 
 		fmt_log ("... not %s or hamming error\n",
-			 page_function_name (function));
+			 ttx_page_function_name (function));
 
 		goto failure;
 
@@ -503,8 +503,8 @@ get_system_page			(const vbi3_page_priv *	pgp,
 	}
 
 	fmt_log ("... source page wrong function %s, expected %s\n",
-		 page_function_name (cp->function),
-		 page_function_name (function));
+		 ttx_page_function_name (cp->function),
+		 ttx_page_function_name (function));
 
  failure:
 	cache_page_unref (cp);
@@ -516,11 +516,11 @@ get_system_page			(const vbi3_page_priv *	pgp,
 	Objects
 */
 
-static const struct pop_link *
+static const struct ttx_pop_link *
 magazine_pop_link		(const vbi3_page_priv *	pgp,
 				 unsigned int		link)
 {
-	const struct pop_link *pop;
+	const struct ttx_pop_link *pop;
 
 	if (pgp->max_level >= VBI3_WST_LEVEL_3p5) {
 		pop = &pgp->mag->pop_link[1][link];
@@ -532,8 +532,8 @@ magazine_pop_link		(const vbi3_page_priv *	pgp,
 	return &pgp->mag->pop_link[0][link];
 }
 
-static object_address
-triplet_object_address		(const struct triplet *	trip)
+static ttx_object_address
+triplet_object_address		(const struct ttx_triplet *trip)
 {
 	/* 
 	   .mode	 .address	     .data
@@ -568,12 +568,12 @@ triplet_object_address		(const struct triplet *	trip)
 static vbi3_bool
 resolve_obj_address		(vbi3_page_priv *	pgp,
 				 cache_page **		trip_cp,
-				 const struct triplet **trip,
+				 const struct ttx_triplet **trip,
 				 unsigned int *		trip_size,
-				 object_type		type,
+				 enum ttx_object_type	type,
 				 vbi3_pgno		pgno,
-				 object_address		address,
-				 page_function		function)
+				 ttx_object_address	address,
+				 enum ttx_page_function	function)
 {
 	cache_page *cp;
 	vbi3_subno subno;
@@ -581,7 +581,7 @@ resolve_obj_address		(vbi3_page_priv *	pgp,
 	unsigned int tr;
 	unsigned int packet;
 	unsigned int pointer;
-	const struct triplet *t;
+	const struct ttx_triplet *t;
 
 	cp = NULL;
 
@@ -660,12 +660,12 @@ resolve_obj_address		(vbi3_page_priv *	pgp,
  */
 static vbi3_bool
 object_invocation		(vbi3_page_priv *	pgp,
-				 object_type		type,
-				 const struct triplet *	trip,
+				 enum ttx_object_type	type,
+				 const struct ttx_triplet *trip,
 				 unsigned int		row,
 				 unsigned int		column)
 {
-	object_type new_type;
+	enum ttx_object_type new_type;
 	unsigned int source;
 	cache_page *trip_cp;
 	unsigned int n_triplets;
@@ -675,13 +675,13 @@ object_invocation		(vbi3_page_priv *	pgp,
 	source = (trip->address >> 3) & 3;
 
 	fmt_log ("enhancement obj invocation source %u type %s\n",
-		 source, object_type_name (new_type));
+		 source, ttx_object_type_name (new_type));
 
 	if (new_type <= type) {
 		/* EN 300 706 13.2ff. */
 		fmt_log ("... type priority violation %s -> %s\n",
-			 object_type_name (type),
-			 object_type_name (new_type));
+			 ttx_object_type_name (type),
+			 ttx_object_type_name (new_type));
 		return FALSE;
 	}
 
@@ -713,7 +713,7 @@ object_invocation		(vbi3_page_priv *	pgp,
 		if (LOCAL_ENHANCEMENT_DATA != type
 		    || triplet > 12) {
 			fmt_log ("... invalid type %s or triplet %u\n",
-				 object_type_name (type), triplet);
+				 ttx_object_type_name (type), triplet);
 			return FALSE;
 		}
 
@@ -822,7 +822,7 @@ object_invocation		(vbi3_page_priv *	pgp,
 static vbi3_bool
 default_object_invocation	(vbi3_page_priv *	pgp)
 {
-	const struct pop_link *pop;
+	const struct ttx_pop_link *pop;
 	unsigned int link;
 	unsigned int order;
 	unsigned int i;
@@ -847,9 +847,9 @@ default_object_invocation	(vbi3_page_priv *	pgp)
 	order = (pop->default_obj[0].type > pop->default_obj[1].type);
 
 	for (i = 0; i < 2; ++i) {
-		object_type type;
+		enum ttx_object_type type;
 		cache_page *trip_cp;
-		const struct triplet *trip;
+		const struct ttx_triplet *trip;
 		unsigned int n_triplets;
 		vbi3_bool success;
 
@@ -859,7 +859,7 @@ default_object_invocation	(vbi3_page_priv *	pgp)
 			continue;
 
 		fmt_log ("... invocation %u, type %s\n",
-			 i ^ order, object_type_name (type));
+			 i ^ order, ttx_object_type_name (type));
 
 		if (!resolve_obj_address (pgp, &trip_cp, &trip, &n_triplets,
 					  type, pop->pgno,
@@ -956,7 +956,7 @@ reference_drcs_page		(vbi3_page_priv *	pgp,
 				 vbi3_subno		subno)
 {
 	cache_page *drcs_cp;
-	page_function function;
+	enum ttx_page_function function;
 	vbi3_pgno pgno;
 	unsigned int plane;
 	unsigned int link;
@@ -1084,48 +1084,51 @@ typedef struct {
 	vbi3_page_priv *		pgp;
 
 	/** Referencing object type. */
-	object_type		type;
+	enum ttx_object_type		type;
 
 	/** Triplet vector (triplets left). */
-	const struct triplet *	trip;
-	unsigned int		n_triplets;
+	const struct ttx_triplet *	trip;
+	unsigned int			n_triplets;
 
 	/** Current text row. */
-	vbi3_char *		curr_line;
+	vbi3_char *			curr_line;
 
 	/** Cursor position at object invocation. */
-	unsigned int		inv_row;
-	unsigned int		inv_column;
+	unsigned int			inv_row;
+	unsigned int			inv_column;
 
 	/** Current cursor position, relative to inv_row, inv_column. */
-	unsigned int		active_row;
-	unsigned int		active_column;
+	unsigned int			active_row;
+	unsigned int			active_column;
 
 	/** Origin modifier. */
-	unsigned int		offset_row;
-	unsigned int		offset_column;
+	unsigned int			offset_row;
+	unsigned int			offset_column;
 
-	vbi3_color		row_color;
-	vbi3_color		next_row_color;
+	vbi3_color			row_color;
+	vbi3_color			next_row_color;
 
 	/** Global (0) and normal (1) DRCS subno. */
-	vbi3_subno		drcs_s1[2];
+	vbi3_subno			drcs_s1[2];
 
 	/** Current character set. */
-	const vbi3_ttx_charset *cs;
+	const vbi3_ttx_charset *	cs;
 
 	/** Accumulated attributes and attribute mask. */
-	vbi3_char		ac;
-	vbi3_char		mac;
+	vbi3_char			ac;
+	vbi3_char			mac;
 
 	/** Foreground/background invert attribute. */
-	vbi3_bool		invert;
+	vbi3_bool			invert;
 
 	/** PDC Preselection method "B". ETS 300 231, Section 7.3.2. */
 
-	vbi3_preselection *	p1;		/**< Current entry. */
-	vbi3_preselection	pdc_tmp;	/**< Accumulator. */
-	struct triplet		pdc_hour;	/**< Previous hour triplet. */
+	/** Current entry. */
+	vbi3_preselection *		p1;
+	/** Accumulator. */
+	vbi3_preselection		pdc_tmp;
+	/** Previous hour triplet. */
+	struct ttx_triplet		pdc_hour;
 } enhance_state;
 
 /**
@@ -2082,8 +2085,8 @@ enhance_column_triplet		(enhance_state *	st)
  */
 static vbi3_bool
 enhance				(vbi3_page_priv *	pgp,
-				 object_type		type,
-				 const struct triplet *	trip,
+				 enum ttx_object_type	type,
+				 const struct ttx_triplet *trip,
 				 unsigned int		n_triplets,
 				 unsigned int		inv_row,
 				 unsigned int		inv_column)
@@ -3071,7 +3074,7 @@ flof_links			(vbi3_page_priv *	pgp)
 	for (i = 0; i <= 40; ++i) {
 		if (i == 40 || (acp[i].foreground & 7) != color) {
 			unsigned int k;
-			pagenum *pn;
+			struct ttx_page_link *pn;
 
 			for (k = 0; k < 4; ++k)
 				if (flof_link_col[k] == (unsigned int) color)
@@ -3151,7 +3154,7 @@ top_label			(vbi3_page_priv *	pgp,
 				 vbi3_color		foreground,
 				 unsigned int		ff)
 {
-	const struct ait_title *ait;
+	const struct ttx_ait_title *ait;
 	cache_page *ait_cp;
 	vbi3_char *acp;
 	unsigned int sh;
@@ -3215,7 +3218,7 @@ top_navigation_bar_style_1	(vbi3_page_priv *	pgp)
 {
 	vbi3_pgno pgno;
 	vbi3_bool have_group;
-	const struct page_stat *ps;
+	const struct ttx_page_stat *ps;
 	vbi3_char *acp;
 
 	if (TELETEXT_NAV_LOG) {
@@ -3288,7 +3291,7 @@ top_navigation_bar_style_2	(vbi3_page_priv *	pgp)
 {
 	vbi3_pgno pgno;
 	vbi3_bool have_group;
-	const struct page_stat *ps;
+	const struct ttx_page_stat *ps;
 
 	if (TELETEXT_NAV_LOG) {
 		ps = cache_network_const_page_stat (pgp->cn, pgp->cp->pgno);
@@ -3449,20 +3452,20 @@ _vbi3_page_priv_from_cache_page_va_list
 				 cache_page *		cp,
 				 va_list		format_options)
 {
-	vbi3_bool		option_hyperlinks;
-	vbi3_bool		option_pdc_links;
-	int			option_navigation_style;
-	vbi3_ttx_charset_code	option_cs_default[2];
+	vbi3_bool option_hyperlinks;
+	vbi3_bool option_pdc_links;
+	int option_navigation_style;
+	vbi3_ttx_charset_code option_cs_default[2];
 	const vbi3_ttx_charset *option_cs_override[2];
-	const struct extension *ext;
-	cache_network *		cn;
-	unsigned int		i;
+	const struct ttx_extension *ext;
+	cache_network *cn;
+	unsigned int i;
 
 	assert (NULL != pgp);
 	assert (NULL != cp);
 
 	if (cp->function != PAGE_FUNCTION_LOP &&
-	    cp->function != PAGE_FUNCTION_TRIGGER)
+	    cp->function != PAGE_FUNCTION_EACEM_TRIGGER)
 		return FALSE;
 
 	fmt_log ("\nFormatting page %03x/%04x pgp=%p\n",

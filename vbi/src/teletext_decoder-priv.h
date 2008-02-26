@@ -21,7 +21,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: teletext_decoder-priv.h,v 1.1.2.3 2007-11-01 00:21:25 mschimek Exp $ */
+/* $Id: teletext_decoder-priv.h,v 1.1.2.4 2008-02-26 10:43:37 mschimek Exp $ */
 
 #ifndef TELETEXT_DECODER_PRIV_H
 #define TELETEXT_DECODER_PRIV_H
@@ -64,7 +64,7 @@ struct _vbi3_teletext_decoder {
 #endif
 
 	/** Used for channel switch detection, see there. */
-	pagenum			header_page;
+	struct ttx_page_link	header_page;
 	uint8_t			header[40];
 
 	/** Time to receive a packet 8/30 CNI or VPS CNI. */
@@ -103,7 +103,7 @@ struct _vbi3_teletext_decoder {
 /* in packet.c */
 extern cache_page *
 _vbi3_convert_cached_page	(cache_page *		cp,
-				 page_function		new_function);
+				 enum ttx_page_function	new_function);
 extern void
 _vbi3_teletext_decoder_resync	(vbi3_teletext_decoder *	td);
 extern void
