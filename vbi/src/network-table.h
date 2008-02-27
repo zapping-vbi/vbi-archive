@@ -1,4 +1,4 @@
-/* $Id: network-table.h,v 1.7.2.4 2008-02-27 07:58:24 mschimek Exp $ */
+/* $Id: network-table.h,v 1.7.2.5 2008-02-27 22:51:41 mschimek Exp $ */
 
 /* Generated file, do not edit! */
 
