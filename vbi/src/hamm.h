@@ -1,27 +1,25 @@
 /*
- *  libzvbi - Error correction functions
+ *  libzvbi -- Error correction functions
  *
- *  Copyright (C) 2001, 2002, 2003, 2004 Michael H. Schimek
+ *  Copyright (C) 2001, 2002, 2003, 2004, 2007 Michael H. Schimek
  *
- *  Based on code from AleVT 1.5.1
- *  Copyright (C) 1998, 1999 Edgar Toernig <froese@gmx.de>
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the 
+ *  Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+ *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: hamm.h,v 1.4.2.10 2008-02-25 20:58:12 mschimek Exp $ */
+/* $Id: hamm.h,v 1.4.2.11 2008-02-27 07:57:26 mschimek Exp $ */
 
 #ifndef __ZVBI3_HAMM_H__
 #define __ZVBI3_HAMM_H__
@@ -30,6 +28,8 @@
 #include "macros.h"
 
 VBI3_BEGIN_DECLS
+
+/* Public */
 
 extern const uint8_t		_vbi3_bit_reverse [256];
 extern const uint8_t		_vbi3_hamm8_fwd [16];
@@ -50,20 +50,24 @@ extern const int8_t		_vbi3_hamm24_inv_par [3][256];
  * 
  * @returns
  * Data bits 0 [msb] ... 7 [lsb].
+ *
+ * @since 0.2.12
  */
 _vbi3_inline unsigned int
 vbi3_rev8			(unsigned int		c)
 {
-	return _vbi3_bit_reverse[c & 0xFF];
+	return _vbi3_bit_reverse[(uint8_t) c];
 }
 
 /**
  * @param c Unsigned 16 bit word.
  * 
- * Reverses the bits of the argument.
+ * Reverses (or "reflects") the bits of the argument.
  * 
  * @returns
  * Data bits 0 [msb] ... 15 [lsb].
+ *
+ * @since 0.2.12
  */
 _vbi3_inline unsigned int
 vbi3_rev16			(unsigned int		c)
@@ -76,10 +80,12 @@ vbi3_rev16			(unsigned int		c)
  * @param p Pointer to a 16 bit word, last significant
  *   byte first.
  * 
- * Reverses the bits of the argument.
+ * Reverses (or "reflects") the bits of the argument.
  * 
  * @returns
  * Data bits 0 [msb] ... 15 [lsb].
+ *
+ * @since 0.2.12
  */
 _vbi3_inline unsigned int
 vbi3_rev16p			(const uint8_t *	p)
@@ -94,27 +100,18 @@ vbi3_rev16p			(const uint8_t *	p)
  * @returns
  * Changes the most significant bit of the byte
  * to make the number of set bits odd.
+ *
+ * @since 0.2.12
  */
 _vbi3_inline unsigned int
 vbi3_par8			(unsigned int		c)
 {
-#if 0
 	c &= 255;
 
 	/* if 0 == (inv_par[] & 32) change bit 7 of c. */
 	c ^= 128 & ~(_vbi3_hamm24_inv_par[0][c] << 2);
 
 	return c;
-#else /* faster? */
-	unsigned int x;
-
-	x = c << 4;
-	x ^= c;
-	x ^= x << 2;
-	x ^= x << 1;
-
-	return (c & 255) ^ (128 & ~x);
-#endif
 }
 
 /**
@@ -123,12 +120,15 @@ vbi3_par8			(unsigned int		c)
  * @returns
  * If the byte has odd parity (sum of bits modulo 2 is 1) the
  * byte AND 127, otherwise a negative value.
+ *
+ * @since 0.2.12
  */
 _vbi3_inline int
 vbi3_unpar8			(unsigned int		c)
 {
-#ifdef __GNUC__
-#if #cpu (i686)
+/* Disabled until someone finds a reliable way
+   to test for cmov support at compile time. */
+#if 0
 	int r = c & 127;
 
 	/* This saves cache flushes and an explicit branch. */
@@ -136,7 +136,6 @@ vbi3_unpar8			(unsigned int		c)
 		 " cmovp	%2,%0\n"
 		 : "+&a" (r) : "c" (c), "rm" (-1));
 	return r;
-#endif
 #endif
 	if (_vbi3_hamm24_inv_par[0][(uint8_t) c] & 32) {
 		return c & 127;
@@ -150,10 +149,10 @@ vbi3_unpar8			(unsigned int		c)
 
 extern void
 vbi3_par				(uint8_t *		p,
-				 unsigned long		n);
+				 unsigned int		n);
 extern int
 vbi3_unpar			(uint8_t *		p,
-				 unsigned long		n);
+				 unsigned int		n);
 
 /**
  * @param c Integer between 0 ... 15.
@@ -163,6 +162,8 @@ vbi3_unpar			(uint8_t *		p,
  * 
  * @returns
  * Hamming encoded unsigned byte, lsb first transmitted.
+ *
+ * @since 0.2.12
  */
 _vbi3_inline unsigned int
 vbi3_ham8			(unsigned int		c)
@@ -179,6 +180,8 @@ vbi3_ham8			(unsigned int		c)
  * @returns
  * Data bits (D4 [msb] ... D1 [lsb]) or a negative
  * value if the byte contained incorrectable errors.
+ *
+ * @since 0.2.12
  */
 _vbi3_inline int
 vbi3_unham8			(unsigned int		c)
@@ -197,6 +200,8 @@ vbi3_unham8			(unsigned int		c)
  * Data bits D4 [msb] ... D1 of first byte and D4 ... D1 [lsb]
  * of second byte, or a negative value if any of the bytes
  * contained incorrectable errors.
+ *
+ * @since 0.2.12
  */
 _vbi3_inline int
 vbi3_unham16p			(const uint8_t *	p)
@@ -205,11 +210,16 @@ vbi3_unham16p			(const uint8_t *	p)
 	  | (((int) _vbi3_hamm8_inv[p[1]]) << 4);
 }
 
+extern void
+vbi3_ham24p			(uint8_t *		p,
+				 unsigned int		c);
 extern int
 vbi3_unham24p			(const uint8_t *	p)
   _vbi3_pure;
 
 /** @} */
+
+/* Private */
 
 VBI3_END_DECLS
 
