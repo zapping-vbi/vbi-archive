@@ -1,24 +1,25 @@
 /*
- *  libzvbi - Unicode conversion helper functions
+ *  libzvbi -- Unicode conversion helper functions
  *
  *  Copyright (C) 2003-2006 Michael H. Schimek
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the 
+ *  Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+ *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: conv.c,v 1.1.2.10 2007-11-11 03:06:12 mschimek Exp $ */
+/* $Id: conv.c,v 1.1.2.11 2008-02-27 07:58:10 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -929,10 +930,10 @@ vbi3_strndup_iconv		(const char *		dst_codeset,
 	unsigned long size;
 
 	buffer = _vbi3_strndup_iconv (&size,
-				      dst_codeset,
-				      src_codeset,
-				      src, src_size,
-				      repl_char);
+				     dst_codeset,
+				     src_codeset,
+				     src, src_size,
+				     repl_char);
 	if (NULL == buffer)
 		return NULL;
 
@@ -1160,10 +1161,10 @@ vbi3_fputs_iconv			(FILE *			fp,
 	}
 
 	buffer = _vbi3_strndup_iconv (&size,
-				      dst_codeset,
-				      src_codeset,
-				      src, src_size,
-				      repl_char);
+				     dst_codeset,
+				     src_codeset,
+				     src, src_size,
+				     repl_char);
 	if (NULL == buffer)
 		return FALSE;
 
