@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: dvb_demux.c,v 1.9.2.8 2008-02-25 20:58:30 mschimek Exp $ */
+/* $Id: dvb_demux.c,v 1.9.2.9 2008-02-27 07:57:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -726,7 +726,7 @@ demux_samples			(struct frame *		f,
 			   stream or discarded the previous segments. */
 			switch (f->last_data_unit_id) {
 			case 0:
-			case DATA_UNIT_ZVBI3_MONOCHROME_SAMPLES_525:
+			case DATA_UNIT_ZVBI_MONOCHROME_SAMPLES_525:
 			case DATA_UNIT_MONOCHROME_SAMPLES:
 				return 0; /* success, skip the data unit */
 
@@ -990,7 +990,7 @@ extract_data_units		(struct frame *		f,
 
 			break;
 
-		case DATA_UNIT_ZVBI3_WSS_CPR1204:
+		case DATA_UNIT_ZVBI_WSS_CPR1204:
 			if (NULL == f->sliced_begin)
 				break;
 
@@ -1013,7 +1013,7 @@ extract_data_units		(struct frame *		f,
 
 			break;
 
-		case DATA_UNIT_ZVBI3_CLOSED_CAPTION_525:
+		case DATA_UNIT_ZVBI_CLOSED_CAPTION_525:
 			if (NULL == f->sliced_begin)
 				break;
 
@@ -1097,7 +1097,7 @@ extract_data_units		(struct frame *		f,
 
 			break;
 
-		case DATA_UNIT_ZVBI3_MONOCHROME_SAMPLES_525:
+		case DATA_UNIT_ZVBI_MONOCHROME_SAMPLES_525:
 			if (NULL == f->raw)
 				break;
 

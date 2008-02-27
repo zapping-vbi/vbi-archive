@@ -3,25 +3,23 @@
  *
  *  Copyright (C) 2004 Michael H. Schimek
  *
- *  Based on code from AleVT 1.5.1
- *  Copyright (C) 1998, 1999 Edgar Toernig
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the 
+ *  Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+ *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: dlist.h,v 1.1.2.6 2008-02-25 20:58:34 mschimek Exp $ */
+/* $Id: dlist.h,v 1.1.2.7 2008-02-27 07:57:57 mschimek Exp $ */
 
 #ifndef DLIST_H
 #define DLIST_H
@@ -38,6 +36,15 @@ struct node {
 	struct node *		_succ;
 	struct node *		_pred;
 };
+
+/* A ring: struct node n1.succ -> n2, n2.succ -> n3, n3.succ -> n1.
+           struct node n1.pred -> n3, n2.pred -> n1, n3.pred -> n2.
+   A ring with one element: n.succ -> n.
+                            n.pred -> n.
+   A list: struct node list.succ -> n1 (head). n1.succ -> n2, n2.succ -> list.
+	   struct node list.pred -> n2 (tail). n1.pred -> list, n2.pred -> n1.
+   An empty list: list.succ -> list.
+                  list.pred -> list. */
 
 _vbi3_inline void
 verify_ring			(const struct node *	n)
@@ -109,6 +116,8 @@ _insert_nodes			(struct node *		before,
 /**
  * @internal
  * Adds struct node n to a list or ring after struct node a.
+ * @returns
+ * n.
  */
 _vbi3_inline struct node *
 insert_after			(struct node *		a,
@@ -120,6 +129,8 @@ insert_after			(struct node *		a,
 /**
  * @internal
  * Adds struct node n to a list or ring before struct node b.
+ * @returns
+ * n.
  */
 _vbi3_inline struct node *
 insert_before			(struct node *		b,
@@ -131,6 +142,10 @@ insert_before			(struct node *		b,
 /**
  * @internal
  * Removes struct node n from its list or ring.
+ * Call rem_node(l, n) to remove a node only if it is a
+ * member of list l.
+ * @returns
+ * n.
  */
 _vbi3_inline struct node *
 unlink_node			(struct node *		n)
@@ -167,17 +182,35 @@ for (verify_ring (l), p = PARENT ((l)->_pred, __typeof__ (* p), _node);	\
 
 /**
  * @internal
- * Destroys list l (not its nodes).
+ * Destroys list l. This will cause a segmentation fault on any attempts
+ * to traverse or modify the list. You should ensure the list is empty
+ * and all nodes have been properly deleted before calling this function.
+  * @returns
+ * l.
  */
 _vbi3_inline struct node *
 list_destroy			(struct node *		l)
 {
-	return _remove_nodes (l->_pred, l->_succ, l, l, FALSE, FALSE);
+	struct node *n = l;
+
+	verify_ring (l);
+
+	do {
+		struct node *_succ = n->_succ;
+
+		n->_succ = NULL;
+		n->_pred = NULL;
+		n = _succ;
+	} while (n != l);
+
+	return l;
 }
 
 /**
  * @internal
  * Initializes list l.
+ * @returns
+ * l.
  */
 _vbi3_inline struct node *
 list_init			(struct node *		l)
@@ -190,7 +223,8 @@ list_init			(struct node *		l)
 
 /**
  * @internal
- * TRUE if struct node n is at head of list l.
+ * @returns
+ * @c TRUE if node n is the first node of list l.
  */
 _vbi3_inline vbi3_bool
 is_head				(const struct node *	l,
@@ -198,12 +232,13 @@ is_head				(const struct node *	l,
 {
 	verify_ring (l);
 
-	return (n == l->_succ);
+	return (NULL != n && n == l->_succ);
 }
 
 /**
  * @internal
- * TRUE if struct node n is at tail of list l.
+ * @returns
+ * @c TRUE if node n is the last node of list l.
  */
 _vbi3_inline vbi3_bool
 is_tail				(const struct node *	l,
@@ -211,22 +246,26 @@ is_tail				(const struct node *	l,
 {
 	verify_ring (l);
 
-	return (n == l->_pred);
+	return (NULL != n && n == l->_pred);
 }
 
 /**
  * @internal
- * TRUE if list l is empty.
+ * @returns
+ * @c TRUE if list l is empty.
  */
-_vbi3_inline int
+_vbi3_inline vbi3_bool
 is_empty			(const struct node *	l)
 {
-	return is_head (l, l);
+	verify_ring (l);
+
+	return (l == l->_succ);
 }
 
 /**
  * @internal
- * TRUE if struct node n is a member of list l.
+ * @returns
+ * @c TRUE if node n is a member of list l.
  */
 _vbi3_inline vbi3_bool
 is_member			(const struct node *	l,
@@ -235,6 +274,9 @@ is_member			(const struct node *	l,
 	const struct node *q;
 
 	verify_ring (l);
+
+	if (NULL == n)
+		return FALSE;
 
 	for (q = l->_succ; q != l; q = q->_succ) {
 		if (unlikely (q == n)) {
@@ -247,7 +289,9 @@ is_member			(const struct node *	l,
 
 /**
  * @internal
- * Adds struct node n at begin of list l.
+ * Inserts node n at the begin of list l.
+ * @returns
+ * n.
  */
 _vbi3_inline struct node *
 add_head			(struct node *		l,
@@ -258,7 +302,9 @@ add_head			(struct node *		l,
 
 /**
  * @internal
- * Adds struct node n at end of list l.
+ * Inserts node n at the end of list l.
+ * @returns
+ * n.
  */
 _vbi3_inline struct node *
 add_tail			(struct node *		l,
@@ -269,7 +315,10 @@ add_tail			(struct node *		l,
 
 /**
  * @internal
- * Removes all nodes from list l2 and adds them at end of list l1.
+ * Removes all nodes from list l2 and inserts them in the
+ * same order at the end of list l1.
+ * @returns
+ * First node of l2, or @c NULL if l2 is empty.
  */
 _vbi3_inline struct node *
 add_tail_list			(struct node *		l1,
@@ -280,6 +329,7 @@ add_tail_list			(struct node *		l1,
 	verify_ring (l2);
 
 	if (unlikely (l2 == h2)) {
+		/* l2 is empty. */
 		return NULL;
 	}
 
@@ -293,7 +343,10 @@ add_tail_list			(struct node *		l1,
 
 /**
  * @internal
- * Removes struct node n if member of list l.
+ * Removes node n from list l if it is a member of list l.
+ * Call unlink_node(n) to remove a node unconditionally.
+ * @returns
+ * n if it is a member of l, @c NULL otherwise.
  */
 _vbi3_inline struct node *
 rem_node			(struct node *		l,
@@ -308,7 +361,9 @@ rem_node			(struct node *		l,
 
 /**
  * @internal
- * Removes first struct node of list l, returns NULL if empty list.
+ * Removes the first node from list l.
+ * @returns
+ * First node of l, or @c NULL if l is empty.
  */
 _vbi3_inline struct node *
 rem_head			(struct node *		l)
@@ -324,7 +379,9 @@ rem_head			(struct node *		l)
 
 /**
  * @internal
- * Removes last struct node of list l, returns NULL if empty list.
+ * Removes the last node from list l.
+ * @returns
+ * Last node of l, or @c NULL if l is empty.
  */
 _vbi3_inline struct node *
 rem_tail			(struct node *		l)
@@ -340,7 +397,8 @@ rem_tail			(struct node *		l)
 
 /**
  * @internal
- * Returns number of nodes in list l.
+ * @returns
+ * Number of nodes in list l.
  */
 _vbi3_inline unsigned int
 list_length			(struct node *		l)

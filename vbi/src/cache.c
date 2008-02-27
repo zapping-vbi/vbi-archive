@@ -33,6 +33,7 @@
 #  include "cache-priv.h"
 #  include "intl-priv.h"
 #  include "vbi.h"		/* vbi3_page_type */
+#  define VBI_CLOCK_PAGE VBI_NONSTD_SUBPAGES
 #elif 3 == VBI_VERSION_MINOR
 #  include "event-priv.h"
 #  include "cache-priv.h"

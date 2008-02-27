@@ -1,23 +1,25 @@
 /*
- *  libzvbi - DVB VBI multiplexer
+ *  libzvbi -- DVB VBI multiplexer
  *
  *  Copyright (C) 2004, 2007 Michael H. Schimek
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 2 as
- *  published by the Free Software Foundation.
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the 
+ *  Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+ *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: dvb_mux.c,v 1.6.2.5 2008-02-25 20:58:23 mschimek Exp $ */
+/* $Id: dvb_mux.c,v 1.6.2.6 2008-02-27 07:57:43 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -684,8 +686,8 @@ vbi3_dvb_multiplex_sliced	(uint8_t **		packet,
  * @param videostd_set The @a line parameter will be interpreted
  *   according to this set of video standards. It must not change
  *   until all samples have been encoded. In libzvbi 0.2.x only one
- *   of two values are permitted: VBI_VIDEOSTD_SET_625_50 or
- *   VBI_VIDEOSTD_SET_525_60.
+ *   of two values are permitted: VBI3_VIDEOSTD_SET_625_50 or
+ *   VBI3_VIDEOSTD_SET_525_60.
  * @param line The ITU-R line number to be encoded in the data units.
  *   It must not change until all samples have been encoded.
  * @param first_pixel_position The horizontal offset where decoders
@@ -933,8 +935,8 @@ insert_raw_data_units		(uint8_t **		packet,
  * @param videostd_set The @a line parameter will be interpreted
  *   according to this set of video standards. It must not change
  *   until all samples have been encoded. In libzvbi 0.2.x only one
- *   of two values are permitted: VBI_VIDEOSTD_SET_625_50 or
- *   VBI_VIDEOSTD_SET_525_60.
+ *   of two values are permitted: VBI3_VIDEOSTD_SET_625_50 or
+ *   VBI3_VIDEOSTD_SET_525_60.
  * @param line The ITU-R line number to be encoded in the data units.
  *   It must not change until all samples have been encoded.
  * @param first_pixel_position The horizontal offset where decoders
@@ -1324,7 +1326,7 @@ init_pes_packet_header		(vbi3_dvb_mux *		mx)
  *   + @a sp->count[1]) lines times @a sp->bytes_per_line. Raw
  *   VBI data lines to be inserted into the PES packet are selected
  *   by vbi3_sliced structures in the @a sliced array with
- *   id @c VBI3_SLICED_VBI_625. The data field in these structures is
+ *   id @c VBI3_SLICED_VBI3_625. The data field in these structures is
  *   ignored. When the array does not contain such structures
  *   @a raw can be @c NULL.
  * @param sp Describes the data in the @a raw buffer. All fields
@@ -1367,7 +1369,7 @@ init_pes_packet_header		(vbi3_dvb_mux *		mx)
  *   - @c VBI3_SLICED_VPS on line 16.
  *   - @c VBI3_SLICED_CAPTION_625 on line 22.
  *   - @c VBI3_SLICED_WSS_625 on line 23.
- *   - Raw VBI data with id @c VBI3_SLICED_VBI_625 can be encoded
+ *   - Raw VBI data with id @c VBI3_SLICED_VBI3_625 can be encoded
  *     on lines 7 to 23 and 320 to 336 inclusive.
  * - @c VBI3_ERR_LINE_NUMBER
  *   A vbi3_sliced structure contains a line number outside the
@@ -1375,17 +1377,17 @@ init_pes_packet_header		(vbi3_dvb_mux *		mx)
  * - @c VBI3_ERR_RAW_DATA_INTERRUPTION
  *   The function expected to continue the encoding of a raw VBI
  *   line, but the id of the first vbi3_sliced structure in the
- *   @a *sliced array is not @c VBI3_SLICED_VBI_625, or the line
+ *   @a *sliced array is not @c VBI3_SLICED_VBI3_625, or the line
  *   number differs, or @a sp->offset or @a sp->samples_per_line
  *   (bytes_per_line in libzvbi 0.2.x) changed.
  * - @c VBI3_ERR_NO_RAW_DATA
  *   @a raw is @c NULL although the @a *sliced array contains a
- *   structure with id @c VBI3_SLICED_VBI_625.
+ *   structure with id @c VBI3_SLICED_VBI3_625.
  * - @c VBI3_ERR_SAMPLING_PAR
  *   @a sp is @c NULL although the @a *sliced array contains a
- *   structure with id @c VBI3_SLICED_VBI_625.
+ *   structure with id @c VBI3_SLICED_VBI3_625.
  * - @c VBI3_ERR_RAW_BUFFER_OVERFLOW
- *   A vbi3_sliced structure with id @c VBI3_SLICED_VBI_625
+ *   A vbi3_sliced structure with id @c VBI3_SLICED_VBI3_625
  *   contains a line number outside the ranges defined by
  *   @a sp->start[] and @a sp->count[] (i.e. the line is not
  *   in the @a raw buffer).
@@ -1666,7 +1668,7 @@ generate_ts_packet_header	(vbi3_dvb_mux *		mx,
  * @param raw Shall point at a raw VBI frame of (@a sp->count[0]
  *   + @a sp->count[1]) lines times @a sp->bytes_per_line. The function
  *   encodes only those lines which have been selected by vbi3_sliced
- *   structures in the @a sliced array with id @c VBI3_SLICED_VBI_625.
+ *   structures in the @a sliced array with id @c VBI3_SLICED_VBI3_625.
  *   The data field of these structures is ignored. When the @a sliced
  *   array does not contain such structures @a raw can be @c NULL.
  * @param sp Describes the data in the @a raw buffer. When @a raw is
@@ -1716,7 +1718,7 @@ generate_ts_packet_header	(vbi3_dvb_mux *		mx,
  *   - @c VBI3_SLICED_VPS on line 16.
  *   - @c VBI3_SLICED_CAPTION_625 on line 22.
  *   - @c VBI3_SLICED_WSS_625 on line 23.
- *   - Raw VBI data with id @c VBI3_SLICED_VBI_625 can be encoded
+ *   - Raw VBI data with id @c VBI3_SLICED_VBI3_625 can be encoded
  *     on lines 7 to 23 and 320 to 336 inclusive. Note for compliance
  *     with the Teletext buffer model defined in EN 300 472,
  *     EN 301 775 recommends to encode at most one raw and one
@@ -1724,11 +1726,11 @@ generate_ts_packet_header	(vbi3_dvb_mux *		mx,
  * - A vbi3_sliced structure contains a line number outside the
  *   valid range specified above.
  * - @a raw is @c NULL although the @a *sliced array contains a
- *   structure with id @c VBI3_SLICED_VBI_625.
+ *   structure with id @c VBI3_SLICED_VBI3_625.
  * - @a sp is @c NULL although the @a *sliced array contains a
- *   structure with id @c VBI3_SLICED_VBI_625.
+ *   structure with id @c VBI3_SLICED_VBI3_625.
  * - One or more fields of the @a sp structure are invalid.
- * - A vbi3_sliced structure with id @c VBI3_SLICED_VBI_625
+ * - A vbi3_sliced structure with id @c VBI3_SLICED_VBI3_625
  *   contains a line number outside the ranges defined by
  *   @a sp->start[] and @a sp->count[] (i.e. the line is not
  *   in the @a raw buffer).
@@ -1879,7 +1881,7 @@ vbi3_dvb_mux_cor		(vbi3_dvb_mux *		mx,
  * @param raw Shall point at a raw VBI frame of (@a sp->count[0]
  *   + @a sp->count[1]) lines times @a sp->bytes_per_line. The function
  *   encodes only those lines which have been selected by vbi3_sliced
- *   structures in the @a sliced array with id @c VBI3_SLICED_VBI_625.
+ *   structures in the @a sliced array with id @c VBI3_SLICED_VBI3_625.
  *   The data field of these structures is ignored. When the @a sliced
  *   array does not contain such structures @a raw can be @c NULL.
  * @param sp Describes the data in the @a raw buffer. When @a raw is
@@ -1923,16 +1925,16 @@ vbi3_dvb_mux_cor		(vbi3_dvb_mux *		mx,
  *   - @c VBI3_SLICED_VPS on line 16.
  *   - @c VBI3_SLICED_CAPTION_625 on line 22.
  *   - @c VBI3_SLICED_WSS_625 on line 23.
- *   - Raw VBI data with id @c VBI3_SLICED_VBI_625 can be encoded
+ *   - Raw VBI data with id @c VBI3_SLICED_VBI3_625 can be encoded
  *     on lines 7 to 23 and 320 to 336 inclusive.
  * - A vbi3_sliced structure contains a line number outside the
  *   valid range specified above.
  * - @a raw is @c NULL although the @a sliced array contains a
- *   structure with id @c VBI3_SLICED_VBI_625.
+ *   structure with id @c VBI3_SLICED_VBI3_625.
  * - @a sp is @c NULL although the @a sliced array contains a
- *   structure with id @c VBI3_SLICED_VBI_625.
+ *   structure with id @c VBI3_SLICED_VBI3_625.
  * - One or more fields of the @a sp structure are invalid.
- * - A vbi3_sliced structure with id @c VBI3_SLICED_VBI_625
+ * - A vbi3_sliced structure with id @c VBI3_SLICED_VBI3_625
  *   contains a line number outside the ranges defined by
  *   @a sp->start[] and @a sp->count[] (i.e. the line is not
  *   in the @a raw buffer).
