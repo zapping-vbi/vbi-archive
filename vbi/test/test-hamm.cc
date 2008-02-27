@@ -1,16 +1,36 @@
 /*
- *  libzvbi test
- *  Copyright (C) 2003 Michael H. Schimek
+ *  libzvbi -- Error correction functions unit test
+ *
+ *  Copyright (C) 2003, 2007 Michael H. Schimek
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: test-hamm.cc,v 1.1.2.5 2007-11-01 00:21:26 mschimek Exp $ */
+/* $Id: test-hamm.cc,v 1.1.2.6 2008-02-27 07:58:19 mschimek Exp $ */
 
-#include <iostream>
-#include <iomanip>
+#undef NDEBUG
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <assert.h>
+#include <stdlib.h>		/* mrand48() */
+#include <string.h>		/* memset() */
 
-#include "src/zvbi.h"
+#include "src/hamm.h"
 
 namespace vbi {
   static inline unsigned int rev8 (uint8_t c)
@@ -51,6 +71,10 @@ namespace vbi {
 	| ((int) _vbi3_hamm8_inv[c >> 8] << 4); };
   static inline int unham16 (uint8_t* p)
     { return vbi3_unham16p (p); };
+
+  static inline void ham24 (uint8_t* p, unsigned int c)
+    { vbi3_ham24p (p, c); }
+
   static inline int unham24 (uint8_t* p)
     { return vbi3_unham24p (p); };
 };
@@ -85,18 +109,14 @@ hamming_distance		(unsigned int		a,
 	return population_count (a ^ b);
 }
 
-int
-main				(int			argc,
-				 char **		argv)
+static void
+test_rev			(void)
 {
 	unsigned int i;
 
-	argc = argc;
-	argv = argv;
-
 	for (i = 0; i < 10000; ++i) {
-		unsigned int n = (i < 256) ? i : mrand48 ();
-		uint8_t buf[4] = { n, n >> 8, n >> 16 };
+		unsigned int n = (i < 256) ? i : (unsigned int) mrand48 ();
+		uint8_t buf[4] = { n, n >> 8, n >> 16, 0xA5 };
 		unsigned int r;
 		unsigned int j;
 
@@ -107,21 +127,45 @@ main				(int			argc,
 		assert (r == vbi::rev8 (n));
 		assert (vbi::rev8 (n) == vbi::rev8 (buf));
 		assert (vbi::rev16 (n) == vbi::rev16 (buf));
+	}
+}
+
+static void
+test_par_unpar			(void)
+{
+	unsigned int i;
+
+	for (i = 0; i < 10000; ++i) {
+		unsigned int n = (i < 256) ? i : (unsigned int) mrand48 ();
+		uint8_t buf[4] = { n, n >> 8, n >> 16, 0xA5 };
 
 		if (parity (n & 0xFF))
 			assert (vbi::unpar8 (n) == (int)(n & 127));
 		else
-			assert (vbi::unpar8 (n) == -1);
+			assert (-1 == vbi::unpar8 (n));
 
 		assert (vbi::unpar8 (vbi::par8 (n)) >= 0);
 
 		vbi::par (buf, sizeof (buf));
 		assert (vbi::unpar (buf, sizeof (buf)) >= 0);
+		assert (0 == ((buf[0] | buf[1] | buf[2]) & 0x80));
+
+		buf[1] = vbi::par8 (buf[1]);
+		buf[2] = buf[1] ^ 0x80;
+
+		assert (vbi::unpar (buf, sizeof (buf)) < 0);
+		assert (buf[2] == (buf[1] & 0x7F));
 	}
+}
+
+static void
+test_ham8_ham16_unham8_unham16	(void)
+{
+	unsigned int i;
 
 	for (i = 0; i < 10000; ++i) {
-		unsigned int n = (i < 256) ? i : mrand48 ();
-		uint8_t buf[4] = { n, n >> 8, n >> 16 };
+		unsigned int n = (i < 256) ? i : (unsigned int) mrand48 ();
+		uint8_t buf[4] = { n, n >> 8, n >> 16, 0xA5 };
 		unsigned int A, B, C, D;
 		int d;
 
@@ -152,15 +196,48 @@ main				(int			argc,
 			nn = vbi::ham8 (dd);
 			assert (hamming_distance (n & 255, nn) == 1);
 		} else {
-			assert (vbi::unham8 (n) == -1);
+			assert (-1 == vbi::unham8 (n));
 		}
 
 		vbi::ham16 (buf, n);
 		assert (vbi::unham16 (buf) == (int)(n & 255));
 	}
+}
+
+static void
+test_ham24			(unsigned int		val)
+{
+	uint8_t buf[4];
+	unsigned int A, B, C, D, E, F;
+	unsigned int n;
+
+	memset (buf, 0xA5, sizeof (buf));
+
+	vbi::ham24 (buf, val);
+
+	assert (0xA5 == buf[3]);
+
+	assert ((int)(val & ((1 << 18) - 1)) == vbi::unham24 (buf));
+
+	n = buf[0] | (buf[1] << 8) | (buf[2] << 16);
+
+	A = parity (n & 0x555555);
+	B = parity (n & 0x666666);
+	C = parity (n & 0x787878);
+	D = parity (n & 0x007F80);
+	E = parity (n & 0x7F8000);
+	F = parity (n & 0xFFFFFF);
+
+	assert (A && B && C && D && E && F);
+}
+
+static void
+test_unham24			(void)
+{
+	unsigned int i;
 
 	for (i = 0; i < (1 << 24); ++i) {
-		uint8_t buf[4] = { i, i >> 8, i >> 16 };
+		uint8_t buf[4] = { i, i >> 8, i >> 16, 0xA5 };
 		unsigned int A, B, C, D, E, F;
 		int d;
 
@@ -194,6 +271,7 @@ main				(int			argc,
 			assert (err > 0);
 
 			if (err >= 24) {
+				/* Invalid. */
 				assert (vbi::unham24 (buf) < 0);
 				continue;
 			}
@@ -219,6 +297,37 @@ main				(int			argc,
 			assert (vbi::unham24 (buf) == d);
 		}
 	}
+}
+
+int
+main				(int			argc,
+				 char **		argv)
+{
+	unsigned int i;
+
+	argc = argc; /* unused */
+	argv = argv;
+
+	test_rev ();
+
+	test_par_unpar ();
+
+	test_ham8_ham16_unham8_unham16	();
+
+	for (i = 0; i < (1 << 18); ++i)
+		test_ham24 (i);
+
+	test_ham24 (1 << 18);
+	test_ham24 (-1);
+
+	test_unham24 ();
 
 	return 0;
 }
+
+/*
+Local variables:
+c-set-style: K&R
+c-basic-offset: 8
+End:
+*/
