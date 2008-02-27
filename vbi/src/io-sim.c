@@ -1,29 +1,31 @@
 /*
- *  libzvbi - VBI device simulation
+ *  libzvbi -- VBI device simulation
  *
- *  Copyright (C) 2004 Michael H. Schimek
+ *  Copyright (C) 2004, 2007 Michael H. Schimek
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 2 as
- *  published by the Free Software Foundation.
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the 
+ *  Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+ *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: io-sim.c,v 1.1.2.14 2007-11-01 00:21:23 mschimek Exp $ */
+/* $Id: io-sim.c,v 1.1.2.15 2008-02-27 22:51:17 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include <math.h>		/* sin() */
+#include <math.h>		/* sin(), log() */
 #include <errno.h>
 #include <ctype.h>		/* isspace() */
 #include <limits.h>		/* INT_MAX */
@@ -38,7 +40,7 @@
 #if 2 == VBI_VERSION_MINOR
 #  define sp_sample_format sampling_format
 #  define SAMPLES_PER_LINE(sp)						\
-	((sp)->bytes_per_line / VBI_PIXFMT_BPP ((sp)->sampling_format))
+	((sp)->bytes_per_line / VBI3_PIXFMT_BPP ((sp)->sampling_format))
 #  define SYSTEM_525(sp)						\
 	(525 == (sp)->scanning)
 #else
@@ -64,13 +66,13 @@
  */
 
 #if 2 == VBI_VERSION_MINOR
-#  define VBI_PIXFMT_RGB24_LE VBI_PIXFMT_RGB24
-#  define VBI_PIXFMT_BGR24_LE VBI_PIXFMT_BGR24
-#  define VBI_PIXFMT_RGBA24_LE VBI_PIXFMT_RGBA32_LE
-#  define VBI_PIXFMT_BGRA24_LE VBI_PIXFMT_BGRA32_LE
-#  define VBI_PIXFMT_RGBA24_BE VBI_PIXFMT_RGBA32_BE
-#  define VBI_PIXFMT_BGRA24_BE VBI_PIXFMT_BGRA32_BE
-#  define vbi_pixfmt_bytes_per_pixel VBI_PIXFMT_BPP
+#  define VBI3_PIXFMT_RGB24_LE VBI3_PIXFMT_RGB24
+#  define VBI3_PIXFMT_BGR24_LE VBI3_PIXFMT_BGR24
+#  define VBI3_PIXFMT_RGBA24_LE VBI3_PIXFMT_RGBA32_LE
+#  define VBI3_PIXFMT_BGRA24_LE VBI3_PIXFMT_BGRA32_LE
+#  define VBI3_PIXFMT_RGBA24_BE VBI3_PIXFMT_RGBA32_BE
+#  define VBI3_PIXFMT_BGRA24_BE VBI3_PIXFMT_BGRA32_BE
+#  define vbi3_pixfmt_bytes_per_pixel VBI3_PIXFMT_BPP
 #endif
 
 #undef warning
@@ -122,7 +124,7 @@ do {									\
 #ifndef HAVE_SINCOS
 
 /* This is a GNU extension. */
-vbi3_inline void
+_vbi3_inline void
 sincos				(double			x,
 				 double *		sinx,
 				 double *		cosx)
@@ -131,6 +133,11 @@ sincos				(double			x,
 	*cosx = cos (x);
 }
 
+#endif
+
+/* This is a GNU extension. */
+#ifndef HAVE_LOG2
+#  define log2(x) (log (x) / M_LN2)
 #endif
 
 static void
@@ -414,7 +421,7 @@ clear_image			(uint8_t *		p,
 /**
  * @param raw Noise will be added to this raw VBI image.
  * @param sp Describes the raw VBI data in the buffer. @a sp->sampling_format
- *   must be @c VBI3_PIXFMT_Y8 (@c VBI_PIXFMT_YUV420 in libzvbi 0.2.x).
+ *   must be @c VBI3_PIXFMT_Y8 (@c VBI3_PIXFMT_YUV420 in libzvbi 0.2.x).
  *   Note for compatibility in libzvbi 0.2.x vbi3_sampling_par is a
  *   synonym of vbi3_raw_decoder, but the (private) decoder fields in
  *   this structure are ignored.
@@ -1063,7 +1070,7 @@ _vbi3_raw_video_image		(uint8_t *		raw,
 #if 3 == VBI_VERSION_MINOR
 	sp8.sample_format = VBI3_PIXFMT_Y8;
 #else
-	sp8.sampling_format = VBI_PIXFMT_YUV420;
+	sp8.sampling_format = VBI3_PIXFMT_YUV420;
 #endif
 
 	sp8.bytes_per_line = samples_per_line * 1 /* bpp */;
@@ -1110,6 +1117,9 @@ _vbi3_raw_video_image		(uint8_t *		raw,
 		case VBI3_PIXFMT_YUV410:
 		case VBI3_PIXFMT_YVU410:
 		case VBI3_PIXFMT_Y8:
+#endif
+#if 2 == VBI_VERSION_MINOR
+		case VBI3_PIXFMT_PAL8:
 #endif
 		case VBI3_PIXFMT_YUV420:
 			for (i = 0; i < samples_per_line; ++i)
@@ -1258,7 +1268,7 @@ _vbi3_raw_video_image		(uint8_t *		raw,
  *   of @a sp->bytes_per_line each, with @a sp->samples_per_line
  *   (in libzvbi 0.2.x @a sp->bytes_per_line) bytes actually written.
  * @param sp Describes the raw VBI data to generate. @a sp->sampling_format
- *   must be @c VBI3_PIXFMT_Y8 (@c VBI_PIXFMT_YUV420 with libzvbi 0.2.x).
+ *   must be @c VBI3_PIXFMT_Y8 (@c VBI3_PIXFMT_YUV420 with libzvbi 0.2.x).
  *   @a sp->synchronous is ignored. Note for compatibility in libzvbi
  *   0.2.x vbi3_sampling_par is a synonym of vbi3_raw_decoder, but the
  *   (private) decoder fields in this structure are ignored.
@@ -2156,7 +2166,7 @@ vbi3_capture_sim_load_wss_625	(vbi3_capture *		cap,
 	return vbi3_encode_wss_625 (sim->wss_buffer, ar);
 }
 
-#endif /* 3 == VBI3_VERSION_MINOR */
+#endif /* 3 == VBI_VERSION_MINOR */
 
 static unsigned int
 gen_sliced_625			(vbi3_capture_sim *	sim)
@@ -2445,12 +2455,12 @@ sim_debug			(vbi3_capture *		cap,
 }
 
 /* For compatibility in libzvbi 0.2
-   struct vbi_sampling_par == vbi_raw_decoder. In 0.3
+   struct vbi3_sampling_par == vbi3_raw_decoder. In 0.3
    we'll drop the decoding related fields. */
 #if 3 == VBI_VERSION_MINOR
 static const vbi3_sampling_par *
 #else
-static vbi_raw_decoder *
+static vbi3_raw_decoder *
 #endif
 sim_parameters			(vbi3_capture *		cap)
 {
