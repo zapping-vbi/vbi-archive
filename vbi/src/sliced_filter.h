@@ -3,21 +3,23 @@
  *
  *  Copyright (C) 2006, 2007 Michael H. Schimek
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 2 as
- *  published by the Free Software Foundation.
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the 
+ *  Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+ *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: sliced_filter.h,v 1.2.2.3 2008-02-25 20:59:20 mschimek Exp $ */
+/* $Id: sliced_filter.h,v 1.2.2.4 2008-02-27 22:49:44 mschimek Exp $ */
 
 #ifndef __ZVBI3_SLICED_FILTER_H__
 #define __ZVBI3_SLICED_FILTER_H__
@@ -122,11 +124,12 @@ vbi3_sliced_filter_feed		(vbi3_sliced_filter *	sf,
 				 const vbi3_sliced *	sliced,
 				 unsigned int *		n_lines)
   _vbi3_nonnull ((1, 2, 3));
+
 extern const char *
 vbi3_sliced_filter_errstr	(vbi3_sliced_filter *	sf)
   _vbi3_nonnull ((1));
 extern void
-vbi3_sliced_filter_set_log_fn	(vbi3_sliced_filter *    sf,
+vbi3_sliced_filter_set_log_fn	(vbi3_sliced_filter *	sf,
 				 vbi3_log_mask		mask,
 				 vbi3_log_fn *		log_fn,
 				 void *			user_data)
