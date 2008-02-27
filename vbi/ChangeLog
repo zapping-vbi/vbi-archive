@@ -1,5 +1,16 @@
 2008-02-27    <mschimek@users.sf.net>
 
+	* src/vps.h, src/vps.c, src/sliced_filter.h:
+	* src/sliced_filter.c, src/pfc_demux.h, src/pfc_demux.c:
+	* src/page_table.h, src/page_table.c, src/intl-priv.h:
+	* src/io-sim.h, src/io-sim.c, src/idl_demux.c:
+	* src/idl_demux.h: Updated from branch 0.2. Changed license
+	  to LGPLv2+.
+
+	* src/packet_filter.c: Replaced by sliced_filter.c.
+	* src/Makefile.am (INSTALLHDRS): Removed packet_filter.h, was
+	  replaced by sliced_filter.h.
+
 	* src/hammgen.c, src/hamm-tables.h: Copied src/hammgen.c
 	  generator of src/hamm-tables.h from branch 0.2.
 	* src/hamm.h, src/hamm.c, src/dvb_mux.h, src/dvb_mux.c: 
