@@ -57,7 +57,6 @@ INSTALLHDRS = \
 	macros.h \
 	network.h \
 	packet-830.h \
-	packet_filter.h \
 	page.h \
 	page_table.h \
 	pdc.h \
