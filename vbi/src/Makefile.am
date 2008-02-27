@@ -9,6 +9,7 @@ BUILT_SOURCES = \
 	_videodev2.h \
 	_videodev2k.h \
 	ccfont3.xbm \
+	hamm-tables.h \
 	network-table.h \
 	version.h \
 	zvbi.h \
@@ -18,6 +19,7 @@ EXTRA_DIST = \
 	$(BUILT_SOURCES) \
 	$(structpr) \
 	ccfont3.pbm \
+	hamm-tables.h \
 	network-table.pl \
 	wstfont2.pbm
 
@@ -95,7 +97,7 @@ libzvbi_0_3_la_SOURCES = \
 	exp-txt.c exp-txt.h \
 	exp-vtx.c \
 	export.c export.h export-priv.h \
-	hamm.c hamm.h \
+	hamm.c hamm.h hamm-tables.h \
 	idl_demux.c idl_demux.h \
 	image_format.c image_format.h \
 	intl.h intl-priv.h \
@@ -156,6 +158,12 @@ wstfont2.xbm: wstfont2.pbm fontgen$(EXEEXT) Makefile.am
 
 ccfont3.xbm: ccfont3.pbm fontgen$(EXEEXT) Makefile.am
 	$(top_builddir)/src/fontgen$(EXEEXT) xbm ccfont3 13 < $< > $@
+
+hammgen: hammgen.c
+	$(CC) -o hammgen $(srcdir)/hammgen.c
+
+hamm-tables.h: hammgen$(EXEEXT) Makefile.am
+	$(top_builddir)/src/hammgen$(EXEEXT) > $@
 
 version.h: Makefile.am
 	echo -e "/* Generated file, do not edit! */\n" > $@
