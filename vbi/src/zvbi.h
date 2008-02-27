@@ -26,7 +26,6 @@
 #include "macros.h"
 #include "network.h"
 #include "packet-830.h"
-#include "packet_filter.h"
 #include "page.h"
 #include "page_table.h"
 #include "pdc.h"
