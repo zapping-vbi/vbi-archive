@@ -1,7 +1,19 @@
+2008-02-27    <mschimek@users.sf.net>
+
+	* src/hammgen.c, src/hamm-tables.h: Copied src/hammgen.c
+	  generator of src/hamm-tables.h from branch 0.2.
+	* src/hamm.h, src/hamm.c, src/dvb_mux.h, src/dvb_mux.c: 
+	* src/dvb_demux.h, src/dvb_demux.c, src/dlist.h: Updated from
+	  branch 0.2. Changed the license to LGPLv2+.
+
+	* src/dvb.h, src/conv.h, src/conv.c: Changed the license
+	  to LGPLv2+.
+
 2008-02-26    <mschimek@users.sf.net>
 
-	* src/network-table.h: Updated from Updated from TS 101 231
-          rev. 2008-02.
+	* test/test-hamm.cc: Updated from branch 0.2.
+
+	* src/network-table.h: Updated from TS 101 231 rev. 2008-02.
 
 	* src/cache.h (vbi3_ttx_page_stat): Include sys/time.h to
 	  declare struct timeval.
