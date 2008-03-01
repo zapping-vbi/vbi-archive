@@ -15,10 +15,11 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ *  MA 02110-1301, USA.
  */
 
-/* $Id: capture.c,v 1.7.2.13 2007-11-01 00:21:26 mschimek Exp $ */
+/* $Id: capture.c,v 1.7.2.14 2008-03-01 15:52:02 mschimek Exp $ */
 
 /* For libzvbi version 0.2.x / 0.3.x. */
 
@@ -100,7 +101,7 @@ static unsigned int		raw_output_count;
  *  Dump
  */
 
-extern int vbi_printable (int);
+extern int vbi3_printable (int);
 
 static void
 decode_wss_625			(const uint8_t *	buf)
@@ -443,6 +444,7 @@ Device options:\n\
 -u | --sim-unsync      Simulate a VBI device with wrong/unknown field\n\
                        parity\n\
 -w | --sim-noise       Simulate a VBI device with noisy signal\n\
+-x | --proxy           Capture through the VBI proxy daemon\n\
 Output options:\n\
 -j | --dump            Sliced VBI data (text)\n\
 -l | --sliced          Sliced VBI data (binary)\n\
@@ -458,7 +460,7 @@ Output options:\n\
 		 option_dev_name);
 }
 
-static const char short_options[] = "c:d:hi:jlmno:pqr:suvwPT:V";
+static const char short_options[] = "c:d:hi:jlmno:pqr:suvwxPT:V";
 
 #ifdef HAVE_GETOPT_LONG
 static const struct option
@@ -481,6 +483,7 @@ long_options[] = {
 	{ "sim-unsync",	no_argument,		NULL,		'u' },
 	{ "verbose",	no_argument,		NULL,		'v' },
 	{ "sim-noise",  optional_argument,	NULL,		'w' },
+	{ "proxy",	no_argument,		NULL,		'x' },
 	{ "pes",	no_argument,		NULL,		'P' },
 	{ "ts",		required_argument,	NULL,		'T' },
 	{ "version",	no_argument,		NULL,		'V' },
@@ -702,6 +705,11 @@ main				(int			argc,
 			   (not implemented yet). */
 			interfaces = INTERFACE_SIM;
 			option_sim_flags |= _VBI3_RAW_NOISE_2;
+			break;
+
+		case 'x':
+			interfaces &= ~(INTERFACE_SIM | INTERFACE_DVB);
+			interfaces |= INTERFACE_PROXY;
 			break;
 
 		case 'P':
