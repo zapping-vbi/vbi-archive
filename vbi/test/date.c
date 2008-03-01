@@ -15,10 +15,11 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ *  MA 02110-1301, USA.
  */
 
-/* $Id: date.c,v 1.1.2.5 2007-11-01 00:21:26 mschimek Exp $ */
+/* $Id: date.c,v 1.1.2.6 2008-03-01 15:51:19 mschimek Exp $ */
 
 /* For libzvbi version 0.3.x. */
 
