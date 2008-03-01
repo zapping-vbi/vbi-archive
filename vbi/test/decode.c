@@ -16,12 +16,15 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ *  MA 02110-1301, USA.
  */
 
-/* $Id: decode.c,v 1.1.2.14 2007-11-11 03:06:13 mschimek Exp $ */
+/* $Id: decode.c,v 1.1.2.15 2008-03-01 15:51:41 mschimek Exp $ */
 
 /* For libzvbi version 0.2.x / 0.3.x. */
+
+#undef NDEBUG
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
