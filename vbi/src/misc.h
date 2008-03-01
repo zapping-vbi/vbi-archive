@@ -1,24 +1,26 @@
 /*
- *  libzvbi - Miscellaneous cows and chickens
+ *  libzvbi -- Miscellaneous cows and chickens
  *
+ *  Copyright (C) 2000-2003 Iñaki García Etxebarria
  *  Copyright (C) 2002-2007 Michael H. Schimek
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the 
+ *  Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+ *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: misc.h,v 1.2.2.23 2008-02-25 21:00:11 mschimek Exp $ */
+/* $Id: misc.h,v 1.2.2.24 2008-03-01 15:52:46 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -28,7 +30,9 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <string.h>
-#include <inttypes.h>
+#include <inttypes.h>		/* (u)intXX_t */
+#include <sys/types.h>		/* (s)size_t */
+#include <limits.h>		/* (S)SIZE_MAX */
 #include <assert.h>
 
 #include "macros.h"
@@ -85,7 +89,7 @@
 		_t >>= sizeof (_t) * 8 - 1;				\
 		_n ^= _t;						\
 		_n -= _t;						\
-	} else if (_n < 0) { /* also warns if n is unsigned */		\
+	} else if (_n < 0) { /* also warns if n is unsigned type */	\
 		_n = -_n;						\
 	}								\
 	/* return */ _n;						\
@@ -211,7 +215,8 @@ _vbi_popcnt			(uint32_t		x);
 
 #define CLEAR(var) memset (&(var), 0, sizeof (var))
 
-#define COPY(d, s) /* useful to copy arrays, otherwise use assignment */ \
+/* Useful to copy arrays, otherwise use assignment. */
+#define COPY(d, s)							\
 	(assert (sizeof (d) == sizeof (s)), memcpy (d, s, sizeof (d)))
 
 /* Copy string const into char array. */
@@ -373,6 +378,16 @@ do {									\
 #endif
 #ifndef PRIx64
 #  define PRIx64 "llx"
+#endif
+
+/* Should be defined in C99 limits.h? */
+#ifndef SIZE_MAX
+#  define SIZE_MAX ((size_t) -1)
+#endif
+
+/* __va_copy is a GNU extension. */
+#ifndef __va_copy
+#  define __va_copy(ap1, ap2) do { ap1 = ap2; } while (0)
 #endif
 
 /* Use this instead of strncpy(). strlcpy() is a BSD extension. */
