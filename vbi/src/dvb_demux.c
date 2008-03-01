@@ -1,23 +1,25 @@
 /*
- *  libzvbi - DVB VBI demultiplexer
+ *  libzvbi -- DVB VBI demultiplexer
  *
  *  Copyright (C) 2004, 2006, 2007 Michael H. Schimek
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 2 as
- *  published by the Free Software Foundation.
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the 
+ *  Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+ *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: dvb_demux.c,v 1.9.2.9 2008-02-27 07:57:54 mschimek Exp $ */
+/* $Id: dvb_demux.c,v 1.9.2.10 2008-03-01 15:52:57 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1370,7 +1372,7 @@ decode_timestamp		(vbi3_dvb_demux *	dx,
 }
 
 static vbi3_bool
-valid_pes_packet_header		(vbi3_dvb_demux *	dx,
+valid_vbi_pes_packet_header	(vbi3_dvb_demux *	dx,
 				 const uint8_t *	p)
 {
 	unsigned int header_length;
@@ -1663,7 +1665,17 @@ demux_pes_packet		(vbi3_dvb_demux *	dx,
 				++p;
 			} else if (PRIVATE_STREAM_1 == p[3]) {
 				break;
-			} else if (p[3] >= 0xBC) {
+			} else if (p[3] < 0xBC) {
+				++p;
+			} else {
+				/* ISO/IEC 13818-1 Table 2-19 stream_id
+				   assignments: 0xBC ... 0xFF. */
+
+				/* XXX We shouldn't take this shortcut
+				   unless we're sure this is a PES packet
+				   header and not some random junk, so we
+				   don't miss any data. */
+
 				packet_length = p[4] * 256 + p[5];
 
 				/* Not a VBI PES packet, skip it. */
@@ -1700,7 +1712,7 @@ demux_pes_packet		(vbi3_dvb_demux *	dx,
 		if (packet_length < 178)
 			continue;
 
-		if (!valid_pes_packet_header (dx, p))
+		if (!valid_vbi_pes_packet_header (dx, p))
 			continue;
 
 		/* Habemus packet. Skip all data up to the header,
@@ -1834,7 +1846,7 @@ demux_ts_packet			(vbi3_dvb_demux *	dx,
 				if (0)
 					log_block (dx, p, left);
 
-				if (!valid_pes_packet_header (dx, p)) {
+				if (!valid_vbi_pes_packet_header (dx, p)) {
 					/* Discard the data collected
 					   so far. */
 					dx->new_frame = TRUE;
@@ -2290,6 +2302,9 @@ demux_ts_packet			(vbi3_dvb_demux *	dx,
  * converts them to vbi3_sliced format and stores the sliced data at
  * @a sliced.
  *
+ * You must not call this function when you passed a callback function to
+ * vbi3_dvb_pes_demux_new(). Call vbi3_dvb_demux_feed() instead.
+ *
  * @returns
  * When a frame is complete, the function returns the number of elements
  * stored in the @a sliced array. When more data is needed (@a
@@ -2316,6 +2331,9 @@ vbi3_dvb_demux_cor		(vbi3_dvb_demux *	dx,
 
 	/* FIXME in future version:
 	   buffer_left ought to be an unsigned long. */
+
+	/* FIXME can we handle this? */
+	assert (NULL == dx->callback);
 
 	/* Doesn't work with TS, and isn't safe in any case. */
 	/* dx->frame.sliced_begin = sliced;
@@ -2529,8 +2547,10 @@ _vbi3_dvb_ts_demux_new		(vbi3_dvb_demux_cb *	callback,
 
 /**
  * @brief Allocates DVB VBI demux.
- * @param callback Function to be called by vbi3_dvb_demux_demux() when
- *   a new frame is available. 
+ * @param callback Function to be called by vbi3_dvb_demux_feed() when
+ *   a new frame is available. If you want to use the vbi3_dvb_demux_cor()
+ *   function instead, @a callback must be @c NULL. Conversely you
+ *   must not call vbi3_dvb_demux_cor() if a @a callback is given.
  * @param user_data User pointer passed through to @a callback function.
  *
  * Allocates a new DVB VBI (EN 301 472, EN 301 775) demultiplexer taking
