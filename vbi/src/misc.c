@@ -1,30 +1,32 @@
 /*
+ *  libzvbi -- Miscellaneous cows and chickens
+ *
  *  Copyright (C) 2000-2003 Iñaki García Etxebarria
  *  Copyright (C) 2001-2007 Michael H. Schimek
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
+ *  This library is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the 
+ *  Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, 
+ *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: misc.c,v 1.4.2.8 2007-11-11 03:06:13 mschimek Exp $ */
+/* $Id: misc.c,v 1.4.2.9 2008-03-01 15:52:52 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
 #include <ctype.h>
-#include <limits.h>
 #include <errno.h>
 
 #include "misc.h"
@@ -143,6 +145,7 @@ _vbi3_vasprintf			(char **		dstp,
 {
 	char *buf;
 	unsigned long size;
+	va_list ap2;
 	int temp;
 
 	assert (NULL != dstp);
@@ -152,6 +155,8 @@ _vbi3_vasprintf			(char **		dstp,
 
 	buf = NULL;
 	size = 64;
+
+	__va_copy (ap2, ap);
 
 	for (;;) {
 
@@ -176,6 +181,9 @@ _vbi3_vasprintf			(char **		dstp,
 			/* Size needed. */
 			size = len + 1;
 		}
+
+		/* vsnprintf() may advance ap. */
+		__va_copy (ap, ap2);
 	}
 
 	vbi3_free (buf);
