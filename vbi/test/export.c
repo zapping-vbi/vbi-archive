@@ -15,10 +15,11 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ *  MA 02110-1301, USA.
  */
 
-/* $Id: export.c,v 1.5.2.17 2007-11-11 03:06:13 mschimek Exp $ */
+/* $Id: export.c,v 1.5.2.18 2008-03-01 15:52:31 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -42,15 +43,14 @@
 #  include "src/page_table.h"
 #  include "src/vbi.h"
 #  include "src/vt.h"
-#  define vbi_decoder_feed(vbi, sliced, n_lines, ts)			\
-	vbi_decode (vbi, sliced, n_lines, ts)
-#  define vbi_export_info_from_export(ex)				\
-	vbi_export_info_export (ex)
+#  define vbi3_decoder_feed(vbi, sliced, n_lines, ts)			\
+	vbi3_decode (vbi, sliced, n_lines, ts)
+#  define vbi3_export_info_from_export(ex)				\
+	vbi3_export_info_export (ex)
    /* Not available. */
-#  define vbi_export_set_timestamp(ex, ts) ((void) 0)
-#  define vbi_export_set_link_cb(ex, cb, ud) ((void) 0)
-#  define vbi_export_set_pdc_cb(ex, cb, ud) ((void) 0)
-typedef unsigned int vbi_ttx_charset_code;
+#  define vbi3_export_set_timestamp(ex, ts) ((void) 0)
+#  define vbi3_export_set_link_cb(ex, cb, ud) ((void) 0)
+#  define vbi3_export_set_pdc_cb(ex, cb, ud) ((void) 0)
 #elif 3 == VBI_VERSION_MINOR
 #  include "src/misc.h"
 #  include "src/zvbi.h"
@@ -71,6 +71,7 @@ static unsigned int		option_in_ts_pid;
 
 static vbi3_bool		option_dcc;
 static unsigned int		option_delay;
+static vbi3_bool			have_option_default_cs;
 static vbi3_ttx_charset_code	option_default_cs;
 static vbi3_ttx_charset_code	option_override_cs;
 static vbi3_bool		option_dump_pg;
@@ -189,20 +190,20 @@ page_dump			(vbi3_page *		pg)
 #if 2 == VBI_VERSION_MINOR
 
 static void
-do_export			(vbi_pgno		pgno,
-				 vbi_subno		subno)
+do_export			(vbi3_pgno		pgno,
+				 vbi3_subno		subno)
 {
-	vbi_page page;
-	vbi_bool success;
+	vbi3_page page;
+	vbi3_bool success;
 
 	if (option_delay > 1) {
 		--option_delay;
 		return;
 	}
 
-	success = vbi_fetch_vt_page (vbi, &page,
+	success = vbi3_fetch_vt_page (vbi, &page,
 				     pgno, subno,
-				     VBI_WST_LEVEL_3p5,
+				     VBI3_WST_LEVEL_3p5,
 				     /* n_rows */ 25,
 				     /* navigation */ TRUE);
 	if (!success) {
@@ -226,7 +227,7 @@ do_export			(vbi_pgno		pgno,
 		buffer = malloc (1 << 20);
 		if (NULL == buffer)
 			no_mem_exit ();
-		ssize = vbi_export_mem (ex, buffer, 1 << 20, &page);
+		ssize = vbi3_export_mem (ex, buffer, 1 << 20, &page);
 		success = (ssize >= 0);
 		if (success) {
 			ssize_t ssize2;
@@ -237,10 +238,10 @@ do_export			(vbi_pgno		pgno,
 			close_output_file (fp);
 
 			/* Test. */
-			ssize2 = vbi_export_mem (ex, buffer, 0, &page);
+			ssize2 = vbi3_export_mem (ex, buffer, 0, &page);
 			assert (ssize == ssize2);
 			assert (ssize > 0);
-			ssize2 = vbi_export_mem (ex, buffer, ssize - 1, &page);
+			ssize2 = vbi3_export_mem (ex, buffer, ssize - 1, &page);
 			assert (ssize == ssize2);
 		}
 		free (buffer);
@@ -248,7 +249,7 @@ do_export			(vbi_pgno		pgno,
 
 	case 2:
 		buffer = NULL;
-		buffer2 = vbi_export_alloc (ex, &buffer, &size, &page);
+		buffer2 = vbi3_export_alloc (ex, &buffer, &size, &page);
 		/* Test. */
 		assert (buffer == buffer2);
 		success = (NULL != buffer);
@@ -267,13 +268,13 @@ do_export			(vbi_pgno		pgno,
 		   wrote proper unit tests. */
 
 		fp = open_output_file (pgno, subno);
-		success = vbi_export_stdio (ex, fp, &page);
+		success = vbi3_export_stdio (ex, fp, &page);
 		close_output_file (fp);
 		break;
 
 	case 5:
 		file_name = output_file_name (pgno, subno);
-		success = vbi_export_file (ex, file_name, &page);
+		success = vbi3_export_file (ex, file_name, &page);
 		free (file_name);
 		break;
 
@@ -285,18 +286,18 @@ do_export			(vbi_pgno		pgno,
 	if (!success) {
 		error_exit (_("Export of page %x failed: %s"),
 			    pgno,
-			    vbi_export_errstr (ex));
+			    vbi3_export_errstr (ex));
 	}
 
-	vbi_unref_page (&page);
+	vbi3_unref_page (&page);
 }
 
 static void
-event_handler			(vbi_event *		ev,
+event_handler			(vbi3_event *		ev,
 				 void *			user_data)
 {
-	vbi_pgno pgno;
-	vbi_subno subno;
+	vbi3_pgno pgno;
+	vbi3_subno subno;
 
 	user_data = user_data; /* unused */
 
@@ -304,7 +305,7 @@ event_handler			(vbi_event *		ev,
 		return;
 
 	switch (ev->type) {
-	case VBI_EVENT_TTX_PAGE:
+	case VBI3_EVENT_TTX_PAGE:
 		pgno = ev->ev.ttx_page.pgno;
 		subno = ev->ev.ttx_page.subno;
 
@@ -314,15 +315,15 @@ event_handler			(vbi_event *		ev,
 				 pgno, subno, cr);
 		}
 
-		if (0 == vbi_page_table_num_pages (pt)) {
+		if (0 == vbi3_page_table_num_pages (pt)) {
 			do_export (pgno, subno);
-		} else if (vbi_page_table_contains_page (pt, pgno)) {
+		} else if (vbi3_page_table_contains_page (pt, pgno)) {
 			do_export (pgno, subno);
 
 			if (!option_subtitles) {
-				vbi_page_table_remove_page (pt, pgno);
+				vbi3_page_table_remove_page (pt, pgno);
 
-				quit = (0 == vbi_page_table_num_pages (pt));
+				quit = (0 == vbi3_page_table_num_pages (pt));
 			}
 		}
 
@@ -340,16 +341,20 @@ finalize			(void)
 }
 
 static void
-init_vbi_decoder		(void)
+init_vbi3_decoder		(void)
 {
-	vbi_bool success;
+	vbi3_bool success;
 
-	vbi = vbi_decoder_new ();
+	vbi = vbi3_decoder_new ();
 	if (NULL == vbi)
 		no_mem_exit ();
 
-	success = vbi_event_handler_add (vbi,
-					 VBI_EVENT_TTX_PAGE,
+	if (have_option_default_cs) {
+		vbi3_teletext_set_default_region (vbi, option_default_cs);
+	}
+
+	success = vbi3_event_handler_add (vbi,
+					 VBI3_EVENT_TTX_PAGE,
 					 event_handler,
 					 /* user_data */ NULL);
 	if (!success)
@@ -401,7 +406,7 @@ export_link			(vbi3_export *		e,
 	case VBI3_LINK_FTP:
 	case VBI3_LINK_EMAIL:
 		success = vbi3_export_printf (e, "<a href=\"%s\">%s</a>",
-					      link->url, link->name);
+			 link->url, link->name);
 		break;
 
 	case VBI3_LINK_PAGE:
@@ -410,12 +415,12 @@ export_link			(vbi3_export *		e,
 					      ".%s\">%s</a>",
 					      out_file_name_prefix ?
 					      out_file_name_prefix : "ttx",
-					      link->pgno,
+			 link->pgno,
 					      (VBI3_ANY_SUBNO == link->subno) ?
 					      0 : link->subno,
 					      out_file_name_suffix ?
 					      out_file_name_suffix : "html",
-					      link->name);
+			 link->name);
 		break;
 
 	default:
@@ -442,14 +447,14 @@ export_pdc			(vbi3_export *		e,
 	/* XXX pl->title uses locale encoding but the html page may not.
 	   (export charset parameter) */
 	success = vbi3_export_printf (e, "<acronym title=\"%04u-%02u-%02u "
-				      "%02u:%02u-%02u:%02u "
-				      "VPS/PDC: %02u%02u TTX: %x Title: %s"
-				      "\">%s</acronym>",
-				      pl->year, pl->month, pl->day,
-				      pl->at1_hour, pl->at1_minute,
-				      (end / 60 % 24), end % 60,
-				      pl->at2_hour, pl->at2_minute,
-				      pl->_pgno, pl->title, text);
+		 "%02u:%02u-%02u:%02u "
+		 "VPS/PDC: %02u%02u TTX: %x Title: %s"
+		 "\">%s</acronym>",
+		 pl->year, pl->month, pl->day,
+		 pl->at1_hour, pl->at1_minute,
+		 (end / 60 % 24), end % 60,
+		 pl->at2_hour, pl->at2_minute,
+		 pl->_pgno, pl->title, text);
 	return success;
 }
 
@@ -563,10 +568,10 @@ do_export			(vbi3_pgno		pgno,
 		   implemented for tests and will be removed when I
 		   wrote proper unit tests. */
 
-		fp = open_output_file (pgno, subno);
+	fp = open_output_file (pgno, subno);
 
-		/* For proper timing of subtitles. */
-		vbi3_export_set_timestamp (ex, timestamp);
+	/* For proper timing of subtitles. */
+	vbi3_export_set_timestamp (ex, timestamp);
 
 		success = vbi3_export_stdio (ex, fp, pg);
 
@@ -715,7 +720,7 @@ finalize			(void)
 }
 
 static void
-init_vbi_decoder		(void)
+init_vbi3_decoder		(void)
 {
 	vbi3_event_mask event_mask;
 	vbi3_bool success;
@@ -1243,6 +1248,7 @@ main				(int			argc,
 		case 'C':
 			assert (NULL != optarg);
 			option_default_cs = strtoul (optarg, NULL, 0);
+			have_option_default_cs = TRUE;
 			break;
 
 		case 'F':
@@ -1326,7 +1332,7 @@ main				(int			argc,
 
 	init_export_module (module_name);
 
-	init_vbi_decoder ();
+	init_vbi3_decoder ();
 
 	cr = isatty (STDERR_FILENO) ? '\r' : '\n';
 

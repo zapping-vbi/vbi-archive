@@ -15,12 +15,17 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ *  MA 02110-1301, USA.
  */
 
-/* $Id: test-dvb_mux.cc,v 1.4.2.2 2007-11-01 00:21:26 mschimek Exp $ */
+/* $Id: test-dvb_mux.cc,v 1.4.2.3 2008-03-01 15:52:16 mschimek Exp $ */
 
 #undef NDEBUG
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <assert.h>
 #include <stdlib.h>
@@ -2066,8 +2071,8 @@ test_multiplex_raw_videostd_checks (void)
 			      /* raw */ (uint8_t *) -1,
 			      /* raw_size */ 720,
 			      ANY_DATA_IDENTIFIER,
-			      (VBI_VIDEOSTD_SET_625_50 |
-			       VBI_VIDEOSTD_SET_525_60),
+			      (VBI3_VIDEOSTD_SET_625_50 |
+			       VBI3_VIDEOSTD_SET_525_60),
 			      /* line */ 10,
 			      /* first_pixel_position */ 0,
 			      /* n_pixels_total */ 720,

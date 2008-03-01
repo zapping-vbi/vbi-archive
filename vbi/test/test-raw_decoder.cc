@@ -15,10 +15,17 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ *  MA 02110-1301, USA.
  */
 
-/* $Id: test-raw_decoder.cc,v 1.1.2.10 2007-11-01 00:21:26 mschimek Exp $ */
+/* $Id: test-raw_decoder.cc,v 1.1.2.11 2008-03-01 15:52:11 mschimek Exp $ */
+
+#undef NDEBUG
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdlib.h>
 #include <string.h>
@@ -29,9 +36,9 @@
 #  include "src/raw_decoder.h"
 #  include "src/io-sim.h"
 #  define N_ELEMENTS(array) (sizeof (array) / sizeof (*(array)))
-#  define vbi_pixfmt_bytes_per_pixel(pf) VBI_PIXFMT_BPP(pf)
-#  define VBI3_PIXFMT_IS_YUV(pf) (0 != (VBI_PIXFMT_SET (pf)		\
-					& VBI_PIXFMT_SET_YUV))
+#  define vbi3_pixfmt_bytes_per_pixel(pf) VBI3_PIXFMT_BPP(pf)
+#  define VBI3_PIXFMT_IS_YUV(pf) (0 != (VBI3_PIXFMT_SET (pf)		\
+					& VBI3_PIXFMT_SET_YUV))
 #else
 #  include "src/misc.h"
 #  include "src/zvbi.h"
@@ -234,7 +241,7 @@ create_decoder			(const vbi3_sampling_par *sp,
 			(rd,
 			 vbi3_log_on_stderr,
 			 /* user_data */ NULL,
-			 (vbi_log_mask)(VBI3_LOG_INFO * 2 - 1));
+			 (vbi3_log_mask)(VBI3_LOG_INFO * 2 - 1));
 #else
 		vbi3_raw_decoder_set_log_fn
 			(rd,
@@ -321,7 +328,7 @@ compare_sliced			(const vbi3_sampling_par *sp,
 		payload = (vbi3_sliced_payload_bits (out[i].id) + 7) >> 3;
 		assert (payload > 0);
 
-		/* vbi_sliced big enough. */
+		/* vbi3_sliced big enough. */
 		assert (payload <= sizeof (out[i].data));
 
 		/* Writes more than payload. */
@@ -509,7 +516,7 @@ test_video			(const vbi3_sampling_par *sp,
 	sp2 = *sp;
 #if 2 == VBI_VERSION_MINOR
 	samples_per_line = sp->bytes_per_line
-		/ vbi_pixfmt_bytes_per_pixel (sp->sampling_format);
+		/ vbi3_pixfmt_bytes_per_pixel (sp->sampling_format);
 #else
 	samples_per_line = sp->samples_per_line;
 #endif
@@ -641,7 +648,7 @@ test2				(const vbi3_sampling_par *sp)
 			/* Needs sampling beyond 0H + 63 us (?) */
 #if 2 == VBI_VERSION_MINOR
 			if (sp->bytes_per_line
-			    == 2048 * VBI_PIXFMT_BPP (sp->sampling_format))
+			    == 2048 * VBI3_PIXFMT_BPP (sp->sampling_format))
 				test_vbi (sp, ttx_d_625, 1);
 #else
 			if (sp->bytes_per_line == 2048

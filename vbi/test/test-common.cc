@@ -15,12 +15,20 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ *  MA 02110-1301, USA.
  */
 
-/* $Id: test-common.cc,v 1.3.2.2 2007-11-01 00:21:26 mschimek Exp $ */
+/* $Id: test-common.cc,v 1.3.2.3 2008-03-01 15:52:20 mschimek Exp $ */
+
+#undef NDEBUG
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #include <stdlib.h>
+
 #include "src/misc.h"
 #include "test-common.h"
 #include "src/version.h"
@@ -110,6 +118,7 @@ xmemdup				(const void *		src,
 static unsigned int		malloc_count;
 static unsigned int		malloc_fail_cycle;
 
+#if 3 == VBI_VERSION_MINOR
 static void *
 my_malloc			(size_t			n_bytes)
 {
@@ -118,6 +127,7 @@ my_malloc			(size_t			n_bytes)
 	else
 		return malloc (n_bytes);
 }
+#endif
 
 void
 test_malloc			(void			(* function)(void),
@@ -133,6 +143,9 @@ test_malloc			(void			(* function)(void),
 	}
 
 	vbi3_malloc = malloc;
+#else
+	function = function; /* unused */
+	n_cycles = n_cycles;
 #endif
 }
 
