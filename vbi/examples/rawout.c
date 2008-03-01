@@ -25,12 +25,12 @@
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id: rawout.c,v 1.8.2.2 2008-03-01 15:31:25 mschimek Exp $ */
+/* $Id: rawout.c,v 1.8.2.3 2008-03-01 15:50:19 mschimek Exp $ */
 
 /* This example shows how to convert VBI data in a DVB PES stream
    to raw VBI data.
 
-   gcc -o rawout rawout.c `pkg-config zvbi-0.2 --cflags --libs`
+   gcc -o rawout rawout.c `pkg-config zvbi-0.3 --cflags --libs`
 
    ./rawout <pes | mplayer - -rawvideo on:w=720:h=34:format=0x32595559 */
 

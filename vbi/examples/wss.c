@@ -25,7 +25,7 @@
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id: wss.c,v 1.11.2.2 2008-03-01 15:31:20 mschimek Exp $ */
+/* $Id: wss.c,v 1.11.2.3 2008-03-01 15:50:10 mschimek Exp $ */
 
 /* This example shows how to extract Wide Screen Signalling data
    (EN 300 294) from video images. The signal is transmitted on the
@@ -37,7 +37,7 @@
    capturing is not supported yet by libzvbi. Note some drivers like
    the Linux saa7134 driver cannot capture line 23 at all.
 
-   gcc -o wss wss.c `pkg-config zvbi-0.2 --cflags --libs` */
+   gcc -o wss wss.c `pkg-config zvbi-0.3 --cflags --libs` */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -68,7 +68,7 @@
 #else
 /* To compile this program against the installed
    library and kernel headers. */
-#  include <zvbi/zvbi.h>
+#  include <zvbi-0.3/zvbi.h>
 #  include <videodev2.h>
 #endif
 
