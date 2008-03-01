@@ -5,7 +5,14 @@ EXTRA_DIST = config.rpath BUGS depcomp \
 
 DISTCLEANFILES = site_def.h
 
-SUBDIRS = m4 src po test doc contrib
+SUBDIRS = \
+	m4 \
+	src \
+	contrib \
+	examples \
+	test \
+	po \
+	doc
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = zvbi-0.3.pc
