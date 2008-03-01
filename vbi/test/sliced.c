@@ -15,10 +15,11 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ *  MA 02110-1301, USA.
  */
 
-/* $Id: sliced.c,v 1.4.2.5 2007-11-11 03:06:14 mschimek Exp $ */
+/* $Id: sliced.c,v 1.4.2.6 2008-03-01 15:51:58 mschimek Exp $ */
 
 /* For libzvbi version 0.2.x / 0.3.x. */
 
@@ -53,11 +54,13 @@
 #include "sliced.h"
 
 #if 2 == VBI_VERSION_MINOR
+#  include "src/proxy-msg.h"
+#  include "src/proxy-client.h"
 #  define sp_sample_format sampling_format
 #  define sp_samples_per_line bytes_per_line
-#  define VBI_PIXFMT_Y8 VBI_PIXFMT_YUV420
-#  define vbi_pixfmt_name(x) "Y8"
-#  define vbi_pixfmt_bytes_per_pixel(x) 1
+#  define VBI3_PIXFMT_Y8 VBI3_PIXFMT_YUV420
+#  define vbi3_pixfmt_name(x) "Y8"
+#  define vbi3_pixfmt_bytes_per_pixel(x) 1
 #elif 3 == VBI_VERSION_MINOR
 #  define sp_sample_format sample_format
 #  define sp_samples_per_line samples_per_line
@@ -100,6 +103,9 @@ struct stream {
 
 	vbi3_dvb_mux *		mx;
 	vbi3_dvb_demux *	dx;
+#if 2 == VBI_VERSION_MINOR
+        vbi3_proxy_client *	proxy;
+#endif
 	vbi3_capture *		cap;
 	vbi3_raw_decoder *	rd;
 	vbi3_sampling_par	sp;
@@ -546,13 +552,6 @@ write_func_xml			(struct stream *	st,
 
 	return TRUE;
 }
-
-#if 0
-static vbi3_bool
-write_func_new_sliced		(struct stream *	st)
-{
-}
-#endif
 
 static vbi3_bool
 write_func_old_sliced		(struct stream *	st,
@@ -1570,8 +1569,6 @@ capture_stream_new		(unsigned int		interfaces,
 		interfaces = INTERFACE_SIM;
 	}
 
-	/* XXX proxy? */
-
 	if (NULL == dev_name
 	    && (interfaces & (INTERFACE_DVB |
 			      INTERFACE_V4L2 |
@@ -1585,7 +1582,8 @@ capture_stream_new		(unsigned int		interfaces,
 
 		assert (0 == (interfaces & (INTERFACE_V4L2 |
 					    INTERFACE_V4L |
-					    INTERFACE_BKTR)));
+					    INTERFACE_BKTR |
+					    INTERFACE_PROXY)));
 
 #if 2 == VBI_VERSION_MINOR /* not ported to 0.3 yet */
 		assert (NULL != dev_name);
@@ -1595,10 +1593,8 @@ capture_stream_new		(unsigned int		interfaces,
 				      "from a DVB device."));
 		}
 
-		st->cap = vbi3_capture_dvb_new (dev_name,
-						system,
-						&services,
-						strict,
+		st->cap = vbi3_capture_dvb_new2 (dev_name,
+						ts_pid,
 						&errstr,
 						trace);
 		if (NULL == st->cap) {
@@ -1606,9 +1602,6 @@ capture_stream_new		(unsigned int		interfaces,
 			capture_error_msg ("DVB", errstr);
 		} else {
 			interfaces = INTERFACE_DVB;
-
-			/* XXX error? */
-			vbi3_capture_dvb_filter (st->cap, ts_pid);
 		}
 #elif 3 == VBI_VERSION_MINOR
 		ts_pid = ts_pid;
@@ -1620,6 +1613,39 @@ capture_stream_new		(unsigned int		interfaces,
 #  error VBI_VERSION_MINOR == ?
 #endif
 	}
+
+	if (interfaces & INTERFACE_PROXY) {
+#if 2 == VBI_VERSION_MINOR
+		char *errstr = NULL;
+
+		st->proxy = vbi3_proxy_client_create(dev_name,
+						"test/capture",
+						0, /* no flags */
+						&errstr,
+						trace);
+		if (NULL != st->proxy) {
+			st->cap = vbi3_capture_proxy_new(st->proxy,
+							 n_buffers,
+							 system,
+							 &services,
+							 strict,
+							 &errstr );
+			if (NULL == st->cap) {
+				interfaces &= ~INTERFACE_PROXY;
+				capture_error_msg ("PROXY", errstr);
+				free (errstr);
+			} else {
+				interfaces = INTERFACE_PROXY;
+			}
+		} else {
+			capture_error_msg ("PROXY", errstr);
+			free (errstr);
+		}
+#else
+		error_exit ("Sorry, the proxy interface is not "
+			    "available yet.\n");
+#endif
+        }
 
 	if (interfaces & INTERFACE_V4L2) {
 		char *errstr;
@@ -1681,7 +1707,8 @@ capture_stream_new		(unsigned int		interfaces,
 	if (interfaces & (INTERFACE_SIM |
 			  INTERFACE_V4L2 |
 			  INTERFACE_V4L |
-			  INTERFACE_BKTR)) {
+			  INTERFACE_BKTR |
+			  INTERFACE_PROXY)) {
 		unsigned int max_lines;
 		unsigned int raw_size;
 
@@ -1698,6 +1725,16 @@ capture_stream_new		(unsigned int		interfaces,
 			no_mem_exit ();
 	} else if (interfaces & INTERFACE_DVB) {
 		assert (N_ELEMENTS (st->sliced) >= 2 * 32);
+
+		/* XXX We should have sampling parameters because
+		   DVB VBI can transmit raw VBI samples.
+		   For now let's just make write_stream_new() happy. */
+		CLEAR (st->sp);
+#if 2 == VBI_VERSION_MINOR
+		st->sp.scanning = 625;
+#else
+		st->sp.videostd_set = VBI3_VIDEOSTD_SET_625_50;
+#endif
 	}
 
 	st->loop = capture_loop;

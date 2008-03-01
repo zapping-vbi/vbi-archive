@@ -15,10 +15,11 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ *  MA 02110-1301, USA.
  */
 
-/* $Id: sliced.h,v 1.3.2.4 2007-11-11 03:06:14 mschimek Exp $ */
+/* $Id: sliced.h,v 1.3.2.5 2008-03-01 15:51:52 mschimek Exp $ */
 
 /* For libzvbi version 0.2.x / 0.3.x. */
 
@@ -58,6 +59,7 @@ enum interface {
 	INTERFACE_V4L2		= (1 << 2),
 	INTERFACE_V4L		= (1 << 3),
 	INTERFACE_BKTR		= (1 << 4),
+	INTERFACE_PROXY		= (1 << 5),
 };
 
 typedef vbi3_bool
@@ -139,7 +141,7 @@ read_stream_new			(const char *		file_name,
 #if 2 == VBI_VERSION_MINOR
 
 typedef struct {
-} vbi_bit_slicer_point;
+} vbi3_bit_slicer_point;
 
 #endif
 
