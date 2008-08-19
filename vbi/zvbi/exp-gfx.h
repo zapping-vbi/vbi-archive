@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: exp-gfx.h,v 1.1.2.1 2008-08-19 10:56:05 mschimek Exp $ */
+/* $Id: exp-gfx.h,v 1.1.2.2 2008-08-19 16:36:50 mschimek Exp $ */
 
 #ifndef __ZVBI_EXP_GFX_H__
 #define __ZVBI_EXP_GFX_H__
@@ -39,7 +39,8 @@ typedef enum {
 	VBI_REVEAL,
 	VBI_FLASH_ON,
 	VBI_BRIGHTNESS,
-	VBI_CONTRAST
+	VBI_CONTRAST,
+	VBI_ALPHA,
 } vbi_export_option;
 
 /**
