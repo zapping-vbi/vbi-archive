@@ -19,7 +19,7 @@
  *  MA 02110-1301, USA.
  */
 
-/* $Id: test-hamm.cc,v 1.1.2.7 2008-03-01 15:50:52 mschimek Exp $ */
+/* $Id: test-hamm.cc,v 1.1.2.8 2008-08-19 13:14:24 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -31,53 +31,53 @@
 #include <stdlib.h>		/* mrand48() */
 #include <string.h>		/* memset() */
 
-#include "src/hamm.h"
+#include "zvbi/hamm.h"
 
 namespace vbi {
   static inline unsigned int rev8 (uint8_t c)
-    { return vbi3_rev8 (c); };
+    { return vbi_rev8 (c); };
   static inline unsigned int rev8 (const uint8_t* p)
-    { return vbi3_rev8 (*p); };
+    { return vbi_rev8 (*p); };
   static inline unsigned int rev16 (uint16_t c)
-    { return vbi3_rev16 (c); }
+    { return vbi_rev16 (c); }
   static inline unsigned int rev16 (const uint8_t* p)
-    { return vbi3_rev16p (p); };
+    { return vbi_rev16p (p); };
 
   static inline unsigned int par8 (uint8_t c)
-    { return vbi3_par8 (c); };
+    { return vbi_par8 (c); };
   static inline void par (uint8_t* p, unsigned int n)
-    { vbi3_par (p, n); };
+    { vbi_par (p, n); };
   static inline void par (uint8_t* begin, uint8_t* end)
-    { vbi3_par (begin, end - begin); };
+    { vbi_par (begin, end - begin); };
 
   static inline int unpar8 (uint8_t c)
-    { return vbi3_unpar8 (c); };
+    { return vbi_unpar8 (c); };
   static inline int unpar (uint8_t* p, unsigned int n)
-    { return vbi3_unpar (p, n); };
+    { return vbi_unpar (p, n); };
   static inline int unpar (uint8_t* begin, uint8_t* end)
-    { return vbi3_unpar (begin, end - begin); };
+    { return vbi_unpar (begin, end - begin); };
 
   static inline unsigned int ham8 (unsigned int c)
-    { return vbi3_ham8 (c); };
+    { return vbi_ham8 (c); };
   static inline void ham16 (uint8_t* p, uint8_t c)
     {
-      p[0] = vbi3_ham8 (c);
-      p[1] = vbi3_ham8 (c >> 4);
+      p[0] = vbi_ham8 (c);
+      p[1] = vbi_ham8 (c >> 4);
     }
 
   static inline int unham8 (uint8_t c)
-    { return vbi3_unham8 (c); };
+    { return vbi_unham8 (c); };
   static inline int unham16 (uint16_t c)
-    { return ((int) _vbi3_hamm8_inv[c & 255])
-	| ((int) _vbi3_hamm8_inv[c >> 8] << 4); };
+    { return ((int) _vbi_hamm8_inv[c & 255])
+	| ((int) _vbi_hamm8_inv[c >> 8] << 4); };
   static inline int unham16 (uint8_t* p)
-    { return vbi3_unham16p (p); };
+    { return vbi_unham16p (p); };
 
   static inline void ham24 (uint8_t* p, unsigned int c)
-    { vbi3_ham24p (p, c); }
+    { vbi_ham24p (p, c); }
 
   static inline int unham24 (uint8_t* p)
-    { return vbi3_unham24p (p); };
+    { return vbi_unham24p (p); };
 };
 
 static unsigned int
