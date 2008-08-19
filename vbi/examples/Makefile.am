@@ -1,11 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
 noinst_PROGRAMS = \
-	network \
-	rawout \
-	wss
+	teletext
 
-INCLUDES = -I$(top_srcdir)/src
+AM_CFLAGS = -I$(top_srcdir) $(X_CFLAGS)
 
-LDADD = $(top_builddir)/src/libzvbi-0.3.la \
-	$(PTHREAD_LIB) -lm $(PNG_LIB)
+LDADD = $(top_builddir)/zvbi/libzvbi-0.3.la \
+	$(PTHREAD_LIB) -lm $(X_LIBS)
