@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: image_format.h,v 1.1.2.1 2008-08-19 10:56:05 mschimek Exp $ */
+/* $Id: image_format.h,v 1.1.2.2 2008-08-19 16:36:40 mschimek Exp $ */
 
 #ifndef __ZVBI_IMAGE_FORMAT_H__
 #define __ZVBI_IMAGE_FORMAT_H__
@@ -74,7 +74,8 @@ typedef enum {
 	VBI_PIXFMT_BGRA12_LE,	/**< ggggbbbb aaaarrrr */
 	VBI_PIXFMT_BGRA12_BE,	/**< aaaarrrr ggggbbbb */
 
-        VBI_PIXFMT_PAL8,	/**< iiiiiiii */
+        VBI_PIXFMT_STATIC_8,	/**< i */
+        VBI_PIXFMT_PSEUDO_8,	/**< pal8[i] */
 } vbi_pixfmt;
 
 /** Color space identifier. No values defined yet. */
