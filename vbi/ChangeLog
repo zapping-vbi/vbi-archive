@@ -1,3 +1,38 @@
+2008-08-19    <mschimek@users.sf.net>
+
+	* examples/teletext.c: Added.
+
+	* m4/autogen.sh: Replaced by the newer version from branch
+	  0.2.
+
+	* examples/Makefile.am (noinst_PROGRAMS): Added teletext.c,
+	  removed the other programs until that code moves back into the
+	  library.
+	* examples/wss.c, examples/rawout.c, examples/network.c:
+	  Updated the zvbi.h include path.
+	* zvbi-0.3.pc.in (includedir): We now install the libzvbi
+	  headers in a zvbi-0.3 directory.
+	* test/test-headers: Library moved from src to zvbi directory.
+	* test/test-hamm.cc: vbi_ prefixes changed.
+	* test/test-bcd.cc: Moved the C++ interface here from
+	  src/bcd.h.
+	* test/Makefile.am: Disabled most of the tests and test
+	  tools until the tested code moves back into the library.
+	(LDADD): Library moved from src to zvbi directory.
+	* Makefile.am: 
+	* src, zvbi: In the future instead of a single libzvbi.h
+	  file we will install individual header files in a zvbi
+	  directory. The first batch of files now moved from src
+	  to zvbi so we can change the include path in the public
+	  header files. Changed the preliminary vbi3_ prefixes back
+	  to vbi_, made a few other cosmetic changes, removed
+	  or commented out code which isn't quite ready yet, and
+	  made a few steps to better error handling.
+
+	* configure.in: Updated, changed version to 0.3.1, .so
+	  version to 0.0.0.
+	(AC_OUTPUT): Removed doc (for now) and src Makefile. 
+	
 2008-02-27    <mschimek@users.sf.net>
 
 	* src/vps.h, src/vps.c, src/sliced_filter.h:
