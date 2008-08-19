@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: exp-gfx.c,v 1.1.2.1 2008-08-19 10:56:05 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.1.2.2 2008-08-19 16:36:54 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -67,7 +67,8 @@ _vbi_pixfmt_bytes_per_pixel	(vbi_pixfmt		pixfmt)
 	case VBI_PIXFMT_YUV422:
 	case VBI_PIXFMT_YUV420:
 	case VBI_PIXFMT_Y8:
-        case VBI_PIXFMT_PAL8:
+        case VBI_PIXFMT_STATIC_8:
+        case VBI_PIXFMT_PSEUDO_8:
 		return 1;
 
 	case VBI_PIXFMT_NONE:
@@ -347,6 +348,7 @@ vbi_rgba_conv			(void *			buffer,
 				 int			alpha)
 {
 	uint8_t *d = buffer;
+	unsigned int value;
 
 	switch (pixfmt) {
 	case VBI_PIXFMT_RGBA24_LE:
@@ -364,7 +366,7 @@ vbi_rgba_conv			(void *			buffer,
 
 	case VBI_PIXFMT_RGB24_LE:
 		while (color_size-- > 0) {
-			unsigned int value = *color++;
+			value = *color++;
 
 			d[0] = TRANS (value & 0xFF);
 			d[1] = TRANS ((value >> 8) & 0xFF);
@@ -375,7 +377,7 @@ vbi_rgba_conv			(void *			buffer,
 
 	case VBI_PIXFMT_RGB24_BE:
 		while (color_size-- > 0) {
-			unsigned int value = *color++;
+			value = *color++;
 
 			d[0] = TRANS ((value >> 16) & 0xFF);
 			d[1] = TRANS ((value >> 8) & 0xFF);
@@ -467,6 +469,17 @@ vbi_rgba_conv			(void *			buffer,
 //		RGBA_CONV1 (0xC0, 0x38, 0x06, 0x01);
 //		break;
 
+	case VBI_PIXFMT_STATIC_8:
+		value = 0;
+		while (color_size-- > 0)
+			*d++ = value++;
+		break;
+
+	case VBI_PIXFMT_PSEUDO_8:
+		while (color_size-- > 0)
+			*d++ = *color++;
+		break;
+
 	default:
 		warning (NULL, "Invalid pixfmt %u (%s).",
 			 (unsigned int) pixfmt,
@@ -481,7 +494,7 @@ vbi_rgba_conv			(void *			buffer,
 #define COLOR_MAP_ELEMENTS N_ELEMENTS (((vbi_page *) 0)->color_map)
 
 struct color_map {
-	unsigned int		map [3 * COLOR_MAP_ELEMENTS];
+	uint8_t			map [3 * COLOR_MAP_ELEMENTS * 4];
 	void *			fg [4];
 	void *			bg [4];
 };
@@ -492,35 +505,57 @@ color_map_init			(struct color_map *	cm,
 				 vbi_pixfmt		pixfmt,
 				 unsigned int		bytes_per_pixel,
 				 int			brightness,
-				 int			contrast)
+				 int			contrast,
+				 vbi_bool		alpha)
 {
-	cm->bg[VBI_TRANSPARENT_SPACE] = (uint8_t *) cm->map
-		+ COLOR_MAP_ELEMENTS * 2 * bytes_per_pixel;
+	if (!vbi_rgba_conv (cm->map, pixfmt,
+			    pg->color_map, COLOR_MAP_ELEMENTS,
+			    brightness, contrast, /* alpha */ 0xFF))
+		return FALSE;
+
+	if (!alpha) {
+		unsigned int i;
+
+		for (i = 0; i < 4; ++i) {
+			cm->fg[i] = cm->map;
+			cm->bg[i] = cm->map;
+		}
+
+		return TRUE;
+	}
+
+	if (VBI_PIXFMT_STATIC_8 == pixfmt
+	    || VBI_PIXFMT_PSEUDO_8 == pixfmt) {
+		return FALSE;
+	}
+
+	/* Opaque fg. and bg. */
+	cm->fg[VBI_OPAQUE] = cm->map;
+	cm->bg[VBI_OPAQUE] = cm->map;
+
+	/* Opaque fg., transl. bg. */
+	cm->fg[VBI_TRANSLUCENT] = cm->map;
 	cm->bg[VBI_TRANSLUCENT] = (uint8_t *) cm->map
 		+ COLOR_MAP_ELEMENTS * 1 * bytes_per_pixel;
 
-	if (!vbi_rgba_conv (cm->bg[VBI_TRANSPARENT_SPACE], pixfmt,
-			     pg->color_map, COLOR_MAP_ELEMENTS,
-			     brightness, contrast, /* alpha */ 0x00))
-		return FALSE;
+	/* Opaque fg., transp. bg. */
+	cm->fg[VBI_TRANSPARENT] = cm->map;
+	cm->bg[VBI_TRANSPARENT] = (uint8_t *) cm->map
+		+ COLOR_MAP_ELEMENTS * 2 * bytes_per_pixel;
+
+	/* Transp. fg. and bg. */
+	cm->fg[VBI_TRANSPARENT_SPACE] = cm->bg[VBI_TRANSPARENT];
+	cm->bg[VBI_TRANSPARENT_SPACE] = cm->bg[VBI_TRANSPARENT];
 
 	if (!vbi_rgba_conv (cm->bg[VBI_TRANSLUCENT], pixfmt,
-			     pg->color_map, COLOR_MAP_ELEMENTS,
-			     brightness, contrast, /* alpha */ 0x7F))
+			    pg->color_map, COLOR_MAP_ELEMENTS,
+			    brightness, contrast, /* alpha */ 0x7F))
 		return FALSE;
 
-	cm->bg[VBI_TRANSPARENT_FULL] = cm->bg[VBI_TRANSPARENT_SPACE];
-	cm->bg[VBI_OPAQUE] = cm->map;
-
-	if (!vbi_rgba_conv (cm->map, pixfmt,
-			     pg->color_map, COLOR_MAP_ELEMENTS,
-			     brightness, contrast, /* alpha */ 0xFF))
+	if (!vbi_rgba_conv (cm->bg[VBI_TRANSPARENT], pixfmt,
+			    pg->color_map, COLOR_MAP_ELEMENTS,
+			    brightness, contrast, /* alpha */ 0x00))
 		return FALSE;
-
-	cm->fg[VBI_TRANSPARENT_SPACE] = cm->bg[VBI_TRANSPARENT_SPACE];
-	cm->fg[VBI_TRANSPARENT_FULL] = cm->map;
-	cm->fg[VBI_TRANSLUCENT] = cm->map;
-	cm->fg[VBI_OPAQUE] = cm->map;
 
 	return TRUE;
 }
@@ -851,6 +886,7 @@ vbi_ttx_page_draw_region_va	(const vbi_page *	pg,
 {
 	struct color_map cm;
 	vbi_bool option_scale;
+	vbi_bool option_alpha;
 	unsigned int option_space_attr;
 	int brightness;
 	int contrast;
@@ -883,6 +919,7 @@ vbi_ttx_page_draw_region_va	(const vbi_page *	pg,
 	}
 
 	option_scale = FALSE;
+	option_alpha = FALSE;
 	option_space_attr = 0;
 	brightness = 128;
 	contrast = 64;
@@ -918,6 +955,10 @@ vbi_ttx_page_draw_region_va	(const vbi_page *	pg,
 
 		case VBI_CONTRAST:
 			contrast = va_arg (options, int);
+			break;
+
+		case VBI_ALPHA:
+			option_alpha = va_arg (options, vbi_bool);
 			break;
 
 		default:
@@ -965,7 +1006,7 @@ vbi_ttx_page_draw_region_va	(const vbi_page *	pg,
 	bytes_per_pixel = _vbi_pixfmt_bytes_per_pixel (format->pixfmt);
 
 	color_map_init (&cm, pg, format->pixfmt, bytes_per_pixel,
-			brightness, contrast);
+			brightness, contrast, option_alpha);
 
 	bytes_per_line = format->bytes_per_line[0];
 
