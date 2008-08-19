@@ -1,5 +1,22 @@
 2008-08-19    <mschimek@users.sf.net>
 
+	* zvbi/ttx_page.c (enhance): Function restored, except for
+	  the PDC stuff.
+
+	* zvbi/page.h: s/VBI_TRANSPARENT_FULL/VBI_TRANSPARENT.
+
+	* zvbi/image_format.h (vbi_pixfmt): Replaced VBI_PIXFMT_PAL8 by
+	  VBI_PIXFMT_STATIC_8 and VBI_PIXFMT_PSEUDO_8.
+	* zvbi/exp-gfx.h (vbi_export_option): Added VBI_ALPHA.
+	* zvbi/exp-gfx.c (vbi_ttx_page_draw_region_va): Made alpha
+	  channel optional. Added support for VBI_PIXFMT_STATIC_8
+	  and VBI_PIXFMT_PSEUDO_8.
+	* examples/teletext.c: Added VBI_PIXFMT_STATIC_8,
+	  VBI_PIXFMT_PSEUDO_8 test.
+
+	* examples/Makefile.am (LDADD): Link with static libzvbi as in
+	  test/ for easier debugging.
+
 	* examples/teletext.c: Added.
 
 	* m4/autogen.sh: Replaced by the newer version from branch
