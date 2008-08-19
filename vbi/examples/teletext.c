@@ -25,7 +25,7 @@
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id: teletext.c,v 1.1.2.1 2008-08-19 13:13:29 mschimek Exp $ */
+/* $Id: teletext.c,v 1.1.2.2 2008-08-19 16:36:58 mschimek Exp $ */
 
 /* This example shows how to build a basic Teletext browser from
    libzvbi Teletext functions. After installing the library you can
@@ -60,9 +60,11 @@ static Window			window;
 static GC			gc;
 static XEvent			event;
 static XImage *			ximage;
-static uint8_t *		ximgdata;
+static uint8_t *		ximage_data;
+static vbi_image_format		ximage_format;
 
-static vbi_image_format		image_format;
+static uint8_t *		pal8_data;
+static vbi_image_format		pal8_format;
 
 #define TEXT_WIDTH (40 * 12)
 #define TEXT_HEIGHT (25 * 10 * 2)
@@ -84,18 +86,119 @@ put_image			(vbi_bool		header_only)
 }
 
 static void
-draw_page			(const vbi_page *	pg,
+put_pixel			(unsigned int		x,
+				 unsigned int		y,
+				 vbi_rgba		rgba)
+{
+	uint8_t *d = (uint8_t *) ximage_data;
+
+	switch (ximage_format.pixfmt) {
+	case VBI_PIXFMT_BGRA24_LE:
+		d += x * 4 + y * ximage_format.bytes_per_line[0];
+		d[0] = rgba >> 16; /* B */
+		d[1] = rgba >> 8;  /* G */
+		d[2] = rgba;	   /* R */
+		d[3] = 0xFF;
+		break;
+
+	case VBI_PIXFMT_BGR24_LE:
+		d += x * 3 + y * ximage_format.bytes_per_line[0];
+		d[0] = rgba >> 16;
+		d[1] = rgba >> 8;
+		d[2] = rgba;
+		break;
+
+	case VBI_PIXFMT_BGR16_LE:
+		d += x * 2 + y * ximage_format.bytes_per_line[0];
+		/* gggbbbbb rrrrrggg in memory. */
+		d[0] = ((rgba >> 19) & 0x1F) | ((rgba >>  3) & 0xE0);
+		d[1] = ( rgba        & 0xF8) | ((rgba >> 13) & 0x07);
+		break;
+
+	case VBI_PIXFMT_BGRA15_LE:
+		d += x * 2 + y * ximage_format.bytes_per_line[0];
+		/* gggbbbbb arrrrrgg in memory. */
+		d[0] = ((rgba >> 20) & 0x1F) | ((rgba >>  3) & 0xE0);
+		d[1] = ((rgba >>  1) & 0xEC) | ((rgba >> 14) & 0x03) | 0x80;
+		break;
+
+	default:
+		assert (0);
+	}
+}
+
+static vbi_bool
+draw_page			(vbi_page *		pg,
 				 vbi_bool		header_only)
 {
+	vbi_rgba saved_color_map[40];
+	void *buffer;
+	vbi_image_format *format;
+	unsigned int bpl;
+	unsigned int x, y;
+	unsigned int i;
+
 	if (header_only)
 		assert (1 == pg->rows);
 
-	if (vbi_ttx_page_draw (pg, ximgdata, &image_format,
-			       VBI_SCALE, TRUE,
-			       VBI_REVEAL, reveal,
-			       VBI_END)) {
-		put_image (header_only);
+	switch (pal8_format.pixfmt) {
+	case VBI_PIXFMT_STATIC_8:
+		/* Test STATIC_8 format. */
+		buffer = pal8_data;
+		format = &pal8_format;
+		break;
+
+	case VBI_PIXFMT_PSEUDO_8:
+		/* Test PSEUDO_8 format. */
+		memcpy (saved_color_map,
+			pg->color_map, sizeof (saved_color_map));
+		for (i = 0; i < 40; ++i) {
+			pg->color_map[i] = i ^ 123;
+		}
+		buffer = pal8_data;
+		format = &pal8_format;
+		break;
+
+	default:
+		buffer = ximage_data;
+		format = &ximage_format;
+		break;
 	}
+
+	if (!vbi_ttx_page_draw (pg, buffer, format,
+				VBI_SCALE, TRUE,
+				VBI_REVEAL, reveal,
+				VBI_END))
+		return FALSE;
+
+	switch (pal8_format.pixfmt) {
+	case VBI_PIXFMT_STATIC_8:
+		bpl = pal8_format.bytes_per_line[0];
+		for (y = 0; y < 10 * 2 * pg->rows; ++y) {
+			for (x = 0; x < 12 * pg->columns; ++x) {
+				i = pal8_data[x + y * bpl];
+				put_pixel (x, y, pg->color_map[i]);
+			}
+		}
+		break;
+
+	case VBI_PIXFMT_PSEUDO_8:
+		bpl = pal8_format.bytes_per_line[0];
+		for (y = 0; y < 10 * 2 * pg->rows; ++y) {
+			for (x = 0; x < 12 * pg->columns; ++x) {
+				i = pal8_data[x + y * bpl];
+				put_pixel (x, y, saved_color_map[i ^ 123]);
+			}
+		}
+		break;
+
+	default:
+		break;
+	}
+
+	put_image (header_only);
+
+	return TRUE;
 }
 
 static void
@@ -248,7 +351,8 @@ x_event				(void)
 static void
 destroy_window			(void)
 {
-	free (ximgdata);
+	free (pal8_data);
+	free (ximage_data);
 
 	XCloseDisplay (display);
 }
@@ -284,28 +388,28 @@ init_window			(void)
 
 	XGetWindowAttributes (display, window, &wa);
 
-	memset (&image_format, 0, sizeof (image_format));
+	memset (&ximage_format, 0, sizeof (ximage_format));
 
 	/* XXX this is unreliable. */
 	switch (wa.depth) {
 	case 32:
 		/* B-G-R-A in memory. */
-		image_format.pixfmt = VBI_PIXFMT_BGRA24_LE;
+		ximage_format.pixfmt = VBI_PIXFMT_BGRA24_LE;
 		break;
 
 	case 24:
 		/* B-G-R in memory. */
-		image_format.pixfmt = VBI_PIXFMT_BGR24_LE;
+		ximage_format.pixfmt = VBI_PIXFMT_BGR24_LE;
 		break;
 
 	case 16:
 		/* gggbbbbb-rrrrrggg in memory. */
-		image_format.pixfmt = VBI_PIXFMT_BGR16_LE;
+		ximage_format.pixfmt = VBI_PIXFMT_BGR16_LE;
 		break;
 
 	case 15:
 		/* gggbbbbb-arrrrrgg in memory. */
-		image_format.pixfmt = VBI_PIXFMT_BGRA15_LE;
+		ximage_format.pixfmt = VBI_PIXFMT_BGRA15_LE;
 		break;
 
 	default:
@@ -316,8 +420,8 @@ init_window			(void)
 
 	image_size = TEXT_WIDTH * TEXT_HEIGHT * wa.depth / 8;
 
-	ximgdata = malloc (image_size);
-	if (NULL == ximgdata) {
+	ximage_data = malloc (image_size);
+	if (NULL == ximage_data) {
 		fprintf (stderr, "Cannot allocate image buffer.\n");
 		exit (EXIT_FAILURE);
 	}
@@ -327,7 +431,7 @@ init_window			(void)
 			       DefaultDepth (display, screen),
 			       /* format */ ZPixmap,
 			       /* x offset */ 0,
-			       (char *) ximgdata,
+			       (char *) ximage_data,
 			       TEXT_WIDTH, TEXT_HEIGHT,
 			       /* bitmap_pad */ 8,
 			       /* bytes_per_line: contiguous */ 0);
@@ -336,9 +440,21 @@ init_window			(void)
 		exit (EXIT_FAILURE);
 	}
 
-	image_format.width = TEXT_WIDTH;
-	image_format.height = TEXT_HEIGHT;
-	image_format.bytes_per_line[0] = ximage->bytes_per_line;
+	ximage_format.width = TEXT_WIDTH;
+	ximage_format.height = TEXT_HEIGHT;
+	ximage_format.bytes_per_line[0] = ximage->bytes_per_line;
+
+	if (0 != pal8_format.pixfmt) {
+		pal8_data = malloc (TEXT_WIDTH * TEXT_HEIGHT);
+		if (NULL == pal8_data) {
+			fprintf (stderr, "Cannot allocate PAL8 buffer.\n");
+			exit (EXIT_FAILURE);
+		}
+
+		pal8_format.width = TEXT_WIDTH;
+		pal8_format.height = TEXT_HEIGHT;
+		pal8_format.bytes_per_line[0] = TEXT_WIDTH;
+	}
 
 	delete_window_atom = XInternAtom (display, "WM_DELETE_WINDOW",
 					  /* only_if_exists */ False);
@@ -488,6 +604,10 @@ main				(void)
 		fprintf (stderr, "No PES data on standard input.\n");
 		exit (EXIT_FAILURE);
 	}
+
+	/* Test. */
+	/* pal8_format.pixfmt = VBI_PIXFMT_STATIC_8; */
+	/* pal8_format.pixfmt = VBI_PIXFMT_PSEUDO_8; */
 
 	init_window ();
 
