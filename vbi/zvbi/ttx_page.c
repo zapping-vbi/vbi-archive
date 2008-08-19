@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: ttx_page.c,v 1.1.2.1 2008-08-19 10:56:06 mschimek Exp $ */
+/* $Id: ttx_page.c,v 1.1.2.2 2008-08-19 16:36:29 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -2140,6 +2140,7 @@ enhance				(struct ttx_page *	tp,
 
 	st.pdc_tmp.month = 0;
 	st.pdc_hour.mode = 0;
+#endif
 
 	/* Main loop. */
 
@@ -2159,6 +2160,7 @@ enhance				(struct ttx_page *	tp,
 		--st.n_triplets;
 	}
 
+#if 0
 	if (st.p1 > tp->pdc_table) {
 		vbi_preselection *p;
 		time_t now;
