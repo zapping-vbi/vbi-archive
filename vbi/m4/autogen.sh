@@ -2,10 +2,10 @@
 # Based on autogen.sh from gnome-common.
 # Run this to generate all the initial makefiles, etc.
 
-REQUIRED_AUTOCONF_VERSION=2.53
-REQUIRED_AUTOMAKE_VERSION=1.6
-REQUIRED_LIBTOOL_VERSION=1.4
-REQUIRED_GETTEXT_VERSION=0.11
+REQUIRED_AUTOCONF_VERSION=${REQUIRED_AUTOCONF_VERSION:-2.59}
+REQUIRED_AUTOMAKE_VERSION=${REQUIRED_AUTOMAKE_VERSION:-1.9}
+REQUIRED_LIBTOOL_VERSION=${REQUIRED_LIBTOOL_VERSION:-1.5}
+REQUIRED_GETTEXT_VERSION=${REQUIRED_GETTEXT_VERSION:-0.16}
 
 # Not all echo versions allow -n, so we check what is possible. This test is
 # based on the one in autoconf.
@@ -82,7 +82,7 @@ version_check() {
     if [ "$vc_status" != 0 ]; then
 	printerr "***Error***: You must have $vc_package >= $vc_min_version installed"
 	printerr "  to build $PACKAGE.  Download the appropriate package for"
-	printerr "  from your distribution or get the source tarball at"
+	printerr "  your distribution or get the source tarball at"
         printerr "    $vc_source"
 	printerr
     fi
@@ -103,9 +103,12 @@ AUTOHEADER=`echo $AUTOCONF | sed s/autoconf/autoheader/`
 
 case $REQUIRED_AUTOMAKE_VERSION in
     1.4*) automake_progs="automake-1.4" ;;
-    1.5*) automake_progs="automake-1.7 automake-1.6 automake-1.5" ;;
-    1.6*) automake_progs="automake-1.7 automake-1.6" ;;
-    1.7*) automake_progs="automake-1.7" ;;
+    1.5*) automake_progs="automake-1.5 automake-1.6 automake-1.7 automake-1.8 automake-1.9 automake-1.10" ;;
+    1.6*) automake_progs="automake-1.6 automake-1.7 automake-1.8 automake-1.9 automake-1.10" ;;
+    1.7*) automake_progs="automake-1.7 automake-1.8 automake-1.9 automake-1.10" ;;
+    1.8*) automake_progs="automake-1.8 automake-1.9 automake-1.10" ;;
+    1.9*) automake_progs="automake-1.9 automake-1.10" ;;
+    1.10*) automake_progs="automake-1.10" ;;
 esac
 version_check automake AUTOMAKE "$automake_progs" $REQUIRED_AUTOMAKE_VERSION \
     "http://ftp.gnu.org/pub/gnu/automake/automake-$REQUIRED_AUTOMAKE_VERSION.tar.gz" || DIE=1
@@ -177,7 +180,7 @@ for configure_ac in $configure_files; do
     fi
 done
 
-conf_flags="--enable-maintainer-mode"
+conf_flags="" # "--enable-maintainer-mode"
 
 if test x$NOCONFIGURE = x; then
     printbold Running $srcdir/configure $conf_flags "$@" ...
