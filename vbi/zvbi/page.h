@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: page.h,v 1.1.2.1 2008-08-19 10:56:06 mschimek Exp $ */
+/* $Id: page.h,v 1.1.2.2 2008-08-19 16:36:35 mschimek Exp $ */
 
 #ifndef __ZVBI_PAGE_H__
 #define __ZVBI_PAGE_H__
@@ -116,7 +116,7 @@ typedef enum {
 	 * video shall look through. Again the renderer may fall back to
 	 * VBI_TRANSLUCENT or VBI_OPAQUE.
 	 */
-	VBI_TRANSPARENT_FULL,
+	VBI_TRANSPARENT,
 
 	/**
 	 * Alpha blend video into background color, the
