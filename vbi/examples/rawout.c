@@ -25,7 +25,7 @@
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id: rawout.c,v 1.8.2.3 2008-03-01 15:50:19 mschimek Exp $ */
+/* $Id: rawout.c,v 1.8.2.4 2008-08-19 13:14:03 mschimek Exp $ */
 
 /* This example shows how to convert VBI data in a DVB PES stream
    to raw VBI data.
@@ -44,7 +44,7 @@
 /* To compile this program in the libzvbi source tree. */
 #include "src/zvbi.h"
 /* To compile this program against the installed library. */
-/* #include <zvbi-0.3/zvbi.h> */
+/* #include <zvbi/zvbi.h> */
 
 #define N_ELEMENTS(array) (sizeof (array) / sizeof ((array)[0]))
 

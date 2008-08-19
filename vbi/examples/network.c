@@ -25,7 +25,7 @@
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id: network.c,v 1.5.2.3 2008-03-01 15:50:23 mschimek Exp $ */
+/* $Id: network.c,v 1.5.2.4 2008-08-19 13:14:08 mschimek Exp $ */
 
 /* This example shows how to identify a network from data transmitted
    in XDS packets, Teletext packet 8/30 format 1 and 2, and VPS packets.
@@ -44,7 +44,7 @@
 #if 1 /* To compile this program in the libzvbi source tree. */
 #  include "src/zvbi.h"
 #else /* To compile this program against the installed library. */
-#  include <zvbi-0.3/zvbi.h>
+#  include <zvbi/zvbi.h>
 #endif
 
 static vbi3_capture *		cap;

@@ -25,7 +25,7 @@
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id: wss.c,v 1.11.2.3 2008-03-01 15:50:10 mschimek Exp $ */
+/* $Id: wss.c,v 1.11.2.4 2008-08-19 13:13:52 mschimek Exp $ */
 
 /* This example shows how to extract Wide Screen Signalling data
    (EN 300 294) from video images. The signal is transmitted on the
@@ -68,7 +68,7 @@
 #else
 /* To compile this program against the installed
    library and kernel headers. */
-#  include <zvbi-0.3/zvbi.h>
+#  include <zvbi/zvbi.h>
 #  include <videodev2.h>
 #endif
 
