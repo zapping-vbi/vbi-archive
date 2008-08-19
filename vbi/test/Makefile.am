@@ -45,19 +45,11 @@ endif
 
 unit_tests = \
 	test-bcd \
-	test-dvb_demux \
-	test-dvb_mux \
-	test-hamm \
-	test-io \
-	test-raw_decoder \
-	test-vps
+	test-hamm
 
 TESTS = \
 	$(compile_tests) \
-	$(unit_tests) \
-	test-explist \
-	test-headers \
-	test-unicode
+	$(unit_tests)
 
 check_PROGRAMS = \
 	$(compile_tests) \
@@ -65,105 +57,23 @@ check_PROGRAMS = \
 
 test_bcd_SOURCES = test-bcd.cc
 
-test_dvb_demux_SOURCES = \
-	test-dvb_mux.cc \
-	test-common.cc test-common.h
-
-test_dvb_mux_SOURCES = \
-	test-dvb_mux.cc \
-	test-common.cc test-common.h
-
 test_hamm_SOURCES = test-hamm.cc
-
-test_io_SOURCES = test-io.cc
-
-test_raw_decoder_SOURCES = \
-	test-raw_decoder.cc \
-	test-common.cc test-common.h
-
-check_SCRIPTS = \
-	test-explist \
-	test-headers \
-	test-unicode
-
-test-explist: explist
-
-test-unicode: unicode
-
-noinst_PROGRAMS = \
-	caption \
-	capture \
-	date \
-	decode \
-	event \
-	explist \
-	export \
-	glyph \
-	osc \
-	sliced2pes \
-	ttxfilter \
-	unicode
-
-caption_SOURCES = \
-	caption.c \
-	sliced.c sliced.h
-
-capture_SOURCES = \
-	capture.c \
-	sliced.c sliced.h
-
-date_SOURCES = \
-	date.c \
-	sliced.c sliced.h
-
-decode_SOURCES = \
-	decode.c \
-	sliced.c sliced.h
-
-event_SOURCES = \
-	event.c \
-	sliced.c sliced.h
-
-export_SOURCES = \
-	export.c \
-	sliced.c sliced.h
-
-osc_SOURCES = \
-	osc.c \
-	sliced.c sliced.h
-
-sliced2pes_SOURCES = \
-	sliced2pes.c \
-	sliced.c sliced.h
-
-ttxfilter_SOURCES = \
-	ttxfilter.c \
-	sliced.c sliced.h
-
-noinst_SCRIPTS = \
-	uclist
 
 EXTRA_DIST = \
 	$(noinst_SCRIPTS) \
 	$(check_SCRIPTS) \
-	README \
-	unicode-out-ref.txt
+	README
 
-CLEANFILES = \
-	test-hdrs.cc \
-	test-hdrs.log \
-	test-hdrs.out \
-	unicode-out.txt
-
-# $(top_srcdir) for VPATH zvbi.h
 AM_CFLAGS = \
 	-D_GNU_SOURCE \
-	-I$(top_srcdir) -I$(top_srcdir)/src \
-	$(COMMON_INCLUDES) $(X_CFLAGS)
+	-I$(top_srcdir) \
+	$(COMMON_INCLUDES) \
+	$(X_CFLAGS)
 
 AM_CXXFLAGS = \
-	-I$(top_srcdir) -I$(top_srcdir)/src \
-	$(COMMON_INCLUDES) $(X_CFLAGS)
+	-I$(top_srcdir) \
+	$(COMMON_INCLUDES) \
+	$(X_CFLAGS)
 
 # For the test-headers script.
 TESTS_ENVIRONMENT = \
@@ -174,12 +84,12 @@ TESTS_ENVIRONMENT = \
 # library is installed, which is a major annoyance for debugging with
 # gdb and valgrind. So we link these apps statically if possible.
 if BUILD_STATIC_LIB
-LDADD = $(top_builddir)/src/.libs/libzvbi-0.3.a
+LDADD = $(top_builddir)/zvbi/.libs/libzvbi-0.3.a
 else
-LDADD = $(top_builddir)/src/libzvbi-0.3.la
+LDADD = $(top_builddir)/zvbi/libzvbi-0.3.la
 endif
 
-LDADD += $(PTHREAD_LIB) -lm $(PNG_LIB) $(X_LIBS)
+LDADD += $(PTHREAD_LIB) -lm
 
 check-valgrind: $(unit_tests)
 	for test in $(unit_tests) ; do \
