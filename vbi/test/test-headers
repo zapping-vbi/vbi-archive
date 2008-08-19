@@ -4,7 +4,8 @@
 
 result=0
 
-srcdir="$srcdir/../src"
+# XXX builddir?
+srcdir="$srcdir/../zvbi"
 
 instheaders=`grep '^#include' "$srcdir/zvbi.h" | \
   sed 's/[^"]*"\([^"]\+\)"/\1/'`
@@ -13,12 +14,12 @@ allheaders=`cd "$srcdir"; ls -1 *.h`
 
 for header in $allheaders ; do
   if echo "$instheaders" | grep -q $header ; then
-    wrapper=__ZVBI3_`echo $header | tr a-z.- A-Z__`__
+    wrapper=__ZVBI_`echo $header | tr a-z.- A-Z__`__
     for tinsel in \
       "#ifndef $wrapper" \
       "#define $wrapper" \
-      VBI3_BEGIN_DECLS \
-      VBI3_END_DECLS \
+      VBI_BEGIN_DECLS \
+      VBI_END_DECLS \
       "#endif /\* $wrapper \*/" ; do
       if ! grep -q "$tinsel" "$srcdir/$header" ; then
         echo $srcdir/$header does not contain $tinsel
