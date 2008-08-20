@@ -1,3 +1,29 @@
+2008-08-20    <mschimek@users.sf.net>
+
+	* zvbi/page.h: Removed declaration of non-existing vbi_page_new().
+
+	* zvbi/ttx_page-priv.h, zvbi/dvb_demux.h: Added function
+	  __attributes__.
+
+	* src/link.c, src/link.h: Moved into zvbi/.
+
+	* zvbi/zvbi.h: Added link.h.
+	* zvbi/ttx_decoder.h, zvbi/ttx_page.c: Rewrote and enabled
+	  vbi_ttx_page_get_link().
+	* zvbi/network.h: Don't need bcd.h.
+	* zvbi/network.h, zvbi/network.c: Added allocation functions
+	  for link.c and ttx_page.c.
+	(vbi_network_set_name): NULL name fix.
+	* zvbi/misc.h: Added TIME_MAX for link.c expiration_time.
+	* zvbi/error.h: Added VBI_ERR_INVALID_LINK_TYPE.
+	* zvbi/link.c, zvbi/link.h: Moved here from src/, cleaned up,
+	  added allocation functions.
+	* zvbi/Makefile.am: Added link.c, link.h.
+
+	* examples/teletext.c: Added Fastext button support.
+	(x_key_0_9): Page 8xx fix.
+	(x_event): Reveal fix.
+
 2008-08-19    <mschimek@users.sf.net>
 
 	* zvbi/ttx_page.c (enhance): Function restored, except for
