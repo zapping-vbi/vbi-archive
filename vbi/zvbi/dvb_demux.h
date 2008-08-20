@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: dvb_demux.h,v 1.1.2.1 2008-08-19 10:56:02 mschimek Exp $ */
+/* $Id: dvb_demux.h,v 1.1.2.2 2008-08-20 12:34:04 mschimek Exp $ */
 
 #ifndef __ZVBI_DVB_DEMUX_H__
 #define __ZVBI_DVB_DEMUX_H__
@@ -64,28 +64,33 @@ vbi_dvb_demux_cb		(vbi_dvb_demux *	dx,
 				 int64_t		pts);
 
 extern void
-vbi_dvb_demux_reset		(vbi_dvb_demux *	dx);
+vbi_dvb_demux_reset		(vbi_dvb_demux *	dx)
+  _vbi_nonnull ((1));
 extern unsigned int
 vbi_dvb_demux_cor		(vbi_dvb_demux *	dx,
 				 vbi_sliced *		sliced,
 				 unsigned int 		sliced_lines,
 				 int64_t *		pts,
 				 const uint8_t **	buffer,
-				 unsigned int *		buffer_left);
+				 unsigned int *		buffer_left)
+  _vbi_nonnull ((1));
 extern vbi_bool
 vbi_dvb_demux_feed		(vbi_dvb_demux *	dx,
 				 const uint8_t *	buffer,
-				 unsigned int		buffer_size);
+				 unsigned int		buffer_size)
+  _vbi_nonnull ((1));
 extern void
 vbi_dvb_demux_set_log_fn	(vbi_dvb_demux *	dx,
 				 vbi_log_mask		mask,
 				 vbi_log_fn *		log_fn,
-				 void *			user_data);
+				 void *			user_data)
+  _vbi_nonnull ((1));
 extern void
 vbi_dvb_demux_delete		(vbi_dvb_demux *	dx);
 extern vbi_dvb_demux *
 vbi_dvb_pes_demux_new		(vbi_dvb_demux_cb *	callback,
-				 void *			user_data);
+				 void *			user_data)
+  _vbi_alloc;
 
 /** @} */
 
@@ -108,7 +113,8 @@ _vbi_dvb_demultiplex_sliced	(vbi_sliced *		sliced,
 extern vbi_dvb_demux *
 _vbi_dvb_ts_demux_new		(vbi_dvb_demux_cb *	callback,
 				 void *			user_data,
-				 unsigned int		pid);
+				 unsigned int		pid)
+  _vbi_alloc;
 
 VBI_END_DECLS
 

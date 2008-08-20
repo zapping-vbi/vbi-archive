@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: ttx_page-priv.h,v 1.1.2.1 2008-08-19 10:56:06 mschimek Exp $ */
+/* $Id: ttx_page-priv.h,v 1.1.2.2 2008-08-20 12:33:59 mschimek Exp $ */
 
 #ifndef PAGE_PRIV_H
 #define PAGE_PRIV_H
@@ -76,21 +76,22 @@ extern vbi_bool
 _vbi_ttx_page_from_cache_page_va
 				(struct ttx_page *	tp,
 				 cache_page *		cp,
-				 va_list		format_options);
-extern vbi_bool
-_vbi_ttx_page_from_cache_page	(struct ttx_page *	tp,
-				 cache_page *		cp,
-				 ...);
+				 va_list		format_options)
+  _vbi_nonnull ((1, 2));
 extern vbi_bool
 _vbi_ttx_page_dump		(const struct ttx_page *tp,
 				 FILE *			fp,
-				 unsigned int		mode);
+				 unsigned int		mode)
+  _vbi_nonnull ((1, 2));
 extern void
-_vbi_ttx_page_destroy		(struct ttx_page *	tp);
+_vbi_ttx_page_destroy		(struct ttx_page *	tp)
+  _vbi_nonnull ((1));
 extern void
-_vbi_ttx_page_init		(struct ttx_page *	tp);
+_vbi_ttx_page_init		(struct ttx_page *	tp)
+  _vbi_nonnull ((1));
 extern struct ttx_page *
-_vbi_ttx_page_new		(void);
+_vbi_ttx_page_new		(void)
+  _vbi_alloc;
 
 #endif /* PAGE_PRIV_H */
 
