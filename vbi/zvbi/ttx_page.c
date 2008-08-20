@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: ttx_page.c,v 1.1.2.2 2008-08-19 16:36:29 mschimek Exp $ */
+/* $Id: ttx_page.c,v 1.1.2.3 2008-08-20 12:34:33 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -3397,54 +3397,76 @@ navigation			(struct ttx_page *	tp,
 	}
 }
 
+#endif
+
+static vbi_link *
+new_ttx_link			(const vbi_network *	nk,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno)
+{
+	vbi_link *lk;
+
+	lk = vbi_malloc (sizeof (*lk));
+	if (NULL == lk) {
+		return NULL;
+	}
+
+	CLEAR (*lk);
+
+	if (NULL != nk) {
+		lk->lk.ttx.network = vbi_network_dup (nk);
+		if (unlikely (NULL == lk->lk.ttx.network)) {
+			int saved_errno = errno;
+
+			free (lk);
+			errno = saved_errno;
+			return NULL;
+		}
+	}
+
+	lk->type = VBI_LINK_TTX_PAGE;
+
+	lk->lk.ttx.pgno = pgno;
+	lk->lk.ttx.subno = subno;
+
+	lk->expiration_time = TIME_MAX;
+
+	return lk;
+}
+
 /**
- * @param pg With vbi_fetch_vt_page() obtained vbi_page.
- * @param ld Place to store information about the link.
- * DONT vbi_link_destroy().
- * @param indx Number 0 ... 5 of the link.
- * 
- * When a Teletext vbi_page has been formatted with TOP or FLOF
- * navigation enabled the last row may contain four links
- * to other pages. Apart of being hyperlinks (see
- * vbi_page_hyperlink()) you can also query the links by
- * ordinal number, 0 refering to the leftmost and 3 to
- * the rightmost link displayed.
- *
- * Further all Teletext pages have a built-in home link,
- * by default page 100, but also the magazine intro page
- * or another page selected by the editor. This link has
- * number 5.
- *
- * Other numbers are currently unused.
- *
- * FIXME
- * @returns
- * TRUE if the link is valid. DONT vbi_link_destroy().
  */
-const vbi_link *
+/* http://www.mrgsystems.co.uk/info/9.htm */
+vbi_link *
 vbi_ttx_page_get_link		(const vbi_page *	pg,
 				 unsigned int		indx)
 {
 	const struct ttx_page *tp;
+	const cache_page *cp;
+	vbi_pgno pgno;
+	vbi_subno subno;
 
-	TP_CHECK (NULL);
-
-	if (pg->pgno < 0x100
-	    || indx >= N_ELEMENTS (tp->link)
-	    || tp->link[indx].pgno < 0x100) {
+	if ((void *) TTX_PAGE_MAGIC != pg->_private) {
 		return NULL;
 	}
 
-	return &tp->link[indx];
-}
+	tp = CONST_PARENT (pg, struct ttx_page, pg);
 
-const vbi_link *
-vbi_ttx_page_get_home_link	(const vbi_page *	pg)
-{
-	return vbi_page_get_teletext_link (pg, 5);
-}
+	cp = tp->cp;
 
-#endif
+	if (indx >= N_ELEMENTS (cp->data.lop.link)) {
+		return NULL;
+	}
+
+	pgno = cp->data.lop.link[indx].pgno;
+	subno = cp->data.lop.link[indx].subno;
+
+	if (pgno < 0x100 || NO_PAGE (pgno)) {
+		return NULL;
+	}
+
+	return new_ttx_link (&tp->cn->network, pgno, subno);
+}
 
 /* ------------------------------------------------------------------------ */
 

@@ -22,13 +22,13 @@
  *  libzvbi - Teletext decoder
  */
 
-/* $Id: ttx_decoder.h,v 1.1.2.1 2008-08-19 10:56:06 mschimek Exp $ */
+/* $Id: ttx_decoder.h,v 1.1.2.2 2008-08-20 12:34:28 mschimek Exp $ */
 
 #ifndef __ZVBI_TTX_DECODER_H__
 #define __ZVBI_TTX_DECODER_H__
 
 #include <stdarg.h>
-#include "zvbi/network.h"	/* vbi_network */
+#include "zvbi/link.h"		/* vbi_link */
 #include "zvbi/cache.h"		/* vbi_cache */
 #include "zvbi/event.h"		/* vbi_event_cb */
 #include "zvbi/sliced.h"	/* vbi_sliced */
@@ -199,15 +199,10 @@ typedef enum {
 	VBI_OVERRIDE_CHARSET_1,
 } vbi_ttx_format_option;
 
-#if 0
-extern const vbi_link *
+extern vbi_link *
 vbi_ttx_page_get_link		(const vbi_page *	pg,
 				 unsigned int		indx)
   _vbi_nonnull ((1));
-extern const vbi_link *
-vbi_ttx_page_get_home_link	(const vbi_page *	pg)
-  _vbi_nonnull ((1));
-#endif
 extern const uint8_t *
 vbi_ttx_page_get_drcs_data	(const vbi_page *	pg,
 				 unsigned int		unicode)
