@@ -33,6 +33,7 @@ INSTALLHDRS = \
 	hamm.h \
 	image_format.h \
 	intl.h \
+	link.h \
 	macros.h \
 	network.h \
 	page.h \
@@ -53,6 +54,7 @@ libzvbi_0_3_la_SOURCES = \
 	exp-gfx.c exp-gfx.h \
 	hamm.c hamm.h hamm-tables.h \
 	intl.h intl-priv.h \
+	link.c link.h \
 	macros.h \
 	misc.c misc.h \
 	network.c network.h network-table.h \
