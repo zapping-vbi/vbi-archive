@@ -20,7 +20,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: misc.h,v 1.1.2.1 2008-08-19 10:56:05 mschimek Exp $ */
+/* $Id: misc.h,v 1.1.2.2 2008-08-20 12:34:51 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -33,6 +33,8 @@
 #include <inttypes.h>		/* (u)intXX_t */
 #include <sys/types.h>		/* (s)size_t */
 #include <sys/time.h>		/* timeval */
+#include <time.h>		/* time_t */
+#include <float.h>		/* DBL_MAX */
 #include <limits.h>		/* (S)SIZE_MAX */
 #include <assert.h>
 
@@ -458,6 +460,41 @@ do {									\
 /* Should be defined in C99 limits.h? */
 #ifndef SIZE_MAX
 #  define SIZE_MAX ((size_t) -1)
+#endif
+
+#ifndef TIME_MIN
+#  define TIME_MIN (_vbi_time_min ())
+_vbi_inline time_t
+_vbi_time_min			(void)
+{
+	const time_t t = (time_t) -1.25;
+
+	if (t < -1) {
+		return (time_t)((sizeof (time_t) > 4) ? DBL_MIN : FLT_MIN);
+	} else if (t < 0) {
+		return ((uint64_t) 1) << (sizeof (time_t) * 8 - 1);
+	} else {
+		return 0;
+	}
+}
+#endif
+
+#ifndef TIME_MAX
+#  define TIME_MAX (_vbi_time_max ())
+_vbi_inline time_t
+_vbi_time_max			(void)
+{
+	const time_t t = (time_t) -1.25;
+
+	if (t < -1) {
+		return (time_t)((sizeof (time_t) > 4) ? DBL_MAX : FLT_MAX);
+	} else if (t < 0) {
+		/* Most likely signed 32 or 64 bit. */
+		return (((uint64_t) 1) << (sizeof (time_t) * 8 - 1)) - 1;
+	} else {
+		return -1;
+	}
+}
 #endif
 
 /* __va_copy is a GNU extension. */
