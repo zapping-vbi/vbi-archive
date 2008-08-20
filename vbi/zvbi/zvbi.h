@@ -13,6 +13,7 @@
 #include "zvbi/hamm.h"
 #include "zvbi/image_format.h"
 #include "zvbi/intl.h"
+#include "zvbi/link.h"
 #include "zvbi/macros.h"
 #include "zvbi/network.h"
 #include "zvbi/page.h"
