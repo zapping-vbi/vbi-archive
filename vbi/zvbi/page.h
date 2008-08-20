@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: page.h,v 1.1.2.2 2008-08-19 16:36:35 mschimek Exp $ */
+/* $Id: page.h,v 1.1.2.3 2008-08-20 12:33:53 mschimek Exp $ */
 
 #ifndef __ZVBI_PAGE_H__
 #define __ZVBI_PAGE_H__
@@ -363,14 +363,11 @@ vbi_page_unref			(vbi_page *		pg)
 extern vbi_page *
 vbi_page_ref			(vbi_page *		pg)
   _vbi_nonnull ((1));
-extern void
-vbi_page_delete			(vbi_page *		pg);
 extern vbi_page *
 vbi_page_dup			(const vbi_page *	pg)
   _vbi_alloc _vbi_nonnull ((1));
-extern vbi_page *
-vbi_page_new			(void)
-  _vbi_alloc;
+extern void
+vbi_page_delete			(vbi_page *		pg);
 
 VBI_END_DECLS
 
