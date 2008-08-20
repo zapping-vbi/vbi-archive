@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: network.h,v 1.1.2.1 2008-08-19 10:56:06 mschimek Exp $ */
+/* $Id: network.h,v 1.1.2.2 2008-08-20 12:34:37 mschimek Exp $ */
 
 #ifndef __ZVBI_NETWORK_H__
 #define __ZVBI_NETWORK_H__
@@ -27,7 +27,7 @@
 #include <stdio.h>		/* FILE */
 #include <inttypes.h>		/* int64_t */
 
-#include "zvbi/bcd.h"		/* vbi_pgno */
+#include "zvbi/macros.h"
 
 VBI_BEGIN_DECLS
 
@@ -172,9 +172,6 @@ typedef enum {
 	VBI_CNI_TYPE_PDC_B
 } vbi_cni_type;
 
-extern const char *
-_vbi_cni_type_name		(vbi_cni_type		type)
-  _vbi_const;
 extern unsigned int
 vbi_convert_cni			(vbi_cni_type		to_type,
 				 vbi_cni_type		from_type,
@@ -184,11 +181,11 @@ extern vbi_bool
 vbi_network_anonymous		(const vbi_network *	nk)
   _vbi_nonnull ((1));
 extern vbi_bool
-vbi_network_equal		(const vbi_network *	nk1,
+vbi_network_weakly_equal	(const vbi_network *	nk1,
 				 const vbi_network *	nk2)
   _vbi_nonnull ((1, 2));
 extern vbi_bool
-vbi_network_weakly_equal	(const vbi_network *	nk1,
+vbi_network_equal		(const vbi_network *	nk1,
 				 const vbi_network *	nk2)
   _vbi_nonnull ((1, 2));
 extern vbi_bool
@@ -205,24 +202,43 @@ vbi_network_set_cni		(vbi_network *		nk,
 				 unsigned int		cni)
   _vbi_nonnull ((1));
 extern vbi_bool
-vbi_network_reset		(vbi_network *		nk)
-  _vbi_nonnull ((1));
-extern vbi_bool
-vbi_network_destroy		(vbi_network *		nk)
-  _vbi_nonnull ((1));
-extern vbi_bool
 vbi_network_set			(vbi_network *		dst,
 				 const vbi_network *	src)
+  _vbi_nonnull ((1));
+extern vbi_bool
+vbi_network_reset		(vbi_network *		nk)
   _vbi_nonnull ((1));
 extern vbi_bool
 vbi_network_copy		(vbi_network *		dst,
 				 const vbi_network *	src)
   _vbi_nonnull ((1));
 extern vbi_bool
+vbi_network_destroy		(vbi_network *		nk)
+  _vbi_nonnull ((1));
+extern vbi_bool
 vbi_network_init		(vbi_network *		nk)
   _vbi_nonnull ((1));
+extern vbi_network *
+vbi_network_dup			(const vbi_network *	nk)
+  _vbi_alloc;
+extern void
+vbi_network_delete		(vbi_network *		nk)
+  _vbi_nonnull ((1));
+extern vbi_network *
+vbi_network_new			(void)
+  _vbi_alloc;
 
 /** @} */
+
+/* Private */
+
+extern const char *
+_vbi_cni_type_name		(vbi_cni_type		type)
+  _vbi_const;
+extern vbi_bool
+_vbi_network_dump		(const vbi_network *	nk,
+				 FILE *			fp)
+  _vbi_nonnull ((1, 2));
 
 VBI_END_DECLS
 
