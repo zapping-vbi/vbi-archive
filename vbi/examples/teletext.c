@@ -25,7 +25,7 @@
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id: teletext.c,v 1.1.2.2 2008-08-19 16:36:58 mschimek Exp $ */
+/* $Id: teletext.c,v 1.1.2.3 2008-08-20 12:35:12 mschimek Exp $ */
 
 /* This example shows how to build a basic Teletext browser from
    libzvbi Teletext functions. After installing the library you can
@@ -70,9 +70,17 @@ static vbi_image_format		pal8_format;
 #define TEXT_HEIGHT (25 * 10 * 2)
 
 /* User interface. */
-static vbi_pgno			current_pgno;
+
+/* The currently displayed page or NULL. */
+static vbi_page *		curr_pg;
+
+/* The page number being entered. */
 static vbi_pgno			requested_pgno;
+
+/* Reveal hidden text on the page (quiz answers et al). */
 static vbi_bool			reveal;
+
+/* Terminate the program. */
 static vbi_bool			quit;
 
 static void
@@ -206,11 +214,20 @@ get_and_draw_page		(vbi_pgno		pgno,
 				 vbi_bool		header_only)
 {
 	vbi_page *pg;
+	vbi_ttx_level level;
+
+	/* Level 2.5 is not good for a rolling header because some
+	   pages change the colors in row 0 or even redefine the color
+	   map. Perhaps the safest would be to copy the characters
+	   from row 0 into curr_pg->text, leaving the character
+	   attributes and color map intact, and to draw row 0 of
+	   curr_pg. */
+	level = header_only ? VBI_TTX_LEVEL_1 : VBI_TTX_LEVEL_2p5;
 
 	pg = vbi_ttx_decoder_get_page (td,
 				       /* network: current */ NULL,
 				       pgno, VBI_ANY_SUBNO,
-				       VBI_TTX_LEVEL, VBI_TTX_LEVEL_2p5,
+				       VBI_TTX_LEVEL, level,
 				       VBI_HEADER_ONLY, header_only,
 				       VBI_END);
 	if (NULL == pg) {
@@ -229,18 +246,27 @@ get_and_draw_page		(vbi_pgno		pgno,
 
 	draw_page (pg, header_only);
 
-	vbi_page_unref (pg);
+	if (header_only) {
+		vbi_page_unref (pg);
+	} else {
+		vbi_page_unref (curr_pg);
 
-	current_pgno = pgno;
+		curr_pg = pg;
+	}
 }
 
 static void
-x_key_up			(void)
+next_page			(void)
 {
 	vbi_pgno pgno = requested_pgno;
 
-	if (pgno < 0x100)
-		pgno = current_pgno;
+	if (pgno < 0x100) {
+		if (NULL == curr_pg)
+			pgno = 0x899;
+		else
+			pgno = curr_pg->pgno;
+	}
+
 	if (pgno >= 0x899)
 		requested_pgno = 0x100;
 	else
@@ -251,12 +277,17 @@ x_key_up			(void)
 }
 
 static void
-x_key_down			(void)
+previous_page			(void)
 {
 	vbi_pgno pgno = requested_pgno;
 
-	if (pgno < 0x100)
-		pgno = current_pgno;
+	if (pgno < 0x100) {
+		if (NULL == curr_pg)
+			pgno = 0;
+		else
+			pgno = curr_pg->pgno;
+	}
+
 	if (pgno <= 0x100)
 		requested_pgno = 0x899;
 	else
@@ -267,17 +298,14 @@ x_key_down			(void)
 }
 
 static void
-x_key_0_9			(int			n)
+enter_page_number		(int			n)
 {
 	if (requested_pgno >= 0x100)
 		requested_pgno = 0;
 
 	if (0 == requested_pgno) {
 		/* Magazine 1 ... 8. */
-		if (0 == n)
-			n = 8;
-		else
-			n &= 7;
+		n = ((n - 1) & 7) + 1;
 	}
 
 	requested_pgno = requested_pgno * 16 + n;
@@ -285,6 +313,29 @@ x_key_0_9			(int			n)
 	if (requested_pgno >= 0x100) {
 		get_and_draw_page (requested_pgno,
 				   /* header_only */ FALSE);
+	}
+}
+
+/* This is what the red / green / yellow / blue
+   buttons on a Fastext remote control do. */
+static void
+fastext_button			(int			n)
+{
+	vbi_link *lk;
+
+	if (NULL == curr_pg)
+		return;
+
+	lk = vbi_ttx_page_get_link (curr_pg, n);
+	if (NULL != lk) {
+		requested_pgno = lk->lk.ttx.pgno;
+
+		get_and_draw_page (requested_pgno,
+				   /* header_only */ FALSE);
+
+		vbi_link_delete (lk);
+	} else {
+		printf ("No link %u.\n", n);
 	}
 }
 
@@ -297,25 +348,38 @@ x_event				(void)
 		switch (event.type) {
 		case KeyPress:
 		{
-			int c = XLookupKeysym (&event.xkey, 0);
+			KeySym c;
 
+			XLookupString (&event.xkey,
+				       /* buffer_return */ NULL,
+				       /* bytes_buffer */ 0,
+				       &c,
+				       /* status_in_out */ NULL);
 			switch (c) {
+			case XK_F1 ... XK_F4:
+				fastext_button (c - XK_F1);
+				break;
+
+			case XK_Home:
+				fastext_button (5);
+				break;
+
 			case XK_Up:
 			case XK_KP_Up:
-				x_key_up ();
+				next_page ();
 				break;
 
 			case XK_Down:
 			case XK_KP_Down:
-				x_key_down ();
+				previous_page ();
 				break;
 
 			case XK_KP_0 ... XK_KP_9:
-				x_key_0_9 (c - XK_KP_0);
+				enter_page_number (c - XK_KP_0);
 				break;
 
 			case '0' ... '9':
-				x_key_0_9 (c - '0');
+				enter_page_number (c - '0');
 				break;	
 
 			case 'c':
@@ -327,9 +391,6 @@ x_event				(void)
 				reveal = !reveal;
 				get_and_draw_page (requested_pgno,
 						   /* header_only */ FALSE);
-				break;
-
-			case XK_F1 ... XK_F4:
 				break;
 			}
 
@@ -467,7 +528,7 @@ init_window			(void)
 	XSetWMProtocols (display, window, &delete_window_atom, 1);
 
 	XStoreName (display, window,
-		    "Teletext Example - Press [0-9|?|up|down|q]");
+		    "Teletext Example - Press [0-9|up|down|F1-F4|?|q]");
 
 	gc = XCreateGC (display, window,
 			/* valuemask */ 0,
@@ -484,12 +545,19 @@ td_event_handler_roll_header	(const vbi_event *	ev)
 	vbi_pgno pgno;
 
 	pgno = requested_pgno;
-	if (pgno < 0x100)
-		pgno = current_pgno;
+	if (pgno < 0x100) {
+		if (NULL != curr_pg)
+			pgno = curr_pg->pgno;
+		else if (0 == pgno)
+			pgno = 0x100;
+		else
+			pgno = -1;
+	}
 
 	if (0 == (ev->ev.ttx_page.flags & VBI_SERIAL)
 	    && 0 != (0xF00 & (pgno ^ ev->ev.ttx_page.pgno))) {
-		/* Page of a different magazine. */
+		/* Parallel transmission,
+		   page of a different magazine. */
 		return;
 	}
 
@@ -641,6 +709,8 @@ main				(void)
 	quit = FALSE;
 
 	mainloop ();
+
+	vbi_page_unref (curr_pg);
 
 	vbi_ttx_decoder_delete (td);
 
