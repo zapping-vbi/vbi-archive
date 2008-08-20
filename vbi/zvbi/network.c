@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: network.c,v 1.1.2.1 2008-08-19 10:56:06 mschimek Exp $ */
+/* $Id: network.c,v 1.1.2.2 2008-08-20 12:34:41 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -37,30 +37,58 @@
  * Returns the name of a CNI type, for example VBI_CNI_TYPE_PDC_A ->
  * "PDC_A". This is mainly intended for debugging.
  * 
- * @return
- * Static ASCII string, NULL if @a type is unknown.
+ * @returns
+ * Static ASCII string. If @a type is invalid the function returns @c
+ * NULL and sets the errno variable to @c VBI_ERR_INVALID_CNI_TYPE.
  */
 const char *
 _vbi_cni_type_name		(vbi_cni_type		type)
 {
-	switch (type) {
-
 #undef CASE
 #define CASE(type) case VBI_CNI_TYPE_##type : return #type ;
 
+	switch (type) {
 	CASE (NONE)
 	CASE (VPS)
 	CASE (8301)
 	CASE (8302)
 	CASE (PDC_A)
 	CASE (PDC_B)
-
 	}
+
+#undef CASE
+
+	errno = VBI_ERR_INVALID_CNI_TYPE;
 
 	return NULL;
 }
 
-#undef CASE
+/**
+ * @internal
+ */
+vbi_bool
+_vbi_network_dump		(const vbi_network *	nk,
+				 FILE *			fp)
+{
+	_vbi_null_check (nk, FALSE);
+	_vbi_null_check (fp, FALSE);
+
+	if (NULL != nk->name)
+		fprintf (fp, "name='%s' ", nk->name);
+	else
+		fputs ("name=NULL ", fp);
+
+	fprintf (fp,
+		 "call_sign='%s' cni=%x/%x/%x/%x/%x",
+		 nk->call_sign,
+		 nk->cni_vps,
+		 nk->cni_8301,
+		 nk->cni_8302,
+		 nk->cni_pdc_a,
+		 nk->cni_pdc_b);
+
+	return !ferror (fp);
+}
 
 static unsigned int
 cni_pdc_a_to_8302		(unsigned int		in_cni)
@@ -298,7 +326,7 @@ valid_cni_type			(vbi_cni_type		type)
  * Converted CNI. If the conversion is not possible the function
  * returns 0 and sets the errno variable to indicate the error:
  * - @a c VBI_ERR_UNKNOWN_CNI - the @a cni is not in the CNI table and
- *   cannot be guessed.
+ *   cannot be computed.
  * - @a c VBI_ERR_INVALID_CNI_TYPE - @a to_type or @a from_type
  *   is invalid.
  */
@@ -400,30 +428,6 @@ vbi_convert_cni			(vbi_cni_type		to_type,
 #if 0
 
 /**
- * @internal
- */
-vbi_bool
-_vbi_network_dump		(const vbi_network *	nk,
-				 FILE *			fp)
-{
-	_vbi_null_check (nk, FALSE);
-	_vbi_null_check (fp, FALSE);
-
-	fprintf (fp,
-		 "'%s' call_sign=%s cni=%x/%x/%x/%x/%x country=%s",
-		 nk->name ? nk->name : "unknown",
-		 nk->call_sign[0] ? nk->call_sign : "unknown",
-		 nk->cni_vps,
-		 nk->cni_8301,
-		 nk->cni_8302,
-		 nk->cni_pdc_a,
-		 nk->cni_pdc_b,
-		 nk->country_code[0] ? nk->country_code : "unknown");
-
-	return TRUE;
-}
-
-/**
  * Returns a NUL-terminated ASCII string similar to a GUID, containing
  * the call sign and all CNIs of the network. Non-ASCII characters are
  * encoded as a hex number %XX. You must free() this string when no
@@ -475,9 +479,11 @@ vbi_network_set_name		(vbi_network *		nk,
 
 	_vbi_null_check (nk, FALSE);
 
+	new_name = NULL;
+
 	if (NULL != name) {
 		new_name = strdup (name);
-		if (NULL == new_name) {
+		if (unlikely (NULL == new_name)) {
 			errno = ENOMEM;
 			return FALSE;
 		}
@@ -612,33 +618,33 @@ vbi_network_set_cni		(vbi_network *		nk,
 
 	_vbi_null_check (nk, FALSE);
 
-	if (!valid_cni_type (type)) {
+	if (unlikely (!valid_cni_type (type))) {
 		errno = VBI_ERR_INVALID_CNI_TYPE;
 		return FALSE;
 	}
 
 	p = cni_lookup (type, cni);
-	if (NULL == p) {
+	if (unlikely (NULL == p)) {
 		errno = VBI_ERR_UNKNOWN_CNI;
 		return FALSE;
 	}
 
 	/* Keep in mind our table may be wrong. */
 
-	if (p->cni_vps && nk->cni_vps
-	    && p->cni_vps != nk->cni_vps)
+	if (0 != p->cni_vps && 0 != nk->cni_vps
+	    && unlikely (p->cni_vps != nk->cni_vps))
 		goto mismatch;
 
-	if (p->cni_8301 && nk->cni_8301
-	    && p->cni_8301 != nk->cni_8301)
+	if (0 != p->cni_8301 && 0 != nk->cni_8301
+	    && unlikely (p->cni_8301 != nk->cni_8301))
 		goto mismatch;
 
-	if (p->cni_8302 && nk->cni_8302
-	    && p->cni_8302 != nk->cni_8302)
+	if (0 != p->cni_8302 && 0 != nk->cni_8302
+	    && unlikely (p->cni_8302 != nk->cni_8302))
 		goto mismatch;
 
 	new_name = strdup_table_name (p->name);
-	if (NULL == new_name) {
+	if (unlikely (NULL == new_name)) {
 		errno = ENOMEM;
 		return FALSE;
 	}
@@ -934,31 +940,28 @@ vbi_bool
 vbi_network_set			(vbi_network *		dst,
 				 const vbi_network *	src)
 {
-	char *new_name;
-
 	if (NULL == src)
 		return vbi_network_reset (dst);
 
 	_vbi_null_check (dst, FALSE);
 
-	if (dst == src)
-		return TRUE;
+	if (dst != src) {
+		char *new_name = NULL;
 
-	new_name = NULL;
-
-	if (NULL != src->name) {
-		new_name = strdup (src->name);
-		if (NULL == new_name) {
-			errno = ENOMEM;
-			return FALSE;
+		if (NULL != src->name) {
+			new_name = strdup (src->name);
+			if (unlikely (NULL == new_name)) {
+				errno = ENOMEM;
+				return FALSE;
+			}
 		}
+
+		vbi_free (dst->name);
+
+		memcpy (dst, src, sizeof (*dst));
+
+		dst->name = new_name;
 	}
-
-	vbi_free (dst->name);
-
-	memcpy (dst, src, sizeof (*dst));
-
-	dst->name = new_name;
 
 	return TRUE;
 }
@@ -994,7 +997,7 @@ vbi_network_copy		(vbi_network *		dst,
 
 		if (NULL != src->name) {
 			new_name = strdup (src->name);
-			if (NULL == new_name) {
+			if (unlikely (NULL == new_name)) {
 				errno = ENOMEM;
 				return FALSE;
 			}
@@ -1023,6 +1026,48 @@ vbi_bool
 vbi_network_init		(vbi_network *		nk)
 {
 	return vbi_network_copy (nk, NULL);
+}
+
+/**
+ */
+vbi_network *
+vbi_network_dup			(const vbi_network *	nk)
+{
+	vbi_network *new_nk;
+
+	new_nk = vbi_malloc (sizeof (*nk));
+	if (unlikely (NULL == new_nk))
+		return NULL;
+
+	if (unlikely (!vbi_network_copy (new_nk, nk))) {
+		int saved_errno = errno;
+
+		free (new_nk);
+		new_nk = NULL;
+
+		errno = saved_errno;
+	}
+
+	return new_nk;
+}
+
+/**
+ */
+void
+vbi_network_delete		(vbi_network *		nk)
+{
+	if (NULL != nk) {
+		vbi_network_destroy (nk);
+		free (nk);
+	}
+}
+
+/**
+ */
+vbi_network *
+vbi_network_new			(void)
+{
+	return vbi_network_dup (NULL);
 }
 
 /*
