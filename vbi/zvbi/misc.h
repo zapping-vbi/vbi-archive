@@ -20,7 +20,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: misc.h,v 1.1.2.2 2008-08-20 12:34:51 mschimek Exp $ */
+/* $Id: misc.h,v 1.1.2.3 2008-08-22 07:59:15 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -292,7 +292,7 @@ _vbi_keyword_lookup		(int *			value,
 				 unsigned int		n_pairs)
   _vbi_nonnull ((1, 2, 3));
 
-extern void
+extern vbi_bool
 _vbi_shrink_vector_capacity	(void **		vector,
 				 size_t *		capacity,
 				 size_t			min_capacity,
