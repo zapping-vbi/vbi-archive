@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: ttx_page-priv.h,v 1.1.2.2 2008-08-20 12:33:59 mschimek Exp $ */
+/* $Id: ttx_page-priv.h,v 1.1.2.3 2008-08-22 07:59:10 mschimek Exp $ */
 
 #ifndef PAGE_PRIV_H
 #define PAGE_PRIV_H
@@ -61,15 +61,16 @@ struct ttx_page {
 	vbi_opacity			page_opacity[2];
 	vbi_opacity			boxed_opacity[2];
 
-	/** TOP navigation. */
-#if 0
-	vbi_link			link[6];
-#endif
+	/** Fastext / TOPText navigation. */
+	struct ttx_page_link		nav_link[4];
+
 	/**
-	 * Points from each character in TOP/FLOF row 25 (max 64 columns)
-	 * to a link[] element. -1 if no link.
+	 * This is an index into the nav_link[] array for each
+	 * character in the navigation bar (25th row, max 64
+	 * columns). The index is negative if the character is not
+	 * associated with a link.
 	 */
-	int8_t			link_ref[64];
+	int8_t				link_ref[64];
 };
 
 extern vbi_bool
