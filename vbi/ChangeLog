@@ -1,3 +1,53 @@
+2008-08-22    <mschimek@users.sf.net>
+
+	* zvbi/ttx_page_stat.h, zvbi/ttx_decoder.c: Renamed a few
+	  vbi_ttx_page_type identifiers from _PAGE to _DATA to clarify these
+	  pages are not displayable.
+
+	* examples/teletext.c: Added TOPText support.
+
+	* zvbi/ttx_decoder.c (default_color_map): Changed the private
+	  colors back to pure RGB 1:1:1.
+	* zvbi/ttx.h: Struct ttx_lop: s/have_flof/have_fastext.
+	* zvbi/ttx_page.c, zvbi/ttx_decoder.h: Added
+	  vbi_ttx_page_get_top_title(), vbi_ttx_page_get_nav_link().
+	  Renamed vbi_ttx_page_get_link() to vbi_ttx_page_get_ed_link().
+	  Those are editorial links, as opposed to Fastext, TOPText,
+	  PDC and in-page hyperlinks.
+	* zvbi/link.h, zvbi/link.c: Added _vbi_ttx_link_new() for
+	  ttx_page.c.
+	* zvbi/ttx_decoder.h, zvbi/ttx_page.c
+	(_vbi_ttx_page_from_cache_page_va): Replaced formatting option
+	  VBI_NAVIGATION by VBI_FASTEXT and VBI_TOPTEXT.
+	* zvbi/ttx_page.c: Restored and rewrote Fastext and TOPText
+	  navigation. Removed TOP style 2. Restored
+	  vbi_ttx_page_get_top_title().
+	* zvbi/ttx_page-priv.h: Restored the internal navigation links.
+	* zvbi/ttx_decoder.c, zvbi/ttx_decoder.h: Added
+	  vbi_ttx_decoder_get_top_titles(),
+
+	* zvbi/misc.h: _vbi_shrink_vector_capacity() interface changed.
+	* zvbi/misc.c (_vbi_shrink_vector_capacity) 
+	(_vbi_grow_vector_capacity): Restored for vbi_top_title.c.
+	* zvbi/zvbi.h: Added top_title.h.
+	* zvbi/Makefile.am (INSTALLHDRS): Added top_title.h.
+	(libzvbi_0_3_la_SOURCES): Added top_title.c, top_title.h,
+	  top_title-priv.h.
+	* zvbi/ttx_page.c, zvbi/cache-priv.h: Changed the
+	  _vbi_ttx_charset_init() function because writing into an array is
+	  unsafe.
+	* zvbi/error.h: Added VBI_ERR_BAD_PAGE, VBI_ERR_NO_LINK,
+	  VBI_ERR_NO_TOP_TITLE, VBI_ERR_INVALID_ARG.
+	* src/top_title.c, src/top_title.h: Moved into zvbi/.
+	* zvbi/top_title-priv.h: Added.
+	* zvbi/top_title.c, zvbi/top_title.h: Moved here from src/, cleaned
+	  up, added allocation functions.
+	
+	* zvbi/link.c: Doxumented the public functions.
+	* zvbi/network.c: Doxumentation tweaks.
+
+	* zvbi/network.c (vbi_network_copy): Clear reserved fields.
+	
 2008-08-20    <mschimek@users.sf.net>
 
 	* zvbi/page.h: Removed declaration of non-existing vbi_page_new().
