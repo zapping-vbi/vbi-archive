@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: network.c,v 1.1.2.2 2008-08-20 12:34:41 mschimek Exp $ */
+/* $Id: network.c,v 1.1.2.3 2008-08-22 08:00:02 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -902,15 +902,15 @@ vbi_network_reset		(vbi_network *		nk)
 }
 
 /**
- * @param nk vbi_network structure initialized with vbi_network_init()
- *   or vbi_network_copy().
+ * @param nk vbi_network structure initialized with
+ *   vbi_network_init() or vbi_network_copy().
  *
  * Frees all resources associated with @a nk, except for the structure
  * itself.
  *
  * @returns
- * @c FALSE and sets errno to @c VBI_ERR_NULL_ARG if @a nk is
- * a @c NULL pointer.
+ * The function returns @c FALSE and sets the errno variable to
+ * @c VBI_ERR_NULL_ARG if @a nk is a @c NULL pointer.
  *
  * @since 0.3.1
  */
@@ -924,12 +924,12 @@ vbi_network_destroy		(vbi_network *		nk)
  * @param dst Initialized vbi_network structure.
  * @param src Initialized vbi_network structure, can be @c NULL.
  *
- * Sets all fields of @a dst by copying from @a src. If @a src is @c
- * NULL the function works like vbi_network_reset(). It does nothing
- * if @a dst == @a src.
+ * Sets all fields of @a dst to the same value as in @a src. If @a src
+ * is @c NULL the function has the same effect as vbi_network_reset().
+ * If @a src == @a dst the function does nothing.
  *
  * @returns
- * On failure the @a dst remains unmodified, the function returns
+ * On failure @a *dst remains unmodified, the function returns
  * @c FALSE and sets the errno variable to indicate the error:
  * - @c ENOMEM - insufficient memory.
  * - @c VBI_ERR_NULL_ARG - @a dst is a @c NULL pointer.
@@ -967,15 +967,17 @@ vbi_network_set			(vbi_network *		dst,
 }
 
 /**
- * @param dst vbi_network structure to initialize.
- * @param src Initialized vbi_network structure, can be @c NULL.
+ * @param dst A copy of @a src will be stored here.
+ * @param src vbi_network to be copied, can be @c NULL.
  *
- * Initializes all fields of @a dst by copying the fields of @a src.
- * If @a src is @c NULL the function works like vbi_network_init().
+ * Creates a deep copy of @a src in @a dst, overwriting the data
+ * previously stored at @a dst. If @a src is @c NULL this function has
+ * the same effect as vbi_network_init(). It @a src == @a dst the
+ * function does nothing.
  *
  * @returns
- * On failure the @a dst remains unmodified, the function returns
- * @c FALSE and sets the errno variable to indicate the error:
+ * On failure @a *dst remains unmodified, the function returns @c FALSE
+ * and sets the errno variable to indicate the error:
  * - @c ENOMEM - insufficient memory.
  * - @c VBI_ERR_NULL_ARG - @a dst is a @c NULL pointer.
  *
@@ -985,6 +987,8 @@ vbi_bool
 vbi_network_copy		(vbi_network *		dst,
 				 const vbi_network *	src)
 {
+	char *new_name;
+
 	_vbi_null_check (dst, FALSE);
 
 	if (dst == src)
@@ -992,33 +996,40 @@ vbi_network_copy		(vbi_network *		dst,
 
 	if (NULL == src) {
 		CLEAR (*dst);
-	} else if (dst != src) {
-		char *new_name = NULL;
 
-		if (NULL != src->name) {
-			new_name = strdup (src->name);
-			if (unlikely (NULL == new_name)) {
-				errno = ENOMEM;
-				return FALSE;
-			}
-		}
-
-		memcpy (dst, src, sizeof (*dst));
-
-		dst->name = new_name;
+		return TRUE;
 	}
+
+	new_name = NULL;
+
+	if (NULL != src->name) {
+		new_name = strdup (src->name);
+		if (unlikely (NULL == new_name)) {
+			errno = ENOMEM;
+			return FALSE;
+		}
+	}
+
+	memcpy (dst, src, sizeof (*dst));
+
+	dst->name = new_name;
+
+	CLEAR (dst->_reserved1);
+	CLEAR (dst->_reserved2);
+	CLEAR (dst->_reserved3);
+	CLEAR (dst->_reserved4);
 
 	return TRUE;
 }
 
 /**
- * @param nk vbi_network structure to initialize.
+ * @param nk Pointer to the vbi_network structure to be initialized.
  *
- * Initializes all fields of @a nk to zero, creating an
- * anonymous network.
+ * Initializes all fields of @a nk.
  *
  * @returns
- * @c FALSE if @a nk is @a NULL.
+ * The function returns @c FALSE and sets the errno variable to
+ * @c VBI_ERR_NULL_ARG if @a nk is a @c NULL pointer.
  *
  * @since 0.3.1
  */
@@ -1029,13 +1040,25 @@ vbi_network_init		(vbi_network *		nk)
 }
 
 /**
+ * @param nk vbi_network structure, can be @c NULL.
+ *
+ * Creates a deep copy of @a nk in a newly allocated vbi_network
+ * structure. If @a nk is @c NULL this function works like
+ * vbi_network_new().
+ *
+ * @returns
+ * On success the function returns a pointer to the allocated
+ * vbi_network structure. If insufficent memory is available it
+ * returns @c NULL and sets the errno variable to @c ENOMEM.
+ *
+ * @since 0.3.1
  */
 vbi_network *
 vbi_network_dup			(const vbi_network *	nk)
 {
 	vbi_network *new_nk;
 
-	new_nk = vbi_malloc (sizeof (*nk));
+	new_nk = vbi_malloc (sizeof (*new_nk));
 	if (unlikely (NULL == new_nk))
 		return NULL;
 
@@ -1052,6 +1075,13 @@ vbi_network_dup			(const vbi_network *	nk)
 }
 
 /**
+ * @param nk vbi_network structure allocated with
+ *   vbi_network_new() or vbi_network_dup(), can be @c NULL.
+ *
+ * Frees all resources associated with @a nk, and the structure
+ * itself.
+ *
+ * @since 0.3.1
  */
 void
 vbi_network_delete		(vbi_network *		nk)
@@ -1063,6 +1093,14 @@ vbi_network_delete		(vbi_network *		nk)
 }
 
 /**
+ * Allocates a vbi_network structure and initializes all fields.
+ *
+ * @returns
+ * On success the function returns a pointer to the allocated
+ * vbi_network structure. If insufficent memory is available it
+ * returns @c NULL and sets the errno variable to @c ENOMEM.
+ *
+ * @since 0.3.1
  */
 vbi_network *
 vbi_network_new			(void)
