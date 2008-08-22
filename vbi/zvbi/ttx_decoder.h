@@ -22,7 +22,7 @@
  *  libzvbi - Teletext decoder
  */
 
-/* $Id: ttx_decoder.h,v 1.1.2.2 2008-08-20 12:34:28 mschimek Exp $ */
+/* $Id: ttx_decoder.h,v 1.1.2.3 2008-08-22 07:59:00 mschimek Exp $ */
 
 #ifndef __ZVBI_TTX_DECODER_H__
 #define __ZVBI_TTX_DECODER_H__
@@ -32,6 +32,7 @@
 #include "zvbi/cache.h"		/* vbi_cache */
 #include "zvbi/event.h"		/* vbi_event_cb */
 #include "zvbi/sliced.h"	/* vbi_sliced */
+#include "zvbi/top_title.h"	/* vbi_top_title */
 
 VBI_BEGIN_DECLS
 
@@ -128,14 +129,36 @@ typedef enum {
 	VBI_PANELS,
 
 	/**
-	 * Enable TOP or FLOF navigation in row 25.
-	 * - 0 disable
-	 * - 1 FLOF or TOP style 1
-	 * - 2 FLOF or TOP style 2
+	 * If Fastext labels are transmitted in the 25th row turn them
+	 * into hyperlinks. Note this works only if the usual text
+	 * colors red, green, yellow and blue are used. If Fastext
+	 * links but no labels are transmitted, add a 25th row with the
+	 * page numbers as labels.
 	 *
-	 * Parameter: int, default 0.
+	 * You can always query the Fastext links of the page with
+	 * the vbi_ttx_page_get_link() function, index 0 to 3.
+	 *
+	 * Parameter: vbi_bool, default FALSE.
 	 */
-	VBI_NAVIGATION,
+	VBI_FASTEXT,
+
+	/**
+	 * If TOP (Table Of Pages) data is transmitted, add a 25th row
+	 * with four hyperlinked labels to the previous page in
+	 * transmission, the next page in transmission, the next
+	 * group, and the next block of pages. It may take a while
+	 * after a channel change until all TOP data has been
+	 * received, so the labels may not appear right away.
+	 *
+	 * The vbi_ttx_page_get_top_link() function returns the links
+	 * corresponding to the four labels.
+	 *
+	 * The vbi_ttx_decoder_get_top_titles() function returns the
+	 * entire table.
+	 *
+ 	 * Parameter: vbi_bool, default FALSE.
+	 */
+	VBI_TOPTEXT,
 
 	/**
 	 * Scan the page for page numbers, URLs, e-mail addresses
@@ -199,8 +222,20 @@ typedef enum {
 	VBI_OVERRIDE_CHARSET_1,
 } vbi_ttx_format_option;
 
+extern vbi_bool
+vbi_ttx_decoder_get_top_titles	(const vbi_ttx_decoder *td,
+				 vbi_top_title **	tt_array,
+				 unsigned int *		n_elements)
+  _vbi_nonnull ((1, 2, 3));
+extern vbi_top_title *
+vbi_ttx_page_get_top_title	(const vbi_page *	pg)
+  _vbi_nonnull ((1));
 extern vbi_link *
-vbi_ttx_page_get_link		(const vbi_page *	pg,
+vbi_ttx_page_get_nav_link	(const vbi_page *	pg,
+				 unsigned int		indx)
+  _vbi_nonnull ((1));
+extern vbi_link *
+vbi_ttx_page_get_ed_link	(const vbi_page *	pg,
 				 unsigned int		indx)
   _vbi_nonnull ((1));
 extern const uint8_t *
