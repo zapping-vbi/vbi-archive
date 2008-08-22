@@ -25,7 +25,7 @@
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* $Id: teletext.c,v 1.1.2.3 2008-08-20 12:35:12 mschimek Exp $ */
+/* $Id: teletext.c,v 1.1.2.4 2008-08-22 07:58:48 mschimek Exp $ */
 
 /* This example shows how to build a basic Teletext browser from
    libzvbi Teletext functions. After installing the library you can
@@ -229,6 +229,8 @@ get_and_draw_page		(vbi_pgno		pgno,
 				       pgno, VBI_ANY_SUBNO,
 				       VBI_TTX_LEVEL, level,
 				       VBI_HEADER_ONLY, header_only,
+				       VBI_FASTEXT, TRUE,
+				       VBI_TOPTEXT, TRUE,
 				       VBI_END);
 	if (NULL == pg) {
 		fprintf (stderr, "Page %x is not cached.\n",
@@ -317,16 +319,16 @@ enter_page_number		(int			n)
 }
 
 /* This is what the red / green / yellow / blue
-   buttons on a Fastext remote control do. */
+   buttons on a Fastext/TOPText remote control do. */
 static void
-fastext_button			(int			n)
+nav_button			(int			n)
 {
 	vbi_link *lk;
 
 	if (NULL == curr_pg)
 		return;
 
-	lk = vbi_ttx_page_get_link (curr_pg, n);
+	lk = vbi_ttx_page_get_nav_link (curr_pg, n);
 	if (NULL != lk) {
 		requested_pgno = lk->lk.ttx.pgno;
 
@@ -336,6 +338,29 @@ fastext_button			(int			n)
 		vbi_link_delete (lk);
 	} else {
 		printf ("No link %u.\n", n);
+	}
+}
+
+static void
+service_info			(void)
+{
+	vbi_top_title *tt_array;
+	unsigned int n_elements;
+
+	if (vbi_ttx_decoder_get_top_titles (td, &tt_array, &n_elements)) {
+		unsigned int i;
+
+		printf ("TOP menu:\n");
+		for (i = 0; i < n_elements; ++i) {
+			printf ("%s  '%s' %X.%X\n",
+				(VBI_TOP_BLOCK
+				 == tt_array[i].type) ? "" : "  ",
+				tt_array[i].title,
+				tt_array[i].pgno,
+				tt_array[i].subno);
+		}
+
+		vbi_top_title_array_delete (tt_array, n_elements);
 	}
 }
 
@@ -357,11 +382,7 @@ x_event				(void)
 				       /* status_in_out */ NULL);
 			switch (c) {
 			case XK_F1 ... XK_F4:
-				fastext_button (c - XK_F1);
-				break;
-
-			case XK_Home:
-				fastext_button (5);
+				nav_button (c - XK_F1);
 				break;
 
 			case XK_Up:
@@ -385,6 +406,10 @@ x_event				(void)
 			case 'c':
 			case 'q':
 				quit = TRUE;
+				break;
+
+			case 's':
+				service_info ();
 				break;
 
 			case '?':
