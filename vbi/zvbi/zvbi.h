@@ -19,6 +19,7 @@
 #include "zvbi/page.h"
 #include "zvbi/sampling_par.h"
 #include "zvbi/sliced.h"
+#include "zvbi/top_title.h"
 #include "zvbi/ttx_charset.h"
 #include "zvbi/ttx_decoder.h"
 #include "zvbi/ttx_page_stat.h"
