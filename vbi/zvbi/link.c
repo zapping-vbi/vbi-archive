@@ -18,7 +18,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: link.c,v 1.1.2.1 2008-08-20 12:35:00 mschimek Exp $ */
+/* $Id: link.c,v 1.1.2.2 2008-08-22 07:59:06 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -122,6 +122,17 @@ _vbi_link_dump			(const vbi_link *	lk,
 }
 
 /**
+ * @param lk vbi_link structure initialized with
+ *   vbi_link_init() or vbi_link_copy().
+ *
+ * Frees all resources associated with @a lk, except for the structure
+ * itself.
+ *
+ * @returns
+ * The function returns @c FALSE and sets the errno variable to
+ * @c VBI_ERR_NULL_ARG if @a lk is a @c NULL pointer.
+ *
+ * @since 0.3.1
  */
 vbi_bool
 vbi_link_destroy		(vbi_link *		lk)
@@ -153,6 +164,22 @@ vbi_link_destroy		(vbi_link *		lk)
 }
 
 /**
+ * @param dst A copy of @a src will be stored here.
+ * @param src vbi_link to be copied, can be @c NULL.
+ *
+ * Creates a deep copy of @a src in @a dst, overwriting the data
+ * previously stored at @a dst. If @a src is @c NULL the function has
+ * the same effect as vbi_link_init(). It @a src == @a dst the
+ * function does nothing.
+ *
+ * @returns
+ * On failure @a *dst remains unmodified, the function returns @c FALSE
+ * and sets the errno variable to indicate the error:
+ * - @c ENOMEM - insufficient memory.
+ * - @c VBI_ERR_NULL_ARG - @a dst is a @c NULL pointer.
+ * - @c VBI_ERR_INVALID_LINK_TYPE - @a src->type is invalid.
+ *
+ * @since 0.3.1
  */
 vbi_bool
 vbi_link_copy			(vbi_link *		dst,
@@ -232,6 +259,15 @@ vbi_link_copy			(vbi_link *		dst,
 }
 
 /**
+ * @param lk Pointer to the vbi_link structure to be initialized.
+ *
+ * Initializes all fields of @a lk to zero.
+ *
+ * @returns
+ * The function returns @c FALSE and sets the errno variable to
+ * @c VBI_ERR_NULL_ARG if @a lk is a @c NULL pointer.
+ *
+ * @since 0.3.1
  */
 vbi_bool
 vbi_link_init		(vbi_link *		lk)
@@ -240,13 +276,27 @@ vbi_link_init		(vbi_link *		lk)
 }
 
 /**
+ * @param lk vbi_link structure, can be @c NULL.
+ *
+ * Creates a deep copy of @a lk in a newly allocated vbi_link
+ * structure. If @a lk is @c NULL this function works like
+ * vbi_link_new().
+ *
+ * @returns
+ * On success the function returns a pointer to the allocated
+ * vbi_link structure. On failure it returns @c NULL and sets
+ * the errno variable to indicate the error:
+ * - @c ENOMEM - insufficient memory.
+ * - @c VBI_ERR_INVALID_LINK_TYPE - @a lk->type is invalid.
+ *
+ * @since 0.3.1
  */
 vbi_link *
 vbi_link_dup		(const vbi_link *	lk)
 {
 	vbi_link *new_lk;
 
-	new_lk = vbi_malloc (sizeof (*lk));
+	new_lk = vbi_malloc (sizeof (*new_lk));
 	if (unlikely (NULL == new_lk))
 		return NULL;
 
@@ -263,6 +313,13 @@ vbi_link_dup		(const vbi_link *	lk)
 }
 
 /**
+ * @param lk vbi_link structure allocated with
+ *   vbi_link_new() or vbi_link_dup(), can be @c NULL.
+ *
+ * Frees all resources associated with @a lk, and the structure
+ * itself.
+ *
+ * @since 0.3.1
  */
 void
 vbi_link_delete		(vbi_link *		lk)
@@ -274,6 +331,55 @@ vbi_link_delete		(vbi_link *		lk)
 }
 
 /**
+ * @internal
+ */
+vbi_link *
+_vbi_ttx_link_new		(const vbi_network *	nk,
+				 vbi_pgno		pgno,
+				 vbi_subno		subno)
+{
+	vbi_link *lk;
+
+	_vbi_null_check (nk, NULL);
+
+	lk = vbi_malloc (sizeof (*lk));
+	if (NULL == lk) {
+		return NULL;
+	}
+
+	CLEAR (*lk);
+
+	if (NULL != nk) {
+		lk->lk.ttx.network = vbi_network_dup (nk);
+		if (unlikely (NULL == lk->lk.ttx.network)) {
+			int saved_errno = errno;
+
+			vbi_free (lk);
+			errno = saved_errno;
+			return NULL;
+		}
+	}
+
+	lk->type = VBI_LINK_TTX_PAGE;
+
+	lk->lk.ttx.pgno = pgno;
+	lk->lk.ttx.subno = subno;
+
+	lk->expiration_time = TIME_MAX;
+
+	return lk;
+}
+
+/**
+ * Allocates a vbi_link structure and initializes all fields
+ * to zero.
+ *
+ * @returns
+ * On success the function returns a pointer to the allocated
+ * vbi_link structure. If insufficent memory is available it
+ * returns @c NULL and sets the errno variable to @c ENOMEM.
+ *
+ * @since 0.3.1
  */
 vbi_link *
 vbi_link_new			(void)
