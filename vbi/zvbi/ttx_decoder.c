@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: ttx_decoder.c,v 1.1.2.1 2008-08-19 10:56:06 mschimek Exp $ */
+/* $Id: ttx_decoder.c,v 1.1.2.2 2008-08-22 07:58:43 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -33,6 +33,7 @@
 #include "conv.h"		/* _vbi_strdup_locale_teletext() */
 #include "ttx_page_stat.h"
 #include "ttx_page-priv.h"
+#include "top_title-priv.h"
 #include "ttx_decoder-priv.h"
 
 /**
@@ -78,12 +79,12 @@ default_color_map [40] = {
 	VBI_RGBA (0x77, 0x77, 0xFF), VBI_RGBA (0xFF, 0x77, 0xFF),
 	VBI_RGBA (0x77, 0xFF, 0xFF), VBI_RGBA (0xDD, 0xDD, 0xDD),
 
-	/* Private colors */
+	/* Private, immutable colors for the navigation bar. */
 
-	VBI_RGBA (0x00, 0x00, 0x00), VBI_RGBA (0xFF, 0xAA, 0x99),
-	VBI_RGBA (0x44, 0xEE, 0x00), VBI_RGBA (0xFF, 0xDD, 0x00),
-	VBI_RGBA (0xFF, 0xAA, 0x99), VBI_RGBA (0xFF, 0x00, 0xFF),
-	VBI_RGBA (0x00, 0xFF, 0xFF), VBI_RGBA (0xEE, 0xEE, 0xEE)
+	VBI_RGBA (0x00, 0x00, 0x00), VBI_RGBA (0xFF, 0x00, 0x00),
+	VBI_RGBA (0x00, 0xFF, 0x00), VBI_RGBA (0xFF, 0xFF, 0x00),
+	VBI_RGBA (0x00, 0x00, 0xFF), VBI_RGBA (0xFF, 0x00, 0xFF),
+	VBI_RGBA (0x00, 0xFF, 0xFF), VBI_RGBA (0xFF, 0xFF, 0xFF),
 };
 
 /** @internal */
@@ -197,16 +198,16 @@ _vbi_ttx_page_type_name		(vbi_ttx_page_type	type)
 	CASE (CA_DATA)
 	CASE (PFC_EPG_DATA)
 	CASE (PFC_DATA)
-	CASE (DRCS_PAGE)
-	CASE (POP_PAGE)
-	CASE (SYSTEM_PAGE)
-	CASE (KEYWORD_SEARCH_LIST)
+	CASE (DRCS_DATA)
+	CASE (POP_DATA)
+	CASE (SYSTEM_DATA)
+	CASE (KEYWORD_SEARCH_DATA)
 	CASE (TOP_BLOCK)
 	CASE (TOP_GROUP)
 	CASE (NEWSFLASH_PAGE)
 	CASE (TRIGGER_DATA)
-	CASE (ACI_PAGE)
-	CASE (TOP_PAGE)
+	CASE (ACI_DATA)
+	CASE (TOP_DATA)
 	}
 
 	return NULL;
@@ -360,7 +361,7 @@ clear_lop			(cache_page *		cp)
 	/* NO_PAGE (pgno): (pgno & 0xFF) == 0xFF. */
 	memset (cp->data.lop.link, -1, sizeof (cp->data.lop.link));
 
-	cp->data.lop.have_flof = FALSE;
+	cp->data.lop.have_fastext = FALSE;
 }
 
 static void
@@ -568,7 +569,7 @@ decode_mot_page_pop		(vbi_ttx_decoder *	td,
 		pop->pgno = MAG8 (n4[0] & 7) * 256 + n4[1] * 16 + n4[2];
 
 		ps = cache_network_page_stat (td->network, pop->pgno);
-		ps->page_type = VBI_SYSTEM_PAGE;
+		ps->page_type = VBI_SYSTEM_DATA;
 		ps->subcode = n4[3]; /* highest S1 transmitted */
 
 		if (n4[4] & 1) {
@@ -625,7 +626,7 @@ decode_mot_page_drcs		(vbi_ttx_decoder *	td,
 
 		ps = cache_network_page_stat (td->network, pgno[i]);
 
-		ps->page_type = VBI_SYSTEM_PAGE;
+		ps->page_type = VBI_SYSTEM_DATA;
 		ps->subcode = n4[3]; /* highest S1 transmitted */
 	}
 }
@@ -889,7 +890,7 @@ top_link_stat			(cache_network *	cn,
 		}
 
 		ps = cache_network_page_stat (cn, pl->pgno);
-		ps->page_type = VBI_TOP_PAGE;
+		ps->page_type = VBI_TOP_DATA;
 
 		return TRUE;
 
@@ -1288,7 +1289,7 @@ mip_page_stat			(cache_network *	cn,
 			subcode = n;
 		}
 
-		page_type = (code == 0xF8) ? VBI_KEYWORD_SEARCH_LIST :
+		page_type = (code == 0xF8) ? VBI_KEYWORD_SEARCH_DATA :
 			    (code == 0x7E) ? VBI_PROGR_INDEX :
 			    (code == 0x7B) ? VBI_CURRENT_PROGR :
 			    (code >= 0xE0) ? VBI_CA_DATA :
@@ -1352,12 +1353,12 @@ mip_page_stat			(cache_network *	cn,
 		break;
 
 	case 0xE8 ... 0xEB:
-		page_type = VBI_DRCS_PAGE;
+		page_type = VBI_DRCS_DATA;
 		subcode = old_subcode;
 		break;
 
 	case 0xEC ... 0xEF:
-		page_type = VBI_POP_PAGE;
+		page_type = VBI_POP_DATA;
 		subcode = old_subcode;
 		break;
 	}
@@ -2470,18 +2471,18 @@ decode_packet_0			(vbi_ttx_decoder *	td,
 
 		if (0x1B0 == cp->pgno) {
 			cp->function = PAGE_FUNCTION_ACI;
-			ps->page_type = VBI_ACI_PAGE;
+			ps->page_type = VBI_ACI_DATA;
 		} else if (0x1F0 == cp->pgno) {
 			cp->function = PAGE_FUNCTION_BTT;
-			ps->page_type = VBI_TOP_PAGE;
+			ps->page_type = VBI_TOP_DATA;
 			CLEAR (cp->data.ext_lop);
 		} else if (0xFD == page && 0 == cp->subno) {
 			cp->function = PAGE_FUNCTION_MIP;
-			ps->page_type = VBI_SYSTEM_PAGE;
+			ps->page_type = VBI_SYSTEM_DATA;
 			CLEAR (cp->data.ext_lop);
 		} else if (0xFE == page && 0 == cp->subno) {
 			cp->function = PAGE_FUNCTION_MOT;
-			ps->page_type = VBI_SYSTEM_PAGE;
+			ps->page_type = VBI_SYSTEM_DATA;
 			CLEAR (cp->data.ext_lop);
 		} else {
 			cp->function = PAGE_FUNCTION_UNKNOWN;
@@ -2532,13 +2533,13 @@ decode_packet_0			(vbi_ttx_decoder *	td,
 			cp->function = PAGE_FUNCTION_LOP;
 			break;
 
-		case VBI_SYSTEM_PAGE:
+		case VBI_SYSTEM_DATA:
 			/* Not ACI, BTT, MOT or MIP (reserved page number),
 			   not MPT, AIT or MPT-EX (VBI_TOP_PAGE),
 			   so it remains unknown. */
 			break;
 
-		case VBI_TOP_PAGE:
+		case VBI_TOP_DATA:
 		{
 			cache_network *cn;
 			unsigned int i;
@@ -2582,7 +2583,7 @@ decode_packet_0			(vbi_ttx_decoder *	td,
 			break;
 		}
 
-		case VBI_DRCS_PAGE:
+		case VBI_DRCS_DATA:
 		{
 			unsigned int i;
 
@@ -2601,7 +2602,7 @@ decode_packet_0			(vbi_ttx_decoder *	td,
 			break;
 		}
 
-		case VBI_POP_PAGE:
+		case VBI_POP_DATA:
 		{
 			cache_page temp;
 
@@ -2636,7 +2637,7 @@ decode_packet_0			(vbi_ttx_decoder *	td,
 		case VBI_NOT_PUBLIC:
 		case VBI_CA_DATA:
 		case VBI_PFC_DATA:
-		case VBI_KEYWORD_SEARCH_LIST:
+		case VBI_KEYWORD_SEARCH_DATA:
 			cp->function = PAGE_FUNCTION_DISCARD;
 			break;
 
@@ -2874,7 +2875,7 @@ decode_packet_27		(vbi_ttx_decoder *	td,
 		log ("... crc %04x\n", crc);
 
 		/* ETR 287 section 10.4: Have FLOF, display row 24. */
-		cp->data.lop.have_flof = control >> 3;
+		cp->data.lop.have_fastext = control >> 3;
 
 		/* fall through */
 	}
@@ -4032,6 +4033,22 @@ vbi_ttx_decoder_feed_frame
 	}
 
 	return TRUE;
+}
+
+/**
+ */
+vbi_bool
+vbi_ttx_decoder_get_top_titles	(const vbi_ttx_decoder *td,
+				 vbi_top_title **	tt_array,
+				 unsigned int *		n_elements)
+{
+	_vbi_null_check (td, FALSE);
+	_vbi_null_check (tt_array, FALSE);
+	_vbi_null_check (n_elements, FALSE);
+
+	return _vbi_cn_get_top_titles (td->network,
+				       tt_array,
+				       n_elements);
 }
 
 /**
