@@ -39,6 +39,7 @@ INSTALLHDRS = \
 	page.h \
 	sampling_par.h \
 	sliced.h \
+	top_title.h \
 	ttx_charset.h \
 	ttx_decoder.h \
 	ttx_page_stat.h
@@ -61,6 +62,7 @@ libzvbi_0_3_la_SOURCES = \
 	page.h \
 	sampling_par.h \
 	sliced.h \
+	top_title.c top_title.h top_title-priv.h \
 	ttx.h \
 	ttx_charset.c ttx_charset.h \
 	ttx_decoder.c ttx_decoder.h ttx_decoder-priv.h \
