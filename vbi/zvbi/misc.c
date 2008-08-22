@@ -20,7 +20,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: misc.c,v 1.1.2.1 2008-08-19 10:56:05 mschimek Exp $ */
+/* $Id: misc.c,v 1.1.2.2 2008-08-22 07:59:20 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -220,6 +220,92 @@ _vbi_asprintf			(char **		dstp,
 	va_end (ap);
 
 	return len;
+}
+
+/**
+ * @internal
+ */
+vbi_bool
+_vbi_shrink_vector_capacity	(void **		vector,
+				 size_t *		capacity,
+				 size_t			min_capacity,
+				 size_t			element_size)
+{
+	void *new_vec;
+
+	if (min_capacity >= *capacity)
+		return TRUE;
+
+	new_vec = vbi_realloc (*vector, min_capacity * element_size);
+	if (unlikely (NULL == new_vec))
+		return FALSE;
+
+	*vector = new_vec;
+	*capacity = min_capacity;
+
+	return TRUE;
+}
+
+/**
+ * @internal
+ */
+vbi_bool
+_vbi_grow_vector_capacity	(void **		vector,
+				 size_t *		capacity,
+				 size_t			min_capacity,
+				 size_t			element_size)
+{
+	void *new_vec;
+	size_t old_capacity;
+	size_t new_capacity;
+	size_t max_capacity;
+
+	assert (min_capacity > 0);
+	assert (element_size > 0);
+
+	max_capacity = SIZE_MAX / element_size;
+
+	if (unlikely (min_capacity > max_capacity)) {
+		goto failed;
+	}
+
+	old_capacity = *capacity;
+
+	/* If old_capacity < 64K we double the capacity,
+	   otherwise we add 64K, but only up to max_capacity. */
+	if (unlikely (old_capacity >= (1 << 16))) {
+		if (unlikely (max_capacity < (1 << 16)
+			      || old_capacity > max_capacity - (1 << 16)))
+			new_capacity = max_capacity;
+		else
+			new_capacity = MAX (min_capacity,
+					    old_capacity + (1 << 16));
+	} else {
+		new_capacity = MAX (min_capacity, old_capacity * 2);
+		new_capacity = MIN (new_capacity, max_capacity);
+	}
+
+	new_vec = vbi_realloc (*vector, new_capacity * element_size);
+	if (unlikely (NULL == new_vec)) {
+		if (new_capacity <= min_capacity)
+			goto failed;
+
+		new_capacity = min_capacity;
+
+		new_vec = vbi_realloc (*vector, new_capacity * element_size);
+		if (unlikely (NULL == new_vec))
+			goto failed;
+	}
+
+	*vector = new_vec;
+	*capacity = new_capacity;
+
+	return TRUE;
+
+ failed:
+	errno = ENOMEM;
+
+	return FALSE;
 }
 
 /*
