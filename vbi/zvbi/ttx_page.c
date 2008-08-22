@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: ttx_page.c,v 1.1.2.3 2008-08-20 12:34:33 mschimek Exp $ */
+/* $Id: ttx_page.c,v 1.1.2.4 2008-08-22 07:58:56 mschimek Exp $ */
 
 #include "../site_def.h"
 
@@ -31,6 +31,7 @@
 #include "ttx.h"
 #include "ttx_charset.h"
 #include "ttx_page-priv.h"
+#include "top_title-priv.h"
 #include "ttx_decoder-priv.h"
 
 #ifndef TELETEXT_FMT_LOG
@@ -119,38 +120,32 @@ _vbi_ttx_page_dump		(const struct ttx_page *tp,
 /**
  * @internal
  */
-void
-_vbi_ttx_charset_init		(const vbi_ttx_charset *charset[2],
-				 vbi_ttx_charset_code	default_code_0,
-				 vbi_ttx_charset_code	default_code_1,
-				 const struct ttx_extension *ext,
-				 const cache_page *	cp)
+const vbi_ttx_charset *
+_vbi_cache_page_ttx_charset	(const cache_page *	cp,
+				 unsigned int		i,
+				 vbi_ttx_charset_code	default_code,
+				 const struct ttx_extension *ext)
 {
-	unsigned int i;
+	const vbi_ttx_charset *cs;
+	vbi_ttx_charset_code code;
 
-	/* Primary and secondary. */
-	for (i = 0; i < 2; ++i) {
-		const vbi_ttx_charset *cs;
-		vbi_ttx_charset_code code;
+	code = default_code;
 
-		code = i ? default_code_1 : default_code_0;
-
-		if (ext && (ext->designations & 0x11)) {
-			/* Have X/28/0 or M/29/0 or /4. */
-			code = ext->charset_code[i];
-		}
-
-		cs = vbi_ttx_charset_from_code
-			((code & (unsigned int) ~7) + cp->national);
-
-		if (!cs)
-			cs = vbi_ttx_charset_from_code (code);
-
-		if (!cs)
-			cs = vbi_ttx_charset_from_code (0);
-
-		charset[i] = cs;
+	if (ext && (ext->designations & 0x11)) {
+		/* Have X/28/0 or M/29/0 or /4. */
+		code = ext->charset_code[i & 1];
 	}
+
+	cs = vbi_ttx_charset_from_code
+		((code & (unsigned int) ~7) + cp->national);
+
+	if (NULL == cs)
+		cs = vbi_ttx_charset_from_code (code);
+
+	if (NULL == cs)
+		cs = vbi_ttx_charset_from_code (0);
+
+	return cs;
 }
 
 
@@ -2963,10 +2958,8 @@ vbi_ttx_page_get_hyperlink	(const vbi_page *	pg,
 
 /* Navigation enhancements ------------------------------------------------- */
 
-#if 0
-
 #ifndef TELETEXT_NAV_LOG
-#define TELETEXT_NAV_LOG 0
+#  define TELETEXT_NAV_LOG 0
 #endif
 
 #define nav_log(templ, args...)						\
@@ -2975,22 +2968,29 @@ do {									\
 		fprintf (stderr, templ , ##args);			\
 } while (0)
 
-/*
-	FLOF navigation
-*/
+static const vbi_color
+link_fg_color [4] = {
+	/* 32 ... 39: Immutable colors. */
+	32 + VBI_WHITE,
+	32 + VBI_BLACK,
+	32 + VBI_BLACK,
+	32 + VBI_WHITE
+};
 
 static const vbi_color
-flof_link_col [4] = {
-	VBI_RED,
-	VBI_GREEN,
-	VBI_YELLOW,
-	VBI_CYAN
+link_bg_color [4] = {
+	32 + VBI_RED,
+	32 + VBI_GREEN,
+	32 + VBI_YELLOW,
+	32 + VBI_BLUE
 };
+
+/* Fastext navigation */
 
 static vbi_char *
 navigation_row			(struct ttx_page *	tp)
 {
-	return tp->pg.text + 25 * tp->pg.columns;
+	return tp->pg.text + 24 * tp->pg.columns;
 }
 
 static vbi_char *
@@ -2998,73 +2998,91 @@ clear_navigation_bar		(struct ttx_page *	tp)
 {
 	vbi_char ac;
 	vbi_char *acp;
-	unsigned int columns;
 	unsigned int i;
 
 	acp = navigation_row (tp);
 
 	CLEAR (ac);
 
-	ac.foreground	= 32 + VBI_WHITE; /* 32: immutable color */
+	ac.foreground	= 32 + VBI_WHITE;
 	ac.background	= 32 + VBI_BLACK;
 	ac.opacity	= tp->page_opacity[1];
 	ac.unicode	= 0x0020;
 
-	columns = tp->pg.columns;
-
-	for (i = 0; i < columns; ++i) {
+	for (i = 0; i < tp->pg.columns; ++i) {
 		acp[i] = ac;
 	}
 
 	return acp;
 }
 
-/* We have FLOF links but no labels in row 25. This function replaces
-   row 25 using the FLOF page numbers as labels. */
 static void
-flof_navigation_bar		(struct ttx_page *	tp)
+clear_navigation_links		(struct ttx_page *	tp)
+{
+	unsigned int i;
+
+	for (i = 0; i < N_ELEMENTS (tp->nav_link); ++i) {
+		tp->nav_link[i].function = PAGE_FUNCTION_UNKNOWN;
+		tp->nav_link[i].pgno = 0xFF; /* no page */
+		tp->nav_link[i].subno = VBI_ANY_SUBNO;
+	}
+
+	memset (tp->link_ref, -1, sizeof (tp->link_ref));
+}
+
+/* We have Fastext links but no labels in the 25th row. This function
+   replaces any text in that row using the Fastext page numbers as
+   labels. */
+static void
+add_fastext_navigation_bar	(struct ttx_page *	tp)
 {
 	vbi_char ac;
 	vbi_char *acp;
 	unsigned int i;
 
+	clear_navigation_links (tp);
 	acp = clear_navigation_bar (tp);
 
 	ac = *acp;
 	ac.attr |= VBI_LINK;
 
 	for (i = 0; i < 4; ++i) {
-		unsigned int pos;
-		unsigned int k;
+		vbi_pgno pgno;
+		unsigned int j;
 
-		pos = i * 10 + 3;
+		pgno = tp->cp->data.lop.link[i].pgno;
 
-		ac.foreground = flof_link_col[i];
+		if (pgno < 0x100
+		    || NO_PAGE (pgno)
+		    || !vbi_is_bcd (pgno))
+			continue;
 
-		for (k = 0; k < 3; ++k) {
-			unsigned int digit;
+		tp->nav_link[i] = tp->cp->data.lop.link[i];
 
-			digit = tp->cp->data.lop.link[i].pgno;
-			digit = (digit >> ((2 - k) * 4)) & 15;
+		/* Don't display a label on a subtitle page or
+		   something similar. */
+		if (VBI_OPAQUE != tp->page_opacity[1])
+			continue;
 
-			if (digit > 9)
-				ac.unicode = digit + 'A' - 9;
-			else
-				ac.unicode = digit + '0';
+		for (j = 9; j > 0; --j) {
+			acp[i * 10 + j].attr |= VBI_LINK;
+			acp[i * 10 + j].foreground = link_fg_color[i];
+			acp[i * 10 + j].background = link_bg_color[i];
 
-			acp[pos + k] = ac;
-
-			tp->link_ref[pos + k] = i;
+			tp->link_ref[i * 10 + j] = i;
 		}
 
-		tp->link[i].pgno = tp->cp->data.lop.link[i].pgno;
-		tp->link[i].subno = tp->cp->data.lop.link[i].subno;
+		for (j = 0; j < 3; ++j) {
+			unsigned int digit;
+
+			digit = (pgno >> ((2 - j) * 4)) & 15;
+			acp[i * 10 + 4 + j].unicode = digit + '0';
+		}
 	}
 }
 
-/* Adds link flags to a page navigation bar (row 25) from FLOF data. */
 static void
-flof_links			(struct ttx_page *	tp)
+add_fastext_hyperlinks		(struct ttx_page *	tp)
 {
 	vbi_char *acp;
 	unsigned int start;
@@ -3072,42 +3090,53 @@ flof_links			(struct ttx_page *	tp)
 	unsigned int i;
 	int color;
 
+	clear_navigation_links (tp);
 	acp = navigation_row (tp);
 
 	start = 0;
 	color = -1;
 
 	for (i = 0; i <= 40; ++i) {
-		if (i == 40 || (acp[i].foreground & 7) != color) {
-			unsigned int k;
-			struct ttx_page_link *pn;
+		if (i == 40 || acp[i].foreground != color) {
+			static const uint8_t color_link [32] = {
+				[VBI_RED]	= 1,
+				[VBI_GREEN]	= 2,
+				[VBI_YELLOW]	= 3,
+				[VBI_BLUE]	= 4,
+				[VBI_CYAN]	= 4
+			};
+			struct ttx_page_link *pl;
+			int j;
 
-			for (k = 0; k < 4; ++k)
-				if (flof_link_col[k] == (unsigned int) color)
-					break;
+			color = acp[i].foreground;
 
-			pn = &tp->cp->data.lop.link[k];
+			j = color_link[color];
+			pl = &tp->cp->data.lop.link[j - 1];
 
-			if (k < 4 && !NO_PAGE (pn->pgno)) {
-				/* Leading and trailing spaces not sensitive */
+			if (j > 0 && !NO_PAGE (pl->pgno)) {
+				/* Leading and trailing spaces
+				   not sensitive. */
 
 				for (end = i - 1; end >= start
 				     && acp[end].unicode == 0x0020; --end)
 					;
 
 				for (; end >= start; --end) {
-					acp[end].attr |= VBI_LINK;
-					tp->link_ref[end] = k;
+					/* Don't display a label on a
+					   subtitle page or something
+					   similar. */
+					if (VBI_OPAQUE == tp->page_opacity[1])
+						acp[end].attr |= VBI_LINK;
+
+					tp->link_ref[end] = j;
 				}
 
-				tp->link[k].pgno = pn->pgno;
-				tp->link[k].subno = pn->subno;
+				tp->nav_link[j] = *pl;
 			}
 
 			if (i >= 40)
 				break;
 
-			color = acp[i].foreground & 7;
 			start = i;
 		}
 
@@ -3116,23 +3145,21 @@ flof_links			(struct ttx_page *	tp)
 	}
 }
 
-/*
-	TOP navigation
-*/
+/* TOP navigation */
 
 static void
-write_link			(struct ttx_page *	tp,
-				 vbi_char *		acp,
+add_text_label			(struct ttx_page *	tp,
 				 const char *		s,
-				 unsigned int		n,
 				 unsigned int		indx,
-				 unsigned int		column,
-				 vbi_color		foreground)
+				 unsigned int		column)
 {
-	while (n-- > 0) {
+	vbi_char *acp = navigation_row (tp);
+
+	while (0 != *s) {
 		acp[column].unicode = *s++;
-		acp[column].foreground = foreground;
 		acp[column].attr |= VBI_LINK;
+		acp[column].foreground = link_fg_color[indx];
+		acp[column].background = link_bg_color[indx];
 
 		tp->link_ref[column] = indx;
 
@@ -3140,72 +3167,62 @@ write_link			(struct ttx_page *	tp,
 	}
 }
 
-/**
- * @internal
- * @param indx Create tp->nav_link 0 ... 3.
- * @param column Store text in a 12 character wide slot starting at
- *   this column (0 ... 40 - 12).
- * @param pgno Store name of this page.
- * @param foreground Store text using this color.
- * @param ff add 0 ... 2 '>' characters (if space is available).
- *
- * Creates a TOP label for pgno in row 25.
- */
 static vbi_bool
-top_label			(struct ttx_page *	tp,
-				 const vbi_ttx_charset *cs,
-				 unsigned int		indx,
-				 unsigned int		column,
+add_top_label			(struct ttx_page *	tp,
 				 vbi_pgno		pgno,
-				 vbi_color		foreground,
-				 unsigned int		ff)
+				 unsigned int		indx,
+				 unsigned int		column)
 {
 	const struct ttx_ait_title *ait;
 	cache_page *ait_cp;
-	vbi_char *acp;
-	unsigned int sh;
-	int i;
 
-	if (!(ait = cache_network_get_ait_title
-	      (tp->cn, &ait_cp, pgno, VBI_ANY_SUBNO)))
+	ait = _vbi_cn_get_ait_title (tp->cn, &ait_cp,
+				     pgno, VBI_ANY_SUBNO);
+	if (unlikely (NULL == ait))
 		return FALSE;
 
-	acp = navigation_row (tp);
+	tp->nav_link[indx].pgno = pgno;
+	tp->nav_link[indx].subno = VBI_ANY_SUBNO;
 
-	tp->link[indx].pgno = pgno;
-	tp->link[indx].subno = VBI_ANY_SUBNO;
+	/* Don't display a label on a subtitle page or something
+	   similar. */
+	if (VBI_OPAQUE == tp->page_opacity[1]) {
+		const vbi_ttx_charset *cs;
+		vbi_char *acp;
+		int i, j;
 
-	for (i = 11; i >= 0; --i)
-		if (ait->text[i] > 0x20)
-			break;
+		cs = _vbi_cache_page_ttx_charset (ait_cp,
+						  0 /* primary */,
+						  /* default: en */ 0,
+						  /* extension */ NULL);
 
-	if (ff > 0 && (i <= (int)(11 - ff))) {
-		sh = (11 - ff - i) >> 1;
+		acp = navigation_row (tp);
 
-		acp[sh + i + 1].attr |= VBI_LINK;
-		tp->link_ref[column + sh + i + 1] = indx;
+		for (i = 11; i >= 0; --i) {
+			if (ait->text[i] > 0x20)
+				break;
+		}
 
-		write_link (tp, acp, ">>", ff,
-			    indx, column + i + sh + 1,
-			    foreground);
-	} else {
-		sh = (11 - i) >> 1; /* center */
-	}
+		/* Center the label. */
+		j = 1 + ((11 - i) >> 1);
 
-	acp += sh;
-	column += sh;
+		while (i >= 0) {
+			uint8_t c;
 
-	while (i >= 0) {
-		uint8_t c;
+			c = MAX (ait->text[i], (uint8_t) 0x20);
+			acp[column + i + j].unicode =
+				vbi_ttx_unicode (cs->g0,
+						 cs->subset, c);
+			--i;
+		}
 
-		c = MAX (ait->text[i], (uint8_t) 0x20);
-		acp[i].unicode = vbi_teletext_unicode (cs->g0, cs->subset, c);
-		acp[i].foreground = foreground;
-		acp[i].attr |= VBI_LINK;
+		for (i = 13; i >= 0; --i) {
+			acp[column + i].attr |= VBI_LINK;
+			acp[column + i].foreground = link_fg_color[indx];
+			acp[column + i].background = link_bg_color[indx];
 
-		tp->link_ref[column + i] = indx;
-
-		--i;
+			tp->link_ref[column + i] = indx;
+		}
 	}
 
 	cache_page_unref (ait_cp);
@@ -3213,19 +3230,12 @@ top_label			(struct ttx_page *	tp,
 	return TRUE;
 }
 
-/**
- * @internal
- *
- * Replaces row 25 by labels and links from TOP data.
- * Style: Prev-page Next-chapter Next-block Next-page
- */
 static void
-top_navigation_bar_style_1	(struct ttx_page *	tp)
+add_top_navigation_bar		(struct ttx_page *	tp)
 {
-	vbi_pgno pgno;
-	vbi_bool have_group;
 	const struct ttx_page_stat *ps;
-	vbi_char *acp;
+	unsigned int have_label;
+	vbi_pgno pgno;
 
 	if (TELETEXT_NAV_LOG) {
 		ps = cache_network_const_page_stat (tp->cn, tp->cp->pgno);
@@ -3233,212 +3243,168 @@ top_navigation_bar_style_1	(struct ttx_page *	tp)
 	}
 
 	clear_navigation_bar (tp);
-
-	if (VBI_OPAQUE != tp->page_opacity[1])
-		return;
+	clear_navigation_links (tp);
 
 	pgno = tp->pg.pgno;
-
-	acp = navigation_row (tp);
-
-	tp->link[0].pgno = vbi_add_bcd (pgno, -1);
-	tp->link[0].subno = VBI_ANY_SUBNO;
-
-	write_link (tp, acp, "(<<)", 4, 0, 1, 32 + VBI_RED);
-
-	tp->link[3].pgno = vbi_add_bcd (pgno, +1);
-	tp->link[3].subno = VBI_ANY_SUBNO;
-
-	write_link (tp, acp, "(>>)", 4, 3, 40 - 5, 32 + VBI_CYAN);
-
-	/* Item 2 & 3, next group and block */
-
-	pgno = tp->pg.pgno;
-	have_group = FALSE;
 
 	for (;;) {
-		pgno = ((pgno - 0xFF) & 0x7FF) + 0x100;
-
-		if (pgno == tp->cp->pgno)
-			break;
-
-		ps = cache_network_const_page_stat (tp->cn, pgno);
-
-		switch (ps->page_type) {
-		case VBI_TOP_BLOCK:
-			/* XXX should we use char_set of the AIT page? */
-			top_label (tp, tp->char_set[0],
-				   1, 0 * 14 + 7,
-				   pgno, 32 + VBI_GREEN, 0);
-			return;
-
-		case VBI_TOP_GROUP:
-			if (!have_group) {
-				/* XXX as above */
-				top_label (tp, tp->char_set[0],
-					   2, 1 * 14 + 7,
-					   pgno, 32 + VBI_BLUE, 0);
-				have_group = TRUE;
-			}
-
-			break;
-		}
-	}
-}
-
-/**
- * @internal
- *
- * Replaces row 25 by labels and links from TOP data.
- * Style: Current-block-or-chapter  Next-chapter >  Next-block >>
- */
-static void
-top_navigation_bar_style_2	(struct ttx_page *	tp)
-{
-	vbi_pgno pgno;
-	vbi_bool have_group;
-	const struct ttx_page_stat *ps;
-
-	if (TELETEXT_NAV_LOG) {
-		ps = cache_network_const_page_stat (tp->cn, tp->cp->pgno);
-		nav_log ("page mip/btt: %d\n", ps->page_type);
-	}
-
-	clear_navigation_bar (tp);
-
-	if (VBI_OPAQUE != tp->page_opacity[1])
-		return;
-
-	/* Item 1, current block/chapter */
-
-	pgno = tp->pg.pgno;
-
-	do {
-		vbi_page_type type;
-
-		ps = cache_network_const_page_stat (tp->cn, pgno);
-		type = ps->page_type;
-
-		if (VBI_TOP_BLOCK == type
-		    || VBI_TOP_GROUP == type) {
-			/* XXX should we use char_set of the AIT page? */
-			top_label (tp, tp->char_set[0],
-				   0, 0 * 13 + 1,
-				   pgno, 32 + VBI_WHITE, 0);
-			break;
-		}
-
-		pgno = ((pgno - 0x101) & 0x7FF) + 0x100;
-	} while (pgno != tp->pg.pgno);
-
-	/* Item 2 & 3, next group and block */
-
-	pgno = tp->pg.pgno;
-	have_group = FALSE;
-
-	for (;;) {
-		pgno = ((pgno - 0xFF) & 0x7FF) + 0x100;
-
-		if (pgno == tp->cp->pgno)
-			break;
-
-		ps = cache_network_const_page_stat (tp->cn, pgno);
-
-		switch (ps->page_type) {
-		case VBI_TOP_BLOCK:
-			/* XXX should we use char_set of the AIT page? */
-			top_label (tp, tp->char_set[0],
-				   2, 2 * 13 + 1,
-				   pgno, 32 + VBI_YELLOW, 2);
-			return;
-
-		case VBI_TOP_GROUP:
-			if (!have_group) {
-				/* XXX as above */
-				top_label (tp, tp->char_set[0],
-					   1, 1 * 13 + 1,
-					   pgno, 32 + VBI_GREEN, 1);
-				have_group = TRUE;
-			}
-
-			break;
-		}
-	}
-}
-
-/* Navigation (TOP and FLOF) enhancements. */
-static void
-navigation			(struct ttx_page *	tp,
-				 int			style)
-{
-	cache_page *cp;
-
-	cp = tp->cp;
-
-	if (cp->data.lop.have_flof) {
-		vbi_pgno home_pgno = cp->data.lop.link[5].pgno;
-
-		if (home_pgno >= 0x100 && home_pgno <= 0x899
-		    && !NO_PAGE (home_pgno)) {
-			tp->link[5].pgno = home_pgno;
-			tp->link[5].subno = cp->data.lop.link[5].subno;
-		}
-
-		if (cp->lop_packets & (1 << 24)) {
-			flof_links (tp);
-		} else {
-			flof_navigation_bar (tp);
-		}
-	} else if (tp->cn->have_top) {
-		if (2 == style)
-			top_navigation_bar_style_2 (tp);
+		if (pgno > 0x100)
+			pgno = vbi_sub_bcd (pgno, 0x001);
 		else
-			top_navigation_bar_style_1 (tp);
+			pgno = 0x899;
+
+		if (pgno == tp->pg.pgno)
+			break;
+
+		ps = cache_network_const_page_stat (tp->cn, pgno);
+		switch (ps->page_type) {
+		case VBI_NORMAL_PAGE:
+		case VBI_TOP_BLOCK:
+		case VBI_TOP_GROUP:
+		case VBI_NEWSFLASH_PAGE:
+		case VBI_SUBTITLE_PAGE:
+		case VBI_SUBTITLE_INDEX:
+		case VBI_CLOCK_PAGE:
+		case VBI_PROGR_WARNING:
+		case VBI_CURRENT_PROGR:
+		case VBI_NOW_AND_NEXT:
+		case VBI_PROGR_INDEX:
+		case VBI_PROGR_SCHEDULE:
+			break;
+
+		case VBI_UNKNOWN_PAGE:
+			/* We have no information about this page yet,
+			   so let's assume it is in transmission. */
+			break;
+
+		default:
+			continue;
+		}
+
+		tp->nav_link[0].pgno = pgno;
+		tp->nav_link[0].subno = VBI_ANY_SUBNO;
+
+		/* Don't display a label on a subtitle page or
+		   something similar. */
+		if (VBI_OPAQUE == tp->page_opacity[1]) {
+			add_text_label (tp, " << ",
+					/* link index */ 0,
+					/* column */ 1);
+		}
+
+		break;
+	}
+
+	pgno = tp->pg.pgno;
+	have_label = 1; /* or not */
+
+	while (8 + 4 + 2 + 1 != have_label) {
+		if (pgno < 0x899)
+			pgno = vbi_add_bcd (pgno, 0x001);
+		else
+			pgno = 0x100;
+
+		if (pgno == tp->pg.pgno)
+			break;
+
+		ps = cache_network_const_page_stat (tp->cn, pgno);
+		switch (ps->page_type) {
+		case VBI_TOP_BLOCK:
+			if (0 == (have_label & 8)) {
+				/* I'd rather have blue text on a
+				   black background but that's hard to
+				   read and blue is the color of the
+				   button on the remote control. */
+				add_top_label (tp, pgno,
+					       /* link index */ 3,
+					       /* column */ 26);
+				have_label |= 8;
+			}
+			break;
+
+		case VBI_TOP_GROUP:
+			if (0 == (have_label & 4)) {
+				add_top_label (tp, pgno,
+					       /* link index */ 2,
+					       /* column */ 11);
+				have_label |= 4;
+			}
+			break;
+
+		case VBI_NORMAL_PAGE:
+		case VBI_NEWSFLASH_PAGE:
+		case VBI_SUBTITLE_PAGE:
+		case VBI_SUBTITLE_INDEX:
+		case VBI_CLOCK_PAGE:
+		case VBI_PROGR_WARNING:
+		case VBI_CURRENT_PROGR:
+		case VBI_NOW_AND_NEXT:
+		case VBI_PROGR_INDEX:
+		case VBI_PROGR_SCHEDULE:
+		case VBI_UNKNOWN_PAGE:
+			break;
+
+		default:
+			continue;
+		}
+
+		if (0 == (have_label & 2)) {
+			tp->nav_link[1].pgno = pgno;
+			tp->nav_link[1].subno = VBI_ANY_SUBNO;
+
+			if (VBI_OPAQUE == tp->page_opacity[1]) {
+				add_text_label (tp, " >> ",
+						/* link index */ 1,
+						/* column */ 6);
+			}
+
+			have_label |= 2;
+		}
+
+		if (8 + 2 + 1 == have_label) {
+			tp->nav_link[2] = tp->nav_link[3];
+			break;
+		}
 	}
 }
 
-#endif
-
-static vbi_link *
-new_ttx_link			(const vbi_network *	nk,
-				 vbi_pgno		pgno,
-				 vbi_subno		subno)
+/**
+ */
+/* See also http://www.topteletext.com,
+   http://www.mrgsystems.co.uk/info/9.htm */
+vbi_link *
+vbi_ttx_page_get_nav_link	(const vbi_page *	pg,
+				 unsigned int		indx)
 {
-	vbi_link *lk;
+	const struct ttx_page *tp;
 
-	lk = vbi_malloc (sizeof (*lk));
-	if (NULL == lk) {
+	_vbi_null_check (pg, NULL);
+
+	if (unlikely ((void *) TTX_PAGE_MAGIC != pg->_private)) {
+		errno = VBI_ERR_BAD_PAGE;
 		return NULL;
 	}
 
-	CLEAR (*lk);
+	tp = CONST_PARENT (pg, struct ttx_page, pg);
 
-	if (NULL != nk) {
-		lk->lk.ttx.network = vbi_network_dup (nk);
-		if (unlikely (NULL == lk->lk.ttx.network)) {
-			int saved_errno = errno;
-
-			free (lk);
-			errno = saved_errno;
-			return NULL;
-		}
+	if (unlikely (indx >= N_ELEMENTS (tp->nav_link))) {
+		errno = VBI_ERR_NO_LINK;
+		return NULL;
 	}
 
-	lk->type = VBI_LINK_TTX_PAGE;
+	if (NO_PAGE (tp->nav_link[indx].pgno)) {
+		return vbi_ttx_page_get_ed_link (pg, indx);
+	}
 
-	lk->lk.ttx.pgno = pgno;
-	lk->lk.ttx.subno = subno;
-
-	lk->expiration_time = TIME_MAX;
-
-	return lk;
+	return _vbi_ttx_link_new (&tp->cn->network,
+				  tp->nav_link[indx].pgno,
+				  tp->nav_link[indx].subno);
 }
 
 /**
  */
-/* http://www.mrgsystems.co.uk/info/9.htm */
 vbi_link *
-vbi_ttx_page_get_link		(const vbi_page *	pg,
+vbi_ttx_page_get_ed_link	(const vbi_page *	pg,
 				 unsigned int		indx)
 {
 	const struct ttx_page *tp;
@@ -3446,7 +3412,10 @@ vbi_ttx_page_get_link		(const vbi_page *	pg,
 	vbi_pgno pgno;
 	vbi_subno subno;
 
-	if ((void *) TTX_PAGE_MAGIC != pg->_private) {
+	_vbi_null_check (pg, NULL);
+
+	if (unlikely ((void *) TTX_PAGE_MAGIC != pg->_private)) {
+		errno = VBI_ERR_BAD_PAGE;
 		return NULL;
 	}
 
@@ -3454,7 +3423,8 @@ vbi_ttx_page_get_link		(const vbi_page *	pg,
 
 	cp = tp->cp;
 
-	if (indx >= N_ELEMENTS (cp->data.lop.link)) {
+	if (unlikely (indx >= N_ELEMENTS (cp->data.lop.link))) {
+		errno = VBI_ERR_NO_LINK;
 		return NULL;
 	}
 
@@ -3462,10 +3432,11 @@ vbi_ttx_page_get_link		(const vbi_page *	pg,
 	subno = cp->data.lop.link[indx].subno;
 
 	if (pgno < 0x100 || NO_PAGE (pgno)) {
+		errno = VBI_ERR_NO_LINK;
 		return NULL;
 	}
 
-	return new_ttx_link (&tp->cn->network, pgno, subno);
+	return _vbi_ttx_link_new (&tp->cn->network, pgno, subno);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -3490,7 +3461,8 @@ _vbi_ttx_page_from_cache_page_va
 {
 	vbi_bool option_hyperlinks;
 	vbi_bool option_pdc_links;
-	int option_navigation_style;
+	vbi_bool option_fastext;
+	vbi_bool option_toptext;
 	vbi_ttx_charset_code option_cs_default[2];
 	const vbi_ttx_charset *option_cs_override[2];
 	const struct ttx_extension *ext;
@@ -3532,9 +3504,10 @@ _vbi_ttx_page_from_cache_page_va
 	tp->pdc_table		= NULL;
 	tp->pdc_table_size	= 0;
 #endif
-	option_navigation_style	= 0;
 	option_hyperlinks	= FALSE;
 	option_pdc_links	= FALSE;
+	option_fastext		= FALSE;
+	option_toptext		= FALSE;
 	option_cs_default[0]	= 0;
 	option_cs_default[1]	= 0;
 	option_cs_override[0]	= NULL;
@@ -3561,9 +3534,12 @@ _vbi_ttx_page_from_cache_page_va
 			(void) va_arg (options, vbi_bool);
 			break;
 
-		case VBI_NAVIGATION:
-			option_navigation_style =
-				va_arg (options, int);
+		case VBI_FASTEXT:
+			option_fastext = va_arg (options, vbi_bool);
+			break;
+
+		case VBI_TOPTEXT:
+			option_toptext = va_arg (options, vbi_bool);
 			break;
 
 		case VBI_HYPERLINKS:
@@ -3666,15 +3642,17 @@ _vbi_ttx_page_from_cache_page_va
 
 	/* Character set designation */
 
-	_vbi_ttx_charset_init (tp->char_set,
-				 option_cs_default[0],
-				 option_cs_default[1],
-				 tp->ext, cp);
-
-	if (option_cs_override[0])
+	if (NULL != option_cs_override[0])
 		tp->char_set[0] = option_cs_override[0];
-	if (option_cs_override[1])
+	else
+		tp->char_set[0] = _vbi_cache_page_ttx_charset
+			(cp, 0, option_cs_default[0], tp->ext);
+
+	if (NULL != option_cs_override[1])
 		tp->char_set[1] = option_cs_override[1];
+	else
+		tp->char_set[1] = _vbi_cache_page_ttx_charset
+			(cp, 1, option_cs_default[1], tp->ext);
 
 	/* Format level one page */
 
@@ -3773,23 +3751,36 @@ _vbi_ttx_page_from_cache_page_va
 
 	/* -1 no link. */
 	memset (tp->link_ref, -1, sizeof (tp->link_ref));
+#endif
 
 	if (tp->pg.rows > 1) {
-		unsigned int row;
+#if 0
+		if (option_hyperlinks) {
+			unsigned int row;
 
-		if (option_hyperlinks)
 			for (row = 1; row < 25; ++row)
 				hyperlinks (tp, row);
+		}
+#endif
+		if (option_toptext && tp->cn->have_top) {
+			add_top_navigation_bar (tp);
+		} else if (option_fastext && cp->data.lop.have_fastext) {
+			if (cp->lop_packets & (1 << 24)) {
+				add_fastext_hyperlinks (tp);
+			} else {
+				add_fastext_navigation_bar (tp);
+			}
+		} else {
+			clear_navigation_links (tp);
+		}
 
-		if (option_navigation_style > 0)
-			navigation (tp, option_navigation_style);
-
+#if 0
 		if (tp->pdc_table_size > 0)
 			pdc_post_proc (&tp->pg,
 				       tp->pdc_table,
 				       tp->pdc_table + tp->pdc_table_size);
-	}
 #endif
+	}
 
 	if (41 == tp->pg.columns)
 		column_41 (tp);
@@ -3798,6 +3789,28 @@ _vbi_ttx_page_from_cache_page_va
 		_vbi_ttx_page_dump (tp, stderr, 2);
 
 	return TRUE;
+}
+
+/* ------------------------------------------------------------------------ */
+
+/**
+ */
+vbi_top_title *
+vbi_ttx_page_get_top_title	(const vbi_page *	pg)
+{
+	const struct ttx_page *tp;
+
+	_vbi_null_check (pg, NULL);
+
+	if ((void *) TTX_PAGE_MAGIC != pg->_private) {
+		return NULL;
+	}
+
+	tp = CONST_PARENT (pg, struct ttx_page, pg);
+
+	return _vbi_cn_get_top_title (tp->cn,
+				      tp->pg.pgno,
+				      tp->pg.subno);
 }
 
 /* ------------------------------------------------------------------------ */
