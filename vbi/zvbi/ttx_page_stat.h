@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: ttx_page_stat.h,v 1.1.2.1 2008-08-19 10:56:06 mschimek Exp $ */
+/* $Id: ttx_page_stat.h,v 1.1.2.2 2008-08-22 07:58:39 mschimek Exp $ */
 
 #ifndef __ZVBI_TTX_PAGE_STAT_H__
 #define __ZVBI_TTX_PAGE_STAT_H__
@@ -187,25 +187,25 @@ typedef enum {
 	 * caching of pages. It is not particularly useful for
 	 * applications.
 	 */
-	VBI_DRCS_PAGE		= 0xE5,
+	VBI_DRCS_DATA		= 0xE5,
 
 	/**
 	 * The page contains additional data for Level 1.5/2.5/3.5
 	 * pages, is not displayable.
 	 */
-	VBI_POP_PAGE		= 0xE6,
+	VBI_POP_DATA		= 0xE6,
 
 	/**
 	 * The page contains additional data, for example a page
 	 * inventory table, and is not displayable.
 	 */
-	VBI_SYSTEM_PAGE		= 0xE7,
+	VBI_SYSTEM_DATA		= 0xE7,
 
 	/**
 	 * Codes used for the pages associated with packet X/25
 	 * keyword searching.
 	 */
-	VBI_KEYWORD_SEARCH_LIST = 0xF9,
+	VBI_KEYWORD_SEARCH_DATA	= 0xF9,
 
 	/**
 	 * The page contains a binary coded, programme related HTTP
@@ -224,7 +224,7 @@ typedef enum {
 	 * this data because the document describing the format
 	 * of this page is not freely available.
 	 */
-	VBI_ACI_PAGE		= 0xFD,
+	VBI_ACI_DATA		= 0xFD,
 
 	/**
 	 * The page contains MPT, AIT or MPT-EX tables for TOP
@@ -234,7 +234,7 @@ typedef enum {
 	 * through vbi_cache_get_ttx_page_stat() and
 	 * vbi_cache_get_top_titles().
 	 */
-	VBI_TOP_PAGE		= 0xFE,
+	VBI_TOP_DATA		= 0xFE,
 
 	/** The page type is unknown, a libzvbi internal code. */
 	VBI_UNKNOWN_PAGE	= 0xFF
