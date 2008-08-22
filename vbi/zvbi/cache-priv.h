@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: cache-priv.h,v 1.1.2.1 2008-08-19 10:56:02 mschimek Exp $ */
+/* $Id: cache-priv.h,v 1.1.2.2 2008-08-22 07:59:34 mschimek Exp $ */
 
 #ifndef CACHE_PRIV_H
 #define CACHE_PRIV_H
@@ -418,13 +418,13 @@ _vbi_cache_foreach_page		(vbi_cache *		ca,
 				 _vbi_cache_foreach_cb *callback,
 				 void *			user_data);
 
-/* in teletext.c */
-extern void
-_vbi_ttx_charset_init		(const vbi_ttx_charset *charset[2],
-				 vbi_ttx_charset_code	default_code_0,
-				 vbi_ttx_charset_code	default_code_1,
-				 const struct ttx_extension *ext,
-				 const cache_page *	cp);
+/* in ttx_page.c */
+extern const vbi_ttx_charset *
+_vbi_cache_page_ttx_charset	(const cache_page *	cp,
+				 unsigned int		i,
+				 vbi_ttx_charset_code	default_code,
+				 const struct ttx_extension *ext)
+  _vbi_nonnull ((1));
 
 #endif /* CACHE_PRIV_H */
 
