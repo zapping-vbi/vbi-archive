@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: ttx.h,v 1.1.2.1 2008-08-19 10:56:06 mschimek Exp $ */
+/* $Id: ttx.h,v 1.1.2.2 2008-08-22 07:58:51 mschimek Exp $ */
 
 #ifndef TTX_H
 #define TTX_H
@@ -474,9 +474,9 @@ struct ttx_lop {
 
 	/**
 	 * Packet X/27 flag (ETR 287 section 10.4):
-	 * Have FLOF navigation, display row 24.
+	 * Have Fastext links, display row 24.
 	 */
-	vbi_bool			have_flof;
+	vbi_bool			have_fastext;
 };
 
 /* Magazine defaults. */
