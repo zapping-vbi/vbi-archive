@@ -6,20 +6,21 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zvbi 0.2.9\n"
 "Report-Msgid-Bugs-To: mschimek@users.sf.net\n"
-"POT-Creation-Date: 2008-07-25 08:28+0200\n"
+"POT-Creation-Date: 2013-07-01 14:23+0200\n"
 "PO-Revision-Date: 2007-11-27 18:34+0100\n"
 "Last-Translator: Iñaki García Etxebarria <garetxe@users.sourceforge.net>\n"
 "Language-Team: Spanish <es@li.org>\n"
+"Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1\n"
 
-#: src/exp-gfx.c:796
+#: src/exp-gfx.c:797
 msgid "Correct aspect ratio"
 msgstr "Relación de aspecto correcta"
 
-#: src/exp-gfx.c:797
+#: src/exp-gfx.c:798
 msgid ""
 "Approach an image aspect ratio similar to a real TV. This will double the "
 "image size."
@@ -27,64 +28,64 @@ msgstr ""
 "Aproximar una relación de tamaños similar a una TV real, esto duplicará el "
 "tamaño de la imagen."
 
-#: src/exp-gfx.c:801
+#: src/exp-gfx.c:802
 msgid "Include transparency"
 msgstr ""
 
-#: src/exp-gfx.c:802
+#: src/exp-gfx.c:803
 msgid "If not enabled, transparency is mapped to black."
 msgstr ""
 
-#: src/exp-gfx.c:804
+#: src/exp-gfx.c:805
 #, fuzzy
 msgid "Include page title"
 msgstr "Incluir la cabecera de la página HTML"
 
-#: src/exp-gfx.c:805
+#: src/exp-gfx.c:806
 msgid "Embed a title string which names network and page number."
 msgstr ""
 
-#: src/exp-gfx.c:907 src/exp-html.c:268
+#: src/exp-gfx.c:908 src/exp-html.c:268
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr "Página de Teletexto %3x.%x"
 
-#: src/exp-gfx.c:911 src/exp-html.c:271
+#: src/exp-gfx.c:912 src/exp-html.c:271
 #, c-format
 msgid "Teletext Page %3x"
 msgstr "Página de Teletexto %3x"
 
-#: src/exp-gfx.c:1120
+#: src/exp-gfx.c:1121
 msgid "PPM"
 msgstr "PPM"
 
-#: src/exp-gfx.c:1121
+#: src/exp-gfx.c:1122
 msgid "Export this page as raw PPM image"
 msgstr "Exportar la página actual como PPM"
 
-#: src/exp-gfx.c:1611
+#: src/exp-gfx.c:1612
 msgid "XPM"
 msgstr "XPM"
 
-#: src/exp-gfx.c:1612
+#: src/exp-gfx.c:1613
 msgid "Export this page as XPM image"
 msgstr "Exportar la página actual como XPM"
 
-#: src/exp-gfx.c:1795
+#: src/exp-gfx.c:1796
 #, c-format
 msgid "Unable to allocate %d byte buffer."
 msgstr "No se puede reservar un buffer de %d KB."
 
-#: src/exp-gfx.c:1801
+#: src/exp-gfx.c:1802
 #, c-format
 msgid "Unable to allocate %d KB image buffer."
 msgstr "No se puede reservar un buffer de %d KB."
 
-#: src/exp-gfx.c:1865
+#: src/exp-gfx.c:1866
 msgid "PNG"
 msgstr "PNG"
 
-#: src/exp-gfx.c:1866
+#: src/exp-gfx.c:1867
 msgid "Export this page as PNG image"
 msgstr "Exportar la página actual como PNG"
 
@@ -345,8 +346,8 @@ msgstr "Controlador BKTR"
 
 #: src/io-bktr.c:204 src/io-bktr.c:285 src/io-bktr.c:303 src/io-v4l.c:164
 #: src/io-v4l.c:1133 src/io-v4l.c:1171 src/io-v4l.c:1199 src/io-v4l2.c:115
-#: src/io-v4l2k.c:232 src/io-v4l2k.c:606 src/io-v4l2k.c:1195
-#: src/io-v4l2k.c:1329 src/io-v4l2k.c:1357 src/proxy-client.c:201
+#: src/io-v4l2k.c:232 src/io-v4l2k.c:606 src/io-v4l2k.c:1198
+#: src/io-v4l2k.c:1339 src/io-v4l2k.c:1366 src/proxy-client.c:201
 #: src/proxy-client.c:1559
 msgid "Virtual memory exhausted."
 msgstr "Memoria virtual agotada."
@@ -356,7 +357,7 @@ msgstr "Memoria virtual agotada."
 msgid "Cannot open '%s': %s."
 msgstr "No se puede abrir '%s': %s."
 
-#: src/io-bktr.c:273 src/io-v4l.c:758 src/io-v4l.c:1118 src/io-v4l2k.c:1182
+#: src/io-bktr.c:273 src/io-v4l.c:758 src/io-v4l.c:1118 src/io-v4l2k.c:1185
 #, c-format
 msgid "Sorry, %s (%s) cannot capture any of the requested data services."
 msgstr ""
@@ -372,7 +373,7 @@ msgstr "No hay sufficiente memoria para el buffer de captura VBI (%d KB)."
 msgid "BKTR driver interface not compiled."
 msgstr "Interfaz BKTR no compilado."
 
-#: src/io-v4l.c:809 src/io-v4l2k.c:1027
+#: src/io-v4l.c:809 src/io-v4l2k.c:1030
 #, c-format
 msgid "Cannot initialize %s (%s), the device is already in use."
 msgstr "No se puede inicializar %s (%s), ya está siendo utilizado."
@@ -382,7 +383,7 @@ msgstr "No se puede inicializar %s (%s), ya está siendo utilizado."
 msgid "Could not set the vbi capture parameters for %s (%s): %s."
 msgstr "No se pudieron establecer los parámetros de captura para %s (%s): %s."
 
-#: src/io-v4l.c:961 src/io-v4l2k.c:1131
+#: src/io-v4l.c:961 src/io-v4l2k.c:1134
 #, c-format
 msgid ""
 "%s (%s) offers unknown vbi sampling format #%d. This may be a driver bug or "
@@ -410,7 +411,7 @@ msgstr ""
 msgid "Cannot set or determine current videostandard of %s (%s)."
 msgstr "No se puede establecer o determinar el estándar actual de %s (%s)."
 
-#: src/io-v4l.c:1090 src/io-v4l2k.c:1146
+#: src/io-v4l.c:1090 src/io-v4l2k.c:1149
 #, c-format
 msgid ""
 "Cannot capture the requested data services with %s (%s), the sampling "
@@ -419,7 +420,7 @@ msgstr ""
 "No se pueden capturar los servicios de datos solicitados con %s (%s), la "
 "frecuencia de muestreo %.2f MHz es demasiado baja."
 
-#: src/io-v4l.c:1207 src/io-v4l2.c:130 src/io-v4l2k.c:1374
+#: src/io-v4l.c:1207 src/io-v4l2.c:130 src/io-v4l2k.c:1383
 #, c-format
 msgid "Cannot open '%s': %d, %s."
 msgstr "No se puede abrir '%s': %d, %s."
@@ -428,7 +429,7 @@ msgstr "No se puede abrir '%s': %d, %s."
 msgid "driver unknown"
 msgstr "controlador desconocido"
 
-#: src/io-v4l.c:1239 src/io-v4l2k.c:1401
+#: src/io-v4l.c:1239 src/io-v4l2k.c:1410
 #, c-format
 msgid "%s (%s) is not a raw vbi device."
 msgstr "%s (%s) no es dispositivo de VBI crudo."
@@ -442,7 +443,7 @@ msgstr "%s (%s) no soporta la función select()."
 msgid "V4L driver interface not compiled."
 msgstr "Interfaz del controlador V4L no compilado."
 
-#: src/io-v4l2.c:222 src/io-v4l2k.c:1543
+#: src/io-v4l2.c:222 src/io-v4l2k.c:1552
 msgid "V4L2 driver interface not compiled."
 msgstr "Interfaz del controlador V4L2 no compilado."
 
@@ -451,7 +452,7 @@ msgstr "Interfaz del controlador V4L2 no compilado."
 msgid "Cannot request streaming i/o buffers from %s (%s): %s."
 msgstr "No se pueden pedir buffers de streaming de %s (%s): %s."
 
-#: src/io-v4l2k.c:214 src/io-v4l2k.c:1036
+#: src/io-v4l2k.c:214 src/io-v4l2k.c:1039
 msgid "Possibly a driver bug."
 msgstr "Posiblemente un fallo del driver."
 
@@ -487,12 +488,12 @@ msgstr "Probablemente un fallo del controlador."
 msgid "Cannot query current videostandard of %s (%s): %s."
 msgstr "No se pueden obtener el estándar actual de %s (%s): %s."
 
-#: src/io-v4l2k.c:893
+#: src/io-v4l2k.c:896
 #, c-format
 msgid "Cannot query current vbi parameters of %s (%s): %s."
 msgstr "No se pueden obtener los parámetros de vbi actuales de %s (%s): %s."
 
-#: src/io-v4l2k.c:935
+#: src/io-v4l2k.c:938
 #, c-format
 msgid ""
 "Sorry, %s (%s) cannot capture any of the requested data services with "
@@ -501,29 +502,29 @@ msgstr ""
 "Lo siento, %s (%s) no puede capturar ninguno de los servicios de datos "
 "solicitados con el scanning %d."
 
-#: src/io-v4l2k.c:1033
+#: src/io-v4l2k.c:1036
 #, c-format
 msgid "Could not set the vbi capture parameters for %s (%s): %d, %s."
 msgstr ""
 "No se pudieron establecer los parámetros de captura para %s (%s): %d, %s."
 
-#: src/io-v4l2k.c:1079
+#: src/io-v4l2k.c:1082
 #, c-format
 msgid ""
 "A known bug in driver %s %u.%u.%u impedes VBI capturing in NTSC mode. Please "
 "upgrade the driver."
 msgstr ""
 
-#: src/io-v4l2k.c:1394
+#: src/io-v4l2k.c:1403
 #, c-format
 msgid "Cannot identify '%s': %d, %s."
 msgstr "No se puede identificar '%s': %d, %s."
 
-#: src/io-v4l2k.c:1396
+#: src/io-v4l2k.c:1405
 msgid "Probably not a v4l2 device."
 msgstr "Probablemente no es un dispositivo v4l2."
 
-#: src/io-v4l2k.c:1450
+#: src/io-v4l2k.c:1459
 #, c-format
 msgid ""
 "%s (%s) lacks a vbi read interface, possibly an output only device or a "

@@ -5,84 +5,85 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
 "Report-Msgid-Bugs-To: mschimek@users.sf.net\n"
-"POT-Creation-Date: 2008-07-25 08:28+0200\n"
+"POT-Creation-Date: 2013-07-01 14:23+0200\n"
 "PO-Revision-Date: 2004-10-25 12:24+0200\n"
 "Last-Translator: Pawe³ Sakowski <pawel@sakowski.eu.org>\n"
 "Language-Team: Polish <pl@li.org>\n"
+"Language: pl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/exp-gfx.c:796
+#: src/exp-gfx.c:797
 msgid "Correct aspect ratio"
 msgstr "Popraw proporcje ekranu"
 
-#: src/exp-gfx.c:797
+#: src/exp-gfx.c:798
 msgid ""
 "Approach an image aspect ratio similar to a real TV. This will double the "
 "image size."
 msgstr "Zbli¿a proporcje obrazu do prawdziwej TV. Podwoi to rozmiar obrazu."
 
-#: src/exp-gfx.c:801
+#: src/exp-gfx.c:802
 msgid "Include transparency"
 msgstr ""
 
-#: src/exp-gfx.c:802
+#: src/exp-gfx.c:803
 msgid "If not enabled, transparency is mapped to black."
 msgstr ""
 
-#: src/exp-gfx.c:804
+#: src/exp-gfx.c:805
 #, fuzzy
 msgid "Include page title"
 msgstr "Zawrzyj nag³ówek strony HTML"
 
-#: src/exp-gfx.c:805
+#: src/exp-gfx.c:806
 msgid "Embed a title string which names network and page number."
 msgstr ""
 
-#: src/exp-gfx.c:907 src/exp-html.c:268
+#: src/exp-gfx.c:908 src/exp-html.c:268
 #, c-format
 msgid "Teletext Page %3x.%x"
 msgstr "Strona teletekstu %3x.%x"
 
-#: src/exp-gfx.c:911 src/exp-html.c:271
+#: src/exp-gfx.c:912 src/exp-html.c:271
 #, c-format
 msgid "Teletext Page %3x"
 msgstr "Strona teletekstu %3x"
 
-#: src/exp-gfx.c:1120
+#: src/exp-gfx.c:1121
 msgid "PPM"
 msgstr "PPM"
 
-#: src/exp-gfx.c:1121
+#: src/exp-gfx.c:1122
 msgid "Export this page as raw PPM image"
 msgstr "Eksportuj tê stronê jako czysty obraz PPM"
 
-#: src/exp-gfx.c:1611
+#: src/exp-gfx.c:1612
 #, fuzzy
 msgid "XPM"
 msgstr "PPM"
 
-#: src/exp-gfx.c:1612
+#: src/exp-gfx.c:1613
 #, fuzzy
 msgid "Export this page as XPM image"
 msgstr "Eksportuj tê stronê jako obraz PNG"
 
-#: src/exp-gfx.c:1795
+#: src/exp-gfx.c:1796
 #, c-format
 msgid "Unable to allocate %d byte buffer."
 msgstr "Nie mogê zaallokowaæ %d kB bufora obrazu."
 
-#: src/exp-gfx.c:1801
+#: src/exp-gfx.c:1802
 #, c-format
 msgid "Unable to allocate %d KB image buffer."
 msgstr "Nie mogê zaallokowaæ %d kB bufora obrazu."
 
-#: src/exp-gfx.c:1865
+#: src/exp-gfx.c:1866
 msgid "PNG"
 msgstr "PNG"
 
-#: src/exp-gfx.c:1866
+#: src/exp-gfx.c:1867
 msgid "Export this page as PNG image"
 msgstr "Eksportuj tê stronê jako obraz PNG"
 
@@ -342,8 +343,8 @@ msgstr ""
 
 #: src/io-bktr.c:204 src/io-bktr.c:285 src/io-bktr.c:303 src/io-v4l.c:164
 #: src/io-v4l.c:1133 src/io-v4l.c:1171 src/io-v4l.c:1199 src/io-v4l2.c:115
-#: src/io-v4l2k.c:232 src/io-v4l2k.c:606 src/io-v4l2k.c:1195
-#: src/io-v4l2k.c:1329 src/io-v4l2k.c:1357 src/proxy-client.c:201
+#: src/io-v4l2k.c:232 src/io-v4l2k.c:606 src/io-v4l2k.c:1198
+#: src/io-v4l2k.c:1339 src/io-v4l2k.c:1366 src/proxy-client.c:201
 #: src/proxy-client.c:1559
 msgid "Virtual memory exhausted."
 msgstr "Pamiêæ wirtualna wyczerpana."
@@ -353,7 +354,7 @@ msgstr "Pamiêæ wirtualna wyczerpana."
 msgid "Cannot open '%s': %s."
 msgstr "Nie mogê otworzyæ '%s': %s."
 
-#: src/io-bktr.c:273 src/io-v4l.c:758 src/io-v4l.c:1118 src/io-v4l2k.c:1182
+#: src/io-bktr.c:273 src/io-v4l.c:758 src/io-v4l.c:1118 src/io-v4l2k.c:1185
 #, c-format
 msgid "Sorry, %s (%s) cannot capture any of the requested data services."
 msgstr ""
@@ -369,7 +370,7 @@ msgstr "Brakuje pamiêci na zaalloowanie bufora przechwytywania vbi (%d kB)."
 msgid "BKTR driver interface not compiled."
 msgstr "Interfejs BKTR nie wkompilowany."
 
-#: src/io-v4l.c:809 src/io-v4l2k.c:1027
+#: src/io-v4l.c:809 src/io-v4l2k.c:1030
 #, c-format
 msgid "Cannot initialize %s (%s), the device is already in use."
 msgstr "%s (%s) jest ju¿ u¿ywany."
@@ -379,7 +380,7 @@ msgstr "%s (%s) jest ju¿ u¿ywany."
 msgid "Could not set the vbi capture parameters for %s (%s): %s."
 msgstr "Nie mogê ustawiæ parametrów przechwytywania vbi dla %s (%s): %s."
 
-#: src/io-v4l.c:961 src/io-v4l2k.c:1131
+#: src/io-v4l.c:961 src/io-v4l2k.c:1134
 #, c-format
 msgid ""
 "%s (%s) offers unknown vbi sampling format #%d. This may be a driver bug or "
@@ -408,7 +409,7 @@ msgstr ""
 msgid "Cannot set or determine current videostandard of %s (%s)."
 msgstr "Nie mogê ustawiæ ani okre¶liæ aktualnego standardu wideo %s (%s)."
 
-#: src/io-v4l.c:1090 src/io-v4l2k.c:1146
+#: src/io-v4l.c:1090 src/io-v4l2k.c:1149
 #, c-format
 msgid ""
 "Cannot capture the requested data services with %s (%s), the sampling "
@@ -417,7 +418,7 @@ msgstr ""
 "Nie mogê przechwytywaæ ¿±danych us³ug danych u¿ywaj±c %s (%s), czêstotliwo¶æ "
 "próbkowania %.2f MHz jest za niska."
 
-#: src/io-v4l.c:1207 src/io-v4l2.c:130 src/io-v4l2k.c:1374
+#: src/io-v4l.c:1207 src/io-v4l2.c:130 src/io-v4l2k.c:1383
 #, c-format
 msgid "Cannot open '%s': %d, %s."
 msgstr "Nie mogê otworzyæ '%s': %d, %s."
@@ -426,7 +427,7 @@ msgstr "Nie mogê otworzyæ '%s': %d, %s."
 msgid "driver unknown"
 msgstr "sterownik nieznany"
 
-#: src/io-v4l.c:1239 src/io-v4l2k.c:1401
+#: src/io-v4l.c:1239 src/io-v4l2k.c:1410
 #, c-format
 msgid "%s (%s) is not a raw vbi device."
 msgstr "%s (%s) nie jest surowym urz±dzeniem VBI."
@@ -441,7 +442,7 @@ msgstr "%s (%s) nie obs³uguje funkcji select()."
 msgid "V4L driver interface not compiled."
 msgstr "Interfejs BKTR nie wkompilowany."
 
-#: src/io-v4l2.c:222 src/io-v4l2k.c:1543
+#: src/io-v4l2.c:222 src/io-v4l2k.c:1552
 #, fuzzy
 msgid "V4L2 driver interface not compiled."
 msgstr "Interfejs V4L2 nie wkompilowany."
@@ -451,7 +452,7 @@ msgstr "Interfejs V4L2 nie wkompilowany."
 msgid "Cannot request streaming i/o buffers from %s (%s): %s."
 msgstr "Nie mogê uzyskaæ buforów strumieni we/wy od %s (%s): %s."
 
-#: src/io-v4l2k.c:214 src/io-v4l2k.c:1036
+#: src/io-v4l2k.c:214 src/io-v4l2k.c:1039
 msgid "Possibly a driver bug."
 msgstr "Prawdopodobnie b³±d sterownika."
 
@@ -472,8 +473,8 @@ msgstr "Uzyskanie bufora strumienia we/wy #%d od %s (%s) nie powiod³o siê: %s.
 #, c-format
 msgid "Memory mapping streaming i/o buffer #%d from %s (%s) failed: %s."
 msgstr ""
-"Mapowanie pamiêci bufora strumienia we/wy #%d od %s (%s) nie powiod³o siê: %"
-"s."
+"Mapowanie pamiêci bufora strumienia we/wy #%d od %s (%s) nie powiod³o siê: "
+"%s."
 
 #: src/io-v4l2k.c:308
 #, c-format
@@ -489,12 +490,12 @@ msgstr "Prawdopodobnie b³±d sterownika."
 msgid "Cannot query current videostandard of %s (%s): %s."
 msgstr "Nie mogê uzyskaæ aktualnego standardu wideo %s (%s): %s."
 
-#: src/io-v4l2k.c:893
+#: src/io-v4l2k.c:896
 #, c-format
 msgid "Cannot query current vbi parameters of %s (%s): %s."
 msgstr "Nie mogê uzyskaæ parametrów vbi %s (%s): %s."
 
-#: src/io-v4l2k.c:935
+#: src/io-v4l2k.c:938
 #, fuzzy, c-format
 msgid ""
 "Sorry, %s (%s) cannot capture any of the requested data services with "
@@ -502,28 +503,28 @@ msgid ""
 msgstr ""
 "Niestety, %s (%s) nie mo¿e przechwytywaæ ¿adnej z ¿±danych us³ug danych."
 
-#: src/io-v4l2k.c:1033
+#: src/io-v4l2k.c:1036
 #, c-format
 msgid "Could not set the vbi capture parameters for %s (%s): %d, %s."
 msgstr "Nie mogê ustawiæ parametrów przechwytywania vbi dla %s (%s): %d, %s."
 
-#: src/io-v4l2k.c:1079
+#: src/io-v4l2k.c:1082
 #, c-format
 msgid ""
 "A known bug in driver %s %u.%u.%u impedes VBI capturing in NTSC mode. Please "
 "upgrade the driver."
 msgstr ""
 
-#: src/io-v4l2k.c:1394
+#: src/io-v4l2k.c:1403
 #, c-format
 msgid "Cannot identify '%s': %d, %s."
 msgstr "Nie mogê otworzyæ '%s': %d, %s."
 
-#: src/io-v4l2k.c:1396
+#: src/io-v4l2k.c:1405
 msgid "Probably not a v4l2 device."
 msgstr "Prawdopodobnie nie jest urz±dzeniem V4L2."
 
-#: src/io-v4l2k.c:1450
+#: src/io-v4l2k.c:1459
 #, c-format
 msgid ""
 "%s (%s) lacks a vbi read interface, possibly an output only device or a "

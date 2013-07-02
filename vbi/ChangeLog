@@ -1,7 +1,26 @@
+2013-07-02    <mschimek@users.sf.net>
+
+	* src/exp-txt.c (vbi_print_page_region): Accidentally left a
+	  debugging printf enabled.
+
+	* src/Makefile.am: The network-table.h generator needs a rewrite.
+	* examples/pdc2-test1.sh: Didn't work with dash.
+	* contrib/Makefile.am: Disabled zvbi-dvbsubs due to compile errors.
+	* src/exp-gfx.c, src/misc.h: The cpu target checks need a rewrite.
+	  Disabled for now to get rid of annoying compiler warnings.
+
+	* src/teletext.c (enhance): Bug fix: Flush attributes
+	  before we reset the active column for a redundant
+	  set-active-row triplet.
+
+	* src/teletext_decoder.h (raw_page):
+	* src/packet.c (lop_parity_check, vbi_decode_teletext): Bug fix:
+	  Handle X/26 fallback characters with even parity.
+
 2009-12-14    <mschimek@users.sf.net>
 
 	* contrib/Makefile.am (noinst_PROGRAMS): Added zvbi-dvbsubs.
-	* contrib/dvbsubs.c, contrib/dvbsubs.h: Added. 
+	* contrib/dvbsubs.c, contrib/dvbsubs.h: Added.
 
 2009-06-10    <mschimek@users.sf.net>
 
@@ -20,7 +39,7 @@
 	* src/cc608_decoder.h: Added experimental _vbi_event_cc608_page and
 	  _vbi_event_cc608_stream structs.
 	* src/event.h: Added experimental _VBI_EVENT_CC608 and
-	  _VBI_EVENT_CC608_STREAM for test/caption.c. 
+	  _VBI_EVENT_CC608_STREAM for test/caption.c.
 	* src/Makefile.am (libzvbi_la_SOURCES): Added cc608_decoder.c,
 	  cc608_decoder.h.
 	(libzvbi_la_SOURCES): Added event.c, event-priv.h.
@@ -44,11 +63,11 @@
 
 2009-03-13    <mschimek@users.sf.net>
 
-	* src/pdc.h, examples/network.c (main): Cosmetical changes.
-	
+	* src/pdc.h, examples/network.c (main): Cosmetic changes.
+
 	* test/decode.c: Enabled Teletext packet 8/30/1 decoding
 	  because the required low-level functions are in the
-	  library now. 
+	  library now.
 
 	* test/Makefile.am: Commented out the exoptest on explist and
 	  test-unicode on unicode dependencies because of problems
@@ -96,7 +115,7 @@
 	  and prog_id fields to struct vbi_event.
 
 	* test/decode.c: Permanently enabled VPS PDC decoding with
-	  vbi_decode_vps_pdc(). 
+	  vbi_decode_vps_pdc().
 	* test/Makefile.am (TESTS, check_PROGRAMS): Added test-packet-830.
 	(test_vps_SOURCES): Replaced test-vps.c by test-vps.cc.
 	* test/test-common.h, test/test-common.cc (memcmp_zero):
@@ -128,7 +147,7 @@
 	* src/misc.h: Added TIME_MIN and TIME_MAX macros for the PDC
 	  helper functions.
 	* src/pdc.h: Updated the doxumentation. vbi_program_id.cni_type is
-	  back. 
+	  back.
 	* src/pdc.c: Updated the doxumentation. Commented out some code
 	  that would return not yet defined error codes.
 
@@ -180,7 +199,7 @@
 	  the Linux DVB interface is available.
 	* configure.in: Added an ENABLE_DVB conditional to disable
 	  zvbi-atsc-cc in contrib/Makefile.am. Bumped version to 0.2.33.
-	
+
 2008-08-20    <mschimek@users.sf.net>
 
 	* Release 0.2.32.

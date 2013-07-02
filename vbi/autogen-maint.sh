@@ -10,8 +10,8 @@ case `whoami` in
 
   michael)
     # Build system is x86_64 but default host is x86.
-    host=${host-"i686-pc-linux-gnu"}
-    CONFIGOPTS=${CONFIGOPTS-"--host=$host"}
+    # host=${host-"i686-pc-linux-gnu"}
+    # CONFIGOPTS=${CONFIGOPTS-"--host=$host"}
 
     # Regenerate all files. May require Perl, XML tools, Internet
     # access, dead cat, magic spells, ...
@@ -25,7 +25,8 @@ case `whoami` in
 esac
 
 # Default compiler.
-export CC=${CC-"gcc -V4.1.2"}
+#export CC=${CC-"gcc -V4.1.2"}
+export CC=${CC-"gcc"}
 
 if $CC -v 2>&1 | grep -q -e '^tcc version' ; then
   # If preprocessor output is required use GCC.
