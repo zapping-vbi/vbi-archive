@@ -21,7 +21,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: teletext_decoder.h,v 1.2 2008-02-19 00:35:22 mschimek Exp $ */
+/* $Id: teletext_decoder.h,v 1.3 2013-07-02 02:32:41 mschimek Exp $ */
 
 #ifndef TELETEXT_H
 #define TELETEXT_H
@@ -30,7 +30,9 @@
 
 struct raw_page {
 	cache_page		page[1];
+	uint8_t			lop_raw[26][40];
 	uint8_t			drcs_mode[48];
+	unsigned int		lop_packets;
 	int			num_triplets;
 	int			ait_page;
 };
