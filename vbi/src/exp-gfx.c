@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: exp-gfx.c,v 1.16 2008-02-24 14:17:47 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.17 2013-07-02 02:32:26 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -298,12 +298,13 @@ draw_char(int canvas_type, uint8_t *canvas, int rowstride,
 
 		if (!(underline & 1)) {
 #ifdef __GNUC__
+/* FIXME #cpu is deprecated
 #if #cpu (i386)
 			bits = (*((uint16_t *) src) >> shift);
-#else
+#else*/
                         /* unaligned/little endian */
 			bits = ((src[1] * 256 + src[0]) >> shift);
-#endif
+/*#endif*/
 #else
 			bits = ((src[1] * 256 + src[0]) >> shift);
 #endif

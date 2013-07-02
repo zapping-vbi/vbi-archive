@@ -20,7 +20,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: misc.h,v 1.23 2009-03-04 21:48:46 mschimek Exp $ */
+/* $Id: misc.h,v 1.24 2013-07-02 02:32:31 mschimek Exp $ */
 
 #ifndef MISC_H
 #define MISC_H
@@ -54,12 +54,14 @@
 
 #undef __i386__
 #undef __i686__
+/* FIXME #cpu is deprecated
 #if #cpu (i386)
 #  define __i386__ 1
 #endif
 #if #cpu (i686)
 #  define __i686__ 1
 #endif
+*/
 
 /* &x == PARENT (&x.tm_min, struct tm, tm_min),
    safer than &x == (struct tm *) &x.tm_min. A NULL _ptr is safe and
