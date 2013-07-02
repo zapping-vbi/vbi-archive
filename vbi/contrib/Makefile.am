@@ -13,12 +13,12 @@ if ENABLE_DVB
 
 bin_PROGRAMS += zvbi-atsc-cc
 
-noinst_PROGRAMS += zvbi-dvbsubs
+# noinst_PROGRAMS += zvbi-dvbsubs
 
 zvbi_atsc_cc_SOURCES = atsc-cc.c
 man_MANS += zvbi-atsc-cc.1
 
-zvbi_dvbsubs_SOURCES = dvbsubs.c dvbsubs.h
+# zvbi_dvbsubs_SOURCES = dvbsubs.c dvbsubs.h
 
 endif
 
