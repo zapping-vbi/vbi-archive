@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: teletext.c,v 1.32 2013-07-02 02:32:36 mschimek Exp $ */
+/* $Id: teletext.c,v 1.33 2013-07-02 04:03:54 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -1687,7 +1687,7 @@ enhance(vbi_decoder *vbi,
 
 						if (NO_PAGE(pgno)) {
 							if (max_level < VBI_WST_LEVEL_3p5
-							    || NO_PAGE(pgno = mag->pop_link[0][8].pgno))
+							    || NO_PAGE(pgno = mag->pop_link[1][0].pgno))
 								pgno = mag->pop_link[0][0].pgno;
 						} else
 							printv("... X/27/4 GPOP overrides MOT\n");
@@ -1702,8 +1702,8 @@ enhance(vbi_decoder *vbi,
 							}
 
 							if (max_level < VBI_WST_LEVEL_3p5
-							    || NO_PAGE(pgno = mag->pop_link[0][i + 8].pgno))
-								pgno = mag->pop_link[0][i + 0].pgno;
+							    || NO_PAGE(pgno = mag->pop_link[1][i].pgno))
+								pgno = mag->pop_link[0][i].pgno;
 						} else
 							printv("... X/27/4 POP overrides MOT\n");
 					}
@@ -1999,7 +1999,7 @@ enhance(vbi_decoder *vbi,
 
 						if (NO_PAGE(pgno)) {
 							if (max_level < VBI_WST_LEVEL_3p5
-							    || NO_PAGE(pgno = mag->drcs_link[0][8]))
+							    || NO_PAGE(pgno = mag->drcs_link[1][0]))
 								pgno = mag->drcs_link[0][0];
 						} else
 							printv("... X/27/4 GDRCS overrides MOT\n");
@@ -2014,8 +2014,8 @@ enhance(vbi_decoder *vbi,
 							}
 
 							if (max_level < VBI_WST_LEVEL_3p5
-							    || NO_PAGE(pgno = mag->drcs_link[0][i + 8]))
-								pgno = mag->drcs_link[0][i + 0];
+							    || NO_PAGE(pgno = mag->drcs_link[1][i]))
+								pgno = mag->drcs_link[0][i];
 						} else
 							printv("... X/27/4 DRCS overrides MOT\n");
 					}
@@ -2271,7 +2271,7 @@ default_object_invocation	(vbi_decoder *		vbi,
 	if (!(i = mag->pop_lut[vtp->pgno & 0xFF]))
 		return FALSE; /* has no link (yet) */
 
-	pop = &mag->pop_link[0][i + 8];
+	pop = &mag->pop_link[1][i];
 
 	if (max_level < VBI_WST_LEVEL_3p5 || NO_PAGE(pop->pgno)) {
 		pop = &mag->pop_link[0][i];
