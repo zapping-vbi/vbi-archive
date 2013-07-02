@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: teletext.c,v 1.31 2008-02-22 03:10:16 mschimek Exp $ */
+/* $Id: teletext.c,v 1.32 2013-07-02 02:32:36 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -1555,6 +1555,8 @@ enhance(vbi_decoder *vbi,
 
 				if (row > active_row)
 					flush_row();
+				else
+					flush(active_column + 1);
 
 				active_row = row;
 				active_column = column;
