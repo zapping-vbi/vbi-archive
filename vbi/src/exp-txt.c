@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: exp-txt.c,v 1.23 2008-02-24 14:17:41 mschimek Exp $ */
+/* $Id: exp-txt.c,v 1.24 2013-07-02 02:32:06 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -355,7 +355,7 @@ vbi_print_page_region(vbi_page *pg, char *buf, int size,
 
 	rtl = rtl;
 
-	if (1)
+	if (0)
 		fprintf (stderr, "vbi_print_page_region '%s' "
 		         "table=%d col=%d row=%d width=%d height=%d\n",
 			 format, table, column, row, width, height);
