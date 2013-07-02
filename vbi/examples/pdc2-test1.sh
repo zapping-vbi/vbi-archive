@@ -13,7 +13,7 @@ re23='/.*#.*/!s/\([A-Z]*\) *\([A-Z]*\) *\([A-Z]*\) *$/\2/'
 re33='/.*#.*/!s/\([A-Z]*\) *\([A-Z]*\) *\([A-Z]*\) *$/\3/'
 
 example1() {
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                LCI LUF MI PRF PIL/PTY CNI
     BBC1 19790701T191410 0 0 0 0 0701T1840   BBC1 REC  SCAN
     BBC1 19790701T191420 0 0 0 x RI/T        BBC1 REC  SCAN
@@ -33,17 +33,17 @@ example1() {
   # duration unknown) and the VPS/PDC time is equal to the start
   # time in Example 1.
   echo "EN 300 231 Annex E.3 Example 1, VCR 1"
-  echo -e $table | sed "$re12" | ./pdc2 $opts \
+  echo "$table" | sed "$re12" | ./pdc2 $opts \
     1979-07-01 18:40 18:40 18:40 \
     1979-07-01 19:45 19:45 19:45
 
   echo "EN 300 231 Annex E.3 Example 1, VCR 2"
-  echo -e $table | sed "$re22" | ./pdc2 $opts \
+  echo "$table" | sed "$re22" | ./pdc2 $opts \
     1979-07-01 19:15 19:15 19:15
 }
 
 example2() {
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                LCI LUF MI PRF PIL/PTY CNI
     BBC1 19790701T191410 0 0 1 0 0701T1840   BBC1 REC  SCAN
 
@@ -93,17 +93,17 @@ example2() {
   `
 
   echo "EN 300 231 Annex E.3 Example 2, VCR 1 resp. to MI"
-  echo -e $table | sed "$re12" | ./pdc2 $opts \
+  echo "$table" | sed "$re12" | ./pdc2 $opts \
     1979-07-01 18:40 18:40 18:40 \
     1979-07-01 19:45 19:45 19:45
 
   echo "EN 300 231 Annex E.3 Example 2, VCR 2 resp. to MI"
-  echo -e $table | sed "$re22" | ./pdc2 $opts \
+  echo "$table" | sed "$re22" | ./pdc2 $opts \
     1979-07-01 19:15 19:15 19:15
 }
 
 example3() {
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                LCI LUF MI PRF PIL/PTY CNI
     ITV1 19790702T123456 0 0 0 0 0702T1200 ITV1 REC  SCAN
 
@@ -130,17 +130,17 @@ example3() {
   # which is needed to calculate the PTY validity window, so we
   # use 00:00.
 #  echo "EN 300 231 Annex E.3 Example 3, VCR 1:"
-#  echo -e $table | sed "$re12" | ./pdc2 $opts \
+#  echo "$table" | sed "$re12" | ./pdc2 $opts \
 #    1979-07-02 12:00 12:00 12:00 \
 #    1979-07-02 00:00 00:00 3F
 
   echo "EN 300 231 Annex E.3 Example 3, VCR 2:"
-  echo -e $table | sed "$re22" | ./pdc2 $opts \
+  echo "$table" | sed "$re22" | ./pdc2 $opts \
     1979-07-02 12:35 12:35 12:35
 }
 
 example4a() {
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                LCI LUF MI PRF PIL/PTY CNI
     ITV1 19790702T123456 0 0 1 0 0702T1200 ITV1 REC  SCAN
 
@@ -185,12 +185,12 @@ example4a() {
 
   # Test omitted because ./pdc2 does not support recording by PTY.
 #  echo "EN 300 231 Annex E.3 Example 4, VCR 1 resp. to MI:"
-#  echo -e $table | sed "$re12" | ./pdc2 $opts \
+#  echo "$table" | sed "$re12" | ./pdc2 $opts \
 #    1979-07-02 12:00 12:00 12:00 \
 #    1979-07-02 00:00 00:00 3F
 
   echo "EN 300 231 Annex E.3 Example 4, VCR 2 resp. to MI:"
-  echo -e $table | sed "$re22" | ./pdc2 $opts \
+  echo "$table" | sed "$re22" | ./pdc2 $opts \
     1979-07-02 12:35 12:35 12:35
 }
 
@@ -198,7 +198,7 @@ example4b() {
   # The VCR states in Example 4 seem to describe VCRs not responsive
   # to MI, so let's try Example 4 with MI = 0 throughout.
 
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                LCI LUF MI PRF PIL/PTY CNI
     ITV1 19790702T123456 0 0 0 0 0702T1200 ITV1 REC  SCAN
 
@@ -228,17 +228,17 @@ example4b() {
 
   # Test omitted because ./pdc2 does not support recording by PTY.
 #  echo "EN 300 231 Annex E.3 Example 4, VCR 1 not resp. to MI:"
-#  echo -e $table | sed "$re12" | ./pdc2 $opts \
+#  echo "$table" | sed "$re12" | ./pdc2 $opts \
 #    1979-07-02 12:00 12:00 12:00 \
 #    1979-07-02 00:00 00:00 3F
 
   echo "EN 300 231 Annex E.3 Example 4, VCR 2 not resp. to MI:"
-  echo -e $table | sed "$re22" | ./pdc2 $opts \
+  echo "$table" | sed "$re22" | ./pdc2 $opts \
     1979-07-02 12:35 12:35 12:35
 }
 
 example5() {
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                LCI LUF MI PRF PIL/PTY CNI
     ITV1 19790702T123456 0 0 0 0 0702T1200 ITV1 REC  SCAN
 
@@ -275,17 +275,17 @@ example5() {
 
   # Test omitted because ./pdc2 does not support recording by PTY.
 #  echo "EN 300 231 Annex E.3 Example 5, VCR 1:"
-#  echo -e $table | sed "$re12" | ./pdc2 $opts \
+#  echo "$table" | sed "$re12" | ./pdc2 $opts \
 #    1979-07-02 12:00 12:00 12:00 \
 #    1979-07-02 00:00 00:00 3F
 
   echo "EN 300 231 Annex E.3 Example 5, VCR 2:"
-  echo -e $table | sed "$re22" | ./pdc2 $opts \
+  echo "$table" | sed "$re22" | ./pdc2 $opts \
     1979-07-02 12:35 12:35 12:35
 }
 
 example6() {
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                LCI LUF MI PRF PIL/PTY CNI
     ITV1 19790702T123456 0 0 1 0 0702T1200 ITV1 REC  SCAN
     ITV1 19790702T123530 0 0 1 1 NSPV/3F   ITV1 PTR  SCAN
@@ -298,17 +298,17 @@ example6() {
 
   # Test omitted because ./pdc2 does not support recording by PTY.
 #  echo "EN 300 231 Annex E.3 Example 6, VCR 1:"
-#  echo -e $table | sed "$re12" | ./pdc2 $opts \
+#  echo "$table" | sed "$re12" | ./pdc2 $opts \
 #    1979-07-02 12:00 12:00 12:00 \
 #    1979-07-02 00:00 00:00 3F
 
   echo "EN 300 231 Annex E.3 Example 6, VCR 2:"
-  echo -e $table | sed "$re22" | ./pdc2 $opts \
+  echo "$table" | sed "$re22" | ./pdc2 $opts \
     1979-07-02 12:35 12:35 12:35
 }
 
 example7() {
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                LCI LUF MI PRF PIL/PTY CNI
     CHL4 19790702T140000 0 0 0 0 0702T1400 CHL4 REC  STBY
 
@@ -325,15 +325,15 @@ example7() {
   `
 
   echo "EN 300 231 Annex E.3 Example 7, VCR 1:"
-  echo -e $table | sed "$re12" | ./pdc2 $opts \
+  echo "$table" | sed "$re12" | ./pdc2 $opts \
     1979-07-02 14:00 14:00 14:00
 
   echo "EN 300 231 Annex E.3 Example 7, VCR 2:"
-  echo -e $table | sed "$re22" | ./pdc2 $opts
+  echo "$table" | sed "$re22" | ./pdc2 $opts
 }
 
 example8() {
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                LCI LUF MI PRF PIL/PTY CNI
     BBC2 19790702T182200 0 0 1 0 0702T1620/T BBC2 REC  SCAN
 
@@ -364,16 +364,16 @@ example8() {
   `
 
   echo "EN 300 231 Annex E.3 Example 8, VCR 1:"
-  echo -e $table | sed "$re12" | ./pdc2 $opts \
+  echo "$table" | sed "$re12" | ./pdc2 $opts \
     1979-07-02 16:20 16:20 16:20
 
   echo "EN 300 231 Annex E.3 Example 8, VCR 2:"
-  echo -e $table | sed "$re22" | ./pdc2 $opts \
+  echo "$table" | sed "$re22" | ./pdc2 $opts \
     1979-07-02 18:30 18:30 18:30
 }
 
 example9() {
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                LCI LUF MI PRF PIL/PTY CNI
     ITV1 19790702T210000 0 0 1 x RI/T        ITV1 SCAN SCAN
 
@@ -431,18 +431,18 @@ example9() {
 
   # Test omitted because ./pdc2 does not support VCR reprogramming.
 #  echo "EN 300 231 Annex E.3 Example 9, VCR 1:"
-#  echo -e $table | sed "$re12" | ./pdc2 $opts \
+#  echo "$table" | sed "$re12" | ./pdc2 $opts \
 #    1979-07-02 21:00 21:00 21:00 \
 #    1979-07-03 20:01 20:01 20:01
 
   echo "EN 300 231 Annex E.3 Example 9, VCR 2:"
-  echo -e $table | sed "$re22" | ./pdc2 $opts \
+  echo "$table" | sed "$re22" | ./pdc2 $opts \
     1979-07-02 20:59 20:59 20:59 \
     1979-07-03 22:30 22:30 22:30
 }
 
 example10() {
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                LCI LUF MI PRF PIL/PTY CNI
     ITV1 19790717T222905 0 0 0 x RI/T        ITV1 SCAN SCAN
 
@@ -486,17 +486,17 @@ example10() {
   `
 
   echo "EN 300 231 Annex E.3 Example 10, VCR 1:"
-  echo -e $table | sed "$re12" | ./pdc2 $opts \
+  echo "$table" | sed "$re12" | ./pdc2 $opts \
     1979-07-17 22:28 22:28 22:28 \
     1979-07-17 22:29 22:29 22:29
 
   echo "EN 300 231 Annex E.3 Example 10, VCR 2:"
-  echo -e $table | sed "$re22" | ./pdc2 $opts \
+  echo "$table" | sed "$re22" | ./pdc2 $opts \
     1979-07-18 00:00 00:00 00:00
 }
 
 example11() {
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                LCI LUF MI PRF PIL/PTY CNI
     CHL4 19790702T160006 0 0 1 x RI/T      CHL4 SCAN SCAN
     # Note recording stops here after it started as scheduled at 1600
@@ -591,18 +591,18 @@ example11() {
 
   # Test omitted because ./pdc2 does not support VCR reprogramming.
 #  echo "EN 300 231 Annex E.3 Example 11, VCR 1:"
-#  echo -e $table | sed "$re12" | ./pdc2 $opts \
+#  echo "$table" | sed "$re12" | ./pdc2 $opts \
 #    1979-07-02 16:00 16:35 16:00 \
 #    1979-07-05 14:30 14:30 14:30
 
   echo "EN 300 231 Annex E.3 Example 11, VCR 2:"
-  echo -e $table | sed "$re22" | ./pdc2 $opts \
+  echo "$table" | sed "$re22" | ./pdc2 $opts \
     1979-07-02 15:59 15:59 15:59 \
     1979-07-05 10:00 10:00 10:00
 }
 
 example12() {
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                LCI LUF MI PRF PIL/PTY CNI
     BBC1 19791201T133000 0 0 1 0 1201T1330/S BBC1
 
@@ -695,22 +695,22 @@ example12() {
   `
 
   echo "EN 300 231 Annex E.3 Example 12, VCR 1:"
-  echo -e $table | sed "$re13" | ./pdc2 $opts \
+  echo "$table" | sed "$re13" | ./pdc2 $opts \
     1979-12-01 13:30 13:30 13:30 \
     1979-12-01 14:40 14:40 14:40
 
   echo "EN 300 231 Annex E.3 Example 12, VCR 2:"
-  echo -e $table | sed "$re23" | ./pdc2 $opts \
+  echo "$table" | sed "$re23" | ./pdc2 $opts \
     1979-12-01 15:10 15:10 15:10 \
     1979-12-01 16:00 16:00 16:00
 
   echo "EN 300 231 Annex E.3 Example 12, VCR 3:"
-  echo -e $table | sed "$re33" | ./pdc2 $opts \
+  echo "$table" | sed "$re33" | ./pdc2 $opts \
     1979-12-01 14:00 14:00 14:00
 }
 
 example13a() {
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                LCI LUF MI PRF PIL/PTY CNI
     BBC1 19791201T135900 0 0 1 0 1201T1330 BBC1 REC  SCAN SCAN
 
@@ -795,17 +795,17 @@ example13a() {
 
   # Test omitted because ./pdc2 does not support recording by PTY.
 #  echo "EN 300 231 Annex E.3 Example 13, VCR 1:"
-#  echo -e $table | sed "$re13" | ./pdc2 $opts \
+#  echo "$table" | sed "$re13" | ./pdc2 $opts \
 #    1979-12-01 13:30 13:30 13:30 \
 #    1979-12-01 00:00 00:30 G
 
   # Test omitted because ./pdc2 does not support recording by PTY.
 #  echo "EN 300 231 Annex E.3 Example 13, VCR 2:"
-#  echo -e $table | sed "$re23" | ./pdc2 $opts \
+#  echo "$table" | sed "$re23" | ./pdc2 $opts \
 #    1979-12-01 00:00 00:00 R
 
   echo "EN 300 231 Annex E.3 Example 13, VCR 3:"
-  echo -e $table | sed "$re33" | ./pdc2 $opts \
+  echo "$table" | sed "$re33" | ./pdc2 $opts \
     1979-12-01 14:00 14:00 14:00
 }
 
@@ -813,7 +813,7 @@ example13b() {
   # The VCR states in Example 13 seem to describe VCRs not responsive
   # to MI, so let's try Example 13 with MI = 0 throughout.
 
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #              LCI, LUF, MI, PRF, PIL, CNI, PTY
     BBC1 19791201T135900 0 0 0 0 1201T1330 BBC1 REC  SCAN SCAN
 
@@ -890,22 +890,22 @@ example13b() {
 
   # Test omitted because ./pdc2 does not support recording by PTY.
 #  echo "EN 300 231 Annex E.3 Example 13, VCR 1 not resp. to MI:"
-#  echo -e $table | sed "$re13" | ./pdc2 $opts \
+#  echo "$table" | sed "$re13" | ./pdc2 $opts \
 #    1979-12-01 13:30 13:30 13:30 \
 #    1979-12-01 00:00 00:30 G
 
   # Test omitted because ./pdc2 does not support recording by PTY.
 #  echo "EN 300 231 Annex E.3 Example 13, VCR 2 not resp. to MI:"
-#  echo -e $table | sed "$re23" | ./pdc2 $opts \
+#  echo "$table" | sed "$re23" | ./pdc2 $opts \
 #    1979-12-01 00:00 00:00 R
 
   echo "EN 300 231 Annex E.3 Example 13, VCR 3 not resp. to MI:"
-  echo -e $table | sed "$re33" | ./pdc2 $opts \
+  echo "$table" | sed "$re33" | ./pdc2 $opts \
     1979-12-01 14:00 14:00 14:00
 }
 
 example14() {
-  local table=`cat <<EOF | sed 's/$/\\\\n/'
+  table=`cat <<EOF
     #                 LCI LUF MI PRF PIL/PTY CNI
     ITV1 19791028T010116Z 0 0 0 0 1028T0159 ITV1 REC  SCAN
     # EN 300 231 Annex E.3 Table E.28 specifies the event time as
@@ -925,11 +925,11 @@ example14() {
   `
 
   echo "EN 300 231 Annex E.3 Example 14, VCR 1:"
-  echo -e $table | sed "$re12" | TZ="Europe/London" ./pdc2 $opts \
+  echo "$table" | sed "$re12" | TZ="Europe/London" ./pdc2 $opts \
     1979-10-28 01:59 01:59 01:59
 
   echo "EN 300 231 Annex E.3 Example 14, VCR 2:"
-  echo -e $table | sed "$re22" | TZ="Europe/London" ./pdc2 $opts \
+  echo "$table" | sed "$re22" | TZ="Europe/London" ./pdc2 $opts \
     1979-10-28 02:00 02:00 02:00
 }
 
