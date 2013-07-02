@@ -21,7 +21,7 @@
  */
 
 static const char rcsid [] =
-"$Id: io-v4l.c,v 1.38 2008-02-24 14:17:28 mschimek Exp $";
+"$Id: io-v4l.c,v 1.39 2013-07-02 04:04:04 mschimek Exp $";
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -42,6 +42,7 @@ static const char rcsid [] =
 #include <assert.h>
 #include <sys/time.h>		/* timeval */
 #include <sys/types.h>		/* fd_set, uid_t */
+#include <sys/stat.h>		/* S_ISCHR */
 #include <sys/ioctl.h>		/* for (_)videodev.h */
 #include <pthread.h>
 
