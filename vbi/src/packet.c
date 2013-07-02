@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: packet.c,v 1.30 2009-03-04 21:48:03 mschimek Exp $ */
+/* $Id: packet.c,v 1.31 2013-07-02 02:32:45 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -1670,6 +1670,92 @@ store_lop(vbi_decoder *vbi, const cache_page *vtp)
 	return TRUE;
 }
 
+static void
+lop_parity_check		(cache_page *		cvtp,
+				 struct raw_page *	rvtp)
+{
+	if (0 != cvtp->x26_designations) {
+		struct ttx_triplet *trip = cvtp->data.enh_lop.enh;
+		struct ttx_triplet *trip_end = trip + N_ELEMENTS (cvtp->data.enh_lop.enh);
+		unsigned int row = 0;
+
+		/* This is a little work-around for Teletext encoders
+		   which transmit X/26 fallback characters with even
+		   parity as noted in EN 300 706 Table 25. The page
+		   formatting code can detect parity errors and pick a
+		   replacement character, however the parity check
+		   below attempts to correct errors when a page is
+		   retransmitted, and requires odd parity on all
+		   characters. */
+
+		for (; trip < trip_end; ++trip) {
+			if (trip->address < 40) {
+				switch (trip->mode) {
+				case 0x01: /* G1 block mosaic character */
+				case 0x02: /* G3 smooth mosaic or line drawing character */
+				case 0x0B: /* G3 smooth mosaic or line drawing character */
+				case 0x08: /* modified G0 and G2 character set designation */
+				case 0x09: /* G0 character */
+				case 0x0D: /* drcs character invocation */
+				case 0x0F: /* G2 character */
+				case 0x10 ... 0x1F: /* characters including diacritical marks */
+				{
+					unsigned int column = trip->address;
+					unsigned int c = rvtp->lop_raw[row][column];
+					rvtp->lop_raw[row][column] = vbi_par8 (c);
+					break;
+				}
+				default:
+					break;
+				}
+			} else if (trip->address > 63) {
+				/* Missed triplet or uncorrectable transmission error. */
+				break;
+			} else {
+				switch (trip->mode) {
+				case 0x01: /* full row colour */
+				case 0x04: /* set active position */
+					row = trip->address - 40;
+					if (0 == row)
+						row = 24;
+					break;
+				case 0x07: /* address display row 0 */
+					row = 0;
+					break;
+				default:
+					break;
+				}
+			}
+		}
+	}
+
+	/* Level 1 parity check. */
+
+	{
+		unsigned int packet;
+
+		for (packet = 1; packet <= 25; ++packet) {
+			unsigned int i;
+			int n;
+
+			if (0 == (rvtp->lop_packets & (1 << packet)))
+				continue;
+
+			n = 0;
+			for (i = 0; i < 40; ++i)
+				n |= vbi_unpar8 (rvtp->lop_raw[packet][i]);
+			if (n >= 0) {
+				/* Parity is good, replace cached row. We
+				   could replace individual characters, but
+				   a single parity bit isn't very reliable. */
+				memcpy (cvtp->data.lop.raw[packet],
+					rvtp->lop_raw[packet], 40);
+				cvtp->lop_packets |= 1 << packet;
+			}
+		}
+	}
+}
+
 #define TTX_EVENTS (VBI_EVENT_TTX_PAGE)
 #define BSDATA_EVENTS (VBI_EVENT_NETWORK | VBI_EVENT_NETWORK_ID)
 
@@ -2159,6 +2245,7 @@ vbi_decode_teletext(vbi_decoder *vbi, uint8_t *buffer)
 				break;
 
 			case PAGE_FUNCTION_LOP:
+				lop_parity_check(vtp, curr);
 				if (!store_lop(vbi, vtp))
 					return FALSE;
 				break;
@@ -2410,6 +2497,7 @@ vbi_decode_teletext(vbi_decoder *vbi, uint8_t *buffer)
 		}
 //XXX?
 		cvtp->data.ext_lop.ext.designations = 0;
+		rvtp->lop_packets = 0;
 		rvtp->num_triplets = 0;
 
 		return TRUE;
@@ -2468,6 +2556,13 @@ vbi_decode_teletext(vbi_decoder *vbi, uint8_t *buffer)
 			break;
 
 		case PAGE_FUNCTION_LOP:
+			/* Parity check postponed until we received the X/26
+			   enhancement packets pertaining to this page.
+			   See lop_parity_check(). */
+			memcpy(rvtp->lop_raw[packet], p, 40);
+			rvtp->lop_packets |= 1 << packet;
+			return TRUE;
+
 		case PAGE_FUNCTION_EACEM_TRIGGER:
 			for (n = i = 0; i < 40; i++)
 				n |= vbi_unpar8 (p[i]);
