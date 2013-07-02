@@ -15,7 +15,8 @@
 
 	* src/teletext_decoder.h (raw_page):
 	* src/packet.c (lop_parity_check, vbi_decode_teletext): Bug fix:
-	  Handle X/26 fallback characters with even parity.
+	  Handle X/26 fallback characters with even parity. Thanks to
+	  Marton Balint for a sample and patch.
 
 2009-12-14    <mschimek@users.sf.net>
 
