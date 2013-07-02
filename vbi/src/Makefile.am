@@ -188,10 +188,13 @@ libzvbi.h: version.h $(LIBZVBI_HDRS)
 	echo -e "\n#ifdef __cplusplus\n}\n#endif" >> $@
 	echo -e "\n#endif /* __LIBZVBI_H__ */" >> $@
 
-network-table.h: network-table.pl Makefile.am
-	wget -q -O- --proxy=off \
-	  http://zapping.sourceforge.net/zvbi-0.3/networks.xml | \
-	  $(srcdir)/network-table.pl > $@
+# FIXME networks.xml is outdated and seems to contain invalid utf-8;
+# network-table.h network names must be ISO-8859-1 encoded for compatibility
+# with earlier versions of the library.
+#network-table.h: network-table.pl Makefile.am
+#	wget -q -O- --proxy=off \
+#	  http://zapping.sourceforge.net/zvbi-0.3/networks.xml | \
+#	  $(srcdir)/network-table.pl > $@
 
 _videodev.h: Makefile.am $(structpr) videodev.h
 	$(srcdir)/$(structpr) <$(srcdir)/videodev.h \
