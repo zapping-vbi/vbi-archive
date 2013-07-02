@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: exp-gfx.c,v 1.17 2013-07-02 02:32:26 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.18 2013-07-02 04:04:14 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1638,6 +1638,17 @@ VBI_AUTOREG_EXPORT_MODULE(vbi_export_class_xpm)
 #include "png.h"
 #include "setjmp.h"
 
+/* Starting from libpng version 1.5 it is not possible
+   to access inside the PNG struct directly. */
+#ifdef PNG_SETJMP
+#  undef PNG_SETJMP
+#endif
+#if (defined (PNG_LIBPNG_VER) && PNG_LIBPNG_VER >= 10500)
+#  define PNG_SETJMP(ptr) setjmp(png_jmpbuf(ptr))
+#else
+#  define PNG_SETJMP(ptr) setjmp(ptr->jmpbuf)
+#endif
+
 static void
 write_data			(png_structp		png_ptr,
 				 png_bytep		data,
@@ -1673,11 +1684,11 @@ write_png			(gfx_instance *		gfx,
 	char title[80];
 	unsigned int i;
 
-	if (setjmp (png_ptr->jmpbuf))
+	if (PNG_SETJMP(png_ptr))
 		return FALSE;
 
 	png_set_write_fn (png_ptr,
-			  (voidp) gfx,
+			  (png_voidp) gfx,
 			  write_data,
 			  flush_data);
 
