@@ -1,5 +1,17 @@
 2013-07-02    <mschimek@users.sf.net>
 
+	* src/teletext.c: Corrected an apparent array overflow, SF bug #183.
+
+	* contrib/ntsc-cc.c, src/io-v4l.c, src/io-dvb.c: Compile fix:
+	  Applied SF bug #188 patch by Alex Chiang to include sys/stat.h
+	  to define S_ISCHR on Debian/Ubuntu.
+
+	* src/exp-gfx.c: Compile fix: Applied SF patch #13 for compatibility
+	  with libpng 1.5 and later.
+
+	* po/pl.po: Applied SF bug #192 patch by Jakub Wilk to fix
+	  UTF-8 encoding.
+
 	* src/exp-txt.c (vbi_print_page_region): Accidentally left a
 	  debugging printf enabled.
 
@@ -16,7 +28,7 @@
 	* src/teletext_decoder.h (raw_page):
 	* src/packet.c (lop_parity_check, vbi_decode_teletext): Bug fix:
 	  Handle X/26 fallback characters with even parity. Thanks to
-	  Marton Balint for a sample and patch.
+	  Marton Balint for a sample and SF patch #15.
 
 2009-12-14    <mschimek@users.sf.net>
 
