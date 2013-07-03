@@ -937,16 +937,18 @@ struct station {
 enum debug {
 	DEBUG_VESD_START_CODE		= (1 << 0),
 	DEBUG_VESD_PES_PACKET		= (1 << 1),
-	DEBUG_VESD_CC_DATA		= (1 << 2),
-	DEBUG_CC_DATA			= (1 << 3),
-	DEBUG_CC_F1			= (1 << 4),
-	DEBUG_CC_F2			= (1 << 5),
-	DEBUG_CC_DECODER		= (1 << 6),
-	DEBUG_DTVCC_PACKET		= (1 << 7),
-	DEBUG_DTVCC_SE			= (1 << 8),
-	DEBUG_DTVCC_PUT_CHAR		= (1 << 9),
-	DEBUG_DTVCC_STREAM_EVENT	= (1 << 10),
-	DEBUG_CONFIG			= (1 << 11)
+	DEBUG_VESD_PIC_HDR		= (1 << 2),
+	DEBUG_VESD_PIC_EXT		= (1 << 3),
+	DEBUG_VESD_CC_DATA		= (1 << 4),
+	DEBUG_CC_DATA			= (1 << 5),
+	DEBUG_CC_F1			= (1 << 6),
+	DEBUG_CC_F2			= (1 << 7),
+	DEBUG_CC_DECODER		= (1 << 8),
+	DEBUG_DTVCC_PACKET		= (1 << 9),
+	DEBUG_DTVCC_SE			= (1 << 10),
+	DEBUG_DTVCC_PUT_CHAR		= (1 << 11),
+	DEBUG_DTVCC_STREAM_EVENT	= (1 << 12),
+	DEBUG_CONFIG			= (1 << 13)
 };
 
 enum source {
@@ -6655,75 +6657,94 @@ vesd_user_data			(struct video_es_decoder *vd,
 			 vd->dts, vd->pts);
 	}
 
-	if (0 == (vd->received_blocks & RECEIVED_PICTURE)) {
+	/* NB. the PES packet header is optional and we may receive
+	   more than one user_data structure. */
+	if ((RECEIVED_PICTURE |
+	     RECEIVED_PICTURE_EXT)
+	    != (vd->received_blocks & (RECEIVED_PICTURE |
+				       RECEIVED_PICTURE_EXT))) {
 		/* Either sequence or group user_data, or we missed
 		   the picture_header. */
 		vd->received_blocks &= ~RECEIVED_PES_PACKET;
 		return;
 	}
 
-	/* start_code_prefix [24], start_code [8],
-	   ATSC_identifier [32], user_data_type_code [8] */
-	if (min_bytes_valid < 9)
-		return;
+	if (NULL == buf) {
+		/* No user_data received on this field or frame. */
 
-	ATSC_identifier = ((buf[4] << 24) | (buf[5] << 16) |
-			   (buf[6] << 8) | buf[7]);
-	if (0x47413934 != ATSC_identifier)
-		return;
-
-	user_data_type_code = buf[8];
-	if (0x03 != user_data_type_code)
-		return;
-
-	/* ATSC A/53 Part 4:2007 Section 6.2.1: "No more than one
-	   user_data() structure using the same user_data_type_code
-	   [...] shall be present following any given picture
-	   header." */
-	if (vd->received_blocks & RECEIVED_MPEG_CC_DATA) {
-		/* Too much data lost. */
-		return;
-	}
-
-	vd->received_blocks |= RECEIVED_MPEG_CC_DATA;
-
-	/* reserved, process_cc_data_flag, zero_bit, cc_count [5],
-	   reserved [8] */
-	if (min_bytes_valid < 11)
-		return;
-
-	/* one_bit, reserved [4], cc_valid, cc_type [2],
-	   cc_data_1 [8], cc_data_2 [8] */
-	cc_count = buf[9] & 0x1F;
-
-	/* CEA 708-C Section 4.4 permits padding, so we have to see
-	   all cc_data elements. */
-	if (min_bytes_valid < 11 + cc_count * 3)
-		return;
-
-	if (option_debug & DEBUG_VESD_CC_DATA) {
-		char text[0x1F * 2 + 1];
-		unsigned int i;
-		vbi_bool ooo;
-
-		for (i = 0; i < cc_count; ++i) {
-			text[i * 2 + 0] = printable (buf[12 + i * 3]);
-			text[i * 2 + 1] = printable (buf[13 + i * 3]);
+		if (option_debug & DEBUG_VESD_CC_DATA) {
+			fprintf (stderr, "DTVCC coding=%s structure=%s "
+				 "pts=%" PRId64 " no data\n",
+				 picture_coding_type_name
+				 (vd->picture_coding_type),
+				 picture_structure_name
+				 (vd->picture_structure),
+				 vd->pts);
 		}
-		text[cc_count * 2] = 0;
+	} else {
+		/* start_code_prefix [24], start_code [8],
+		   ATSC_identifier [32], user_data_type_code [8] */
+		if (min_bytes_valid < 9)
+			return;
 
-		ooo = (B_TYPE == vd->picture_coding_type
-		       && vd->reorder_pictures < 3);
+		ATSC_identifier = ((buf[4] << 24) | (buf[5] << 16) |
+				   (buf[6] << 8) | buf[7]);
+		if (0x47413934 != ATSC_identifier)
+			return;
 
-		fprintf (stderr, "DTVCC coding=%s structure=%s "
-			 "pts=%" PRId64 " cc_count=%u "
-			 "n_bytes=%u '%s'%s\n",
-			 picture_coding_type_name
-			 (vd->picture_coding_type),
-			 picture_structure_name
-			 (vd->picture_structure),
-			 vd->pts, cc_count, min_bytes_valid,
-			 text, ooo ? " (out of order)" : "");
+		user_data_type_code = buf[8];
+		if (0x03 != user_data_type_code)
+			return;
+
+		/* ATSC A/53 Part 4:2007 Section 6.2.1: "No more than one
+		   user_data() structure using the same user_data_type_code
+		   [...] shall be present following any given picture
+		   header." */
+		if (vd->received_blocks & RECEIVED_MPEG_CC_DATA) {
+			/* Too much data lost. */
+			return;
+		}
+
+		vd->received_blocks |= RECEIVED_MPEG_CC_DATA;
+
+		/* reserved, process_cc_data_flag, zero_bit, cc_count [5],
+		   reserved [8] */
+		if (min_bytes_valid < 11)
+			return;
+
+		/* one_bit, reserved [4], cc_valid, cc_type [2],
+		   cc_data_1 [8], cc_data_2 [8] */
+		cc_count = buf[9] & 0x1F;
+
+		/* CEA 708-C Section 4.4 permits padding, so we have to see
+		   all cc_data elements. */
+		if (min_bytes_valid < 11 + cc_count * 3)
+			return;
+
+		if (option_debug & DEBUG_VESD_CC_DATA) {
+			char text[0x1F * 2 + 1];
+			unsigned int i;
+			vbi_bool ooo;
+
+			for (i = 0; i < cc_count; ++i) {
+				text[i * 2 + 0] = printable (buf[12 + i * 3]);
+				text[i * 2 + 1] = printable (buf[13 + i * 3]);
+			}
+			text[cc_count * 2] = 0;
+
+			ooo = (B_TYPE == vd->picture_coding_type
+			       && vd->reorder_pictures < 3);
+
+			fprintf (stderr, "DTVCC coding=%s structure=%s "
+				 "pts=%" PRId64 " cc_count=%u "
+				 "n_bytes=%u '%s'%s\n",
+				 picture_coding_type_name
+				 (vd->picture_coding_type),
+				 picture_structure_name
+				 (vd->picture_structure),
+				 vd->pts, cc_count, min_bytes_valid,
+				 text, ooo ? " (out of order)" : "");
+		}
 	}
 
 	/* CEA 708-C Section 4.4.1.1 */
@@ -6781,7 +6802,18 @@ vesd_extension			(struct video_es_decoder *vd,
 	    != extension_start_code_identifier)
 		return;
 
+	if (0 == (vd->received_blocks & RECEIVED_PICTURE)) {
+		/* We missed the picture_header. */
+		vd->received_blocks = 0;
+		return;
+	}
+
 	vd->picture_structure = (enum picture_structure)(buf[6] & 3);
+
+	if (option_debug & DEBUG_VESD_PIC_EXT) {
+		fprintf (stderr, "VES PIC EXT structure=%s\n",
+			 picture_structure_name (vd->picture_structure));
+	}
 
 	vd->received_blocks |= RECEIVED_PICTURE_EXT;
 }
@@ -6796,8 +6828,9 @@ vesd_picture_header		(struct video_es_decoder *vd,
 	/* picture_start_code [32],
 	   picture_temporal_reference [10],
 	   picture_coding_type [3], ... */
-	if (min_bytes_valid < 6
-	    || vd->received_blocks != RECEIVED_PES_PACKET) {
+	/* XXX consider estimating the PTS if none transmitted. */
+ 	if (min_bytes_valid < 6
+	    /* || vd->received_blocks != RECEIVED_PES_PACKET */) {
 		/* Too much data lost. */
 		vd->received_blocks = 0;
 		return;
@@ -6807,10 +6840,16 @@ vesd_picture_header		(struct video_es_decoder *vd,
 	vd->picture_temporal_reference = (c >> 6) & 0x3FF;
 	vd->picture_coding_type = (enum picture_coding_type)((c >> 3) & 7);
 
-	vd->received_blocks = (RECEIVED_PES_PACKET |
-			       RECEIVED_PICTURE);
+	if (option_debug & DEBUG_VESD_PIC_HDR) {
+		fprintf (stderr, "VES PIC HDR ref=%d type=%ss\n",
+			 vd->picture_temporal_reference,
+			 picture_coding_type_name
+			 (vd->picture_coding_type));
+	}
+ 
+ 	++vd->n_pictures_received;
 
-	++vd->n_pictures_received;
+	vd->received_blocks |= RECEIVED_PICTURE;
 }
 
 static void
@@ -6928,11 +6967,22 @@ vesd_decode_block		(struct video_es_decoder *vd,
 	   picture_coding_type and picture_structure fields. */
 
 	if (likely (start_code <= 0xAF)) {
+		if (!data_lost
+		    && (vd->received_blocks == (RECEIVED_PICTURE |
+						RECEIVED_PICTURE_EXT)
+			|| vd->received_blocks == (RECEIVED_PES_PACKET |
+						   RECEIVED_PICTURE |
+						   RECEIVED_PICTURE_EXT))) {
+			/* No user data received for this picture. */
+			vesd_user_data (vd, NULL, 0);
+		}
+
 		if (unlikely (0x00 == start_code) && !data_lost) {
 			vesd_picture_header (vd, buf, min_bytes_valid);
 		} else {
-			/* slice_start_code or data lost in or after
+			/* slice_start_code, or data lost in or after
 			   the picture_header. */
+
 			/* For all we care the picture data is just
 			   useless filler prior to the next PES packet
 			   header, and we need an uninterrupted
@@ -6941,7 +6991,10 @@ vesd_decode_block		(struct video_es_decoder *vd,
 			   picture_temporal_reference,
 			   picture_coding_type, picture_structure and
 			   cc_data belong together. */
+
 			vd->received_blocks = 0;
+			vd->pts = -1;
+			vd->dts = -1;
 		}
 	} else if (USER_DATA_START_CODE == start_code) {
 		vesd_user_data (vd, buf, min_bytes_valid);
@@ -6952,12 +7005,13 @@ vesd_decode_block		(struct video_es_decoder *vd,
 		vesd_extension (vd, buf, min_bytes_valid);
 	} else if (start_code >= VIDEO_STREAM_0
 		   && start_code <= VIDEO_STREAM_15) {
+		/* Start of a new picture. */
 		vesd_pes_packet_header (vd, buf, min_bytes_valid);
 	} else {
 		/* Should be a sequence_header or
 		   group_of_pictures_header. */
 
-		vd->received_blocks &= (1 << 0);
+		vd->received_blocks &= RECEIVED_PES_PACKET;
 	}
 
 	/* Not all of this data is relevant for caption decoding but
@@ -9173,8 +9227,10 @@ debug_option			(const char *		optarg)
 		{ "dtvccse",		DEBUG_DTVCC_SE },
 		{ "dtvccsev",		DEBUG_DTVCC_STREAM_EVENT },
 		{ "vesdcc",		DEBUG_VESD_CC_DATA },
-		{ "vesdpesp",		DEBUG_VESD_PES_PACKET },
-		{ "vesdsc",		DEBUG_VESD_START_CODE },
+		{ "vesdpe",		DEBUG_VESD_PIC_EXT },
+ 		{ "vesdpesp",		DEBUG_VESD_PES_PACKET },
+		{ "vesdph",		DEBUG_VESD_PIC_HDR },
+ 		{ "vesdsc",		DEBUG_VESD_START_CODE },
 	};
 	const char *s;
 
