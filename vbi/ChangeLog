@@ -1,4 +1,12 @@
+2013-07-03    <mschimek@users.sf.net>
+
+	* contrib/atsc-cc.c: Bug fix: Didn't work right with CC data only
+	  on one field or streams omitting some PTS.
+
 2013-07-02    <mschimek@users.sf.net>
+
+	* contrib/README: Added dvbsubs.
+	* contrib/dvbsubs.c, contrib/dvbsubs.h: Some compile fixes and new code.
 
 	* src/teletext.c: Corrected an apparent array overflow, SF bug #183.
 
