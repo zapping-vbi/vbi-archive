@@ -3,8 +3,9 @@
 
    File: dvbsubs.c
 
-   Copyright (C) Dave Chapman 2002
-  
+   Old code (C) 2002 Dave Chapman
+   New code (C) 2009 Michael H. Schimek
+ 
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
    as published by the Free Software Foundation; either version 2
@@ -25,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -34,10 +36,40 @@
 #include <sys/poll.h>
 #include <ctype.h>
 #include <sys/time.h>
-
+#include <stdbool.h>
+#include <stdarg.h>
+#include <errno.h>
+#include <setjmp.h>
+#include <assert.h>
+#include <inttypes.h>
 
 #include "dvbsubs.h"
-#include "ctools.h"
+
+#if __GNUC__ < 3
+#  define likely(expr) (expr)
+#  define unlikely(expr) (expr)
+#else
+#  define likely(expr) __builtin_expect(expr, 1)
+#  define unlikely(expr) __builtin_expect(expr, 0)
+#endif
+
+#undef TRUE
+#define TRUE 1
+#undef FALSE
+#define FALSE 0
+
+/* These should be defined in inttypes.h. */
+#ifndef PRId64
+#  define PRId64 "lld"
+#endif
+#ifndef PRIu64
+#  define PRIu64 "llu"
+#endif
+#ifndef PRIx64
+#  define PRIx64 "llx"
+#endif
+
+#define N_ELEMENTS(array) (sizeof (array) / sizeof ((array)[0]))
 
 page_t page;
 region_t regions[MAX_REGIONS];
@@ -189,7 +221,7 @@ run_ocr(int region, unsigned long long pts) {
   unlink(outbuf);
 }
 
-void init_data() {
+static void init_data() {
   int i;
 
   for (i=0;i<MAX_REGIONS;i++) {
@@ -198,7 +230,9 @@ void init_data() {
   }
 }
 
-void create_region(int region_id,int region_width,int region_height,int region_depth) {
+static void create_region(int region_id,int region_width,int region_height,int region_depth) {
+  region_depth = region_depth; /* unused */
+
   regions[region_id].win=num_windows++;
   //fprintf(stderr,"region %d created - win=%d, height=%d, width=%d, depth=%d\n",region_id,regions[region_id].win,region_height,region_width,region_depth);
   regions[region_id].width=region_width;
@@ -207,11 +241,7 @@ void create_region(int region_id,int region_width,int region_height,int region_d
   memset(regions[region_id].img,15,sizeof(regions[region_id].img));
 }
 
-void test_OSD() {
-  return;
-}
-
-void do_plot(int r,int x, int y, unsigned char pixel) {
+static void do_plot(int r,int x, int y, unsigned char pixel) {
   int i;
   if ((y >= 0) && (y < regions[r].height)) {
     i=(y*regions[r].width)+x;
@@ -221,7 +251,7 @@ void do_plot(int r,int x, int y, unsigned char pixel) {
   }
 }
 
-void plot(int r,int run_length, unsigned char pixel) {
+static void plot(int r,int run_length, unsigned char pixel) {
   int x2=x+run_length;
 
 //  fprintf(stderr,"plot: x=%d,y=%d,length=%d,pixel=%d\n",x,y,run_length,pixel);
@@ -234,18 +264,7 @@ void plot(int r,int run_length, unsigned char pixel) {
   //  x+=run_length;
 }
 
-ssize_t safe_read(int fd, void *buf, size_t count) {
- ssize_t n,tot;
-
- tot=0;
- while (tot < count) {
-   n=read(fd,buf,count-tot);
-   tot+=n;
- }
- return(tot);
-}
-
-unsigned char next_nibble () {
+static unsigned char next_nibble () {
   unsigned char x;
 
   if (nibble_flag==0) {
@@ -291,13 +310,16 @@ unsigned char next_nibble () {
 */
 
 static inline void set_palette(int region_id,int id,int Y_value, int Cr_value, int Cb_value, int T_value) {
+  Cr_value = Cr_value; /* unused */
+  Cb_value = Cb_value;
+
   regions[region_id].palette[id] = Y_value;
   if (Y_value == 0) T_value = 0;
   regions[region_id].alpha[id] = T_value;
   //fprintf(stderr,"setting palette: region=%d,id=%d, val=%d,alpha=%d\n",region_id,id,Y_value,T_value);
 }
 
-void decode_4bit_pixel_code_string(int r, int object_id, int ofs, int n) {
+static void decode_4bit_pixel_code_string(int r, int object_id, int ofs, int n) {
   int next_bits,
       switch_1,
       switch_2,
@@ -308,6 +330,9 @@ void decode_4bit_pixel_code_string(int r, int object_id, int ofs, int n) {
   int bits;
   unsigned int data;
   int j;
+
+  object_id = object_id; /* unused */
+  ofs = ofs;
 
   if (in_scanline==0) {
     // printf("<scanline>\n");
@@ -392,7 +417,7 @@ void decode_4bit_pixel_code_string(int r, int object_id, int ofs, int n) {
 }
 
 
-void process_pixel_data_sub_block(int r, int o, int ofs, int n) {
+static void process_pixel_data_sub_block(int r, int o, int ofs, int n) {
   int data_type;
   int j;
 
@@ -421,7 +446,7 @@ void process_pixel_data_sub_block(int r, int o, int ofs, int n) {
 
   i=j;
 }
-int process_page_composition_segment() {
+static int process_page_composition_segment() {
   int page_id,
       segment_length,
       page_time_out,
@@ -490,7 +515,7 @@ int process_page_composition_segment() {
 
 }
 
-void process_region_composition_segment() {
+static void process_region_composition_segment() {
   int page_id,
       segment_length,
       region_id,
@@ -593,7 +618,7 @@ void process_region_composition_segment() {
   // printf("</region_composition_segment>\n");
 }
 
-void process_CLUT_definition_segment() {
+static void process_CLUT_definition_segment() {
   int page_id,
       segment_length,
       CLUT_id,
@@ -668,7 +693,7 @@ void process_CLUT_definition_segment() {
   // printf("</CLUT_definition_segment>\n");
 }
 
-void process_object_data_segment() {
+static void process_object_data_segment() {
   int page_id,
       segment_length,
       object_id,
@@ -725,7 +750,7 @@ void process_object_data_segment() {
     i++;
 }
 
-void process_pes_packet() {
+static void process_pes_packet() {
   int n;
   unsigned long long PTS;
   unsigned char PTS_1;
@@ -794,17 +819,19 @@ void process_pes_packet() {
   // printf("</subtitle_stream>\n");
   // printf("</pes_packet>\n");
   // fprintf(stderr,"End of PES packet - time=%.2f\n",PTS_secs);
-  if (empty_sub) {
+  /* if (empty_sub) */ {
     int i;
     if (textsub.start_pts < 0)
-      return;
+      /* return */;
+    else {
     textsub.end_pts = PTS/90;
     output_textsub(outfile);
     textsub.end_pts = textsub.start_pts = -1;
     for(i=0; i<MAX_REGIONS; i++)
       textsub.regions[i][0] = '\0';
+    }
   }
-  else {
+  /* else */ {
     textsub.start_pts = PTS/90;
     n=0;
     for (r=0;r<MAX_REGIONS;r++) {
@@ -838,7 +865,7 @@ void process_pes_packet() {
 }
 
 #define PID_MASK_HI 0x1F
-uint16_t get_pid(uint8_t *pid)
+static uint16_t get_pid(uint8_t *pid)
 {
   uint16_t pp = 0;
 
@@ -850,13 +877,13 @@ uint16_t get_pid(uint8_t *pid)
 
 /* From dvb-mpegtools ctools.c, (C) 2000-2002 Marcus Metzler,
    license GPLv2+. */
-ssize_t save_read(int fd, void *buf, size_t count)
+static ssize_t save_read(int fd, void *buf, size_t count)
 {
 	ssize_t neof = 1;
 	size_t re = 0;
 	
 	while(neof >= 0 && re < count){
-		neof = read(fd, buf+re, count - re);
+		neof = read(fd, (uint8_t *) buf + re, count - re);
 		if (neof > 0) re += neof;
 		else break;
 	}
@@ -867,7 +894,7 @@ ssize_t save_read(int fd, void *buf, size_t count)
 
 #define TS_SIZE 188
 #define IN_SIZE TS_SIZE*10
-uint8_t * get_sub_packets(int fdin, uint16_t pids) {
+static uint8_t * get_sub_packets(int fdin, uint16_t pids) {
   uint8_t buffer[IN_SIZE];
   uint8_t mbuf[TS_SIZE];
   uint8_t * packet = NULL;
@@ -965,8 +992,1566 @@ uint8_t * get_sub_packets(int fdin, uint16_t pids) {
   return NULL;
 }
 
+/* New code --------------------------------------------------------------- */
+
+static const char *		my_name;
+
+static unsigned int		option_verbosity;
+
+/* Input file descriptor. */
+static int			fd;
+
+/* Transport stream buffer. */
+static uint8_t *		ts_buffer;
+static unsigned int		ts_buffer_capacity;
+
+/* Statistics. */
+static uint64_t			ts_n_bytes_in;
+static uint64_t			ts_n_subt_packets_in;
+
+/* Program ID of the subtitle elementary stream. */
+static unsigned int		ts_subt_pid;
+
+/* Next expected continuity_counter. Only the 4 least
+   significant bits are valid. -1 if unknown. */
+static int			ts_next_cc;
+
+/* Subtitle PES buffer. */
+static uint8_t *		pes_buffer;
+static unsigned int		pes_buffer_capacity;
+static unsigned int		pes_in;
+
+/* Expected end of PES packet in pes_buffer, 0 if none. */
+static unsigned int		pes_packet_end;
+
+#define log(verb, templ, args...) \
+	log_message (verb, /* print_errno */ FALSE, templ , ##args)
+
+#define log_errno(verb, templ, args...) \
+	log_message (verb, /* print_errno */ TRUE, templ , ##args)
+
+#define bug(templ, args...) \
+	log_message (1, /* print_errno */ FALSE, "BUG: " templ , ##args)
+
+static void
+log_message			(unsigned int		verbosity,
+				 bool			print_errno,
+				 const char *		templ,
+				 ...)
+  __attribute__ ((format (printf, 3, 4)));
+
+static void
+log_message			(unsigned int		verbosity,
+				 bool			print_errno,
+				 const char *		templ,
+				 ...)
+{
+	if (verbosity <= option_verbosity) {
+		va_list ap;
+
+		va_start (ap, templ);
+
+		fprintf (stderr, "%s: ", my_name);
+		vfprintf (stderr, templ, ap);
+
+		if (print_errno) {
+			fprintf (stderr, ": %s.\n",
+				 strerror (errno));
+		}
+
+		va_end (ap);
+	}
+}
+
+#define error_exit(templ, args...) \
+	error_message_exit (/* print_errno */ FALSE, templ , ##args)
+
+#define errno_exit(templ, args...) \
+	error_message_exit (/* print_errno */ TRUE, templ , ##args)
+
+static void
+error_message_exit		(bool			print_errno,
+				 const char *		templ,
+				 ...)
+  __attribute__ ((format (printf, 2, 3)));
+
+static void
+error_message_exit		(bool			print_errno,
+				 const char *		templ,
+				 ...)
+{
+	if (option_verbosity > 0) {
+		va_list ap;
+
+		va_start (ap, templ);
+
+		fprintf (stderr, "%s: ", my_name);
+		vfprintf (stderr, templ, ap);
+
+		if (print_errno) {
+			fprintf (stderr, ": %s.\n",
+				 strerror (errno));
+		}
+
+		va_end (ap);
+	}
+
+	exit (EXIT_FAILURE);
+}
+
+static void
+no_mem_exit			(void)
+{
+	error_exit ("Out of memory.");
+}
+
+void
+hex_dump                        (const uint8_t *        buf,
+                                 unsigned int           n_bytes)
+{
+        const unsigned int mod = 16;
+	unsigned int i;
+
+        for (i = 0; i < n_bytes; ++i) {
+                fprintf (stderr, "%02x ", buf[i]);
+                if ((mod - 1) == (i % mod)) {
+                        if (1) {
+				unsigned int j;
+
+                                fputc (' ', stderr);
+                                for (j = 0; j < mod; ++j) {
+                                        int c = buf[i - mod + 1 + j];
+                                        if ((c & 0x7F) < 0x20)
+                                                c = '.';
+                                        fputc (c, stderr);
+                                }
+                        }
+                        fputc ('\n', stderr);
+                }
+        }
+        if ((mod - 1) != (n_bytes % mod))
+                fputc ('\n', stderr);
+}
+
+#ifdef HAVE_POSIX_MEMALIGN
+
+/* posix_memalign() was introduced in POSIX 1003.1d and may not be
+   available on all systems. */
+static void *
+my_memalign			(size_t			boundary,
+				 size_t			size)
+{
+	void *p;
+	int err;
+
+	/* boundary must be a power of two. */
+	if (0 != (boundary & (boundary - 1)))
+		return malloc (size);
+
+	err = posix_memalign (&p, boundary, size);
+	if (0 == err)
+		return p;
+
+	errno = err;
+
+	return NULL;
+}
+
+#elif defined HAVE_MEMALIGN
+/* memalign() is a GNU extension. */
+#  define my_memalign memalign
+#else
+#  define my_memalign(boundary, size) malloc (size)
+#endif
+
+static __inline__ unsigned int
+get16be				(const uint8_t *	s)
+{
+	/* XXX Use movw & xchg if available. */
+
+	return s[0] * 256 + s[1];
+}
+
+static __inline__ unsigned int
+get32be				(const uint8_t *	s)
+{
+	/* XXX Use movl & bswap if available. */
+
+	return get16be (s + 0) * 65536 + get16be (s + 2);
+}
+
+struct bit_stream {
+	const uint8_t *			data;
+
+	unsigned int			pos;
+	unsigned int			end;
+
+	jmp_buf				exit;
+};
+
+static uint8_t
+get_bits			(struct bit_stream *	bs,
+				 unsigned int		n_bits)
+{
+	unsigned int pos;
+	unsigned int byte_pos;
+	unsigned int bit_pos;
+	unsigned int value;
+
+	pos = bs->pos;
+
+	if (unlikely (pos + n_bits > bs->end))
+		longjmp (bs->exit, 1);
+
+	bs->pos = pos + n_bits;
+
+	byte_pos = pos >> 3;
+	bit_pos = pos & 7;
+
+	/* assert (n_bits <= 8); */
+
+	if (bit_pos + n_bits > 8) {
+		value = get16be (bs->data + byte_pos) << bit_pos;
+	} else {
+		value = bs->data[byte_pos] << (bit_pos + 8);
+	}
+
+	return (value & 0xFFFF) >> (16 - n_bits);
+}
+
+static __inline__ void
+realign_bit_stream		(struct bit_stream *	bs,
+				 unsigned int		n_bits)
+{
+	/* assert (is_power_of_two (n_bits)); */
+
+	bs->pos = (bs->pos + (n_bits - 1)) & ~(n_bits - 1);
+}
+
+static __inline__ bool
+init_bit_stream			(struct bit_stream *	bs,
+				 const uint8_t *	s,
+				 const uint8_t *	e)
+{
+	bs->data = s;
+	bs->pos = 0;
+	bs->end = (e - s) * 8;
+
+	return (0 == setjmp (bs->exit));
+}
+
+#define FIELD_DUMP 1
+
+#define begin()								\
+do {									\
+	if (FIELD_DUMP)							\
+		fprintf (stderr, "%s:\n", __FUNCTION__);		\
+} while (0)
+#define uimsbf bslbf
+#define bslbf(field, val)						\
+do {									\
+	field = (val);							\
+	if (FIELD_DUMP)							\
+		fprintf (stderr, " " #field " = %u = 0x%x\n",		\
+			 (unsigned int) field, (unsigned int) field);	\
+} while (0)
+#define bslbf_1(field, val)						\
+do {									\
+	field = (val);							\
+	if (FIELD_DUMP)							\
+		fprintf (stderr, " " #field " = %u\n",			\
+			 (unsigned int) field & 1);			\
+} while (0)
+#define bslbf_enum(field, val, names)					\
+do {									\
+	field = (val);							\
+	if (FIELD_DUMP)							\
+		fprintf (stderr, " " #field " = %u (%s)\n",		\
+			 (unsigned int) field, names [field]);		\
+} while (0)
+
+/* EN 300 743 Section 7.2.4.2.
+   See also Section 11, Table 14, 15, 16. */
+
+static void
+eight_bit_pixel_code_string	(struct bit_stream *	bs,
+				 int r)
+{
+	r = r; /* unused */
+
+    in_scanline=1;
+
+	begin ();
+
+	while (bs->pos < bs->end) {
+		unsigned int run_length;
+		unsigned int pixel_code;
+		unsigned int switch_1;
+		unsigned int n;
+
+		run_length = 1;
+		bslbf (pixel_code, get_bits (bs, 8));
+
+		if (0 == pixel_code) {
+			n = get_bits (bs, 8);
+			bslbf_1 (switch_1, n >> 7);
+			uimsbf (run_length, switch_1 & 127);
+
+			if ((int8_t) n >= 0) {
+				/* 00000000 0LLLLLLL */
+				if (0 == run_length)
+					return;
+				run_length += 1;
+			} else {
+				/* 00000000 1LLLLLLL CCCCCCCC */
+				run_length += 3;
+				bslbf (pixel_code, get_bits (bs, 8));
+			}
+		}
+
+		/* plot(r,run_length,pixel_code); */
+	}
+}
+
+static void
+four_bit_pixel_code_string	(struct bit_stream *	bs,
+				 int r)
+{
+	r = r; /* unused */
+
+    in_scanline=1;
+
+	begin ();
+
+	while (bs->pos < bs->end) {
+		unsigned int run_length;
+		unsigned int pixel_code;
+
+		run_length = 1;
+		bslbf (pixel_code, get_bits (bs, 4));
+
+		if (0 == pixel_code) {
+			uimsbf (run_length, get_bits (bs, 4));
+
+			switch (run_length) {
+			case 0: /* 0000 0000 */
+				return;
+
+			case 1 ... 7: /* 0000 0LLL */
+				run_length += 2;
+				break;
+
+			case 8 ... 11: /* 0000 10LL CCCC */
+				run_length += 4 - 8;
+				bslbf (pixel_code, get_bits (bs, 4));
+				break;
+
+			case 12: /* 0000 1100 */
+			case 13: /* 0000 1101 */
+				run_length += 1 - 12;
+				break;
+
+			case 14: /* 0000 1110 LLLL CCCC */
+				pixel_code = get_bits (bs, 8);
+				uimsbf (run_length, pixel_code >> 4);
+				run_length += 9;
+				bslbf (pixel_code, pixel_code & 15);
+				break;
+
+			case 15: /* 0000 1111 LLLL LLLL CCCC */
+				uimsbf (run_length, get_bits (bs, 8));
+				run_length += 25;
+				bslbf (pixel_code, get_bits (bs, 4));
+				break;
+			}
+		}
+
+		/* plot(r,run_length,pixel_code); */
+	}
+}
+
+static void
+two_bit_pixel_code_string	(struct bit_stream *	bs,
+				 int r)
+{
+	r = r; /* unused */
+
+    in_scanline=1;
+
+	begin ();
+
+	while (bs->pos < bs->end) {
+		unsigned int run_length;
+		unsigned int pixel_code;
+
+		run_length = 1;
+		bslbf (pixel_code, get_bits (bs, 2));
+
+		if (0 == pixel_code) {
+			unsigned int switch_3;
+
+			uimsbf (run_length, get_bits (bs, 2));
+			switch (run_length) {
+			case 2 ... 3: /* 00 1L LL CC */
+				pixel_code = run_length * 16
+					+ get_bits (bs, 4);
+				uimsbf (run_length, (pixel_code >> 2) - 8);
+				run_length += 3;
+				bslbf (pixel_code, pixel_code & 3);
+				break;
+
+			case 1: /* 00 01 */
+				break;
+
+			case 0: /* 00 00 ... */
+				bslbf (switch_3, get_bits (bs, 2));
+				switch (switch_3) {
+				case 0:	/* 00 00 00 */
+					return;
+
+				case 1:	/* 00 00 01 */
+					run_length = 2;
+					break;
+
+				case 2:	/* 00 00 10 LL LL CC */
+					pixel_code = get_bits (bs, 6);
+					uimsbf (run_length, pixel_code >> 2);
+					run_length += 12;
+					bslbf (pixel_code, pixel_code & 3);
+					break;
+
+				case 3:	/* 00 00 11 LL LL LL LL CC */
+					uimsbf (run_length, get_bits (bs, 8));
+					run_length += 29;
+					bslbf (pixel_code, get_bits (bs, 2));
+					break;
+				}
+
+				break;
+			}
+		}
+
+		/* plot(r,run_length,pixel_code); */
+	}
+}
+
+/* EN 300 743 Section 7.2.4.1. */
+
+static bool
+pixel_data_sub_block_loop	(const uint8_t *	s,
+				 const uint8_t *	end,
+				 int r, int o, int ofs)
+{
+	struct bit_stream bs;
+
+  x=(regions[r].object_pos[o])>>16;
+  y=((regions[r].object_pos[o])&0xffff)+ofs;
+//  fprintf(stderr,"process_pixel_data_sub_block: r=%d, x=%d, y=%d\n",r,x,y);
+//  printf("process_pixel_data: %02x %02x %02x %02x %02x %02x\n",s[0],s[1],s[2],s[3],s[4],s[5]);
+
+	if (!init_bit_stream (&bs, s, end))
+		return FALSE;
+
+	while (bs.pos < bs.end) {
+		unsigned int data_type;
+
+		begin ();
+
+		bslbf (data_type, get_bits (&bs, 8));
+		switch (data_type) {
+		case 0x10:
+			if (0) {
+				/* Not implemented yet. */
+				two_bit_pixel_code_string (&bs,r);
+				realign_bit_stream (&bs, 8);
+			}
+			break;
+
+		case 0x11:
+			four_bit_pixel_code_string (&bs,r);
+			realign_bit_stream (&bs, 8);
+			break;
+
+		case 0x12:
+			if (0) {
+				/* Not implemented yet. */
+				eight_bit_pixel_code_string (&bs,r);
+			}
+			break;
+
+		case 0xf0: /* end of object line code */
+                 in_scanline=0;
+                 x=(regions[r].object_pos[o])>>16;
+                 y+=2;
+		 ++s;
+                 break;
+
+		case 0x20: /* 2 to 4-bit map-table */
+		case 0x21: /* 2 to 8-bit map-table */
+		case 0x22: /* 4 to 8-bit map-table */
+
+		default: fprintf(stderr,"unimplemented data_type %02x in pixel_data_sub_block\n",data_type);
+			return TRUE;
+		}
+	}
+
+	return (bs.pos == bs.end);
+}
+
+/* EN 300 743 Section 7.2.4. */
+
+static bool
+object_data_segment		(const uint8_t *	s,
+				 const uint8_t *	end)
+{
+	static const char *object_coding_method_names [4] = {
+		"coding of pixels",
+		"coded as a string of characters",
+		"reserved",
+		"reserved"
+	};
+	const uint8_t *old_s;
+	unsigned int object_id;
+	unsigned int object_version_number;
+	unsigned int object_coding_method;
+	unsigned int non_modifying_colour_flag;
+	unsigned int top_field_data_block_length;
+	unsigned int bottom_field_data_block_length;
+	unsigned int total_length;
+  int r;
+
+	begin ();
+
+	if (s + 8 >= end)
+		return FALSE;
+
+	bslbf (object_id, get16be (s + 6));
+	uimsbf (object_version_number, s[8] >> 4);
+	bslbf_enum (object_coding_method, (s[8] >> 2) & 3,
+		    object_coding_method_names);
+	bslbf_1 (non_modifying_colour_flag, s[8] & 2);
+	/* reserved [1] */
+
+  curr_obj=object_id;
+
+	switch (object_coding_method) {
+	case 0: /* coding of pixels */
+		if (s + 12 >= end)
+			return FALSE;
+
+		uimsbf (top_field_data_block_length, get16be (s + 9));
+		uimsbf (bottom_field_data_block_length, get16be (s + 11));
+
+		total_length = 13 + top_field_data_block_length
+			+ bottom_field_data_block_length;
+		/* 8_stuff_bits for 16 bit alignment. */
+		total_length += total_length & 1;
+
+		if (s + total_length != end)
+			return FALSE;
+
+		old_s = s + 13;
+
+  for (r=0;r<MAX_REGIONS;r++) {
+    // If this object is in this region...
+   if (regions[r].win >= 0) {
+    //fprintf(stderr,"testing region %d, object_pos=%08x\n",r,regions[r].object_pos[object_id]);
+    if ((int) regions[r].object_pos[object_id]!=-1) {
+      //fprintf(stderr,"rendering object %d into region %d\n",object_id,r);
+      s = old_s;
+      if (!pixel_data_sub_block_loop (s, s + top_field_data_block_length,
+				      r,object_id,0))
+	      return FALSE;
+      s += top_field_data_block_length;
+      if (!pixel_data_sub_block_loop (s, s + bottom_field_data_block_length,
+				      r,object_id,1))
+	      return FALSE;
+    }
+   }
+  }
+		/* FIXME: "if a segment carries no data for the bottom field, i.e. the bottom_field_data_block_length contains the value '0x0000', then the pixel-data_sub-block for the top field shall apply for the bottom field also." */
+
+		break;
+
+	case 1: /* coded as a string of characters */
+		fprintf (stderr, "Whoops! Coding as characters "
+			 "not supported.\n");
+		break;
+
+	case 2 ... 3: /* reserved */
+		break;
+	}
+
+	return TRUE;
+}
+
+/* EN 300 743 Section 7.2.3. */
+
+static bool
+CLUT_definition_segment		(const uint8_t *	s,
+				 const uint8_t *	end)
+{
+	unsigned int CLUT_id;
+	unsigned int CLUT_version_number;
+
+	begin ();
+
+	if (s + 7 >= end)
+		return FALSE;
+
+	bslbf (CLUT_id, s[6]);
+	uimsbf (CLUT_version_number, s[7] >> 4);
+	/* reserved [4] */
+
+	while (s + 11 < end) {
+		unsigned int CLUT_entry_id;
+		unsigned int two_bit_entry_CLUT_flag;
+		unsigned int four_bit_entry_CLUT_flag;
+		unsigned int eight_bit_entry_CLUT_flag;
+		unsigned int full_range_flag;
+		unsigned int Y_value;
+		unsigned int Cr_value;
+		unsigned int Cb_value;
+		unsigned int T_value;
+  int r;
+
+		bslbf (CLUT_entry_id, s[8]);
+		bslbf_1 (two_bit_entry_CLUT_flag, s[9] & 0x80);
+		bslbf_1 (four_bit_entry_CLUT_flag, s[9] & 0x40);
+		bslbf_1 (eight_bit_entry_CLUT_flag, s[9] & 0x20);
+		/* reserved [4] */
+		bslbf_1 (full_range_flag, s[9] & 1);
+
+		if (full_range_flag) {
+			if (s + 13 >= end)
+				return FALSE;
+
+			bslbf (Y_value, s[10]);
+			bslbf (Cr_value, s[11]);
+			bslbf (Cb_value, s[12]);
+			bslbf (T_value, s[13]);
+
+			s += 6;
+		} else {
+			unsigned int n;
+
+			fprintf (stderr, "Whoops! CLUT reduced range "
+				 "not supported.\n");
+			return FALSE;
+
+			n = get16be (s + 10);
+
+			/* Scale? */
+			bslbf (Y_value, n >> 10);
+			bslbf (Cr_value, (n >> 6) & 15);
+			bslbf (Cb_value, (n >> 2) & 15);
+			bslbf (T_value, n & 3);
+
+			s += 4;
+		}
+
+    // Apply CLUT to every region it applies to.
+    for (r=0;r<MAX_REGIONS;r++) {
+      if (regions[r].win >= 0) {
+        if ((int) regions[r].CLUT_id == (int) CLUT_id) {
+	  /* XXX 255-T? */
+          set_palette(r,CLUT_entry_id,Y_value,Cr_value,Cb_value,255-T_value);
+        }
+      }
+    }
+
+	}
+
+	return (s + 8 == end);
+}
+
+/* EN 300 743 Section 7.2.2. */
+
+static bool
+region_composition_segment	(const uint8_t *	s,
+				 const uint8_t *	end)
+{
+  int o;
+
+	static const char *region_level_of_compatibility_names [8] = {
+		"reserved",
+		"2 bit/entry CLUT required",
+		"4 bit/entry CLUT required",
+		"8 bit/entry CLUT required",
+		"reserved", "reserved",
+		"reserved", "reserved"
+	};
+	unsigned int region_id;
+	unsigned int region_version_number;
+	unsigned int region_fill_flag;
+	unsigned int region_width;
+	unsigned int region_height;
+	unsigned int region_level_of_compatibility;
+	unsigned int region_depth;
+	unsigned int CLUT_id;
+	unsigned int region_8_bit_pixel_code;
+	unsigned int region_4_bit_pixel_code;
+	unsigned int region_2_bit_pixel_code;
+
+	begin ();
+
+	uimsbf (region_id, s[6]);
+
+	if (region_id >= MAX_REGIONS) {
+		fprintf (stderr, "Whoops! Too many regions for us.\n");
+		return FALSE;
+	}
+
+	uimsbf (region_version_number, s[7] >> 4);
+	bslbf_1 (region_fill_flag, s[7] & 8);
+	/* reserved [3] */
+	uimsbf (region_width, get16be (s + 8));
+	uimsbf (region_height, get16be (s + 10));
+
+	/* EN 300 743 Section 7.2.2. */
+	if ((region_width - 1) > 719
+	    || (region_height - 1) > 575)
+		return FALSE;
+
+	bslbf_enum (region_level_of_compatibility, s[12] >> 5,
+		    region_level_of_compatibility_names);
+
+	region_depth = (s[12] >> 2) & 7;
+	if (FIELD_DUMP) {
+		if (region_depth >= 1 && region_depth <= 3) {
+			fprintf (stderr, " region_depth = %u (%u bits)\n",
+				 region_depth, 1 << region_depth);
+		} else {
+			fprintf (stderr, " region_depth = %u (reserved)\n",
+				 region_depth);
+		}
+	}
+
+	if (0xF1 & ((1 << region_level_of_compatibility) |
+		    (1 << region_depth)))
+		return FALSE;
+
+	/* reserved [2] */
+	bslbf (CLUT_id, s[13]);
+	bslbf (region_8_bit_pixel_code, s[14]);
+	bslbf (region_4_bit_pixel_code, s[15] >> 4);
+	bslbf (region_2_bit_pixel_code, (s[15] >> 2) & 3);
+	/* reserved [2] */
+
+  if (regions[region_id].win < 0) {
+    // If the region doesn't exist, then open it.
+    create_region(region_id,region_width,region_height,region_depth);
+    regions[region_id].CLUT_id=CLUT_id;
+  }
+
+  if (region_fill_flag) {
+    memset(regions[region_id].img,region_4_bit_pixel_code,sizeof(regions[region_id].img));
+  }
+
+  for (o=0;o<(int) N_ELEMENTS (regions[0].object_pos);o++) {
+    regions[region_id].object_pos[o]=-1;
+  }
+
+	while (s + 21 < end) {
+		static const char *object_type_names [4] = {
+			"basic_object, bitmap",
+			"basic_object, character",
+			"composite_object, string of characters",
+			"reserved"
+		};
+		unsigned int object_id;
+		unsigned int object_type;
+		unsigned int object_horizontal_position;
+		unsigned int object_vertical_position;
+		unsigned int foreground_pixel_code;
+		unsigned int background_pixel_code;
+		unsigned int n;
+
+		bslbf (object_id, get16be (s + 16));
+		n = get16be (s + 18);
+		bslbf_enum (object_type, n >> 14, object_type_names);
+		uimsbf (object_horizontal_position, n & 0xFFF);
+		/* reserved [4] */
+		n = get16be (s + 20);
+		uimsbf (object_vertical_position, n & 0xFFF);
+
+		switch (object_type) {
+		case 0: /* bitmap */
+    regions[region_id].object_pos[object_id]=
+			(object_horizontal_position<<16)|
+			object_vertical_position;
+			s += 6;
+			break;
+
+		case 1: /* character */
+		case 2: /* character string */
+			if (s + 23 >= end)
+				return FALSE;
+			bslbf (foreground_pixel_code, s[22]);
+			bslbf (background_pixel_code, s[23]);
+			s += 8;
+			break;
+
+		case 3: /* reserved */
+			s += 6;
+			break;
+		}
+	}
+
+	return (s + 16 == end);
+}
+
+/* EN 300 743 Section 7.2.1. */
+
+static bool
+page_composition_segment	(bool *			empty_sub,
+				 const uint8_t *	s,
+				 const uint8_t *	end)
+{
+	static const char *page_state_names [4] = {
+		"normal case",
+		"acquisition point",
+		"mode change",
+		"reserved"
+	};
+	unsigned int page_time_out;
+	unsigned int page_version_number;
+	unsigned int page_state;
+
+	*empty_sub = FALSE;
+
+	begin ();
+
+	if (s + 7 >= end)
+		return FALSE;
+
+	uimsbf (page_time_out, s[6]);
+	uimsbf (page_version_number, s[7] >> 4);
+	bslbf_enum (page_state, (s[7] >> 2) & 3, page_state_names);
+	/* reserved [2] */
+
+	if (page_state >= 3)
+		return FALSE;
+
+  if ((acquired==0) && (page_state!=2) && (page_state!=1)) {
+    //fprintf(stderr,"waiting for mode_change\n");
+	  *empty_sub = TRUE;
+	  return TRUE;
+  } else {
+    //fprintf(stderr,"acquired=1\n");
+    acquired=1;
+  }
+
+  // IF the packet contains no data (i.e. is  used to clear a
+  // previous subtitle), do nothing
+	if (s + 8 == end) {
+		//fprintf(stderr,"Empty sub, return\n");
+		*empty_sub = TRUE;
+		return TRUE;
+	}
+
+	while (s + 13 < end) {
+		unsigned int region_id;
+		unsigned int region_horizontal_address;
+		unsigned int region_vertical_address;
+
+		bslbf (region_id, s[8]);
+		/* reserved [8] */
+		uimsbf (region_horizontal_address, get16be (s + 10));
+		uimsbf (region_vertical_address, get16be (s + 12));
+
+		if (region_id >= MAX_REGIONS) {
+			fprintf (stderr, "Whoops! Too many regions for us.\n");
+			return FALSE;
+		}
+
+    page.regions[region_id].x=region_horizontal_address;
+    page.regions[region_id].y=region_vertical_address;
+    page.regions[region_id].is_visible=1;
+ 
+    //fprintf(stderr,"page_region id=%02x x=%d y=%d\n",region_id,region_x,region_y);
+
+		s += 6;
+	}
+
+	return (s + 8 == end);
+}
+
+/* EN 300 743 Section 7.2. */
+
+static bool
+subtitling_segment_loop	        (bool *			empty_sub,
+				 const uint8_t *	s,
+				 const uint8_t *	end)
+{
+	for (;;) {
+		unsigned int sync_byte;
+
+		begin ();
+
+		bslbf (sync_byte, s[0]);
+		if (0x0F == sync_byte) {
+			unsigned int segment_type;
+			unsigned int page_id;
+			unsigned int segment_length;
+			const uint8_t *segment_end;
+			bool success;
+
+			/* sync_byte [8], segment_type [8],
+			   page_id [16], segment_length [16],
+			   segment_data_field [segment_length * 8],
+			   end_of_PES_data_field_marker [8]. */
+			if (s + 6 >= end)
+				return FALSE;
+
+			bslbf (segment_type, s[1]);
+			bslbf (page_id, get16be (s + 2));
+			uimsbf (segment_length, get16be (s + 4));
+
+			segment_end = s + 6 + segment_length;
+			if (segment_end >= end)
+				return FALSE;
+
+			switch (segment_type) {
+			case 0x10:
+				success = page_composition_segment
+					(empty_sub, s, segment_end); 
+				break;
+
+			case 0x11:
+				success = region_composition_segment
+					(s, segment_end);
+				break;
+
+			case 0x12:
+				success = CLUT_definition_segment
+					(s, segment_end);
+				break;
+
+			case 0x13:
+				success = object_data_segment
+					(s, segment_end);
+				break;
+
+			default: /* 0x40 ... 0x7F Reserved
+				    0x80 End of display segment
+				    0x81 ... 0xEF Private data
+				    0xFF stuffing */
+				if (1) {
+					hex_dump (s, segment_end - s);
+				}
+				success = TRUE;
+				break;
+			}
+
+			if (!success)
+				return FALSE;
+
+			s = segment_end;
+		} else if (0xFF == sync_byte) {
+			/* end_of_PES_data_field_marker. */
+			break;
+		} else {
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+/* packet_start_code_prefix [24], stream_id [8],
+   PES_packet_length [16]. */
+static const unsigned int	MAX_PES_PACKET_SIZE = 6 + 65535;
+
+static const unsigned int	PTS_BITS = 33;
+static const uint64_t		PTS_MASK = (((int64_t) 1) << 33) - 1;
+
+static bool
+decode_time_stamp		(int64_t *		ts,
+				 const uint8_t *	s,
+				 unsigned int		marker)
+{
+	/* ISO 13818-1 Section 2.4.3.6 */
+
+	if (0 != ((marker ^ s[0]) & 0xF1))
+		return FALSE;
+
+	if (NULL != ts) {
+		unsigned int a, b, c;
+
+		/* marker [4], TS [32..30], marker_bit,
+		   TS [29..15], marker_bit,
+		   TS [14..0], marker_bit */
+		a = (s[0] >> 1) & 0x7;
+		b = get16be (s + 1) >> 1;
+		c = get16be (s + 3) >> 1;
+
+		*ts = ((int64_t) a << 30) + (b << 15) + (c << 0);
+	}
+
+	return TRUE;
+}
+
+static void
+dump_pes_packet_header		(FILE *			fp,
+				 const uint8_t *	pes_packet,
+				 const uint8_t *	end)
+{
+	unsigned int packet_start_code_prefix;
+	unsigned int stream_id;
+	unsigned int PES_packet_length;
+	unsigned int PES_scrambling_control;
+	unsigned int PES_priority;
+	unsigned int data_alignment_indicator;
+	unsigned int copyright;
+	unsigned int original_or_copy;
+	unsigned int PTS_DTS_flags;
+	unsigned int ESCR_flag;
+	unsigned int ES_rate_flag;
+	unsigned int DSM_trick_mode_flag;
+	unsigned int additional_copy_info_flag;
+	unsigned int PES_CRC_flag;
+	unsigned int PES_extension_flag;
+	unsigned int PES_header_data_length;
+	int64_t ts;
+
+	/* ISO 13818-1 Section 2.4.3.6. */
+
+	fputs ("PES packet", fp);
+
+	if (pes_packet + 9 >= end)
+		goto truncated;
+
+	packet_start_code_prefix  = ((pes_packet[0] << 16) |
+				     (pes_packet[1] << 8) |
+				     (pes_packet[2] << 0));
+	stream_id		  = pes_packet[3];
+	PES_packet_length	  = get16be (pes_packet + 4);
+	/* '10' */
+	PES_scrambling_control	  = (pes_packet[6] & 0x30) >> 4;
+	PES_priority		  = pes_packet[6] & 0x08;
+	data_alignment_indicator  = pes_packet[6] & 0x04;
+	copyright		  = pes_packet[6] & 0x02;
+	original_or_copy	  = pes_packet[6] & 0x01;
+	PTS_DTS_flags		  = (pes_packet[7] & 0xC0) >> 6;
+	ESCR_flag		  = pes_packet[7] & 0x20;
+	ES_rate_flag		  = pes_packet[7] & 0x10;
+	DSM_trick_mode_flag	  = pes_packet[7] & 0x08;
+	additional_copy_info_flag = pes_packet[7] & 0x04;
+	PES_CRC_flag		  = pes_packet[7] & 0x02;
+	PES_extension_flag	  = pes_packet[7] & 0x01;
+	PES_header_data_length	  = pes_packet[8];
+
+	fprintf (fp, " %06X%02X %5u "
+		 "%u%u%u%c%c%c%c%u%c%c%c%c%c%c %u",
+		 packet_start_code_prefix, stream_id,
+		 PES_packet_length,
+		 !!(pes_packet[6] & 0x80),
+		 !!(pes_packet[6] & 0x40),
+		 PES_scrambling_control,
+		 PES_priority ? 'P' : '-',
+		 data_alignment_indicator ? 'A' : '-',
+		 copyright ? 'C' : '-',
+		 original_or_copy ? 'O' : 'C',
+		 PTS_DTS_flags,
+		 ESCR_flag ? 'E' : '-',
+		 ES_rate_flag ? 'E' : '-',
+		 DSM_trick_mode_flag ? 'D' : '-',
+		 additional_copy_info_flag ? 'A' : '-',
+		 PES_CRC_flag ? 'C' : '-',
+		 PES_extension_flag ? 'X' : '-',
+		 PES_header_data_length);
+
+	switch (PTS_DTS_flags) {
+	case 0: /* no timestamps */
+	case 1: /* forbidden */
+		fputc ('\n', fp);
+		break;
+
+	case 2: /* PTS only */
+		if (pes_packet + 14 >= end)
+			goto truncated;
+		if (decode_time_stamp (&ts, &pes_packet[9], 0x21))
+			fprintf (fp, " PTS=%" PRId64 "\n", ts);
+		else
+			fputs (" bad PTS\n", fp);
+		break;
+
+	case 3: /* PTS and DTS */
+		if (pes_packet + 19 >= end)
+			goto truncated;
+		if (decode_time_stamp (&ts, &pes_packet[9], 0x31))
+			fprintf (fp, " PTS=%" PRId64, ts);
+		else
+			fputs (" bad PTS", fp);
+		if (decode_time_stamp (&ts, &pes_packet[14], 0x11))
+			fprintf (fp, " DTS=%" PRId64 "\n", ts);
+		else
+			fputs (" bad DTS\n", fp);
+		break;
+	}
+
+	return;
+
+ truncated:
+	fputs (" truncated\n", fp);
+}
+
+static bool
+pes_subt_packet			(const uint8_t *	pes_packet,
+				 const uint8_t *	end)
+{
+  double PTS_secs;
+  int r;
+
+	const uint8_t *s;
+	unsigned int n;
+	unsigned int PES_header_data_length;
+	int64_t pts;
+	unsigned int data_identifier;
+	unsigned int subtitle_stream_id;
+	bool empty_sub;
+
+	if (0) {
+		dump_pes_packet_header (stderr, pes_packet, end);
+	}
+
+	/* Minimum PES packet header size is 9 bytes, plus at least 5
+	   bytes for the mandatory PTS (EN 300743 Section 6), plus at
+	   least 3 bytes for the PES_data_field (EN 300743 Section
+	   7.1). */
+	if (pes_packet + 8 + 5 + 3 > end)
+		return FALSE;
+
+	n = get16be (pes_packet + 6);
+
+	/* '10', PES_scrambling_control == '00' (not scrambled),
+	   data_alignment_indicator == 1 (EN 300743 Section 6),
+	   PTS_DTS_flags == '10' (EN 300743 Section 6). */
+	if (0x8480 != (n & 0xF4C0))
+		return FALSE;
+
+	PES_header_data_length = pes_packet[8];
+	if (PES_header_data_length < 5
+	    || pes_packet + PES_header_data_length + 12 > end)
+		return FALSE;
+
+	if (!decode_time_stamp (&pts, &pes_packet[9], 0x21))
+		return FALSE;
+
+	s = pes_packet + PES_header_data_length + 9;
+
+	/* EN 300743 Section 7.1: PES_data_field. */
+
+	data_identifier = s[0];
+	if (0x20 != data_identifier)
+		return FALSE;
+
+	subtitle_stream_id = s[1];
+	if (0x00 != subtitle_stream_id) {
+		/* Not a DVB subtitling stream. */
+		return TRUE;
+	}
+
+  init_data();
+  gettimeofday(&start_tv,NULL);
+
+  PTS_secs=(pts/90000.0);
+
+	empty_sub = FALSE;
+
+	if (!subtitling_segment_loop (&empty_sub, s + 2, end)) {
+		return FALSE;
+	}
+
+  // fprintf(stderr,"End of PES packet - time=%.2f\n",PTS_secs);
+  if (empty_sub) {
+    int i;
+    if (textsub.start_pts < 0)
+      return TRUE;
+    textsub.end_pts = pts/90;
+    output_textsub(outfile);
+    textsub.end_pts = textsub.start_pts = -1;
+    for(i=0; i<MAX_REGIONS; i++)
+      textsub.regions[i][0] = '\0';
+  }
+  else if (textsub.start_pts >= 0) {
+    int i;
+    textsub.end_pts = pts/90;
+    output_textsub(outfile);
+    textsub.end_pts = textsub.start_pts = -1;
+    for(i=0; i<MAX_REGIONS; i++)
+      textsub.regions[i][0] = '\0';
+  }
+  else {
+    int n;
+
+    textsub.start_pts = pts/90;
+    n=0;
+    for (r=0;r<MAX_REGIONS;r++) {
+      if (regions[r].win >= 0) {
+        if (page.regions[r].is_visible) {
+          //int xx,yy;
+          //fprintf(stderr,"displaying region %d at %d,%d width=%d,height=%d PTS = %g\n",
+        //r,page.regions[r].x,page.regions[r].y,regions[r].width,regions[r].height, PTS_secs);
+          /*for(yy=0;yy<regions[r].height;yy++) {
+            for(xx=0;xx<regions[r].width;xx++) {
+              unsigned char pix = regions[r].img[+yy*regions[r].width+xx];
+              fprintf(stderr,"%s",pix==0?"  ":pix==5?"..":pix==6?"oo":pix==7?"xx":pix==8?"OO":"XX");
+            }
+            fprintf(stderr,"\n");
+          }*/
+          run_ocr(r, pts);
+          n++;
+        }
+        /* else {
+          //fprintf(stderr,"hiding region %d\n",r);
+        }*/
+      }
+    }
+    /*if (n > 0) {
+      fprintf(stderr,"%d regions visible - showing\n",n);
+    } else {
+      fprintf(stderr,"%d regions visible - hiding\n",n);
+    }*/
+  }
+//    if (acquired) { sleep(1); }
+
+	return TRUE;
+}
+
+static void
+ts_subt_reset			(void)
+{
+	pes_in = 0;
+	pes_packet_end = 0;
+}
+
+static bool
+ts_subt_packet			(const uint8_t		ts_packet[188],
+				 unsigned int		header_length)
+{
+	unsigned int payload_unit_start_indicator;
+	unsigned int payload_length;
+	unsigned int PES_packet_length;
+
+	payload_unit_start_indicator = ts_packet[1] & 0x40;
+
+	/* ISO 13818-1 Section 2.4.3.3. */
+	if (payload_unit_start_indicator) {
+		if (unlikely (pes_in > 0)) {
+			/* TS packet headers and PES_packet_length
+			   disagree about the PES packet size. */
+			ts_subt_reset ();
+		}
+	} else if (unlikely (0 == pes_in)) {
+		/* Discard remainder of previous PES packet. */
+		return TRUE;
+	}
+
+	payload_length = 188 - header_length;
+
+	memcpy (pes_buffer + pes_in,
+		ts_packet + header_length, payload_length);
+
+	pes_in += payload_length;
+
+	if (0 == pes_packet_end) {
+		if (unlikely (pes_in < 6))
+			return TRUE; /* need more data */
+
+		/* EN 300743 Section 6. */
+		if (0x000001BD != get32be (pes_buffer + 0)) {
+			ts_subt_reset ();
+			return FALSE;
+		}
+
+		PES_packet_length = get16be (pes_buffer + 4);
+
+		pes_packet_end = 6 + PES_packet_length;
+	}
+
+	if (pes_in < pes_packet_end)
+		return TRUE; /* need more data */
+
+	if (unlikely (pes_in > pes_packet_end)) {
+		/* TS packet headers and PES_packet_length
+		   disagree about the PES packet size. */
+		ts_subt_reset ();
+		return FALSE;
+	}
+
+	pes_subt_packet (pes_buffer, pes_buffer + pes_packet_end);
+
+	ts_subt_reset ();
+
+	return TRUE;
+}
+
+static const unsigned int	TS_PACKET_SIZE = 188;
+
+static void
+dump_ts_packet_header		(FILE *			fp,
+				 const uint8_t		ts_packet[188])
+{
+	unsigned int sync_byte;
+	unsigned int transport_error_indicator;
+	unsigned int payload_unit_start_indicator;
+	unsigned int transport_priority;
+	unsigned int PID;
+	unsigned int transport_scrambling_control;
+	unsigned int adaptation_field_control;
+	unsigned int continuity_counter;
+	unsigned int header_length;
+
+	sync_byte			= ts_packet[0];
+	transport_error_indicator	= ts_packet[1] & 0x80;
+	payload_unit_start_indicator	= ts_packet[1] & 0x40;
+	transport_priority		= ts_packet[1] & 0x20;
+	PID				= get16be (ts_packet + 1) & 0x1FFF;
+	transport_scrambling_control	= (ts_packet[3] & 0xC0) >> 6;
+	adaptation_field_control	= (ts_packet[3] & 0x30) >> 4;
+	continuity_counter		= ts_packet[3] & 0x0F;
+
+	if (adaptation_field_control >= 2) {
+		unsigned int adaptation_field_length;
+
+		adaptation_field_length = ts_packet[4];
+		header_length = 5 + adaptation_field_length;
+	} else {
+		header_length = 4;
+	}
+
+	fprintf (fp,
+		 "TS packet %02x %c%c%c 0x%04x=%u %u%u%x %u\n",
+		 sync_byte,
+		 transport_error_indicator ? 'E' : '-',
+		 payload_unit_start_indicator ? 'S' : '-',
+		 transport_priority ? 'P' : '-',
+		 PID, PID,
+		 transport_scrambling_control,
+		 adaptation_field_control,
+		 continuity_counter,
+		 header_length);
+}
+
+static bool
+ts_filter			(const uint8_t		ts_packet[188])
+{
+	unsigned int transport_error_indicator;
+	unsigned int pid;
+	unsigned int adaptation_field_control;
+	unsigned int header_length;
+
+	if (0) dump_ts_packet_header (stderr, ts_packet);
+
+	transport_error_indicator = ts_packet[1] & 0x80;
+	if (unlikely (transport_error_indicator)) {
+		log (2, "TS transmission error\n");
+		ts_subt_reset ();
+		ts_next_cc = -1;
+		return TRUE;
+	}
+
+	pid = get16be (ts_packet + 1) & 0x1FFF;
+
+	if (ts_subt_pid != pid)
+		return TRUE;
+
+	++ts_n_subt_packets_in;
+
+	if (0) dump_ts_packet_header (stderr, ts_packet);
+
+	adaptation_field_control = (ts_packet[3] & 0x30) >> 4;
+
+	if (likely (1 == adaptation_field_control)) {
+		header_length = 4;
+	} else if (3 == adaptation_field_control) {
+		unsigned int adaptation_field_length;
+
+		adaptation_field_length = ts_packet[4];
+
+		/* Zero length is used for stuffing. */
+		if (adaptation_field_length > 0) {
+			unsigned int discontinuity_indicator;
+
+			/* ISO 13818-1 Section 2.4.3.5. Also the code
+			   below assumes header_length <=
+			   packet_size. */
+			if (adaptation_field_length > 182) {
+				log (2, "TS AFL error\n");
+				ts_subt_reset ();
+				ts_next_cc = -1;
+				return FALSE;
+			}
+
+			/* ISO 13818-1 Section 2.4.3.5. */
+			discontinuity_indicator = ts_packet[5] & 0x80;
+			if (discontinuity_indicator) {
+				log (2, "TS discontinuity\n");
+				ts_subt_reset ();
+			}
+		}
+
+		header_length = 5 + adaptation_field_length;
+	} else if (0 == adaptation_field_control) {
+		log (2, "TS AFC error\n");
+		ts_subt_reset ();
+		ts_next_cc = -1;
+		return FALSE;
+	} else {
+		/* 2 == adaptation_field_control: no payload. */
+		/* ISO 13818-1 Section 2.4.3.3:
+		   continuity_counter shall not increment. */
+		return TRUE;
+	}
+
+	if (unlikely (0 != ((ts_next_cc ^ ts_packet[3]) & 0x0F))) {
+		/* Continuity counter mismatch. */
+
+		if (ts_next_cc < 0) {
+			/* First TS packet. */
+		} else if (0 == (((ts_next_cc - 1) ^ ts_packet[3]) & 0x0F)) {
+			/* ISO 13818-1 Section 2.4.3.3: Repeated
+			   packet. */
+			return TRUE;
+		} else {
+			log (2, "TS continuity error\n");
+			ts_subt_reset ();
+		}
+	}
+
+	ts_next_cc = ts_packet[3] + 1;
+
+	ts_subt_packet (ts_packet, header_length);
+
+	return TRUE;
+}
+
+static unsigned int
+ts_sync				(const uint8_t *	ts,
+				 const uint8_t *	end)
+{
+	const uint8_t *ts0 = ts;
+
+	for (;;) {
+		unsigned int avail;
+
+		avail = end - ts;
+		if (avail < 188)
+			break; /* need more data */
+
+		if (unlikely (0x47 != ts[0])) {
+			unsigned int offset;
+
+			if (avail < 188 + 187)
+				break; /* need more data */
+
+			if (ts_n_subt_packets_in > 0)
+				log (2, "TS sync lost.\n");
+
+			for (offset = 0; offset < (avail - 187); ++offset) {
+				if (0x47 == ts[offset]
+				    && 0x47 == ts[offset + 188])
+					break;
+			}
+
+			if (offset >= (avail - 187)) {
+				ts_subt_reset ();
+				return end - ts0 - 187;
+			}
+
+			ts += offset;
+		}
+
+		if (likely (ts_filter (ts)))
+			ts += 188;
+		else
+			ts += 1;
+	}
+
+	return ts - ts0; /* num. bytes consumed */
+}
+
+static void
+file_read_loop			(void)
+{
+	ssize_t in;
+	ssize_t out;
+
+	assert (0 == (ts_buffer_capacity & 4095));
+
+	in = 0;
+	out = 0;
+
+	for (;;) {
+		ssize_t space;
+		ssize_t actual;
+		ssize_t left;
+
+		space = ts_buffer_capacity - in;
+		assert (space > 0);
+
+		for (;;) {
+			actual = read (fd, ts_buffer + in, space);
+			if (actual >= 0)
+				break;
+			if (EINTR == errno)
+				continue;
+			errno_exit ("Read error");
+		}
+
+		if (0 == actual)
+			break; /* eof */
+
+		in += actual;
+
+		ts_n_bytes_in += actual;
+
+		out += ts_sync (ts_buffer + out, ts_buffer + in);
+
+		left = in - out;
+		if (left > 0) {
+			/* Keep reads page aligned. */
+			in = out & 4095;
+
+			memmove (ts_buffer + in,
+				 ts_buffer + out, left);
+		} else {
+			assert (0 == left);
+			in = 0;
+		}
+
+		out = in;
+		in += left;
+	}
+}
+
+static void
+init				(void)
+{
+	ts_buffer_capacity = 32 * 1024;
+	ts_buffer = my_memalign (4096, ts_buffer_capacity);
+	if (NULL == ts_buffer) {
+		no_mem_exit ();
+	}
+
+	ts_n_bytes_in = 0;
+	ts_n_subt_packets_in = 0;
+	ts_next_cc = -1;
+
+	pes_buffer_capacity = MAX_PES_PACKET_SIZE + TS_PACKET_SIZE;
+	pes_buffer = my_memalign (4096, pes_buffer_capacity);
+	if (NULL == pes_buffer) {
+		no_mem_exit ();
+	}
+
+	ts_subt_reset ();
+}
+
+/* Old code */
+
 int main(int argc, char* argv[]) {
-  int fd;
   int pid;
  
   if (argc!=4) {
@@ -978,10 +2563,16 @@ int main(int argc, char* argv[]) {
   fd=open(argv[2],O_RDONLY);
   outfile=fopen(argv[3],"w");
   textsub.start_pts = textsub.end_pts = -1;
-  get_sub_packets(fd,pid);
+
+  if (1) {
+    get_sub_packets(fd,pid);
+  } else {
+	ts_subt_pid = pid;
+	init ();
+	file_read_loop ();
+  }
+
   fclose(outfile);
   close(fd);
   return 0;
 }
-
-

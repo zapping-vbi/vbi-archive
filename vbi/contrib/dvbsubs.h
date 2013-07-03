@@ -52,6 +52,6 @@ typedef struct {
 typedef struct {
   char regions[MAX_REGIONS][64];
   int next_region;
-  unsigned int start_pts;
-  unsigned int end_pts;
+  int64_t start_pts;
+  int64_t end_pts;
 } textsub_t;
