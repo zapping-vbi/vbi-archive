@@ -69,7 +69,7 @@
 #undef PROGRAM
 #define PROGRAM "ATSC-CC"
 #undef VERSION
-#define VERSION "0.4"
+#define VERSION "0.5"
 
 #if __GNUC__ < 3
 #  define likely(expr) (expr)
@@ -7018,12 +7018,14 @@ vesd_decode_block		(struct video_es_decoder *vd,
 	   we may need it to debug the video ES decoder. Without the
 	   actual picture data it should be highly repetitive and
 	   compress rather well. */
-	if (unlikely (NULL != vd->video_es_tap_fp)
-	    && (NULL != vd->option_video_es_all_tap_file_name
-		|| start_code < 0x01
-		|| start_code > 0xAF)) {
-		if (n_bytes != fwrite (buf, 1, n_bytes,
-				       vd->video_es_tap_fp)) {
+	if (unlikely (NULL != vd->video_es_tap_fp)) {
+		unsigned int n = n_bytes;
+
+		if (start_code >= 0x01 && start_code <= 0xAF) {
+			if (NULL == vd->option_video_es_all_tap_file_name)
+				n = MIN (n, 8);
+		}
+		if (n != fwrite (buf, 1, n, vd->video_es_tap_fp)) {
 			errno_exit ("Video ES tap write error");
 		}
 	}
