@@ -939,16 +939,17 @@ enum debug {
 	DEBUG_VESD_PES_PACKET		= (1 << 1),
 	DEBUG_VESD_PIC_HDR		= (1 << 2),
 	DEBUG_VESD_PIC_EXT		= (1 << 3),
-	DEBUG_VESD_CC_DATA		= (1 << 4),
-	DEBUG_CC_DATA			= (1 << 5),
-	DEBUG_CC_F1			= (1 << 6),
-	DEBUG_CC_F2			= (1 << 7),
-	DEBUG_CC_DECODER		= (1 << 8),
-	DEBUG_DTVCC_PACKET		= (1 << 9),
-	DEBUG_DTVCC_SE			= (1 << 10),
-	DEBUG_DTVCC_PUT_CHAR		= (1 << 11),
-	DEBUG_DTVCC_STREAM_EVENT	= (1 << 12),
-	DEBUG_CONFIG			= (1 << 13)
+	DEBUG_VESD_USER_DATA		= (1 << 5),
+	DEBUG_VESD_CC_DATA		= (1 << 6),
+	DEBUG_CC_DATA			= (1 << 7),
+	DEBUG_CC_F1			= (1 << 8),
+	DEBUG_CC_F2			= (1 << 9),
+	DEBUG_CC_DECODER		= (1 << 10),
+	DEBUG_DTVCC_PACKET		= (1 << 11),
+	DEBUG_DTVCC_SE			= (1 << 12),
+	DEBUG_DTVCC_PUT_CHAR		= (1 << 13),
+	DEBUG_DTVCC_STREAM_EVENT	= (1 << 14),
+	DEBUG_CONFIG			= (1 << 15)
 };
 
 enum source {
@@ -3428,7 +3429,7 @@ cc_control_code			(struct cc_decoder *	cd,
 	unsigned int ch_num0;
 
 	if (option_debug & DEBUG_CC_DECODER) {
-		fprintf (stdout, "%s %02x %02x %d\n",
+		fprintf (stderr, "%s %02x %02x %d\n",
 			 __FUNCTION__, c1, c2, f);
 	}
 
@@ -3536,7 +3537,7 @@ cc_characters			(struct cc_decoder *	cd,
 				 int			c)
 {
 	if (option_debug & DEBUG_CC_DECODER) {
-		fprintf (stdout, "%s %02x '%c'\n",
+		fprintf (stderr, "%s %02x '%c'\n",
 			 __FUNCTION__, c, printable (c));
 	}
 
@@ -3587,7 +3588,7 @@ cc_feed				(struct cc_decoder *	cd,
 	assert (NULL != cd);
 
 	if (option_debug & DEBUG_CC_DECODER) {
-		fprintf (stdout, "%s %02x %02x '%c%c' "
+		fprintf (stderr, "%s %02x %02x '%c%c' "
 			 "%3d %f %" PRId64 "\n",
 			 __FUNCTION__,
 			 buffer[0] & 0x7F,
@@ -3744,7 +3745,7 @@ cc_reset			(struct cc_decoder *	cd)
 	assert (NULL != cd);
 
 	if (option_debug & DEBUG_CC_DECODER) {
-		fprintf (stdout, "%s\n", __FUNCTION__);
+		fprintf (stderr, "%s\n", __FUNCTION__);
 	}
 
 	for (ch_num = 0; ch_num < MAX_CC_CHANNELS; ++ch_num) {
@@ -4717,7 +4718,7 @@ dtvcc_put_char			(struct dtvcc_decoder *	dc,
 			 __FUNCTION__,
 			 row, dw->row_count,
 			 column, dw->column_count);
-		dump_dtvcc_buffer (stdout, dw);
+		dump_dtvcc_buffer (stderr, dw);
 	}
 
 	switch (dw->style.print_direction) {
@@ -6648,13 +6649,21 @@ vesd_user_data			(struct video_es_decoder *vd,
 
 	/* ATSC A/53 Part 4:2007 Section 6.2.2 */
 
-	if (0) {
-		fprintf (stderr, "Picture: %s %s ref=%u "
-			 "dts=%" PRId64 " pts=%" PRId64 "\n",
+	if (unlikely (option_debug & DEBUG_VESD_USER_DATA)) {
+		unsigned int i;
+
+		fprintf (stderr, "VES UD: %s %s ref=%u "
+			 "dts=%" PRId64 " pts=%" PRId64,
 			 picture_coding_type_name (vd->picture_coding_type),
 			 picture_structure_name (vd->picture_structure),
 			 vd->picture_temporal_reference,
 			 vd->dts, vd->pts);
+		for (i = 0; i < min_bytes_valid; ++i)
+			fprintf (stderr, " %02x", buf[i]);
+		fputc (' ', stderr);
+		for (i = 0; i < min_bytes_valid; ++i)
+			fputc (printable (buf[i]), stderr);
+		fputc ('\n', stderr);
 	}
 
 	/* NB. the PES packet header is optional and we may receive
@@ -7005,6 +7014,16 @@ vesd_decode_block		(struct video_es_decoder *vd,
 		vesd_extension (vd, buf, min_bytes_valid);
 	} else if (start_code >= VIDEO_STREAM_0
 		   && start_code <= VIDEO_STREAM_15) {
+		if (!data_lost
+		    && (vd->received_blocks == (RECEIVED_PICTURE |
+						RECEIVED_PICTURE_EXT)
+			|| vd->received_blocks == (RECEIVED_PES_PACKET |
+						   RECEIVED_PICTURE |
+						   RECEIVED_PICTURE_EXT))) {
+			/* No user data received for previous picture. */
+			vesd_user_data (vd, NULL, 0);
+		}
+
 		/* Start of a new picture. */
 		vesd_pes_packet_header (vd, buf, min_bytes_valid);
 	} else {
@@ -9230,9 +9249,10 @@ debug_option			(const char *		optarg)
 		{ "dtvccsev",		DEBUG_DTVCC_STREAM_EVENT },
 		{ "vesdcc",		DEBUG_VESD_CC_DATA },
 		{ "vesdpe",		DEBUG_VESD_PIC_EXT },
- 		{ "vesdpesp",		DEBUG_VESD_PES_PACKET },
 		{ "vesdph",		DEBUG_VESD_PIC_HDR },
+ 		{ "vesdpesp",		DEBUG_VESD_PES_PACKET },
  		{ "vesdsc",		DEBUG_VESD_START_CODE },
+ 		{ "vesdud",		DEBUG_VESD_USER_DATA },
 	};
 	const char *s;
 
