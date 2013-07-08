@@ -7042,7 +7042,7 @@ vesd_decode_block		(struct video_es_decoder *vd,
 
 		if (start_code >= 0x01 && start_code <= 0xAF) {
 			if (NULL == vd->option_video_es_all_tap_file_name)
-				n = MIN (n, 8);
+				n = MIN (n, 8u);
 		}
 		if (n != fwrite (buf, 1, n, vd->video_es_tap_fp)) {
 			errno_exit ("Video ES tap write error");
