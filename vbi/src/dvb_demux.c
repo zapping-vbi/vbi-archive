@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: dvb_demux.c,v 1.23 2008-02-19 00:35:15 mschimek Exp $ */
+/* $Id: dvb_demux.c,v 1.24 2013-07-10 23:12:35 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -2368,7 +2368,7 @@ vbi_dvb_demux_cor		(vbi_dvb_demux *	dx,
  * @param buffer_size Number of bytes in @a buffer, need not align with
  *   packet size. The packet filter works faster with larger buffers.
  *
- * This function consumes and arbitrary number of bytes from a DVB
+ * This function consumes an arbitrary number of bytes from a DVB
  * Packetized Elementary Stream (PES), filters
  * out PRIVATE_STREAM_1 PES packets, filters out valid VBI data units,
  * converts them to vbi_sliced format and calls the vbi_dvb_demux_cb

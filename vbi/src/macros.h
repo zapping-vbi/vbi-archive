@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: macros.h,v 1.11 2008-02-24 14:16:23 mschimek Exp $ */
+/* $Id: macros.h,v 1.12 2013-07-10 23:11:18 mschimek Exp $ */
 
 #ifndef __ZVBI_MACROS_H__
 #define __ZVBI_MACROS_H__
@@ -114,14 +114,14 @@ typedef enum {
 
 	/**
 	 * Invalid parameters and similar problems which suggest
-	 * a bug in the caller.
+	 * a bug in the application using the library.
 	 */
 	VBI_LOG_WARNING		= 1 << 4,
 
 	/**
 	 * Causes of possibly undesired results, for example when a
 	 * data service cannot be decoded with the current video
-	 * standard.
+	 * standard setting.
 	 */
 	VBI_LOG_NOTICE		= 1 << 5,
 
