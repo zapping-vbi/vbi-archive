@@ -8620,8 +8620,8 @@ parse_azap_channel_conf_line	(const char *		filename,
 	   2. Transponder frequency in Hz
 	   3. Modulation: 8VSB, 16VSB, QAM_64, QAM_256
 	   4. Video stream PID
-	   5. Audio stream PID
-	   6. ?
+	   5. Audio stream PID (one or more?)
+	   6. Stream ID?
 
 	   The fields are separated by one colon. We skip whitespace
 	   at the beginning of a line, whitespace before and after

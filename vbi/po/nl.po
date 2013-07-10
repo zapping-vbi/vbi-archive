@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zvbi 0.2.2\n"
 "Report-Msgid-Bugs-To: mschimek@users.sf.net\n"
-"POT-Creation-Date: 2013-07-01 14:23+0200\n"
+"POT-Creation-Date: 2013-07-05 07:06+0200\n"
 "PO-Revision-Date: 2007-11-27 18:38+0100\n"
 "Last-Translator: Guus Bonnema <abonnema@xs4all.nl>\n"
 "Language-Team: Dutch <ime@iae.nl>\n"
@@ -72,21 +72,21 @@ msgstr "XPM"
 msgid "Export this page as XPM image"
 msgstr "Exporteren in XPM-formaat"
 
-#: src/exp-gfx.c:1796
+#: src/exp-gfx.c:1807
 #, c-format
 msgid "Unable to allocate %d byte buffer."
 msgstr "Onvoldoende geheugen voor een %d byte buffer."
 
-#: src/exp-gfx.c:1802
+#: src/exp-gfx.c:1813
 #, c-format
 msgid "Unable to allocate %d KB image buffer."
 msgstr "Onvoldoende geheugen voor een %d kB buffer."
 
-#: src/exp-gfx.c:1866
+#: src/exp-gfx.c:1877
 msgid "PNG"
 msgstr "PNG"
 
-#: src/exp-gfx.c:1867
+#: src/exp-gfx.c:1878
 msgid "Export this page as PNG image"
 msgstr "Exporteren in PNG-formaat"
 
@@ -345,8 +345,8 @@ msgstr "Onbekende fout."
 msgid "BKTR driver"
 msgstr "BKTR driver"
 
-#: src/io-bktr.c:204 src/io-bktr.c:285 src/io-bktr.c:303 src/io-v4l.c:164
-#: src/io-v4l.c:1133 src/io-v4l.c:1171 src/io-v4l.c:1199 src/io-v4l2.c:115
+#: src/io-bktr.c:204 src/io-bktr.c:285 src/io-bktr.c:303 src/io-v4l.c:165
+#: src/io-v4l.c:1134 src/io-v4l.c:1172 src/io-v4l.c:1200 src/io-v4l2.c:115
 #: src/io-v4l2k.c:232 src/io-v4l2k.c:606 src/io-v4l2k.c:1198
 #: src/io-v4l2k.c:1339 src/io-v4l2k.c:1366 src/proxy-client.c:201
 #: src/proxy-client.c:1559
@@ -358,12 +358,12 @@ msgstr "Geen virtueel geheugen beschikbaar."
 msgid "Cannot open '%s': %s."
 msgstr "Kan apparaat '%s' niet openen: %s."
 
-#: src/io-bktr.c:273 src/io-v4l.c:758 src/io-v4l.c:1118 src/io-v4l2k.c:1185
+#: src/io-bktr.c:273 src/io-v4l.c:759 src/io-v4l.c:1119 src/io-v4l2k.c:1185
 #, c-format
 msgid "Sorry, %s (%s) cannot capture any of the requested data services."
 msgstr "%s (%s) kan de gewenste datadienst helaas niet ontvangen."
 
-#: src/io-bktr.c:314 src/io-v4l.c:175 src/io-v4l2k.c:617
+#: src/io-bktr.c:314 src/io-v4l.c:176 src/io-v4l2k.c:617
 #, c-format
 msgid "Not enough memory to allocate vbi capture buffer (%d KB)."
 msgstr "Niet genoeg geheugen om VBI-capturebuffer (%d kB) te reserveren."
@@ -372,17 +372,17 @@ msgstr "Niet genoeg geheugen om VBI-capturebuffer (%d kB) te reserveren."
 msgid "BKTR driver interface not compiled."
 msgstr "BKTR interface niet gecompileerd."
 
-#: src/io-v4l.c:809 src/io-v4l2k.c:1030
+#: src/io-v4l.c:810 src/io-v4l2k.c:1030
 #, c-format
 msgid "Cannot initialize %s (%s), the device is already in use."
 msgstr "%s (%s) is al in gebruik."
 
-#: src/io-v4l.c:823
+#: src/io-v4l.c:824
 #, c-format
 msgid "Could not set the vbi capture parameters for %s (%s): %s."
 msgstr "Kan de VBI-capture-parameters voor %s (%s) niet activeren: %s."
 
-#: src/io-v4l.c:961 src/io-v4l2k.c:1134
+#: src/io-v4l.c:962 src/io-v4l2k.c:1134
 #, c-format
 msgid ""
 "%s (%s) offers unknown vbi sampling format #%d. This may be a driver bug or "
@@ -391,13 +391,13 @@ msgstr ""
 "%s (%s) biedt een onbekend VBI sampling formaat #%d aan. Dit kan eendriver "
 "bug zijn of libzvbi is te oud."
 
-#: src/io-v4l.c:1014
+#: src/io-v4l.c:1015
 #, c-format
 msgid "Cannot capture with %s (%s), has no standard vbi interface."
 msgstr ""
 "Kan geen gebruik maken van %s (%s) omdat standaard VBI-interface ontbreekt."
 
-#: src/io-v4l.c:1034
+#: src/io-v4l.c:1035
 #, c-format
 msgid ""
 "Cannot identify %s (%s), reported vbi frame size suggests this is not a bttv "
@@ -406,12 +406,12 @@ msgstr ""
 "Kan %s (%s) niet identificeren. Vermelde vbi frame size suggereert dat dit "
 "geen bttv driver is."
 
-#: src/io-v4l.c:1051 src/io-v4l.c:1289
+#: src/io-v4l.c:1052 src/io-v4l.c:1290
 #, c-format
 msgid "Cannot set or determine current videostandard of %s (%s)."
 msgstr "Kan de huidige videostandaard van %s (%s) niet uitlezen of bepalen."
 
-#: src/io-v4l.c:1090 src/io-v4l2k.c:1149
+#: src/io-v4l.c:1091 src/io-v4l2k.c:1149
 #, c-format
 msgid ""
 "Cannot capture the requested data services with %s (%s), the sampling "
@@ -420,26 +420,26 @@ msgstr ""
 "Kan de gewenste datadienst niet ontvangen met %s (%s), de samplingfrequentie "
 "%.2f MHz is te laag."
 
-#: src/io-v4l.c:1207 src/io-v4l2.c:130 src/io-v4l2k.c:1383
+#: src/io-v4l.c:1208 src/io-v4l2.c:130 src/io-v4l2k.c:1383
 #, c-format
 msgid "Cannot open '%s': %d, %s."
 msgstr "Kan apparaat '%s' niet openen: %d, %s."
 
-#: src/io-v4l.c:1224 src/io-v4l.c:1233
+#: src/io-v4l.c:1225 src/io-v4l.c:1234
 msgid "driver unknown"
 msgstr "Onbekende driver"
 
-#: src/io-v4l.c:1239 src/io-v4l2k.c:1410
+#: src/io-v4l.c:1240 src/io-v4l2k.c:1410
 #, c-format
 msgid "%s (%s) is not a raw vbi device."
 msgstr "%s (%s) is geen VBI-apparaat."
 
-#: src/io-v4l.c:1259
+#: src/io-v4l.c:1260
 #, c-format
 msgid "%s (%s) does not support the select() function."
 msgstr "%s (%s) ondersteunt de select() functie niet."
 
-#: src/io-v4l.c:1393 src/io-v4l.c:1438
+#: src/io-v4l.c:1394 src/io-v4l.c:1439
 msgid "V4L driver interface not compiled."
 msgstr "V4L driver interface niet gecompileerd."
 
