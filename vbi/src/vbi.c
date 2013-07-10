@@ -2,7 +2,7 @@
  *  libzvbi -- VBI decoding library
  *
  *  Copyright (C) 2000-2008 Michael H. Schimek
- *  Copyright (C) 2000, 2001 Iñaki García Etxebarria
+ *  Copyright (C) 2000, 2001 IÃ±aki GarcÃ­a Etxebarria
  *  Copyright (C) 2003, 2004 Tom Zoerner
  *
  *  Originally based on AleVT 1.5.1 by Edgar Toernig
@@ -23,7 +23,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: vbi.c,v 1.25 2009-03-04 21:47:59 mschimek Exp $ */
+/* $Id: vbi.c,v 1.26 2013-07-10 11:37:37 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -56,7 +56,7 @@
 /**
  * @mainpage ZVBI - VBI Decoding Library
  *
- * @author Iñaki García Etxebarria<br>
+ * @author IÃ±aki GarcÃ­a Etxebarria<br>
  * Michael H. Schimek<br>
  * Tom Zoerner<br>
  * based on AleVT by Edgar Toernig
@@ -106,13 +106,16 @@ vbi_init			(void)
  *   vbi_log_on_stderr(). Can be @c NULL to disable logging.
  * @param user_data User pointer passed through to the @a log_fn function.
  *
- * Various functions can print warnings, errors and information useful to
- * debug the library. With this function you can enable these messages
- * and determine a function to print them.
+ * Various library functions can print warnings, errors and
+ * information useful to debug the library. With this function you can
+ * enable these messages and designate a function to print them.
+ *
+ * This function enables logging globally. You can also call the
+ * set_log_fn() function of individual modules to reduce the scope or
+ * redirect messages from that module to another log function.
  *
  * @note
- * The kind and contents of messages logged by particular functions
- * may change in the future.
+ * The number of contents of messages may change in the future.
  *
  * @since 0.2.22
  */

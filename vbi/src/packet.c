@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: packet.c,v 1.31 2013-07-02 02:32:45 mschimek Exp $ */
+/* $Id: packet.c,v 1.32 2013-07-10 11:37:28 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -2167,7 +2167,7 @@ parse_8_30(vbi_decoder *vbi, uint8_t *buffer, int packet)
  * state accordingly. This function may send events.
  * 
  * Return value:
- * FALSE if the packet contained incorrectable errors. 
+ * FALSE if the packet contained uncorrectable errors. 
  */
 vbi_bool
 vbi_decode_teletext(vbi_decoder *vbi, uint8_t *buffer)

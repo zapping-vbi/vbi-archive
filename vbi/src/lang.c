@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: lang.c,v 1.16 2008-09-11 02:47:16 mschimek Exp $ */
+/* $Id: lang.c,v 1.17 2013-07-10 11:37:03 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -842,14 +842,15 @@ caption_extended3 [32][2] = {
  * @param c Character code in range 0x20 ... 0x7F,
  *   0x1130 ... 0x113F, 0x1930 ... 0x193F, 0x1220 ... 0x123F,
  *   0x1A20 ... 0x1A3F, 0x1320 ... 0x133F, 0x1B20 ... 0x1B3F.
- * @param to_upper Convert the character to upper case. (Often
- *   programs are captioned in all upper case, but except for
- *   one character the basic and special CC character sets contain
- *   only lower case accented characters.)
+ * @param to_upper Convert the character to upper case. (In general
+ *   real time caption is capitalized, but for a few accented characters
+ *   older versions of the standard defined only lower case character
+ *   codes. This option is available to conveniently capitalize all
+ *   characters received.)
  *
  * Converts a Closed Caption character code to Unicode. Codes
  * in range 0x1130 to 0x1B3F are "special characters" and "extended
- * characters" (e.g. caption command 11 37).
+ * characters" (e.g. caption command 0x11 0x37).
  *
  * @see vbi_strndup_iconv_caption()
  *

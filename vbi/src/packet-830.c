@@ -17,7 +17,7 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-/* $Id: packet-830.c,v 1.3 2009-03-04 21:48:43 mschimek Exp $ */
+/* $Id: packet-830.c,v 1.4 2013-07-10 11:37:18 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -120,7 +120,7 @@ bcd2bin				(int			bcd)
  *
  * @returns
  * On error the function returns @c FALSE:
- * - The buffer contains incorrectable errors or
+ * - The buffer contains uncorrectable errors or
  * - The time is not representable as a time_t.
  * In these cases @a *time and @a *seconds_east remain unchanged.
  *
@@ -217,7 +217,7 @@ vbi_decode_teletext_8301_local_time
  * Identifier in @a *cni.
  *
  * @returns
- * @c FALSE if the buffer contains incorrectable errors. In this case
+ * @c FALSE if the buffer contains uncorrectable errors. In this case
  * @a *cni remains unchanged.
  *
  * @since 0.2.34
@@ -262,7 +262,7 @@ vbi_decode_teletext_8302_cni	(unsigned int *		cni,
  * and stores the contained PDC recording-control data in @a *pid.
  *
  * @returns
- * @c FALSE if the buffer contains incorrectable errors or invalid
+ * @c FALSE if the buffer contains uncorrectable errors or invalid
  * data. In this case @a *pid remains unchanged.
  *
  * @since 0.2.34

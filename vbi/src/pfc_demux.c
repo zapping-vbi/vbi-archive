@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: pfc_demux.c,v 1.10 2008-02-19 00:35:21 mschimek Exp $ */
+/* $Id: pfc_demux.c,v 1.11 2013-07-10 11:37:33 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -200,7 +200,7 @@ _vbi_pfc_demux_decode		(vbi_pfc_demux *	dx,
  * it calls the output function given to vbi_pfc_demux_new().
  *
  * @returns
- * FALSE if the packet contained incorrectable errors.
+ * FALSE if the packet contained uncorrectable errors.
  */
 vbi_bool
 vbi_pfc_demux_feed		(vbi_pfc_demux *	dx,
@@ -311,7 +311,7 @@ vbi_pfc_demux_feed		(vbi_pfc_demux *	dx,
  * on sliced VBI data and filters out @c VBI_SLICED_TELETEXT_B_625.
  *
  * @returns
- * FALSE if any Teletext lines contained incorrectable errors.
+ * FALSE if any Teletext lines contained uncorrectable errors.
  *
  * @since 0.2.26
  */

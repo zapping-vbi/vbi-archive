@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: hamm.c,v 1.10 2008-02-19 00:35:20 mschimek Exp $ */
+/* $Id: hamm.c,v 1.11 2013-07-10 11:37:08 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -132,7 +132,7 @@ vbi_ham24p			(uint8_t *		p,
  * 
  * @return
  * Triplet data bits D18 [msb] ... D1 [lsb] or a negative value
- * if the triplet contained incorrectable errors.
+ * if the triplet contained uncorrectable errors.
  *
  * @since 0.2.12
  */

@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: idl_demux.c,v 1.10 2008-02-19 00:35:20 mschimek Exp $ */
+/* $Id: idl_demux.c,v 1.11 2013-07-10 11:37:23 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -298,7 +298,7 @@ vbi_idl_demux_reset		(vbi_idl_demux *	dx)
  * function given to vbi_idl_a_demux_new() when new user data is available.
  *
  * @returns
- * FALSE if the packet contained incorrectable errors.
+ * FALSE if the packet contained uncorrectable errors.
  *
  * @since 0.2.14
  */
@@ -365,7 +365,7 @@ vbi_idl_demux_feed		(vbi_idl_demux *	dx,
  * on sliced VBI data and filters out @c VBI_SLICED_TELETEXT_B_625.
  *
  * @returns
- * FALSE if any Teletext lines contained incorrectable errors.
+ * FALSE if any Teletext lines contained uncorrectable errors.
  *
  * @since 0.2.26
  */

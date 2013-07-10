@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: hamm.h,v 1.15 2008-02-27 06:56:36 mschimek Exp $ */
+/* $Id: hamm.h,v 1.16 2013-07-10 11:37:13 mschimek Exp $ */
 
 #ifndef __ZVBI_HAMM_H__
 #define __ZVBI_HAMM_H__
@@ -179,7 +179,7 @@ vbi_ham8			(unsigned int		c)
  * 
  * @returns
  * Data bits (D4 [msb] ... D1 [lsb]) or a negative
- * value if the byte contained incorrectable errors.
+ * value if the byte contained uncorrectable errors.
  *
  * @since 0.2.12
  */
@@ -199,7 +199,7 @@ vbi_unham8			(unsigned int		c)
  * @returns
  * Data bits D4 [msb] ... D1 of first byte and D4 ... D1 [lsb]
  * of second byte, or a negative value if any of the bytes
- * contained incorrectable errors.
+ * contained uncorrectable errors.
  *
  * @since 0.2.12
  */
