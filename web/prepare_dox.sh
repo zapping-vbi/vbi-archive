@@ -1,13 +1,11 @@
 #!/bin/sh
-# $Id: prepare_dox.sh,v 1.12 2008-02-22 04:18:34 mschimek Exp $
+# $Id: prepare_dox.sh,v 1.13 2013-07-10 04:16:56 mschimek Exp $
+#
+# Arguments: cvs_module subdir
 #
 # This checks out a copy of the module, runs doxygen, puts
-# the generated files online and cleans up.
-#
-# ssh username@shell.sourceforge.net
-# cd /home/groups/z/za/zapping
-# ./prepare_dox.sh vbi libzvbi
-# ./prepare_dox.sh rte librte
+# the generated files online under subdir and cleans up.
+# See the README file for usage instructions.
 
 (
 # Trace execution, abort on error.
@@ -16,9 +14,9 @@ set -e -x
 # By default all files are world read-only.
 umask 006
 
-#cvs -z3 -d:pserver:anonymous@cvs1:/cvsroot/zapping co $1
-#cvs -d:pserver:anonymous@zapping.cvs.sourceforge.net:/cvsroot/zapping login
-cvs -z3 -d:pserver:anonymous@zapping.cvs.sourceforge.net:/cvsroot/zapping co $1
+cd /home/project-web/zapping
+
+cvs -d:pserver:anonymous@zapping.cvs.sourceforge.net:/cvsroot/zapping co $1
 
 # Generate documentation.
 cd $1/doc
@@ -44,6 +42,9 @@ chmod a+rX htdocs/doc -R
 #doxytag -s search.idx
 #cd -
 
-rm -rf $1
+# Delete the checked out tree.
+case "$1" in
+zvbi|rte) rm -rf $1 ;;
+esac
 
 ) 2>&1 | tee prepare_dox.log
