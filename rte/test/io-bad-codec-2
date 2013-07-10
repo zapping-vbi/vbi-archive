@@ -1,2 +1,0 @@
-#!/bin/sh
-./io -x ffmpeg_mpeg1_ps -d mpeg1_video -d nosuchcodec -o dummy.mpg
