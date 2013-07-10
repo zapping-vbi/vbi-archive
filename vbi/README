@@ -2,7 +2,7 @@
   libzvbi - VBI capture and decoding library
 
   Copyright (C) 2000-2008 Michael H. Schimek
-  Copyright (C) 2000, 2001 Iñaki García Etxebarria
+  Copyright (C) 2000, 2001 IÃ±aki GarcÃ­a Etxebarria
   Copyright (C) 2003, 2004, 2007 Tom Zoerner
 
   Originally based on AleVT 1.5.1 by Edgar Toernig
@@ -86,9 +86,8 @@
 
   For RPMs please see the repository of your distribution.
 
-  Sourceforge and Freshmeat can notify you about new releases by e-mail:
-    http://sourceforge.net/project/filemodule_monitor.php?filemodule_id=41356
-    http://freshmeat.net/subscribe/?url=%2Fprojects%2Flibzvbi%2F
+  Sourceforge can notify you about new releases by e-mail:
+    http://sourceforge.net/projects/zapping
 
 
   Installation
@@ -109,9 +108,9 @@
   insinuations, allegations, accusations, contemplations, consternations
   ======================================================================
 
-  * You can post patches, feature requests and bug reports at
-    our Sourceforge tracker:
-      https://sourceforge.net/tracker/?group_id=2599
+  * You can post patches, feature requests and bug reports on
+    our Sourceforge project page:
+      http://sourceforge.net/projects/zapping
 
     Please log in or leave an e-mail address for further inquiries and
     progress notification.
@@ -127,9 +126,6 @@
 
     You can browse the list archives at:
       http://sourceforge.net/mailarchive/forum.php?forum_name=zapping-misc
-
-  * Or you can try our IRC channel:
-      #zapping at irc.freenode.net
 
   Primary author and maintainer of this library is
 
