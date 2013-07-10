@@ -1,5 +1,7 @@
-libzvbi 0.2.34, 2009-02-00
+libzvbi 0.2.34, 2013-07-11
 --------------------------
+This is a surprise bugfix release with improvements in the
+Teletext decoder and zvbi-atsc-cc.
 
 libzvbi 0.2.33, 2008-09-03
 --------------------------

@@ -1,5 +1,12 @@
+2013-07-11    <mschimek@users.sf.net>
+
+	* Release 0.2.34.
+
 2013-07-10    <mschimek@users.sf.net>
 
+	* README: Updated the URLs.
+
+	* src/macros.h: Documentation improvements.
 	* contrib/zvbi-atsc-cc.1: Corrections and clarifications.
 	* src/dvb_demux.c, src/lang.c, src/hamm.c, src/hamm.h, src/packet-830.c,
 	  src/idl_demux.c, src/packet.c, src/pfc_demux.c, src/vbi.c:
