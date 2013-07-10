@@ -48,24 +48,40 @@ The default is DVR interface 0.
 .IP "\fB\-\-ts\fP"
 .PD
 Decode an MPEG-2 Transport Stream on standard input instead of opening
-a DVB device.
+a DVB device. This option is mainly intended for debugging. 
 .IP
-.B zvbi-ntsc-cc
-still needs a station name to determine the Program ID of the video
-elementary stream it should extract.
+Since Transport Streams can contain multiple programs you must still
+specify one or more station names, which
+.B zvbi-atsc-cc
+will look up in a channel configuration file to determine the Program ID
+of the video elementary stream or streams it should extract. You should
+also add the
+.B --atsc
+option to clarify that this is an ATSC TS and the program should expect
+an
+.B azap
+channel configuration file, which is otherwise inferred from the DVB
+device capabilities.
 .SS "Tuning options"
 .IP "\fB\-e\fP file name"
 .PD 0
 .IP "\fB\-\-channel\-conf\fP file name"
 .PD
 To tune in a TV station
-.B zvbi-ntsc-cc
+.B zvbi-atsc-cc
 needs a channel configuration file. We use the config file of the
 .B azap
 tuning tool from the linuxtv\-dvb\-apps package. You can create
 it with the
 .B scan
 tool from the same package.
+.IP
+The azap channel configuration file is a text file which
+lists one station per line. Each line contains six fields separated
+by a colon: The station name, the transponder frequency in Hz,
+the modulation used (8VSB, 16VSB, QAM_64, QAM_256), the video stream
+PID, the audio stream PID, and the service ID. Empty lines and
+lines starting with a number sign will be ignored.
 .IP
 This option selects a different channel configuration file.
 The default is
@@ -81,16 +97,16 @@ transponder frequency.
 .PD
 The station to tune in. Usually the \fB\-n\fP can be omitted.
 .IP
-.B zvbi-ntsc-cc
+.B zvbi-atsc-cc
 can record caption from multiple stations at once if they share a
 transponder frequency. Just specify multiple station names on
 the command line to enable this.
 .SS "Caption options"
-With the caption and XDS options you must specify for each
-station which data
-.B zvbi-ntsc-cc
+With the caption and XDS options you specify which data
+.B zvbi-atsc-cc
 should extract. If multiple station names are given these
-options apply to the next station on the command line.
+options apply to the succeeding station name. You must
+specify at least one of these options for each station.
 .IP "\fB\-c\fP \fB\-\-cc\fP"
 Print any received caption on standard output.
 .IP "\fB\-C\fP file name"
@@ -152,7 +168,7 @@ control codes. With type "ntsc-cc" it mimics the output of the
 .B ntsc-cc
 and
 .B zvbi-ntsc-cc
-tool, which is also the default.
+tool. The default is "ntsc-cc".
 .IP
 .B zvbi\-atsc\-cc supports all Closed Caption character sets and
 converts to the encoding of the current locale, usually UTF-8.
@@ -177,11 +193,13 @@ timezone, title. Multiple \fB-f\fP options accumulate. The default
 is "all".
 .SH EXAMPLES
 .nf
-zvbi-ntsc-cc -c NJN-HD
+zvbi-atsc-cc -c NJN-HD
 .P
-zvbi-ntsc-cc --cc1-file wnyw.txt WNYW-DT --cc1-file wwor.txt WWOR-DT
+zvbi-atsc-cc --cc1-file wnyw.txt WNYW-DT --cc1-file wwor.txt WWOR-DT
 .P
-(NJN-HD, WNYW-DT and WWOR-DT are TV stations in New York.)
+(NJN-HD, WNYW-DT and WWOR-DT are TV stations in New York. WNYW-DT
+and WWOR-DT can be captured simultaneously because they share a
+transponder frequency.)
 .fi
 .SH FILES
 .I $HOME/.azap/channels.conf
