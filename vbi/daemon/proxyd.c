@@ -39,6 +39,9 @@
  *
  *
  *  $Log: not supported by cvs2svn $
+ *  Revision 1.19  2008/07/26 06:22:24  mschimek
+ *  Changed the license to GPLv2+ with Tom's permission.
+ *
  *  Revision 1.18  2007/11/27 17:39:35  mschimek
  *  *** empty log message ***
  *
@@ -74,7 +77,7 @@
  *
  */
 
-static const char rcsid[] = "$Id: proxyd.c,v 1.19 2008-07-26 06:22:24 mschimek Exp $";
+static const char rcsid[] = "$Id: proxyd.c,v 1.20 2013-08-28 14:45:58 mschimek Exp $";
 
 #include "config.h"
 
@@ -2046,8 +2049,8 @@ static vbi_bool vbi_proxyd_take_message( PROXY_CLNT *req, VBIPROXY_MSG * pMsg )
                   pBody->connect_req.strict = VBI_MAX_STRICT;
 
                if ( vbi_proxyd_take_service_req(req, pBody->connect_req.services,
-                                                     pBody->connect_req.strict,
-                                                     req->msg_buf.body.connect_rej.errorstr) )
+						pBody->connect_req.strict,
+						(char *) req->msg_buf.body.connect_rej.errorstr) )
                { 
                   /* open & service initialization succeeded -> reply with confirm */
                   vbi_proxy_msg_fill_magics(&req->msg_buf.body.connect_cnf.magics);
@@ -2135,8 +2138,8 @@ static vbi_bool vbi_proxyd_take_message( PROXY_CLNT *req, VBIPROXY_MSG * pMsg )
             pthread_mutex_unlock(&proxy.dev[req->dev_idx].queue_mutex);
 
             if ( vbi_proxyd_take_service_req(req, pBody->service_req.services,
-                                                  pBody->service_req.strict,
-                                                  req->msg_buf.body.service_rej.errorstr) )
+					     pBody->service_req.strict,
+					     (char *) req->msg_buf.body.service_rej.errorstr) )
             {
                if (proxy.dev[req->dev_idx].p_decoder != NULL)
                {
