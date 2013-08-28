@@ -19,7 +19,7 @@
  *  MA 02110-1301, USA.
  */
 
-/* $Id: caption.c,v 1.20 2009-12-14 23:43:49 mschimek Exp $ */
+/* $Id: caption.c,v 1.21 2013-08-28 14:44:44 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -833,7 +833,7 @@ decode_frame			(const vbi_sliced *	sliced,
 		_vbi_cc608_decoder_feed_frame (cd, sliced, n_lines,
 					       sample_time, stream_time);
 	} else {
-		vbi_decode (vbi, sliced, n_lines, sample_time);
+		vbi_decode (vbi, (vbi_sliced *) sliced, n_lines, sample_time);
 	}
 
 	x_event ();
