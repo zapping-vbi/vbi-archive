@@ -19,7 +19,7 @@
  *  MA 02110-1301, USA.
  */
 
-/* $Id: date.c,v 1.2 2009-03-04 21:47:47 mschimek Exp $ */
+/* $Id: date.c,v 1.3 2013-08-28 14:44:28 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -93,7 +93,7 @@ set_time			(const vbi_local_time *	lt)
 		ts.tv_sec = lt->time; /* UTC */
 		ts.tv_nsec = 0;
 
-		if (0 == clock_settime (CLOCK_REALTIME, ts))
+		if (0 == clock_settime (CLOCK_REALTIME, &ts))
 			return;
 	}
 #endif
@@ -163,7 +163,8 @@ decode_function			(const vbi_sliced *	sliced,
 			      "or date and time not transmitted."));
 	}
 
-	vbi_decode (dec, sliced, n_lines, sample_time);
+	/* Should really be const vbi_sliced *. */
+	vbi_decode (dec, (vbi_sliced *) sliced, n_lines, sample_time);
 
 	return TRUE;
 }
