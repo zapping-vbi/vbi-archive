@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: conv.c,v 1.10 2008-02-19 00:35:15 mschimek Exp $ */
+/* $Id: conv.c,v 1.11 2013-08-28 14:45:43 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -786,7 +786,7 @@ strndup_iconv_to_ucs2		(unsigned long *	out_size,
 
 			/* Ignore compiler warnings if second argument
 			   is declared as char** instead of const char**. */
-			r = iconv (cd->icd, &s, &s_left, &d, &d_left);
+			r = iconv (cd->icd, (char **) &s, &s_left, &d, &d_left);
 
 			_vbi_iconv_close (cd);
 			cd = NULL;
