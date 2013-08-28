@@ -19,7 +19,7 @@
  *  MA 02110-1301, USA.
  */
 
-/* $Id: sliced.c,v 1.19 2009-12-14 23:43:46 mschimek Exp $ */
+/* $Id: sliced.c,v 1.20 2013-08-28 14:45:28 mschimek Exp $ */
 
 /* For libzvbi version 0.2.x / 0.3.x. */
 
@@ -774,7 +774,7 @@ read_more			(struct stream *	st)
 	uint8_t *s;
 	uint8_t *e;
 
-	s = /* const cast */ st->end;
+	s = (uint8_t *) st->end;
 	e = st->buffer + sizeof (st->buffer);
 
 	if (s >= e)
