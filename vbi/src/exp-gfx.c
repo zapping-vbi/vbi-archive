@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: exp-gfx.c,v 1.18 2013-07-02 04:04:14 mschimek Exp $ */
+/* $Id: exp-gfx.c,v 1.19 2013-08-28 14:45:38 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -924,7 +924,7 @@ ppm_export			(vbi_export *		e,
 {
 	gfx_instance *gfx = PARENT(e, gfx_instance, export);
 	vbi_rgba *rgba_image;
-	const vbi_rgba *rgba_row_buffer;
+	vbi_rgba *rgba_row_buffer;
 	unsigned int image_width; /* in pixels */
 	unsigned int image_height;
 	unsigned int char_width; /* in pixels */
@@ -1008,7 +1008,7 @@ ppm_export			(vbi_export *		e,
 		if (!vbi_export_flush (e))
 			goto failed;
 
-		rgba_row_buffer = (const vbi_rgba *)
+		rgba_row_buffer = (vbi_rgba *)
 			(e->buffer.data
 			 + ((e->buffer.capacity - rgba_row_size)
 			    & -sizeof (*rgba_row_buffer))); /* align */
