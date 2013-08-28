@@ -19,7 +19,7 @@
  *  MA 02110-1301, USA.
  */
 
-/* $Id: export.c,v 1.24 2008-03-01 07:36:51 mschimek Exp $ */
+/* $Id: export.c,v 1.25 2013-08-28 14:44:39 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -44,7 +44,7 @@
 #  include "src/vbi.h"
 #  include "src/vt.h"
 #  define vbi_decoder_feed(vbi, sliced, n_lines, ts)			\
-	vbi_decode (vbi, sliced, n_lines, ts)
+	vbi_decode (vbi, (vbi_sliced *) sliced, n_lines, ts)
 #  define vbi_export_info_from_export(ex)				\
 	vbi_export_info_export (ex)
    /* Not available. */
