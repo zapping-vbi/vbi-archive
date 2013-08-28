@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Zapping 0.5\n"
 "Report-Msgid-Bugs-To: mschimek@users.sf.net\n"
-"POT-Creation-Date: 2013-07-05 07:06+0200\n"
+"POT-Creation-Date: 2013-08-28 16:25+0200\n"
 "PO-Revision-Date: 2004-10-25 12:24+0200\n"
 "Last-Translator: Paweł Sakowski <pawel@sakowski.eu.org>\n"
 "Language-Team: Polish <pl@li.org>\n"
@@ -300,40 +300,40 @@ msgid "Cannot initialize export module '%s', probably lack of memory."
 msgstr ""
 "Nie mogę zainicjalizować modułu eksportu '%s', prawdopodobnie brak pamięci."
 
-#: src/export.c:1841
+#: src/export.c:1845
 #, c-format
 msgid "Cannot create file '%s': %s."
 msgstr "Nie mogę utworzyć pliku '%s': %s."
 
-#: src/export.c:1936
+#: src/export.c:1940
 #, c-format
 msgid "Error while writing file '%s'"
 msgstr "Błąd podczas zapisu do pliku '%s'"
 
-#: src/export.c:1938
+#: src/export.c:1942
 msgid "Error while writing file"
 msgstr "Błąd podczas zapisu do pliku"
 
-#: src/export.c:1954
+#: src/export.c:1958
 msgid "Out of memory."
 msgstr ""
 
-#: src/export.c:1977
+#: src/export.c:1981
 #, c-format
 msgid "Export module '%s' has no option '%s'."
 msgstr "Moduł eksportu '%s' nie posiada opcji '%s'."
 
-#: src/export.c:2027
+#: src/export.c:2031
 #, c-format
 msgid "Invalid argument %s for option %s of export module %s."
 msgstr "Niewłaściwy argument %s dla opcji %s modułu eksportu %s."
 
-#: src/export.c:2051
+#: src/export.c:2055
 #, c-format
 msgid "Out of memory in export module '%s'."
 msgstr "Brak pamięci w module eksportu '%s'."
 
-#: src/export.c:2078
+#: src/export.c:2082
 msgid "Unknown error."
 msgstr "Nieznany błąd."
 

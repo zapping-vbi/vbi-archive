@@ -1,3 +1,56 @@
+2013-08-28    <mschimek@users.sf.net>
+
+	* Release 0.2.35.
+
+2013-08-28    <mschimek@users.sf.net>
+
+	* test/date.c (set_time): Applied bug fix patch by André Draszik.
+
+	* contrib/atsc-cc.c: Applied patch by André Draszik, removing stale
+	  include aio.h which is not available in uClibc.
+
+	* test/export.c (vbi_decoder_feed):
+	* test/date.c (decode_function):
+	* test/caption.c: Const cast because vbi_decode() second arg sliced
+	  data is incorrectly defined as mutable.
+
+	* src/ure.c: Added include wchar.h because clang didn't recognize
+	  wint_t.
+	(ure_write_dfa): printf format fix.
+
+	* src/teletext.c (enhance): Replaced nested function flush() and
+	  flush_row() for portability. Closes SF patch #16, incompatibility
+	  with clang.
+
+	* src/sampling_par.c (_vbi_sampling_par_valid_log)
+	(_vbi_sampling_par_permit_service)
+	(_vbi_sampling_par_from_services_log): Corrected printf format for
+	  videostd_set type from %x to %lx.
+
+	* src/proxy-msg.c (vbi_proxy_msg_v4l_ioctl)
+	(vbi_proxy_msg_v4l2_ioctl): Changed the ioctl request type to unsigned int
+	  because clang pointed out the v4l/v4l2 ioctl codes exceed int range.
+
+	* src/packet.c (same_header, same_clock): Const arg fix.
+	(parse_28_29): Replaced nested function bits() for portability. Closes SF
+	  patch #16, incompatibility with clang.
+
+	* src/libzvbi.h:
+	* src/io-sim.h: Uncommented vbi_capture_sim_load_caption() declaration
+	  because the function is needed for make check.
+
+	* test/sliced.c (read_more):
+	* src/export.c (vbi_export_mem):
+	(vbi_export_alloc): Const cast clarification.
+
+	* src/exp-gfx.c (ppm_export): Temp buffer was misdeclared as const.
+
+	* src/conv.c (strndup_iconv_to_ucs2): Silence iconv mutable src string warning.
+
+	* src/vbi.c (vbi_classify_page):
+	* examples/network.c (handler):
+	* daemon/proxyd.c (vbi_proxyd_take_message): Strings shouldn't be of type uchar.
+
 2013-07-11    <mschimek@users.sf.net>
 
 	* Release 0.2.34.

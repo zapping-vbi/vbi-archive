@@ -1,3 +1,8 @@
+libzvbi 0.2.35, 2013-08-28
+--------------------------
+Some corrections to allow compilation with clang/LLVM and uClibc,
+and a bug fix in test/time.c.
+
 libzvbi 0.2.34, 2013-07-11
 --------------------------
 This is a surprise bugfix release with improvements in the

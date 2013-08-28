@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zvbi 0.2.11\n"
 "Report-Msgid-Bugs-To: mschimek@users.sf.net\n"
-"POT-Creation-Date: 2013-07-05 07:06+0200\n"
+"POT-Creation-Date: 2013-08-28 16:25+0200\n"
 "PO-Revision-Date: 2007-11-27 18:35+0100\n"
 "Last-Translator: Christian Marillat <marillat.christian@wanadoo.fr>\n"
 "Language-Team: French <fr@li.org>\n"
@@ -301,40 +301,40 @@ msgstr ""
 "Ne peut initialiser le module d'export '%s', probablement un manque de "
 "mémoire."
 
-#: src/export.c:1841
+#: src/export.c:1845
 #, c-format
 msgid "Cannot create file '%s': %s."
 msgstr "Ne peut créer le fichier '%s' : %s."
 
-#: src/export.c:1936
+#: src/export.c:1940
 #, c-format
 msgid "Error while writing file '%s'"
 msgstr "Erreur lors de l'écriture du fichier '%s'"
 
-#: src/export.c:1938
+#: src/export.c:1942
 msgid "Error while writing file"
 msgstr "Erreur lors de l'écriture du fichier"
 
-#: src/export.c:1954
+#: src/export.c:1958
 msgid "Out of memory."
 msgstr ""
 
-#: src/export.c:1977
+#: src/export.c:1981
 #, c-format
 msgid "Export module '%s' has no option '%s'."
 msgstr "Le module d'export '%s' na pas d'option '%s'."
 
-#: src/export.c:2027
+#: src/export.c:2031
 #, c-format
 msgid "Invalid argument %s for option %s of export module %s."
 msgstr "Argument invalide %s pour l'option %s du module d'export %s."
 
-#: src/export.c:2051
+#: src/export.c:2055
 #, c-format
 msgid "Out of memory in export module '%s'."
 msgstr "Plus de mémoire pour le module d'export '%s'."
 
-#: src/export.c:2078
+#: src/export.c:2082
 msgid "Unknown error."
 msgstr "Erreur inconnue."
 
