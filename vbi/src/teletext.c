@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: teletext.c,v 1.33 2013-07-02 04:03:54 mschimek Exp $ */
+/* $Id: teletext.c,v 1.34 2013-08-28 14:44:55 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -1232,6 +1232,196 @@ resolve_obj_address		(vbi_decoder *		vbi,
 	return trip + 1;
 }
 
+struct enhance_state {
+	const cache_page *	vtp;
+	enum ttx_object_type	type;
+	vbi_char		ac, mac, *acp;
+	int			inv_row, inv_column;
+	int			active_row, active_column;
+	int			row_color;
+	int			next_row_color;
+	int			row_color_transparent;
+	int			invert;
+};
+
+static void
+enhance_flush(struct enhance_state *es, int column)
+{
+	int row = es->inv_row + es->active_row;
+	int i;
+
+	if (row >= ROWS)
+		return;
+
+	if (es->type == OBJECT_TYPE_PASSIVE && !es->mac.unicode) {
+		es->active_column = column;
+		return;
+	}
+
+	printv("flush [%04x%c,F%d%c,B%d%c,S%d%c,O%d%c,H%d%c] %d ... %d\n",
+	       es->ac.unicode, es->mac.unicode ? '*' : ' ',
+	       es->ac.foreground, es->mac.foreground ? '*' : ' ',
+	       es->ac.background, es->mac.background ? '*' : ' ',
+	       es->ac.size, es->mac.size ? '*' : ' ',
+	       es->ac.opacity, es->mac.opacity ? '*' : ' ',
+	       es->ac.flash, es->mac.flash ? '*' : ' ',
+	       es->active_column, column - 1);
+
+	for (i = es->inv_column + es->active_column; i < es->inv_column + column;) {
+		vbi_char c;
+
+		if (i > 39)
+			break;
+
+		c = es->acp[i];
+
+		if (es->mac.underline) {
+			int u = es->ac.underline;
+
+			if (!es->mac.unicode)
+				es->ac.unicode = c.unicode;
+
+			if (vbi_is_gfx(es->ac.unicode)) {
+				if (u)
+					es->ac.unicode &= ~0x20; /* separated */
+				else
+					es->ac.unicode |= 0x20; /* contiguous */
+				es->mac.unicode = ~0;
+				u = 0;
+			}
+
+			c.underline = u;
+		}
+		if (es->mac.foreground)
+			c.foreground = (es->ac.foreground != VBI_TRANSPARENT_BLACK) ?
+				es->ac.foreground : (es->row_color_transparent) ?
+				VBI_TRANSPARENT_BLACK : es->row_color;
+		if (es->mac.background)
+			c.background = (es->ac.background != VBI_TRANSPARENT_BLACK) ?
+				es->ac.background : (es->row_color_transparent) ?
+				VBI_TRANSPARENT_BLACK : es->row_color;
+		if (es->invert) {
+			int t = c.foreground;
+
+			c.foreground = c.background;
+			c.background = t;
+		}
+		if (es->mac.opacity)
+			c.opacity = es->ac.opacity;
+		if (es->mac.flash)
+			c.flash = es->ac.flash;
+		if (es->mac.conceal)
+			c.conceal = es->ac.conceal;
+		if (es->mac.unicode) {
+			c.unicode = es->ac.unicode;
+			es->mac.unicode = 0;
+
+			if (es->mac.size)
+				c.size = es->ac.size;
+			else if (c.size > VBI_DOUBLE_SIZE)
+				c.size = VBI_NORMAL_SIZE;
+		}
+
+		es->acp[i] = c;
+
+		if (es->type == OBJECT_TYPE_PASSIVE)
+			break;
+
+		i++;
+
+		if (es->type != OBJECT_TYPE_PASSIVE
+		    && es->type != OBJECT_TYPE_ADAPTIVE) {
+			int raw;
+
+			raw = (row == 0 && i < 9) ?
+				0x20 : vbi_unpar8 (es->vtp->data.lop.raw[row][i - 1]);
+
+			/* set-after spacing attributes cancelling non-spacing */
+
+			switch (raw) {
+			case 0x00 ... 0x07:	/* alpha + foreground color */
+			case 0x10 ... 0x17:	/* mosaic + foreground color */
+				printv("... fg term %d %02x\n", i, raw);
+				es->mac.foreground = 0;
+				es->mac.conceal = 0;
+				break;
+
+			case 0x08:		/* flash */
+				es->mac.flash = 0;
+				break;
+
+			case 0x0A:		/* end box */
+			case 0x0B:		/* start box */
+				if (i < COLUMNS && vbi_unpar8 (es->vtp->data.lop.raw[row][i]) == raw) {
+					printv("... boxed term %d %02x\n", i, raw);
+					es->mac.opacity = 0;
+				}
+
+				break;
+
+			case 0x0D:		/* double height */
+			case 0x0E:		/* double width */
+			case 0x0F:		/* double size */
+				printv("... size term %d %02x\n", i, raw);
+				es->mac.size = 0;
+				break;
+			}
+
+			if (i > 39)
+				break;
+
+			raw = (row == 0 && i < 8) ?
+				0x20 : vbi_unpar8 (es->vtp->data.lop.raw[row][i]);
+
+			/* set-at spacing attributes cancelling non-spacing */
+
+			switch (raw) {
+			case 0x09:		/* steady */
+				es->mac.flash = 0;
+				break;
+
+			case 0x0C:		/* normal size */
+				printv("... size term %d %02x\n", i, raw);
+				es->mac.size = 0;
+				break;
+
+			case 0x18:		/* conceal */
+				es->mac.conceal = 0;
+				break;
+
+				/*
+				 *  Non-spacing underlined/separated display attribute
+				 *  cannot be cancelled by a subsequent spacing attribute.
+				 */
+
+			case 0x1C:		/* black background */
+			case 0x1D:		/* new background */
+				printv("... bg term %d %02x\n", i, raw);
+				es->mac.background = 0;
+				break;
+			}
+		}
+	}
+
+	es->active_column = column;
+}
+
+static void
+enhance_flush_row(struct enhance_state *es)
+{
+	int column;
+
+	if (es->type == OBJECT_TYPE_PASSIVE || es->type == OBJECT_TYPE_ADAPTIVE)
+		column = es->active_column + 1;
+	else
+		column = COLUMNS;
+
+	enhance_flush (es, column);
+
+	if (es->type != OBJECT_TYPE_PASSIVE)
+		memset (&es->mac, 0, sizeof (es->mac));
+}
+
 /* FIXME: panels */
 
 static vbi_bool
@@ -1246,225 +1436,50 @@ enhance(vbi_decoder *vbi,
 	vbi_wst_level max_level, vbi_bool header_only,
 	struct pex26 *ptable)
 {
-	vbi_char ac, mac, *acp;
-	int active_column, active_row;
+	struct enhance_state es;
 	int offset_column, offset_row;
-	int row_color, next_row_color;
-	int row_color_transparent;
 	struct vbi_font_descr *font;
-	int invert;
 	int drcs_s1[2];
 	struct pex26 *pt, ptmp;
 	int pdc_hr;
 
-	/* XXX nested function not portable, to be removed */
-	void
-	flush(int column)
-	{
-		int row = inv_row + active_row;
-		int i;
+	es.vtp = vtp;
+	es.type = type;
+	es.inv_row = inv_row;
+	es.inv_column = inv_column;
 
-		if (row >= ROWS)
-			return;
+	es.active_column = 0;
+	es.active_row = 0;
 
-		if (type == OBJECT_TYPE_PASSIVE && !mac.unicode) {
-			active_column = column;
-			return;
-		}
-
-		printv("flush [%04x%c,F%d%c,B%d%c,S%d%c,O%d%c,H%d%c] %d ... %d\n",
-			ac.unicode, mac.unicode ? '*' : ' ',
-			ac.foreground, mac.foreground ? '*' : ' ',
-			ac.background, mac.background ? '*' : ' ',
-			ac.size, mac.size ? '*' : ' ',
-			ac.opacity, mac.opacity ? '*' : ' ',
-			ac.flash, mac.flash ? '*' : ' ',
-			active_column, column - 1);
-
-		for (i = inv_column + active_column; i < inv_column + column;) {
-			vbi_char c;
-
-			if (i > 39)
-				break;
-
-			c = acp[i];
-
-			if (mac.underline) {
-				int u = ac.underline;
-
-				if (!mac.unicode)
-					ac.unicode = c.unicode;
-
-				if (vbi_is_gfx(ac.unicode)) {
-					if (u)
-						ac.unicode &= ~0x20; /* separated */
-					else
-						ac.unicode |= 0x20; /* contiguous */
-					mac.unicode = ~0;
-					u = 0;
-				}
-
-				c.underline = u;
-			}
-			if (mac.foreground)
-				c.foreground = (ac.foreground != VBI_TRANSPARENT_BLACK) ?
-					ac.foreground : (row_color_transparent) ?
-					VBI_TRANSPARENT_BLACK : row_color;
-			if (mac.background)
-				c.background = (ac.background != VBI_TRANSPARENT_BLACK) ?
-					ac.background : (row_color_transparent) ?
-					VBI_TRANSPARENT_BLACK : row_color;
-			if (invert) {
-				int t = c.foreground;
-
-				c.foreground = c.background;
-				c.background = t;
-			}
-			if (mac.opacity)
-				c.opacity = ac.opacity;
-			if (mac.flash)
-				c.flash = ac.flash;
-			if (mac.conceal)
-				c.conceal = ac.conceal;
-			if (mac.unicode) {
-				c.unicode = ac.unicode;
-				mac.unicode = 0;
-
-				if (mac.size)
-					c.size = ac.size;
-				else if (c.size > VBI_DOUBLE_SIZE)
-					c.size = VBI_NORMAL_SIZE;
-			}
-
-			acp[i] = c;
-
-			if (type == OBJECT_TYPE_PASSIVE)
-				break;
-
-			i++;
-
-			if (type != OBJECT_TYPE_PASSIVE
-			    && type != OBJECT_TYPE_ADAPTIVE) {
-				int raw;
-
-				raw = (row == 0 && i < 9) ?
-					0x20 : vbi_unpar8 (vtp->data.lop.raw[row][i - 1]);
-
-				/* set-after spacing attributes cancelling non-spacing */
-
-				switch (raw) {
-				case 0x00 ... 0x07:	/* alpha + foreground color */
-				case 0x10 ... 0x17:	/* mosaic + foreground color */
-					printv("... fg term %d %02x\n", i, raw);
-					mac.foreground = 0;
-					mac.conceal = 0;
-					break;
-
-				case 0x08:		/* flash */
-					mac.flash = 0;
-					break;
-
-				case 0x0A:		/* end box */
-				case 0x0B:		/* start box */
-					if (i < COLUMNS && vbi_unpar8 (vtp->data.lop.raw[row][i]) == raw) {
-						printv("... boxed term %d %02x\n", i, raw);
-						mac.opacity = 0;
-					}
-
-					break;
-
-				case 0x0D:		/* double height */
-				case 0x0E:		/* double width */
-				case 0x0F:		/* double size */
-					printv("... size term %d %02x\n", i, raw);
-					mac.size = 0;
-					break;
-				}
-
-				if (i > 39)
-					break;
-
-				raw = (row == 0 && i < 8) ?
-					0x20 : vbi_unpar8 (vtp->data.lop.raw[row][i]);
-
-				/* set-at spacing attributes cancelling non-spacing */
-
-				switch (raw) {
-				case 0x09:		/* steady */
-					mac.flash = 0;
-					break;
-
-				case 0x0C:		/* normal size */
-					printv("... size term %d %02x\n", i, raw);
-					mac.size = 0;
-					break;
-
-				case 0x18:		/* conceal */
-					mac.conceal = 0;
-					break;
-
-					/*
-					 *  Non-spacing underlined/separated display attribute
-					 *  cannot be cancelled by a subsequent spacing attribute.
-					 */
-
-				case 0x1C:		/* black background */
-				case 0x1D:		/* new background */
-					printv("... bg term %d %02x\n", i, raw);
-					mac.background = 0;
-					break;
-				}
-			}
-		}
-
-		active_column = column;
-	}
-
-	/* XXX nested function not portable, to be removed */
-	void
-	flush_row(void)
-	{
-		if (type == OBJECT_TYPE_PASSIVE || type == OBJECT_TYPE_ADAPTIVE)
-			flush(active_column + 1);
-		else
-			flush(COLUMNS);
-
-		if (type != OBJECT_TYPE_PASSIVE)
-			memset(&mac, 0, sizeof(mac));
-	}
-
-	active_column = 0;
-	active_row = 0;
-
-	acp = &pg->text[(inv_row + 0) * EXT_COLUMNS];
+	es.acp = &pg->text[(inv_row + 0) * EXT_COLUMNS];
 
 	offset_column = 0;
 	offset_row = 0;
 
-	row_color =
-	next_row_color = ext->def_row_color;
-	row_color_transparent = FALSE;
+	es.row_color =
+	es.next_row_color = ext->def_row_color;
+	es.row_color_transparent = FALSE;
 
 	drcs_s1[0] = 0; /* global */
 	drcs_s1[1] = 0; /* normal */
 
-	memset(&ac, 0, sizeof(ac));
-	memset(&mac, 0, sizeof(mac));
+	memset (&es.ac, 0, sizeof (es.ac));
+	memset (&es.mac, 0, sizeof (es.mac));
 
-	invert = 0;
+	es.invert = 0;
 
 	if (type == OBJECT_TYPE_PASSIVE) {
-		ac.foreground = VBI_WHITE;
-		ac.background = VBI_BLACK;
-		ac.opacity = pg->page_opacity[1];
+		es.ac.foreground = VBI_WHITE;
+		es.ac.background = VBI_BLACK;
+		es.ac.opacity = pg->page_opacity[1];
 
-		mac.foreground = ~0;
-		mac.background = ~0;
-		mac.opacity = ~0;
-		mac.size = ~0;
-		mac.underline = ~0;
-		mac.conceal = ~0;
-		mac.flash = ~0;
+		es.mac.foreground = ~0;
+		es.mac.background = ~0;
+		es.mac.opacity = ~0;
+		es.mac.size = ~0;
+		es.mac.underline = ~0;
+		es.mac.conceal = ~0;
+		es.mac.flash = ~0;
 	}
 
 	font = pg->font[0];
@@ -1512,14 +1527,14 @@ enhance(vbi_decoder *vbi,
 				/* fall through */
 
 			case 0x01:		/* full row color */
-				row_color = next_row_color;
+				es.row_color = es.next_row_color;
 
 				if (s == 0) {
-					row_color = p->data & 0x1F;
-					next_row_color = ext->def_row_color;
+					es.row_color = p->data & 0x1F;
+					es.next_row_color = ext->def_row_color;
 				} else if (s == 3) {
-					row_color =
-					next_row_color = p->data & 0x1F;
+					es.row_color =
+					es.next_row_color = p->data & 0x1F;
 				}
 
 				goto set_active;
@@ -1536,8 +1551,8 @@ enhance(vbi_decoder *vbi,
 					column = p->data;
 				}
 
-				if (row > active_row)
-					row_color = next_row_color;
+				if (row > es.active_row)
+					es.row_color = es.next_row_color;
 
 			set_active:
 				if (header_only && row > 0) {
@@ -1553,15 +1568,15 @@ enhance(vbi_decoder *vbi,
 
 				printv("enh set_active row %d col %d\n", row, column);
 
-				if (row > active_row)
-					flush_row();
+				if (row > es.active_row)
+					enhance_flush_row (&es);
 				else
-					flush(active_column + 1);
+					enhance_flush (&es, es.active_column + 1);
 
-				active_row = row;
-				active_column = column;
+				es.active_row = row;
+				es.active_column = column;
 
-				acp = &pg->text[(inv_row + active_row) * EXT_COLUMNS];
+				es.acp = &pg->text[(es.inv_row + es.active_row) * EXT_COLUMNS];
 
 				break;
 
@@ -1725,8 +1740,8 @@ enhance(vbi_decoder *vbi,
 						return FALSE;
 				}
 
-				row = inv_row + active_row;
-				column = inv_column + active_column;
+				row = es.inv_row + es.active_row;
+				column = es.inv_column + es.active_column;
 
 				if (!enhance(vbi, mag, ext, pg, vtp, new_type, trip,
 					     remaining_max_triplets,
@@ -1752,7 +1767,7 @@ enhance(vbi_decoder *vbi,
 				break;
 
 			case 0x15 ... 0x17:	/* object definition */
-				flush_row();
+				enhance_flush_row (&es);
 				printv("enh obj definition 0x%02x 0x%02x\n", p->mode, p->data);
 				printv("enh terminated\n");
 				goto swedish;
@@ -1768,7 +1783,7 @@ enhance(vbi_decoder *vbi,
 			case 0x1F:		/* termination marker */
 			default:
 	                terminate:
-				flush_row();
+				enhance_flush_row (&es);
 				printv("enh terminated %02x\n", p->mode);
 				goto swedish;
 			}
@@ -1783,21 +1798,22 @@ enhance(vbi_decoder *vbi,
 			switch (p->mode) {
 			case 0x00:		/* foreground color */
 				if (max_level >= VBI_WST_LEVEL_2p5 && s == 0) {
-					if (column > active_column)
-						flush(column);
+					if (column > es.active_column)
+						enhance_flush (&es, column);
 
-					ac.foreground = p->data & 0x1F;
-					mac.foreground = ~0;
+					es.ac.foreground = p->data & 0x1F;
+					es.mac.foreground = ~0;
 
-					printv("enh col %d foreground %d\n", active_column, ac.foreground);
+					printv("enh col %d foreground %d\n",
+					       es.active_column, es.ac.foreground);
 				}
 
 				break;
 
 			case 0x01:		/* G1 block mosaic character */
 				if (max_level >= VBI_WST_LEVEL_2p5) {
-					if (column > active_column)
-						flush(column);
+					if (column > es.active_column)
+						enhance_flush (&es, column);
 
 					if (p->data & 0x20) {
 						unicode = 0xEE00 + p->data; /* G1 contiguous */
@@ -1819,8 +1835,8 @@ enhance(vbi_decoder *vbi,
 
 			case 0x02:		/* G3 smooth mosaic or line drawing character */
 				if (p->data >= 0x20) {
-					if (column > active_column)
-						flush(column);
+					if (column > es.active_column)
+						enhance_flush (&es, column);
 
 					unicode = 0xEF00 + p->data;
 					goto store;
@@ -1830,13 +1846,14 @@ enhance(vbi_decoder *vbi,
 
 			case 0x03:		/* background color */
 				if (max_level >= VBI_WST_LEVEL_2p5 && s == 0) {
-					if (column > active_column)
-						flush(column);
+					if (column > es.active_column)
+						enhance_flush (&es, column);
 
-					ac.background = p->data & 0x1F;
-					mac.background = ~0;
+					es.ac.background = p->data & 0x1F;
+					es.mac.background = ~0;
 
-					printv("enh col %d background %d\n", active_column, ac.background);
+					printv("enh col %d background %d\n",
+					       es.active_column, es.ac.background);
 				}
 
 				break;
@@ -1889,41 +1906,42 @@ enhance(vbi_decoder *vbi,
 
 			case 0x07:		/* additional flash functions */
 				if (max_level >= VBI_WST_LEVEL_2p5) {
-					if (column > active_column)
-						flush(column);
+					if (column > es.active_column)
+						enhance_flush (&es, column);
 
 					/*
 					 *  Only one flash function (if any) implemented:
 					 *  Mode 1 - Normal flash to background color
 					 *  Rate 0 - Slow rate (1 Hz)
 					 */
-					ac.flash = !!(p->data & 3);
-					mac.flash = ~0;
+					es.ac.flash = !!(p->data & 3);
+					es.mac.flash = ~0;
 
-					printv("enh col %d flash 0x%02x\n", active_column, p->data);
+					printv("enh col %d flash 0x%02x\n", es.active_column, p->data);
 				}
 
 				break;
 
 			case 0x08:		/* modified G0 and G2 character set designation */
 				if (max_level >= VBI_WST_LEVEL_2p5) {
-					if (column > active_column)
-						flush(column);
+					if (column > es.active_column)
+						enhance_flush (&es, column);
 
 					if (VALID_CHARACTER_SET(p->data))
 						font = vbi_font_descriptors + p->data;
 					else
 						font = pg->font[0];
 
-					printv("enh col %d modify character set %d\n", active_column, p->data);
+					printv("enh col %d modify character set %d\n",
+					       es.active_column, p->data);
 				}
 
 				break;
 
 			case 0x09:		/* G0 character */
 				if (max_level >= VBI_WST_LEVEL_2p5 && p->data >= 0x20) {
-					if (column > active_column)
-						flush(column);
+					if (column > es.active_column)
+						enhance_flush (&es, column);
 
 					unicode = vbi_teletext_unicode(font->G0, NO_SUBSET, p->data);
 					goto store;
@@ -1938,35 +1956,36 @@ enhance(vbi_decoder *vbi,
 				if (max_level < VBI_WST_LEVEL_2p5)
 					break;
 
-				if (column > active_column)
-					flush(column);
+				if (column > es.active_column)
+					enhance_flush (&es, column);
 
-				ac.size = ((p->data & 0x40) ? VBI_DOUBLE_WIDTH : 0)
+				es.ac.size = ((p->data & 0x40) ? VBI_DOUBLE_WIDTH : 0)
 					+ ((p->data & 1) ? VBI_DOUBLE_HEIGHT : 0);
-				mac.size = ~0;
+				es.mac.size = ~0;
 
 				if (vtp->flags & (C5_NEWSFLASH | C6_SUBTITLE)) {
 					if (p->data & 2) {
-						ac.opacity = VBI_SEMI_TRANSPARENT;
+						es.ac.opacity = VBI_SEMI_TRANSPARENT;
 					} else {
-						ac.opacity = pg->page_opacity[1];
+						es.ac.opacity = pg->page_opacity[1];
 					}
-					mac.opacity = ~0;
+					es.mac.opacity = ~0;
 				} else {
-					row_color_transparent = p->data & 2;
+					es.row_color_transparent = p->data & 2;
 				}
 
-				ac.conceal = !!(p->data & 4);
-				mac.conceal = ~0;
+				es.ac.conceal = !!(p->data & 4);
+				es.mac.conceal = ~0;
 
 				/* (p->data & 8) reserved */
 
-				invert = p->data & 0x10;
+				es.invert = p->data & 0x10;
 
-				ac.underline = !!(p->data & 0x20);
-				mac.underline = ~0;
+				es.ac.underline = !!(p->data & 0x20);
+				es.mac.underline = ~0;
 
-				printv("enh col %d display attr 0x%02x\n", active_column, p->data);
+				printv("enh col %d display attr 0x%02x\n",
+				       es.active_column, p->data);
 
 				break;
 
@@ -1983,12 +2002,13 @@ enhance(vbi_decoder *vbi,
 				if (offset >= 48)
 					break; /* invalid */
 
-				if (column > active_column)
-					flush(column);
+				if (column > es.active_column)
+					enhance_flush (&es, column);
 
 				page = normal * 16 + drcs_s1[normal];
 
-				printv("enh col %d DRCS %d/0x%02x\n", active_column, page, p->data);
+				printv("enh col %d DRCS %d/0x%02x\n",
+				       es.active_column, page, p->data);
 
 				/* if (!pg->drcs[page]) */ {
 					cache_page *dvtp;
@@ -2086,7 +2106,7 @@ enhance(vbi_decoder *vbi,
 				if (max_level < VBI_WST_LEVEL_3p5)
 					break;
 
-				row = inv_row + active_row;
+				row = es.inv_row + es.active_row;
 				count = (p->data >> 4) + 1;
 				acp = &pg->text[row * EXT_COLUMNS];
 
@@ -2106,15 +2126,16 @@ enhance(vbi_decoder *vbi,
 					count--;
 				}
 
-				printv("enh col %d font style 0x%02x\n", active_column, p->data);
+				printv("enh col %d font style 0x%02x\n",
+				       es.active_column, p->data);
 
 				break;
 			}
 
 			case 0x0F:		/* G2 character */
 				if (p->data >= 0x20) {
-					if (column > active_column)
-						flush(column);
+					if (column > es.active_column)
+						enhance_flush (&es, column);
 
 					unicode = vbi_teletext_unicode(font->G2, NO_SUBSET, p->data);
 					goto store;
@@ -2124,18 +2145,18 @@ enhance(vbi_decoder *vbi,
 
 			case 0x10 ... 0x1F:	/* characters including diacritical marks */
 				if (p->data >= 0x20) {
-					if (column > active_column)
-						flush(column);
+					if (column > es.active_column)
+						enhance_flush (&es, column);
 
 					unicode = vbi_teletext_composed_unicode(
 						p->mode - 0x10, p->data);
 			store:
 					printv("enh row %d col %d print 0x%02x/0x%02x -> 0x%04x\n",
-						active_row, active_column, p->mode, p->data,
+						es.active_row, es.active_column, p->mode, p->data,
 						unicode);
 
-					ac.unicode = unicode;
-					mac.unicode = ~0;
+					es.ac.unicode = unicode;
+					es.mac.unicode = ~0;
 				}
 
 				break;
@@ -2154,18 +2175,19 @@ swedish:
 	}
 
 	if (0) {
-		acp = pg->text;
+		es.acp = pg->text;
 
-		for (active_row = 0; active_row < ROWS; active_row++) {
-			printv("%2d: ", active_row);
+		for (es.active_row = 0; es.active_row < ROWS; es.active_row++) {
+			printv("%2d: ", es.active_row);
 
-			for (active_column = 0; active_column < COLUMNS; acp++, active_column++) {
-				printv("%04x ", acp->unicode);
+			for (es.active_column = 0; es.active_column < COLUMNS;
+			     es.acp++, es.active_column++) {
+				printv("%04x ", es.acp->unicode);
 			}
 
 			printv("\n");
 
-			acp += EXT_COLUMNS - COLUMNS;
+			es.acp += EXT_COLUMNS - COLUMNS;
 		}
 	}
 
