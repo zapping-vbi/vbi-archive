@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: packet.c,v 1.32 2013-07-10 11:37:28 mschimek Exp $ */
+/* $Id: packet.c,v 1.33 2013-08-28 14:45:12 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -1445,8 +1445,8 @@ parse_bsd(vbi_decoder *vbi, uint8_t *raw, int packet, int designation)
 }
 
 static int
-same_header(int cur_pgno, uint8_t *cur,
-	    int ref_pgno, uint8_t *ref,
+same_header(int cur_pgno, const uint8_t *cur,
+	    int ref_pgno, const uint8_t *ref,
 	    int *page_num_offsetp)
 {
 	uint8_t buf[3];
@@ -1503,7 +1503,7 @@ same_header(int cur_pgno, uint8_t *cur,
 }
 
 static inline vbi_bool
-same_clock(uint8_t *cur, uint8_t *ref)
+same_clock(const uint8_t *cur, const uint8_t *ref)
 {
 	int i;
 
@@ -1846,6 +1846,36 @@ if(0)
 	return TRUE;
 }
 
+struct bit_stream {
+	int *			triplet;
+	unsigned int		buffer;
+	unsigned int		left;
+};
+
+static unsigned int
+get_bits			(struct	bit_stream *	bs,
+				 unsigned int		count)
+{
+	unsigned int r;
+	int n;
+
+	r = bs->buffer;
+	n = count - bs->left;
+
+	if (n > 0) {
+		bs->buffer = *(bs->triplet)++;
+		r |= bs->buffer << bs->left;
+		bs->left = 18 - n;
+	} else {
+		n = count;
+		bs->left -= count;
+	}
+
+	bs->buffer >>= n;
+
+	return r & ((1UL << count) - 1);
+}
+
 /*
  *  Teletext packets 28 and 29, Level 2.5/3.5 enhancement
  */
@@ -1853,30 +1883,11 @@ static vbi_bool
 parse_28_29(vbi_decoder *vbi, uint8_t *p,
 	    cache_page *cvtp, int mag8, int packet)
 {
-	int designation, function;
-	int triplets[13], *triplet = triplets, buf = 0, left = 0;
+	int designation, function, coding;
+	int triplets[13];
+	struct bit_stream bs;
 	struct ttx_extension *ext;
 	int i, j, err = 0;
-
-	/* XXX nested function not portable, to be removed */
-	int
-	bits(int count)
-	{
-		int r, n;
-
-		r = buf;
-
-		if ((n = count - left) > 0) {
-			r |= (buf = *triplet++) << left;
-			left = 18;
-		} else
-			n = count;
-
-		buf >>= n;
-		left -= n;
-
-		return r & ((1UL << count) - 1);
-	}
 
 	if ((designation = vbi_unham8 (*p)) < 0)
 		return FALSE;
@@ -1886,7 +1897,11 @@ parse_28_29(vbi_decoder *vbi, uint8_t *p,
 			mag8, packet, designation, cvtp->pgno);
 
 	for (p++, i = 0; i < 13; p += 3, i++)
-		err |= triplet[i] = vbi_unham24p (p);
+		err |= triplets[i] = vbi_unham24p (p);
+
+	bs.triplet = triplets;
+	bs.buffer = 0;
+	bs.left = 0;
 
 	switch (designation) {
 	case 0: /* X/28/0, M/29/0 Level 2.5 */
@@ -1894,8 +1909,8 @@ parse_28_29(vbi_decoder *vbi, uint8_t *p,
 		if (err < 0)
 			return FALSE;
 
-		function = bits(4);
-		bits(3); /* page coding ignored */
+		function = get_bits (&bs, 4);
+		coding = get_bits (&bs, 3); /* page coding ignored */
 
 //		printf("... function %d\n", function);
 
@@ -1931,24 +1946,24 @@ parse_28_29(vbi_decoder *vbi, uint8_t *p,
 		}
 
 		if (designation == 4 && (ext->designations & (1 << 0)))
-			bits(14 + 2 + 1 + 4);
+			get_bits (&bs, 14 + 2 + 1 + 4);
 		else {
 			vbi_bool left_panel;
 			vbi_bool right_panel;
 			unsigned int left_columns;
 
-			ext->charset_code[0] = bits(7);
-			ext->charset_code[1] = bits(7);
+			ext->charset_code[0] = get_bits (&bs, 7);
+			ext->charset_code[1] = get_bits (&bs, 7);
 
-			left_panel = bits (1);
-			right_panel = bits (1);
+			left_panel = get_bits (&bs, 1);
+			right_panel = get_bits (&bs, 1);
 
 			/* 0 - panels required at Level 3.5 only,
 			   1 - at 2.5 and 3.5
 			   ignored. */
-			bits (1);
+			get_bits (&bs, 1);
 
-			left_columns = bits (4);
+			left_columns = get_bits (&bs, 4);
 
 			if (left_panel && 0 == left_columns)
 				left_columns = 16;
@@ -1962,7 +1977,7 @@ parse_28_29(vbi_decoder *vbi, uint8_t *p,
 		j = (designation == 4) ? 16 : 32;
 
 		for (i = j - 16; i < j; i++) {
-			vbi_rgba col = bits(12);
+			vbi_rgba col = get_bits (&bs, 12);
 
 			if (i == 8) /* transparent */
 				continue;
@@ -1975,14 +1990,14 @@ parse_28_29(vbi_decoder *vbi, uint8_t *p,
 		}
 
 		if (designation == 4 && (ext->designations & (1 << 0)))
-			bits(10 + 1 + 3);
+			get_bits (&bs, 10 + 1 + 3);
 		else {
-			ext->def_screen_color = bits(5);
-			ext->def_row_color = bits(5);
+			ext->def_screen_color = get_bits (&bs, 5);
+			ext->def_row_color = get_bits (&bs, 5);
 
-			ext->fallback.black_bg_substitution = bits(1);
+			ext->fallback.black_bg_substitution = get_bits (&bs, 1);
 
-			i = bits(3); /* color table remapping */
+			i = get_bits (&bs, 3); /* color table remapping */
 
 			ext->foreground_clut = "\00\00\00\10\10\20\20\20"[i];
 			ext->background_clut = "\00\10\20\10\20\10\20\30"[i];
@@ -2026,13 +2041,15 @@ parse_28_29(vbi_decoder *vbi, uint8_t *p,
 			/* XXX TODO - lop? */
 		}
 
-		triplet++;
+		/* 9.4.4: "Compatibility, not for Level 2.5/3.5 decoders."
+		   No more details, so we ignore this triplet. */
+		++bs.triplet;
 
 		for (i = 0; i < 8; i++)
-			ext->drcs_clut[i + 2] = vbi_rev8 (bits(5)) >> 3;
+			ext->drcs_clut[i + 2] = vbi_rev8 (get_bits (&bs, 5)) >> 3;
 
 		for (i = 0; i < 32; i++)
-			ext->drcs_clut[i + 10] = vbi_rev8 (bits(5)) >> 3;
+			ext->drcs_clut[i + 10] = vbi_rev8 (get_bits (&bs, 5)) >> 3;
 
 		ext->designations |= 1 << 1;
 
@@ -2048,8 +2065,8 @@ parse_28_29(vbi_decoder *vbi, uint8_t *p,
 		if (err < 0)
 			return FALSE;
 
-		function = bits(4);
-		bits(3); /* page coding ignored */
+		function = get_bits (&bs, 4);
+		coding = get_bits (&bs, 3); /* page coding ignored */
 
 		if (function != PAGE_FUNCTION_GDRCS
 		    || function != PAGE_FUNCTION_DRCS)
@@ -2069,10 +2086,10 @@ parse_28_29(vbi_decoder *vbi, uint8_t *p,
 			return 0;
 		}
 
-		bits(11);
+		get_bits (&bs, 11);
 
 		for (i = 0; i < 48; i++)
-			cvtp->data.drcs.mode[i] = bits(4);
+			cvtp->data.drcs.mode[i] = get_bits (&bs, 4);
 
 	default: /* ? */
 		break;
