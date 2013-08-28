@@ -34,9 +34,12 @@
  */
  
 /*
- *  $Id: proxy-msg.c,v 1.20 2008-02-19 00:35:21 mschimek Exp $
+ *  $Id: proxy-msg.c,v 1.21 2013-08-28 14:45:06 mschimek Exp $
  *
  *  $Log: not supported by cvs2svn $
+ *  Revision 1.20  2008/02/19 00:35:21  mschimek
+ *  *** empty log message ***
+ *
  *  Revision 1.19  2007/11/27 18:31:07  mschimek
  *  Updated the FSF address in the copyright notice.
  *
@@ -1327,7 +1330,7 @@ vbi_bool vbi_proxy_msg_finish_connect( int sock_fd, char ** ppErrorText )
 ** Query size and character of an ioctl request for v4l1 drivers
 */
 static int
-vbi_proxy_msg_v4l_ioctl( int request, void * p_arg, vbi_bool * req_perm )
+vbi_proxy_msg_v4l_ioctl( unsigned int request, void * p_arg, vbi_bool * req_perm )
 {
    p_arg = p_arg;
 
@@ -1371,7 +1374,7 @@ vbi_proxy_msg_v4l_ioctl( int request, void * p_arg, vbi_bool * req_perm )
 ** Query size and character of an ioctl request for v4l2 drivers
 */
 static int
-vbi_proxy_msg_v4l2_ioctl( int request, void * p_arg, vbi_bool * req_perm )
+vbi_proxy_msg_v4l2_ioctl( unsigned int request, void * p_arg, vbi_bool * req_perm )
 {
    switch (request)
    {
