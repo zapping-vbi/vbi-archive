@@ -29,7 +29,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* $Id: ure.c,v 1.8 2008-02-19 00:35:22 mschimek Exp $ */
+/* $Id: ure.c,v 1.9 2013-08-28 14:44:49 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -41,7 +41,8 @@
 
 #if defined(HAVE_GLIBC21)
 
-#include <wctype.h>
+#include <wchar.h> /* wint_t */
+#include <wctype.h> /* isw...() */
 
 #define unicode_isalnum(c) iswalnum((wint_t)(c))
 #define unicode_isalpha(c) iswalpha((wint_t)(c))
@@ -2070,7 +2071,7 @@ ure_write_dfa(ure_dfa_t dfa, FILE *out)
 	  if (sym->props & (1 << k)) {
 	    if (h != 0)
 	      putc(',', out);
-	    fprintf(out, "%hd", k + 1);
+	    fprintf(out, "%hd", (short)(k + 1));
 	    h = 1;
 	  }
 	}
