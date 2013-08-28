@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: sampling_par.c,v 1.11 2009-02-18 15:37:11 mschimek Exp $ */
+/* $Id: sampling_par.c,v 1.12 2013-08-28 14:45:00 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -166,8 +166,8 @@ _vbi_sampling_par_valid_log	(const vbi_sampling_par *sp,
 	} else {
 	ambiguous:
 		info (log,
-			"Ambiguous videostd_set 0x%x.",
-			videostd_set);
+		      "Ambiguous videostd_set 0x%lx.",
+		      (unsigned long) videostd_set);
 		return FALSE;
 	}
 
@@ -240,11 +240,12 @@ _vbi_sampling_par_permit_service
 #endif
 	if (0 == (par->videostd_set & videostd_set)) {
 		info (log,
-			"Service 0x%08x (%s) requires "
-			"videostd_set 0x%x, "
-			"have 0x%x.",
-			par->id, par->label,
-			par->videostd_set, videostd_set);
+		      "Service 0x%08x (%s) requires "
+		      "videostd_set 0x%lx, "
+		      "have 0x%lx.",
+		      par->id, par->label,
+		      (unsigned long) par->videostd_set,
+		      (unsigned long) videostd_set);
 		return FALSE;
 	}
 
@@ -457,8 +458,8 @@ _vbi_sampling_par_from_services_log
 		    || ((VBI_VIDEOSTD_SET_525_60 & videostd_set_req)
 			&& (VBI_VIDEOSTD_SET_625_50 & videostd_set_req))) {
 			warning (log,
-				 "Ambiguous videostd_set 0x%x.",
-				 videostd_set_req);
+				 "Ambiguous videostd_set 0x%lx.",
+				 (unsigned long) videostd_set_req);
 			CLEAR (*sp);
 			return 0;
 		}
@@ -506,11 +507,12 @@ _vbi_sampling_par_from_services_log
 
 		if (0 == (par->videostd_set & videostd_set)) {
 			info (log,
-				"Service 0x%08x (%s) requires "
-				"videostd_set 0x%x, "
-				"have 0x%x.",
-				par->id, par->label,
-				par->videostd_set, videostd_set);
+			      "Service 0x%08x (%s) requires "
+			      "videostd_set 0x%lx, "
+			      "have 0x%lx.",
+			      par->id, par->label,
+			      (unsigned long) par->videostd_set,
+			      (unsigned long) videostd_set);
 			continue;
 		}
 
