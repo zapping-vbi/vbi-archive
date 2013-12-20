@@ -1,3 +1,26 @@
+2013-12-20    <mschimek@users.sf.net>
+
+	* configure.in: Added a replacement for AC_PATH_XTRA when cross
+	  compiling. Disable check scripts when cross compiling. New pthread
+	  check for MinGW compatibility. Do not build the VBI proxy if
+	  we do not build the V4L interface.
+
+	* src/dvb_demux.c (decode_timestamp): Disabled check to work
+	  around invalid mark transmitted on Dantoto Racing found by
+	  Devrim Ayyildiz.
+
+	* src/caption.c (caption_command): SF bug #195: Mid-row codes
+	  are set-at spacing attributes. Backgr. Attr. codes ditto.
+
+	* contrib/zvbi-atsc-cc.1, contrib/atsc-cc.c: Added a stream
+	  relative timestamp option.
+
+	* contrib/atsc-cc.c (cc_format_row): Bug fix: Ignored background
+	  attribute codes and printed a zero byte in their place.
+	(cc_feed): Bug fix: Did not separate XDS data from CC
+	  channel 3 & 4.
+	(decode_cc_data): Bug fix: Crashed if no data on some frames.
+
 2013-08-28    <mschimek@users.sf.net>
 
 	* Release 0.2.35.
