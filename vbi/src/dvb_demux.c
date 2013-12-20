@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: dvb_demux.c,v 1.24 2013-07-10 23:12:35 mschimek Exp $ */
+/* $Id: dvb_demux.c,v 1.25 2013-12-20 16:31:43 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -1346,7 +1346,9 @@ decode_timestamp		(vbi_dvb_demux *	dx,
 	if (mark != (p[0] & 0xF1u)) {
 		debug2 (&dx->frame.log,
 			"Invalid PTS/DTS byte[0]=0x%02x.", p[0]);
-		return FALSE;
+		/* Check disabled to work around invalid mark 0xF1
+		   transmitted instead of 0x21 on Dantoto Racing. */
+		/* return FALSE; */
 	}
 
 	t  = p[1] << 22;
