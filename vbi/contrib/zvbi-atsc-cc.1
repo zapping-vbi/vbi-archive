@@ -152,7 +152,18 @@ or vertically printed text.
 .IP "\fB\-b\fP \fB\-\-no-webtv\fP"
 Do not print WebTV links.
 .IP "\fB\-m\fP \fB\-\-timestamps\fP"
-Prepend timestamps (YYYYMMDDHHMMSS) to caption lines.
+Prepend timestamps YYYYMMDDHHMMSS to caption lines. This is the
+system time in the UTC timezone when the text was captured,
+specifically the Carriage Return or Pop-On code responsible for
+printing the line.
+.IP "\fB\-S\fP \fB\-\-stream-time\fP"
+.PD 0
+.IP "\fB\-S\fPdate \fB\-\-stream-time\fP=date"
+.PD
+Prepend timestamps YYYYMMDDHHMMSS to caption lines generated from
+the timestamps transmitted in the video stream. If date is given,
+also in the format YYYYMMDDHHMMSS, it will be added to the timestamps,
+otherwise the counter starts at 0001-01-01 00:00:00.
 .IP "\fB\-s\fP \fB\-\-sentences\fP"
 Print caption one sentence at a time.
 .IP "\fB\-j\fP type"
@@ -200,6 +211,8 @@ zvbi-atsc-cc --cc1-file wnyw.txt WNYW-DT --cc1-file wwor.txt WWOR-DT
 (NJN-HD, WNYW-DT and WWOR-DT are TV stations in New York. WNYW-DT
 and WWOR-DT can be captured simultaneously because they share a
 transponder frequency.)
+.P
+zvbi-atsc-cc --atsc --ts -c CNN < recorded-from-cnn.ts
 .fi
 .SH FILES
 .I $HOME/.azap/channels.conf
