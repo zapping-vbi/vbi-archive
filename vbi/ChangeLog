@@ -1,3 +1,8 @@
+2014-02-18    <mschimek@users.sf.net>
+
+	* src/packet.c (parse_28_29): SF bug #198: Faulty logic in
+	  TTX Level 2.5, 3.5 DRCS download page parser.
+
 2013-12-20    <mschimek@users.sf.net>
 
 	* configure.in: Added a replacement for AC_PATH_XTRA when cross
