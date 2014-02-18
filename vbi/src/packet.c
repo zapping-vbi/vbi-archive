@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: packet.c,v 1.33 2013-08-28 14:45:12 mschimek Exp $ */
+/* $Id: packet.c,v 1.34 2014-02-18 16:56:03 mschimek Exp $ */
 
 #include "site_def.h"
 
@@ -2069,7 +2069,7 @@ parse_28_29(vbi_decoder *vbi, uint8_t *p,
 		coding = get_bits (&bs, 3); /* page coding ignored */
 
 		if (function != PAGE_FUNCTION_GDRCS
-		    || function != PAGE_FUNCTION_DRCS)
+		    && function != PAGE_FUNCTION_DRCS)
 			return FALSE;
 
 		if (cvtp->function == PAGE_FUNCTION_UNKNOWN) {
