@@ -1,3 +1,9 @@
+2016-02-08    <mschimek@users.sf.net>
+
+	* src/lang.c (vbi_teletext_composed_unicode): Bug fix, SF patch #17
+	  by Stefan Pöschel. Display at sign instead of asterisk if invoked
+	  by X/26 triplet 0x10 'G0 character without diacritical mark'.
+
 2014-02-18    <mschimek@users.sf.net>
 
 	* src/packet.c (parse_28_29): SF bug #198: Faulty logic in
