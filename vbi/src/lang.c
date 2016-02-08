@@ -19,7 +19,7 @@
  *  Boston, MA  02110-1301  USA.
  */
 
-/* $Id: lang.c,v 1.17 2013-07-10 11:37:03 mschimek Exp $ */
+/* $Id: lang.c,v 1.18 2016-02-08 07:30:48 mschimek Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -522,9 +522,14 @@ composed[12 * 16] = {
  * @param a Accent 0 ... 15.
  * @param c Character code in range 0x20 ... 0x7F.
  * 
- * Translate Teletext Latin G1 character 0x20 ... 0x7F combined
+ * Translate Teletext Latin G0 character 0x20 ... 0x7F combined
  * with accent code from Latin G2 0x40 ... 0x4F to Unicode. Not all
  * combinations are representable in Unicode.
+ *
+ * @bug
+ * Since version 0.2.36 if @a a equals zero (no diacritical mark) this
+ * function replaces character U+002A in the Latin G0 set by U+0040
+ * in accordance with EN 300 706 V1.2.1 Table 35 Note 3.
  *
  * @return
  * Unicode value or 0.
@@ -537,8 +542,12 @@ vbi_teletext_composed_unicode(unsigned int a, unsigned int c)
 	assert(a <= 15);
 	assert(c >= 0x20 && c <= 0x7F);
 
-	if (a == 0)
+	if (a == 0) {
+		if (c == 0x2A)
+			return 0x0040u;
+
 		return vbi_teletext_unicode(LATIN_G0, NO_SUBSET, c);
+	}
 
 	c += a << 12;
 
