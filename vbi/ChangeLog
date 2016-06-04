@@ -1,3 +1,12 @@
+2016-06-04    <mschimek@users.sf.net>
+
+	* src/wstfont2.xbm: Fixed the glyph for U+0111 Latin small letter
+	  d with stroke, which exceeded its bounding box, applying SF
+	  patch #18 by Stefan Pöschel. Also fixed the italicized glyphs for
+	  the same character, U+00A9 Copyright sign, U+00AE Registered sign,
+	  U+00B6 Pilcrow sign, U+00F0 Latin small letter eth, and U+0374
+	  Greek numeral sign.
+
 2016-02-08    <mschimek@users.sf.net>
 
 	* src/lang.c (vbi_teletext_composed_unicode): Bug fix, SF patch #17
