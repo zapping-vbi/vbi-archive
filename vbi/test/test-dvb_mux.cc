@@ -19,7 +19,7 @@
  *  MA 02110-1301, USA.
  */
 
-/* $Id: test-dvb_mux.cc,v 1.6 2008-03-01 07:36:04 mschimek Exp $ */
+/* $Id: test-dvb_mux.cc,v 1.7 2017-03-18 15:08:55 mschimek Exp $ */
 
 #undef NDEBUG
 
@@ -137,7 +137,7 @@ is_good_service			(vbi_service_set	service)
 static const vbi_service_set
 all_services [] = {
 	0,
-	-1,
+	(vbi_service_set) -1,
 	VBI_SLICED_2xCAPTION_525,
 	VBI_SLICED_CAPTION_525,
 	VBI_SLICED_CAPTION_525_F1,
@@ -3237,7 +3237,7 @@ static void
 test_dvb_mux_cor_pts (void)
 {
 	static const int64_t ptss [] = {
-		0x8000000000000000ll, -1, 0, 0x7FFFFFFFFFFFFFFFll,
+		(int64_t) 0x8000000000000000ll, -1, 0, 0x7FFFFFFFFFFFFFFFll,
 	};
 	DVBPESMuxTest mx;
 	unsigned int i;
