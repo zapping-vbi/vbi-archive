@@ -1,3 +1,8 @@
+2017-03-18    <mschimek@users.sf.net>
+
+	* test/test-dvb_mux.cc: Silence gcc 6 warnings, SF patch #16 by
+	  Pyro.
+
 2016-10-17    <mschimek@users.sf.net>
 
 	* test/test-pdc.h: Fixed operator equal, SF bug #202.
