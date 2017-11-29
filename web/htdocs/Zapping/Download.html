@@ -13,7 +13,7 @@
           </ul>
         </li>
         <li><a href="#Source_Code">Source Code</a></li>
-        <li><a href="#Anonymous_CVS_Access">Anonymous CVS Access</a></li>
+        <li><a href="#Anonymous_SVN_Access">Anonymous SVN Access</a></li>
       </ul>
     </div>
 
@@ -78,70 +78,40 @@ apt-get install zapping
     <p>See the <a href="/Zapping/CompileAndInstall.html">Compile and Install</a>
     page for further instructions.</p>
 
-    <h2><a name="Anonymous_CVS_Access"></a> Anonymous CVS
+    <h2><a name="Anonymous_SVN_Access"></a> Anonymous SVN
     Access</h2>
 
     <p>To get the latest development version of Zapping you can
-    access the CVS server anonymously.</p>
+    access the SVN server anonymously.</p>
 
-    <p><strong>Step 1</strong>: Set the <code>$CVSROOT</code>
-    environment variable. For sh/ksh/bash:</p>
-<pre class="userinput">
-export CVSROOT=:pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping
-</pre>
-
-    <p>For csh/tcsh:</p>
-<pre class="userinput">
-setenv CVSROOT :pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping
-</pre>
-
-    <p>If you don't want to set <code>$CVSROOT</code> you can use
-    the cvs -d option:</p>
-<pre class="userinput">
-cvs -d :pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping <i>command</i>
-</pre>
-
-    <p><strong>Step 2</strong>: To log in to the Zapping CVS server
-    type the following. When asked for a password just press
-    enter.</p>
-<pre class="userinput">
-cvs login
-</pre>
-
-    <p><strong>Step 3</strong>: To download the latest version of
+    <p><strong>Step 1</strong>: To download the latest version of
     Zapping type:</p>
 <pre class="userinput">
-cvs co zapping
+svn checkout https://svn.code.sf.net/p/zapping/svn/trunk/zapping zapping
 </pre>
 
-    <p>You can request another version or development branch using
-    the <code>co -r TAG MODULE</code> notation. This command for
+    <p>You can request another version or development branch by replacing
+    <code>trunk</code> with the appropriate tag. This command for
     example requests Zapping version 0.7:</p>
 <pre class="userinput">
-cvs co -r zapping-0-7 zapping
+svn checkout https://svn.code.sf.net/p/zapping/svn/<strong>tags/zapping-0-7</strong>/zapping zapping
 </pre>
 
     <p>Other modules besides zapping are <code>vbi</code>
     containing the zvbi library and <code>rte</code> containing the
-    rte library and mp1e. To find out which tags are available you
-    can use the <code>cvs status</code> command or <a href=
-    "http://zapping.cvs.sourceforge.net/zapping/">browse the CVS repository</a>. Select a module and open
-    the tag menu at the bottom of the page.</p>
+    rte library and mp1e. To find out which tags and branches are available you
+    can <a href="https://sourceforge.net/p/zapping/svn/HEAD/tree/">browse the SVN repository</a>.</p>
 
     <p>From now on you can type</p>
 <pre class="userinput">
-cvs update -d -P
+svn update
 </pre>
+    <p>in the "zapping" directory to retrieve the latest changes.</p>
 
-    <p>to update your copy of the CVS repository. As before,
-    <code>-r</code> will choose a particular version or branch and
-    <code>-A</code> the latest version.</p>
-    
-    <p>If you would like to learn more about CVS, see the CVS
-    info or manual pages or visit the <a href="http://www.cvshome.org/"
-    target="_top">CVS web site</a>.</p>
+    <p>If you would like to learn more about Subversion, see the SVN
+    info or manual pages or visit the <a href="https://subversion.apache.org/">Subversion web site</a>.</p>
 
-    <p><strong>Step 4</strong>: Prior to the first compilation
+    <p><strong>Step 2</strong>: Prior to the first compilation
     run</p>
 <pre class="userinput">
 ./autogen.sh --prefix=/usr
@@ -160,4 +130,3 @@ cvs update -d -P
     "mailto:mschimek@users.sourceforgeN0SPAM.net">mschimek@users.sourceforgeN0SPAM.net</a>.</p>
   </body>
 </html>
-

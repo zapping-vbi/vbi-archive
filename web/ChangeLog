@@ -1,3 +1,7 @@
+2017-11-29    <mschimek@users.sf.net>
+
+	* Switched from CVS to SVN as Sourceforge ends CVS support.
+
 2013-07-11    <mschimek@users.sf.net>
 
 	* htdocs/Zapping/News.html: Libzvbi 0.2.34 released.

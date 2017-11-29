@@ -1,7 +1,7 @@
 #!/bin/sh
 # $Id: prepare_dox.sh,v 1.13 2013-07-10 04:16:56 mschimek Exp $
 #
-# Arguments: cvs_module subdir
+# Arguments: svn_module subdir
 #
 # This checks out a copy of the module, runs doxygen, puts
 # the generated files online under subdir and cleans up.
@@ -16,7 +16,7 @@ umask 006
 
 cd /home/project-web/zapping
 
-cvs -d:pserver:anonymous@zapping.cvs.sourceforge.net:/cvsroot/zapping co $1
+svn checkout https://svn.code.sf.net/p/zapping/svn/trunk/$1 $1
 
 # Generate documentation.
 cd $1/doc

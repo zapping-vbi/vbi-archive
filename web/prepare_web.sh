@@ -1,7 +1,7 @@
 #!/bin/sh
 # $Id: prepare_web.sh,v 1.29 2013-07-10 04:17:00 mschimek Exp $
 #
-# Updates our HTML pages from our web CVS module, puts the files
+# Updates our HTML pages from our web SVN module, puts the files
 # online and cleans up. See the README file for usage instructions.
 
 (
@@ -15,7 +15,7 @@ umask 007
 
 cd /home/project-web/zapping
 
-cvs update -ko -dPA
+svn update
 
 chmod a+rX cgi-bin
 cd cgi-bin

@@ -3,65 +3,42 @@
 <h1><a name="Download"></a>Download</h1>
 <div class="twikiToc">
 <ul>
-<li> <a href="#Requirements">Requirements</a>
-</li>
-<li> <a href="#Binaries">Binaries</a>
-</li>
-<li> <a href="#Source_Code">Source Code</a>
-</li>
-<li> <a href="#Anonymous_CVS_Access">Anonymous CVS Access</a>
-</li>
+<li><a href="#Requirements">Requirements</a></li>
+<li><a href="#Binaries">Binaries</a></li>
+<li><a href="#Source_Code">Source Code</a></li>
+<li><a href="#Anonymous_SVN_Access">Anonymous SVN Access</a></li>
 </ul>
 </div>
-<p></p><hr>
-<p></p><h2><a name="Requirements"></a>Requirements</h2>
-<p></p><ul>
-<li>To compile you will need GCC, Perl, the standard Unix tools, <a href="http://www.doxygen.org/">Doxygen</a> if you want to generate documentation.</li>
-<li> At runtime the library needs libpng and Posix threads (will be
-removed in the next major version).</li>
+<hr>
+<h2><a name="Requirements"></a>Requirements</h2>
+<ul>
+<li>To compile the library you will need GCC, Perl, the standard Unix tools, and
+<a href="http://www.doxygen.org/">Doxygen</a> if you want to generate documentation.</li>
+<li>At runtime the library needs libpng and Posix threads.</li>
 </ul>
 <p>The library has been tested on Linux and FreeBSD.</p>
-<p></p><h2><a name="Binaries"></a>Binaries</h2>
+<h2><a name="Binaries"></a>Binaries</h2>
 <p>If possible you should use binaries which have been created for
-your distribution. Since <a
-href="http://linux.bytesex.org/xawtv/">XawTV</a> requires libzvbi
-nearly all distros should have it.</p>
-<p></p><h2><a name="Source_Code"></a>Source Code</h2>
-<p>You can download the latest version of libzvbi from our <a href="http://sourceforge.net/projects/zapping">Sourceforge project page</a>.</p><p></p><h2><a name="Anonymous_CVS_Access"></a>Anonymous CVS Access</h2>
-<p>To get the latest development version of libzvbi you can access the CVS
-server anonymously. If you are unfamiliar with using the CVS utility
-and the CVS commands go to the <a href="http://www.cvshome.org/">CVS web site</a> for further information.
-</p><p>
-<strong>Step 1</strong>: Set the <code>$CVSROOT</code> environment variable. For sh/ksh/bash:
-</p><p>
-</p><pre class="userinput">export CVSROOT=:pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping</pre>
-<p>
-For csh/tcsh:
-</p><p>
-</p><pre class="userinput">setenv CVSROOT :pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping</pre>
-<p>
-If you don't want to set <code>$CVSROOT</code> you can use the cvs -d option:
-</p><p>
-</p><pre class="userinput">cvs -d :pserver:anonymous@zapping.cvs.sf.net:/cvsroot/zapping login etc</pre>
-<p>
-<strong>Step 2</strong>: To log in to the Zapping CVS server type the following. When asked for a password just press enter.
-</p><p>
-</p><pre class="userinput">cvs login</pre>
-<p>
-<strong>Step 3</strong>: To download the latest version of libzvbi type:
-</p><p>
-</p><pre class="userinput">cvs co vbi</pre>
-<p>
-You can request another version or development branch using the <code>co -r TAG MODULE</code> notation. This command for example requests libzvbi version 0.2.8:
-</p><p>
-</p><pre class="userinput">cvs co -r zvbi-0-2-8 vbi</pre>
-<p>To find out which tags are available you can use the <code>cvs status</code> command or <a href="http://zapping.cvs.sourceforge.net/zapping/">browse the CVS repository</a>. Select a module and open the tag menu at the bottom of the page.
-</p><p>From now on you can type</p><p>
-</p><pre class="userinput">cvs update -d -P</pre>
-<p>in the respective source directory to update your copy of the CVS repository. As before, <code>-r</code> will choose a particular version or branch and <code>-A</code> the latest version.</p><p>
-<strong>Step 4</strong>: Prior to the first compilation run</p><p>
+your distribution. On Debian for example you can try:</p>
+<pre class="userinput">apt-get install zvbi</pre>
+<h2><a name="Source_Code"></a>Source Code</h2>
+<p>You can download the latest version of libzvbi from our <a href="http://sourceforge.net/projects/zapping">Sourceforge project page</a>.</p>
+<h2><a name="Anonymous_SVN_Access"></a>Anonymous SVN Access</h2>
+<p>To get a development version of libzvbi you can access the SVN
+server anonymously. If you are unfamiliar with SVN you can find more information on
+the <a href="https://subversion.apache.org/">Subversion web site</a>.</p>
+<p><strong>Step 1</strong>: To download the latest version of libzvbi type:</p>
+<pre class="userinput">svn checkout https://svn.code.sf.net/p/zapping/svn/trunk/vbi vbi</pre>
+<p>You can also check out a particular version by replacing <code>trunk</code> with the approriate tag. This
+command for example requests libzvbi version 0.2.8:</p>
+<pre class="userinput">svn checkout https://svn.code.sf.net/p/zapping/svn/<strong>tags/zvbi-0-2-8</strong>/vbi vbi</pre>
+<p>To find out which tags and branches are available you can <a href="https://sourceforge.net/p/zapping/svn/HEAD/tree/">
+browse the SVN repository</a>.</p>
+<p>From now on you can type</p>
+</p><pre class="userinput">svn update</pre>
+<p>in the "vbi" directory to retrieve the latest changes.</p>
+<p><strong>Step 2</strong>: Prior to the first compilation run</p>
 </p><pre class="userinput">./autogen.sh</pre><p>to create missing configuration files. You will need several GNU build
-tools. The autogen.sh script tells you if any are missing or too old.</p><p>
-<strong>Problems?</strong> Contact <a href="mailto:mschimek@users.sourceforgeN0SPAM.net">mschimek@users.sourceforgeN0SPAM.net</a>.
-</p>
+tools. The autogen.sh script tells you if any are missing or too old.</p>
+<p><strong>Problems?</strong> Contact <a href="mailto:mschimek@users.sourceforgeN0SPAM.net">mschimek@users.sourceforgeN0SPAM.net</a>.</p>
 </body></html>
